@@ -128,22 +128,26 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         .collect(Collectors.joining(" "));
   }
 
-    public FunArray adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
-      var newBounds = new ArrayList<>(bounds.stream()
-              .map(b -> b.adaptForChangedVariableValues(changedVariable, expressions))
-              .toList());
-      var newValues = new ArrayList<>(values);
-      var newEmptiness = new ArrayList<>(emptiness);
+  public FunArray adaptToVariableAssignment(
+      CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
+    var newBounds =
+        new ArrayList<>(
+            bounds.stream()
+                .map(b -> b.adaptForChangedVariableValues(changedVariable, expressions))
+                .toList());
+    var newValues = new ArrayList<>(values);
+    var newEmptiness = new ArrayList<>(emptiness);
 
-      return new FunArray(newBounds, newValues, newEmptiness);
-    }
+    return new FunArray(newBounds, newValues, newEmptiness);
+  }
 
-    public FunArray removeVariableOccurrences(CIdExpression removeVariable) {
-      return new FunArray(
-              bounds.stream().map(b -> b.removeVariableOccurrences(removeVariable)).toList(),
-              values, emptiness
-      ).removeEmptyBounds();
-    }
+  public FunArray removeVariableOccurrences(CIdExpression removeVariable) {
+    return new FunArray(
+            bounds.stream().map(b -> b.removeVariableOccurrences(removeVariable)).toList(),
+            values,
+            emptiness)
+        .removeEmptyBounds();
+  }
 
   public FunArray restrictExpressionOccurrences(Set<NormalFormExpression> allowedExpressions) {
     var newBounds = bounds.stream().map(b -> b.intersection(allowedExpressions)).toList();
@@ -169,7 +173,8 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
-  public FunArray insert(NormalFormExpression index, Interval value, ExpressionValueVisitor visitor) {
+  public FunArray insert(
+      NormalFormExpression index, Interval value, ExpressionValueVisitor visitor) {
     return insert(ImmutableSet.of(index), value, visitor);
   }
 
@@ -180,14 +185,13 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param value the value to be inserted.
    * @return the modified Segmentation.
    */
-  public FunArray insert(Set<NormalFormExpression> indeces, Interval value, ExpressionValueVisitor visitor) {
+  public FunArray insert(
+      Set<NormalFormExpression> indeces, Interval value, ExpressionValueVisitor visitor) {
     if (indeces.isEmpty()) {
       return this;
     }
     var trailingIndeces =
-        indeces.stream()
-            .map(e -> e.add(1L))
-            .collect(ImmutableSet.toImmutableSet());
+        indeces.stream().map(e -> e.add(1L)).collect(ImmutableSet.toImmutableSet());
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
@@ -298,7 +302,8 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param expression the expression
    * @return the calculated index
    */
-  private int getRightmostLowerBoundIndex(NormalFormExpression expression, ExpressionValueVisitor visitor) {
+  private int getRightmostLowerBoundIndex(
+      NormalFormExpression expression, ExpressionValueVisitor visitor) {
     int greatestLowerBoundIndex = 0;
     for (int i = 0; i <= bounds.size() - 1; i++) {
       if (bounds.get(i).contains(e -> isLessEqualThan(e, expression, visitor))) {
@@ -335,7 +340,8 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param expression the expression
    * @return the calculated index
    */
-  private int getLeastUpperBoundIndex(NormalFormExpression expression, ExpressionValueVisitor visitor) {
+  private int getLeastUpperBoundIndex(
+      NormalFormExpression expression, ExpressionValueVisitor visitor) {
     int leastUpperBoundIndex = bounds.size() - 1;
     for (int i = bounds.size() - 1; i >= 0; i--) {
       if (bounds.get(i).contains(e -> isGreaterEqualThan(e, expression, visitor))) {
@@ -378,48 +384,45 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   private Set<NormalFormExpression> getExpressionsInIncorrectOrder(FunArray other) {
 
-    Set<NormalFormExpression> expressions = this.bounds.stream()
-        .flatMap(b -> b.expressions().stream())
-        .filter(
-            e -> other.bounds.stream()
-                .anyMatch(b -> b.contains(e))
-        ).collect(Collectors.toSet());
+    Set<NormalFormExpression> expressions =
+        this.bounds.stream()
+            .flatMap(b -> b.expressions().stream())
+            .filter(e -> other.bounds.stream().anyMatch(b -> b.contains(e)))
+            .collect(Collectors.toSet());
 
     Map<NormalFormExpression, Integer> expressionIndicesThis =
         IntStream.range(0, this.bounds.size())
             .boxed()
-            .flatMap(i ->
-                this.bounds.get(i).expressions().stream()
-                    .map(e -> Map.entry(e, i))
-            ).collect(
-                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
-            );
+            .flatMap(i -> this.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     Map<NormalFormExpression, Integer> expressionIndicesOther =
         IntStream.range(0, other.bounds.size())
             .boxed()
-            .flatMap(i ->
-                other.bounds.get(i).expressions().stream()
-                    .map(e -> Map.entry(e, i))
-            ).collect(
-                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
-            );
+            .flatMap(i -> other.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    List<NormalFormExpression> sortedExpressions = expressions.stream().sorted(
-        Comparator.comparingInt(expressionIndicesThis::get)
-            .thenComparingInt(expressionIndicesOther::get)
-    ).toList();
+    List<NormalFormExpression> sortedExpressions =
+        expressions.stream()
+            .sorted(
+                Comparator.comparingInt(expressionIndicesThis::get)
+                    .thenComparingInt(expressionIndicesOther::get))
+            .toList();
 
-    Set<NormalFormExpression> notInOrder = IntStream.range(0, sortedExpressions.size() - 1)
-        .boxed()
-        .flatMap(i -> {
-          NormalFormExpression expression = sortedExpressions.get(i);
-          NormalFormExpression nextExpression = sortedExpressions.get(i + 1);
-          if (expressionIndicesOther.get(expression) > expressionIndicesOther.get(nextExpression)) {
-            return Stream.of(expression, nextExpression);
-          }
-          return Stream.of();
-        }).collect(Collectors.toSet());
+    Set<NormalFormExpression> notInOrder =
+        IntStream.range(0, sortedExpressions.size() - 1)
+            .boxed()
+            .flatMap(
+                i -> {
+                  NormalFormExpression expression = sortedExpressions.get(i);
+                  NormalFormExpression nextExpression = sortedExpressions.get(i + 1);
+                  if (expressionIndicesOther.get(expression)
+                      > expressionIndicesOther.get(nextExpression)) {
+                    return Stream.of(expression, nextExpression);
+                  }
+                  return Stream.of();
+                })
+            .collect(Collectors.toSet());
 
     return notInOrder;
   }
@@ -564,10 +567,10 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return unifyOperation(Interval::intersect, other, unknown, unknown);
   }
 
-    public FunArray widen(FunArray other) {
-      Interval unreachable = Interval.EMPTY;
-      return unifyOperation(Interval::widen, other, unreachable, unreachable);
-    }
+  public FunArray widen(FunArray other) {
+    Interval unreachable = Interval.EMPTY;
+    return unifyOperation(Interval::widen, other, unreachable, unreachable);
+  }
 
   //  public FunArray narrow(FunArray other, Interval unknown) {
   //    return unifyOperation(Interval::narrow, other, unknown, unknown);
@@ -608,11 +611,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // Condition states that left expression is less than right expression
       // --> Condition cannot be satisfied --> Remove expressions in question
 
-      var newBounds = this.bounds().stream()
-          .map(b -> b.difference(Set.of(lesser, greater)))
-          .toList();
-      return new FunArray(newBounds, this.values(), this.emptiness())
-          .removeEmptyBounds();
+      var newBounds =
+          this.bounds().stream().map(b -> b.difference(Set.of(lesser, greater))).toList();
+      return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     }
   }
 
@@ -637,11 +638,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // Bound order states that left expression is greater than right expression
       // Condition states that left expression is less equal than right expression
       // --> Condition cannot be satisfied --> Remove expressions in question
-      var newBounds = modifiedBounds.stream()
-          .map(b -> b.difference(Set.of(lesser, greater)))
-          .toList();
-      return new FunArray(newBounds, this.values(), this.emptiness())
-          .removeEmptyBounds();
+      var newBounds =
+          modifiedBounds.stream().map(b -> b.difference(Set.of(lesser, greater))).toList();
+      return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     } else {
       // Bound order states that left expression is greater equal than right expression
       // Condition states that left expression is less equal than right expression
@@ -657,24 +656,30 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       return new FunArray(modifiedBounds, modifiedValues, modifiedEmptiness);
     }
   }
-  //TODO: Satisfy equal and not equal
+
+  // TODO: Satisfy equal and not equal
 
   @Override
   public boolean isLessOrEqual(FunArray other) {
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
 
-    boolean valuesLessThan = IntStream.range(0, unifyResult.resultThis.values.size())
-        .allMatch(i ->
-            unifyResult.resultThis.values.get(i)
-                .abstractLatticeIsLessEqualThan(unifyResult.resultOther.values.get(i))
-        );
+    boolean valuesLessThan =
+        IntStream.range(0, unifyResult.resultThis.values.size())
+            .allMatch(
+                i ->
+                    unifyResult
+                        .resultThis
+                        .values
+                        .get(i)
+                        .abstractLatticeIsLessEqualThan(unifyResult.resultOther.values.get(i)));
 
-    boolean emptinessLessThan = IntStream.range(0, unifyResult.resultThis.values.size())
-        .allMatch(i ->
-            unifyResult.resultThis.emptiness.get(i) || !unifyResult.resultOther.emptiness.get(i)
-        );
+    boolean emptinessLessThan =
+        IntStream.range(0, unifyResult.resultThis.values.size())
+            .allMatch(
+                i ->
+                    unifyResult.resultThis.emptiness.get(i)
+                        || !unifyResult.resultOther.emptiness.get(i));
 
     return valuesLessThan && emptinessLessThan;
-
   }
 }

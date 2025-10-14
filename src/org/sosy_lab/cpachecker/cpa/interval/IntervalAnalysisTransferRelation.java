@@ -104,7 +104,8 @@ public class IntervalAnalysisTransferRelation
     IntervalAnalysisState newState = state;
     Optional<CVariableDeclaration> retVar = cfaEdge.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
-      newState = newState.removeInterval(retVar.orElseThrow().getQualifiedName(), cfaEdge.getSuccessor());
+      newState =
+          newState.removeInterval(retVar.orElseThrow().getQualifiedName(), cfaEdge.getSuccessor());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -158,7 +159,8 @@ public class IntervalAnalysisTransferRelation
       // get value of actual parameter in caller function context
       Interval interval = arguments.get(i).accept(new ExpressionValueVisitor(state, callEdge));
       String formalParameterName = parameters.get(i).getQualifiedName();
-      newState = newState.addInterval(formalParameterName, interval, threshold, callEdge.getSuccessor());
+      newState =
+          newState.addInterval(formalParameterName, interval, threshold, callEdge.getSuccessor());
     }
 
     return ImmutableSet.of(newState);
@@ -183,7 +185,8 @@ public class IntervalAnalysisTransferRelation
           newState.addInterval(
               ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
               ass.getRightHandSide().accept(new ExpressionValueVisitor(state, returnEdge)),
-              threshold, returnEdge.getSuccessor());
+              threshold,
+              returnEdge.getSuccessor());
     }
 
     return ImmutableSet.of(newState);
@@ -239,24 +242,35 @@ public class IntervalAnalysisTransferRelation
                 operator.getSwitchOperandsSidesLogicalOperator(),
                 operand1.accept(visitor))
                 .stream())
-        .map(e -> {
-          Set<NormalFormExpression> operand1Normalization;
-          Set<NormalFormExpression> operand2Normalization;
-          try {
-            operand1Normalization = normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
-            operand2Normalization = normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
-          } catch (UnrecognizedCodeException ignored) {
-            return e;
-          }
+        .map(
+            e -> {
+              Set<NormalFormExpression> operand1Normalization;
+              Set<NormalFormExpression> operand2Normalization;
+              try {
+                operand1Normalization =
+                    normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
+                operand2Normalization =
+                    normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
+              } catch (UnrecognizedCodeException ignored) {
+                return e;
+              }
 
-          return switch (operator) {
-            case LESS_THAN -> e.satisfyStrictLessThan(operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-            case LESS_EQUAL -> e.satisfyLessEqual(operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-            case GREATER_THAN -> e.satisfyStrictLessThan(operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
-            case GREATER_EQUAL -> e.satisfyLessEqual(operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
-            default -> e;
-          };
-        })
+              return switch (operator) {
+                case LESS_THAN ->
+                    e.satisfyStrictLessThan(
+                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+                case LESS_EQUAL ->
+                    e.satisfyLessEqual(
+                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+                case GREATER_THAN ->
+                    e.satisfyStrictLessThan(
+                        operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
+                case GREATER_EQUAL ->
+                    e.satisfyLessEqual(
+                        operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
+                default -> e;
+              };
+            })
         .collect(ImmutableList.toImmutableList());
   }
 
@@ -355,7 +369,8 @@ public class IntervalAnalysisTransferRelation
       interval = Interval.UNBOUND;
     }
 
-    return state.addInterval(decl.getQualifiedName(), interval, threshold, declarationEdge.getSuccessor());
+    return state.addInterval(
+        decl.getQualifiedName(), interval, threshold, declarationEdge.getSuccessor());
   }
 
   private IntervalAnalysisState handleArrayVariableDeclarationEdge(
@@ -365,14 +380,14 @@ public class IntervalAnalysisTransferRelation
     if (decl.getInitializer() instanceof CInitializerList initializerList) {
       return state.addArray(
           decl.getQualifiedName(),
-          FunArray.ofInitializerList(initializerList.getInitializers(), visitor), declarationEdge.getSuccessor());
+          FunArray.ofInitializerList(initializerList.getInitializers(), visitor),
+          declarationEdge.getSuccessor());
     } else if (decl.getType() instanceof CArrayType arrayType) {
-      Set<NormalFormExpression> normalFormLengthExpressions = ImmutableSet.<NormalFormExpression>builder()
-          .addAll(
-              normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor)
-          ).addAll(
-              normalizeExpression(arrayType.getLength(), visitor)
-          ).build();
+      Set<NormalFormExpression> normalFormLengthExpressions =
+          ImmutableSet.<NormalFormExpression>builder()
+              .addAll(normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor))
+              .addAll(normalizeExpression(arrayType.getLength(), visitor))
+              .build();
       FunArray simpleArray = new FunArray(normalFormLengthExpressions);
       return state.addArray(decl.getQualifiedName(), simpleArray, declarationEdge.getSuccessor());
     }
@@ -390,8 +405,10 @@ public class IntervalAnalysisTransferRelation
   private static CExpression getNonWrappedExpression(CExpression wrappedExpression) {
     try {
       CIdExpression idExpression = (CIdExpression) wrappedExpression;
-      CVariableDeclaration variableDeclaration = (CVariableDeclaration) idExpression.getDeclaration();
-      CInitializerExpression initizalizer = (CInitializerExpression) variableDeclaration.getInitializer();
+      CVariableDeclaration variableDeclaration =
+          (CVariableDeclaration) idExpression.getDeclaration();
+      CInitializerExpression initizalizer =
+          (CInitializerExpression) variableDeclaration.getInitializer();
       return initizalizer.getExpression();
     } catch (ClassCastException e) {
       return wrappedExpression;
@@ -416,9 +433,14 @@ public class IntervalAnalysisTransferRelation
       if (rightHandSide instanceof CExpression rightHandSideExpression) {
         return ImmutableSet.of(assign(assignee, rightHandSideExpression, cfaEdge));
       } else {
-        return ImmutableSet.of(assign(assignee, assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge)), cfaEdge));
+        return ImmutableSet.of(
+            assign(
+                assignee,
+                assignExpression
+                    .getRightHandSide()
+                    .accept(new ExpressionValueVisitor(state, cfaEdge)),
+                cfaEdge));
       }
-
     }
     return ImmutableSet.of();
   }
@@ -426,23 +448,37 @@ public class IntervalAnalysisTransferRelation
   private IntervalAnalysisState assign(CExpression assignee, CExpression value, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
     if (assignee instanceof CIdExpression id) {
-      IntervalAnalysisState modifiedState = state.adaptToVariableAssignment(id, normalizeExpression(value, new ExpressionValueVisitor(state, cfaEdge)), cfaEdge.getSuccessor());
-      return modifiedState.addInterval(id.getDeclaration().getQualifiedName(), value.accept(new ExpressionValueVisitor(state, cfaEdge)), threshold, cfaEdge.getSuccessor());
+      IntervalAnalysisState modifiedState =
+          state.adaptToVariableAssignment(
+              id,
+              normalizeExpression(value, new ExpressionValueVisitor(state, cfaEdge)),
+              cfaEdge.getSuccessor());
+      return modifiedState.addInterval(
+          id.getDeclaration().getQualifiedName(),
+          value.accept(new ExpressionValueVisitor(state, cfaEdge)),
+          threshold,
+          cfaEdge.getSuccessor());
     }
     return state;
-    //TODO: Erweitern, sodass auch array assignments abgedeckt sind
+    // TODO: Erweitern, sodass auch array assignments abgedeckt sind
   }
 
   private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
     if (assignee instanceof CIdExpression id) {
-      return state.addInterval(id.getDeclaration().getQualifiedName(), value, threshold, cfaEdge.getSuccessor());
+      return state.addInterval(
+          id.getDeclaration().getQualifiedName(), value, threshold, cfaEdge.getSuccessor());
     } else if (assignee instanceof CArraySubscriptExpression arraySubscript) {
       if (arraySubscript.getArrayExpression() instanceof CIdExpression arrayId) {
         String arrayName = arrayId.getDeclaration().getQualifiedName();
         CExpression index = arraySubscript.getSubscriptExpression();
         ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-        return state.assignArrayElement(arrayName, normalizeExpression(index, visitor).stream().findAny().orElseThrow(), value, visitor, cfaEdge.getSuccessor()); //TODO: Dont just pick any normalization at random
+        return state.assignArrayElement(
+            arrayName,
+            normalizeExpression(index, visitor).stream().findAny().orElseThrow(),
+            value,
+            visitor,
+            cfaEdge.getSuccessor()); // TODO: Dont just pick any normalization at random
       }
     }
     return state;

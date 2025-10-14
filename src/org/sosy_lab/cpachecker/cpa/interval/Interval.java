@@ -618,7 +618,6 @@ public final class Interval implements Serializable {
     return new Interval(lower, upper);
   }
 
-
   /**
    * The partial order for the abstract lattice.
    *

@@ -35,39 +35,44 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound adaptForChangedVariableValues(
-      CIdExpression changedVariableId,
-      Set<NormalFormExpression> newValues
-  ) {
-    var modifiedExpressions = expressions.stream().flatMap(
-        expression -> newValues.stream().flatMap(newValue -> {
-          if (expression.containsVariable(newValue.getVariable())) {
-            if (expression.containsVariable(changedVariableId)) {
-              return Stream.of(expression.increase(-newValue.getConstant()));
-            } else {
-              return Stream.of(
-                  expression,
-                  new NormalFormExpression(changedVariableId, expression.getConstant() - newValue.getConstant())
-              );
-            }
-          } else {
-            if (expression.containsVariable(changedVariableId)) {
-              return Stream.of();
-            } else {
-              return Stream.of(expression);
-            }
-          }
-        })
-    ).collect(Collectors.toSet());
+      CIdExpression changedVariableId, Set<NormalFormExpression> newValues) {
+    var modifiedExpressions =
+        expressions.stream()
+            .flatMap(
+                expression ->
+                    newValues.stream()
+                        .flatMap(
+                            newValue -> {
+                              if (expression.containsVariable(newValue.getVariable())) {
+                                if (expression.containsVariable(changedVariableId)) {
+                                  return Stream.of(expression.increase(-newValue.getConstant()));
+                                } else {
+                                  return Stream.of(
+                                      expression,
+                                      new NormalFormExpression(
+                                          changedVariableId,
+                                          expression.getConstant() - newValue.getConstant()));
+                                }
+                              } else {
+                                if (expression.containsVariable(changedVariableId)) {
+                                  return Stream.of();
+                                } else {
+                                  return Stream.of(expression);
+                                }
+                              }
+                            }))
+            .collect(Collectors.toSet());
 
     return new Bound(modifiedExpressions);
   }
 
-    public Bound removeVariableOccurrences(CIdExpression removeVariable) {
-      var modifiedExpressions = expressions.stream()
-              .filter(e -> !e.containsVariable(removeVariable))
-              .collect(Collectors.toSet());
-      return new Bound(modifiedExpressions);
-    }
+  public Bound removeVariableOccurrences(CIdExpression removeVariable) {
+    var modifiedExpressions =
+        expressions.stream()
+            .filter(e -> !e.containsVariable(removeVariable))
+            .collect(Collectors.toSet());
+    return new Bound(modifiedExpressions);
+  }
 
   public boolean contains(NormalFormExpression expression) {
     return expressions().stream().anyMatch(e -> e.equals(expression));
@@ -155,7 +160,9 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   private boolean compare(
-      NormalFormExpression other, ExpressionValueVisitor visitor, BiPredicate<Interval, Interval> predicate)
+      NormalFormExpression other,
+      ExpressionValueVisitor visitor,
+      BiPredicate<Interval, Interval> predicate)
       throws UnrecognizedCodeException {
     Interval otherValue = other.toInterval(visitor);
     return expressions.stream()
@@ -174,6 +181,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   public String toString() {
     return "{%s}"
         .formatted(
-            String.join(" ", expressions.stream().map(NormalFormExpression::toString).sorted().toList()));
+            String.join(
+                " ", expressions.stream().map(NormalFormExpression::toString).sorted().toList()));
   }
 }

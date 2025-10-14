@@ -18,7 +18,8 @@ public class IntervalMergeOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
       throws CPAException, InterruptedException {
-    if (state1 instanceof IntervalAnalysisState intervalState1 && state2 instanceof IntervalAnalysisState intervalState2) {
+    if (state1 instanceof IntervalAnalysisState intervalState1
+        && state2 instanceof IntervalAnalysisState intervalState2) {
       if (!intervalState1.location().equals(intervalState2.location())) {
         // Do not merge if at different locations
         return intervalState2;

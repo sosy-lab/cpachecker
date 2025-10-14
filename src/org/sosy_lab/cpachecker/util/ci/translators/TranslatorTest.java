@@ -160,9 +160,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("fun::varC", new Interval(-15L, -3L));
 
     IntervalAnalysisState iStateTest =
-        new IntervalAnalysisState(null)
-            .withIntervals(intervals)
-            .withReferenceCounts(referenceMap);
+        new IntervalAnalysisState(null).withIntervals(intervals).withReferenceCounts(referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -236,7 +234,8 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
-    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(null), ssaTest, null);
+    convertedToFormula =
+        iReqTransTest.convertToFormula(new IntervalAnalysisState(null), ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
