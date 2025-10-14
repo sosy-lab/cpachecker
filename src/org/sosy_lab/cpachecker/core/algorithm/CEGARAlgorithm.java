@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -317,8 +316,7 @@ public class CEGARAlgorithm
     try {
       refinementResult = mRefiner.performRefinement(reached);
 
-      if (mRefiner instanceof AbstractARGBasedRefiner aRGBasedRefiner
-          && aRGBasedRefiner.unwrap().shouldTerminateRefinement()) {
+      if (mRefiner.shouldTerminateRefinement()) {
         earlyTerminationRequested = true;
       }
 
