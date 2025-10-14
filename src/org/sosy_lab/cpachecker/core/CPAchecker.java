@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -280,7 +281,7 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
-  public CPAcheckerResult run(List<String> programDenotation) {
+  public CPAcheckerResult run(List<String> programDenotation, boolean pSequentialize) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -295,15 +296,25 @@ public class CPAchecker {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
       stats.creationTime.start();
 
-      cfa = parse(programDenotation, stats);
+      cfa = parse(programDenotation, stats, pSequentialize);
       shutdownNotifier.shutdownIfNecessary();
+
+      if (pSequentialize) {
+        MPORAlgorithm mporAlgorithm =
+            new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
+        mporAlgorithm.run(null);
+        CFA sequentialCfa =
+            parse(ImmutableList.of(mporAlgorithm.getOutputFilePath()), stats, pSequentialize);
+        return run0(sequentialCfa, stats);
+      }
 
       return run0(cfa, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
-        | InterruptedException e) {
+        | InterruptedException
+        | CPAException e) {
       logErrorMessage(e, logger);
       return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
@@ -467,14 +478,14 @@ public class CPAchecker {
     }
   }
 
-  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
+  public CFA parse(List<String> fileNames, MainCPAStatistics stats, boolean pSequentialize)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator);
+    stats.setCFACreator(cfaCreator, pSequentialize);
     final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-    stats.setCFA(cfa);
+    stats.setCFA(cfa, pSequentialize);
     return cfa;
   }
 

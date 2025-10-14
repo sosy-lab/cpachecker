@@ -610,6 +610,9 @@ analysis.restartAfterUnknown = false
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
+# Transform the concurrent input program into a sequential equivalent
+analysis.sequentialize = false
+
 # Split program in subprograms which can be analyzed separately afterward
 analysis.split.program = false
 

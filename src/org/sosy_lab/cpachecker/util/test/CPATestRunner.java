@@ -49,7 +49,7 @@ public class CPATestRunner {
 
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
+    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath), false);
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }

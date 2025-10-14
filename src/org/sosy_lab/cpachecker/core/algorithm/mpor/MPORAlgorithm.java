@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Path;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -21,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
@@ -270,8 +273,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final MPOROptions options;
 
+  private final String outputFileName;
+
+  private final String outputFilePath;
+
+  @CanIgnoreReturnValue
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
+  public AlgorithmStatus run(@Nullable ReachedSet pReachedSet) throws CPAException {
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
@@ -279,9 +287,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         Sequentialization.tryBuildProgramString(
             options, cfa, inputFileName, shutdownNotifier, logger);
     String formattedProgram = ClangFormatter.tryFormat(options, program, logger);
-    String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     MPORWriter.write(
-        options, formattedProgram, outputFileName, cfa.getFileNames(), shutdownNotifier, logger);
+        options,
+        formattedProgram,
+        outputFileName,
+        outputFilePath,
+        cfa.getFileNames(),
+        shutdownNotifier,
+        logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -296,12 +309,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final CFA cfa;
 
   public MPORAlgorithm(
-      ConfigurableProgramAnalysis pCpa,
-      Configuration pConfiguration,
+      @Nullable ConfigurableProgramAnalysis pCpa,
+      @Nullable Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa,
-      MPOROptions pOptions)
+      @Nullable MPOROptions pOptions)
       throws InvalidConfigurationException {
 
     // the config can be null when unit testing
@@ -353,6 +366,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     validateParse,
                     validatePc));
 
+    outputFileName = SeqNameUtil.buildOutputFileName(pInputCfa.getFileNames().getFirst());
+    outputFilePath = MPORWriter.buildPath(options, outputFileName, FileExtension.I);
+
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
@@ -369,5 +385,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws InvalidConfigurationException {
 
     return new MPORAlgorithm(null, null, pLogManager, null, pInputCfa, pOptions);
+  }
+
+  public String getOutputFilePath() {
+    return outputFilePath;
   }
 }

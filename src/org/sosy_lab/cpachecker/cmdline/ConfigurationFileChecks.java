@@ -532,7 +532,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)), false);
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);

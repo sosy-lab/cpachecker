@@ -167,7 +167,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs);
+    CPAcheckerResult result = cpachecker.run(options.programs, options.sequentialize);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -280,6 +280,12 @@ public class CPAMain {
         // required=true, NOT required because we want to give a nicer user message ourselves
         description = "A String, denoting the programs to be analyzed")
     private ImmutableList<String> programs = ImmutableList.of();
+
+    @Option(
+        secure = true,
+        name = "analysis.sequentialize",
+        description = "Transform the concurrent input program into a sequential equivalent")
+    private boolean sequentialize = false;
 
     @Option(
         secure = true,

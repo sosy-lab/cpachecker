@@ -52,8 +52,7 @@ public class GhostElementBuilder {
         ProgramCounterVariableBuilder.buildProgramCounterVariables(
             pOptions, pThreads.size(), pBinaryExpressionBuilder);
     ThreadSyncFlags threadSyncFlags =
-        ThreadSyncFlagsBuilder.buildThreadSyncFlags(
-            pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder);
+        ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
     return new GhostElements(
         numThreadsIdExpression,
         bitVectorVariables,

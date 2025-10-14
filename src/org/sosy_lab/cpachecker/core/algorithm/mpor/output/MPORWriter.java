@@ -78,14 +78,14 @@ public class MPORWriter {
       MPOROptions pOptions,
       String pOutputProgram,
       String pOutputProgramName,
+      String pOutputProgramPath,
       List<Path> pInputFilePaths,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) {
 
     try {
-      String outputProgramPath = buildPath(pOptions, pOutputProgramName, FileExtension.I);
       String metadataPath = buildPath(pOptions, pOutputProgramName, FileExtension.YML);
-      File outputProgramFile = new File(outputProgramPath);
+      File outputProgramFile = new File(pOutputProgramPath);
       File parentDir = outputProgramFile.getParentFile();
 
       handleDirectoryCreation(pOptions, parentDir, pLogger);
@@ -97,14 +97,14 @@ public class MPORWriter {
         writer.write(pOutputProgram);
         // option: validate that CPAchecker can parse output
         if (pOptions.validateParse && !pOptions.inputTypeDeclarations) {
-          handleParsing(pOptions, outputProgramPath, metadataPath, pShutdownNotifier, pLogger);
+          handleParsing(pOptions, pOutputProgramPath, metadataPath, pShutdownNotifier, pLogger);
         }
         // option: create metadata file
         if (pOptions.outputMetadata) {
           MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
         }
         handleOutputMessage(
-            Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, outputProgramPath, pLogger);
+            Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
       }
 
     } catch (IOException e) {
@@ -115,7 +115,7 @@ public class MPORWriter {
     }
   }
 
-  private static String buildPath(
+  public static String buildPath(
       MPOROptions pOptions, String pOutputFileName, FileExtension pFileExtension) {
 
     return pOptions.outputPath + pOutputFileName + pFileExtension.suffix;
