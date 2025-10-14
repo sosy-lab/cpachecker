@@ -290,7 +290,6 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     CFA cfa = null;
-    CFA transformedCfa = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -308,8 +307,8 @@ public class CPAchecker {
           MPORAlgorithm mporAlgorithm =
               new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
           String sequentializedProgram = mporAlgorithm.buildSequentializedProgram();
-          transformedCfa = parse(sequentializedProgram, stats);
-          yield run0(transformedCfa, stats);
+          CFA sequentializedCfa = parse(sequentializedProgram, cfa, stats, pProgramTransformation);
+          yield run0(sequentializedCfa, stats);
         }
       };
 
@@ -318,7 +317,7 @@ public class CPAchecker {
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, transformedCfa, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -489,11 +488,17 @@ public class CPAchecker {
     return cfa;
   }
 
-  public CFA parse(String pSourceCode, MainCPAStatistics pStats)
+  public CFA parse(
+      String pSourceCode,
+      CFA pOriginalCfa,
+      MainCPAStatistics pStats,
+      ProgramTransformation pProgramTransformation)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from internally generated source code");
-    CFACreator cfaCreator = CFACreator.constructForTransformedCfa(config, logger, shutdownNotifier);
+    CFACreator cfaCreator =
+        CFACreator.constructForProgramTransformation(
+            config, logger, shutdownNotifier, pProgramTransformation);
     pStats.setCFACreator(cfaCreator, true);
     final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode);
     pStats.setCFA(cfa, true);

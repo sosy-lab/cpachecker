@@ -211,10 +211,6 @@ public final class CfaMetadata {
     return connectedness;
   }
 
-  public Optional<CFA> getOriginalCfa() {
-    return originalCfa;
-  }
-
   /**
    * Returns a copy of this metadata instance, but with the specified CFA connectedness.
    *
@@ -231,6 +227,25 @@ public final class CfaMetadata {
         mainFunctionEntry,
         checkNotNull(pConnectedness),
         originalCfa,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables);
+  }
+
+  public Optional<CFA> getOriginalCfa() {
+    return originalCfa;
+  }
+
+  public CfaMetadata withOriginalCfa(CFA pOriginalCfa) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        Optional.of(checkNotNull(pOriginalCfa)),
         astCFARelation,
         loopStructure,
         variableClassification,
