@@ -134,20 +134,8 @@ public class NormalFormExpression {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (obj instanceof NormalFormExpression other) {
-
-      if (variable == null) {
-        if (other.variable == null) {
-          return other.constant == constant;
-        }
-        return false;
-      }
-
-      return variable.equals(other.variable) && constant == other.constant;
-    }
-    return false;
+    return obj instanceof NormalFormExpression other
+        && Objects.equals(this.variable, other.variable)
+        && this.constant == other.constant;
   }
 }
