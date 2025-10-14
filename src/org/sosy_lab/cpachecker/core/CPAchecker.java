@@ -480,7 +480,7 @@ public class CPAchecker {
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = CFACreator.construct(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator, false);
     final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa, false);
@@ -491,7 +491,7 @@ public class CPAchecker {
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from internally generated source code");
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = CFACreator.constructForTransformedCfa(config, logger, shutdownNotifier);
     pStats.setCFACreator(cfaCreator, true);
     final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode);
     pStats.setCFA(cfa, true);

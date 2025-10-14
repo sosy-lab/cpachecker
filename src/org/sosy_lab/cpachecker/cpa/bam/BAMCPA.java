@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -79,9 +80,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      Optional<CFA> pTransformedCfa)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
+
+    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa, pTransformedCfa);
     config.inject(this);
 
     if (pCpa instanceof ProofChecker proofChecker) {

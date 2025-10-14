@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -219,6 +220,7 @@ public class ARGStatistics implements Statistics {
 
   protected final ConfigurableProgramAnalysis cpa;
   protected final CFA cfa;
+  protected final Optional<CFA> transformedCfa;
 
   private final CEXExportOptions counterexampleOptions;
   private final PixelsWriterOptions argToBitmapExporterOptions;
@@ -237,8 +239,10 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA pCFA)
+      CFA pCFA,
+      Optional<CFA> pTransformedCfa)
       throws InvalidConfigurationException {
+
     config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
@@ -246,6 +250,7 @@ public class ARGStatistics implements Statistics {
     logger = pLogger;
     cpa = pCpa;
     cfa = pCFA;
+    transformedCfa = pTransformedCfa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 

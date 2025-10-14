@@ -466,13 +466,13 @@ public final class MPORUtil {
   public static CFACreator buildCfaCreator(LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    return new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
+    return CFACreator.construct(Configuration.builder().build(), pLogger, pShutdownNotifier);
   }
 
   public static CFACreator buildCfaCreatorWithPreprocessor(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CFACreator(
+    return CFACreator.construct(
         Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);

@@ -56,6 +56,7 @@ public class CPAcheckerResult {
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
       @Nullable Statistics stats) {
+
     this.targetDescription = checkNotNull(targetDescription);
     this.result = checkNotNull(result);
     this.reached = reached;

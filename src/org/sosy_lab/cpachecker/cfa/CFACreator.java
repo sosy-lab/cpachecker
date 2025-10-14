@@ -406,7 +406,25 @@ public class CFACreator {
   private final CFACreatorStatistics stats;
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public static CFACreator construct(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    return new CFACreator(pConfig, pLogger, pShutdownNotifier, false);
+  }
+
+  public static CFACreator constructForTransformedCfa(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    return new CFACreator(pConfig, pLogger, pShutdownNotifier, true);
+  }
+
+  private CFACreator(
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      boolean pIsForTransformedCfa)
       throws InvalidConfigurationException {
 
     config.inject(this);
@@ -442,7 +460,8 @@ public class CFACreator {
             new CParserWithLocationMapper(
                 config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
-        if (usePreprocessor) {
+        // do not preprocess when transforming program
+        if (usePreprocessor && !pIsForTransformedCfa) {
           CPreprocessor preprocessor = new CPreprocessor(config, logger);
           outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
         }

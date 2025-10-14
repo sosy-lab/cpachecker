@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,9 +51,11 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       ReachedSetFactory reachedsetFactory,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      Optional<CFA> pTransformedCfa)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+
+    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pTransformedCfa);
     pConfig.inject(this);
 
     cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);
