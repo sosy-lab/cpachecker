@@ -296,15 +296,14 @@ public class CPAchecker {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
       stats.creationTime.start();
 
-      cfa = parse(programDenotation, stats, pSequentialize);
+      cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
 
       if (pSequentialize) {
         MPORAlgorithm mporAlgorithm =
             new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
-        mporAlgorithm.run(null);
-        CFA sequentialCfa =
-            parse(ImmutableList.of(mporAlgorithm.getOutputFilePath()), stats, pSequentialize);
+        String sequentialProgram = mporAlgorithm.buildSequentializedProgram();
+        CFA sequentialCfa = parse(sequentialProgram, stats);
         return run0(sequentialCfa, stats);
       }
 
@@ -313,8 +312,7 @@ public class CPAchecker {
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
-        | InterruptedException
-        | CPAException e) {
+        | InterruptedException e) {
       logErrorMessage(e, logger);
       return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
@@ -478,14 +476,25 @@ public class CPAchecker {
     }
   }
 
-  public CFA parse(List<String> fileNames, MainCPAStatistics stats, boolean pSequentialize)
+  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator, pSequentialize);
+    stats.setCFACreator(cfaCreator, false);
     final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-    stats.setCFA(cfa, pSequentialize);
+    stats.setCFA(cfa, false);
+    return cfa;
+  }
+
+  public CFA parse(String pSourceCode, MainCPAStatistics pStats)
+      throws InvalidConfigurationException, ParserException, InterruptedException {
+
+    logger.logf(Level.INFO, "Parsing CFA from internally generated source code");
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    pStats.setCFACreator(cfaCreator, true);
+    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode);
+    pStats.setCFA(cfa, true);
     return cfa;
   }
 

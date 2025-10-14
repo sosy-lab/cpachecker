@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Path;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -195,6 +195,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "the path to output the sequentialization and metadata to. (\"output/\" by default)")
   private String outputPath = MPORWriter.DEFAULT_OUTPUT_PATH;
 
+  @Option(secure = true, description = "export the sequentialized program in a .i file?")
+  private boolean outputProgram = true;
+
   @Option(
       secure = true,
       description = "overwrite files in the ./output directory when creating sequentializations?")
@@ -280,22 +283,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @CanIgnoreReturnValue
   @Override
   public AlgorithmStatus run(@Nullable ReachedSet pReachedSet) throws CPAException {
-    // just use the first input file name for naming purposes
-    Path firstInputFilePath = cfa.getFileNames().getFirst();
-    String inputFileName = firstInputFilePath.toString();
-    String program =
-        Sequentialization.tryBuildProgramString(
-            options, cfa, inputFileName, shutdownNotifier, logger);
-    String formattedProgram = ClangFormatter.tryFormat(options, program, logger);
+    String sequentializedProgram = buildSequentializedProgram();
     MPORWriter.write(
         options,
-        formattedProgram,
+        sequentializedProgram,
         outputFileName,
         outputFilePath,
         cfa.getFileNames(),
         shutdownNotifier,
         logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  public String buildSequentializedProgram() {
+    // just use the first input file name for naming purposes
+    Path firstInputFilePath = cfa.getFileNames().getFirst();
+    String inputFileName = firstInputFilePath.toString();
+    String program =
+        Sequentialization.tryBuildProgramString(
+            options, cfa, inputFileName, shutdownNotifier, logger);
+    return ClangFormatter.tryFormat(options, program, logger);
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -353,6 +360,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     nondeterminismSource,
                     outputMetadata,
                     outputPath,
+                    outputProgram,
                     overwriteFiles,
                     pruneEmptyStatements,
                     pruneBitVectorEvaluation,

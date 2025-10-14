@@ -368,6 +368,9 @@ analysis.algorithm.MPOR.outputMetadata = true
 # default)
 analysis.algorithm.MPOR.outputPath = MPORWriter.DEFAULT_OUTPUT_PATH
 
+# export the sequentialized program in a .i file?
+analysis.algorithm.MPOR.outputProgram = true
+
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true
 

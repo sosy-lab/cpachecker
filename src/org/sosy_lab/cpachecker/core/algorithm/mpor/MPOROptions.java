@@ -81,6 +81,8 @@ public class MPOROptions {
 
   public final String outputPath;
 
+  public final boolean outputProgram;
+
   public final boolean overwriteFiles;
 
   public final boolean pruneEmptyStatements;
@@ -131,6 +133,7 @@ public class MPOROptions {
       NondeterminismSource pNondeterminismSource,
       boolean pOutputMetadata,
       String pOutputPath,
+      boolean pOutputProgram,
       boolean pOverwriteFiles,
       boolean pPruneEmptyStatements,
       boolean pPruneBitVectorEvaluation,
@@ -177,6 +180,7 @@ public class MPOROptions {
     nondeterminismSource = pNondeterminismSource;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
+    outputProgram = pOutputProgram;
     overwriteFiles = pOverwriteFiles;
     pruneEmptyStatements = pPruneEmptyStatements;
     pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
@@ -220,6 +224,7 @@ public class MPOROptions {
         NondeterminismSource.NUM_STATEMENTS,
         true,
         MPORWriter.DEFAULT_OUTPUT_PATH,
+        false,
         true,
         true,
         false,
@@ -292,8 +297,10 @@ public class MPOROptions {
         pNoBackwardLoopGoto,
         pNondeterminismSigned,
         pNondeterminismSource,
+        // never output for unit tests
         false,
         MPORWriter.DEFAULT_OUTPUT_PATH,
+        false,
         false,
         // always prune empty, disabling is only for debugging, not for release
         true,
