@@ -13,6 +13,5 @@ SPDX-License-Identifier: Apache-2.0
 <project version="4">
   <component name="ExternalDependencies">
     <plugin id="AntSupport" />
-    <plugin id="IvyIDEA" />
   </component>
 </project>
