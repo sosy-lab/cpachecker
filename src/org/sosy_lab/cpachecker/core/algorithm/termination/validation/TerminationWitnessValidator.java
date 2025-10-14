@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -193,7 +194,10 @@ public class TerminationWitnessValidator implements Algorithm {
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(invariant, supportingInvariants, loop)
           && isCandidateInvariantTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
+              loop,
+              loopsToTransitionInvariants.get(loop),
+              supportingInvariants,
+              loopsToSupportingInvariants)) {
         continue;
       }
 
@@ -209,7 +213,10 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       if (!isWellFounded
           || !isCandidateInvariantInductiveTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
+              loop,
+              loopsToTransitionInvariants.get(loop),
+              supportingInvariants,
+              loopsToSupportingInvariants)) {
         // In this case, we are not sure whether the invariant could be divided otherwise
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
@@ -373,10 +380,12 @@ public class TerminationWitnessValidator implements Algorithm {
   private boolean isCandidateInvariantTransitionInvariant(
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
-      ImmutableList<BooleanFormula> pSupportingInvariants)
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula =
-        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1);
+        constructPathFormulaForLoop(
+            pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1, pLoopsToSupportingInvariants);
     pCandidateInvariant =
         fmgr.instantiate(
             pCandidateInvariant,
@@ -433,14 +442,16 @@ public class TerminationWitnessValidator implements Algorithm {
   private boolean isCandidateInvariantInductiveTransitionInvariant(
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
-      ImmutableList<BooleanFormula> pSupportingInvariants)
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
       throws InterruptedException, CPATransferException {
     if (!isCandidateInvariantTransitionInvariant(
-        pLoop, pCandidateInvariant, pSupportingInvariants)) {
+        pLoop, pCandidateInvariant, pSupportingInvariants, pLoopsToSupportingInvariants)) {
       return false;
     }
     PathFormula loopFormula =
-        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), 2);
+        constructPathFormulaForLoop(
+            pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), 2, pLoopsToSupportingInvariants);
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
     BooleanFormula firstStep =
@@ -479,7 +490,10 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   private PathFormula constructPathFormulaForLoop(
-      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads, int pInitialSSAIndex)
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<CFANode> pLoopHeads,
+      int pInitialSSAIndex,
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
     for (CFAEdge edge : pEdges) {
@@ -521,6 +535,8 @@ public class TerminationWitnessValidator implements Algorithm {
         formulaForLoop.withContext(
             formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
             PointerTargetSet.emptyPointerTargetSet());
+
+    Set<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
@@ -528,8 +544,28 @@ public class TerminationWitnessValidator implements Algorithm {
           anotherPath.withContext(
               anotherPath.getSsa().withDefault(pInitialSSAIndex),
               PointerTargetSet.emptyPointerTargetSet());
+      boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
-        anotherPath = pfmgr.makeAnd(anotherPath, edge);
+        Set<LoopStructure.Loop> loopsForEdge =
+            AllLoops.stream()
+                .filter(l -> l.getInnerLoopEdges().contains(edge))
+                .collect(Collectors.toSet());
+        if (loopsForEdge.size() <= 1) {
+          anotherPath = pfmgr.makeAnd(anotherPath, edge);
+          followingDifferentLoop = false;
+        } else if (!followingDifferentLoop) {
+          BooleanFormula overapproximatingState = bfmgr.makeTrue();
+          for (LoopStructure.Loop loop : loopsForEdge) {
+            overapproximatingState =
+                bfmgr.and(
+                    overapproximatingState, bfmgr.and(pLoopsToSupportingInvariants.get(loop)));
+          }
+          if (overapproximatingState.equals(bfmgr.makeTrue())) {
+            return pfmgr.makeEmptyPathFormula();
+          }
+          anotherPath = pfmgr.makeAnd(anotherPath, overapproximatingState);
+          followingDifferentLoop = true;
+        }
       }
       if (!initialized) {
         initialized = true;
@@ -543,6 +579,10 @@ public class TerminationWitnessValidator implements Algorithm {
                     PointerTargetSet.emptyPointerTargetSet());
       }
     }
+    formulaForLoop =
+        formulaForLoop.withContext(
+            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+            PointerTargetSet.emptyPointerTargetSet());
     return formulaForLoop;
   }
 }
