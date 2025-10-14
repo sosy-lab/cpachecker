@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.util.statistics;
 import com.google.common.base.Strings;
 import java.io.PrintStream;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -101,24 +99,10 @@ public class StatisticsUtils {
   public static void writeOutputFiles(
       Statistics pStatistics, LogManager pLogger, Result pResult, UnmodifiableReachedSet pReached) {
 
-    writeOutputFiles(pStatistics, pLogger, pResult, pReached, null);
-  }
-
-  /**
-   * This method calls {@link Statistics#writeOutputFiles(Result, UnmodifiableReachedSet)} but
-   * additionally handles cases like pStatistics that take too much resources.
-   */
-  public static void writeOutputFiles(
-      Statistics pStatistics,
-      LogManager pLogger,
-      Result pResult,
-      UnmodifiableReachedSet pReached,
-      @Nullable CFA pTransformedCfa) {
-
     Timer timer = new Timer();
     timer.start();
     try {
-      pStatistics.writeOutputFiles(pResult, pReached, pTransformedCfa);
+      pStatistics.writeOutputFiles(pResult, pReached);
     } catch (OutOfMemoryError e) {
       pLogger.logUserException(
           Level.WARNING,

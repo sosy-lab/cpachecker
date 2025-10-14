@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
@@ -167,7 +168,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs, options.sequentialize);
+    CPAcheckerResult result = cpachecker.run(options.programs, options.programTransformation);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -283,9 +284,9 @@ public class CPAMain {
 
     @Option(
         secure = true,
-        name = "analysis.sequentialize",
-        description = "Transform the concurrent input program into a sequential equivalent")
-    private boolean sequentialize = false;
+        name = "analysis.programTransformation",
+        description = "Transform the input program into another program before analysis?")
+    private ProgramTransformation programTransformation = ProgramTransformation.NONE;
 
     @Option(
         secure = true,

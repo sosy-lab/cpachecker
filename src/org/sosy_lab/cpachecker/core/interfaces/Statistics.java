@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.io.PrintStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
@@ -63,14 +62,6 @@ public interface Statistics {
    * @param pReached the final reached set
    */
   default void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {}
-
-  /**
-   * Just like {@link Statistics#writeOutputFiles(Result, UnmodifiableReachedSet)}, but with an
-   * optional {@code pTransformedCfa} for program transformations that may require overwriting
-   * exported files.
-   */
-  default void writeOutputFiles(
-      Result pResult, UnmodifiableReachedSet pReachedSet, @Nullable CFA pTransformedCfa) {}
 
   int DEFAULT_OUTPUT_NAME_COL_WIDTH = 50;
 

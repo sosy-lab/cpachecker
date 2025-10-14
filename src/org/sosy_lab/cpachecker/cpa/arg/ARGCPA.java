@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
@@ -103,15 +102,14 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       Configuration pConfig,
       LogManager pLogger,
       Specification pSpecification,
-      CFA pCfa,
-      @OptionalAnnotation CFA pTransformedCfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
 
     super(pCpa);
     pConfig.inject(this);
     logger = pLogger;
     mergeOptions = new ARGMergeJoin.MergeOptions(pConfig);
-    stats = new ARGStatistics(pConfig, pLogger, this, pSpecification, pCfa, pTransformedCfa);
+    stats = new ARGStatistics(pConfig, pLogger, this, pSpecification, pCfa);
   }
 
   @Override

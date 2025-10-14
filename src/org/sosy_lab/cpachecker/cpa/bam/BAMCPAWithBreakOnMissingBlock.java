@@ -16,7 +16,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -51,11 +50,10 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       ReachedSetFactory reachedsetFactory,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa,
-      @OptionalAnnotation CFA pTransformedCfa)
+      CFA pCfa)
       throws InvalidConfigurationException, CPAException {
 
-    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pTransformedCfa);
+    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
 
     cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);

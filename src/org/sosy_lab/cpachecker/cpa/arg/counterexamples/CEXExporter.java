@@ -105,7 +105,6 @@ public class CEXExporter {
 
   private final CounterexampleFilter cexFilter;
   private final CFA cfa;
-  private final CFA transformedCfa;
 
   private final CEXExportOptions options;
   private final LogManager logger;
@@ -122,7 +121,6 @@ public class CEXExporter {
       LogManager pLogger,
       Specification pSpecification,
       CFA pCFA,
-      @Nullable CFA pTransformedCfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
       ExtendedWitnessExporter pExtendedWitnessExporter)
@@ -134,7 +132,6 @@ public class CEXExporter {
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
     cfa = pCFA;
-    transformedCfa = pTransformedCfa;
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -326,8 +323,8 @@ public class CEXExporter {
             witnessExporter.generateErrorWitness(
                 rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-        if (transformedCfa != null) {
-          // TODO overwrite .graphml witness i.e. use default witness
+        if (cfa.getMetadata().getOriginalCfa().isPresent()) {
+          // TODO overwrite .graphml witness i.e. use default witness for program transformations
         } else {
           // for .graphml counterexamples
           writeErrorPathFile(

@@ -68,6 +68,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Test that the bundled configuration files are all valid. */
@@ -532,7 +533,9 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)), false);
+      result =
+          cpachecker.run(
+              ImmutableList.of(createEmptyProgram(options.language)), ProgramTransformation.NONE);
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);

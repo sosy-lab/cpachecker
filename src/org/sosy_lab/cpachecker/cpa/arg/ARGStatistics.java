@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
@@ -220,7 +219,6 @@ public class ARGStatistics implements Statistics {
 
   protected final ConfigurableProgramAnalysis cpa;
   protected final CFA cfa;
-  protected final CFA transformedCfa;
 
   private final CEXExportOptions counterexampleOptions;
   private final PixelsWriterOptions argToBitmapExporterOptions;
@@ -239,8 +237,7 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA pCFA,
-      @OptionalAnnotation CFA pTransformedCfa)
+      CFA pCFA)
       throws InvalidConfigurationException {
 
     config.inject(this, ARGStatistics.class); // needed for subclasses
@@ -250,7 +247,6 @@ public class ARGStatistics implements Statistics {
     logger = pLogger;
     cpa = pCpa;
     cfa = pCFA;
-    transformedCfa = pTransformedCfa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
@@ -285,7 +281,6 @@ public class ARGStatistics implements Statistics {
               logger,
               pSpecification,
               pCFA,
-              pTransformedCfa,
               cpa,
               argWitnessExporter,
               extendedWitnessExporter);

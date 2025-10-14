@@ -37,6 +37,9 @@ public final class CfaMetadata {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
+  /** The original {@link CFA} from the input program, in case this instance is transformed. */
+  private final Optional<CFA> originalCfa;
+
   private final AstCfaRelation astCFARelation;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
@@ -49,10 +52,12 @@ public final class CfaMetadata {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
+      Optional<CFA> pOriginalCfa,
       @Nullable AstCfaRelation pAstCfaRelation,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
+
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -60,6 +65,7 @@ public final class CfaMetadata {
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
 
+    originalCfa = pOriginalCfa;
     astCFARelation = pAstCfaRelation;
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
@@ -89,6 +95,7 @@ public final class CfaMetadata {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
+
     return new CfaMetadata(
         pMachineModel,
         pCFALanguage,
@@ -96,6 +103,7 @@ public final class CfaMetadata {
         pFileNames,
         pMainFunctionEntry,
         pConnectedness,
+        Optional.empty(),
         null,
         null,
         null,
@@ -127,6 +135,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        originalCfa,
         astCFARelation,
         loopStructure,
         variableClassification,
@@ -186,6 +195,7 @@ public final class CfaMetadata {
         fileNames,
         checkNotNull(pMainFunctionEntry),
         connectedness,
+        originalCfa,
         astCFARelation,
         loopStructure,
         variableClassification,
@@ -199,6 +209,10 @@ public final class CfaMetadata {
    */
   public CfaConnectedness getConnectedness() {
     return connectedness;
+  }
+
+  public Optional<CFA> getOriginalCfa() {
+    return originalCfa;
   }
 
   /**
@@ -216,6 +230,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         checkNotNull(pConnectedness),
+        originalCfa,
         astCFARelation,
         loopStructure,
         variableClassification,
@@ -259,6 +274,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        originalCfa,
         pAstCfaRelation,
         loopStructure,
         variableClassification,
@@ -280,6 +296,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        originalCfa,
         astCFARelation,
         pLoopStructure,
         variableClassification,
@@ -313,6 +330,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        originalCfa,
         astCFARelation,
         loopStructure,
         pVariableClassification,
@@ -345,6 +363,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        originalCfa,
         astCFARelation,
         loopStructure,
         variableClassification,

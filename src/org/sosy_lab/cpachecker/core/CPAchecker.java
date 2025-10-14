@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Optionals;
@@ -282,7 +281,9 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
-  public CPAcheckerResult run(List<String> programDenotation, boolean pSequentialize) {
+  public CPAcheckerResult run(
+      List<String> programDenotation, ProgramTransformation pProgramTransformation) {
+
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -301,22 +302,23 @@ public class CPAchecker {
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
 
-      if (pSequentialize) {
-        MPORAlgorithm mporAlgorithm =
-            new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
-        String transformedProgram = mporAlgorithm.buildSequentializedProgram();
-        transformedCfa = parse(transformedProgram, stats);
-        return run0(cfa, transformedCfa, stats);
-      }
-
-      return run0(cfa, null, stats);
+      return switch (pProgramTransformation) {
+        case NONE -> run0(cfa, stats);
+        case SEQUENTIALIZATION -> {
+          MPORAlgorithm mporAlgorithm =
+              new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
+          String sequentializedProgram = mporAlgorithm.buildSequentializedProgram();
+          transformedCfa = parse(sequentializedProgram, stats);
+          yield run0(transformedCfa, stats);
+        }
+      };
 
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, transformedCfa, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, transformedCfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -329,23 +331,18 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, null, stats);
+      return run0(cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(CFA cfa, @Nullable CFA pTransformedCfa, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
     Specification specification;
-
-    // use transformed cfa, if present
-    if (pTransformedCfa != null) {
-      cfa = pTransformedCfa;
-    }
 
     try {
       // create reached set, cpa, algorithm
@@ -430,7 +427,7 @@ public class CPAchecker {
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
     }
-    return new CPAcheckerResult(result, targetDescription, reached, cfa, pTransformedCfa, stats);
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
   private static void handleParserException(ParserException e, LogManager pLogger) {

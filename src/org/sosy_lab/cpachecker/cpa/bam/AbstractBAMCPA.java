@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -111,8 +110,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa,
-      @OptionalAnnotation CFA pTransformedCfa)
+      CFA pCfa)
       throws InvalidConfigurationException, CPAException {
 
     super(pCpa);
@@ -129,8 +127,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
     blockPartitioningTimer.stop();
 
-    argStats =
-        new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa, pTransformedCfa);
+    argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
     stats = new BAMCPAStatistics(pConfig, pLogger, this);
 
