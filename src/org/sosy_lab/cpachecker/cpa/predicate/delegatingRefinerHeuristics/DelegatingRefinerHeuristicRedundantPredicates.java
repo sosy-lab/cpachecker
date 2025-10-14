@@ -19,8 +19,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAtomNormalizer;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerDslLoader;
@@ -87,8 +87,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   }
 
   @Override
-  public boolean fulfilled(
-      UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
+  public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     ImmutableMultiset.Builder<String> patternFrequencyBuilder = ImmutableMultiset.builder();
     ImmutableMultiset.Builder<String> categoryFrequencyBuilder = ImmutableMultiset.builder();

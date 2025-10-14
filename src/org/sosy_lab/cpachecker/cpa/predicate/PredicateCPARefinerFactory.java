@@ -29,7 +29,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
@@ -257,8 +259,10 @@ public final class PredicateCPARefinerFactory {
     }
     ARGBasedRefiner refiner = staticRefiner;
     if (usePredicateDelegatingRefiner) {
-      ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable =
-          buildRefinerMap(defaultRefiner, staticRefiner);
+      ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable =
+          buildRefinerMap(
+              AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, predicateCpa),
+              AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, predicateCpa));
       refinerRecords = createDelegatingRefinerConfig(pRefinersAvailable);
     }
 
@@ -268,8 +272,8 @@ public final class PredicateCPARefinerFactory {
   // Maps available refiner implementations to their corresponding enum identifiers to choose as
   // value for the DelegatingRefiner heuristics. To support a new refiner, please add an entry to
   // DelegatingRefinerRefinerType and extend this map accordingly.
-  ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> buildRefinerMap(
-      ARGBasedRefiner defaultRefiner, ARGBasedRefiner staticRefiner) {
+  ImmutableMap<DelegatingRefinerRefinerType, Refiner> buildRefinerMap(
+      Refiner defaultRefiner, Refiner staticRefiner) {
     return ImmutableMap.of(
         DelegatingRefinerRefinerType.DEFAULT,
         defaultRefiner,
@@ -282,7 +286,7 @@ public final class PredicateCPARefinerFactory {
   // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
   // heuristics, based on user input in the command-line.
   public ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
-      ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable)
+      ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable)
       throws InvalidConfigurationException {
 
     ImmutableList.Builder<HeuristicDelegatingRefinerRecord> recordBuilder = ImmutableList.builder();
@@ -323,7 +327,7 @@ public final class PredicateCPARefinerFactory {
             unknownRefinerType);
       }
 
-      ARGBasedRefiner pRefiner = pRefinersAvailable.get(pRefinerName);
+      Refiner pRefiner = pRefinersAvailable.get(pRefinerName);
       if (pRefiner == null) {
         throw new InvalidConfigurationException(
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());

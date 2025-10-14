@@ -8,5 +8,4 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-public class PredicateStopRefinerTest {
-}
+public class PredicateStopRefinerTest {}

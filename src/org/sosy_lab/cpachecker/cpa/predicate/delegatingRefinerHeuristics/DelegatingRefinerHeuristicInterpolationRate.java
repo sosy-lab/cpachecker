@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -47,8 +47,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   }
 
   @Override
-  public boolean fulfilled(
-      UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
+  public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     ImmutableList<BooleanFormula> totalInterpolants = refinementContext.getAllInterpolants();
     int totalInterpolantNumber = totalInterpolants.size();
     int numberOfRefinements = refinementContext.getNumberOfRefinements();

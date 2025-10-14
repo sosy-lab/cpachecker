@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * A heuristic which lets the default refiner do a fixed number of iterations so that enough data is
@@ -31,8 +31,7 @@ public class DelegatingRefinerHeuristicRunNTimes implements DelegatingRefinerHeu
   }
 
   @Override
-  public boolean fulfilled(
-      UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
+  public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     if (currentRuns < fixedRuns) {
       currentRuns++;
       return true;

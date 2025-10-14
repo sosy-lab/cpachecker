@@ -8,24 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 /**
  * A refiner that's sole job is to stop the refinement and end the verification run. Intended for
  * use with the {@link PredicateDelegatingRefiner} to stop refinement when all its heuristics have
  * indicated likely divergence.
  */
-public class PredicateStopRefiner implements ARGBasedRefiner {
+public class PredicateStopRefiner implements Refiner {
   public PredicateStopRefiner() {}
 
   @Override
-  public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
-    return CounterexampleInfo.giveUp(pPath);
+  public boolean performRefinement(ReachedSet pReached) {
+    return false;
   }
 
   @Override
