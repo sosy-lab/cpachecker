@@ -250,15 +250,8 @@ parser code {:
       }
     } else {
       // this is a statement contract for a simple statement, e.g. x = 10;
-<<<<<<< HEAD
-      for (CFAEdge previousEdge : CFAUtils.enteringEdges(edge.getPredecessor())) {
-        pMap.put(previousEdge, annotation.getCopyForPreState());
-=======
       for (CFAEdge previousEdge : edge.getPredecessor().getEnteringEdges()) {
-        cfaWithLocs
-            .getEdgesToAnnotations()
-            .put(previousEdge, annotation.getCopyForPreState());
->>>>>>> 0a7c0a70b7 (Refactoring: use CFANode.getEnteringEdges() in ACSLParser)
+        pMap.put(previousEdge, annotation.getCopyForPreState());
       }
       pMap.put(edge, annotation.getCopyForPostState());
     }
@@ -282,23 +275,13 @@ parser code {:
         if (successor.getNumLeavingEdges() == 1) {
           node = successor.getLeavingEdge(0).getSuccessor();
         }
-<<<<<<< HEAD
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+        for (CFAEdge enteringEdge : node.getEnteringEdges()) {
         pMap.put(edge, annotation);
         }
       } else {
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(successor)) {
-        pMap.put(currentEdge, annotation);
-=======
-        for (CFAEdge enteringEdge : node.getEnteringEdges()) {
-          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-        }
-      } else {
-        assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
         for (CFAEdge currentEdge : successor.getEnteringEdges()) {
-          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
->>>>>>> 0a7c0a70b7 (Refactoring: use CFANode.getEnteringEdges() in ACSLParser)
+        pMap.put(currentEdge, annotation);
         }
       }
     }
@@ -331,13 +314,8 @@ parser code {:
         }
       } else {
         CFANode node = next.getPredecessor();
-<<<<<<< HEAD
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(node)) {
-        pMap.put(currentEdge, annotation);
-=======
         for (CFAEdge currentEdge : node.getEnteringEdges()) {
-          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
->>>>>>> 0a7c0a70b7 (Refactoring: use CFANode.getEnteringEdges() in ACSLParser)
+        pMap.put(currentEdge, annotation);
         }
       }
     }
