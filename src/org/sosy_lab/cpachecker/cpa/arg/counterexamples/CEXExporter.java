@@ -323,10 +323,18 @@ public class CEXExporter {
             witnessExporter.generateErrorWitness(
                 rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
+        // for .graphml counterexamples
         if (cfa.getMetadata().getOriginalCfa().isPresent()) {
-          // TODO overwrite .graphml witness i.e. use default witness for program transformations
+          Witness transformedWitness =
+              witnessExporter.generateErrorWitness(
+                  rootState, Predicates.in(pathElements), isTargetPathEdge, null);
+          writeErrorPathFile(
+              options.getWitnessFile(),
+              uniqueId,
+              (Appender)
+                  pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(transformedWitness, pApp),
+              compressWitness);
         } else {
-          // for .graphml counterexamples
           writeErrorPathFile(
               options.getWitnessFile(),
               uniqueId,
@@ -341,7 +349,10 @@ public class CEXExporter {
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
 
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
+        if (cfa.getMetadata().getOriginalCfa().isPresent()) {
+          // TODO create .yaml witness from program transformation
+        } else if (cfa.getMetadata().getInputLanguage() == Language.C) {
+          // for .yaml counterexamples
           if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
             try {
               cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);

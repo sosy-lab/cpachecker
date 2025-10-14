@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -290,7 +289,7 @@ public class CPAchecker {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
-    CFA cfa = null;
+    CFA finalCfa = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -299,26 +298,29 @@ public class CPAchecker {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
       stats.creationTime.start();
 
-      cfa = parse(programDenotation, stats);
+      CFA baseCfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
 
-      return switch (pProgramTransformation) {
-        case NONE -> run0(cfa, stats);
+      // select CFA based on program transformation type
+      switch (pProgramTransformation) {
+        case NONE -> {
+          finalCfa = baseCfa;
+        }
         case SEQUENTIALIZATION -> {
           MPORAlgorithm mporAlgorithm =
-              new MPORAlgorithm(null, config, logger, shutdownNotifier, cfa, null);
+              new MPORAlgorithm(null, config, logger, shutdownNotifier, baseCfa, null);
           String sequentializedProgram = mporAlgorithm.buildSequentializedProgram();
-          CFA sequentializedCfa = parse(sequentializedProgram, cfa, stats, pProgramTransformation);
-          yield run0(sequentializedCfa, stats);
+          finalCfa = parse(sequentializedProgram, baseCfa, stats, pProgramTransformation);
         }
-      };
+      }
+      return run0(finalCfa, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, finalCfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -502,7 +504,7 @@ public class CPAchecker {
         CFACreator.constructForProgramTransformation(
             config, logger, shutdownNotifier, pProgramTransformation);
     pStats.setCFACreator(cfaCreator, pProgramTransformation);
-    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode, Optional.of(pOriginalCfa));
+    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode, pOriginalCfa);
     pStats.setCFA(cfa, pProgramTransformation);
     return cfa;
   }

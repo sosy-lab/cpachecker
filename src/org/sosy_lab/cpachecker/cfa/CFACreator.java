@@ -497,24 +497,30 @@ public class CFACreator {
   /**
    * Parse a program given as String and create a CFA, including all post-processing etc.
    *
-   * @param program The program represented as String to parse.
+   * @param pProgram The program represented as String to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the
    *     configuration is not found.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseSourceAndCreateCFA(String program)
+  public CFA parseSourceAndCreateCFA(String pProgram)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    return parseSourceAndCreateCFA(program, Optional.empty());
+    return parseSourceAndCreateCFA(pProgram, Optional.empty());
   }
 
   /**
    * Parse a program given as String and create a CFA, optionally with an original CFA if the
    * program is the result of a program transformation.
    */
-  public CFA parseSourceAndCreateCFA(String pProgram, Optional<CFA> pOriginalCfa)
+  public CFA parseSourceAndCreateCFA(String pProgram, CFA pOriginalCfa)
       throws InvalidConfigurationException, ParserException, InterruptedException {
+
+    return parseSourceAndCreateCFA(pProgram, Optional.of(pOriginalCfa));
+  }
+
+  private CFA parseSourceAndCreateCFA(String pProgram, Optional<CFA> pOriginalCfa)
+      throws ParserException, InterruptedException, InvalidConfigurationException {
 
     stats.totalTime.start();
     try {
