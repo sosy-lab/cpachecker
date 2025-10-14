@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.LinkedHashMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +44,7 @@ public final class CfaMetadata {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
-  private final @Nullable Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
+  private final @Nullable LinkedHashMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -57,7 +57,7 @@ public final class CfaMetadata {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
-      @Nullable Multimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
+      @Nullable LinkedHashMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -373,7 +373,7 @@ public final class CfaMetadata {
    *     an optional containing the map is returned. Otherwise, if this metadata instance doesn't
    *     contain the map for the CFA, an empty optional is returned.
    */
-  public Optional<Multimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+  public Optional<LinkedHashMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
     return Optional.ofNullable(edgesToAnnotations);
   }
 
@@ -387,7 +387,7 @@ public final class CfaMetadata {
    *     annotations
    */
   public CfaMetadata withEdgesToAnnotations(
-      @Nullable Multimap<CFAEdge, ACSLAnnotation> pedgesToAnnotations) {
+      @Nullable LinkedHashMultimap<CFAEdge, ACSLAnnotation> pedgesToAnnotations) {
     return new CfaMetadata(
         machineModel,
         cfaLanguage,

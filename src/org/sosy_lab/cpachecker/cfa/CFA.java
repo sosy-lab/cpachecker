@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.LinkedHashMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
@@ -80,7 +80,7 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getFileNames();
   }
 
-  default Optional<Multimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+  default Optional<LinkedHashMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
     return getMetadata().getEdgesToAnnotations();
   }
 

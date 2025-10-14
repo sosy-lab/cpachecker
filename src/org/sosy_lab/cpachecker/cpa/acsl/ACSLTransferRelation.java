@@ -53,7 +53,7 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
     Set<ACSLAnnotation> annotationsForEdge =
         ImmutableSet.copyOf(
-            (cfa.getEdgesToAnnotations().orElse(LinkedHashMultimap.create())).get(cfaEdge));
+            cfa.getEdgesToAnnotations().orElse(LinkedHashMultimap.create()).get(cfaEdge));
     if (usePureExpressionsOnly) {
       ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
       Set<ACSLAnnotation> annotations =

@@ -79,7 +79,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
     for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
       Collection<ACSLAnnotation> annotationsForEdge =
-          (cfa.getEdgesToAnnotations().orElse(LinkedHashMultimap.create())).get(edge);
+          cfa.getEdgesToAnnotations().orElse(LinkedHashMultimap.create()).get(edge);
       if (usePureExpressionsOnly) {
         ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
         annotationsForEdge =

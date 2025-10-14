@@ -88,7 +88,7 @@ parser code {:
               edgeVisitor.getVisitedEdges());
 
     // no newCFA
-    Multimap<CFAEdge, ACSLAnnotation> newMap = LinkedHashMultimap.create();
+    LinkedHashMultimap<CFAEdge, ACSLAnnotation> newMap = LinkedHashMultimap.create();
     // CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
 
     for (String filename : files) {
