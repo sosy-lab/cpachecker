@@ -10,5 +10,9 @@ package org.sosy_lab.cpachecker.core;
 
 public enum ProgramTransformation {
   NONE,
-  SEQUENTIALIZATION
+  SEQUENTIALIZATION;
+
+  public boolean isEnabled() {
+    return !this.equals(NONE);
+  }
 }

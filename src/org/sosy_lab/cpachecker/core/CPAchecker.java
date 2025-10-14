@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -482,9 +483,9 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
     CFACreator cfaCreator = CFACreator.construct(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator, false);
+    stats.setCFACreator(cfaCreator, ProgramTransformation.NONE);
     final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-    stats.setCFA(cfa, false);
+    stats.setCFA(cfa, ProgramTransformation.NONE);
     return cfa;
   }
 
@@ -495,13 +496,14 @@ public class CPAchecker {
       ProgramTransformation pProgramTransformation)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    logger.logf(Level.INFO, "Parsing CFA from internally generated source code");
+    logger.logf(
+        Level.INFO, "Parsing CFA from program transformation type %s", pProgramTransformation);
     CFACreator cfaCreator =
         CFACreator.constructForProgramTransformation(
             config, logger, shutdownNotifier, pProgramTransformation);
-    pStats.setCFACreator(cfaCreator, true);
-    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode);
-    pStats.setCFA(cfa, true);
+    pStats.setCFACreator(cfaCreator, pProgramTransformation);
+    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode, Optional.of(pOriginalCfa));
+    pStats.setCFA(cfa, pProgramTransformation);
     return cfa;
   }
 

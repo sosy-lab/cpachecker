@@ -558,14 +558,15 @@ public final class MainCPAStatistics implements Statistics {
     }
   }
 
-  public void setCFACreator(CFACreator pCfaCreator, boolean pSequentialize) {
-    // when sequentializing, the cfaCreatorStatistics may be set already
-    Preconditions.checkState(cfaCreatorStatistics == null || pSequentialize);
+  public void setCFACreator(CFACreator pCfaCreator, ProgramTransformation pProgramTransformation) {
+    // when transforming program, the cfaCreatorStatistics may be set already
+    Preconditions.checkState(cfaCreatorStatistics == null || pProgramTransformation.isEnabled());
     cfaCreatorStatistics = pCfaCreator.getStatistics();
   }
 
-  public void setCFA(CFA pCfa, boolean pSequentialize) {
-    Preconditions.checkState(cfa == null || pSequentialize);
+  public void setCFA(CFA pCfa, ProgramTransformation pProgramTransformation) {
+    // when transforming program, the cfa may be set already
+    Preconditions.checkState(cfa == null || pProgramTransformation.isEnabled());
     cfa = pCfa;
   }
 
