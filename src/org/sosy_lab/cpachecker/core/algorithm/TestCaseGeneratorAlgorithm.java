@@ -400,7 +400,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   // parses argstate and modifies it if necessesary during creation of startState
-  // todo modify other elements of wrapped state as well?
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
       // todo add assert?
