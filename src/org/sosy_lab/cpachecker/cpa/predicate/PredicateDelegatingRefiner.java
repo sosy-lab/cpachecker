@@ -14,16 +14,24 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * A heuristic-driven refinement orchestrator for predicate analysis. The refiner delegates
@@ -34,31 +42,64 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * PredicateStopRefiner} to signal the CEGAR algorithm to stop with refinement and end verification
  * early.
  */
-public class PredicateDelegatingRefiner implements ARGBasedRefiner {
+public class PredicateDelegatingRefiner implements Refiner {
 
   private final ImmutableList<HeuristicDelegatingRefinerRecord> refiners;
   private final LogManager logger;
-  private ARGBasedRefiner currentRefiner;
+  private ARGBasedRefiner currentRefiner = null;
+  private final ARGBasedRefiner refiner;
+  private final ARGCPA argCpa;
 
   public PredicateDelegatingRefiner(
-      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords,
-      final LogManager pLogger)
-      throws InvalidConfigurationException {
-    this.refiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
+      ARGBasedRefiner pRefiner,
+      ARGCPA pArgCpa,
+      LogManager pLogger,
+      ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners) {
+    this.refiners = ImmutableList.copyOf(pRefiners);
     this.logger = pLogger;
-    this.currentRefiner = null;
+    refiner = pRefiner;
+    argCpa = pArgCpa;
+  }
+
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    ARGCPA argcpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateDelegatingRefiner.class);
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateDelegatingRefiner.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(
+          PredicateDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    RefinementStrategy strategy =
+        new PredicateAbstractionRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            predicateCpa.getLogger(),
+            predicateCpa.getPredicateManager(),
+            predicateCpa.getSolver());
+
+    PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(argcpa);
+
+    ARGBasedRefiner refiner = factory.create(strategy);
+
+    ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = factory.getRefinerRecords();
+
+    return new PredicateDelegatingRefiner(
+        refiner, argcpa, predicateCpa.getLogger(), refinerRecords);
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    CounterexampleInfo cex = null;
+    currentRefiner = refiner;
+    ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
 
-    UnmodifiableReachedSet reachedSet = pReached.asReachedSet();
-    // The reachedSet comes as a UnmodifiableReachedSetWrapper and needs to be unwrapped to expose
-    // the delegate class in order for Verify to recognize the TrackingForwardingReachedSet
-    while (reachedSet instanceof UnmodifiableReachedSetWrapper) {
-      reachedSet = ((UnmodifiableReachedSetWrapper) reachedSet).getDelegate();
-    }
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    reachedSet = ((UnmodifiableReachedSetWrapper) reachedSet).getDelegate();
+
+    final AbstractState last = reached.asReachedSet().getLastState();
+    ARGState lastState = (ARGState) last;
+    ARGPath errorPath = ARGUtils.getOnePathTo(lastState);
 
     // PredicateDelegatingRefiner only works with a TrackingForwardingReachedSet
     Verify.verify(
@@ -75,16 +116,17 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     for (HeuristicDelegatingRefinerRecord pRecord : refiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
       logger.logf(
-          Level.FINEST,
+          Level.INFO,
           "Heuristic %s matched for %s",
           pHeuristic.getClass().getSimpleName(),
           pRecord.pRefiner().getClass().getSimpleName());
       if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
         currentRefiner = pRecord.pRefiner();
-        return currentRefiner.performRefinementForPath(pReached, pPath);
+
+        cex = currentRefiner.performRefinementForPath(reached, errorPath);
+        return cex.isSpurious();
       }
     }
-
     throw new CPAException("No heuristic matched for refinement.");
   }
 

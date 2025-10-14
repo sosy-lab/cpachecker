@@ -38,4 +38,8 @@ public interface Refiner {
         ConfigurableProgramAnalysis cpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException;
   }
+
+  default boolean shouldTerminateRefinement() {
+    return false;
+  }
 }

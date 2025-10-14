@@ -113,6 +113,8 @@ public final class PredicateCPARefinerFactory {
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
+  private ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = null;
+
   private final TrackingPredicateCPARefinementContext refinementContext =
       new TrackingPredicateCPARefinementContext();
 
@@ -253,15 +255,11 @@ public final class PredicateCPARefinerFactory {
               cfa,
               defaultRefiner);
     }
-
     ARGBasedRefiner refiner = staticRefiner;
     if (usePredicateDelegatingRefiner) {
       ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable =
           buildRefinerMap(defaultRefiner, staticRefiner);
-      ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners =
-          createDelegatingRefinerConfig(pRefinersAvailable);
-
-      refiner = new PredicateDelegatingRefiner(pRefiners, logger);
+      refinerRecords = createDelegatingRefinerConfig(pRefinersAvailable);
     }
 
     return refiner;
@@ -283,7 +281,7 @@ public final class PredicateCPARefinerFactory {
 
   // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
   // heuristics, based on user input in the command-line.
-  ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
+  public ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
       ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable)
       throws InvalidConfigurationException {
 
@@ -348,5 +346,12 @@ public final class PredicateCPARefinerFactory {
       recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));
     }
     return recordBuilder.build();
+  }
+
+  public ImmutableList<HeuristicDelegatingRefinerRecord> getRefinerRecords() {
+    if (refinerRecords == null) {
+      return ImmutableList.of();
+    }
+    return refinerRecords;
   }
 }
