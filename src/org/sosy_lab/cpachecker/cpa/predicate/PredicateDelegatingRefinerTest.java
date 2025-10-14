@@ -21,12 +21,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
@@ -44,8 +42,8 @@ public class PredicateDelegatingRefinerTest {
   private Specification spec;
   private CFA cfa;
   private AggregatedReachedSets reachedSet;
-  private ARGBasedRefiner staticRefiner;
-  private ARGBasedRefiner defaultRefiner;
+  private Refiner staticRefiner;
+  private Refiner defaultRefiner;
 
   /**
    * Create shared components for the DelegatingRefiner configuration tests that do not change
@@ -77,7 +75,7 @@ public class PredicateDelegatingRefinerTest {
   }
 
   // Creates a default map of available refiners for the DelegatingRefiner
-  private ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> setUpRefinerMap(
+  private ImmutableMap<DelegatingRefinerRefinerType, Refiner> setUpRefinerMap(
       PredicateCPARefinerFactory pRefinerFactory) {
     return pRefinerFactory.buildRefinerMap(defaultRefiner, staticRefiner);
   }
@@ -472,12 +470,17 @@ public class PredicateDelegatingRefinerTest {
 
   // A dummy refiner to serve as ARGBasedRefiner instances the DelegatingRefiner adds to its map of
   // available refiners.
-  private static class DummyRefiner implements ARGBasedRefiner {
+  private static class DummyRefiner implements Refiner {
 
     @Override
-    public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+    public boolean performRefinement(ReachedSet pReached)
         throws CPAException, InterruptedException {
-      return CounterexampleInfo.spurious();
+      return false;
+    }
+
+    @Override
+    public boolean shouldTerminateRefinement() {
+      return true;
     }
   }
 }

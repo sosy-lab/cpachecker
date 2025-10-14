@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /** A simple heuristic that always chooses a static refinement strategy in the first iteration. */
 public class DelegatingRefinerHeuristicStaticRefinement implements DelegatingRefinerHeuristic {
@@ -18,8 +18,7 @@ public class DelegatingRefinerHeuristicStaticRefinement implements DelegatingRef
   private boolean staticRefinerUsed = false;
 
   @Override
-  public boolean fulfilled(
-      UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
+  public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     if (!staticRefinerUsed) {
       staticRefinerUsed = true;
