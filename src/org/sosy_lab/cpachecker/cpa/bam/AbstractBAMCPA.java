@@ -13,7 +13,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -112,7 +112,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       CFA pCfa,
-      Optional<CFA> pTransformedCfa)
+      @OptionalAnnotation CFA pTransformedCfa)
       throws InvalidConfigurationException, CPAException {
 
     super(pCpa);

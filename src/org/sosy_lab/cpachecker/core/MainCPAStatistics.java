@@ -394,10 +394,17 @@ public final class MainCPAStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    writeOutputFiles(pResult, pReached, null);
+  }
+
+  @Override
+  public void writeOutputFiles(
+      Result pResult, UnmodifiableReachedSet pReached, @Nullable CFA pTransformedCfa) {
+
     assert pReached != null : "ReachedSet may be null only if analysis not yet started";
 
-    for (Statistics s : subStats) {
-      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+    for (Statistics statistic : subStats) {
+      StatisticsUtils.writeOutputFiles(statistic, logger, pResult, pReached, pTransformedCfa);
     }
   }
 
@@ -526,7 +533,7 @@ public final class MainCPAStatistics implements Statistics {
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
       StatisticsUtils.printStatistics(cfaCreatorStatistics, out, logger, result, reached);
-      StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
+      StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached, null);
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println(

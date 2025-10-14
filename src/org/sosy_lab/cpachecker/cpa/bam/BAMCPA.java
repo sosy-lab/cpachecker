@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -81,7 +81,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       CFA pCfa,
-      Optional<CFA> pTransformedCfa)
+      @OptionalAnnotation CFA pTransformedCfa)
       throws InvalidConfigurationException, CPAException {
 
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa, pTransformedCfa);

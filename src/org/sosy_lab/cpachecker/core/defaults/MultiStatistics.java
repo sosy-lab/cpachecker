@@ -12,7 +12,9 @@ import com.google.common.base.Preconditions;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -46,8 +48,15 @@ public abstract class MultiStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    writeOutputFiles(pResult, pReached, null);
+  }
+
+  @Override
+  public void writeOutputFiles(
+      Result pResult, UnmodifiableReachedSet pReached, @Nullable CFA pTransformedCfa) {
+
     for (Statistics s : subStats) {
-      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached, pTransformedCfa);
     }
   }
 }

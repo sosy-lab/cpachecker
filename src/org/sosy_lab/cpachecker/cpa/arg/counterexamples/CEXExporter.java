@@ -105,6 +105,7 @@ public class CEXExporter {
 
   private final CounterexampleFilter cexFilter;
   private final CFA cfa;
+  private final CFA transformedCfa;
 
   private final CEXExportOptions options;
   private final LogManager logger;
@@ -121,16 +122,19 @@ public class CEXExporter {
       LogManager pLogger,
       Specification pSpecification,
       CFA pCFA,
+      @Nullable CFA pTransformedCfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
+
     config.inject(this);
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
     cfa = pCFA;
+    transformedCfa = pTransformedCfa;
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -180,6 +184,7 @@ public class CEXExporter {
    */
   public void exportCounterexample(
       final ARGState targetState, final CounterexampleInfo counterexample) {
+
     checkNotNull(targetState);
     checkNotNull(counterexample);
 
@@ -321,17 +326,24 @@ public class CEXExporter {
             witnessExporter.generateErrorWitness(
                 rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-        writeErrorPathFile(
-            options.getWitnessFile(),
-            uniqueId,
-            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-            compressWitness);
+        if (transformedCfa != null) {
+          // TODO overwrite .graphml witness i.e. use default witness
+        } else {
+          // for .graphml counterexamples
+          writeErrorPathFile(
+              options.getWitnessFile(),
+              uniqueId,
+              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+              compressWitness);
+        }
 
+        // for .dot counterexamples
         writeErrorPathFile(
             options.getWitnessDotFile(),
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
+
         if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
             try {

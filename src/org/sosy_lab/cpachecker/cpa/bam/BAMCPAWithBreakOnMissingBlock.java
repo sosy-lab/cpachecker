@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -17,6 +16,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -52,7 +52,7 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       CFA pCfa,
-      Optional<CFA> pTransformedCfa)
+      @OptionalAnnotation CFA pTransformedCfa)
       throws InvalidConfigurationException, CPAException {
 
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pTransformedCfa);

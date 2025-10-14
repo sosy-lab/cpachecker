@@ -24,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -55,7 +56,7 @@ public class BAMARGStatistics extends ARGStatistics {
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
       CFA pCfa,
-      Optional<CFA> pTransformedCfa)
+      @OptionalAnnotation CFA pTransformedCfa)
       throws InvalidConfigurationException {
 
     super(pConfig, pLogger, pCpa, pSpecification, pCfa, pTransformedCfa);
