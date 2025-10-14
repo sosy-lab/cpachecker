@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900s" memlimit="15GB" cpuCores="2">
+
+    <option name="--heap">10000M</option>
+    <option name="--timelimit">900s</option>
+    <option name="--option">analysis.programTransformation=SEQUENTIALIZATION</option>
+
+    <tasks name="ConcurrencySafety-Main">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+    <tasks name="ConcurrencySafety-MemSafety">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
+    </tasks>
+
+    <tasks name="ConcurrencySafety-NoOverflows">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
+</benchmark>
