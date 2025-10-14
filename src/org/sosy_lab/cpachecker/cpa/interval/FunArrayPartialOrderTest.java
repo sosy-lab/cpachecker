@@ -11,9 +11,8 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,26 +33,26 @@ public class FunArrayPartialOrderTest {
     Bound boundA = new Bound(new NormalFormExpression(0));
     Bound boundB = new Bound(new NormalFormExpression(1));
     Bound boundC = new Bound(new NormalFormExpression(2));
-    Bound boundD = new Bound(Set.of(new NormalFormExpression(1), new NormalFormExpression(2)));
+    Bound boundD = new Bound(ImmutableSet.of(new NormalFormExpression(1), new NormalFormExpression(2)));
 
     Interval valA = Interval.ZERO;
     Interval valB = new Interval(-1L, 1L);
 
     // {0} [0,0] {1}
-    FunArray arrayA = new FunArray(List.of(boundA, boundB), List.of(valA), List.of(false));
+    FunArray arrayA = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(false));
 
     // {0} [-1, 1] {1}
-    FunArray arrayB = new FunArray(List.of(boundA, boundB), List.of(valB), List.of(false));
+    FunArray arrayB = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valB), ImmutableList.of(false));
 
     // {0} [0,0] {1} [-1, 1] {2}?
     FunArray arrayC =
-        new FunArray(List.of(boundA, boundB, boundC), List.of(valA, valB), List.of(false, true));
+        new FunArray(ImmutableList.of(boundA, boundB, boundC), ImmutableList.of(valA, valB), ImmutableList.of(false, true));
 
     // {0} [-1,1] {1 2}
-    FunArray arrayD = new FunArray(List.of(boundA, boundD), List.of(valB), List.of(false));
+    FunArray arrayD = new FunArray(ImmutableList.of(boundA, boundD), ImmutableList.of(valB), ImmutableList.of(false));
 
     // {0} [0,0] {1}?
-    FunArray arrayE = new FunArray(List.of(boundA, boundB), List.of(valA), List.of(true));
+    FunArray arrayE = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(true));
 
     return ImmutableList.of(
         new Object[] {arrayA, arrayA},

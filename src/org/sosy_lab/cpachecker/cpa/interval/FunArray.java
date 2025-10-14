@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.io.Serializable;
@@ -388,19 +389,19 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         this.bounds.stream()
             .flatMap(b -> b.expressions().stream())
             .filter(e -> other.bounds.stream().anyMatch(b -> b.contains(e)))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     Map<NormalFormExpression, Integer> expressionIndicesThis =
         IntStream.range(0, this.bounds.size())
             .boxed()
             .flatMap(i -> this.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
     Map<NormalFormExpression, Integer> expressionIndicesOther =
         IntStream.range(0, other.bounds.size())
             .boxed()
             .flatMap(i -> other.bounds.get(i).expressions().stream().map(e -> Map.entry(e, i)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
     List<NormalFormExpression> sortedExpressions =
         expressions.stream()
@@ -422,7 +423,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
                   }
                   return Stream.of();
                 })
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     return notInOrder;
   }
@@ -612,7 +613,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // --> Condition cannot be satisfied --> Remove expressions in question
 
       var newBounds =
-          this.bounds().stream().map(b -> b.difference(Set.of(lesser, greater))).toList();
+          this.bounds().stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
       return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     }
   }
@@ -639,7 +640,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // Condition states that left expression is less equal than right expression
       // --> Condition cannot be satisfied --> Remove expressions in question
       var newBounds =
-          modifiedBounds.stream().map(b -> b.difference(Set.of(lesser, greater))).toList();
+          modifiedBounds.stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
       return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     } else {
       // Bound order states that left expression is greater equal than right expression

@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeEx
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -25,7 +26,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -666,7 +666,7 @@ public final class IntervalAnalysisState
     var modifiedFunArrays =
         other.arrays.entrySet().stream()
             .collect(
-                Collectors.toMap(
+                ImmutableMap.toImmutableMap(
                     Entry::getKey,
                     e -> {
                       FunArray leftSide = arrays.get(e.getKey());
@@ -682,7 +682,7 @@ public final class IntervalAnalysisState
     var modifiedVariables =
         other.intervals.entrySet().stream()
             .collect(
-                Collectors.toMap(
+                ImmutableMap.toImmutableMap(
                     Entry::getKey,
                     e -> {
                       Interval leftSide = intervals.get(e.getKey());

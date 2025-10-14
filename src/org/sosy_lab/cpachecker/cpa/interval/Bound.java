@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -61,7 +60,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
                                 }
                               }
                             }))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     return new Bound(modifiedExpressions);
   }
@@ -70,7 +69,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
     var modifiedExpressions =
         expressions.stream()
             .filter(e -> !e.containsVariable(removeVariable))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
     return new Bound(modifiedExpressions);
   }
 
