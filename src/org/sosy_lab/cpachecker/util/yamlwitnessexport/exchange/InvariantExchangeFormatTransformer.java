@@ -153,6 +153,7 @@ public class InvariantExchangeFormatTransformer {
                     invariant,
                     line,
                     column,
+                    invariantEntry.getLocation().getFunction(),
                     invariantEntry
                         .getType()
                         .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));

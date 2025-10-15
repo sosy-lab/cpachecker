@@ -1,0 +1,21 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2014 Antoine Mine
+# SPDX-FileCopyrightText: 2014-2025 The SV-Benchmarks Community
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '2.0'
+
+input_files: 'cast_float_ptr_simplified.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp
+    expected_verdict: false
+
+options:
+  language: C
+  data_model: ILP32

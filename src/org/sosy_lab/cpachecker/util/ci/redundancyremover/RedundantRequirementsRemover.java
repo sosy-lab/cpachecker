@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
@@ -230,13 +231,10 @@ public final class RedundantRequirementsRemover {
         V[][] firstArg = arg0.getFirst();
         V[][] secondArg = arg1.getFirst();
 
-        if (firstArg == null || secondArg == null) {
-          return firstArg == null ? 1 : 0 + (secondArg == null ? -1 : 0);
-        }
-
-        if (firstArg.length == 0 || secondArg.length == 0) {
-          return -(firstArg.length - secondArg.length);
-        }
+        Preconditions.checkNotNull(firstArg);
+        Preconditions.checkNotNull(secondArg);
+        Preconditions.checkArgument(firstArg.length > 0);
+        Preconditions.checkArgument(secondArg.length > 0);
 
         // compare first
         if (firstArg[0].length != secondArg[0].length) {

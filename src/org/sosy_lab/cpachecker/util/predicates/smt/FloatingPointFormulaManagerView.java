@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -156,6 +158,12 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
+  public FloatingPointFormula remainder(
+      FloatingPointFormula dividend, FloatingPointFormula divisor) {
+    return manager.remainder(dividend, divisor);
+  }
+
+  @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return manager.assignment(pNumber1, pNumber2);
   }
@@ -259,6 +267,12 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   public FloatingPointFormula makeNumber(
       Rational n, FloatingPointType type, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return manager.makeNumber(n, type, pFloatingPointRoundingMode);
+  }
+
+  @Override
+  public FloatingPointFormula makeNumber(
+      BigInteger exponent, BigInteger mantissa, Sign sign, FloatingPointType type) {
+    return manager.makeNumber(exponent, mantissa, sign, type);
   }
 
   @Override

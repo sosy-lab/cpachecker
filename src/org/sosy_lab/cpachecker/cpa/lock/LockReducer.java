@@ -41,12 +41,16 @@ public class LockReducer implements Reducer, StatisticsProvider {
 
   public class LockReducerStatistics implements Statistics {
 
-    private StatTimer lockReducing = new StatTimer("Time for reducing locks");
-    private StatTimer reduceUselessLocksTimer = new StatTimer("Time for reducing useless locks");
-    private StatTimer reduceLockCountersTimer = new StatTimer("Time for reducing lock counters");
-    private StatTimer lockExpanding = new StatTimer("Time for expanding locks");
-    private StatTimer expandUselessLocksTimer = new StatTimer("Time for expanding useless locks");
-    private StatTimer expandLockCountersTimer = new StatTimer("Time for expanding lock counters");
+    private final StatTimer lockReducing = new StatTimer("Time for reducing locks");
+    private final StatTimer reduceUselessLocksTimer =
+        new StatTimer("Time for reducing useless locks");
+    private final StatTimer reduceLockCountersTimer =
+        new StatTimer("Time for reducing lock counters");
+    private final StatTimer lockExpanding = new StatTimer("Time for expanding locks");
+    private final StatTimer expandUselessLocksTimer =
+        new StatTimer("Time for expanding useless locks");
+    private final StatTimer expandLockCountersTimer =
+        new StatTimer("Time for expanding lock counters");
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -175,7 +179,6 @@ public class LockReducer implements Reducer, StatisticsProvider {
 
   private Pair<Set<LockIdentifier>, Set<LockIdentifier>> getLockSetsFor(
       AbstractLockState rootState, @SuppressWarnings("unused") Block pContext) {
-    Set<LockIdentifier> locksToProcess = ImmutableSet.of();
     Set<LockIdentifier> uselessLocks = ImmutableSet.of();
 
     /*
@@ -183,17 +186,13 @@ public class LockReducer implements Reducer, StatisticsProvider {
      * !pContext.getCapturedLocks().contains(l) &&
      * !notReducedLocks.get(pContext.getCallNode()).contains(l)); }
      */
-    switch (reduceLockCounters) {
-      case BLOCK:
-        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        // locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
-        break;
-      case ALL:
-        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        break;
-      case NONE:
-        break;
-    }
+    Set<LockIdentifier> locksToProcess =
+        switch (reduceLockCounters) {
+          case BLOCK -> Sets.difference(rootState.getLocks(), uselessLocks);
+          // Sets.difference(locksToProcess, pContext.getCapturedLocks());
+          case ALL -> Sets.difference(rootState.getLocks(), uselessLocks);
+          case NONE -> ImmutableSet.of();
+        };
     return Pair.of(locksToProcess, uselessLocks);
   }
 }

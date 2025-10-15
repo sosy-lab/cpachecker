@@ -34,3 +34,7 @@ cf. the [README](../README.md) in main directory.
 - `generate_coverage.py`:
   Computes a coverage under-approximation that complements the one already reported by CPAchecker
   (cf. the respective [README](post_processing/coverage/README.md)).
+
+# Other Utilities
+- `generate-buildbot-table.sh`:
+  Create and show a table with results from [BuildBot](https://buildbot.sosy-lab.org/cpachecker/).

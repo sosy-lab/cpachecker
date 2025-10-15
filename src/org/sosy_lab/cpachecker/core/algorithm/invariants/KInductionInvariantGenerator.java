@@ -40,6 +40,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -369,7 +371,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       // start invariant generation asynchronously
       ExecutorService executor = Executors.newSingleThreadExecutor();
       invariantGenerationFuture = executor.submit(task);
-      executor.shutdown(); // will shutdown after task is finished
+      executor.shutdown(); // will shut down after task is finished
 
     } else {
       // create future for lazy synchronous invariant generation
@@ -492,7 +494,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           InterruptedException,
           InvalidWitnessException {
 
-    final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
+    final SequencedSet<CandidateInvariant> candidates = new LinkedHashSet<>();
 
     Iterables.addAll(
         candidates,
@@ -537,7 +539,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     "No more candidates available: The safety property has already been"
                         + " confirmed.");
               }
-              return candidate = iterator.next();
+              candidate = iterator.next();
+              return candidate;
             }
 
             @Override
@@ -579,12 +582,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    final SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
     Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+      for (CFAEdge enteringEdge : current.getEnteringEdges()) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
           assumeEdges.add((AssumeEdge) enteringEdge);
@@ -709,7 +712,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
               }
             };
 
-        Set<Wrapper<AssumeEdge>> assumeEdges = new LinkedHashSet<>();
+        SequencedSet<Wrapper<AssumeEdge>> assumeEdges = new LinkedHashSet<>();
         for (AssumeEdge baseAssumeEdge : baseAssumeEdges) {
           assumeEdges.add(equivalence.wrap(baseAssumeEdge));
         }
@@ -801,13 +804,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         if (pVariable.getExpressionType().equals(pSubstitute.getExpressionType())) {
           return true;
         }
-        if (!(pVariable.getExpressionType() instanceof CType)
-            || !(pSubstitute.getExpressionType() instanceof CType)) {
+        if (!(pVariable.getExpressionType() instanceof CType variableType)
+            || !(pSubstitute.getExpressionType() instanceof CType substituteType)) {
           return false;
         }
-        CType typeA = ((CType) pVariable.getExpressionType()).getCanonicalType();
-        CType typeB = ((CType) pSubstitute.getExpressionType()).getCanonicalType();
-        return typeA.canBeAssignedFrom(typeB);
+        return variableType.getCanonicalType().canBeAssignedFrom(substituteType.getCanonicalType());
       }
     },
 
@@ -838,7 +839,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 Sets.intersection(
                     varClassification.getAssumedVariables().elementSet(),
                     varClassification.getIntAddVars()));
-        Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
+        SequencedMap<String, CIdExpression> idExpressions = new LinkedHashMap<>();
         NavigableSet<BigInteger> constants = new TreeSet<>();
         Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
         Map<CIdExpression, AFunctionDeclaration> functions = new HashMap<>();
@@ -852,19 +853,19 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(e))
                           .transformAndConcat(CFAUtils::traverseRecursively)
                           .filter(AIdExpression.class)) {
-                    if (!(idExpression instanceof CIdExpression)) {
+                    if (!(idExpression instanceof CIdExpression id)) {
                       throw new InvalidConfigurationException(
                           "Linear templates are only supported for C code.");
                     }
                     ASimpleDeclaration decl = idExpression.getDeclaration();
                     if (decl != null) {
-                      CIdExpression id = (CIdExpression) idExpression;
+
                       idExpressions.put(decl.getQualifiedName(), id);
                       CType type = id.getExpressionType().getCanonicalType();
                       typePartitions.put(type, decl.getQualifiedName());
                       functions.put(id, e.getPredecessor().getFunction());
-                      if (type instanceof CSimpleType) {
-                        constants.add(machineModel.getMaximalIntegerValue((CSimpleType) type));
+                      if (type instanceof CSimpleType cSimpleType) {
+                        constants.add(machineModel.getMaximalIntegerValue(cSimpleType));
                       }
                     }
                   }
@@ -882,16 +883,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         for (Map.Entry<CType, Collection<String>> typePartition :
             typePartitions.asMap().entrySet()) {
           CType type = typePartition.getKey();
-          if (type instanceof CSimpleType) {
+          if (type instanceof CSimpleType cSimpleType) {
             Collection<String> variables = typePartition.getValue();
-            BigInteger max = machineModel.getMaximalIntegerValue((CSimpleType) type);
+            BigInteger max = machineModel.getMaximalIntegerValue(cSimpleType);
             for (String x : variables) {
               CIdExpression xId = idExpressions.get(x);
               CSimpleDeclaration xDecl = xId.getDeclaration();
-              if (!(xDecl instanceof CVariableDeclaration)) {
+              if (!(xDecl instanceof CVariableDeclaration xVarDecl)) {
                 continue;
               }
-              CVariableDeclaration xVarDecl = (CVariableDeclaration) xDecl;
+
               AFunctionDeclaration function = functions.get(xId);
               for (String y : variables) {
                 if (x.equals(y)) {
@@ -903,10 +904,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                   function = yFunction;
                 } else {
                   CSimpleDeclaration yDecl = yId.getDeclaration();
-                  if (!(yDecl instanceof CVariableDeclaration)) {
+                  if (!(yDecl instanceof CVariableDeclaration yVarDecl)) {
                     continue;
                   }
-                  CVariableDeclaration yVarDecl = (CVariableDeclaration) yDecl;
+
                   if (yVarDecl.isGlobal()) {
                     function = yFunction;
                   } else if (!function.equals(yFunction)) {

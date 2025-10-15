@@ -13,8 +13,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
-import java.util.Map;
+import java.util.Comparator;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +47,8 @@ public final class AstCfaRelation {
 
   private final ImmutableSet<StatementElement> statementElements;
 
+  private final ImmutableSortedSet<FileLocation> expressionLocations;
+
   @LazyInit
   private ImmutableSortedMap<StartingLocation, ASTElement> startingLocationToTightestStatement =
       null;
@@ -62,18 +66,19 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
-  private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
-  private final Map<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
-  private final Set<AVariableDeclaration> globalVariables;
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
       ImmutableSet<StatementElement> pStatementElements,
-      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
-      Set<AVariableDeclaration> pGlobalVariables) {
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableSet<AVariableDeclaration> pGlobalVariables,
+      ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
     statementOffsetsToLocations = pStatementOffsetsToLocations;
@@ -81,6 +86,7 @@ public final class AstCfaRelation {
     cfaNodeToAstLocalVariablesInScope = pCfaNodeToAstLocalVariablesInScope;
     cfaNodeToAstParametersInScope = pCfaNodeToAstParametersVariablesInScope;
     globalVariables = pGlobalVariables;
+    expressionLocations = pExpressionLocations;
   }
 
   /**
@@ -264,6 +270,20 @@ public final class AstCfaRelation {
     return Optional.empty();
   }
 
+  /**
+   * Get the expression whose location has an offset which is greater than or equal to the one of
+   * the location being provided and whose offset is closer than all other expressions to the given
+   * offset
+   *
+   * @param pLocation The location for which an expression is being searched for
+   * @return the location of the expression whose offset is greater than or equal to the one of *
+   *     the location being provided and whose offset is closer than all other expressions to the
+   *     given offset
+   */
+  public Optional<FileLocation> getNextExpressionLocationBasedOnOffset(FileLocation pLocation) {
+    return Optional.ofNullable(expressionLocations.ceiling(pLocation));
+  }
+
   private void initializeMapFromStartingLocationToTightestStatement() {
     if (startingLocationToTightestStatement != null) {
       return;
@@ -290,10 +310,93 @@ public final class AstCfaRelation {
         .getValue();
   }
 
-  public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
-    return FluentIterable.concat(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
-        globalVariables);
+  /**
+   * This method returns all variables and parameters in scope at the given node. It includes global
+   * variables, local variables and parameters.
+   *
+   * <p>Whenever this is not possible, it returns an empty Optional instead. This usually happens
+   * when some information was not passed/tracked correctly from the frontend and is likely a bug in
+   * CPAchecker, so in case you encounter such a case please report it.
+   *
+   * <p>We return an empty Optional to avoid throwing an exception in case the information is not
+   * available, since currently this information is only required when generating some output of
+   * CPAchecker, in which case we can simply remove the information if it is not available.
+   *
+   * @param pNode The node for which we want to get the variables and parameters in scope
+   * @return An Optional containing all variables and parameters in scope at the given node, or an
+   *     empty Optional if the information is not available
+   */
+  public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
+      CFANode pNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(pNode)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        FluentIterable.concat(
+            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
+            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
+            globalVariables));
+  }
+
+  /**
+   * This method returns all the best approximation we have for the file location of the node in the
+   * original program.
+   *
+   * <p>Whenever doing a matching is not possible, it returns an empty Optional instead. This can
+   * happen with difficult control structures which may make it difficult to determine a single
+   * location.
+   *
+   * @param pNode The node for which we want to get the file location
+   * @return An Optional containing the best approximation we have for the position of a CFANode in
+   *     the input program, or an empty Optional if we cannot generate such a matching
+   */
+  public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
+    if (pNode.getNumLeavingEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
+              .min(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineNumber());
+
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the first node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else if (pNode.getNumLeavingEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
+              .max(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineNumber());
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the last node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else {
+      // Could happen if a node is not connected to the CFA
+      return Optional.empty();
+    }
   }
 }

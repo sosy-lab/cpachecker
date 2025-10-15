@@ -6,9 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+atexit/memsafety*.yml
+atexit/reach*.yml
 bitvectors/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
 *.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
+multipleCFiles/*.yml
+multipleCFiles/*/*.yml

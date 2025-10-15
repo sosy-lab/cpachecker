@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
  * one is checked.
  */
 @Options(prefix = "counterexample.concrete")
-@SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class ConcretePathExecutionChecker implements CounterexampleChecker, Statistics {
 
   @Option(
@@ -81,6 +80,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   private final LogManager logger;
   private final Timer timer = new Timer();
 
+  // This suppression is for a initializer of pathToCompiler, needs to be on constructor.
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "just a default")
   public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {
@@ -151,21 +152,25 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
         new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
     int exitCode = exec.join(timelimit.asMillis());
 
-    switch (exitCode) {
-      case 0: // Verification successful (Path is infeasible)
+    return switch (exitCode) {
+      case 0 -> {
+        // Verification successful (Path is infeasible)
         logger.log(
             Level.FINER, "Concrete path program was executed, the error location was infeasible.");
-        return false;
-      case 1: // Verification failed (Path is feasible)
+        yield false;
+      }
+      case 1 -> {
+        // Verification failed (Path is feasible)
         logger.log(
             Level.FINER, "Concrete path program was executed, the error location was reached.");
-        return true;
-      default:
-        // as only 0 and 1 should occur as exit codes this is probably a bug with the code
-        // generation
-        throw new CounterexampleAnalysisFailed(
-            "Executing the concrete path program lead to invalid exitcode: " + exitCode);
-    }
+        yield true;
+      }
+      default ->
+          // as only 0 and 1 should occur as exit codes this is probably a bug with the code
+          // generation
+          throw new CounterexampleAnalysisFailed(
+              "Executing the concrete path program lead to invalid exitcode: " + exitCode);
+    };
   }
 
   private boolean checkCounterexample(

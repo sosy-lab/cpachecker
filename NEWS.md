@@ -8,6 +8,52 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 4.1
+----------------------------
+* Java 21 or later is required now.
+
+
+Changes from CPAchecker 4.0 to CPAchecker 4.1
+---------------------------------------------
+* CPAchecker 4.1 is the last release that works on Java 17,
+  future versions of CPAchecker will require Java 21 or newer.
+* Improved float handling.  
+  The internal handling of floats of the analyzed program
+  was improved in several ways in CPAchecker and is now more precise.
+* Better support for systems other than Linux x86_64.  
+  Previously CPAchecker could typically not be used for any float-containing program
+  on non-Linux and non-x86_64 platforms due to a missing binary library.
+  Now we eliminated the need for this library and many configurations of CPAchecker
+  now consist of only Java code, which is platform independent.
+  Configurations that rely on external binary libraries (like most SMT solvers)
+  still have limited platform support.
+* LLVM frontend of CPAchecker disabled.  
+  The LLVM frontend of CPAchecker (used for analyzing programs in LLVM IR
+  or for C programs after compiling with Clang) supported only an old LLVM version
+  and was unmaintained. Now it is disabled completely.
+* The official container image of CPAchecker is now based on Ubuntu 22.04
+  instead of Ubuntu 20.04 and uses Java 21 instead of Java 17.
+
+
+Changes from CPAchecker 3.0 to CPAchecker 4.0
+---------------------------------------------
+* Improved default configuration of CPAchecker.  
+  The default configuration of CPAchecker is now more advanced and effective.
+  For standard reachability properties it now uses strategy selection on
+  program features such as the whether loops exist to choose a particular analysis.
+  In most cases, a parallel portfolio of a diverse range of analyses such as
+  k-induction, IMC, predicate abstraction, and value analysis is used.
+  Parallel portfolios of different analyses are also used for verification of
+  memory-safety and termination properties.
+* Initial support for handling `atexit`.
+* The generated HTML report does no longer contain the witness tab by default.  
+  In some cases, it can take a long time to generated.
+  Set the option `report.addWitness=true` to re-enable it.
+* On 2024-10-18 the CPAchecker repository was migrated from Subversion to git  
+  Please see our [post on the migration](https://groups.google.com/g/cpachecker-users/c/1s6YbhvKq6Y/m/ElnLV4CkAAAJ)
+  for information on how to adjust your local repository if necessary.
+
+
 Changes from CPAchecker 2.4 to CPAchecker 3.0
 ---------------------------------------------
 * Default analysis no longer needs to be explicitly requested.  
@@ -537,7 +583,7 @@ Further changes:
 * Benchmarking Support  
   CPAchecker provides scripts for benchmarking with large sets of programs.
   These have been extended and now provide more precise time and memory measurement
-  (using Linux cgroups). Also the generated HTML tables have more features now.
+  (using Linux cgroups). Also, the generated HTML tables have more features now.
   (cf. doc/Benchmark.txt)
 
 

@@ -210,8 +210,8 @@ public class LocalTransferRelation
   @Override
   protected LocalState handleDeclarationEdge(CDeclarationEdge declEdge, CDeclaration decl) {
     LocalState newState = state.copy();
-    if (decl instanceof CVariableDeclaration) {
-      CInitializer init = ((CVariableDeclaration) decl).getInitializer();
+    if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+      CInitializer init = cVariableDeclaration.getInitializer();
 
       int deref = findDereference(decl.getType());
       AbstractIdentifier id = IdentifierCreator.createIdentifier(decl, getFunctionName(), 0);
@@ -232,8 +232,8 @@ public class LocalTransferRelation
           }
         }
       }
-      if (init instanceof CInitializerExpression) {
-        assign(newState, id, deref, ((CInitializerExpression) init).getExpression());
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        assign(newState, id, deref, cInitializerExpression.getExpression());
       } else if (!decl.isGlobal() && type instanceof CArrayType) {
         // Uninitialized arrays (int a[2]) are pointed to local memory
         completeSet(newState, id, deref, DataType.LOCAL);
@@ -260,7 +260,7 @@ public class LocalTransferRelation
       List<CExpression> parameters = right.getParameterExpressions();
       // Usually it looks like 'priv = netdev_priv(dev)'
       // Other cases will be handled if they appear
-      CExpression targetParam = parameters.get(0);
+      CExpression targetParam = parameters.getFirst();
       // TODO How it works with *a = f(b) ?
       AbstractIdentifier paramId = createId(targetParam, dereference);
       alias(pSuccessor, leftId, paramId);
@@ -316,11 +316,11 @@ public class LocalTransferRelation
     AbstractIdentifier leftId = createId(left, 0);
     if (!(leftId instanceof ConstantIdentifier)) {
       int leftDereference = findDereference(left.getExpressionType());
-      if (right instanceof CExpression) {
-        assign(pSuccessor, leftId, leftDereference, (CExpression) right);
+      if (right instanceof CExpression cExpression) {
+        assign(pSuccessor, leftId, leftDereference, cExpression);
 
-      } else if (right instanceof CFunctionCallExpression) {
-        assign(pSuccessor, leftId, leftDereference, (CFunctionCallExpression) right);
+      } else if (right instanceof CFunctionCallExpression cFunctionCallExpression) {
+        assign(pSuccessor, leftId, leftDereference, cFunctionCallExpression);
       }
     }
   }
@@ -410,15 +410,12 @@ public class LocalTransferRelation
   }
 
   public static int findDereference(CType type) {
-    if (type instanceof CPointerType pointerType) {
-      return (findDereference(pointerType.getType()) + 1);
-    } else if (type instanceof CArrayType arrayType) {
-      return (findDereference(arrayType.getType()) + 1);
-    } else if (type instanceof CTypedefType) {
-      return findDereference(((CTypedefType) type).getRealType());
-    } else {
-      return 0;
-    }
+    return switch (type) {
+      case CPointerType pointerType -> findDereference(pointerType.getType()) + 1;
+      case CArrayType arrayType -> findDereference(arrayType.getType()) + 1;
+      case CTypedefType cTypedefType -> findDereference(cTypedefType.getRealType());
+      case null /*TODO check if null is necessary*/, default -> 0;
+    };
   }
 
   private boolean isAllocatedFunction(String funcName) {

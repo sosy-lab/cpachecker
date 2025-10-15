@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
@@ -10,9 +10,11 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-shopt -s globstar
+shopt -s globstar extglob
+GENERATED_FILES="ACSLParser|ACSLScanner|AutomatonParser|AutomatonScanner|FormulaParser|FormulaScanner|LtlGrammarParser"
 
 DIR="$(dirname "$0")/.."
+SRC_DIR="$(realpath --relative-to=. "$DIR/src")"
 ERROR=0
 
 if ( command -v git && git rev-parse --is-inside-work-tree ) > /dev/null 2>&1; then
@@ -36,7 +38,7 @@ fi
 
 FORBIDDEN_OUTPUT='System\.(out|err)\.print'
 
-if grep -q -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java; then
+if grep -q -P "$FORBIDDEN_OUTPUT" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Use of System.out or System.err found. We do not want raw output,
 please use proper logging as described in doc/Logging.md
@@ -44,7 +46,7 @@ please use proper logging as described in doc/Logging.md
 Please fix the following cases:
 
 EOF
-  grep --color=always -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java
+  grep --color=always -P "$FORBIDDEN_OUTPUT" "$SRC_DIR"/**/*.java
   echo
   ERROR=1
 fi
@@ -67,7 +69,7 @@ FORBIDDEN_EQUALS_METHOD='\n( *)public (?:final )?boolean equals\((?:final )?(?:@
 # because it changes the line separator of grep to \0.
 # We require -P because the regexp uses negative look-ahead assertions.
 
-if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java; then
+if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Implementation of equals() found that does not conform to one of our standard patterns.
 Please either use a record, or use our standard pattern for equals(),
@@ -77,7 +79,7 @@ More information is in doc/StyleGuide.md
 These equals() implementations should be treated in this way:
 
 EOF
-  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
+  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$SRC_DIR"/**/*.java | tr '\0' '\n'
   echo
   ERROR=1
 fi
@@ -85,7 +87,7 @@ fi
 
 # This checks for "compareTo()" implementations where the body is not one of the following:
 # - a single "return ComparisonChain.start()...", or
-# - a single delegation to a "compare" utility method in the classes Arrays, Double, Integer, Long
+# - a single delegation to a "compare" utility method in the classes Arrays, Double, Float, Integer, Long
 #   (could be extended if required), or
 # - a single delegation to a Comparator created with the static methods in the Comparator class, or
 # - a single delegation to another "compareTo" method,
@@ -94,9 +96,9 @@ fi
 # - anything of the above preceded by an identity or equality check with a "return 0;", or
 # - anything of the above preceded by a "checkArgument()" or "verify()" check.
 #
-FORBIDDEN_COMPARETO_METHOD='\n( *)public (?:final )?int compareTo\((?:final )?([^();]*) ([^() ;]*)\) {\n(?!(?: *if \((?:this == \3|[^{};]*\.equals\([^{};]*\))\) {\n *return 0;\n *}| *(?:Preconditions\.)?checkArgument\([^{};]*\);| *(?:Verify\.)?verify\([^{};]*\);| *([^(){} ;]*) [^(){} ;]* = \(\4\) \3;|\n)*( *return ComparisonChain\.start\(\)| *return (?:Arrays|Double|Integer|Long|Comparator\.[^{};]*)\.compare\(| *return [^{};]*\.compareTo\()| *// )(?:.|\n)*?\n\1}'
+FORBIDDEN_COMPARETO_METHOD='\n( *)public (?:final )?int compareTo\((?:final )?([^();]*) ([^() ;]*)\) {\n(?!(?: *if \((?:this == \3|[^{};]*\.equals\([^{};]*\))\) {\n *return 0;\n *}| *(?:Preconditions\.)?checkArgument\([^{};]*\);| *(?:Verify\.)?verify\([^{};]*\);| *([^(){} ;]*) [^(){} ;]* = \(\4\) \3;|\n)*( *return ComparisonChain\.start\(\)| *return (?:Arrays|Double|Float|Integer|Long|Comparator\.[^{};]*)\.compare\(| *return [^{};]*\.compareTo\()| *// )(?:.|\n)*?\n\1}'
 
-if grep -q -z -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java; then
+if grep -q -z -P "$FORBIDDEN_COMPARETO_METHOD" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Implementation of compareTo() found that does not conform to one of our standard patterns.
 Please use one of our standard patterns for compareTo(),
@@ -107,9 +109,33 @@ More information is in doc/StyleGuide.md
 These compareTo() implementations should be treated in this way:
 
 EOF
-  grep -o -z --color=always -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
+  grep -o -z --color=always -P "$FORBIDDEN_COMPARETO_METHOD" "$SRC_DIR"/**/*.java | tr '\0' '\n'
   echo
   ERROR=1
 fi
+
+
+# This checks for one of the following:
+# - a case keyword with a colon at the end of the line if there is no comment start between them
+# - a default keyword followed by a colon
+# - anything of the above with a line-end comment
+FORBIDDEN_SWITCH_CASE='^ *(case ((?!// ).)*|default):( //.*)?$'
+
+if grep -q -P "$FORBIDDEN_SWITCH_CASE" "$SRC_DIR"/**/!($GENERATED_FILES).java; then
+  cat >&2 <<'EOF'
+Switch found with classic case labels (ending in a colon)
+instead of arrow labels (ending in "->").
+These have unexpected scoping rules and the danger of unwanted fall through.
+Please use only arrow labels.
+More information is in doc/StyleGuide.md
+(https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/StyleGuide.md#switch).
+These switch cases should be treated in this way:
+
+EOF
+  grep --line-number --color=always -P "$FORBIDDEN_SWITCH_CASE" "$SRC_DIR"/**/!($GENERATED_FILES).java
+  echo
+  ERROR=1
+fi
+
 
 [ "$ERROR" -eq 0 ] || exit 1

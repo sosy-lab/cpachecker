@@ -90,7 +90,7 @@ public class InterpolationAutomatonBuilder {
 
     logger.logf(
         Level.INFO,
-        "Refining the arg with automaton using the interpolants: %s",
+        "Refining the ARG with automaton using the interpolants: %s",
         distinctInterpolants);
 
     String automatonName = ITP_AUTOMATON_NAME + pAutomatonIndex;
@@ -278,16 +278,15 @@ public class InterpolationAutomatonBuilder {
 
       } else {
 
-        // Otherwise (if in itp-state), the next state is unsat to the current
-        // one. Hence add a transition to the final state.
+        // Otherwise (if in itp-state), the next state is unsat to the current one.
+        // Hence, add a transition to the final state.
         pItpAutomaton.addTransitionToFinalState(pCurrentState, pCurrentInterpolant, pChildState);
         return Optional.empty();
       }
     } else {
 
-      // The postcondition is ambiguous. We cannot tell anything about the child
-      // state, hence a transition to the init state is added (if not already in
-      // that state).
+      // The postcondition is ambiguous. We cannot tell anything about the child state,
+      // hence, a transition to the init state is added (if not already in that state).
 
       if (bFMgrView.isTrue(pCurrentInterpolant)) {
         pItpAutomaton.addQueryToCache(pCurrentState, pChildState, pCurrentInterpolant);

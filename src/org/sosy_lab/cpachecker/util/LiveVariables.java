@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -89,7 +90,7 @@ public class LiveVariables {
   /**
    * Equivalence implementation especially for the use with live variables. We have to use this
    * wrapper, because of the storageType in CVariableDeclarations which does not always have to be
-   * the same for exactly the same variable (e.g. one declaration is extern, and afterwards the real
+   * the same for exactly the same variable (e.g. one declaration is extern, and afterward the real
    * declaration is following which then has storageType auto: for live variables we need to
    * consider them as one).
    */
@@ -98,8 +99,9 @@ public class LiveVariables {
 
         @Override
         protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
-          if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pA).equalsWithoutStorageClass(pB);
+          if (pA instanceof CVariableDeclaration cVariableDeclaration
+              && pB instanceof CVariableDeclaration) {
+            return cVariableDeclaration.equalsWithoutStorageClass(pB);
           } else {
             return pA.equals(pB);
           }
@@ -107,8 +109,8 @@ public class LiveVariables {
 
         @Override
         protected int doHash(ASimpleDeclaration pT) {
-          if (pT instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pT).hashCodeWithOutStorageClass();
+          if (pT instanceof CVariableDeclaration cVariableDeclaration) {
+            return cVariableDeclaration.hashCodeWithOutStorageClass();
           } else {
             return pT.hashCode();
           }
@@ -124,7 +126,7 @@ public class LiveVariables {
             "By changing this option one can adjust the way how"
                 + " live variables are created. Function-wise means that each"
                 + " function is handled separately, global means that the whole"
-                + " cfa is used for the computation.",
+                + " CFA is used for the computation.",
         secure = true)
     private EvaluationStrategy evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
 
@@ -141,12 +143,12 @@ public class LiveVariables {
         description =
             "Timelimit for collecting the liveness information with one approach, (p.e. if global"
                 + " analysis is selected and fails in the specified timelimit the function wise"
-                + " approach will have the same time-limit afterwards to compute the live"
+                + " approach will have the same time-limit afterward to compute the live"
                 + " variables).(use seconds or specify a unit; 0 for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
-    public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
+    LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
   }
@@ -358,7 +360,7 @@ public class LiveVariables {
     if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(liveVarConfig.overallLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -405,7 +407,7 @@ public class LiveVariables {
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(config.partwiseLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -473,14 +475,41 @@ public class LiveVariables {
           case FUNCTION_WISE -> pCfa.entryNodes();
           case GLOBAL -> Collections.singleton(pCfa.getMainFunction());
         };
-    for (FunctionEntryNode node : functionHeads) {
-      Optional<FunctionExitNode> exitNode = node.getExitNode();
+
+    // skip function calls unless global evaluation is used
+    final CFATraversal cfaTraversal =
+        evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
+            ? CFATraversal.dfs().ignoreFunctionCalls()
+            : CFATraversal.dfs();
+
+    for (FunctionEntryNode entryNode : functionHeads) {
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+
+      // add return node (if present) as an entry point
       if (exitNode.isPresent()) {
         analysisParts.reachedSet.add(
             analysisParts.cpa.getInitialState(
                 exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()),
             analysisParts.cpa.getInitialPrecision(
                 exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
+      }
+
+      // calculate set of reachable nodes from the function entry point
+      Set<CFANode> reached =
+          exitNode.isPresent()
+              ? cfaTraversal.collectNodesReachableFromTo(entryNode, exitNode.orElseThrow())
+              : cfaTraversal.collectNodesReachableFrom(entryNode);
+
+      // find calls to non-returning functions
+      Iterable<CFANode> nonReturning =
+          FluentIterable.from(reached).filter(CFATerminationNode.class::isInstance);
+
+      // add calls to non-returning functions as additional entry points
+      for (CFANode finalNode : nonReturning) {
+        analysisParts.reachedSet.add(
+            analysisParts.cpa.getInitialState(finalNode, StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialPrecision(
+                finalNode, StateSpacePartition.getDefaultPartition()));
       }
     }
 
@@ -491,7 +520,7 @@ public class LiveVariables {
       for (Loop l : loops) {
 
         // we need only one loop head for each loop, as we are doing a merge
-        // afterwards during the analysis, and we do never stop besides when
+        // afterward during the analysis, and we do never stop besides when
         // there is coverage (we have no target states)
         // additionally we have to remove all functionCallEdges from the outgoing
         // edges because the LoopStructure is not able to say that loops with
@@ -550,7 +579,7 @@ public class LiveVariables {
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {
-      // this should never happen, but if it does we continue the
+      // this should never happen, but if it does, we continue the
       // analysis without having the live variable analysis
       logger.logUserException(
           Level.WARNING,

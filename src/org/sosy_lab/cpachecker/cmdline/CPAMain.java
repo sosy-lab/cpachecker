@@ -56,7 +56,6 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -162,7 +161,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // This is for actually forcing a termination when CPAchecker
-    // fails to shutdown within some time.
+    // fails to shut down within some time.
     ShutdownRequestListener forcedExitOnShutdown =
         ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
     shutdownNotifier.register(forcedExitOnShutdown);
@@ -176,7 +175,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
+    // so we disable all the limits, shutdown requests on Ctrl+C, etc.
+    // The shutdownHook still runs and blocks JVM exit until we finish.
     shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
@@ -192,6 +192,20 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+
+    // Now the shutdownHook should not prevent JVM exit anymore.
+    shutdownHook.disableAndStop();
+
+    String otherThreads = ForceTerminationOnShutdown.buildLiveThreadInfo();
+    if (!otherThreads.isEmpty()) {
+      logManager.log(
+          Level.WARNING,
+          "\nCPAchecker has finished but some threads are still running:\n",
+          otherThreads);
+    }
+
+    // If other threads are running, simply ending the main thread will not work, but exit does.
+    System.exit(0);
   }
 
   // Default values for options from external libraries
@@ -259,7 +273,7 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  protected static class MainOptions {
+  public static class MainOptions {
     @Option(
         secure = true,
         name = "analysis.programNames",
@@ -270,9 +284,11 @@ public class CPAMain {
     @Option(
         secure = true,
         description =
-            "Programming language of the input program. If not given explicitly, "
-                + "auto-detection will occur")
-    // keep option name in sync with {@link CFACreator#language}, value might differ
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+    // keep option name in sync with {@link CPAMain#language} and {@link
+    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
     private Language language = null;
 
     @Option(
@@ -318,11 +334,12 @@ public class CPAMain {
           CommonVerificationProperty.VALID_MEMTRACK);
 
   /**
-   * Parse the command line, read the configuration file, and setup the program-wide base paths.
+   * Parse the command line, read the configuration file, and set up the program-wide base paths.
    *
    * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Config createConfiguration(String[] args)
+  @VisibleForTesting
+  public static Config createConfiguration(String[] args)
       throws InvalidConfigurationException,
           InvalidCmdlineArgumentException,
           IOException,
@@ -358,7 +375,7 @@ public class CPAMain {
 
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
-    // add it to our Configuration object and to the the map of default converters.
+    // add it to our Configuration object and to the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
     FileTypeConverter fileTypeConverter =
@@ -531,7 +548,7 @@ public class CPAMain {
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
-    } else if (from(properties).anyMatch(p -> p instanceof CoverFunctionCallProperty)) {
+    } else if (from(properties).anyMatch(CoverFunctionCallProperty.class::isInstance)) {
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
@@ -592,7 +609,7 @@ public class CPAMain {
     if (propertyFiles.size() > 1) {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
-    String propertyFile = propertyFiles.get(0);
+    String propertyFile = propertyFiles.getFirst();
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
@@ -618,7 +635,7 @@ public class CPAMain {
   }
 
   @Options
-  private static class WitnessOptions {
+  public static class WitnessOptions {
     @Option(
         secure = true,
         name = "witness.validation.file",
@@ -668,7 +685,10 @@ public class CPAMain {
    */
   public static Configuration handleWitnessOptions(
       Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
-      throws InvalidConfigurationException, IOException, InterruptedException {
+      throws InvalidConfigurationException,
+          IOException,
+          InterruptedException,
+          InvalidCmdlineArgumentException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
     if (options.witness == null) {
@@ -678,6 +698,12 @@ public class CPAMain {
     final Path validationConfigFile;
     if (options.useACSLAnnotatedProgram) {
       validationConfigFile = options.correctnessWitnessValidationConfig;
+      if (validationConfigFile == null) {
+        throw new InvalidConfigurationException(
+            "Validating an ACSL annotated program is not supported if option"
+                + " witness.validation.correctness.config is not specified.");
+      }
+
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
       WitnessType witnessType;
@@ -707,12 +733,49 @@ public class CPAMain {
         throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }
       switch (witnessType) {
-        case VIOLATION_WITNESS:
+        case VIOLATION_WITNESS -> {
           validationConfigFile = options.violationWitnessValidationConfig;
+
+          if (validationConfigFile == null) {
+            throw new InvalidConfigurationException(
+                "Validating violation witnesses is not supported if option"
+                    + " witness.validation.violation.config is not specified.");
+          }
+
           appendWitnessToSpecificationOption(options, overrideOptions);
-          break;
-        case CORRECTNESS_WITNESS:
+        }
+        case CORRECTNESS_WITNESS -> {
           validationConfigFile = options.correctnessWitnessValidationConfig;
+          if (validationConfigFile == null) {
+            throw new InvalidConfigurationException(
+                "Validating correctness witnesses is not supported if option"
+                    + " witness.validation.correctness.config is not specified.");
+          }
+
+          // Some options relevant to the further processing, in particular
+          // `validateInvariantsSpecificationAutomaton` are only present in the sub-config for the
+          // relevant specification. For `validateInvariantsSpecificationAutomaton` this is
+          // the configuration for the no-overflow specification.
+          //
+          // To fix this, we first need to read the configuration file for validation.
+          // Then use it to create the configuration for the correct specification.
+          // Finally, we inject the options from the correct specification into the main options.
+          // This way, the correct options are available for the rest of the program.
+          //
+          // This is not the best solution, but I'm unsure how to do this without a major
+          // refactoring of the options handling.
+          Configuration validationConfig =
+              Configuration.builder().loadFromFile(validationConfigFile).build();
+
+          BootstrapOptions bootstrapOptions = new BootstrapOptions();
+          validationConfig.inject(bootstrapOptions);
+          Configuration correctnessWitnessConfig =
+              handlePropertyOptions(
+                  validationConfig,
+                  bootstrapOptions,
+                  overrideOptions,
+                  handlePropertyFile(overrideOptions));
+          correctnessWitnessConfig.inject(options);
           if (options.validateInvariantsSpecificationAutomaton) {
             appendWitnessToSpecificationOption(options, overrideOptions);
           } else {
@@ -720,22 +783,17 @@ public class CPAMain {
                 "invariantGeneration.kInduction.invariantsAutomatonFile",
                 options.witness.toString());
           }
-          break;
-        default:
-          throw new InvalidConfigurationException(
-              "Witness type "
-                  + witnessType
-                  + " of witness "
-                  + options.witness
-                  + " is not supported");
+        }
+        default ->
+            throw new InvalidConfigurationException(
+                "Witness type "
+                    + witnessType
+                    + " of witness "
+                    + options.witness
+                    + " is not supported");
       }
     }
 
-    if (validationConfigFile == null) {
-      throw new InvalidConfigurationException(
-          "Validating (violation|correctness) witnesses is not supported if option"
-              + " witness.validation.(violation|correctness).config is not specified.");
-    }
     ConfigurationBuilder configBuilder =
         Configuration.builder()
             .loadFromFile(validationConfigFile)
@@ -770,7 +828,7 @@ public class CPAMain {
       LogManager logManager)
       throws IOException {
 
-    // setup output streams
+    // set up output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
     @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
@@ -835,8 +893,8 @@ public class CPAMain {
       justification = "Default encoding is the correct one for stdout.")
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+    if (stream instanceof PrintStream printStream) {
+      return printStream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -846,15 +904,5 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  private static class Config {
-
-    private final Configuration configuration;
-
-    private final String outputPath;
-
-    public Config(Configuration pConfiguration, String pOutputPath) {
-      configuration = pConfiguration;
-      outputPath = pOutputPath;
-    }
-  }
+  public record Config(Configuration configuration, String outputPath) {}
 }

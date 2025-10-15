@@ -37,7 +37,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--option">counterexample.export.compressWitness=true</option>
   <option name="--option">counterexample.export.graphml=witness.graphml</option>
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-  <option name="--option">termination.violation.witness=witness.graphml</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
@@ -64,16 +64,13 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/Juliet.set</includesfile>
-    <exclude>../programs/benchmarks/Juliet_Test/*_bad.yml</exclude> <!-- missing subproperties -->
+    <!-- Exclude Juliet_test unsafe memsafety tasks without subproperty from competition. Originally excluded in commit 024bdad652 by @versokova -->
+    <exclude>../programs/benchmarks/Juliet_Test/*_bad.yml</exclude>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
     <option name="--option">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
   </tasks>
 
-  <tasks name="SoftwareSystems-BusyBox-MemSafety">
-    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
   <tasks name="SoftwareSystems-coreutils-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -82,7 +79,8 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <tasks name="SoftwareSystems-OpenBSD-MemSafety">
+  <tasks name="SoftwareSystems-Other-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>

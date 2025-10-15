@@ -37,7 +37,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * symbolic formula. Third, again as a symbolic formula, but this time all variables have names
  * which include their SSA index at the time of the abstraction computation.
  *
- * <p>Additionally the formula for the block immediately before the abstraction computation is
+ * <p>Additionally, the formula for the block immediately before the abstraction computation is
  * stored (this also has SSA indices as it is a path formula, even if it is not of the type
  * PathFormula).
  *
@@ -184,7 +184,7 @@ public class AbstractionFormula implements Serializable {
     private final String instantiatedFormulaDump;
     private final PathFormula blockFormula;
 
-    public SerializationProxy(AbstractionFormula pAbstractionFormula) {
+    SerializationProxy(AbstractionFormula pAbstractionFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump =

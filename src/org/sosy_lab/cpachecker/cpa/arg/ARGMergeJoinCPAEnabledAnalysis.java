@@ -103,7 +103,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
       // delete connection to children
       while (!current.getChildren().isEmpty()) {
-        child = current.getChildren().iterator().next();
+        child = current.getChildren().getFirst();
         current.deleteChild(child);
 
         // relink or delete child if it is not connected by another parent
@@ -160,7 +160,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
       // delete connection to children
       while (!current.getChildren().isEmpty()) {
-        child = current.getChildren().iterator().next();
+        child = current.getChildren().getFirst();
         current.deleteChild(child);
 
         assert child.getParents().isEmpty();
@@ -235,9 +235,9 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
             // delete edge from parent and introduce covering
             assert (later.getParents().size() <= 1);
             if (later.getParents().size() == 1) {
-              new ARGState(later.getWrappedState(), later.getParents().iterator().next())
+              new ARGState(later.getWrappedState(), later.getParents().getFirst())
                   .setCovered(later);
-              later.getParents().iterator().next().deleteChild(later);
+              later.getParents().getFirst().deleteChild(later);
             }
             // remove coverage relation and relink
             covered.uncover();
@@ -261,7 +261,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
 
       // delete connection to children
       while (!current.getChildren().isEmpty()) {
-        child = current.getChildren().iterator().next();
+        child = current.getChildren().getFirst();
         current.deleteChild(child);
         toProcess.add(child);
       }

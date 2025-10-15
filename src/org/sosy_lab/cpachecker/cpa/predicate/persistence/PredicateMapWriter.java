@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.util.Collection;
@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
  * PredicateMapParser}.
  */
 @Options(prefix = "cpa.predicate")
-public class PredicateMapWriter {
+public final class PredicateMapWriter {
 
   @Option(
       secure = true,
@@ -66,7 +67,7 @@ public class PredicateMapWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = new LinkedHashSet<>();
+    SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
@@ -87,7 +88,7 @@ public class PredicateMapWriter {
       predToString.put(pred, predString);
     }
 
-    LINE_JOINER.appendTo(sb, definitions);
+    Joiner.on('\n').appendTo(sb, definitions);
     sb.append("\n\n");
 
     writeSetOfPredicates(sb, "*", globalPredicates, predToString);

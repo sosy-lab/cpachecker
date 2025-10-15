@@ -83,8 +83,7 @@ public class CPAchecker {
     private final ReachedSet reached;
     private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(
-        ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
+    CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
@@ -287,26 +286,62 @@ public class CPAchecker {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
-    Algorithm algorithm = null;
-    ReachedSet reached = null;
     CFA cfa = null;
-    Result result = Result.NOT_YET_STARTED;
-    String targetDescription = "";
-    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
-
-      // create reached set, cpa, algorithm
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
 
+      return run0(cfa, stats);
+
+    } catch (InvalidConfigurationException
+        | ParserException
+        | IOException
+        | InterruptedException e) {
+      logErrorMessage(e, logger);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
+    } finally {
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
+    }
+  }
+
+  public CPAcheckerResult run(CFA cfa, MainCPAStatistics stats) {
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
+
+    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+    shutdownNotifier.register(interruptThreadOnShutdown);
+
+    try {
+      return run0(cfa, stats);
+    } finally {
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
+    }
+  }
+
+  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
+
+    Algorithm algorithm = null;
+    ReachedSet reached = null;
+    Result result = Result.NOT_YET_STARTED;
+    String targetDescription = "";
+    Specification specification;
+
+    try {
+
+      // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
+
+      // When the run method is called from the main entry run method, the creationTime
+      // is already running. In this case, we do not need to start it again.
+      if (!stats.creationTime.isRunning()) {
+        stats.creationTime.start();
+      }
       stats.cpaCreationTime.start();
       try {
         logAboutSpecification();
@@ -318,8 +353,8 @@ public class CPAchecker {
       }
       stats.setCPA(cpa);
 
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
@@ -376,54 +411,63 @@ public class CPAchecker {
       } else {
         result = Result.DONE;
       }
-
-    } catch (IOException e) {
-      logger.logUserException(Level.SEVERE, e, "Could not read file");
-
-    } catch (ParserException e) {
-      logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      StringBuilder msg = new StringBuilder();
-      msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      switch (e.getLanguage()) {
-        case C:
-          msg.append(
-              "If the code was not preprocessed, please use a C preprocessor\n"
-                  + "or specify the --preprocess command-line argument.\n");
-          break;
-        case LLVM:
-          msg.append(
-              "If you want to use the LLVM frontend, please make sure that\n"
-                  + "the code can be compiled by clang or input valid LLVM code.\n");
-          break;
-        default:
-          // do not log additional messages
-          break;
-      }
-      msg.append(
-          "If the error still occurs, please send this error message\n"
-              + "together with the input file to cpachecker-users@googlegroups.com.\n");
-      logger.log(Level.INFO, msg);
-
-    } catch (InvalidConfigurationException e) {
-      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-
-    } catch (InterruptedException e) {
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
-
-    } catch (CPAException e) {
-      logger.logUserException(Level.SEVERE, e, null);
-
+    } catch (InvalidConfigurationException | InterruptedException | CPAException e) {
+      logErrorMessage(e, logger);
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
-      shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
-  private CFA parse(List<String> fileNames, MainCPAStatistics stats)
+  private static void handleParserException(ParserException e, LogManager pLogger) {
+    pLogger.logUserException(Level.SEVERE, e, "Parsing failed");
+    StringBuilder msg = new StringBuilder();
+    msg.append("Please make sure that the code can be compiled by a compiler.\n");
+    switch (e.getLanguage()) {
+      case C ->
+          msg.append(
+              """
+              If the code was not preprocessed, please use a C preprocessor
+              or specify the --preprocess command-line argument.
+              """);
+      case LLVM ->
+          msg.append(
+              """
+              If you want to use the LLVM frontend, please make sure that
+              the code can be compiled by clang or input valid LLVM code.
+              """);
+      default -> {
+        // do not log additional messages
+      }
+    }
+    msg.append(
+        """
+        If the error still occurs, please send this error message
+        together with the input file to cpachecker-users@googlegroups.com.
+        """);
+    pLogger.log(Level.INFO, msg);
+  }
+
+  private static void logErrorMessage(Exception e, LogManager pLogger) {
+    if (e instanceof IOException) {
+      pLogger.logUserException(Level.SEVERE, e, "Could not read file");
+    } else if (e instanceof InvalidConfigurationException) {
+      pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
+    } else if (e instanceof ParserException parserException) {
+      handleParserException(parserException, pLogger);
+    } else if (e instanceof InterruptedException) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
+      pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
+    } else if (e instanceof CPAException) {
+      pLogger.logUserException(Level.SEVERE, e, null);
+    } else {
+      throw new AssertionError("unexpected exception type", e);
+    }
+  }
+
+  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
@@ -459,7 +503,7 @@ public class CPAchecker {
           Classes.getCodeLocation(CPAchecker.class)
               .resolveSibling("config/specification/default.spc");
       if (specificationFiles.size() == 1
-          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+          && Files.isSameFile(specificationFiles.getFirst(), defaultSpec)) {
         logger.log(
             Level.INFO,
             "Using default specification, which checks for assertion failures and error labels.");
@@ -516,8 +560,8 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
-    if (reached instanceof ResultProviderReachedSet) {
-      return ((ResultProviderReachedSet) reached).getOverallResult();
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      return resultProviderReachedSet.getOverallResult();
     }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");

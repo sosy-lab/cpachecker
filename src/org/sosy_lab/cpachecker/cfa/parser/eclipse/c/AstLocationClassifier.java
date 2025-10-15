@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +69,17 @@ class AstLocationClassifier extends ASTVisitor {
   private final ImmutableMap.Builder<FileLocation, FileLocation> ifElseClause =
       new ImmutableMap.Builder<>();
 
+  private final ImmutableSortedSet.Builder<FileLocation> expressions =
+      new ImmutableSortedSet.Builder<>(
+          // We want to sort the file locations by their offset inside the same file. This overrides
+          // the default sorting of the file locations, since we are not interested in the length of
+          // the expression
+          (loc1, loc2) ->
+              ComparisonChain.start()
+                  .compare(loc1.getFileName(), loc2.getFileName())
+                  .compare(loc1.getNodeOffset(), loc2.getNodeOffset())
+                  .result());
+
   private final ImmutableMap.Builder<String, Path> fileNames = new ImmutableMap.Builder<>();
 
   public final CSourceOriginMapping sourceOriginMapping;
@@ -77,7 +90,7 @@ class AstLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableSortedMap<Integer, FileLocation> getStatementOffsetsToLocations() {
-    // Using an ImmutableMap and then copying it into a ImmutableSortedMap is necessary,
+    // Using an ImmutableMap and then copying it into an ImmutableSortedMap is necessary,
     // since ImmutableSortedMap does not implement buildKeepingLast, which is necessary
     // when multiple statements are at the same initial offset. Currently, this is
     // necessary for: test/programs/simple/builtin_types_compatible_void.c
@@ -88,6 +101,12 @@ class AstLocationClassifier extends ASTVisitor {
     for (Path path : pFileNames) {
       fileNames.put(path.getFileName().toString(), path);
     }
+  }
+
+  @Override
+  public int visit(IASTExpression pExpression) {
+    expressions.add(getLocation(pExpression));
+    return PROCESS_CONTINUE;
   }
 
   /**
@@ -169,19 +188,22 @@ class AstLocationClassifier extends ASTVisitor {
     Optional<IASTExpression> controllingExpression = Optional.empty();
     Optional<IASTStatement> initializer = Optional.empty();
     Optional<IASTExpression> iteration = Optional.empty();
-    if (statement instanceof IASTWhileStatement whileStatement) {
-      body = whileStatement.getBody();
-      controllingExpression = Optional.of(whileStatement.getCondition());
-    } else if (statement instanceof IASTDoStatement doStatement) {
-      body = doStatement.getBody();
-      controllingExpression = Optional.of(doStatement.getCondition());
-    } else if (statement instanceof IASTForStatement forStatement) {
-      body = forStatement.getBody();
-      controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
-      initializer = Optional.ofNullable(forStatement.getInitializerStatement());
-      iteration = Optional.ofNullable(forStatement.getIterationExpression());
-    } else {
-      throw new UnsupportedOperationException("Unknown type of iteration statement");
+    switch (statement) {
+      case IASTWhileStatement whileStatement -> {
+        body = whileStatement.getBody();
+        controllingExpression = Optional.of(whileStatement.getCondition());
+      }
+      case IASTDoStatement doStatement -> {
+        body = doStatement.getBody();
+        controllingExpression = Optional.of(doStatement.getCondition());
+      }
+      case IASTForStatement forStatement -> {
+        body = forStatement.getBody();
+        controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
+        initializer = Optional.ofNullable(forStatement.getInitializerStatement());
+        iteration = Optional.ofNullable(forStatement.getIterationExpression());
+      }
+      default -> throw new UnsupportedOperationException("Unknown type of iteration statement");
     }
     // body and cond are not null at this point.
     loopBody.put(loc, getLocation(body));
@@ -260,5 +282,9 @@ class AstLocationClassifier extends ASTVisitor {
 
   public ImmutableSet<FileLocation> getStatementLocations() {
     return statementLocations.build();
+  }
+
+  public ImmutableSortedSet<FileLocation> getExpressionLocations() {
+    return expressions.build();
   }
 }

@@ -12,6 +12,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.errorprone.annotations.Immutable;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -22,7 +24,8 @@ import org.sosy_lab.common.collect.PersistentMap;
  * O(log(n)) instead of O(1) for a default stack operation.
  */
 @Immutable(containerOf = "T")
-public class PersistentStack<T> implements Iterable<T> {
+public class PersistentStack<T> implements Iterable<T>, Serializable {
+  @Serial private static final long serialVersionUID = 3708067938671364159L;
 
   private final PersistentMap<Integer, T> delegate;
 

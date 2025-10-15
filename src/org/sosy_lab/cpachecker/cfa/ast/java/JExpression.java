@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/** Interface of Side effect free Expressions. */
+/** Interface of side-effect free Expressions. */
 public sealed interface JExpression extends JRightHandSide, AExpression
     permits JArrayCreationExpression,
         JArrayInitializer,

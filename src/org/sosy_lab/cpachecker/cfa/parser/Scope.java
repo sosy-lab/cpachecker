@@ -25,7 +25,7 @@ public interface Scope {
    * Checks if the scope is al global scope. Global scope allow to register functions, types and
    * global variables.
    *
-   * @return true, if the scope is a global scope, false otherwise.
+   * @return whether the scope is a global scope.
    */
   boolean isGlobalScope();
 

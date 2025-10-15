@@ -93,8 +93,8 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
   }
 }

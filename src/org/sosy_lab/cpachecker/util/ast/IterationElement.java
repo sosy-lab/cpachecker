@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.ast.AstUtils.computeNodesConditionBoundaryNodes;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 
 public final class IterationElement extends BranchingElement {
 
@@ -88,7 +91,17 @@ public final class IterationElement extends BranchingElement {
     return Optional.of(loopStartNodes.iterator().next());
   }
 
-  private void computeNodesBetweenConditionAndBody() {
+  private void computeNodesBetweenConditionAndBody() throws BoundaryNodesComputationFailed {
+    if (controllingExpression.isEmpty()) {
+      nodesBetweenConditionAndBody =
+          ImmutableSet.copyOf(
+              Sets.difference(
+                  transformedImmutableSetCopy(body.edges(), CFAEdge::getPredecessor),
+                  transformedImmutableSetCopy(body.edges(), CFAEdge::getSuccessor)));
+      nodesBetweenConditionAndExit = ImmutableSet.of();
+      return;
+    }
+
     Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
         computeNodesConditionBoundaryNodes(
             controllingExpression.orElseThrow().edges(),
@@ -98,14 +111,16 @@ public final class IterationElement extends BranchingElement {
     nodesBetweenConditionAndExit = borderElements.getSecond();
   }
 
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndBody() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndBody()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndBody == null) {
       computeNodesBetweenConditionAndBody();
     }
     return nodesBetweenConditionAndBody;
   }
 
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndExit() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndExit()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndExit == null) {
       computeNodesBetweenConditionAndBody();
     }

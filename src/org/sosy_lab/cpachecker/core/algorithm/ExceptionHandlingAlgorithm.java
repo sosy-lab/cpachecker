@@ -67,7 +67,7 @@ public class ExceptionHandlingAlgorithm
         secure = true,
         name = "counterexample.continueAfterInfeasibleError",
         description =
-            "continue analysis after an counterexample was found that was denied by the second"
+            "continue analysis after a counterexample was found that was denied by the second"
                 + " check")
     private boolean continueAfterInfeasibleError = true;
 
@@ -82,7 +82,7 @@ public class ExceptionHandlingAlgorithm
     @Option(
         secure = true,
         name = "analysis.continueAfterUnsupportedCode",
-        description = "continue analysis after a unsupported code was found on one path")
+        description = "continue analysis after an unsupported code was found on one path")
     private boolean continueAfterUnsupportedCode = false;
 
     private ExceptionHandlingOptions(Configuration pConfig) throws InvalidConfigurationException {
@@ -345,7 +345,7 @@ public class ExceptionHandlingAlgorithm
       // The error state has a sibling, so the parent and the sibling
       // should stay in the reached set, but then the error state
       // would get re-discovered.
-      // Similarly for covered states.
+      // Similarly, for covered states.
       // Currently just handle this by removing them anyway,
       // as this probably doesn't occur.
       sound = false;
@@ -383,22 +383,22 @@ public class ExceptionHandlingAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 
   @Override
   public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.register(pReachedSetUpdateListener);
     }
   }
 
   @Override
   public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.unregister(pReachedSetUpdateListener);
     }
   }
 }
