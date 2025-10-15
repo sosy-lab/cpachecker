@@ -357,7 +357,11 @@ public class DssBlockAnalysis {
       return reportPreconditions(summariesWithPrecision.build(), true);
     }
 
-    return reportFirstViolationConditions(result.getAllViolations());
+    ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
+    if (result.getFinalLocationStates().isEmpty()) {
+      messages.addAll(reportUnreachableBlockEnd());
+    }
+    return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
   }
 
   /**
@@ -376,6 +380,7 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     if (!pReceived.isReachable()) {
+      soundPredecessors.add(pReceived.getSenderId());
       preconditions.removeAll(pReceived.getSenderId());
       return DssMessageProcessing.stop();
     }
@@ -422,7 +427,9 @@ public class DssBlockAnalysis {
               dcpa.getCoverageOperator()
                   .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
           if (deserializedLessEqualPrevious) {
-            soundPredecessors.add(pReceived.getSenderId());
+            if (pReceived.isSound()) {
+              soundPredecessors.add(pReceived.getSenderId());
+            }
             covered++;
           }
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
@@ -437,6 +444,16 @@ public class DssBlockAnalysis {
     ImmutableSet<PredecessorStateEntry> discarded = discard.build();
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
+
+    // no entry can be empty (doesn't matter because of merge stop)
+    for (String predecessor : block.getPredecessorIds()) {
+      if (!preconditions.containsKey(predecessor)) {
+        for (String p : preconditions.keySet()) {
+          preconditions.putAll(predecessor, preconditions.get(p));
+          break;
+        }
+      }
+    }
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
       return DssMessageProcessing.stop();
