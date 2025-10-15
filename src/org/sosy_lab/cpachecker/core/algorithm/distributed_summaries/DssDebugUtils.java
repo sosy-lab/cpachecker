@@ -39,19 +39,24 @@ public class DssDebugUtils {
       Multimap<String, @NonNull StateAndPrecision> violationConditions,
       Function<AbstractState, String> pStateToString) {
     String precondition =
-        FluentIterable.from(preconditions.keys())
+        FluentIterable.from(preconditions.keySet())
             .transform(
                 predecessor ->
                     FluentIterable.from(preconditions.get(predecessor))
-                        .transform(p -> pStateToString.apply(p.state()))
+                        .transform(p -> predecessor + ": " + pStateToString.apply(p.state()))
                         .join(Joiner.on("\n  ")))
             .join(Joiner.on("\n  "));
     String header = "Block " + id + " with preconditions:\n  " + precondition;
     header += "\nand violation conditions:\n  ";
-    header +=
-        FluentIterable.from(violationConditions.values())
-            .transform(p -> pStateToString.apply(p.state()))
+    String postcondition =
+        FluentIterable.from(violationConditions.keySet())
+            .transform(
+                successor ->
+                    FluentIterable.from(violationConditions.get(successor))
+                        .transform(p -> successor + ": " + pStateToString.apply(p.state()))
+                        .join(Joiner.on("\n  ")))
             .join(Joiner.on("\n  "));
+    header += postcondition;
     int rep = Splitter.on("\n").splitToStream(header).mapToInt(String::length).max().orElse(0);
     return "=".repeat(rep) + "\n" + header + "\n" + "=".repeat(rep);
   }
