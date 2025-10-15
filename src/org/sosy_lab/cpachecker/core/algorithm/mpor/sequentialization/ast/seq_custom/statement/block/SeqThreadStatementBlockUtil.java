@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqThreadStatementBlockUtil {
 
@@ -38,7 +37,7 @@ public class SeqThreadStatementBlockUtil {
   }
 
   private static boolean isAnyWhileTrueLoopStart(CFANode pCfaNode) {
-    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(pCfaNode)) {
+    for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
       CFANode predecessor = enteringEdge.getPredecessor();
       if (isWhileTrueLoopStart(predecessor)) {
         return true;
@@ -55,7 +54,7 @@ public class SeqThreadStatementBlockUtil {
     if (pCfaEdge instanceof CDeclarationEdge) {
       // edge case: while(1) starts e.g. with switch(__VERIFIER_nondet...())
       // which is transformed into separate declaration
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(pCfaNode)) {
+      for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
         if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
           return true;
         }
@@ -67,10 +66,10 @@ public class SeqThreadStatementBlockUtil {
   private static boolean isWhileTrueLoopStartWithFunctionCall(CFANode pCfaNode) {
     if (pCfaNode instanceof CFunctionEntryNode) {
       // edge case: while(1) is followed directly by function call
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pCfaNode)) {
+      for (CFAEdge leavingEdge : pCfaNode.getLeavingEdges()) {
         if (leavingEdge.getDescription().equals("Function start dummy edge")) {
-          for (CFAEdge functionCallEdge : CFAUtils.enteringEdges(pCfaNode)) {
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(functionCallEdge.getPredecessor())) {
+          for (CFAEdge functionCallEdge : pCfaNode.getEnteringEdges()) {
+            for (CFAEdge enteringEdge : functionCallEdge.getPredecessor().getEnteringEdges()) {
               if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
                 return true;
               }
@@ -84,7 +83,7 @@ public class SeqThreadStatementBlockUtil {
 
   private static boolean isWhileTrueLoopStart(CFANode pCfaNode) {
     if (pCfaNode.isLoopStart()) {
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(pCfaNode)) {
+      for (CFAEdge enteringEdge : pCfaNode.getEnteringEdges()) {
         if (enteringEdge instanceof BlankEdge blankEdge) {
           if (blankEdge.getDescription().equals(SingleControlExpressionEncoding.WHILE.keyword)) {
             return true;

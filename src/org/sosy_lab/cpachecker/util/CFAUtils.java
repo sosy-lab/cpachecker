@@ -825,7 +825,7 @@ public class CFAUtils {
 
     ImmutableSet.Builder<CFunctionCallEdge> rFunctionCallEdges = ImmutableSet.builder();
     FunctionEntryNode functionEntryNode = pReturnStatementEdge.getSuccessor().getEntryNode();
-    for (CFAEdge enteringEdge : enteringEdges(functionEntryNode)) {
+    for (CFAEdge enteringEdge : functionEntryNode.getEnteringCallEdges()) {
       assert enteringEdge instanceof CFunctionCallEdge;
       rFunctionCallEdges.add((CFunctionCallEdge) enteringEdge);
     }

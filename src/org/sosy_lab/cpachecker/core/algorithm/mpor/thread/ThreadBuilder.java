@@ -193,7 +193,7 @@ public class ThreadBuilder {
     }
     pVisitedCfaNodes.put(pCurrentNode, callContext);
 
-    FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
+    FluentIterable<CFAEdge> leavingCfaEdges = pCurrentNode.getAllLeavingEdges();
     // all leaving edges of a node are in the atomic block
     BiMap<ThreadEdge, CFAEdge> threadEdges =
         createThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);

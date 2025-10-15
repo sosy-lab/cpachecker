@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -143,7 +142,7 @@ public final class MPORUtil {
 
     pVisited.add(pCurrent);
     boolean foundPath = false;
-    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent.getSuccessor())) {
+    for (CFAEdge cfaEdge : pCurrent.getSuccessor().getLeavingEdges()) {
       // only search original call context via summary edge, exclude return edges
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
         // ignore edges that lead to pStop
@@ -177,7 +176,7 @@ public final class MPORUtil {
 
     pVisited.add(pCurrent);
     boolean foundPath = false;
-    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent)) {
+    for (CFAEdge cfaEdge : pCurrent.getLeavingEdges()) {
       // only search original call context via summary edge, exclude return edges
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
         CFANode successor = cfaEdge.getSuccessor();
