@@ -514,7 +514,7 @@ public class DssBlockAnalysis {
             if (pReceived.isSound()) {
               soundPredecessors.add(pReceived.getSenderId());
             }
-            isEquivalent = true;
+            covered++;
           }
           discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
         }
@@ -534,6 +534,15 @@ public class DssBlockAnalysis {
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
 
+    // no entry can be empty (doesn't matter because of merge stop)
+    for (String predecessor : block.getPredecessorIds()) {
+      if (!preconditions.containsKey(predecessor)) {
+        for (String p : preconditions.keySet()) {
+          preconditions.putAll(predecessor, preconditions.get(p));
+          break;
+        }
+      }
+    }
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
       return DssMessageProcessing.stop();
