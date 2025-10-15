@@ -150,6 +150,8 @@ def filter_content_by_keys(content: Dict[str, Any], export_keys: List[str]) -> D
                 break
     return filtered
 
+def html_for_message(message, block_log: Dict[str, str], export_keys: list):
+    div = Airium()
 
 def generate_message_html(message: Optional[Dict[str, Any]], block_logs: Dict[str, Any],
                           export_keys: List[str]) -> str:
@@ -269,6 +271,30 @@ def generate_html_table(messages: List[Dict[str, Any]], block_logs: Dict[str, An
 
     return '\n'.join(html_parts)
 
+def html_dict_to_html_table(
+    all_messages, block_logs: Dict[str, str], export_keys: list
+):
+    first_timestamp = int(all_messages[0]["header"]["timestamp"])
+    timestamp_to_message = {}
+    sorted_keys = sorted(block_logs.keys())
+    index_dict = {}
+    for i, index in enumerate(sorted_keys):
+        index_dict[index] = i
+    for message in all_messages:
+        sender = message["header"]["senderId"]
+        if sender not in index_dict:
+            continue
+        timestamp_to_message.setdefault(
+            message["header"]["timestamp"] - first_timestamp, [""] * len(block_logs)
+        )[index_dict[sender]] = message
+    headers = ["time"] + sorted_keys
+    table = Airium()
+    with table.table(klass="worker"):
+        # header
+        with table.thead():
+            with table.tr(klass="header_row"):
+                for key in headers:
+                    table.th(_t=f"{key}")
 
 def visualize_block_graph(
         block_structure_file: Path,
@@ -435,11 +461,21 @@ def generate_html_report(
 
     # Write output file
     output_path.mkdir(parents=True, exist_ok=True)
-    output_file = output_path / report_filename
-    with open(output_file, "w", encoding=ENCODING) as f:
-        f.write(html_content)
-
-    print(f"HTML report generated: {output_file}")
+    with open(message_table_html_file, encoding=ENCODING) as html:
+        with open(message_table_css_file, encoding=ENCODING) as css:
+            text = (
+                html.read()
+                .replace(
+                    "<!--<<<TABLE>>><!-->",
+                    html_dict_to_html_table(
+                        all_messages, block_logs, export_keys
+                    ),
+                )
+                .replace("/*CSS*/", css.read())
+            )
+            output_file = output_path / report_filename
+            with open(output_file, "w+", encoding=ENCODING) as new_html:
+                new_html.write(text)
     return output_file
 
 
