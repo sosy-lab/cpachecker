@@ -509,7 +509,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     if (pBits.isEmpty()) {
       return booleanFormulaManager.makeTrue();
     }
-    int bitsize = getLength(pBits.get(0));
+    int bitsize = getLength(pBits.getFirst());
     pBits.forEach(
         bit ->
             Preconditions.checkArgument(
