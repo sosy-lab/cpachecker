@@ -207,7 +207,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        //        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
+//        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -325,8 +325,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return parentArgStates.iterator().next();
   }
 
-  // eReached is a single arg state that's the starting point of the extraction value analysis
-  // after the algo is done, the newly reached states are added to this variable
+  // Extractor runs an additional analysis that checks if a generated test covers additonal goals
   private void runExtractorAlgo(
       final ReachedSet pReached, AbstractState reachedState, CounterexampleInfo cexInfo) {
     logger.log(Level.INFO, "Running Extractor Algorithm to compute extended path.");
@@ -339,17 +338,22 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       return;
     }
     // initialisation of starting state and reachedSet
+    // eStartState is the starting point of the extraction value analysis
+    // it is initialized with the variable assignments found in the counterexample info
     ARGState argState = (ARGState) reachedState;
     ARGState eStartState = createStartState(argState);
     initializeStartState(cexInfo, eStartState);
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
-    // run value analysis and check what additional targets have been covered
+    // run value analysis to compute extended path in CFA
     extractorRunCPAA(eReached, extractionAlgorithm, lShutdownManager);
+    // mark additionally covered test targets as covered
     evaluateExtractorResult(eReached);
     logger.log(Level.INFO, "Finished Extraction Analysis.");
   }
 
+  //the ExtractorAlgorithm is an CPA algorithm with special properties regarding
+  // breaks and successor generation
   private Algorithm createExtractorAlgorithm(ShutdownManager lShutdownManager) throws CPAException {
     Algorithm extractionAlgorithm = null;
     try {
@@ -385,6 +389,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return extractionAlgorithm;
   }
 
+  // creates a copy of an argState
   private ARGState createStartState(ARGState argState) {
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
@@ -394,10 +399,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return new ARGState(new CompositeState(elements), null);
   }
 
-  // parses argstate and modifies it if necessesary during creation of startState
+  // ValueAnalysisState is explicitly copied to circumvent side effects
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
-      // todo add assert?
       return ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
     } else {
       return abstractState;
@@ -410,17 +414,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     // extract all variable assignments from reached state
     ValueAnalysisState valueAnalysisState =
         extractVAState((CompositeState) eStartState.getWrappedState());
+    //todo leave main here as it is working just fine
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(valueAnalysisState, "main",
         valueAnalysisState.getMachineModel(), new LogManagerWithoutDuplicates(logger));
     CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
-      mapExpressions(stateExpStmts, valueAnalysisState, visitor);
+      mapToExpStmt(stateExpStmts, valueAnalysisState, visitor);
     }
   }
 
-  private void mapExpressions(
+  private void mapToExpStmt(
       ImmutableList<AExpressionStatement> expStmt,
       ValueAnalysisState valueAnalysisState,
       ExpressionValueVisitor visitor) {
@@ -433,15 +438,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
   }
 
-  // reads the value assigned to a variable, and adds that value to the abstract state,
-  // but only if there is no disctinct value tracked already for that variable
+  // reads the value assigned to a variable, and adds that value to the ValueAnalysisstate,
+  // but only if there is no distinct value already tracked for that variable
   private void writeExpressionToState(
       CBinaryExpression cBinaryExpression,
       ValueAnalysisState valueAnalysisState,
       ExpressionValueVisitor visitor) {
     try {
       MemoryLocation memLoc = visitor.evaluateMemoryLocation(cBinaryExpression.getOperand1());
-      // if variable is already assigned then no new assignmend is added to the VAstate
+      // if variable is already assigned then no new assignment is added to the VAstate
       if (memLoc == null || valueAnalysisState.contains(memLoc)) {
         return;
       }
@@ -468,7 +473,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return null;
   }
 
-  // exploring the successors of eStartState for additional ARGstates
+  // exploring new successors of eStartState
   private void extractorRunCPAA(
       ReachedSet eReached,
       Algorithm extractionAlgorithm,
@@ -489,12 +494,13 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       // block due to respective shutdown notifier call
       status = status.withPrecise(false);
     } finally {
+      // todo shutdown here enough?
       lShutdownManager.requestShutdown("Analysis terminated");
     }
   }
 
   private void evaluateExtractorResult(ReachedSet eReached) {
-    // drop first element as it is the starting state that is always a TargetState
+    // drop first element as it is the starting state that is always a covered TargetState
     from(eReached)
         .skip(1)
         .filter(AbstractStates::isTargetState)
@@ -504,6 +510,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // checks for singe ARGState if the targetEdge that led to that state is an uncovered test goal
   // if so, the goal is marked as covered
   private void evaluateGoalState(ARGState nextGoalState) {
+    // todo can this even happen?
     if (nextGoalState == null) {
       return;
     }
@@ -511,7 +518,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CFAEdge targetEdge = parentArgState.getEdgeToChild(nextGoalState);
     if (targetEdge != null) {
       if (testTargets.contains(targetEdge)) {
-        logger.log(Level.FINE, "Extractor: Removing test target: " + targetEdge);
+        logger.log(Level.INFO, "Extractor: Removing test target: " + targetEdge);
         testTargets.remove(targetEdge);
       } else {
         logger.log(
