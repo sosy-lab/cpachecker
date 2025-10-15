@@ -341,8 +341,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     // eStartState is the starting point of the extraction value analysis
     // it is initialized with the variable assignments found in the counterexample info
     ARGState argState = (ARGState) reachedState;
-    ARGState eStartState = createStartState(argState);
-    initializeStartState(cexInfo, eStartState);
+    ARGState eStartState = createStartState(cexInfo, argState);
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
     // run value analysis to compute extended path in CFA
@@ -390,19 +389,20 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   // creates a copy of an argState
-  private ARGState createStartState(ARGState argState) {
+  private ARGState createStartState(CounterexampleInfo cexInfo, ARGState argState) {
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
         IntStream.range(0, wrappedState.getNumberOfStates())
-            .mapToObj(i -> processElements(wrappedState.get(i)))
+            .mapToObj(i -> processElements(cexInfo, wrappedState.get(i)))
             .collect(ImmutableList.toImmutableList());
     return new ARGState(new CompositeState(elements), null);
   }
 
-  // ValueAnalysisState is explicitly copied to circumvent side effects
-  private AbstractState processElements(AbstractState abstractState) {
+  // ValueAnalysisState is explicitly copied before initialization to circumvent side effects
+  private AbstractState processElements(CounterexampleInfo cexInfo, AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
-      return ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
+      return initializeVAState(cexInfo,
+          ValueAnalysisState.copyOf((ValueAnalysisState) abstractState));
     } else {
       return abstractState;
     }
@@ -410,10 +410,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
   // of the starting state in descending order relative to the line number of the c program
-  private void initializeStartState(CounterexampleInfo cexInfo, ARGState eStartState) {
-    // extract all variable assignments from reached state
-    ValueAnalysisState valueAnalysisState =
-        extractVAState((CompositeState) eStartState.getWrappedState());
+  private ValueAnalysisState initializeVAState(CounterexampleInfo cexInfo, ValueAnalysisState valueAnalysisState) {
     //todo leave main here as it is working just fine
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(valueAnalysisState, "main",
         valueAnalysisState.getMachineModel(), new LogManagerWithoutDuplicates(logger));
@@ -423,6 +420,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
       mapToExpStmt(stateExpStmts, valueAnalysisState, visitor);
     }
+    return valueAnalysisState;
   }
 
   private void mapToExpStmt(
@@ -458,19 +456,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     } catch (UnrecognizedCodeException e) {
       logger.log(Level.FINE, "No Memorylocation found for CExpression.");
     }
-  }
-
-  private ValueAnalysisState extractVAState(CompositeState wrappedState) {
-    assert (wrappedState != null);
-    for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
-      AbstractState element = wrappedState.get(i);
-      if (element instanceof ValueAnalysisState) {
-        return (ValueAnalysisState) element;
-      }
-    } // end while
-    logger.log(Level.FINE, "Found no ValueAnalysisState in wrappedState.");
-    // todo error handling (needed if there is assert?)
-    return null;
   }
 
   // exploring new successors of eStartState
