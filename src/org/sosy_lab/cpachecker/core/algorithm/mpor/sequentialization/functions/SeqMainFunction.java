@@ -105,7 +105,7 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(SeqStringUtil.appendCurlyBracketLeft(loopHead.orElseThrow().toASTString()));
     }
 
-    if (options.conflictReduction) {
+    if (options.reduceLastThreadOrder) {
       // add last_thread = next_thread assignment (before setting next_thread)
       if (options.nondeterminismSource.isNextThreadNondeterministic()) {
         CExpressionAssignmentStatement assignment =

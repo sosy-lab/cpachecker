@@ -42,13 +42,14 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.areBitVectorsEnabled(),
-        "either conflictReduction or bitVectorReduction must be enabled");
+        pOptions.reduceLastThreadOrder || pOptions.reduceUntilConflict,
+        "either reduceLastThreadOrder or reduceUntilConflict must be enabled");
 
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "conflictReduction must be enabled to build evaluation expression");
+              String.format(
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY ->
           BitVectorAccessEvaluationBuilder.buildVariableOnlyEvaluationByEncoding(
               pOptions,
@@ -77,12 +78,13 @@ public class BitVectorEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    checkArgument(pOptions.conflictReduction, "conflict reduction must be enabled");
+    checkArgument(pOptions.reduceLastThreadOrder, "reduceLastThreadOrder must be enabled");
 
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "conflictReduction must be enabled to build evaluation expression");
+              String.format(
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
@@ -123,7 +125,7 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastAccessBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
@@ -158,7 +160,7 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastWriteBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
@@ -219,13 +221,14 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.bitVectorReduction,
-        "bitVectorReduction must be enabled to build evaluation expression");
+        pOptions.reduceUntilConflict,
+        "reduceUntilConflict must be enabled to build evaluation expression");
 
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "bitVectorReduction must be enabled to build evaluation expression");
+              String.format(
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
@@ -274,7 +277,8 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "bitVectorReduction must be enabled to build evaluation expression");
+              String.format(
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY ->
           buildAccessEvaluationByEncoding(
               pOptions,
@@ -307,7 +311,7 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
@@ -342,7 +346,7 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherWriteBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(

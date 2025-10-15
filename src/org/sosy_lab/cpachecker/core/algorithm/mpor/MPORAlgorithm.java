@@ -65,10 +65,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
   private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
 
-  @Option(secure = true, description = "add ")
-  // using optional for @Options is not allowed, unfortunately...
-  private boolean bitVectorReduction = false;
-
   @Option(
       secure = true,
       description =
@@ -80,14 +76,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description = "include comments with trivia explaining the sequentialization?")
   private boolean comments = false;
-
-  @Option(
-      secure = true,
-      description =
-          "adds execution orders via assumptions for non-conflicting threads to reduce the state"
-              + " space. it takes the previous and current thread and checks if they commute from"
-              + " the current location.")
-  private boolean conflictReduction = false;
 
   @Option(
       description =
@@ -127,13 +115,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description = "bound K to the number of statements in a thread simulation via assumptions?")
   private boolean kBound = false;
-
-  // TODO not secure, resulted in false_positive verdicts
-  @Option(
-      description =
-          "ignore K == 0 if the current thread is not in conflict with any other thread to reduce"
-              + " the state space?")
-  private boolean kIgnoreZeroReduction = false;
 
   @Option(
       secure = true,
@@ -224,6 +205,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " all unnecessary writes to 1 are thus pruned.")
   private boolean pruneBitVectorWrite = false;
 
+  // TODO not sound, resulted in wrong proofs
+  @Option(
+      description =
+          "ignore that the current thread should not execute if it is not in conflict with any"
+              + " other thread? only works when nondeterminismSource contains NUM_STATEMENTS.")
+  private boolean reduceIgnoreSleep = false;
+
+  @Option(
+      secure = true,
+      description = "enforce an execution order when the current and previous thread commute?")
+  private boolean reduceLastThreadOrder = false;
+
+  @Option(
+      secure = true,
+      description =
+          "continue executing the current thread until it is in conflict with at least another"
+              + " thread?")
+  private boolean reduceUntilConflict = false;
+
   @Option(
       secure = true,
       description =
@@ -234,7 +234,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "if both bitVectorReduction and conflictReduction are enabled, define the order"
+          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
               + " in which their statements are placed in the output program.")
   private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
@@ -338,10 +338,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     allowPointerWrites,
                     atomicBlockMerge,
                     bitVectorEncoding,
-                    bitVectorReduction,
                     clangFormatStyle,
                     comments,
-                    conflictReduction,
                     consecutiveLabels,
                     controlEncodingStatement,
                     controlEncodingThread,
@@ -349,7 +347,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     inputTypeDeclarations,
                     kAssignLazy,
                     kBound,
-                    kIgnoreZeroReduction,
                     license,
                     linkReduction,
                     loopIterations,
@@ -365,6 +362,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     pruneEmptyStatements,
                     pruneBitVectorEvaluation,
                     pruneBitVectorWrite,
+                    reduceIgnoreSleep,
+                    reduceLastThreadOrder,
+                    reduceUntilConflict,
                     reductionMode,
                     reductionOrder,
                     scalarPc,

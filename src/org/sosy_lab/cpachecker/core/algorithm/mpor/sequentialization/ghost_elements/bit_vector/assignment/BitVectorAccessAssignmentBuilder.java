@@ -60,7 +60,7 @@ public class BitVectorAccessAssignmentBuilder {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
-      if (pOptions.kIgnoreZeroReduction) {
+      if (pOptions.reduceIgnoreSleep) {
         rStatements.addAll(
             BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
                 pOptions,
@@ -79,7 +79,7 @@ public class BitVectorAccessAssignmentBuilder {
               MemoryAccessType.ACCESS,
               ReachType.REACHABLE));
     } else {
-      if (pOptions.kIgnoreZeroReduction) {
+      if (pOptions.reduceIgnoreSleep) {
         rStatements.add(
             BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
                 pOptions,

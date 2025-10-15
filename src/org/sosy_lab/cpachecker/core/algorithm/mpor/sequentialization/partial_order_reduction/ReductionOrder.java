@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 public enum ReductionOrder {
   NONE,
-  BITVECTOR_THEN_CONFLICT,
-  CONFLICT_THEN_BITVECTOR;
+  CONFLICT_THEN_LAST_THREAD,
+  LAST_THREAD_THEN_CONFLICT;
 
   public boolean isEnabled() {
     return !this.equals(NONE);

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqConflictOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqKIgnoreZeroStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class KIgnoreZeroInjector {
+class ReduceIgnoreSleepInjector {
 
   // Public Interface ==============================================================================
 
-  static SeqThreadStatement injectKIgnoreZeroReductionIntoStatement(
+  static SeqThreadStatement injectIgnoreSleepReductionIntoStatement(
       MPOROptions pOptions,
       Optional<CIdExpression> pKVariable,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -63,8 +63,8 @@ class KIgnoreZeroInjector {
                   pBitVectorVariables,
                   pMemoryModel,
                   pBinaryExpressionBuilder);
-          SeqKIgnoreZeroStatement kIgnoreZeroStatement =
-              buildKIgnoreZeroStatement(
+          SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
+              buildIgnoreSleepReductionStatement(
                   pKVariable,
                   pCurrentStatement,
                   evaluationExpression,
@@ -72,7 +72,7 @@ class KIgnoreZeroInjector {
                   pBinaryExpressionBuilder);
           return pCurrentStatement.cloneReplacingInjectedStatements(
               replaceReductionAssumptions(
-                  pCurrentStatement.getInjectedStatements(), kIgnoreZeroStatement));
+                  pCurrentStatement.getInjectedStatements(), ignoreSleepReductionStatement));
         }
       }
     }
@@ -80,7 +80,7 @@ class KIgnoreZeroInjector {
     return pCurrentStatement;
   }
 
-  private static SeqKIgnoreZeroStatement buildKIgnoreZeroStatement(
+  private static SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
       Optional<CIdExpression> pKVariable,
       SeqThreadStatement pStatement,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
@@ -96,7 +96,7 @@ class KIgnoreZeroInjector {
         reductionAssumptions.add(conflictOrderStatement);
       }
     }
-    return new SeqKIgnoreZeroStatement(
+    return new SeqIgnoreSleepReductionStatement(
         pKVariable.isPresent() ? pKVariable.orElseThrow() : SeqIdExpression.K,
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
@@ -106,10 +106,10 @@ class KIgnoreZeroInjector {
 
   private static ImmutableList<SeqInjectedStatement> replaceReductionAssumptions(
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      SeqKIgnoreZeroStatement pKIgnoreZeroStatement) {
+      SeqIgnoreSleepReductionStatement pIgnoreSleepStatements) {
 
     ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-    newInjected.add(pKIgnoreZeroStatement);
+    newInjected.add(pIgnoreSleepStatements);
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (!(injectedStatement instanceof SeqBitVectorEvaluationStatement)
           && !(injectedStatement instanceof SeqConflictOrderStatement)) {

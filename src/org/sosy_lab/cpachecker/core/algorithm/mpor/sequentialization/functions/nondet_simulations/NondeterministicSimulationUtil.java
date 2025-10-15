@@ -263,8 +263,8 @@ public class NondeterministicSimulationUtil {
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    // sync variables are only required with kIgnoreZeroReduction enabled
-    if (!pOptions.kIgnoreZeroReduction) {
+    // sync variables are only required with reduceIgnoreSleep enabled
+    if (!pOptions.reduceIgnoreSleep) {
       return pBlock;
     }
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();

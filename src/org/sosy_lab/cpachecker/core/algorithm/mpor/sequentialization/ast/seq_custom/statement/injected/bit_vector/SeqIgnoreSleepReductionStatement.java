@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
+public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorStatement {
 
   private final CIdExpression kVariable;
 
@@ -35,7 +35,7 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public SeqKIgnoreZeroStatement(
+  public SeqIgnoreSleepReductionStatement(
       CIdExpression pKVariable,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqBlockLabelStatement pNextLabel,
@@ -96,8 +96,8 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  public SeqKIgnoreZeroStatement cloneWithGotoLabelNumber(int pLabelNumber) {
-    return new SeqKIgnoreZeroStatement(
+  public SeqIgnoreSleepReductionStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+    return new SeqIgnoreSleepReductionStatement(
         kVariable,
         bitVectorEvaluationExpression,
         nextLabel.cloneWithLabelNumber(pLabelNumber),
@@ -105,10 +105,10 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
         binaryExpressionBuilder);
   }
 
-  public SeqKIgnoreZeroStatement cloneWithReductionAssumptions(
+  public SeqIgnoreSleepReductionStatement cloneWithReductionAssumptions(
       ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
 
-    return new SeqKIgnoreZeroStatement(
+    return new SeqIgnoreSleepReductionStatement(
         kVariable,
         bitVectorEvaluationExpression,
         nextLabel,

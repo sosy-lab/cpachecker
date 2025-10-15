@@ -21,140 +21,140 @@
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
     </tasks>
 
-    <!-- bitVectorReduction -->
-    <tasks name="ConcurrencySafety-NoOverflows-bitVectorReduction-access-hex">
+    <!-- reduceUntilConflict -->
+    <tasks name="ConcurrencySafety-NoOverflows-reduceUntilConflict-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVectorReduction-access-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceUntilConflict-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVectorReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceUntilConflict-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVectorReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceUntilConflict-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-    </tasks>
-
-    <!-- conflictReduction -->
-    <tasks name="ConcurrencySafety-NoOverflows-conflictReduction-access-hex">
-        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-    </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflictReduction-access-sparse">
-        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-    </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflictReduction-readwrite-hex">
-        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-    </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflictReduction-readwrite-sparse">
-        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
 
-    <!-- bitVectorReduction then conflictReduction -->
-    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-conflictReduction-access-hex">
+    <!-- reduceLastThreadOrder -->
+    <tasks name="ConcurrencySafety-NoOverflows-reduceLastThreadOrder-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-conflictReduction-access-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceLastThreadOrder-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-conflictReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceLastThreadOrder-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-conflictReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-reduceLastThreadOrder-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
     </tasks>
 
-    <!-- conflictReduction then bitVectorReduction -->
-    <tasks name="ConcurrencySafety-NoOverflows-conflict-then-bitVectorReduction-access-hex">
+    <!-- reduceUntilConflict then reduceLastThreadOrder -->
+    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-reduceLastThreadOrder-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflict-then-bitVectorReduction-access-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-reduceLastThreadOrder-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflict-then-bitVectorReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-reduceLastThreadOrder-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-NoOverflows-conflict-then-bitVectorReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-NoOverflows-bitVector-then-reduceLastThreadOrder-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
+    </tasks>
+
+    <!-- reduceLastThreadOrder then reduceUntilConflict -->
+    <tasks name="ConcurrencySafety-NoOverflows-lastThread-then-reduceUntilConflict-access-hex">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_BITVECTOR</option>
+    </tasks>
+    <tasks name="ConcurrencySafety-NoOverflows-lastThread-then-reduceUntilConflict-access-sparse">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_BITVECTOR</option>
+    </tasks>
+    <tasks name="ConcurrencySafety-NoOverflows-lastThread-then-reduceUntilConflict-readwrite-hex">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_BITVECTOR</option>
+    </tasks>
+    <tasks name="ConcurrencySafety-NoOverflows-lastThread-then-reduceUntilConflict-readwrite-sparse">
+        <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+        <propertyfile>../sv-benchmarks/c/properties/no-overflows.prp</propertyfile>
+        <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_BITVECTOR</option>
     </tasks>
 
 </benchmark>

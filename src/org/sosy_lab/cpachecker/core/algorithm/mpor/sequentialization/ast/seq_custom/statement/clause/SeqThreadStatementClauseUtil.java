@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqKIgnoreZeroStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -249,8 +249,9 @@ public class SeqThreadStatementClauseUtil {
       if (injectedStatement instanceof SeqBitVectorEvaluationStatement bitVectorEvaluation) {
         rNewInjected.add(bitVectorEvaluation.cloneWithGotoLabelNumber(pNewTargetPc));
 
-      } else if (injectedStatement instanceof SeqKIgnoreZeroStatement kIgnoreZeroStatement) {
-        rNewInjected.add(kIgnoreZeroStatement.cloneWithGotoLabelNumber(pNewTargetPc));
+      } else if (injectedStatement
+          instanceof SeqIgnoreSleepReductionStatement ignoreSleepStatement) {
+        rNewInjected.add(ignoreSleepStatement.cloneWithGotoLabelNumber(pNewTargetPc));
 
       } else {
         rNewInjected.add(injectedStatement);

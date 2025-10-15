@@ -158,13 +158,9 @@ public class InputRejectionTest {
             // do not allow pointer writes
             false,
             BitVectorEncoding.DECIMAL,
-            // enable bit vectors -> program is rejected due to pointer write
-            true,
-            false,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
             MultiControlStatementEncoding.NONE,
-            false,
             false,
             false,
             false,
@@ -178,6 +174,10 @@ public class InputRejectionTest {
             NondeterminismSource.NUM_STATEMENTS,
             false,
             false,
+            // enable reductions, so that pointers are rejected
+            true,
+            true,
+            true,
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
             false,

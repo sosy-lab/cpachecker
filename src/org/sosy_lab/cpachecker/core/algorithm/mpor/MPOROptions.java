@@ -37,13 +37,9 @@ public class MPOROptions {
 
   public final BitVectorEncoding bitVectorEncoding;
 
-  public final boolean bitVectorReduction;
-
   public final ClangFormatStyle clangFormatStyle;
 
   public final boolean comments;
-
-  public final boolean conflictReduction;
 
   public final boolean consecutiveLabels;
 
@@ -58,8 +54,6 @@ public class MPOROptions {
   public final boolean kAssignLazy;
 
   public final boolean kBound;
-
-  public final boolean kIgnoreZeroReduction;
 
   public final boolean license;
 
@@ -91,6 +85,12 @@ public class MPOROptions {
 
   public final boolean pruneBitVectorWrite;
 
+  public final boolean reduceIgnoreSleep;
+
+  public final boolean reduceLastThreadOrder;
+
+  public final boolean reduceUntilConflict;
+
   public final ReductionMode reductionMode;
 
   public final ReductionOrder reductionOrder;
@@ -111,10 +111,8 @@ public class MPOROptions {
       boolean pAllowPointerWrites,
       boolean pAtomicBlockMerge,
       BitVectorEncoding pBitVectorEncoding,
-      boolean pBitVectorReduction,
       ClangFormatStyle pClangFormatStyle,
       boolean pComments,
-      boolean pConflictReduction,
       boolean pConsecutiveLabels,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
@@ -122,7 +120,6 @@ public class MPOROptions {
       boolean pInputTypeDeclarations,
       boolean pKAssignLazy,
       boolean pKBound,
-      boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -138,6 +135,9 @@ public class MPOROptions {
       boolean pPruneEmptyStatements,
       boolean pPruneBitVectorEvaluation,
       boolean pPruneBitVectorWrite,
+      boolean pReduceIgnoreSleep,
+      boolean pReduceLastThreadOrder,
+      boolean pReduceUntilConflict,
       ReductionMode pReductionMode,
       ReductionOrder pReductionOrder,
       boolean pScalarPc,
@@ -158,10 +158,8 @@ public class MPOROptions {
     allowPointerWrites = pAllowPointerWrites;
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
-    bitVectorReduction = pBitVectorReduction;
     clangFormatStyle = pClangFormatStyle;
     comments = pComments;
-    conflictReduction = pConflictReduction;
     consecutiveLabels = pConsecutiveLabels;
     controlEncodingStatement = pControlEncodingStatement;
     controlEncodingThread = pControlEncodingThread;
@@ -169,7 +167,6 @@ public class MPOROptions {
     inputTypeDeclarations = pInputTypeDeclarations;
     kAssignLazy = pKAssignLazy;
     kBound = pKBound;
-    kIgnoreZeroReduction = pKIgnoreZeroReduction;
     license = pLicense;
     linkReduction = pLinkReduction;
     loopIterations = pLoopIterations;
@@ -185,6 +182,9 @@ public class MPOROptions {
     pruneEmptyStatements = pPruneEmptyStatements;
     pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
     pruneBitVectorWrite = pPruneBitVectorWrite;
+    reduceIgnoreSleep = pReduceIgnoreSleep;
+    reduceLastThreadOrder = pReduceLastThreadOrder;
+    reduceUntilConflict = pReduceUntilConflict;
     reductionMode = pReductionMode;
     reductionOrder = pReductionOrder;
     scalarPc = pScalarPc;
@@ -201,9 +201,7 @@ public class MPOROptions {
         true,
         true,
         BitVectorEncoding.NONE,
-        false,
         ClangFormatStyle.WEBKIT,
-        false,
         false,
         true,
         MultiControlStatementEncoding.SWITCH_CASE,
@@ -213,8 +211,7 @@ public class MPOROptions {
         true,
         false,
         false,
-        false,
-        // true so that MemoryModel is created
+        // linkReduction = true so that MemoryModel is created
         true,
         0,
         false,
@@ -227,6 +224,9 @@ public class MPOROptions {
         false,
         true,
         true,
+        false,
+        false,
+        false,
         false,
         false,
         ReductionMode.NONE,
@@ -243,15 +243,12 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pAllowPointerWrites,
       BitVectorEncoding pBitVectorEncoding,
-      boolean pBitVectorReduction,
       boolean pComments,
-      boolean pConflictReduction,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
       boolean pKAssignLazy,
       boolean pKBound,
-      boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -262,6 +259,9 @@ public class MPOROptions {
       NondeterminismSource pNondeterminismSource,
       boolean pPruneBitVectorEvaluation,
       boolean pPruneBitVectorWrite,
+      boolean pReduceIgnoreSleep,
+      boolean pReduceLastThreadOrder,
+      boolean pReduceUntilConflict,
       ReductionMode pReductionMode,
       ReductionOrder pReductionOrder,
       boolean pScalarPc,
@@ -274,11 +274,9 @@ public class MPOROptions {
         // always merge atomic blocks because not doing so may add additional interleavings
         true,
         pBitVectorEncoding,
-        pBitVectorReduction,
         // never format output code so that unit test is independent of clang-format
         ClangFormatStyle.NONE,
         pComments,
-        pConflictReduction,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
         pControlEncodingStatement,
@@ -288,7 +286,6 @@ public class MPOROptions {
         true,
         pKAssignLazy,
         pKBound,
-        pKIgnoreZeroReduction,
         pLicense,
         pLinkReduction,
         pLoopIterations,
@@ -306,6 +303,9 @@ public class MPOROptions {
         true,
         pPruneBitVectorEvaluation,
         pPruneBitVectorWrite,
+        pReduceIgnoreSleep,
+        pReduceLastThreadOrder,
+        pReduceUntilConflict,
         pReductionMode,
         pReductionOrder,
         pScalarPc,
@@ -378,23 +378,24 @@ public class MPOROptions {
       if (!reductionMode.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
-            "conflictReduction or bitVectorReduction is enabled, but reductionMode is not set.");
+            "reduceLastThreadOrder and/or reduceUntilConflict is enabled, but reductionMode is not"
+                + " set.");
         throw new AssertionError();
       }
       if (!bitVectorEncoding.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
-            "conflictReduction or bitVectorReduction is enabled, but bitVectorEncoding is not"
-                + " set.");
+            "reduceLastThreadOrder and/or reduceUntilConflict is enabled, but bitVectorEncoding is"
+                + " not set.");
         throw new AssertionError();
       }
     }
-    if (bitVectorReduction && conflictReduction) {
+    if (reduceLastThreadOrder && reduceUntilConflict) {
       if (!reductionOrder.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
-            "both bitVectorReduction and conflictReduction are enabled, but no reductionOrder is"
-                + " specified.");
+            "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
+                + " is specified.");
         throw new AssertionError();
       }
     }
@@ -408,17 +409,17 @@ public class MPOROptions {
   // TODO need more warnings here
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   void handleOptionWarnings(LogManager pLogger) {
-    if (!linkReduction && bitVectorReduction) {
+    if (!linkReduction && reduceUntilConflict) {
       pLogger.log(
           Level.WARNING,
-          "bitVectorReduction is only considered with linkReduction"
-              + " enabled. Either enable linkReduction or disable bitVectorReduction.");
+          "reduceUntilConflict is only considered with linkReduction"
+              + " enabled. Either enable linkReduction or disable reduceUntilConflict.");
     }
-    if (!linkReduction && conflictReduction) {
+    if (!linkReduction && reduceLastThreadOrder) {
       pLogger.log(
           Level.WARNING,
-          "conflictReduction is only considered with linkReduction"
-              + " enabled. Either enable linkReduction or disable conflictReduction.");
+          "reduceLastThreadOrder is only considered with linkReduction"
+              + " enabled. Either enable linkReduction or disable reduceLastThreadOrder.");
     }
     if (!linkReduction && bitVectorEncoding.isEnabled()) {
       pLogger.log(
@@ -429,9 +430,9 @@ public class MPOROptions {
     if (pruneBitVectorEvaluation && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "pruneBitVectorEvaluation is only considered when bitVectorReduction /"
-              + " conflictReduction is enabled. Either disable pruneBitVectorEvaluation or enable"
-              + " bitVectorReduction / conflictReduction.");
+          "pruneBitVectorEvaluation is only considered when reduceLastThreadOrder and/or"
+              + " reduceUntilConflict is enabled. Either disable pruneBitVectorEvaluation or enable"
+              + " reduceLastThreadOrder and/or reduceUntilConflict.");
     }
     if (pruneBitVectorEvaluation && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
@@ -442,9 +443,9 @@ public class MPOROptions {
     if (pruneBitVectorWrite && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "pruneBitVectorWrite is only considered when bitVectorReduction /"
-              + " conflictReduction is enabled. Either disable pruneBitVectorWrite or enable"
-              + " bitVectorReduction / conflictReduction.");
+          "pruneBitVectorWrite is only considered when reduceLastThreadOrder and/or"
+              + " reduceUntilConflict enabled. Either disable pruneBitVectorWrite or enable"
+              + " reduceLastThreadOrder and/or reduceUntilConflict.");
     }
     if (pruneBitVectorWrite && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
@@ -474,11 +475,11 @@ public class MPOROptions {
                 + " non-deterministically. Either disable kBound or choose a"
                 + " nondeterminismSource that makes the number of statements non-deterministic.");
       }
-      if (kIgnoreZeroReduction) {
+      if (reduceIgnoreSleep) {
         pLogger.log(
             Level.WARNING,
-            "kIgnoreZeroReduction is enabled, but the number of statements is not chosen"
-                + " non-deterministically. Either disable kIgnoreZeroReduction or choose a"
+            "reduceIgnoreSleep is enabled, but the number of statements is not chosen"
+                + " non-deterministically. Either disable reduceIgnoreSleep or choose a"
                 + " nondeterminismSource that makes the number of statements non-deterministic.");
       }
     }
@@ -486,22 +487,22 @@ public class MPOROptions {
       if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
-            "reductionMode is set, but both conflictReduction and "
-                + " bitVectorReduction are disabled.");
+            "reductionMode is set, but both reduceLastThreadOrder and reduceUntilConflict are"
+                + " disabled.");
       }
     }
     if (bitVectorEncoding.isEnabled()) {
       if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
-            "bitVectorEncoding is set, but both conflictReduction and "
-                + " bitVectorReduction are disabled.");
+            "bitVectorEncoding is set, but both reduceLastThreadOrder and reduceUntilConflict are"
+                + " disabled.");
       }
     }
   }
 
   public boolean areBitVectorsEnabled() {
-    return bitVectorReduction || conflictReduction || kIgnoreZeroReduction;
+    return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 
   public boolean isThreadCountRequired() {

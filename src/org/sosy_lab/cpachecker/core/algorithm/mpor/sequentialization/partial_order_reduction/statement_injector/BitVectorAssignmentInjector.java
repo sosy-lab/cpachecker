@@ -79,7 +79,7 @@ public class BitVectorAssignmentInjector {
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build assignments for reduction " + pOptions.bitVectorReduction);
+              "cannot build assignments for reduction " + pOptions.reduceUntilConflict);
       case ACCESS_ONLY ->
           BitVectorAccessAssignmentBuilder.buildAccessBitVectorAssignments(
               pOptions,
@@ -114,7 +114,7 @@ public class BitVectorAssignmentInjector {
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build assignments for reduction " + pOptions.bitVectorReduction);
+              "cannot build assignments for reduction " + pOptions.reductionMode);
       case ACCESS_ONLY ->
           BitVectorAccessAssignmentBuilder.buildAccessBitVectorAssignments(
               pOptions,

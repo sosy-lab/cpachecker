@@ -158,7 +158,7 @@ public class BitVectorBuilder {
 
     return switch (pReachType) {
       case DIRECT -> {
-        if (pOptions.kIgnoreZeroReduction) {
+        if (pOptions.reduceIgnoreSleep) {
           yield Optional.of(
               buildBitVectorIdExpression(
                   pOptions,
@@ -236,7 +236,7 @@ public class BitVectorBuilder {
   private static Optional<LastDenseBitVector> tryBuildLastDenseBitVectorByAccessType(
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
-    if (!pOptions.conflictReduction || pOptions.bitVectorEncoding.isSparse) {
+    if (!pOptions.reduceLastThreadOrder || pOptions.bitVectorEncoding.isSparse) {
       return Optional.empty();
     }
     CIdExpression lastIdExpression =
@@ -256,7 +256,7 @@ public class BitVectorBuilder {
           ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocations,
           MemoryAccessType pAccessType) {
 
-    if (!pOptions.conflictReduction || pOptions.bitVectorEncoding.isDense) {
+    if (!pOptions.reduceLastThreadOrder || pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<MemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();

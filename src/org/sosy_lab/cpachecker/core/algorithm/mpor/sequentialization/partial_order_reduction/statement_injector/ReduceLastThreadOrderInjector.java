@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class ConflictOrderInjector {
+class ReduceLastThreadOrderInjector {
 
   // Public Interface ==============================================================================
 
-  static SeqThreadStatement injectOrderStatementsIntoStatement(
+  static SeqThreadStatement injectLastThreadOrderReductionIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
       SeqThreadStatement pStatement,
@@ -159,7 +159,8 @@ class ConflictOrderInjector {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "no bitVectorEncoding set, but conflictReduction is enabled");
+              String.format(
+                  "cannot build updates for bitVectorEncoding %s", pOptions.bitVectorEncoding));
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
       case SPARSE -> buildSparseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
@@ -172,7 +173,7 @@ class ConflictOrderInjector {
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "no reductionMode set, but conflictReduction is enabled");
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY ->
           buildDenseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
@@ -194,7 +195,7 @@ class ConflictOrderInjector {
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
-              "no reductionMode set, but conflictReduction is enabled");
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
       case ACCESS_ONLY ->
           buildSparseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);

@@ -167,9 +167,9 @@ public class StatementInjector {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.bitVectorReduction) {
+    if (pOptions.reduceUntilConflict) {
       pStatement =
-          BitVectorInjector.injectBitVectorReductionIntoStatement(
+          ReduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(
               pOptions,
               pOtherThreads,
               pStatement,
@@ -179,9 +179,9 @@ public class StatementInjector {
               pMemoryModel,
               pBinaryExpressionBuilder);
     }
-    if (pOptions.conflictReduction) {
+    if (pOptions.reduceLastThreadOrder) {
       pStatement =
-          ConflictOrderInjector.injectOrderStatementsIntoStatement(
+          ReduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(
               pOptions,
               pOtherThreads.size() + 1,
               pStatement,
@@ -192,10 +192,10 @@ public class StatementInjector {
               pMemoryModel,
               pBinaryExpressionBuilder);
     }
-    if (pOptions.kIgnoreZeroReduction) {
+    if (pOptions.reduceIgnoreSleep) {
       // this needs to be last, it collects the prior injections
       pStatement =
-          KIgnoreZeroInjector.injectKIgnoreZeroReductionIntoStatement(
+          ReduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(
               pOptions,
               pActiveThread.getKVariable(),
               pOtherThreads,

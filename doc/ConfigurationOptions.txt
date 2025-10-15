@@ -279,9 +279,6 @@ analysis.algorithm.MPOR.atomicBlockMerge = true
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
   enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
 
-# add 
-analysis.algorithm.MPOR.bitVectorReduction = false
-
 # the style preset used by clang-format to format the output program. use
 # NONE to disable formatting.
 analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
@@ -289,11 +286,6 @@ analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
 
 # include comments with trivia explaining the sequentialization?
 analysis.algorithm.MPOR.comments = false
-
-# adds execution orders via assumptions for non-conflicting threads to reduce
-# the state space. it takes the previous and current thread and checks if
-# they commute from the current location.
-analysis.algorithm.MPOR.conflictReduction = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
 # the number of statements. disabling may result in first statement being
@@ -323,10 +315,6 @@ analysis.algorithm.MPOR.kAssignLazy = true
 
 # bound K to the number of statements in a thread simulation via assumptions?
 analysis.algorithm.MPOR.kBound = false
-
-# ignore K == 0 if the current thread is not in conflict with any other
-# thread to reduce the state space?
-analysis.algorithm.MPOR.kIgnoreZeroReduction = false
 
 # include CPAchecker license header in the sequentialization?
 analysis.algorithm.MPOR.license = false
@@ -387,6 +375,18 @@ analysis.algorithm.MPOR.pruneBitVectorWrite = false
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true
 
+# ignore that the current thread should not execute if it is not in conflict
+# with any other thread? only works when nondeterminismSource contains
+# NUM_STATEMENTS.
+analysis.algorithm.MPOR.reduceIgnoreSleep = false
+
+# enforce an execution order when the current and previous thread commute?
+analysis.algorithm.MPOR.reduceLastThreadOrder = false
+
+# continue executing the current thread until it is in conflict with at least
+# another thread?
+analysis.algorithm.MPOR.reduceUntilConflict = false
+
 # how to determine if two threads commute from a location. READ_AND_WRITE
 # reduces the state space more than ACCESS_ONLY, but introduces additional
 # overhead (i.e. number of variables, assignments, and expression
@@ -394,10 +394,10 @@ analysis.algorithm.MPOR.pruneEmptyStatements = true
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
-# if both bitVectorReduction and conflictReduction are enabled, define the
-# order in which their statements are placed in the output program.
+# if both reduceLastThreadOrder and reduceUntilConflict are enabled, define
+# the order in which their statements are placed in the output program.
 analysis.algorithm.MPOR.reductionOrder = NONE
-  enum:     [NONE, BITVECTOR_THEN_CONFLICT, CONFLICT_THEN_BITVECTOR]
+  enum:     [NONE, CONFLICT_THEN_LAST_THREAD, LAST_THREAD_THEN_CONFLICT]
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays?

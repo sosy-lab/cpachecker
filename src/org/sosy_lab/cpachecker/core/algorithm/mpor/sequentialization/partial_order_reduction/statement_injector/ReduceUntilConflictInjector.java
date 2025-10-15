@@ -25,9 +25,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class BitVectorInjector {
+public class ReduceUntilConflictInjector {
 
-  static SeqThreadStatement injectBitVectorReductionIntoStatement(
+  static SeqThreadStatement injectUntilConflictReductionIntoStatement(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       SeqThreadStatement pCurrentStatement,

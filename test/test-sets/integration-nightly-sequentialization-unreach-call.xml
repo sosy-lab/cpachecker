@@ -83,224 +83,224 @@
         <option name="--option">analysis.algorithm.MPOR.kAssignLazy=false</option>
     </tasks>
 
-    <!-- bitVectorReduction -->
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-binary">
+    <!-- reduceUntilConflict -->
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-binary">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=BINARY</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-decimal">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-decimal">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=BINARY</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-hex">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-sparse">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-sparse-prune-evaluation">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-sparse-prune-evaluation">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorEvaluation=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-access-sparse-prune-write">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-access-sparse-prune-write">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorWrite=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-binary">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-binary">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=BINARY</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-binary-prune-evaluation">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-binary-prune-evaluation">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=BINARY</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorEvaluation=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-decimal">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-decimal">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=DECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-decimal-prune-evaluation">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-decimal-prune-evaluation">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=DECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorEvaluation=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-hex-prune-evaluation">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-hex-prune-evaluation">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorEvaluation=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-sparse-prune-evaluation">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-sparse-prune-evaluation">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorEvaluation=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVectorReduction-readwrite-sparse-prune-write">
+    <tasks name="ConcurrencySafety-Main-reduceUntilConflict-readwrite-sparse-prune-write">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
         <option name="--option">analysis.algorithm.MPOR.pruneBitVectorWrite=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
 
-    <!-- conflictReduction -->
-    <tasks name="ConcurrencySafety-Main-conflictReduction-access-hex">
+    <!-- reduceLastThreadOrder -->
+    <tasks name="ConcurrencySafety-Main-reduceLastThreadOrder-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflictReduction-access-sparse">
+    <tasks name="ConcurrencySafety-Main-reduceLastThreadOrder-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflictReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-Main-reduceLastThreadOrder-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflictReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-Main-reduceLastThreadOrder-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
     </tasks>
 
-    <!-- bitVectorReduction then conflictReduction -->
-    <tasks name="ConcurrencySafety-Main-bitVector-then-conflictReduction-access-hex">
+    <!-- reduceUntilConflict then reduceLastThreadOrder -->
+    <tasks name="ConcurrencySafety-Main-bitVector-then-reduceLastThreadOrder-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVector-then-conflictReduction-access-sparse">
+    <tasks name="ConcurrencySafety-Main-bitVector-then-reduceLastThreadOrder-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVector-then-conflictReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-Main-bitVector-then-reduceLastThreadOrder-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-bitVector-then-conflictReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-Main-bitVector-then-reduceLastThreadOrder-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=BITVECTOR_THEN_CONFLICT</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_LAST_THREAD</option>
     </tasks>
 
-    <!-- conflictReduction then bitVectorReduction -->
-    <tasks name="ConcurrencySafety-Main-conflict-then-bitVectorReduction-access-hex">
+    <!-- reduceLastThreadOrder then reduceUntilConflict -->
+    <tasks name="ConcurrencySafety-Main-conflict-then-reduceUntilConflict-access-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflict-then-bitVectorReduction-access-sparse">
+    <tasks name="ConcurrencySafety-Main-conflict-then-reduceUntilConflict-access-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=ACCESS_ONLY</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflict-then-bitVectorReduction-readwrite-hex">
+    <tasks name="ConcurrencySafety-Main-conflict-then-reduceUntilConflict-readwrite-hex">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=HEXADECIMAL</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_CONFLICT</option>
     </tasks>
-    <tasks name="ConcurrencySafety-Main-conflict-then-bitVectorReduction-readwrite-sparse">
+    <tasks name="ConcurrencySafety-Main-conflict-then-reduceUntilConflict-readwrite-sparse">
         <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
         <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="--option">analysis.algorithm.MPOR.bitVectorEncoding=SPARSE</option>
-        <option name="--option">analysis.algorithm.MPOR.bitVectorReduction=true</option>
-        <option name="--option">analysis.algorithm.MPOR.conflictReduction=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceUntilConflict=true</option>
+        <option name="--option">analysis.algorithm.MPOR.reduceLastThreadOrder=true</option>
         <option name="--option">analysis.algorithm.MPOR.reductionMode=READ_AND_WRITE</option>
-        <option name="--option">analysis.algorithm.MPOR.reductionOrder=CONFLICT_THEN_BITVECTOR</option>
+        <option name="--option">analysis.algorithm.MPOR.reductionOrder=LAST_THREAD_THEN_CONFLICT</option>
     </tasks>
 
 </benchmark>

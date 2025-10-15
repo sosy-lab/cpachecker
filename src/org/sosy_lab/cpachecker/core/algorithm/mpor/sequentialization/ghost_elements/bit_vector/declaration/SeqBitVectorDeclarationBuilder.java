@@ -95,7 +95,7 @@ public class SeqBitVectorDeclarationBuilder {
     for (DenseBitVector denseBitVector :
         bitVectorVariables.getDenseBitVectorsByAccessType(pAccessType)) {
       MPORThread thread = denseBitVector.getThread();
-      if (pOptions.kIgnoreZeroReduction && denseBitVector.isDirectVariablePresent()) {
+      if (pOptions.reduceIgnoreSleep && denseBitVector.isDirectVariablePresent()) {
         ImmutableSet<MemoryLocation> directMemoryLocations =
             getDirectMemoryLocationsByAccessType(memoryModel, clauses.get(thread), pAccessType);
         BitVectorValueExpression directInitializer =

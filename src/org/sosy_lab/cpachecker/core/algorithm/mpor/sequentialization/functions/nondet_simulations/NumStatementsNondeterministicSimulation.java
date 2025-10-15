@@ -273,7 +273,7 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.kIgnoreZeroReduction) {
+    if (pOptions.reduceIgnoreSleep) {
       // if enabled, add bit vector evaluation: "K > 0 || {bitvector_evaluation}"
       BitVectorEvaluationExpression bitVectorEvaluationExpression =
           BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
