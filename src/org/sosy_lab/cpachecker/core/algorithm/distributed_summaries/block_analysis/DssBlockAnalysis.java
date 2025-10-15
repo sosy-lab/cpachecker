@@ -366,7 +366,7 @@ public class DssBlockAnalysis {
     return uniqueSummaries;
   }
 
-  private Collection<DssMessage> reportPostconditions(
+  private Collection<DssMessage> reportPreconditions(
       Collection<@NonNull StateAndPrecision> summaries, boolean isSound)
       throws CPAException, InterruptedException {
     isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
@@ -490,18 +490,13 @@ public class DssBlockAnalysis {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
         preconditions.removeAll(pReceived.getSenderId());
-        preconditions.put(pReceived.getSenderId(), deserialized);
+        preconditions.putAll(pReceived.getSenderId(), deserializedStates);
         return DssMessageProcessing.proceed();
       }
-      for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
-        StateAndPrecision previous = previousEntry.getValue();
+      boolean isEquivalent = false;
+      for (StateAndPrecision previous : preconditions.get(pReceived.getSenderId())) {
         if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          if (previousEntry.getKey().equals(pReceived.getSenderId())) {
-            discard.add(
-                new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
-          } else if (!block.getLoopPredecessorIds().isEmpty()) {
-            soundPredecessors.remove(previousEntry.getKey());
-          }
+          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
         }
         // the reset resets the callstack state, too
         boolean previousLessEqualDeserialized =
@@ -515,7 +510,7 @@ public class DssBlockAnalysis {
             if (pReceived.isSound()) {
               soundPredecessors.add(pReceived.getSenderId());
             }
-            covered++;
+            isEquivalent = true;
           }
           discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
         }
