@@ -48,10 +48,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public class CEGARAlgorithm
     implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
 
-  // used by DelegatingRefiner to stop refinement if all its heuristics indicate likely divergence
-  // and end with result "UNKNOWN"
-  private boolean earlyTerminationRequested = false;
-
   private static class CEGARStatistics implements Statistics {
 
     private final Timer totalTimer = new Timer();
@@ -252,12 +248,6 @@ public class CEGARAlgorithm
           break;
         }
 
-        if (earlyTerminationRequested) {
-          logger.logf(Level.INFO, "Terminating refinement due to signal from refiner");
-          status = status.withPrecise(false);
-          break;
-        }
-
         if (refinementNecessary(reached, previousLastState)) {
           // if there is any target state do refinement
           refinementSuccessful = refine(reached);
@@ -317,7 +307,7 @@ public class CEGARAlgorithm
       refinementResult = mRefiner.performRefinement(reached);
 
       if (mRefiner.shouldTerminateRefinement()) {
-        earlyTerminationRequested = true;
+        logger.logf(Level.INFO, "Terminating refinement due to signal from refiner");
       }
 
     } catch (RefinementFailedException e) {

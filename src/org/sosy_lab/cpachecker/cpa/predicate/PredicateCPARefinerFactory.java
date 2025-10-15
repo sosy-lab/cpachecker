@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
@@ -120,6 +121,10 @@ public final class PredicateCPARefinerFactory {
   private final TrackingPredicateCPARefinementContext refinementContext =
       new TrackingPredicateCPARefinementContext();
 
+  // ARGCPA is required to wrap ARGBasedRefiners with AbstractARGBasedRefiner so they can be used in
+  // the DelegatingRefiner's heuristic-refiner pairs
+  private final ARGCPA argcpa;
+
   /**
    * Create a factory instance.
    *
@@ -132,6 +137,7 @@ public final class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
     predicateCpa =
         CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    argcpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 
@@ -261,8 +267,8 @@ public final class PredicateCPARefinerFactory {
     if (usePredicateDelegatingRefiner) {
       ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable =
           buildRefinerMap(
-              AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, predicateCpa),
-              AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, predicateCpa));
+              AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, argcpa),
+              AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, argcpa));
       refinerRecords = createDelegatingRefinerConfig(pRefinersAvailable);
     }
 
@@ -356,6 +362,7 @@ public final class PredicateCPARefinerFactory {
     if (refinerRecords == null) {
       return ImmutableList.of();
     }
+
     return refinerRecords;
   }
 }

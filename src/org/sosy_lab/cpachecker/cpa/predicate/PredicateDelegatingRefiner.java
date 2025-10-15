@@ -48,8 +48,27 @@ public class PredicateDelegatingRefiner implements Refiner {
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     ARGCPA argcpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateDelegatingRefiner.class);
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateDelegatingRefiner.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(
+          PredicateDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    RefinementStrategy strategy =
+        new PredicateAbstractionRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            predicateCpa.getLogger(),
+            predicateCpa.getPredicateManager(),
+            predicateCpa.getSolver());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(argcpa);
+
+    // to create refiners and populate the ImmutableList<HeuristicDelegatingRefinerRecord>
+    // refinerRecords, it is necessary to call factory.create(strategy) but the resulting refiner is
+    // not needed for DelegatingRefiner functionality
+    @SuppressWarnings("unused")
+    ARGBasedRefiner ignoredRefiner = factory.create(strategy);
 
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = factory.getRefinerRecords();
 
@@ -71,7 +90,7 @@ public class PredicateDelegatingRefiner implements Refiner {
     for (HeuristicDelegatingRefinerRecord pRecord : refiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Heuristic %s matched for %s",
           pHeuristic.getClass().getSimpleName(),
           pRecord.pRefiner().getClass().getSimpleName());
