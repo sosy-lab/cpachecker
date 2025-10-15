@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -489,7 +490,7 @@ public class DssBlockAnalysis {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
         preconditions.removeAll(pReceived.getSenderId());
-        preconditions.putAll(pReceived.getSenderId(), deserializedStates);
+        preconditions.put(pReceived.getSenderId(), deserialized);
         return DssMessageProcessing.proceed();
       }
       for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
@@ -534,15 +535,6 @@ public class DssBlockAnalysis {
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
 
-    // no entry can be empty (doesn't matter because of merge stop)
-    for (String predecessor : block.getPredecessorIds()) {
-      if (!preconditions.containsKey(predecessor)) {
-        for (String p : preconditions.keySet()) {
-          preconditions.putAll(predecessor, preconditions.get(p));
-          break;
-        }
-      }
-    }
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
       return DssMessageProcessing.stop();
