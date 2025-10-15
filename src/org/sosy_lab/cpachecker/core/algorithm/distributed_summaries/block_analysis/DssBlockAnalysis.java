@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -408,6 +409,9 @@ public class DssBlockAnalysis {
     for (StateAndPrecision deserialized : deserializedStates) {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
+        preconditions.removeAll(pReceived.getSenderId());
+        preconditions.put(pReceived.getSenderId(), deserialized);
+        return DssMessageProcessing.proceed();
       }
       for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
         StateAndPrecision previous = previousEntry.getValue();
@@ -419,6 +423,7 @@ public class DssBlockAnalysis {
             soundPredecessors.remove(previousEntry.getKey());
           }
         }
+        // the reset resets the callstack state, too
         boolean previousLessEqualDeserialized =
             dcpa.getCoverageOperator()
                 .isSubsumed(previous.state(), dcpa.reset(deserialized.state()));
@@ -436,6 +441,7 @@ public class DssBlockAnalysis {
         }
       }
     }
+    // summaries from non-loop predecessors are by definition stronger and unique
     if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
       for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
         discard.add(new PredecessorStateEntry(pReceived.getSenderId(), sp));
@@ -445,15 +451,6 @@ public class DssBlockAnalysis {
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
 
-    // no entry can be empty (doesn't matter because of merge stop)
-    for (String predecessor : block.getPredecessorIds()) {
-      if (!preconditions.containsKey(predecessor)) {
-        for (String p : preconditions.keySet()) {
-          preconditions.putAll(predecessor, preconditions.get(p));
-          break;
-        }
-      }
-    }
     if (covered == deserializedStates.size()) {
       // we already have a precondition equivalent to the new one
       return DssMessageProcessing.stop();
