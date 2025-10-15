@@ -506,20 +506,22 @@ public class CFACreator {
   public CFA parseSourceAndCreateCFA(String pProgram)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    return parseSourceAndCreateCFA(pProgram, Optional.empty());
+    return parseSourceAndCreateCFA(pProgram, Optional.empty(), ProgramTransformation.NONE);
   }
 
   /**
    * Parse a program given as String and create a CFA, optionally with an original CFA if the
    * program is the result of a program transformation.
    */
-  public CFA parseSourceAndCreateCFA(String pProgram, CFA pOriginalCfa)
+  public CFA parseSourceAndCreateCFA(
+      String pProgram, CFA pOriginalCfa, ProgramTransformation pProgramTransformation)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    return parseSourceAndCreateCFA(pProgram, Optional.of(pOriginalCfa));
+    return parseSourceAndCreateCFA(pProgram, Optional.of(pOriginalCfa), pProgramTransformation);
   }
 
-  private CFA parseSourceAndCreateCFA(String pProgram, Optional<CFA> pOriginalCfa)
+  private CFA parseSourceAndCreateCFA(
+      String pProgram, Optional<CFA> pOriginalCfa, ProgramTransformation pProgramTransformation)
       throws ParserException, InterruptedException, InvalidConfigurationException {
 
     stats.totalTime.start();
@@ -528,7 +530,7 @@ public class CFACreator {
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction, pOriginalCfa);
+      CFA cfa = createCFA(parseResult, mainFunction, pOriginalCfa, pProgramTransformation);
 
       return cfa;
     } finally {
@@ -573,7 +575,7 @@ public class CFACreator {
         default -> throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction, Optional.empty());
+      CFA cfa = createCFA(c, mainFunction, Optional.empty(), ProgramTransformation.NONE);
 
       if (!commentPositions.isEmpty()) {
         SyntacticBlockStructureBuilder blockStructureBuilder =
@@ -632,7 +634,10 @@ public class CFACreator {
   }
 
   private CFA createCFA(
-      ParseResult pParseResult, FunctionEntryNode pMainFunction, Optional<CFA> pOriginalCfa)
+      ParseResult pParseResult,
+      FunctionEntryNode pMainFunction,
+      Optional<CFA> pOriginalCfa,
+      ProgramTransformation pProgramTransformation)
       throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
@@ -646,7 +651,8 @@ public class CFACreator {
             inputLanguage,
             pParseResult.fileNames(),
             mainFunction,
-            CfaConnectedness.UNCONNECTED_FUNCTIONS);
+            CfaConnectedness.UNCONNECTED_FUNCTIONS,
+            pProgramTransformation);
 
     if (pOriginalCfa.isPresent()) {
       cfaMetadata = cfaMetadata.withOriginalCfa(pOriginalCfa.orElseThrow());

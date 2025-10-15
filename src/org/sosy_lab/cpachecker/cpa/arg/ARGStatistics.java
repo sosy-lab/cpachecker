@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -262,9 +261,7 @@ public class ARGStatistics implements Statistics {
       exportARG = false;
     }
 
-    Optional<CFA> originalCfa = pCFA.getMetadata().getOriginalCfa();
-    argWitnessExporter =
-        new WitnessExporter(config, logger, pSpecification, originalCfa.orElse(pCFA));
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);

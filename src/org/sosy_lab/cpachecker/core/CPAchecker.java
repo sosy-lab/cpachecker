@@ -186,8 +186,10 @@ public class CPAchecker {
   // To change the version, update the property in build.xml.
   private static final String version;
 
+  public static final String unknownVersion = "(unknown version)";
+
   static {
-    String v = "(unknown version)";
+    String v = unknownVersion;
     try {
       URL url =
           CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
@@ -504,7 +506,8 @@ public class CPAchecker {
         CFACreator.constructForProgramTransformation(
             config, logger, shutdownNotifier, pProgramTransformation);
     pStats.setCFACreator(cfaCreator, pProgramTransformation);
-    final CFA cfa = cfaCreator.parseSourceAndCreateCFA(pSourceCode, pOriginalCfa);
+    final CFA cfa =
+        cfaCreator.parseSourceAndCreateCFA(pSourceCode, pOriginalCfa, pProgramTransformation);
     pStats.setCFA(cfa, pProgramTransformation);
     return cfa;
   }

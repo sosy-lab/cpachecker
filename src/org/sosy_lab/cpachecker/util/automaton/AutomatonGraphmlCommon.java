@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -406,10 +407,7 @@ public final class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-      graph.appendChild(
-          createDataElement(
-              KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
+      graph.appendChild(createDataElement(KeyDef.CREATIONTIME, getCreationTime()));
     }
 
     private void defineKey(KeyDef pKeyDef) {
@@ -638,6 +636,11 @@ public final class AutomatonGraphmlCommon {
         && edge.getDescription().equals("Function start dummy edge");
   }
 
+  public static String getSpecificationAutomaton(Specification pSpecification) throws IOException {
+    return Files.readString(pSpecification.getFiles().iterator().next(), StandardCharsets.UTF_8)
+        .trim();
+  }
+
   public static String getArchitecture(MachineModel pMachineModel) {
     final String architecture =
         switch (pMachineModel) {
@@ -646,6 +649,11 @@ public final class AutomatonGraphmlCommon {
           default -> pMachineModel.toString();
         };
     return architecture;
+  }
+
+  public static String getCreationTime() {
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
+    return now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
   }
 
   public static Set<FileLocation> getFileLocationsFromCfaEdge(

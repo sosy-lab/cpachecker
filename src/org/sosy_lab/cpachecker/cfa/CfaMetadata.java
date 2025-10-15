@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -37,6 +38,9 @@ public final class CfaMetadata {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
+  /** The type of {@link ProgramTransformation} applied to this {@link CFA}. */
+  private final ProgramTransformation programTransformation;
+
   /** The original {@link CFA} from the input program, in case this instance is transformed. */
   private final Optional<CFA> originalCfa;
 
@@ -52,6 +56,7 @@ public final class CfaMetadata {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
+      ProgramTransformation pProgramTransformation,
       Optional<CFA> pOriginalCfa,
       @Nullable AstCfaRelation pAstCfaRelation,
       @Nullable LoopStructure pLoopStructure,
@@ -64,6 +69,7 @@ public final class CfaMetadata {
     fileNames = ImmutableList.copyOf(pFileNames);
     mainFunctionEntry = checkNotNull(pMainFunctionEntry);
     connectedness = checkNotNull(pConnectedness);
+    programTransformation = checkNotNull(pProgramTransformation);
 
     originalCfa = pOriginalCfa;
     astCFARelation = pAstCfaRelation;
@@ -94,7 +100,8 @@ public final class CfaMetadata {
       Language pInputLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
-      CfaConnectedness pConnectedness) {
+      CfaConnectedness pConnectedness,
+      ProgramTransformation pProgramTransformation) {
 
     return new CfaMetadata(
         pMachineModel,
@@ -103,6 +110,7 @@ public final class CfaMetadata {
         pFileNames,
         pMainFunctionEntry,
         pConnectedness,
+        pProgramTransformation,
         Optional.empty(),
         null,
         null,
@@ -135,6 +143,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         originalCfa,
         astCFARelation,
         loopStructure,
@@ -195,6 +204,7 @@ public final class CfaMetadata {
         fileNames,
         checkNotNull(pMainFunctionEntry),
         connectedness,
+        programTransformation,
         originalCfa,
         astCFARelation,
         loopStructure,
@@ -226,6 +236,27 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         checkNotNull(pConnectedness),
+        programTransformation,
+        originalCfa,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables);
+  }
+
+  public ProgramTransformation getProgramTransformation() {
+    return programTransformation;
+  }
+
+  public CfaMetadata withProgramTransformation(ProgramTransformation pProgramTransformation) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        checkNotNull(pProgramTransformation),
         originalCfa,
         astCFARelation,
         loopStructure,
@@ -245,6 +276,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         Optional.of(checkNotNull(pOriginalCfa)),
         astCFARelation,
         loopStructure,
@@ -289,6 +321,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         originalCfa,
         pAstCfaRelation,
         loopStructure,
@@ -311,6 +344,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         originalCfa,
         astCFARelation,
         pLoopStructure,
@@ -345,6 +379,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         originalCfa,
         astCFARelation,
         loopStructure,
@@ -378,6 +413,7 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
         originalCfa,
         astCFARelation,
         loopStructure,
