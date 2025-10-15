@@ -39,7 +39,7 @@ public class DssDebugUtils {
       Multimap<String, @NonNull StateAndPrecision> violationConditions,
       Function<AbstractState, String> pStateToString) {
     String precondition =
-        FluentIterable.from(preconditions.keys())
+        FluentIterable.from(preconditions.keySet())
             .transform(
                 predecessor ->
                     FluentIterable.from(preconditions.get(predecessor))
@@ -49,7 +49,7 @@ public class DssDebugUtils {
     String header = "Block " + id + " with preconditions:\n  " + precondition;
     header += "\nand violation conditions:\n  ";
     String postcondition =
-        FluentIterable.from(violationConditions.keys())
+        FluentIterable.from(violationConditions.keySet())
             .transform(
                 successor ->
                     FluentIterable.from(violationConditions.get(successor))
