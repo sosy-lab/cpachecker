@@ -129,49 +129,72 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
 
   @Test
   public void testModulo() throws Exception {
-    checkModulo(0, 5, 0);
-    checkModulo(-1, 5, -1);
-    checkModulo(-5, 5, 0);
-    checkModulo(-6, 5, -1);
-    checkModulo(6, 5, 1);
-    checkModulo(0, -5, 0);
-    checkModulo(-1, -5, -1);
-    checkModulo(-5, -5, 0);
-    checkModulo(-6, -5, -1);
-    checkModulo(6, -5, 1);
+    checkModulo(0, 5);
+    checkModulo(-1, 5);
+    checkModulo(-5, 5);
+    checkModulo(-6, 5);
+    checkModulo(6, 5);
+    checkModulo(0, -5);
+    checkModulo(-1, -5);
+    checkModulo(-5, -5);
+    checkModulo(-6, -5);
+    checkModulo(6, -5);
   }
 
-  private void checkModulo(int aVal, int bVal, int expected) throws Exception {
+  private void checkModulo(int aVal, int bVal) throws Exception {
     BitvectorFormula a = replacer.makeBitvector(4, aVal);
     BitvectorFormula b = replacer.makeBitvector(4, bVal);
-    BitvectorFormula c = replacer.makeBitvector(4, expected);
+    // Use bitvector semantics as the baseline for expected result
+    BitvectorFormula expectedBv =
+        mgrv.getBitvectorFormulaManager()
+            .remainder(
+                mgrv.getBitvectorFormulaManager().makeBitvector(4, aVal),
+                mgrv.getBitvectorFormulaManager().makeBitvector(4, bVal),
+                true);
 
     BitvectorFormula input = replacer.remainder(a, b, true);
-    BooleanFormula constraint = replacer.equal(input, c);
+    BooleanFormula constraint =
+        mgrv.getBitvectorFormulaManager()
+            .equal(
+                mgrv.getBitvectorFormulaManager()
+                    .makeBitvector(4, replacer.toIntegerFormula(input, false)),
+                expectedBv);
     assertThatFormula(constraint).isSatisfiable();
   }
 
   @Test
   public void testDiv() throws Exception {
-    checkDiv(0, 5, 0);
-    checkDiv(-1, 5, 0);
-    checkDiv(-5, 5, -1);
-    checkDiv(-6, 5, -1);
-    checkDiv(6, 5, 1);
-    checkDiv(0, -5, 0);
-    checkDiv(-1, -5, 0);
-    checkDiv(-5, -5, 1);
-    checkDiv(-6, -5, 1);
-    checkDiv(6, -5, -1);
+    checkDiv(0, 5);
+    checkDiv(-1, 5);
+    checkDiv(-5, 5);
+    checkDiv(-6, 5);
+    checkDiv(6, 5);
+    checkDiv(0, -5);
+    checkDiv(-1, -5);
+    checkDiv(-5, -5);
+    checkDiv(-6, -5);
+    checkDiv(6, -5);
   }
 
-  private void checkDiv(int aVal, int bVal, int expected) throws Exception {
+  private void checkDiv(int aVal, int bVal) throws Exception {
     BitvectorFormula a = replacer.makeBitvector(4, aVal);
     BitvectorFormula b = replacer.makeBitvector(4, bVal);
-    BitvectorFormula c = replacer.makeBitvector(4, expected);
+
+    // Use bitvector semantics as baseline for division
+    BitvectorFormula expectedBv =
+        mgrv.getBitvectorFormulaManager()
+            .divide(
+                mgrv.getBitvectorFormulaManager().makeBitvector(4, aVal),
+                mgrv.getBitvectorFormulaManager().makeBitvector(4, bVal),
+                true);
 
     BitvectorFormula input = replacer.divide(a, b, true);
-    BooleanFormula constraint = replacer.equal(input, c);
+    BooleanFormula constraint =
+        mgrv.getBitvectorFormulaManager()
+            .equal(
+                mgrv.getBitvectorFormulaManager()
+                    .makeBitvector(4, replacer.toIntegerFormula(input, false)),
+                expectedBv);
     assertThatFormula(constraint).isSatisfiable();
   }
 
