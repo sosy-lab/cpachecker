@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -68,7 +67,7 @@ public class GlobalAccessChecker {
    * memory, i.e. whether the edge might influence other threads or uses only scoped variables of
    * the thread.
    */
-  public boolean hasGlobalAccess(CFAEdge edge) {
+  boolean hasGlobalAccess(CFAEdge edge) {
     return switch (edge.getEdgeType()) {
       case BlankEdge -> false;
       case AssumeEdge -> hasGlobalAccess(((CAssumeEdge) edge).getExpression());
@@ -81,21 +80,6 @@ public class GlobalAccessChecker {
       case FunctionReturnEdge -> hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
       default -> throw new AssertionError("unexpected edge: " + edge);
     };
-  }
-
-  /**
-   * Checks if any edge inside pEdges accesses a global variable.
-   *
-   * @param pEdges the set of edges to be checked
-   * @return true if any edge in pEdges is a global access
-   */
-  public boolean anyGlobalAccess(ImmutableSet<CFAEdge> pEdges) {
-    for (CFAEdge edge : pEdges) {
-      if (hasGlobalAccess(edge)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private <T extends AAstNode> boolean hasGlobalAccess(final T ast) {
