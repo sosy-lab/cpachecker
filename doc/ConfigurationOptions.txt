@@ -2342,6 +2342,11 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
+# When a bitwise/shift operation is not supported by the NLA encoding,
+# approximate it with an uninterpreted function (UF). If false, the operation
+# fails early by throwing UnsupportedOperationException.
+cpa.predicate.approximateBitwiseWithUFs = true
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -2903,11 +2908,6 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
-
-# Use signed wraparound when encoding bitvectors as integers, using
-# non-linear arithmetic (default: false, use unbounded domain for signed
-# values)
-cpa.predicate.signedWraparound = false
 
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false

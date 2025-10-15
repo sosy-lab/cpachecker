@@ -24,8 +24,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.UFManager;
 
 /**
  * Internally, all integers are treated as unsigned unless a signed operator explicitly requires a
@@ -59,25 +61,29 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final IntegerFormulaManager integerFormulaManager;
+  private final UFManager functionManager;
+
+  @Option(
+      secure = true,
+      description =
+          "When a bitwise/shift operation is not supported by the NLA encoding, approximate it"
+              + " with an uninterpreted function (UF). If false, the operation fails early by"
+              + " throwing UnsupportedOperationException.")
+  private boolean approximateBitwiseWithUFs = true;
 
   ReplaceBitvectorWithNLAIntegerTheory(
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
       IntegerFormulaManager pIntegerFormulaManager,
+      UFManager pFunctionManager,
       Configuration pConfig)
       throws InvalidConfigurationException {
     super(pWrappingHandler);
     pConfig.inject(this);
     booleanFormulaManager = pBooleanFormulaManager;
     integerFormulaManager = pIntegerFormulaManager;
+    functionManager = pFunctionManager;
   }
-
-  @Option(
-      secure = true,
-      description =
-          "Use signed wraparound when encoding bitvectors as integers, using non-linear arithmetic"
-              + " (default: false, use unbounded domain for signed values)")
-  private boolean signedWraparound = false;
 
   IntegerFormula wrapAround(IntegerFormula formula, int size) {
     BigInteger upperLimit = BigInteger.TWO.pow(size);
@@ -85,31 +91,42 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     return integerFormulaManager.modulo(formula, upperLimitFormula);
   }
 
-  IntegerFormula wrapAroundSigned(IntegerFormula formula, int size) {
-    BigInteger lowerSignedLimit = BigInteger.TWO.pow(size - 1).negate();
+  IntegerFormula mapToSignedRange(IntegerFormula formula, int size) {
     BigInteger upperSignedLimit = BigInteger.TWO.pow(size - 1);
     BigInteger upperUnsignedLimit = BigInteger.TWO.pow(size);
-    if (signedWraparound) {
-      return integerFormulaManager.subtract(
-          integerFormulaManager.modulo(
-              integerFormulaManager.add(
-                  formula, integerFormulaManager.makeNumber(lowerSignedLimit)),
-              integerFormulaManager.makeNumber(upperUnsignedLimit)),
-          integerFormulaManager.makeNumber(lowerSignedLimit));
-    } else {
-      // we still need to convert the value to a signed version
-      return booleanFormulaManager.ifThenElse(
-          integerFormulaManager.greaterOrEquals(
-              formula, integerFormulaManager.makeNumber(upperSignedLimit)),
-          integerFormulaManager.negate(
-              integerFormulaManager.subtract(
-                  integerFormulaManager.makeNumber(upperUnsignedLimit), formula)),
-          formula);
-    }
+    return booleanFormulaManager.ifThenElse(
+        integerFormulaManager.greaterOrEquals(
+            formula, integerFormulaManager.makeNumber(upperSignedLimit)),
+        integerFormulaManager.negate(
+            integerFormulaManager.subtract(
+                integerFormulaManager.makeNumber(upperUnsignedLimit), formula)),
+        formula);
   }
 
   private IntegerFormula unwrap(BitvectorFormula pNumber) {
     return (IntegerFormula) super.unwrap(pNumber);
+  }
+
+  private FunctionDeclaration<IntegerFormula> createUnaryFunction(String name) {
+    return functionManager.declareUF(
+        name, integerFormulaManager.getFormulaType(), integerFormulaManager.getFormulaType());
+  }
+
+  private FunctionDeclaration<IntegerFormula> createBinaryFunction(String name) {
+    return functionManager.declareUF(
+        name,
+        integerFormulaManager.getFormulaType(),
+        integerFormulaManager.getFormulaType(),
+        integerFormulaManager.getFormulaType());
+  }
+
+  private BitvectorFormula makeUf(
+      FormulaType<BitvectorFormula> retType,
+      FunctionDeclaration<IntegerFormula> decl,
+      BitvectorFormula... args) {
+    List<org.sosy_lab.java_smt.api.Formula> uargs =
+        unwrap(java.util.Arrays.<org.sosy_lab.java_smt.api.Formula>asList(args));
+    return wrap(retType, functionManager.callUF(decl, uargs));
   }
 
   @Override
@@ -184,8 +201,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
             !pSigned
                 ? integerFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2))
                 : getC99ReplacementForSMTlib2Division(
-                    wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-                    wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2))),
+                    mapToSignedRange(unwrap(pNumber1), getLength(pNumber1)),
+                    mapToSignedRange(unwrap(pNumber2), getLength(pNumber2))),
             getLength(pNumber1)));
   }
 
@@ -205,8 +222,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     IntegerFormula dividend = unwrap(numerator);
 
     if (signed) {
-      divisor = wrapAroundSigned(divisor, getLength(denominator));
-      dividend = wrapAroundSigned(dividend, getLength(numerator));
+      divisor = mapToSignedRange(divisor, getLength(denominator));
+      dividend = mapToSignedRange(dividend, getLength(numerator));
       final IntegerFormula zero = integerFormulaManager.makeNumber(0);
       final IntegerFormula additionalUnit =
           booleanFormulaManager.ifThenElse(
@@ -281,8 +298,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       return integerFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
     } else {
       return integerFormulaManager.greaterThan(
-          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+          mapToSignedRange(unwrap(pNumber1), getLength(pNumber1)),
+          mapToSignedRange(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -294,8 +311,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       return integerFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
     } else {
       return integerFormulaManager.greaterOrEquals(
-          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+          mapToSignedRange(unwrap(pNumber1), getLength(pNumber1)),
+          mapToSignedRange(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -307,8 +324,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       return integerFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
     } else {
       return integerFormulaManager.lessThan(
-          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+          mapToSignedRange(unwrap(pNumber1), getLength(pNumber1)),
+          mapToSignedRange(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -320,12 +337,12 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       return integerFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
     } else {
       return integerFormulaManager.lessOrEquals(
-          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+          mapToSignedRange(unwrap(pNumber1), getLength(pNumber1)),
+          mapToSignedRange(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
-  public BooleanFormula addRangeConstraint(
+  public BooleanFormula makeRangeConstraint(
       BitvectorFormula term, BigInteger start, BigInteger end) {
     if (start.compareTo(BigInteger.ZERO) < 0) {
       end = end.subtract(start);
@@ -340,37 +357,65 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BitvectorFormula shiftRight(
       BitvectorFormula pNumber, BitvectorFormula pToShift, boolean signed) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_shiftRight_approx");
+      return makeUf(getFormulaType(pNumber), decl, pNumber, pToShift);
+    }
+    throw new UnsupportedOperationException("shiftRight not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula pToShift) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_shiftLeft_approx");
+      return makeUf(getFormulaType(pNumber), decl, pNumber, pToShift);
+    }
+    throw new UnsupportedOperationException("shiftLeft not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_rotateLeft_const_approx");
+      return makeUf(getFormulaType(number), decl, number);
+    }
+    throw new UnsupportedOperationException("rotateLeft not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_rotateLeft_approx");
+      return makeUf(getFormulaType(number), decl, number, toRotate);
+    }
+    throw new UnsupportedOperationException("rotateLeft not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_rotateRight_const_approx");
+      return makeUf(getFormulaType(number), decl, number);
+    }
+    throw new UnsupportedOperationException("rotateRight not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_rotateRight_approx");
+      return makeUf(getFormulaType(number), decl, number, toRotate);
+    }
+    throw new UnsupportedOperationException("rotateRight not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula concat(BitvectorFormula pFirst, BitvectorFormula pSecound) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_concat_approx");
+      return makeUf(getFormulaType(pFirst), decl, pFirst, pSecound);
+    }
+    throw new UnsupportedOperationException("concat not implemented for NLA encoding");
   }
 
   @Override
@@ -409,22 +454,38 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_not_approx");
+      return makeUf(getFormulaType(pBits), decl, pBits);
+    }
+    throw new UnsupportedOperationException("not operation not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula and(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_and_approx");
+      return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
+    }
+    throw new UnsupportedOperationException("and operation not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula or(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_or_approx");
+      return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
+    }
+    throw new UnsupportedOperationException("or operation not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula xor(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    if (approximateBitwiseWithUFs) {
+      FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_xor_approx");
+      return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
+    }
+    throw new UnsupportedOperationException("xor operation not implemented for NLA encoding");
   }
 
   @Override

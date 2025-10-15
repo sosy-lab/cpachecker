@@ -681,12 +681,14 @@ class PointerTargetSetManager {
     // zero to prevent overflows with bitvector arithmetic.
 
     pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    pConstraints.addConstraint(formulaManager.makeRangeConstraint(newBasePlusTypeSize, false));
     PersistentList<Formula> highestAllocatedAddresses =
         PersistentLinkedList.of(newBasePlusTypeSize);
 
     if (pAllocationSize != null && !pAllocationSize.equals(typeSizeF)) {
       Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
       pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+      pConstraints.addConstraint(formulaManager.makeRangeConstraint(basePlusAllocationSize, false));
 
       highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
     }

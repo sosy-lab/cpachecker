@@ -66,7 +66,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
-import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -310,6 +309,7 @@ public class FormulaManagerView {
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
                     manager.getIntegerFormulaManager(),
+                    manager.getUFManager(),
                     config);
               } else {
                 yield new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
@@ -1004,7 +1004,7 @@ public class FormulaManagerView {
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
     if (wrappingHandler.useIntForBitvectors()) {
-      return bitvectorFormulaManager.addRangeConstraint((BitvectorFormula) term, start, end);
+      return bitvectorFormulaManager.makeRangeConstraint((BitvectorFormula) term, start, end);
     } else {
       return makeRangeConstraint(
           term,
@@ -1038,7 +1038,7 @@ public class FormulaManagerView {
         start = BigInteger.ZERO;
         end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
       }
-      return bitvectorFormulaManager.addRangeConstraint((BitvectorFormula) term, start, end);
+      return bitvectorFormulaManager.makeRangeConstraint((BitvectorFormula) term, start, end);
     } else {
       return booleanFormulaManager.makeTrue();
     }
@@ -1056,46 +1056,6 @@ public class FormulaManagerView {
   public <T extends Formula> T makeVariableWithoutSSAIndex(
       FormulaType<T> formulaType, String name) {
     return makeVariable(formulaType, makeNameNoIndex(name));
-  }
-
-  public <T extends Formula> FloatingPointFormula castToFloat(
-      T pFormula, boolean isSigned, FloatingPointType formulaType) {
-    Formula formula = pFormula;
-    if (encodeBitvectorAs != Theory.BITVECTOR && getFormulaType(formula).isBitvectorType()) {
-      int size = getBitvectorFormulaManager().getLength((BitvectorFormula) formula);
-      formula = unwrap(formula);
-      if (getFormulaType(formula).isIntegerType()) {
-        formula =
-            manager.getBitvectorFormulaManager().makeBitvector(size, (IntegerFormula) formula);
-      }
-    }
-    return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
-  }
-
-  /**
-   * Casts a formula from float to a specified type.
-   *
-   * @param floatToIntRoundingMode Rounding mode to use for float -> int conversion. The C standard
-   *     defines this as TOWARD_ZERO (in C99: 6.3.1.4 Real floating and integer, p1), therefore this
-   *     value should be given for verifying C programs.
-   */
-  @SuppressWarnings("unchecked")
-  public <T extends Formula> T castFromFloat(
-      FloatingPointFormula pFormula,
-      boolean isSigned,
-      FormulaType<T> formulaType,
-      FloatingPointRoundingMode floatToIntRoundingMode) {
-    T ret =
-        getFloatingPointFormulaManager()
-            .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);
-    if (wrappingHandler.useIntForBitvectors() && formulaType.isBitvectorType()) {
-      return wrap(
-          formulaType,
-          manager
-              .getBitvectorFormulaManager()
-              .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned));
-    }
-    return ret;
   }
 
   public IntegerFormulaManagerView getIntegerFormulaManager() throws UnsupportedOperationException {

@@ -70,7 +70,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
             Theory.FLOAT,
             Theory.INTEGER,
             new ReplaceIntegerEncodingOptions(config));
-    replacer = new ReplaceBitvectorWithNLAIntegerTheory(wrappingHandler, bmgr, imgr, config);
+    replacer = new ReplaceBitvectorWithNLAIntegerTheory(wrappingHandler, bmgr, imgr, fmgr, config);
   }
 
   @Test
@@ -92,7 +92,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
       int expectedNumber = value >= 8 ? value - 16 : value;
       IntegerFormula formula = imgr.makeNumber(value);
       IntegerFormula expected = imgr.makeNumber(expectedNumber);
-      BooleanFormula constraint = imgr.equal(replacer.wrapAroundSigned(formula, 4), expected);
+      BooleanFormula constraint = imgr.equal(replacer.mapToSignedRange(formula, 4), expected);
       assertThatFormula(constraint).isSatisfiable();
     }
   }
@@ -105,7 +105,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
         replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
     BooleanFormula range =
-        replacer.addRangeConstraint(
+        replacer.makeRangeConstraint(
             base, BigInteger.ZERO, BigInteger.TWO.pow(8).subtract(BigInteger.ONE));
     BooleanFormula extend = replacer.equal(replacer.extend(base, 8, false), larger);
     BooleanFormula extract = bmgr.not(replacer.equal(replacer.extract(larger, 7, 0), base));
@@ -120,7 +120,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
         replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
     BooleanFormula range =
-        replacer.addRangeConstraint(
+        replacer.makeRangeConstraint(
             base, BigInteger.TWO.pow(7).negate(), BigInteger.TWO.pow(7).subtract(BigInteger.ONE));
     BooleanFormula extend = replacer.equal(replacer.extend(base, 8, true), larger);
     BooleanFormula extract = bmgr.not(replacer.equal(replacer.extract(larger, 7, 0), base));
@@ -181,18 +181,18 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
     final BitvectorFormula aWrapped =
         wrappingHandler.wrap(
             FormulaType.getBitvectorTypeWithSize(2),
-            replacer.wrapAroundSigned((IntegerFormula) wrappingHandler.unwrap(a), 2));
+            replacer.mapToSignedRange((IntegerFormula) wrappingHandler.unwrap(a), 2));
     final BitvectorFormula b = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(2), "b");
     final BitvectorFormula bWrapped =
         wrappingHandler.wrap(
             FormulaType.getBitvectorTypeWithSize(2),
-            replacer.wrapAroundSigned((IntegerFormula) wrappingHandler.unwrap(b), 2));
+            replacer.mapToSignedRange((IntegerFormula) wrappingHandler.unwrap(b), 2));
 
     BooleanFormula rangeA =
-        replacer.addRangeConstraint(
+        replacer.makeRangeConstraint(
             a, BigInteger.TWO.pow(1).negate(), BigInteger.TWO.pow(1).subtract(BigInteger.ONE));
     BooleanFormula rangeB =
-        replacer.addRangeConstraint(
+        replacer.makeRangeConstraint(
             b, BigInteger.TWO.pow(1).negate(), BigInteger.TWO.pow(1).subtract(BigInteger.ONE));
     BooleanFormula multiply =
         replacer.equal(replacer.multiply(a, b), replacer.multiply(aWrapped, bWrapped));

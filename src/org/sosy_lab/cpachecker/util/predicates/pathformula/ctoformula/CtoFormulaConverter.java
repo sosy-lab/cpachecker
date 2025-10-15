@@ -949,17 +949,19 @@ public class CtoFormulaConverter {
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
         ret =
-            fmgr.castFromFloat(
-                (FloatingPointFormula) pFormula,
-                isSigned.test(pToCType),
-                toType,
-                FloatingPointRoundingMode.TOWARD_ZERO);
+            fmgr.getFloatingPointFormulaManager()
+                .castTo(
+                    (FloatingPointFormula) pFormula,
+                    isSigned.test(pToCType),
+                    toType,
+                    FloatingPointRoundingMode.TOWARD_ZERO);
       }
 
     } else if (toType.isFloatingPointType()) {
       ret =
-          fmgr.castToFloat(
-              pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
+          fmgr.getFloatingPointFormulaManager()
+              .castFrom(
+                  pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
 
     } else {
       throw new IllegalArgumentException(
