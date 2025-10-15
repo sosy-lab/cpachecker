@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -642,6 +643,8 @@ public class CFACreator {
 
     assert mainFunction != null;
 
+    // reset anon_type counter so that parsing identical programs in one run result in the same CFA
+    ASTConverter.resetAnonTypeCounter();
     CfaMetadata cfaMetadata =
         CfaMetadata.forMandatoryAttributes(
             machineModel,

@@ -47,7 +47,9 @@ public class SubstituteUtil {
       }
     }
     throw new IllegalArgumentException(
-        "could not find pCfaEdge and pCallContext in pSubstituteEdges");
+        String.format(
+            "could not find pCfaEdge of type %s and pCallContext in pSubstituteEdges",
+            pCfaEdge.getEdgeType()));
   }
 
   /**

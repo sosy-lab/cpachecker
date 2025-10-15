@@ -556,9 +556,9 @@ public class SequentializationParseTest {
       LogManager pLogger)
       throws Exception {
 
-    CFA cfaA = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
+    CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
     return Sequentialization.tryBuildProgramString(
-        pOptions, cfaA, "test", pShutdownNotifier, pLogger);
+        pOptions, cfa, "test", pShutdownNotifier, pLogger);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
