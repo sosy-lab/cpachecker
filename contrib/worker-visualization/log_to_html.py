@@ -48,6 +48,7 @@ def create_arg_parser():
         help="Space separated list of keys to export from the messages. "
         "If not set, all keys are exported.",
         nargs="+",
+        action="extend",
         dest="export_keys",
     )
     return parser
@@ -79,7 +80,7 @@ def parse_jsons(json_file: Path):
         return {}
 
 
-def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
+def html_for_message(message, block_log: Dict[str, str], export_keys: list):
     div = Airium()
 
     if not message:
@@ -143,7 +144,7 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
 
 
 def html_dict_to_html_table(
-    all_messages, block_logs: Dict[str, str], export_keys: dict
+    all_messages, block_logs: Dict[str, str], export_keys: list
 ):
     first_timestamp = int(all_messages[0]["header"]["timestamp"])
     timestamp_to_message = {}
@@ -251,7 +252,7 @@ def export_messages_table(
                 .replace(
                     "<!--<<<TABLE>>><!-->",
                     html_dict_to_html_table(
-                        all_messages, block_logs, export_keys or {}
+                        all_messages, block_logs, export_keys
                     ),
                 )
                 .replace("/*CSS*/", css.read())
