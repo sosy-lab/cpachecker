@@ -145,7 +145,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     } else {
       value = pI;
     }
-    IntegerFormula number = integerFormulaManager.makeNumber(value);
+    IntegerFormula number = wrapAround(integerFormulaManager.makeNumber(value), pLength);
     return wrap(getBitvectorTypeWithSize(pLength), number);
   }
 
@@ -491,7 +491,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BitvectorFormula makeBitvector(int pLength, IntegerFormula pI) {
     // INT to BV -> just wrap
-    return wrap(getBitvectorTypeWithSize(pLength), unwrap(pI));
+    return wrap(getBitvectorTypeWithSize(pLength), unwrap(wrapAround(pI, pLength)));
   }
 
   @Override
