@@ -266,12 +266,12 @@ public class DssBlockAnalysis {
             ImmutableMap.of()));
   }
 
-  private Collection<DssMessage> reportPreconditions(
-      Collection<? extends @NonNull StateAndPrecision> summaries, boolean isSound)
-      throws CPAException, InterruptedException {
-    isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
-
+  private ImmutableList<@NonNull StateAndPrecision> deduplicateStates(
+      Collection<@NonNull StateAndPrecision> summaries) throws InterruptedException, CPAException {
     // reset all summaries and run cpa algorithm on them to remove redundant ones
+    if (summaries.size() < 2) {
+      return ImmutableList.copyOf(summaries);
+    }
     List<StateAndPrecision> sps = new ArrayList<>(summaries.size());
     ImmutableMap.Builder<StateAndPrecision, AbstractState> resetStatesBuilder =
         ImmutableMap.builderWithExpectedSize(summaries.size());
@@ -294,6 +294,20 @@ public class DssBlockAnalysis {
       }
     }
     ImmutableList<StateAndPrecision> uniqueSummaries = finalStates.build();
+    if (uniqueSummaries.isEmpty()) {
+      throw new AssertionError("No unique summaries found after CPA run");
+    }
+    return uniqueSummaries;
+  }
+
+  private Collection<DssMessage> reportPreconditions(
+      Collection<@NonNull StateAndPrecision> summaries, boolean isSound)
+      throws CPAException, InterruptedException {
+    isSound &= soundPredecessors.containsAll(block.getPredecessorIds());
+
+    // reset all summaries and run cpa algorithm on them to remove redundant ones
+    ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
+
     if (uniqueSummaries.isEmpty()) {
       throw new AssertionError("No unique summaries found after CPA run");
     }
@@ -410,18 +424,13 @@ public class DssBlockAnalysis {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
         preconditions.removeAll(pReceived.getSenderId());
-        preconditions.put(pReceived.getSenderId(), deserialized);
+        preconditions.putAll(pReceived.getSenderId(), deserializedStates);
         return DssMessageProcessing.proceed();
       }
-      for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
-        StateAndPrecision previous = previousEntry.getValue();
+      boolean isEquivalent = false;
+      for (StateAndPrecision previous : preconditions.get(pReceived.getSenderId())) {
         if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          if (previousEntry.getKey().equals(pReceived.getSenderId())) {
-            discard.add(
-                new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
-          } else if (!block.getLoopPredecessorIds().isEmpty()) {
-            soundPredecessors.remove(previousEntry.getKey());
-          }
+          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
         }
         // the reset resets the callstack state, too
         boolean previousLessEqualDeserialized =
@@ -435,10 +444,13 @@ public class DssBlockAnalysis {
             if (pReceived.isSound()) {
               soundPredecessors.add(pReceived.getSenderId());
             }
-            covered++;
+            isEquivalent = true;
           }
-          discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
         }
+      }
+      if (isEquivalent) {
+        covered++;
       }
     }
     // summaries from non-loop predecessors are by definition stronger and unique
@@ -447,6 +459,7 @@ public class DssBlockAnalysis {
         discard.add(new PredecessorStateEntry(pReceived.getSenderId(), sp));
       }
     }
+
     ImmutableSet<PredecessorStateEntry> discarded = discard.build();
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
