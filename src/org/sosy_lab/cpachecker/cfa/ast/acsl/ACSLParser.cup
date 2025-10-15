@@ -225,8 +225,8 @@ parser code {:
       // evaluated in the post-state
       Optional<FunctionExitNode> exitNode = entry.getExitNode();
       if (exitNode.isPresent()) {
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
-        pMap.put(currentEdge, annotation.getCopyForPostState());
+        for (CFAEdge currentEdge : exitNode.orElseThrow().getEnteringEdges()) {
+        pMap.put(previousEdge, annotation.getCopyForPostState());
         }
       }
     }
