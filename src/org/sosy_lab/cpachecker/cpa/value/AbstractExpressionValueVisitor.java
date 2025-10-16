@@ -802,7 +802,7 @@ public abstract class AbstractExpressionValueVisitor
         }
 
         if (BuiltinFunctions.isPopcountFunction(functionName)) {
-          return handlePopCount(
+          return handlePopcount(
               functionName,
               functionType,
               parameterValues,
@@ -2282,7 +2282,7 @@ public abstract class AbstractExpressionValueVisitor
    * test/programs/simple/builtin_popcount64_x.c
    */
   @SuppressWarnings("unused")
-  private static Value handlePopCount(
+  private static Value handlePopcount(
       String pFunctionName,
       CType pReturnType,
       List<Value> pParameters,
