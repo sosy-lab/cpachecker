@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.FunctionCallExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalAndExpression;
@@ -173,10 +172,5 @@ public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean
   @Override
   public Boolean visit(NegationExpression pExpression) {
     return isTrivialExpression(pExpression);
-  }
-
-  @Override
-  public Boolean visit(FunctionCallExpression pExpression) {
-    return pExpression.getArguments().stream().allMatch(a -> a.accept(this));
   }
 }

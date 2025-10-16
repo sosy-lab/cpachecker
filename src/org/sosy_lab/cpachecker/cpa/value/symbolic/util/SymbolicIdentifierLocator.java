@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.FunctionCallExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalAndExpression;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
@@ -81,15 +79,6 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
     // so the union will also be immutable
     // and there is no need to generate a separate ImmutableSet.
     return Sets.union(identifiersOnLeft, identifiersOnRight);
-  }
-
-  private Set<SymbolicIdentifier> handleFunctionCallExpression(
-      final FunctionCallExpression pExpression) {
-    ImmutableSet.Builder<SymbolicIdentifier> identifiers = ImmutableSet.builder();
-    for (SymbolicExpression argument : pExpression.getArguments()) {
-      identifiers.addAll(argument.accept(this));
-    }
-    return identifiers.build();
   }
 
   private Set<SymbolicIdentifier> handleUnaryExpression(final UnarySymbolicExpression pExpression) {
@@ -199,10 +188,5 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
   @Override
   public Set<SymbolicIdentifier> visit(final NegationExpression pExpression) {
     return handleUnaryExpression(pExpression);
-  }
-
-  @Override
-  public Set<SymbolicIdentifier> visit(FunctionCallExpression pExpression) {
-    return handleFunctionCallExpression(pExpression);
   }
 }

@@ -60,6 +60,4 @@ public interface SymbolicValueVisitor<T> {
   T visit(AddressOfExpression pExpression);
 
   T visit(NegationExpression pExpression);
-
-  T visit(FunctionCallExpression pExpression);
 }
