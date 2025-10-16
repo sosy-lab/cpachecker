@@ -33,26 +33,38 @@ public class FunArrayPartialOrderTest {
     Bound boundA = new Bound(new NormalFormExpression(0));
     Bound boundB = new Bound(new NormalFormExpression(1));
     Bound boundC = new Bound(new NormalFormExpression(2));
-    Bound boundD = new Bound(ImmutableSet.of(new NormalFormExpression(1), new NormalFormExpression(2)));
+    Bound boundD =
+        new Bound(ImmutableSet.of(new NormalFormExpression(1), new NormalFormExpression(2)));
 
     Interval valA = Interval.ZERO;
     Interval valB = new Interval(-1L, 1L);
 
     // {0} [0,0] {1}
-    FunArray arrayA = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(false));
+    FunArray arrayA =
+        new FunArray(
+            ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(false));
 
     // {0} [-1, 1] {1}
-    FunArray arrayB = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valB), ImmutableList.of(false));
+    FunArray arrayB =
+        new FunArray(
+            ImmutableList.of(boundA, boundB), ImmutableList.of(valB), ImmutableList.of(false));
 
     // {0} [0,0] {1} [-1, 1] {2}?
     FunArray arrayC =
-        new FunArray(ImmutableList.of(boundA, boundB, boundC), ImmutableList.of(valA, valB), ImmutableList.of(false, true));
+        new FunArray(
+            ImmutableList.of(boundA, boundB, boundC),
+            ImmutableList.of(valA, valB),
+            ImmutableList.of(false, true));
 
     // {0} [-1,1] {1 2}
-    FunArray arrayD = new FunArray(ImmutableList.of(boundA, boundD), ImmutableList.of(valB), ImmutableList.of(false));
+    FunArray arrayD =
+        new FunArray(
+            ImmutableList.of(boundA, boundD), ImmutableList.of(valB), ImmutableList.of(false));
 
     // {0} [0,0] {1}?
-    FunArray arrayE = new FunArray(ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(true));
+    FunArray arrayE =
+        new FunArray(
+            ImmutableList.of(boundA, boundB), ImmutableList.of(valA), ImmutableList.of(true));
 
     return ImmutableList.of(
         new Object[] {arrayA, arrayA},

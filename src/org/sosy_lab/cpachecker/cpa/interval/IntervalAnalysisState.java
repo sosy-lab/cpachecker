@@ -154,7 +154,7 @@ public final class IntervalAnalysisState
         .get(
             normalizeExpression(index, visitor).stream().findAny().orElseThrow(),
             visitor); // TODO: Don't just pick any random normalization, but rather the one that
-                      // results in the least abstract result
+    // results in the least abstract result
   }
 
   /**
