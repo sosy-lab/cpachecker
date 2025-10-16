@@ -21,10 +21,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
@@ -70,8 +72,20 @@ public class PredicateDelegatingRefinerTest {
             "  int x;",
             "  x = 0;",
             "  return x;");
-    return new PredicateCPARefinerFactory(
-        new PredicateCPA(pConfig, logger, blk, cfa, shutdownNotifier, spec, reachedSet));
+    PredicateCPA predicateCPA =
+        new PredicateCPA(config, logger, blk, cfa, shutdownNotifier, spec, reachedSet);
+    ARGCPA argCpa =
+        (ARGCPA)
+            ARGCPA
+                .factory()
+                .set(predicateCPA, ConfigurableProgramAnalysis.class)
+                .set(config, Configuration.class)
+                .set(logger, LogManager.class)
+                .set(Specification.alwaysSatisfied(), Specification.class)
+                .set(cfa, CFA.class)
+                .createInstance();
+
+    return new PredicateCPARefinerFactory(argCpa);
   }
 
   // Creates a default map of available refiners for the DelegatingRefiner
@@ -468,7 +482,7 @@ public class PredicateDelegatingRefinerTest {
         () -> setUpRefinerFactory(pStringRedundancyThresholdConfig));
   }
 
-  // A dummy refiner to serve as ARGBasedRefiner instances the DelegatingRefiner adds to its map of
+  // A dummy refiner to serve as Refiner instances the DelegatingRefiner adds to its map of
   // available refiners.
   private static class DummyRefiner implements Refiner {
 
