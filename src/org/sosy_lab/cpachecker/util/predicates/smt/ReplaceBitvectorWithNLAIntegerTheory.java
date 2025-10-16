@@ -517,12 +517,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public IntegerFormula toIntegerFormula(BitvectorFormula pI, boolean pSigned) {
-    final IntegerFormula unwrapped = unwrap(pI);
-    if (integerFormulaManager.getFormulaType().equals(FormulaType.IntegerType)) {
-      return unwrapped;
-    } else {
-      return integerFormulaManager.floor(unwrapped);
-    }
+    return unwrap(pI);
   }
 
   @Override
