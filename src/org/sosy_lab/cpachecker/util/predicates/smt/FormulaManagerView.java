@@ -168,7 +168,8 @@ public class FormulaManagerView {
       secure = true,
       description =
           "When using encodeBitvectorAs=INTEGER, this will modify the bitvector replacement"
-              + " behavior such that unsigned integers will wrap around.")
+              + " behavior such that unbounded integer arithmetic (NLA) (and additional\n"
+              + " constraints) is used to model wrap-around and boundedness.")
   private boolean useNonlinearArithmeticForIntAsBv = false;
 
   @Option(
