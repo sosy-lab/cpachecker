@@ -2283,24 +2283,24 @@ public abstract class AbstractExpressionValueVisitor
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
-      // Cast to unsigned target type
-      Value paramValue =
-          castCValue(
-              pParameters.getFirst(),
-              e.getParameterExpressions().getFirst().getExpressionType(),
-              pMachineModel,
-              logger);
       CSimpleType paramType =
           BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
       assert paramType.hasUnsignedSpecifier();
 
+      // Cast to unsigned target type
+      Value paramValue = castCValue(pParameters.getFirst(), paramType, pMachineModel, logger);
+
       if (paramValue.isNumericValue()) {
-        NumericValue numericParam = paramValue.asNumericValue();
+        BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
 
         // Check that the input is unsigned, as defined by the function
-        checkArgument(numericParam.bigIntegerValue().compareTo(BigInteger.ZERO) >= 0);
+        checkArgument(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function "
+                + pFunctionName
+                + " is negative, but the function defines unsigned parameters only");
 
-        return new NumericValue(numericParam.bigIntegerValue().bitCount());
+        return new NumericValue(numericParam.bitCount());
       }
 
       // TODO: add impl for SymExec
