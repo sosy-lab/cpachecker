@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -88,15 +87,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException {
     switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
-        break;
-
-      case StatementEdge:
-        handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
-        break;
-
-      case ReturnStatementEdge:
+      case DeclarationEdge -> handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
+      case StatementEdge ->
+          handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
+      case ReturnStatementEdge -> {
         // this is the return-statement of a function
         // set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(
@@ -105,32 +99,24 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         }
-        break;
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // handle statement like a = func(x) in the CFunctionSummaryEdge
         CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
         CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
         handleStatement(successor, functionReturnEdge.getFunctionCall(), ctrEdge);
-        break;
-
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         // just check if there are uninitialized variable usages
         if (printWarnings) {
           isExpressionUninitialized(successor, ((CAssumeEdge) cfaEdge).getExpression(), cfaEdge);
         }
-        break;
-
-      case FunctionCallEdge:
-        // on calling a function, check initialization status of the parameters
-        handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(cfaEdge);
+      }
+      case FunctionCallEdge ->
+          // on calling a function, check initialization status of the parameters
+          handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
+      case BlankEdge -> {}
+      default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
   }
 
@@ -188,11 +174,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleDeclaration(
       UninitializedVariablesState element, CDeclarationEdge declarationEdge) {
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // typedefs etc. do not concern this CPA
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+
     String varName = decl.getName();
     if (decl.isGlobal()) {
       globalVars.add(varName);
@@ -274,38 +260,30 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       UninitializedVariablesState element, CStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCallStatement) {
-      // in case of a return edge, remove the local context of the function from which we returned
-      if (cfaEdge instanceof FunctionSummaryEdge) {
-        element.returnFromFunction();
-      }
-      // a mere function call (func(a)) does not change the initialization status of variables
-      // just check if there are uninitialized variable usages
-      if (printWarnings) {
-        for (CExpression param :
-            ((CFunctionCallStatement) expression)
-                .getFunctionCallExpression()
-                .getParameterExpressions()) {
-          isExpressionUninitialized(element, param, cfaEdge);
+    switch (expression) {
+      case CFunctionCallStatement cFunctionCallStatement -> {
+        // in case of a return edge, remove the local context of the function from which we returned
+        if (cfaEdge instanceof FunctionSummaryEdge) {
+          element.returnFromFunction();
+        }
+        // a mere function call (func(a)) does not change the initialization status of variables
+        // just check if there are uninitialized variable usages
+        if (printWarnings) {
+          for (CExpression param :
+              cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+            isExpressionUninitialized(element, param, cfaEdge);
+          }
         }
       }
-
-    } else if (expression instanceof CExpressionStatement) {
-
-      // just check if there are uninitialized variable usages
-      if (printWarnings) {
-        isExpressionUninitialized(
-            element, ((CExpressionStatement) expression).getExpression(), cfaEdge);
+      case CExpressionStatement cExpressionStatement -> {
+        // just check if there are uninitialized variable usages
+        if (printWarnings) {
+          isExpressionUninitialized(element, cExpressionStatement.getExpression(), cfaEdge);
+        }
       }
-
-    } else if (expression instanceof CAssignment assignExpression) {
-      // expression is an assignment operation, e.g. a = b or a = a+b;
-
-      // a = b
-      handleAssign(element, assignExpression, cfaEdge);
-
-    } else {
-      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
+      case CAssignment assignExpression -> // a = b
+          handleAssign(element, assignExpression, cfaEdge);
+      default -> throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -316,10 +294,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     CExpression op1 = expression.getLeftHandSide();
     CRightHandSide op2 = expression.getRightHandSide();
 
-    if (op1 instanceof CIdExpression) {
+    if (op1 instanceof CIdExpression cIdExpression) {
       // assignment to simple variable
 
-      String leftName = ((CIdExpression) op1).getName();
+      String leftName = cIdExpression.getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -327,10 +305,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         setInitialized(element, leftName);
       }
 
-    } else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference cFieldReference) {
       // for field references, don't change the initialization status in case of a pointer
       // dereference
-      if (((CFieldReference) op1).isPointerDereference()) {
+      if (cFieldReference.isPointerDereference()) {
         if (printWarnings) {
           isExpressionUninitialized(element, op1, cfaEdge);
           isExpressionUninitialized(element, op2, cfaEdge);
@@ -375,100 +353,92 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   private boolean isStructType(CType t) {
-    return t instanceof CCompositeType && ((CCompositeType) t).getKind() == ComplexTypeKind.STRUCT;
+    return t instanceof CCompositeType cCompositeType
+        && cCompositeType.getKind() == ComplexTypeKind.STRUCT;
   }
 
   @SuppressWarnings("ShortCircuitBoolean")
   private boolean isExpressionUninitialized(
       UninitializedVariablesState element, @Nullable CRightHandSide expression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
-    if (expression == null) {
-      // e.g. empty parameter list
-      return false;
+    return switch (expression) {
+      case null -> false; // e.g. empty parameter list
 
-    } else if (expression instanceof CIdExpression) {
-      String variable = ((CIdExpression) expression).getName();
-      if (element.isUninitialized(variable)) {
-        addWarning(cfaEdge, variable, expression, element);
-        return true;
-      } else {
-        return false;
+      case CIdExpression cIdExpression -> {
+        String variable = cIdExpression.getName();
+        if (element.isUninitialized(variable)) {
+          addWarning(cfaEdge, variable, expression, element);
+          yield true;
+        } else {
+          yield false;
+        }
       }
+      case CTypeIdExpression e -> false; // e.g. sizeof
 
-    } else if (expression instanceof CTypeIdExpression) {
-      // e.g. sizeof
-      return false;
-
-    } else if (expression instanceof CFieldReference e) {
-      if (e.isPointerDereference()) {
-        return isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
-      } else {
+      case CFieldReference e when e.isPointerDereference() ->
+          isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
+      case CFieldReference e -> {
         String variable = expression.toASTString();
         if (element.isUninitialized(variable)) {
           addWarning(cfaEdge, variable, expression, element);
-          return true;
+          yield true;
         } else {
-          return false;
+          yield false;
         }
       }
 
-    } else if (expression instanceof CArraySubscriptExpression arrayExpression) {
-      return isExpressionUninitialized(element, arrayExpression.getArrayExpression(), cfaEdge)
-          | isExpressionUninitialized(element, arrayExpression.getSubscriptExpression(), cfaEdge);
+      case CArraySubscriptExpression arrayExpression ->
+          isExpressionUninitialized(element, arrayExpression.getArrayExpression(), cfaEdge)
+              | isExpressionUninitialized(
+                  element, arrayExpression.getSubscriptExpression(), cfaEdge);
 
-    } else if (expression instanceof CUnaryExpression unaryExpression) {
-      UnaryOperator typeOfOperator = unaryExpression.getOperator();
-      if ((typeOfOperator == UnaryOperator.AMPER) || (typeOfOperator == UnaryOperator.SIZEOF)) {
-        return false;
+      case CUnaryExpression unaryExpression ->
+          switch (unaryExpression.getOperator()) {
+            case AMPER, SIZEOF -> false;
+            default -> isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
+          };
+      case CPointerExpression cPointerExpression ->
+          isExpressionUninitialized(element, cPointerExpression.getOperand(), cfaEdge);
 
-      } else {
-        return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
+      case CBinaryExpression binExpression ->
+          isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
+              | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
+
+      case CCastExpression cCastExpression ->
+          isExpressionUninitialized(element, cCastExpression.getOperand(), cfaEdge);
+
+      case CFunctionCallExpression funcExpression -> {
+        // if the FunctionCallExpression is associated with a statement edge, then this is
+        // an external function call, and call to return edges for external calls are disabled.
+        // since we can not know its return value's initialization status, only check the parameters
+        if (cfaEdge instanceof CStatementEdge) {
+          for (CExpression param : funcExpression.getParameterExpressions()) {
+            isExpressionUninitialized(element, param, cfaEdge);
+          }
+          yield false;
+
+        } else {
+          // for an internal function call, we can check the return value - for an external call
+          // (with enabled call to return edges), the return value is always assumed to be
+          // initialized
+          boolean returnUninit = element.isUninitialized("CPAchecker_UninitVars_FunctionReturn");
+          if (printWarnings && returnUninit) {
+            addWarning(cfaEdge, funcExpression.toASTString(), expression, element);
+          }
+          // get rid of the local context, as it is no longer needed and may be different on the
+          // next
+          // call.
+          // only do this in case of an internal call.
+          if (cfaEdge instanceof FunctionSummaryEdge) {
+            element.returnFromFunction();
+          }
+          yield returnUninit;
+        }
       }
+      case CLiteralExpression e -> false;
 
-    } else if (expression instanceof CPointerExpression) {
-      return isExpressionUninitialized(
-          element, ((CPointerExpression) expression).getOperand(), cfaEdge);
-
-    } else if (expression instanceof CBinaryExpression binExpression) {
-      return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
-          | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
-
-    } else if (expression instanceof CCastExpression) {
-      return isExpressionUninitialized(
-          element, ((CCastExpression) expression).getOperand(), cfaEdge);
-
-    } else if (expression instanceof CFunctionCallExpression funcExpression) {
-      // if the FunctionCallExpression is associated with a statement edge, then this is
-      // an external function call, and call to return edges for external calls are disabled.
-      // since we can not know its return value's initialization status, only check the parameters
-      if (cfaEdge instanceof CStatementEdge) {
-        for (CExpression param : funcExpression.getParameterExpressions()) {
-          isExpressionUninitialized(element, param, cfaEdge);
-        }
-        return false;
-
-      } else {
-        // for an internal function call, we can check the return value - for an external call
-        // (with enabled call to return edges), the return value is always assumed to be initialized
-        boolean returnUninit = element.isUninitialized("CPAchecker_UninitVars_FunctionReturn");
-        if (printWarnings && returnUninit) {
-          addWarning(cfaEdge, funcExpression.toASTString(), expression, element);
-        }
-        // get rid of the local context, as it is no longer needed and may be different on the next
-        // call.
-        // only do this in case of an internal call.
-        if (cfaEdge instanceof FunctionSummaryEdge) {
-          element.returnFromFunction();
-        }
-        return returnUninit;
-      }
-
-    } else if (expression instanceof CLiteralExpression) {
-      return false;
-
-    } else {
-      throw new UnrecognizedCodeException("unknown expression", cfaEdge, expression);
-    }
+      default -> throw new UnrecognizedCodeException("unknown expression", cfaEdge, expression);
+    };
   }
 
   @Override

@@ -147,7 +147,6 @@ public class JExpressionTransformer extends ExpressionTransformer
         case MINUS -> factory.negate(operand, expressionType);
         case NOT -> factory.logicalNot(operand, expressionType);
         case COMPLEMENT -> factory.binaryNot(operand, expressionType);
-        default -> throw new AssertionError("Unhandled operation " + operator);
       };
     }
   }

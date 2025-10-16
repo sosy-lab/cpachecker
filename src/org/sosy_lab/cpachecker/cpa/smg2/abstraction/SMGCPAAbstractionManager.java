@@ -110,6 +110,7 @@ public class SMGCPAAbstractionManager {
     statistics.startTotalListSearchTime();
 
     // Sort in DLL and SLL candidates and also order by nesting
+    // TODO: refactor and split getListCandidates()
     List<Set<SMGCandidate>> orderedListCandidatesByNesting = getListCandidates();
 
     assert currentState.getMemoryModel().getSmg().checkSMGSanity();
@@ -235,6 +236,7 @@ public class SMGCPAAbstractionManager {
     return true;
   }
 
+  // TODO: refactor and split
   List<Set<SMGCandidate>> getListCandidates() throws SMGException {
     equalityCache = EqualityCache.of();
     objectCache = EqualityCache.of();
@@ -267,7 +269,7 @@ public class SMGCPAAbstractionManager {
           // will be found via the prev object
           continue;
         }
-        SMGValue nextPointerValue = readNfoEdges.get(0).hasValue();
+        SMGValue nextPointerValue = readNfoEdges.getFirst().hasValue();
         if (!smg.isPointer(nextPointerValue)
             || !smg.getPTEdge(nextPointerValue).orElseThrow().getOffset().isNumericValue()
             || !smg.getPTEdge(nextPointerValue)
@@ -303,12 +305,10 @@ public class SMGCPAAbstractionManager {
               foundChains.add(candidate);
             }
             alreadySeen.addAll(candidate.suspectedElements);
-            continue;
           }
         }
         // Incorrect or not usable next element, maybe a prev exists though,
         //   don't put current in seen list, and it will be found via the prev object
-        continue;
 
       } else {
         List<SMGHasValueEdge> valuesInHeapObj =
@@ -533,7 +533,7 @@ public class SMGCPAAbstractionManager {
     SMGHasValueEdge nextPtrOfLeftmost =
         smg.readValue(leftMostObj, suspectedNfo, state.getMemoryModel().getSizeOfPointer(), false)
             .getHvEdges()
-            .get(0);
+            .getFirst();
     Preconditions.checkArgument(smg.isPointer(nextPtrOfLeftmost.hasValue()));
     SMGObject nextOfLeftmost = smg.getPTEdge(nextPtrOfLeftmost.hasValue()).orElseThrow().pointsTo();
     // TODO: use read instead of looping through the offsets in both lookThroughs
@@ -654,7 +654,7 @@ public class SMGCPAAbstractionManager {
                       smg.getSizeOfPointer(),
                       false)
                   .getHvEdges()
-                  .get(0);
+                  .getFirst();
           if (smg.isPointer(maybeRealNext.hasValue())
               && smg.getPTEdge(maybeRealNext.hasValue()).orElseThrow().pointsTo().equals(prevObj)) {
             return ListType.NONE;
@@ -783,7 +783,7 @@ public class SMGCPAAbstractionManager {
                   false)
               .getHvEdges();
       Preconditions.checkArgument(maybeReadBackPtrs.size() == 1);
-      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.get(0);
+      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.getFirst();
       if (smg.isPointer(maybeReadBackPtr.hasValue())) {
         // possible back-pointer
         SMGPointsToEdge maybeBackPointerEdge =
@@ -1073,8 +1073,8 @@ public class SMGCPAAbstractionManager {
     }
 
     int addSize = 1;
-    if (root instanceof SMGSinglyLinkedListSegment) {
-      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    if (root instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      addSize = sMGSinglyLinkedListSegment.getMinLength();
     }
 
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
@@ -1385,7 +1385,7 @@ public class SMGCPAAbstractionManager {
     // We abort after we find 1 valid pointer for the candidate
     ImmutableList<SMGHasValueEdge> sortedPointersList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), setOfPointers);
-    // If there are no targets that match this one, this is either a end part or not a list
+    // If there are no targets that match this one, this is either an end part or not a list
     if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }

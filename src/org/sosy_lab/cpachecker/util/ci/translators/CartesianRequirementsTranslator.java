@@ -67,7 +67,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState>
     if (listOfIndependentRequirements.isEmpty()) {
       secReturn = "true";
     } else if (listOfIndependentRequirements.size() == 1) {
-      secReturn = listOfIndependentRequirements.get(0);
+      secReturn = listOfIndependentRequirements.getFirst();
     } else {
       secReturn = computeConjunction(listOfIndependentRequirements);
     }
@@ -84,7 +84,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState>
       return "true";
     }
 
-    String last = list.get(list.size() - 1);
+    String last = list.getLast();
     for (String var : list) {
       if (var.equals(last)) {
         sb.append(var);

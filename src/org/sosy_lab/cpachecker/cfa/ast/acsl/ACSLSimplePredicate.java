@@ -21,8 +21,8 @@ public final class ACSLSimplePredicate extends ACSLPredicate {
   public ACSLSimplePredicate(ACSLTerm pTerm, boolean negated) {
     super(negated);
     Preconditions.checkArgument(
-        pTerm instanceof ACSLBinaryTerm
-            && ACSLBinaryOperator.isComparisonOperator(((ACSLBinaryTerm) pTerm).getOperator()),
+        pTerm instanceof ACSLBinaryTerm aCSLBinaryTerm
+            && ACSLBinaryOperator.isComparisonOperator(aCSLBinaryTerm.getOperator()),
         "Simple predicate should hold comparison term.");
     term = pTerm;
   }

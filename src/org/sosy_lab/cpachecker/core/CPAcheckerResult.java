@@ -100,7 +100,7 @@ public class CPAcheckerResult {
   }
 
   /**
-   * Write the statistics to a given PrintWriter. Additionally some output files may be written
+   * Write the statistics to a given PrintWriter. Additionally, some output files may be written
    * here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
@@ -128,8 +128,8 @@ public class CPAcheckerResult {
       return;
     }
 
-    if (reached instanceof ResultProviderReachedSet) {
-      ((ResultProviderReachedSet) reached).printResults(out);
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      resultProviderReachedSet.printResults(out);
     }
     if (result == Result.DONE) {
       out.println("Finished.");
@@ -140,9 +140,10 @@ public class CPAcheckerResult {
 
   public String getResultString() {
     switch (result) {
-      case UNKNOWN:
+      case UNKNOWN -> {
         return "UNKNOWN, incomplete analysis.";
-      case FALSE:
+      }
+      case FALSE -> {
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
         if (!targetDescription.isEmpty()) {
@@ -150,10 +151,11 @@ public class CPAcheckerResult {
         }
         sb.append(" found by chosen configuration.");
         return sb.toString();
-      case TRUE:
+      }
+      case TRUE -> {
         return "TRUE. No property violation found by chosen configuration.";
-      default:
-        throw new AssertionError(result);
+      }
+      default -> throw new AssertionError(result);
     }
   }
 

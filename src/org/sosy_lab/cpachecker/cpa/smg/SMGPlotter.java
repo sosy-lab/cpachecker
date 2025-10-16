@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
@@ -50,21 +51,21 @@ public final class SMGPlotter {
     private final String definition;
     private static int counter = 0;
 
-    public SMGObjectNode(String pType, String pDefinition) {
+    SMGObjectNode(String pType, String pDefinition) {
       name = "node_" + pType + "_" + counter++;
       definition = pDefinition;
     }
 
-    public SMGObjectNode(String pName) {
+    SMGObjectNode(String pName) {
       name = pName;
       definition = null;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public String getDefinition() {
+    String getDefinition() {
       return name + "[" + definition + "];";
     }
   }
@@ -73,7 +74,7 @@ public final class SMGPlotter {
 
     private final UnmodifiableCLangSMG smg;
 
-    public SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
+    SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
       smg = pSmg;
     }
 
@@ -282,7 +283,7 @@ public final class SMGPlotter {
                 + pStackFrame.getFunctionDeclaration().toASTString()
                 + "\";"));
 
-    Map<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
+    SequencedMap<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();
     if (returnObject != null) {
@@ -354,8 +355,8 @@ public final class SMGPlotter {
     } else if (explicitValues.containsKey(value)) {
       label += " : " + explicitValues.get(value).getAsLong();
       color = "black";
-    } else if (value instanceof SMGKnownAddressValue) {
-      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
+    } else if (value instanceof SMGKnownAddressValue sMGKnownAddressValue) {
+      label += "\\n" + sMGKnownAddressValue.getObject();
       color = "blue";
     }
     return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);

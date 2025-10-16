@@ -50,10 +50,10 @@ public final class SMGIntersectStates {
   private final Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
   private final Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
 
-  /** the destination SMG will be build up when calling {@link #intersect}. */
+  /** the destination SMG will be built up when calling {@link #intersect}. */
   private final CLangSMG destSMG;
 
-  /** the destination values will be build up when calling {@link #intersect}. */
+  /** the destination values will be built up when calling {@link #intersect}. */
   private PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
       PersistentBiMap.of();
 
@@ -461,23 +461,17 @@ public final class SMGIntersectStates {
 
     if (pObj1.getKind() != pObj2.getKind()) {
 
-      switch (pObj1.getKind()) {
-        case OPTIONAL:
-          switch (pObj2.getKind()) {
-            case REG:
-            case DLL:
-            case SLL:
-              return true;
-            default:
-              return false;
-          }
-        case REG:
-        case DLL:
-        case SLL:
-          return pObj2.getKind() == SMGObjectKind.OPTIONAL;
-        default:
-          return false;
-      }
+      return switch (pObj1.getKind()) {
+        case OPTIONAL ->
+            switch (pObj2.getKind()) {
+              case REG, DLL, SLL -> true;
+              default -> false;
+            };
+
+        case REG, DLL, SLL -> pObj2.getKind() == SMGObjectKind.OPTIONAL;
+
+        default -> false;
+      };
     }
 
     return switch (pObj1.getKind()) {
@@ -492,7 +486,7 @@ public final class SMGIntersectStates {
   private static SMGObject getConcretestObject(SMGObject pObj1, SMGObject pObj2) {
 
     /*Determine which object results in the least amount of concrete states
-     * if included in a smg state.*/
+     * if included in an SMG state.*/
 
     if (!pObj1.isAbstract()) {
       return pObj1;
@@ -514,22 +508,19 @@ public final class SMGIntersectStates {
     }
 
     if (kind1 == kind2) {
-      switch (kind1) {
-        case DLL:
-          {
-            int length1 = ((SMGDoublyLinkedList) pObj1).getMinimumLength();
-            int length2 = ((SMGDoublyLinkedList) pObj2).getMinimumLength();
-            return length1 < length2 ? pObj2 : pObj1;
-          }
-        case SLL:
-          {
-            int length1 = ((SMGSingleLinkedList) pObj1).getMinimumLength();
-            int length2 = ((SMGSingleLinkedList) pObj2).getMinimumLength();
-            return length1 < length2 ? pObj2 : pObj1;
-          }
-        default:
-          return pObj1;
-      }
+      return switch (kind1) {
+        case DLL -> {
+          int length1 = ((SMGDoublyLinkedList) pObj1).getMinimumLength();
+          int length2 = ((SMGDoublyLinkedList) pObj2).getMinimumLength();
+          yield length1 < length2 ? pObj2 : pObj1;
+        }
+        case SLL -> {
+          int length1 = ((SMGSingleLinkedList) pObj1).getMinimumLength();
+          int length2 = ((SMGSingleLinkedList) pObj2).getMinimumLength();
+          yield length1 < length2 ? pObj2 : pObj1;
+        }
+        default -> pObj1;
+      };
     }
 
     return pObj1;

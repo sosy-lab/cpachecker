@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 @Options(prefix = "cpa.reachdef")
 public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
 
-  private LogManager logger;
+  private final LogManager logger;
 
   @Option(
       secure = true,

@@ -96,22 +96,21 @@ public class PseudoExistQeManager implements StatisticsProvider {
     public Map<Formula, Formula> visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       switch (pFunctionDeclaration.getKind()) {
-
-        // TODO this code assumes that equality has exactly two arguments.
-        // We might have more than two.
-
-        case EQ: // check those functions that represent equality
-        case BV_EQ:
-        case FP_EQ:
-          if (boundVars.contains(pArgs.get(0))) {
-            return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+        case EQ, BV_EQ, FP_EQ -> {
+          // TODO this code assumes that equality has exactly two arguments.
+          // We might have more than two.
+          // check those functions that represent equality
+          if (boundVars.contains(pArgs.getFirst())) {
+            return ImmutableMap.of(pArgs.getFirst(), pArgs.get(1));
           } else if (boundVars.contains(pArgs.get(1))) {
-            return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+            return ImmutableMap.of(pArgs.get(1), pArgs.getFirst());
           } else {
             return null;
           }
-        default:
+        }
+        default -> {
           return null;
+        }
       }
     }
   }
@@ -389,16 +388,16 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
       BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
-      if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
-        afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-      }
-      if (solverQeTactic == SolverQeTactic.FULL) {
-        try {
-          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
-        } catch (SolverException e) {
-          logger.log(
-              Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
+      try {
+        if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
         }
+        if (solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
+        }
+      } catch (SolverException e) {
+        logger.log(
+            Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
       }
       int numberQuantifiers = numberQuantifiers(afterQE);
       // Check if number of quantified vars less than before

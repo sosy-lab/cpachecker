@@ -8,33 +8,37 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicateAbstractDomain implements AbstractDomain {
+@Options(prefix = "cpa.predicate")
+final class PredicateAbstractDomain implements AbstractDomain {
+
+  @Option(
+      secure = true,
+      description =
+          "whether to include the symbolic path formula in the "
+              + "coverage checks or do only the fast abstract checks")
+  private boolean symbolicCoverageCheck = false;
 
   private final PredicateAbstractionManager mgr;
-  private final boolean symbolicCoverageCheck;
-  private final PredicateStatistics statistics;
 
-  private final TimerWrapper coverageCheckTimer;
-  private final TimerWrapper bddCoverageCheckTimer;
-  private final TimerWrapper symbolicCoverageCheckTimer;
+  // Statistics
+  final StatTimer coverageCheckTimer = new StatTimer("Time for coverage checks");
+  final StatTimer bddCoverageCheckTimer = new StatTimer("Time for BDD entailment checks");
+  final StatTimer symbolicCoverageCheckTimer = new StatTimer("Time for symbolic coverage check");
 
-  public PredicateAbstractDomain(
-      PredicateAbstractionManager pPredAbsManager,
-      boolean pSymbolicCoverageCheck,
-      PredicateStatistics pStatistics) {
+  PredicateAbstractDomain(Configuration config, PredicateAbstractionManager pPredAbsManager)
+      throws InvalidConfigurationException {
+    config.inject(this);
     mgr = pPredAbsManager;
-    symbolicCoverageCheck = pSymbolicCoverageCheck;
-    statistics = pStatistics;
-
-    coverageCheckTimer = statistics.coverageCheckTimer.getNewTimer();
-    bddCoverageCheckTimer = statistics.bddCoverageCheckTimer.getNewTimer();
-    symbolicCoverageCheckTimer = statistics.symbolicCoverageCheckTimer.getNewTimer();
   }
 
   @Override

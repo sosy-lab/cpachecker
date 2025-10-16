@@ -404,21 +404,21 @@ class AutomatonTransition {
 
           @Override
           public CExpression substitute(CExpression pExpression) throws SubstitutionException {
-            if (!(pExpression instanceof CIdExpression)) {
+            if (!(pExpression instanceof CIdExpression idExpression)) {
               return pExpression;
             }
-            CIdExpression idExpression = (CIdExpression) pExpression;
+
             if (!CProgramScope.isArtificialFunctionReturnVariable(idExpression)) {
               return pExpression;
             }
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
-            if (pEdge instanceof AStatementEdge) {
-              AStatement statement = ((AStatementEdge) pEdge).getStatement();
+            if (pEdge instanceof AStatementEdge aStatementEdge) {
+              AStatement statement = aStatementEdge.getStatement();
               if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
                 AExpression functionNameExpression =
                     functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
-                if (functionNameExpression instanceof AIdExpression
-                    && ((AIdExpression) functionNameExpression).getName().equals(functionName)) {
+                if (functionNameExpression instanceof AIdExpression aIdExpression
+                    && aIdExpression.getName().equals(functionName)) {
                   return (CExpression) functionCallAssignment.getLeftHandSide();
                 }
               }
@@ -427,9 +427,9 @@ class AutomatonTransition {
                 "Cannot substitute function return variable: Not a call to " + functionName);
           }
         };
-    if (pAssumption instanceof CExpression) {
+    if (pAssumption instanceof CExpression assumption) {
       try {
-        CExpression assumption = (CExpression) pAssumption;
+
         return Optional.of(
             ExpressionSubstitution.applySubstitution(assumption, substitution, binExpBuilder));
       } catch (SubstitutionException e) {

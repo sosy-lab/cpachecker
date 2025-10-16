@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -74,10 +75,10 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 @Options(prefix = "witness")
 public class WitnessInvariantsExtractor {
 
-  private Configuration config;
-  private LogManager logger;
-  private CFA cfa;
-  private ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final LogManager logger;
+  private final CFA cfa;
+  private final ShutdownNotifier shutdownNotifier;
   private ReachedSet reachedSet;
   private Specification automatonAsSpec;
 
@@ -312,7 +313,7 @@ public class WitnessInvariantsExtractor {
       return potentialCandidatesYAMLWitness.orElseThrow();
     }
 
-    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    SequencedSet<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
@@ -323,7 +324,7 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          // search if we already have an location invariant at this location,
+          // search if we already have a location invariant at this location,
           // if so assign it to previousInv:
           for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
@@ -407,7 +408,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

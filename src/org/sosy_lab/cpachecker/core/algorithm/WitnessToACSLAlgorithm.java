@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
@@ -210,7 +209,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         writeToFile(file, output);
       } catch (IOException e) {
         logger.logfUserException(Level.WARNING, e, "Could not write annotations for file %s", file);
-        continue;
       }
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -220,7 +218,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(String.join("\n", newContent) + "\n");
+      for (String line : newContent) {
+        writer.write(line);
+        writer.write("\n");
+      }
     }
   }
 
@@ -310,7 +311,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       return locations.build();
     }
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+    for (CFAEdge edge : node.getLeavingEdges()) {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {
@@ -318,7 +319,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       }
     }
 
-    for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
+    for (CFAEdge edge : node.getEnteringEdges()) {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {

@@ -53,9 +53,6 @@ public class CEGARAlgorithm
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    @SuppressFBWarnings(
-        value = "VO_VOLATILE_INCREMENT",
-        justification = "only one thread writes, others read")
     private volatile int countRefinements = 0;
 
     private int countSuccessfulRefinements = 0;
@@ -114,7 +111,7 @@ public class CEGARAlgorithm
   }
 
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
-    public CEGARMBean() {
+    CEGARMBean() {
       super("org.sosy_lab.cpachecker:type=CEGAR", logger);
     }
 
@@ -258,14 +255,14 @@ public class CEGARAlgorithm
           // Note, with special options reached set still contains violated properties
           // i.e (stopAfterError = true) or race conditions analysis
 
-        } else if (mRefiner instanceof UnsoundRefiner) {
+        } else if (mRefiner instanceof UnsoundRefiner unsoundRefiner) {
           // restart exploration for unsound refiners, as due to unsound refinement
           // a sound over-approximation has to be found for proving safety
           if (!refinedInPreviousIteration) {
             break;
           }
 
-          ((UnsoundRefiner) mRefiner).forceRestart(reached);
+          unsoundRefiner.forceRestart(reached);
           refinementSuccessful = true;
           refinedInPreviousIteration = false;
         }
@@ -285,7 +282,7 @@ public class CEGARAlgorithm
 
     } else {
       // Check only last state, but only if it is different from the last iteration.
-      // Otherwise we would attempt to refine the same state twice if CEGARAlgorithm.run
+      // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
       // is called again but this time the inner algorithm does not find any successor states.
       return !Objects.equals(reached.getLastState(), previousLastState)
           && isTargetState(reached.getLastState());
@@ -330,27 +327,27 @@ public class CEGARAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
-    if (mRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) mRefiner).collectStatistics(pStatsCollection);
+    if (mRefiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
 
   @Override
   public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.register(pReachedSetUpdateListener);
     }
     reachedSetUpdateListeners.add(pReachedSetUpdateListener);
   }
 
   @Override
   public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.unregister(pReachedSetUpdateListener);
     }
     reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
   }

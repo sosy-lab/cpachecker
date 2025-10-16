@@ -96,7 +96,7 @@ public class AutomatonWitnessV2ParserUtils {
    * entries.
    *
    * @param pPath The file to check.
-   * @return True if the file is a YAML witness, false otherwise.
+   * @return whether the file is a YAML witness.
    * @throws InvalidConfigurationException If the file is not a valid YAML witness.
    * @throws InterruptedException If the parsing is interrupted.
    */
@@ -140,7 +140,7 @@ public class AutomatonWitnessV2ParserUtils {
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
       return Optional.empty();
-    } else if (FluentIterable.from(entries).allMatch(e -> e instanceof ViolationSequenceEntry)) {
+    } else if (FluentIterable.from(entries).allMatch(ViolationSequenceEntry.class::isInstance)) {
       return Optional.of(WitnessType.VIOLATION_WITNESS);
     } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
       return Optional.of(WitnessType.CORRECTNESS_WITNESS);

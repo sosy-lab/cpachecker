@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
  * etc.).
  */
-class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
+public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
@@ -38,7 +38,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
   private final CfaNetwork network;
 
-  ImmutableCFA(
+  public ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {

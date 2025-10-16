@@ -100,7 +100,7 @@ public class ARGStatistics implements Statistics {
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pixelGraphicFile = Path.of("ARG");
+  private Path pixelGraphicFile = null;
 
   @Option(secure = true, name = "proofWitness", description = "export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -239,7 +239,7 @@ public class ARGStatistics implements Statistics {
       Specification pSpecification,
       CFA pCFA)
       throws InvalidConfigurationException {
-    config.inject(this, ARGStatistics.class); // needed for sub-classes
+    config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
