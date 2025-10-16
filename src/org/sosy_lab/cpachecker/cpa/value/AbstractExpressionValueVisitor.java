@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PopcountFunctionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -2307,8 +2306,39 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(numericParam.bigIntegerValue().bitCount());
 
       } else if (paramValue instanceof SymbolicExpression symbolicParam) {
-        // Value Analysis never ends up here!
-        return new PopcountFunctionExpression(symbolicParam, e);
+        // Value Analysis without SymEx never ends up here!
+
+        int parameterBitSize = pMachineModel.getSizeofInBits(paramType);
+
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression constraint =
+            factory.binaryAnd(
+                symbolicParam,
+                factory.shiftLeft(
+                    one,
+                    factory.asConstant(new NumericValue(0), CNumericTypes.INT),
+                    paramType,
+                    paramType),
+                CNumericTypes.INT,
+                paramType);
+
+        // Add up the bits one by one
+        // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
+        for (int i = 1; i < parameterBitSize; i++) {
+          SymbolicExpression bitAtIndex =
+              factory.binaryAnd(
+                  symbolicParam,
+                  factory.shiftLeft(
+                      one,
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      paramType,
+                      paramType),
+                  CNumericTypes.INT,
+                  paramType);
+          constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+        }
+        return constraint;
       }
 
       return Value.UnknownValue.getInstance();
