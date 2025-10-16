@@ -136,8 +136,9 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
-    assert pI.bitLength() <= pLength
-        : String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength);
+    Preconditions.checkArgument(
+        pI.bitLength() <= pLength,
+        String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength));
     BigInteger value;
     if (pI.compareTo(BigInteger.ZERO) < 0) {
       // Convert to two's complement as an unsigned long value
@@ -174,7 +175,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     return wrap(
         getFormulaType(pNumber1),
         wrapAround(
@@ -183,7 +185,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     return wrap(
         getFormulaType(pNumber1),
         wrapAround(
@@ -194,7 +197,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BitvectorFormula divide(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     return wrap(
         getFormulaType(pNumber1),
         wrapAround(
@@ -215,8 +219,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BitvectorFormula remainder(
       BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
-    assert getLength(numerator) == getLength(denominator)
-        : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(numerator) == getLength(denominator), "Expect operators to have the same size");
 
     IntegerFormula divisor = unwrap(denominator);
     IntegerFormula dividend = unwrap(numerator);
@@ -276,7 +280,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     return wrap(
         getFormulaType(pNumber1),
         wrapAround(
@@ -286,14 +291,16 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
 
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     return integerFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula greaterThan(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     if (!pSigned) {
       return integerFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
     } else {
@@ -306,7 +313,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BooleanFormula greaterOrEquals(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
+    Preconditions.checkArgument(
+        getLength(pNumber1) == getLength(pNumber2), "Expect operators to have the same size");
     if (!pSigned) {
       return integerFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
     } else {
