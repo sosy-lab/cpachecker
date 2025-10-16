@@ -205,7 +205,7 @@ public class MPOROptions {
         true,
         MultiControlStatementEncoding.SWITCH_CASE,
         MultiControlStatementEncoding.NONE,
-        true,
+        false,
         true,
         true,
         false,
@@ -220,10 +220,10 @@ public class MPOROptions {
         NondeterminismSource.NUM_STATEMENTS,
         true,
         MPORWriter.DEFAULT_OUTPUT_PATH,
-        false,
         true,
         true,
         false,
+        true,
         false,
         false,
         false,
@@ -330,11 +330,10 @@ public class MPOROptions {
             Arrays.stream(MPORAlgorithm.class.getDeclaredFields())
                 .filter(pField -> pField.isAnnotationPresent(Option.class))
                 .count();
-    if (parameterCount != optionCount) {
-      throw new IllegalArgumentException(
-          "the amount of constructor parameters must match the amount of @Option fields in"
-              + " MPORAlgorithm");
-    }
+    checkArgument(
+        parameterCount == optionCount,
+        "the amount of constructor parameters must match the amount of @Option fields in"
+            + " MPORAlgorithm");
   }
 
   private void checkEqualFieldNames() {

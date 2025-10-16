@@ -18,7 +18,7 @@ public class SeqBitVectorDeclaration implements SeqDeclaration {
 
   private final BitVectorDataType type;
 
-  public final CExpression variable;
+  private final CExpression variable;
 
   private final BitVectorValueExpression initializer;
 

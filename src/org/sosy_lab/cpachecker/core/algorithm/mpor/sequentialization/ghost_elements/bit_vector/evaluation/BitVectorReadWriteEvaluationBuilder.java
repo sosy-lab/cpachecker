@@ -341,10 +341,9 @@ class BitVectorReadWriteEvaluationBuilder {
     if (!pDirectReadMemoryLocations.contains(pMemoryLocation)) {
       // if the LHS is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
-    } else {
-      // otherwise the LHS is 1, and we only need the right side of the && expression
-      return Optional.of(BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
     }
+    // otherwise the LHS is 1, and we only need the right side of the && expression
+    return BitVectorEvaluationUtil.tryLogicalDisjunction(pOtherWriteVariables);
   }
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
@@ -356,10 +355,9 @@ class BitVectorReadWriteEvaluationBuilder {
     if (!pDirectWriteMemoryLocations.contains(pMemoryLocation)) {
       // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
-    } else {
-      // otherwise the LHS is 1, and we only need the right side of the && expression
-      return Optional.of(BitVectorEvaluationUtil.logicalDisjunction(pOtherAccessVariables));
     }
+    // otherwise the LHS is 1, and we only need the right side of the && expression
+    return BitVectorEvaluationUtil.tryLogicalDisjunction(pOtherAccessVariables);
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
