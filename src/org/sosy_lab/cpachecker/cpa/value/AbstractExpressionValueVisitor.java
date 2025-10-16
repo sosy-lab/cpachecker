@@ -802,12 +802,7 @@ public abstract class AbstractExpressionValueVisitor
 
         if (BuiltinFunctions.isPopcountFunction(functionName)) {
           return handlePopCount(
-              functionName,
-              functionType,
-              parameterValues,
-              pIastFunctionCallExpression,
-              machineModel,
-              logger);
+              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
@@ -2280,10 +2275,8 @@ public abstract class AbstractExpressionValueVisitor
    * available: test/programs/simple/builtin_popcount32_x.c and
    * test/programs/simple/builtin_popcount64_x.c
    */
-  @SuppressWarnings("unused")
   private static Value handlePopCount(
       String pFunctionName,
-      CType pReturnType,
       List<Value> pParameters,
       CFunctionCallExpression e,
       MachineModel pMachineModel,
@@ -2299,9 +2292,9 @@ public abstract class AbstractExpressionValueVisitor
               logger);
       CSimpleType paramType =
           BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+      assert paramType.hasUnsignedSpecifier();
 
       if (paramValue.isNumericValue()) {
-        // int bitSizeOfInputType = pMachineModel.getSizeofInBits(paramType.getCanonicalType());
         NumericValue numericParam = paramValue.asNumericValue();
 
         // Check that the input is unsigned, as defined by the function
