@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -119,7 +120,7 @@ public class SeqThreadStatementClauseUtil {
    * their label number.
    */
   public static ImmutableMap<Integer, SeqThreadStatementClause> mapLabelNumberToClause(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
+      ImmutableCollection<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -130,7 +131,7 @@ public class SeqThreadStatementClauseUtil {
 
   /** Maps {@link SeqThreadStatementBlock}s to their label numbers. */
   public static ImmutableMap<Integer, SeqThreadStatementBlock> mapLabelNumberToBlock(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
+      ImmutableCollection<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {

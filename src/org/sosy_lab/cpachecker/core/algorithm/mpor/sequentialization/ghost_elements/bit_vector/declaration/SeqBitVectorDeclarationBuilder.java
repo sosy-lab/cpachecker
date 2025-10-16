@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -18,9 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -32,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -99,7 +96,8 @@ public class SeqBitVectorDeclarationBuilder {
       MPORThread thread = denseBitVector.getThread();
       if (pOptions.reduceIgnoreSleep && denseBitVector.isDirectVariablePresent()) {
         ImmutableSet<MemoryLocation> directMemoryLocations =
-            getDirectMemoryLocationsByAccessType(memoryModel, clauses.get(thread), pAccessType);
+            MemoryLocationUtil.getDirectMemoryLocationsByAccessType(
+                memoryModel, clauses.get(thread).getFirst(), clauses.get(thread), pAccessType);
         BitVectorValueExpression directInitializer =
             BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, directMemoryLocations);
         // direct bit vector
@@ -112,7 +110,8 @@ public class SeqBitVectorDeclarationBuilder {
         // TODO we can optimize here by saving the 0 initializers and leaving them out entirely
         //  or not write them ever again
         ImmutableSet<MemoryLocation> reachableMemoryLocations =
-            getReachableMemoryLocationsByAccessType(memoryModel, clauses.get(thread), pAccessType);
+            MemoryLocationUtil.getReachableMemoryLocationsByAccessType(
+                memoryModel, clauses.get(thread), pAccessType);
         BitVectorValueExpression reachableInitializer =
             BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, reachableMemoryLocations);
         // reachable bit vector
@@ -134,58 +133,6 @@ public class SeqBitVectorDeclarationBuilder {
       rDeclarations.add(reachableDeclaration);
     }
     return rDeclarations.build();
-  }
-
-  private static ImmutableSetMultimap<ReachType, MemoryLocation> mapMemoryLocationsToReachType(
-      MemoryModel pMemoryModel,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MemoryAccessType pAccessType) {
-
-    ImmutableSetMultimap.Builder<ReachType, MemoryLocation> rMap = ImmutableSetMultimap.builder();
-    for (ReachType reachType : ReachType.values()) {
-      rMap.putAll(
-          reachType, getMemoryLocationsByReachType(pMemoryModel, pClauses, pAccessType, reachType));
-    }
-    return rMap.build();
-  }
-
-  private static ImmutableSet<MemoryLocation> getMemoryLocationsByReachType(
-      MemoryModel pMemoryModel,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
-
-    return switch (pReachType) {
-      case DIRECT -> getDirectMemoryLocationsByAccessType(pMemoryModel, pClauses, pAccessType);
-      case REACHABLE ->
-          getReachableMemoryLocationsByAccessType(pMemoryModel, pClauses, pAccessType);
-    };
-  }
-
-  private static ImmutableSet<MemoryLocation> getDirectMemoryLocationsByAccessType(
-      MemoryModel pMemoryModel,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MemoryAccessType pAccessType) {
-
-    ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
-    SeqThreadStatementBlock firstBlock = pClauses.getFirst().getFirstBlock();
-    return MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-        labelBlockMap, firstBlock, pMemoryModel, pAccessType);
-  }
-
-  private static ImmutableSet<MemoryLocation> getReachableMemoryLocationsByAccessType(
-      MemoryModel pMemoryModel,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MemoryAccessType pAccessType) {
-
-    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
-    SeqThreadStatementBlock firstBlock = pClauses.getFirst().getFirstBlock();
-    return MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-        labelClauseMap, labelBlockMap, firstBlock, pMemoryModel, pAccessType);
   }
 
   // SPARSE ========================================================================================
@@ -214,7 +161,7 @@ public class SeqBitVectorDeclarationBuilder {
     MemoryModel memoryModel = pFields.memoryModel.orElseThrow();
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses = pFields.clauses;
 
-    Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (MPORThread thread : pFields.clauses.keySet()) {
@@ -224,7 +171,11 @@ public class SeqBitVectorDeclarationBuilder {
                 entry.getValue(),
                 thread,
                 entry.getKey(),
-                mapMemoryLocationsToReachType(memoryModel, clauses.get(thread), pAccessType)));
+                MemoryLocationUtil.mapMemoryLocationsToReachType(
+                    memoryModel,
+                    clauses.get(thread).getFirst(),
+                    clauses.get(thread),
+                    pAccessType)));
       }
     }
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
@@ -248,7 +199,7 @@ public class SeqBitVectorDeclarationBuilder {
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<ReachType, MemoryLocation> pMemoryLocations) {
 
-    Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (ReachType reachType : ReachType.values()) {
       if (pSparseBitVector.getVariablesByReachType(reachType).containsKey(pThread)) {
         SeqBitVectorDeclaration declaration =

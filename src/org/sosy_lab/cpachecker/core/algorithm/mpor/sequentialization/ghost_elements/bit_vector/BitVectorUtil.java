@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -119,7 +118,7 @@ public class BitVectorUtil {
   private static ImmutableSet<Integer> getSetBits(
       ImmutableSet<MemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
 
-    Builder<Integer> rSetBits = ImmutableSet.builder();
+    ImmutableSet.Builder<Integer> rSetBits = ImmutableSet.builder();
     final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations =
         pMemoryModel.getRelevantMemoryLocations();
     for (MemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
@@ -192,9 +191,13 @@ public class BitVectorUtil {
     return pHexLength * 4;
   }
 
+  // TODO it would be great to also include bit vector direction here (current/last)
   public static boolean isAccessReachPairNeeded(
       MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
 
+    if (pReachType.equals(ReachType.DIRECT) && !pOptions.reduceIgnoreSleep) {
+      return false;
+    }
     return switch (pOptions.reductionMode) {
       case NONE -> throw new IllegalArgumentException("cannot check for reductionMode NONE");
       case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);

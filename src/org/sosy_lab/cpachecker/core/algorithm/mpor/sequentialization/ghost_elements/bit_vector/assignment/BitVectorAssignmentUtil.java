@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.assignment;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -30,25 +30,52 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 class BitVectorAssignmentUtil {
 
-  static SeqBitVectorAssignmentStatement buildDenseBitVectorAssignment(
+  static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignmentByEncoding(
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<MemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    checkArgument(
-        BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType),
-        "bit vector pAccessType and pReachType pair is not needed: %s %s",
-        pAccessType,
-        pReachType);
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build bit vector assignments for encoding NONE");
+      case BINARY, DECIMAL, HEXADECIMAL ->
+          buildDenseBitVectorAssignment(
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              pMemoryModel,
+              pMemoryLocations,
+              pAccessType,
+              pReachType);
+      case SPARSE ->
+          buildSparseBitVectorAssignments(
+              pOptions, pThread, pBitVectorVariables, pMemoryLocations, pAccessType, pReachType);
+    };
+  }
+
+  static ImmutableList<SeqBitVectorAssignmentStatement> buildDenseBitVectorAssignment(
+      MPOROptions pOptions,
+      MPORThread pThread,
+      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
+      ImmutableSet<MemoryLocation> pMemoryLocations,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
+
+    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+      return ImmutableList.of();
+    }
     CExpression bitVectorVariable =
         pBitVectorVariables.getDenseBitVector(pThread, pAccessType, pReachType);
     BitVectorValueExpression bitVectorExpression =
-        BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pDirectMemoryLocations);
-    return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);
+        BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pMemoryLocations);
+    return ImmutableList.of(
+        new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression));
   }
 
   static SeqBitVectorAssignmentStatement buildDenseReachableBitVectorAssignmentByAccessType(
@@ -74,8 +101,11 @@ class BitVectorAssignmentUtil {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
+    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+      return ImmutableList.of();
+    }
     // use list so that the assignment order is deterministic
-    ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
+    Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> variables =
           entry.getValue().getVariablesByReachType(pReachType);

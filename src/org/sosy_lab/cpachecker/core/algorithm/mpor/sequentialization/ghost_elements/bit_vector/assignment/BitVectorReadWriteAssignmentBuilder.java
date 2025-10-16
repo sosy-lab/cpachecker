@@ -29,25 +29,27 @@ public class BitVectorReadWriteAssignmentBuilder {
   public static ImmutableList<SeqBitVectorAssignmentStatement> buildReadWriteBitVectorAssignments(
       MPOROptions pOptions,
       MPORThread pActiveThread,
-      SeqThreadStatementBlock pTargetBlock,
+      SeqThreadStatementClause pTargetClause,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel) {
 
+    SeqThreadStatementBlock targetBlock = pTargetClause.getFirstBlock();
+
     ImmutableSet<MemoryLocation> directReadMemoryLocations =
         MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
+            pLabelBlockMap, targetBlock, pMemoryModel, MemoryAccessType.READ);
     ImmutableSet<MemoryLocation> reachableWriteMemoryLocations =
         MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-            pLabelClauseMap, pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
+            pLabelClauseMap, pLabelBlockMap, targetBlock, pMemoryModel, MemoryAccessType.WRITE);
 
     ImmutableSet<MemoryLocation> directWriteMemoryLocations =
         MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
+            pLabelBlockMap, targetBlock, pMemoryModel, MemoryAccessType.WRITE);
     ImmutableSet<MemoryLocation> reachableReadMemoryLocations =
         MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-            pLabelClauseMap, pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
+            pLabelClauseMap, pLabelBlockMap, targetBlock, pMemoryModel, MemoryAccessType.READ);
 
     return buildReadWriteBitVectorAssignments(
         pOptions,
@@ -113,7 +115,7 @@ public class BitVectorReadWriteAssignmentBuilder {
               ReachType.REACHABLE));
     } else {
       if (pOptions.reduceIgnoreSleep) {
-        rStatements.add(
+        rStatements.addAll(
             BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
                 pOptions,
                 pThread,
@@ -122,7 +124,7 @@ public class BitVectorReadWriteAssignmentBuilder {
                 pDirectReadMemoryLocations,
                 MemoryAccessType.READ,
                 ReachType.DIRECT));
-        rStatements.add(
+        rStatements.addAll(
             BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
                 pOptions,
                 pThread,
@@ -132,7 +134,7 @@ public class BitVectorReadWriteAssignmentBuilder {
                 MemoryAccessType.WRITE,
                 ReachType.DIRECT));
       }
-      rStatements.add(
+      rStatements.addAll(
           BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
               pOptions,
               pThread,
@@ -141,7 +143,7 @@ public class BitVectorReadWriteAssignmentBuilder {
               pReachableAccessMemoryLocations,
               MemoryAccessType.ACCESS,
               ReachType.REACHABLE));
-      rStatements.add(
+      rStatements.addAll(
           BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
               pOptions,
               pThread,

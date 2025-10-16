@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -55,7 +56,7 @@ public class BitVectorAssignmentInjector {
             buildBitVectorAssignmentsByReduction(
                 pOptions,
                 pActiveThread,
-                newTarget.getFirstBlock(),
+                newTarget,
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pBitVectorVariables,
@@ -82,12 +83,7 @@ public class BitVectorAssignmentInjector {
               "cannot build assignments for reduction " + pOptions.reduceUntilConflict);
       case ACCESS_ONLY ->
           BitVectorAccessAssignmentBuilder.buildAccessBitVectorAssignments(
-              pOptions,
-              pThread,
-              pBitVectorVariables,
-              pMemoryModel,
-              ImmutableSet.of(),
-              ImmutableSet.of());
+              pOptions, pThread, pBitVectorVariables, pMemoryModel, ImmutableSetMultimap.of());
       case READ_AND_WRITE ->
           BitVectorReadWriteAssignmentBuilder.buildReadWriteBitVectorAssignments(
               pOptions,
@@ -105,7 +101,7 @@ public class BitVectorAssignmentInjector {
       buildBitVectorAssignmentsByReduction(
           MPOROptions pOptions,
           MPORThread pActiveThread,
-          SeqThreadStatementBlock pTargetBlock,
+          SeqThreadStatementClause pTargetClause,
           ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
           ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
           BitVectorVariables pBitVectorVariables,
@@ -119,16 +115,15 @@ public class BitVectorAssignmentInjector {
           BitVectorAccessAssignmentBuilder.buildAccessBitVectorAssignments(
               pOptions,
               pActiveThread,
-              pTargetBlock,
+              pTargetClause,
               pLabelClauseMap,
-              pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel);
       case READ_AND_WRITE ->
           BitVectorReadWriteAssignmentBuilder.buildReadWriteBitVectorAssignments(
               pOptions,
               pActiveThread,
-              pTargetBlock,
+              pTargetClause,
               pLabelClauseMap,
               pLabelBlockMap,
               pBitVectorVariables,
