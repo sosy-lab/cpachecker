@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -70,7 +69,7 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
     if (!pOptions.kAssignLazy) {
-      rLines.addAll(buildKAssignments(pOptions, clauses, pBinaryExpressionBuilder));
+      rLines.addAll(buildKAssignments(pOptions, clauses));
       rLines.add(buildKSumAssumption(clauses.keySet(), pBinaryExpressionBuilder));
     }
     for (MPORThread thread : clauses.keySet()) {
@@ -123,12 +122,7 @@ public class NumStatementsNondeterministicSimulation {
 
     if (pOptions.kAssignLazy) {
       // add the K = nondet assignment for this thread
-      rLines.addAll(
-          buildSingleKAssignment(
-              pOptions,
-              pActiveThread.getKVariable().orElseThrow(),
-              pClauses.size(),
-              pBinaryExpressionBuilder));
+      rLines.addAll(buildSingleKAssignment(pOptions, pActiveThread.getKVariable().orElseThrow()));
       SeqExpression lazyIfCondition =
           buildKZeroExpression(
               pOptions,
@@ -161,44 +155,24 @@ public class NumStatementsNondeterministicSimulation {
   }
 
   private static ImmutableList<String> buildKAssignments(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableList.Builder<String> rAssignments = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       CIdExpression kVariable = thread.getKVariable().orElseThrow();
-      rAssignments.addAll(
-          buildSingleKAssignment(
-              pOptions, kVariable, pClauses.get(thread).size(), pBinaryExpressionBuilder));
+      rAssignments.addAll(buildSingleKAssignment(pOptions, kVariable));
     }
     return rAssignments.build();
   }
 
   private static ImmutableList<String> buildSingleKAssignment(
-      MPOROptions pOptions,
-      CIdExpression pKVariable,
-      int pNumStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, CIdExpression pKVariable) {
 
     ImmutableList.Builder<String> rAssignment = ImmutableList.builder();
     // k = nondet() ...
     CFunctionCallAssignmentStatement assignment =
         NondeterministicSimulationUtil.buildKNondetAssignment(pOptions, pKVariable);
     rAssignment.add(assignment.toASTString());
-    // place k bound after nondet assignment
-    if (pOptions.kBound) {
-      CIntegerLiteralExpression numStatementsExpression =
-          SeqExpressionBuilder.buildIntegerLiteralExpression(pNumStatements);
-      CBinaryExpression kBoundExpression =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              pKVariable, numStatementsExpression, BinaryOperator.LESS_EQUAL);
-      CFunctionCallStatement kBoundAssumption =
-          SeqAssumptionBuilder.buildAssumption(kBoundExpression);
-      rAssignment.add(kBoundAssumption.toASTString());
-    }
     return rAssignment.build();
   }
 

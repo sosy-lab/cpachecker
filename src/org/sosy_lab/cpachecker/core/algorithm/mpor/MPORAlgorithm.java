@@ -113,11 +113,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
-      description = "bound K to the number of statements in a thread simulation via assumptions?")
-  private boolean kBound = false;
-
-  @Option(
-      secure = true,
       description = "include CPAchecker license header in the sequentialization?")
   private boolean license = false;
 
@@ -352,7 +347,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     inputFunctionDeclarations,
                     inputTypeDeclarations,
                     kAssignLazy,
-                    kBound,
                     license,
                     linkReduction,
                     loopIterations,

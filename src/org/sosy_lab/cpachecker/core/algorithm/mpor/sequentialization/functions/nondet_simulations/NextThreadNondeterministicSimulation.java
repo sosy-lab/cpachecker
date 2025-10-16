@@ -89,7 +89,7 @@ public class NextThreadNondeterministicSimulation {
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
     ImmutableList<CStatement> precedingStatements =
         MultiControlStatementBuilder.buildPrecedingStatements(
-            assumption, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+            assumption, Optional.empty(), Optional.empty(), Optional.empty());
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.getId());
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(

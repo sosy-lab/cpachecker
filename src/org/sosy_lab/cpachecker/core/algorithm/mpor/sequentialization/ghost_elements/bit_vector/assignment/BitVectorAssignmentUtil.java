@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.assignment;
 
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -105,7 +103,7 @@ class BitVectorAssignmentUtil {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic
-    Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
+    ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> variables =
           entry.getValue().getVariablesByReachType(pReachType);

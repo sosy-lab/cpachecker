@@ -53,8 +53,6 @@ public class MPOROptions {
 
   public final boolean kAssignLazy;
 
-  public final boolean kBound;
-
   public final boolean license;
 
   public final boolean linkReduction;
@@ -121,7 +119,6 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pKAssignLazy,
-      boolean pKBound,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -164,7 +161,6 @@ public class MPOROptions {
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     kAssignLazy = pKAssignLazy;
-    kBound = pKBound;
     license = pLicense;
     linkReduction = pLinkReduction;
     loopIterations = pLoopIterations;
@@ -209,7 +205,6 @@ public class MPOROptions {
         true,
         true,
         false,
-        false,
         // linkReduction = true so that MemoryModel is created
         true,
         0,
@@ -248,7 +243,6 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
       boolean pKAssignLazy,
-      boolean pKBound,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -286,7 +280,6 @@ public class MPOROptions {
         // always include type declarations at the moment, excluding them is unsafe
         true,
         pKAssignLazy,
-        pKBound,
         pLicense,
         pLinkReduction,
         pLoopIterations,
@@ -495,13 +488,6 @@ public class MPOROptions {
       }
     }
     if (!nondeterminismSource.isNumStatementsNondeterministic()) {
-      if (kBound) {
-        pLogger.log(
-            Level.WARNING,
-            "kBound is enabled, but the number of statements is not chosen"
-                + " non-deterministically. Either disable kBound or choose a"
-                + " nondeterminismSource that makes the number of statements non-deterministic.");
-      }
       if (reduceIgnoreSleep) {
         pLogger.log(
             Level.WARNING,

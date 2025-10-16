@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
@@ -185,9 +184,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             assumption,
             Optional.of(pKNondet),
             Optional.of(pKGreaterZeroAssumption),
-            pOptions.kBound
-                ? Optional.of(buildKBoundAssumption(pClauses.size(), pBinaryExpressionBuilder))
-                : Optional.empty(),
             Optional.of(pRReset)),
         expressionClauseMap,
         pBinaryExpressionBuilder);
@@ -237,17 +233,5 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
         SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
-  }
-
-  private static CFunctionCallStatement buildKBoundAssumption(
-      int pNumStatements, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    CBinaryExpression kBoundExpression =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.K,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pNumStatements),
-            BinaryOperator.LESS_EQUAL);
-    return SeqAssumptionBuilder.buildAssumption(kBoundExpression);
   }
 }
