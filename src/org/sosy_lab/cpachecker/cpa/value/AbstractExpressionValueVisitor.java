@@ -803,7 +803,6 @@ public abstract class AbstractExpressionValueVisitor
         if (BuiltinFunctions.isPopcountFunction(functionName)) {
           return handlePopcount(
               functionName,
-              functionType,
               parameterValues,
               pIastFunctionCallExpression,
               machineModel,
@@ -2280,35 +2279,37 @@ public abstract class AbstractExpressionValueVisitor
    * available: test/programs/simple/builtin_popcount32_x.c and
    * test/programs/simple/builtin_popcount64_x.c
    */
-  @SuppressWarnings("unused")
   private static Value handlePopcount(
       String pFunctionName,
-      CType pReturnType,
       List<Value> pParameters,
       CFunctionCallExpression e,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
-      CType argumentType = e.getParameterExpressions().getFirst().getExpressionType();
+      CSimpleType argumentType =
+          BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+      assert argumentType.hasUnsignedSpecifier();
+
       // Cast to unsigned target type
       Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
-      CSimpleType paramType =
-          BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
 
       if (paramValue.isNumericValue()) {
-        // int bitSizeOfInputType = pMachineModel.getSizeofInBits(paramType.getCanonicalType());
-        NumericValue numericParam = paramValue.asNumericValue();
+        BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
 
         // Check that the input is unsigned, as defined by the function
-        checkArgument(numericParam.bigIntegerValue().compareTo(BigInteger.ZERO) >= 0);
+        checkArgument(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
 
-        return new NumericValue(numericParam.bigIntegerValue().bitCount());
+        return new NumericValue(numericParam.bitCount());
 
       } else if (paramValue instanceof SymbolicExpression symbolicParam) {
         // Value Analysis without SymEx never ends up here!
 
-        int parameterBitSize = pMachineModel.getSizeofInBits(paramType);
+        int parameterBitSize = pMachineModel.getSizeofInBits(argumentType);
 
         final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
         SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
@@ -2318,10 +2319,10 @@ public abstract class AbstractExpressionValueVisitor
                 factory.shiftLeft(
                     one,
                     factory.asConstant(new NumericValue(0), CNumericTypes.INT),
-                    paramType,
-                    paramType),
+                    argumentType,
+                    argumentType),
                 CNumericTypes.INT,
-                paramType);
+                argumentType);
 
         // Add up the bits one by one
         // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
@@ -2332,10 +2333,10 @@ public abstract class AbstractExpressionValueVisitor
                   factory.shiftLeft(
                       one,
                       factory.asConstant(new NumericValue(i), CNumericTypes.INT),
-                      paramType,
-                      paramType),
+                      argumentType,
+                      argumentType),
                   CNumericTypes.INT,
-                  paramType);
+                  argumentType);
           constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
         return constraint;
@@ -2343,6 +2344,7 @@ public abstract class AbstractExpressionValueVisitor
 
       return Value.UnknownValue.getInstance();
     }
+
     throw new UnrecognizedCodeException(
         "Function "
             + pFunctionName

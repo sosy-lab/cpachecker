@@ -8,11 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import java.io.IOException;
@@ -32,7 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
@@ -80,20 +74,20 @@ public class LocationState
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
     if (followFunctionCalls) {
-      return leavingEdges(locationNode);
+      return locationNode.getLeavingEdges();
 
     } else {
-      return allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall);
+      return locationNode.getAllLeavingEdges().filter(LocationState::isNoFunctionCall);
     }
   }
 
   @Override
   public Iterable<CFAEdge> getIncomingEdges() {
     if (followFunctionCalls) {
-      return enteringEdges(locationNode);
+      return locationNode.getEnteringEdges();
 
     } else {
-      return allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall);
+      return locationNode.getAllEnteringEdges().filter(LocationState::isNoFunctionCall);
     }
   }
 
@@ -116,7 +110,7 @@ public class LocationState
         case "line" -> {
           try {
             int queryLine = Integer.parseInt(parts.get(1));
-            for (CFAEdge edge : CFAUtils.enteringEdges(locationNode)) {
+            for (CFAEdge edge : locationNode.getEnteringEdges()) {
               if (edge.getLineNumber() == queryLine) {
                 return true;
               }

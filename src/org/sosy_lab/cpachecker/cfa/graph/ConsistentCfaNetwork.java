@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class provides a skeletal implementation of {@link CfaNetwork} where the CFA represented by
@@ -80,7 +79,7 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.enteringEdges(pNode).iterator();
+        return pNode.getEnteringEdges().iterator();
       }
 
       @Override
@@ -98,7 +97,7 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.leavingEdges(pNode).iterator();
+        return pNode.getLeavingEdges().iterator();
       }
 
       @Override

@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -123,7 +122,7 @@ public final class ModificationsRcdState
     StringBuilder sb = new StringBuilder();
     if (hasRelevantModification) {
       sb.append("Misfit: ");
-      FluentIterable<CFAEdge> edgesInOrig = CFAUtils.enteringEdges(locationInOriginalCfa);
+      FluentIterable<CFAEdge> edgesInOrig = locationInOriginalCfa.getEnteringEdges();
       sb.append("{");
       for (CFAEdge e : edgesInOrig) {
         sb.append(e);

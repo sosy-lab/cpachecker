@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -124,7 +123,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     List<AbstractState> successors = new ArrayList<>();
     List<CFAEdge> definitions = new ArrayList<>();
     for (CFANode node : nodes) {
-      for (CFAEdge cfaedge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge cfaedge : node.getLeavingEdges()) {
         shutdownNotifier.shutdownIfNecessary();
 
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
