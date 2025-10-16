@@ -163,12 +163,11 @@ public class BitvectorFormulaManagerView extends BaseManagerView
     return manager.lessOrEquals(pNumber1, pNumbe2, signed);
   }
 
-  BooleanFormula makeRangeConstraint(BitvectorFormula term, BigInteger start, BigInteger end) {
+  BooleanFormula makeDomainRangeConstraint(BitvectorFormula term, boolean signed) {
     if (manager instanceof ReplaceBitvectorWithNLAIntegerTheory nonlinIntManager) {
-      return nonlinIntManager.makeRangeConstraint(term, start, end);
+      return nonlinIntManager.makeDomainRangeConstraint(term, signed);
     } else {
-      throw new UnsupportedOperationException(
-          "Cannot add range constraint to manager %s".formatted(manager));
+      return bmgr.makeTrue();
     }
   }
 

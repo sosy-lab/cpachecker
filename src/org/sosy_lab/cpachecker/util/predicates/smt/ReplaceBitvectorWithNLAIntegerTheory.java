@@ -350,13 +350,26 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     }
   }
 
-  public BooleanFormula makeRangeConstraint(
-      BitvectorFormula term, BigInteger start, BigInteger end) {
+  public BooleanFormula makeDomainRangeConstraint(BitvectorFormula term, boolean signed) {
+    final int size = ((BitvectorType) getFormulaType(term)).getSize();
+    BigInteger start;
+    BigInteger end;
+
+    // these are the normal ranges of the domain
+    if (signed) {
+      start = BigInteger.ONE.shiftLeft(size - 1).negate();
+      end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
+    } else {
+      start = BigInteger.ZERO;
+      end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
+    }
+
+    // then we need to adapt it to our representation (deliberately not merged with the if above)
     if (start.compareTo(BigInteger.ZERO) < 0) {
       end = end.subtract(start);
       start = BigInteger.ZERO;
     }
-    assert end.compareTo(BigInteger.ZERO) >= 0 : "Expect end of range to always be positive";
+
     return booleanFormulaManager.and(
         integerFormulaManager.lessOrEquals(integerFormulaManager.makeNumber(start), unwrap(term)),
         integerFormulaManager.lessOrEquals(unwrap(term), integerFormulaManager.makeNumber(end)));

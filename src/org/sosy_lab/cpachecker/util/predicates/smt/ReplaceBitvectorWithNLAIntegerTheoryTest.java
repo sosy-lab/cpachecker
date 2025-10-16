@@ -104,9 +104,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
     final BitvectorFormula larger =
         replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
-    BooleanFormula range =
-        replacer.makeRangeConstraint(
-            base, BigInteger.ZERO, BigInteger.TWO.pow(8).subtract(BigInteger.ONE));
+    BooleanFormula range = replacer.makeDomainRangeConstraint(base, false);
     BooleanFormula extend = replacer.equal(replacer.extend(base, 8, false), larger);
     BooleanFormula extract = bmgr.not(replacer.equal(replacer.extract(larger, 7, 0), base));
     assertThatFormula(bmgr.and(range, extend, extract)).isUnsatisfiable();
@@ -119,9 +117,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
     final BitvectorFormula larger =
         replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
-    BooleanFormula range =
-        replacer.makeRangeConstraint(
-            base, BigInteger.TWO.pow(7).negate(), BigInteger.TWO.pow(7).subtract(BigInteger.ONE));
+    BooleanFormula range = replacer.makeDomainRangeConstraint(base, true);
     BooleanFormula extend = replacer.equal(replacer.extend(base, 8, true), larger);
     BooleanFormula extract = bmgr.not(replacer.equal(replacer.extract(larger, 7, 0), base));
     assertThatFormula(bmgr.and(range, extend, extract)).isUnsatisfiable();
@@ -211,12 +207,8 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
             FormulaType.getBitvectorTypeWithSize(2),
             replacer.mapToSignedRange((IntegerFormula) wrappingHandler.unwrap(b), 2));
 
-    BooleanFormula rangeA =
-        replacer.makeRangeConstraint(
-            a, BigInteger.TWO.pow(1).negate(), BigInteger.TWO.pow(1).subtract(BigInteger.ONE));
-    BooleanFormula rangeB =
-        replacer.makeRangeConstraint(
-            b, BigInteger.TWO.pow(1).negate(), BigInteger.TWO.pow(1).subtract(BigInteger.ONE));
+    BooleanFormula rangeA = replacer.makeDomainRangeConstraint(a, true);
+    BooleanFormula rangeB = replacer.makeDomainRangeConstraint(b, true);
     BooleanFormula multiply =
         replacer.equal(replacer.multiply(a, b), replacer.multiply(aWrapped, bWrapped));
     assertThatFormula(bmgr.and(rangeA, rangeB, bmgr.not(multiply))).isUnsatisfiable();

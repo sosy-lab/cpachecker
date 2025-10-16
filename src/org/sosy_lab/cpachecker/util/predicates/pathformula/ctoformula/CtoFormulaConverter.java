@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -789,9 +788,7 @@ public class CtoFormulaConverter {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final boolean signed = machineModel.isSigned(sType);
-      final BigInteger lowerBound = machineModel.getMinimalIntegerValue(sType);
-      final BigInteger upperBound = machineModel.getMaximalIntegerValue(sType);
-      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
+      constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
     }
   }
 
