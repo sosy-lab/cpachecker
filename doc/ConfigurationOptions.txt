@@ -827,8 +827,9 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
 # used. However, this option only works if the LoopBoundCPA and the
 # assumption storage CPA is enabled. If you want to set a loop-bound in the
 # LoopBoundCPA, use the default case of this option! The loop-bound set here
-# is not equal to the same value in the LoopBoundCPA, but other LoopBoundCPA
-# options effect the value set here as if they were set by the LoopBoundCPA.
+# is always offset +1 compared to the same value set in the LoopBoundCPA.
+# Other LoopBoundCPA options effect the value set here as if they were set by
+# the LoopBoundCPA.
 bmc.loopBound = -1
 
 # Propagates the interrupts of the invariant generator.
