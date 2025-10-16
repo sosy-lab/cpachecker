@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -22,8 +23,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.DecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
 public class BitVectorUtil {
@@ -116,7 +119,7 @@ public class BitVectorUtil {
   private static ImmutableSet<Integer> getSetBits(
       ImmutableSet<MemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
 
-    ImmutableSet.Builder<Integer> rSetBits = ImmutableSet.builder();
+    Builder<Integer> rSetBits = ImmutableSet.builder();
     final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations =
         pMemoryModel.getRelevantMemoryLocations();
     for (MemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
@@ -187,5 +190,19 @@ public class BitVectorUtil {
 
   public static int convertHexLengthToBinary(int pHexLength) {
     return pHexLength * 4;
+  }
+
+  public static boolean isAccessReachPairNeeded(
+      MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
+
+    return switch (pOptions.reductionMode) {
+      case NONE -> throw new IllegalArgumentException("cannot check for reductionMode NONE");
+      case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);
+      case READ_AND_WRITE ->
+          switch (pReachType) {
+            case DIRECT -> pAccessType.in(MemoryAccessType.READ, MemoryAccessType.WRITE);
+            case REACHABLE -> pAccessType.in(MemoryAccessType.ACCESS, MemoryAccessType.WRITE);
+          };
+    };
   }
 }

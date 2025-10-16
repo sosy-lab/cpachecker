@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -134,6 +136,32 @@ public class SeqBitVectorDeclarationBuilder {
     return rDeclarations.build();
   }
 
+  private static ImmutableSetMultimap<ReachType, MemoryLocation> mapMemoryLocationsToReachType(
+      MemoryModel pMemoryModel,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      MemoryAccessType pAccessType) {
+
+    ImmutableSetMultimap.Builder<ReachType, MemoryLocation> rMap = ImmutableSetMultimap.builder();
+    for (ReachType reachType : ReachType.values()) {
+      rMap.putAll(
+          reachType, getMemoryLocationsByReachType(pMemoryModel, pClauses, pAccessType, reachType));
+    }
+    return rMap.build();
+  }
+
+  private static ImmutableSet<MemoryLocation> getMemoryLocationsByReachType(
+      MemoryModel pMemoryModel,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
+
+    return switch (pReachType) {
+      case DIRECT -> getDirectMemoryLocationsByAccessType(pMemoryModel, pClauses, pAccessType);
+      case REACHABLE ->
+          getReachableMemoryLocationsByAccessType(pMemoryModel, pClauses, pAccessType);
+    };
+  }
+
   private static ImmutableSet<MemoryLocation> getDirectMemoryLocationsByAccessType(
       MemoryModel pMemoryModel,
       ImmutableList<SeqThreadStatementClause> pClauses,
@@ -167,43 +195,36 @@ public class SeqBitVectorDeclarationBuilder {
 
     return switch (pOptions.reductionMode) {
       case NONE -> ImmutableList.of();
-      case ACCESS_ONLY ->
-          buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.ACCESS);
+      case ACCESS_ONLY -> buildSparseBitVectorDeclarations(pFields, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
-              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.ACCESS))
-              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.READ))
-              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.WRITE))
+              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.ACCESS))
+              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.READ))
+              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.WRITE))
               .build();
     };
   }
 
   // TODO split into separate functions
   private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields, MemoryAccessType pAccessType) {
+      SequentializationFields pFields, MemoryAccessType pAccessType) {
 
     BitVectorVariables bitVectorVariables =
         pFields.ghostElements.getBitVectorVariables().orElseThrow();
     MemoryModel memoryModel = pFields.memoryModel.orElseThrow();
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses = pFields.clauses;
 
-    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (MPORThread thread : pFields.clauses.keySet()) {
-      ImmutableSet<MemoryLocation> directMemoryLocations =
-          getDirectMemoryLocationsByAccessType(memoryModel, clauses.get(thread), pAccessType);
-      ImmutableSet<MemoryLocation> reachableMemoryLocations =
-          getReachableMemoryLocationsByAccessType(memoryModel, clauses.get(thread), pAccessType);
       for (var entry : sparseBitVectors.entrySet()) {
         rDeclarations.addAll(
             buildSparseBitVectorDeclarations(
-                pOptions,
                 entry.getValue(),
                 thread,
                 entry.getKey(),
-                directMemoryLocations,
-                reachableMemoryLocations));
+                mapMemoryLocationsToReachType(memoryModel, clauses.get(thread), pAccessType)));
       }
     }
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
@@ -222,37 +243,22 @@ public class SeqBitVectorDeclarationBuilder {
   }
 
   private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarations(
-      MPOROptions pOptions,
       SparseBitVector pSparseBitVector,
       MPORThread pThread,
       MemoryLocation pMemoryLocation,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
-      ImmutableSet<MemoryLocation> pReachableMemoryLocations) {
+      ImmutableSetMultimap<ReachType, MemoryLocation> pMemoryLocations) {
 
-    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    if (pOptions.reduceIgnoreSleep) {
-      if (!isSparseBitVectorPruned(pSparseBitVector, pThread, ReachType.DIRECT)) {
-        SeqBitVectorDeclaration directDeclaration =
+    Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    for (ReachType reachType : ReachType.values()) {
+      if (pSparseBitVector.getVariablesByReachType(reachType).containsKey(pThread)) {
+        SeqBitVectorDeclaration declaration =
             buildSparseBitVectorDeclaration(
-                pSparseBitVector.getVariablesByReachType(ReachType.DIRECT).get(pThread),
-                pDirectMemoryLocations.contains(pMemoryLocation));
-        rDeclarations.add(directDeclaration);
+                pSparseBitVector.getVariablesByReachType(reachType).get(pThread),
+                pMemoryLocations.get(reachType).contains(pMemoryLocation));
+        rDeclarations.add(declaration);
       }
     }
-    if (!isSparseBitVectorPruned(pSparseBitVector, pThread, ReachType.REACHABLE)) {
-      SeqBitVectorDeclaration reachableDeclaration =
-          buildSparseBitVectorDeclaration(
-              pSparseBitVector.getVariablesByReachType(ReachType.REACHABLE).get(pThread),
-              pReachableMemoryLocations.contains(pMemoryLocation));
-      rDeclarations.add(reachableDeclaration);
-    }
     return rDeclarations.build();
-  }
-
-  private static boolean isSparseBitVectorPruned(
-      SparseBitVector pSparseBitVector, MPORThread pThread, ReachType pReachType) {
-
-    return !pSparseBitVector.getVariablesByReachType(pReachType).containsKey(pThread);
   }
 
   private static SeqBitVectorDeclaration buildSparseBitVectorDeclaration(

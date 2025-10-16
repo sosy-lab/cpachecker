@@ -26,4 +26,13 @@ public enum MemoryAccessType {
     shortName = pShortName;
     longName = pLongName;
   }
+
+  public boolean in(MemoryAccessType... pMemoryAccessTypes) {
+    for (MemoryAccessType accessType : pMemoryAccessTypes) {
+      if (accessType.equals(this)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

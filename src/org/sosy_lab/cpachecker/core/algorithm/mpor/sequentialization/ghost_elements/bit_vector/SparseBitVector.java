@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SparseBitVector {
 
-  // TODO make optionals
   private final ImmutableMap<MPORThread, CIdExpression> directVariables;
 
   private final ImmutableMap<MPORThread, CIdExpression> reachableVariables;

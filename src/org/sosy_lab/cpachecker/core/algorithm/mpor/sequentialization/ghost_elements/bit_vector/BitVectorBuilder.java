@@ -163,10 +163,12 @@ public class BitVectorBuilder {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
+    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+      return Optional.empty();
+    }
     return switch (pReachType) {
-      case DIRECT -> {
-        if (pOptions.reduceIgnoreSleep) {
-          yield Optional.of(
+      case DIRECT ->
+          Optional.of(
               buildBitVectorIdExpression(
                   pOptions,
                   Optional.of(pThread),
@@ -174,12 +176,8 @@ public class BitVectorBuilder {
                   pAccessType,
                   ReachType.DIRECT,
                   BitVectorDirection.CURRENT));
-        }
-        yield Optional.empty();
-      }
-      case REACHABLE -> {
-        if (!pAccessType.equals(MemoryAccessType.READ)) {
-          yield Optional.of(
+      case REACHABLE ->
+          Optional.of(
               buildBitVectorIdExpression(
                   pOptions,
                   Optional.of(pThread),
@@ -187,10 +185,6 @@ public class BitVectorBuilder {
                   pAccessType,
                   ReachType.REACHABLE,
                   BitVectorDirection.CURRENT));
-        }
-        // we never need reachable read bit vectors
-        yield Optional.empty();
-      }
     };
   }
 
@@ -239,6 +233,9 @@ public class BitVectorBuilder {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
+    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+      return ImmutableMap.of();
+    }
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       CIdExpression idExpression =

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.assignment;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -28,16 +30,22 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 class BitVectorAssignmentUtil {
 
-  static SeqBitVectorAssignmentStatement buildDenseDirectBitVectorAssignmentByAccessType(
+  static SeqBitVectorAssignmentStatement buildDenseBitVectorAssignment(
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
       ImmutableSet<MemoryLocation> pDirectMemoryLocations,
-      MemoryAccessType pAccessType) {
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
 
+    checkArgument(
+        BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType),
+        "bit vector pAccessType and pReachType pair is not needed: %s %s",
+        pAccessType,
+        pReachType);
     CExpression bitVectorVariable =
-        pBitVectorVariables.getDenseBitVector(pThread, pAccessType, ReachType.DIRECT);
+        pBitVectorVariables.getDenseBitVector(pThread, pAccessType, pReachType);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pDirectMemoryLocations);
     return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);

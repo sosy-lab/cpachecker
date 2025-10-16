@@ -81,22 +81,24 @@ public class BitVectorAccessAssignmentBuilder {
     } else {
       if (pOptions.reduceIgnoreSleep) {
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
+            BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pMemoryModel,
                 pDirectMemoryLocations,
-                MemoryAccessType.ACCESS));
+                MemoryAccessType.ACCESS,
+                ReachType.DIRECT));
       }
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
+          BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
               pOptions,
               pThread,
               pBitVectorVariables,
               pMemoryModel,
               pReachableMemoryLocations,
-              MemoryAccessType.ACCESS));
+              MemoryAccessType.ACCESS,
+              ReachType.REACHABLE));
     }
     return rStatements.build();
   }

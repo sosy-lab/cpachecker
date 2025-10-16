@@ -114,38 +114,42 @@ public class BitVectorReadWriteAssignmentBuilder {
     } else {
       if (pOptions.reduceIgnoreSleep) {
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
+            BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pMemoryModel,
                 pDirectReadMemoryLocations,
-                MemoryAccessType.READ));
+                MemoryAccessType.READ,
+                ReachType.DIRECT));
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
+            BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pMemoryModel,
                 pDirectWriteMemoryLocations,
-                MemoryAccessType.WRITE));
+                MemoryAccessType.WRITE,
+                ReachType.DIRECT));
       }
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
+          BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
               pOptions,
               pThread,
               pBitVectorVariables,
               pMemoryModel,
               pReachableAccessMemoryLocations,
-              MemoryAccessType.ACCESS));
+              MemoryAccessType.ACCESS,
+              ReachType.REACHABLE));
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
+          BitVectorAssignmentUtil.buildDenseBitVectorAssignment(
               pOptions,
               pThread,
               pBitVectorVariables,
               pMemoryModel,
               pReachableWriteMemoryLocations,
-              MemoryAccessType.WRITE));
+              MemoryAccessType.WRITE,
+              ReachType.REACHABLE));
     }
     return rStatements.build();
   }
