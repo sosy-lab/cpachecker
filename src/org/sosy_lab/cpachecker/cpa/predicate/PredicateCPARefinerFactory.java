@@ -121,9 +121,7 @@ public final class PredicateCPARefinerFactory {
   private final TrackingPredicateCPARefinementContext refinementContext =
       new TrackingPredicateCPARefinementContext();
 
-  // ARGCPA is required to wrap ARGBasedRefiners with AbstractARGBasedRefiner so they can be used in
-  // the DelegatingRefiner's heuristic-refiner pairs
-  private final ARGCPA argcpa;
+  private ConfigurableProgramAnalysis cpa;
 
   /**
    * Create a factory instance.
@@ -137,7 +135,8 @@ public final class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
     predicateCpa =
         CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
-    argcpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateCPARefiner.class);
+    this.cpa = pCpa;
+
     predicateCpa.getConfiguration().inject(this);
   }
 
@@ -264,11 +263,15 @@ public final class PredicateCPARefinerFactory {
               defaultRefiner);
     }
     ARGBasedRefiner refiner = staticRefiner;
+
     if (usePredicateDelegatingRefiner) {
+      ARGCPA argCpa =
+          CPAs.retrieveCPAOrFail(checkNotNull(cpa), ARGCPA.class, PredicateCPARefiner.class);
+
       ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable =
           buildRefinerMap(
-              AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, argcpa),
-              AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, argcpa));
+              AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, argCpa),
+              AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, argCpa));
       refinerRecords = createDelegatingRefinerConfig(pRefinersAvailable);
     }
 
