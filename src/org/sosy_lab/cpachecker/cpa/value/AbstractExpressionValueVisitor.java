@@ -2296,9 +2296,9 @@ public abstract class AbstractExpressionValueVisitor
         // Check that the input is unsigned, as defined by the function
         checkArgument(
             numericParam.signum() >= 0,
-            "Evaluated parameter for C function "
-                + pFunctionName
-                + " is negative, but the function defines unsigned parameters only");
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
 
         return new NumericValue(numericParam.bitCount());
       }
