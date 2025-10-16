@@ -79,11 +79,13 @@ public class MPOROptions {
 
   public final boolean overwriteFiles;
 
+  public final boolean pruneBitVectorEvaluations;
+
   public final boolean pruneEmptyStatements;
 
-  public final boolean pruneBitVectorEvaluation;
+  public final boolean pruneSparseBitVectors;
 
-  public final boolean pruneBitVectorWrite;
+  public final boolean pruneSparseBitVectorWrites;
 
   public final boolean reduceIgnoreSleep;
 
@@ -132,9 +134,10 @@ public class MPOROptions {
       String pOutputPath,
       boolean pOutputProgram,
       boolean pOverwriteFiles,
+      boolean pPruneBitVectorEvaluations,
       boolean pPruneEmptyStatements,
-      boolean pPruneBitVectorEvaluation,
-      boolean pPruneBitVectorWrite,
+      boolean pPruneSparseBitVectors,
+      boolean pPruneSparseBitVectorWrites,
       boolean pReduceIgnoreSleep,
       boolean pReduceLastThreadOrder,
       boolean pReduceUntilConflict,
@@ -179,9 +182,10 @@ public class MPOROptions {
     outputPath = pOutputPath;
     outputProgram = pOutputProgram;
     overwriteFiles = pOverwriteFiles;
+    pruneBitVectorEvaluations = pPruneBitVectorEvaluations;
     pruneEmptyStatements = pPruneEmptyStatements;
-    pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
-    pruneBitVectorWrite = pPruneBitVectorWrite;
+    pruneSparseBitVectors = pPruneSparseBitVectors;
+    pruneSparseBitVectorWrites = pPruneSparseBitVectorWrites;
     reduceIgnoreSleep = pReduceIgnoreSleep;
     reduceLastThreadOrder = pReduceLastThreadOrder;
     reduceUntilConflict = pReduceUntilConflict;
@@ -229,6 +233,7 @@ public class MPOROptions {
         false,
         false,
         false,
+        false,
         ReductionMode.NONE,
         ReductionOrder.NONE,
         true,
@@ -257,8 +262,9 @@ public class MPOROptions {
       boolean pNoBackwardLoopGoto,
       boolean pNondeterminismSigned,
       NondeterminismSource pNondeterminismSource,
-      boolean pPruneBitVectorEvaluation,
-      boolean pPruneBitVectorWrite,
+      boolean pPruneBitVectorEvaluations,
+      boolean pPruneSparseBitVectors,
+      boolean pPruneSparseBitVectorWrites,
       boolean pReduceIgnoreSleep,
       boolean pReduceLastThreadOrder,
       boolean pReduceUntilConflict,
@@ -299,10 +305,11 @@ public class MPOROptions {
         MPORWriter.DEFAULT_OUTPUT_PATH,
         false,
         false,
+        pPruneBitVectorEvaluations,
         // always prune empty, disabling is only for debugging, not for release
         true,
-        pPruneBitVectorEvaluation,
-        pPruneBitVectorWrite,
+        pPruneSparseBitVectors,
+        pPruneSparseBitVectorWrites,
         pReduceIgnoreSleep,
         pReduceLastThreadOrder,
         pReduceUntilConflict,
@@ -404,6 +411,13 @@ public class MPOROptions {
           Level.SEVERE, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       throw new AssertionError();
     }
+    if (pruneSparseBitVectors) {
+      if (!bitVectorEncoding.isSparse) {
+        pLogger.log(
+            Level.SEVERE, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+        throw new AssertionError();
+      }
+    }
   }
 
   // TODO need more warnings here
@@ -427,33 +441,33 @@ public class MPOROptions {
           "bitVectorEncoding is only considered with linkReduction"
               + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
     }
-    if (pruneBitVectorEvaluation && !areBitVectorsEnabled()) {
+    if (pruneBitVectorEvaluations && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorEvaluation is only considered when reduceLastThreadOrder and/or"
               + " reduceUntilConflict is enabled. Either disable pruneBitVectorEvaluation or enable"
               + " reduceLastThreadOrder and/or reduceUntilConflict.");
     }
-    if (pruneBitVectorEvaluation && !bitVectorEncoding.isEnabled()) {
+    if (pruneBitVectorEvaluations && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
     }
-    if (pruneBitVectorWrite && !areBitVectorsEnabled()) {
+    if (pruneSparseBitVectorWrites && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorWrite is only considered when reduceLastThreadOrder and/or"
               + " reduceUntilConflict enabled. Either disable pruneBitVectorWrite or enable"
               + " reduceLastThreadOrder and/or reduceUntilConflict.");
     }
-    if (pruneBitVectorWrite && !bitVectorEncoding.isEnabled()) {
+    if (pruneSparseBitVectorWrites && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorWrite is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorWrite or set bitVectorEncoding.");
     }
-    if (pruneBitVectorWrite && !bitVectorEncoding.isSparse) {
+    if (pruneSparseBitVectorWrites && !bitVectorEncoding.isSparse) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorWrite only has an effect when bitVectorEncoding is SPARSE.");

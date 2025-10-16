@@ -174,6 +174,7 @@ public class InputRejectionTest {
             NondeterminismSource.NUM_STATEMENTS,
             false,
             false,
+            false,
             // enable reductions, so that pointers are rejected
             true,
             true,

@@ -186,11 +186,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
-      description = "prune empty statements (with only pc writes) from the sequentialization?")
-  private boolean pruneEmptyStatements = true;
-
-  @Option(
-      secure = true,
       description =
           "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
               + " if it is known that the left hand side in an & expression is 0, then the entire"
@@ -199,11 +194,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
+      description = "prune empty statements (with only pc writes) from the sequentialization?")
+  private boolean pruneEmptyStatements = true;
+
+  @Option(
+      secure = true,
       description =
-          "only works for bitVectorEncoding SPARSE. bit vectors are initialized with 1"
-              + " and written to 0 if the corresponding memory location is not reachable anymore."
-              + " all unnecessary writes to 1 are thus pruned.")
-  private boolean pruneBitVectorWrite = false;
+          "only bit vectors for memory locations that are reachable for a thread are included,"
+              + " reducing the amount of variables, evaluations, and writes in the output program.")
+  private boolean pruneSparseBitVectors = false;
+
+  @Option(
+      secure = true,
+      description =
+          "bit vectors are only written to 0 if the corresponding memory location is not reachable"
+              + " anymore, removing all unnecessary writes to 1 in the output program.")
+  private boolean pruneSparseBitVectorWrites = false;
 
   // TODO not sound, resulted in wrong proofs
   @Option(
@@ -359,9 +365,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     outputPath,
                     outputProgram,
                     overwriteFiles,
-                    pruneEmptyStatements,
                     pruneBitVectorEvaluation,
-                    pruneBitVectorWrite,
+                    pruneEmptyStatements,
+                    pruneSparseBitVectors,
+                    pruneSparseBitVectorWrites,
                     reduceIgnoreSleep,
                     reduceLastThreadOrder,
                     reduceUntilConflict,

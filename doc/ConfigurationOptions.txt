@@ -367,13 +367,18 @@ analysis.algorithm.MPOR.overwriteFiles = true
 # is 0, then the entire evaluation can be pruned.
 analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
 
-# only works for bitVectorEncoding SPARSE. bit vectors are initialized with 1
-# and written to 0 if the corresponding memory location is not reachable
-# anymore. all unnecessary writes to 1 are thus pruned.
-analysis.algorithm.MPOR.pruneBitVectorWrite = false
-
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true
+
+# bit vectors are only written to 0 if the corresponding memory location is
+# not reachable anymore, removing all unnecessary writes to 1 in the output
+# program.
+analysis.algorithm.MPOR.pruneSparseBitVectorWrites = false
+
+# only bit vectors for memory locations that are reachable for a thread are
+# included, reducing the amount of variables, evaluations, and writes in the
+# output program.
+analysis.algorithm.MPOR.pruneSparseBitVectors = false
 
 # ignore that the current thread should not execute if it is not in conflict
 # with any other thread? only works when nondeterminismSource contains
