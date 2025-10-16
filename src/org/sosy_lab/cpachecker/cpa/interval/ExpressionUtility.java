@@ -25,13 +25,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Utility class for working with expression. */
 public class ExpressionUtility {
 
   private static final CType CONCRETE_INDEX_TYPE =
-      new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+      new CSimpleType(CTypeQualifiers.create(false, false, false), CBasicType.INT, false, false, true, false, false, false, false);
 
   private ExpressionUtility() {}
 
