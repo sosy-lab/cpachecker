@@ -22,6 +22,7 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -124,8 +125,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FormulaType<BitvectorFormula> retType,
       FunctionDeclaration<IntegerFormula> decl,
       BitvectorFormula... args) {
-    List<org.sosy_lab.java_smt.api.Formula> uargs =
-        unwrap(java.util.Arrays.<org.sosy_lab.java_smt.api.Formula>asList(args));
+    List<Formula> uargs = unwrap(java.util.Arrays.<Formula>asList(args));
     return wrap(retType, functionManager.callUF(decl, uargs));
   }
 
