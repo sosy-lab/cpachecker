@@ -2713,7 +2713,9 @@ public class SMGCPABuiltins {
         // Check that the input is unsigned, as defined by the function
         checkArgument(
             numericParam.signum() >= 0,
-            "Evaluated parameter for C function %s is negative, but the function defines unsigned parameters only", pFunctionName);
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
 
         result.add(ValueAndSMGState.of(new NumericValue(numericParam.bitCount()), currentState));
 
