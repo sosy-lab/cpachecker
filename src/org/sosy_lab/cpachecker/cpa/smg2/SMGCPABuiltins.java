@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -120,7 +125,10 @@ public class SMGCPABuiltins {
           "__builtin_va_copy",
           "atexit",
           "__CPACHECKER_atexit_next",
-          "fgets");
+          "fgets",
+          "__builtin_popcount",
+          "__builtin_popcountl",
+          "__builtin_popcountll");
 
   /**
    * Returns true if the functionName equals a built in function handleable by this class. This
@@ -236,6 +244,9 @@ public class SMGCPABuiltins {
     }
 
     return switch (calledFunctionName) {
+      case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
+          handlePopcount(calledFunctionName, pState, cFCExpression, pCfaEdge);
+
       case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
       case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
@@ -863,23 +874,28 @@ public class SMGCPABuiltins {
    * means this returns a Value and not a memory location! Always check the amount of parameters
    * before using this!
    *
-   * @param pParameterNumber the number of the paramter for the function. I.e. foo (x); x would be
-   *     paramter 0.
+   * @param pParameterNumber the number of the parameter for the function. I.e. foo (x); x would be
+   *     parameter 0.
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
+   * @param parameterTypeInFun {@link CType} of the parameter.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @return {@link List} of {@link ValueAndSMGState}s each representing the paramteter requested.
-   *     Each should be treated as a valid paramter.
+   * @return {@link List} of {@link ValueAndSMGState}s each representing the parameter requested.
+   *     Each should be treated as a valid parameter.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> getFunctionParameterValue(
-      int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      int pParameterNumber,
+      CFunctionCallExpression functionCall,
+      CType parameterTypeInFun,
+      SMGState pState,
+      CFAEdge cfaEdge)
       throws CPATransferException {
 
-    CExpression expr;
+    CExpression paramExpr;
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     try {
-      expr = functionCall.getParameterExpressions().get(pParameterNumber);
+      paramExpr = functionCall.getParameterExpressions().get(pParameterNumber);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException(
@@ -887,7 +903,35 @@ public class SMGCPABuiltins {
     }
 
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
-    return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
+    return vv.evaluate(
+        paramExpr, SMGCPAExpressionEvaluator.getCanonicalType(checkNotNull(parameterTypeInFun)));
+  }
+
+  /**
+   * Gets parameter pParameterNumber and checks that it exists. If not it throws an exception. This
+   * means this returns a Value and not a memory location! Always check the amount of parameters
+   * before using this!
+   *
+   * @param pParameterNumber the number of the parameter for the function. I.e. foo (x); x would be
+   *     parameter 0.
+   * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
+   * @param pState current {@link SMGState}.
+   * @param cfaEdge for logging/debugging.
+   * @return {@link List} of {@link ValueAndSMGState}s each representing the parameter requested.
+   *     Each should be treated as a valid parameter.
+   * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
+   */
+  private List<ValueAndSMGState> getFunctionParameterValue(
+      int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    CType parameterTypeInFun =
+        functionCall.getDeclaration().getParameters().get(pParameterNumber).getType();
+    checkNotNull(
+        parameterTypeInFun,
+        "Function call parameter type null. This can happen, the type needs to be added by hand!");
+    return getFunctionParameterValue(
+        pParameterNumber, functionCall, parameterTypeInFun, pState, cfaEdge);
   }
 
   /**
@@ -2627,4 +2671,102 @@ public class SMGCPABuiltins {
   }
 
   // TODO: strlen
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
+   * sums up all 1-bits of an unsigned int, unsigned long or unsigned long long. Test c programs
+   * available: test/programs/simple/builtin_popcount32_x.c and
+   * test/programs/simple/builtin_popcount64_x.c
+   */
+  private List<ValueAndSMGState> handlePopcount(
+      String pFunctionName, SMGState pState, CFunctionCallExpression functionCall, CFAEdge edge)
+      throws CPATransferException {
+
+    if (functionCall.getParameterExpressions().size() != 1) {
+      throw new UnrecognizedCodeException(
+          "Function "
+              + pFunctionName
+              + " received "
+              + functionCall.getParameterExpressions().size()
+              + " parameters"
+              + " instead of the expected "
+              + 1,
+          functionCall);
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+    assert functionCall.getExpressionType() instanceof CSimpleType simpleType
+        && simpleType.getCanonicalType().getType().isIntegerType()
+        && simpleType.getCanonicalType().hasSignedSpecifier();
+    assert paramType.hasUnsignedSpecifier();
+
+    // Cast to unsigned target type
+    for (ValueAndSMGState evaluatedParamAndState :
+        getFunctionParameterValue(0, functionCall, paramType, pState, edge)) {
+      Value castParamValue = evaluatedParamAndState.getValue();
+      SMGState currentState = evaluatedParamAndState.getState();
+
+      if (castParamValue.isNumericValue()) {
+        BigInteger numericParam = castParamValue.asNumericValue().bigIntegerValue();
+
+        // Check that the input is unsigned, as defined by the function
+        checkArgument(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function "
+                + pFunctionName
+                + " is negative, but the function defines unsigned parameters only");
+
+        result.add(ValueAndSMGState.of(new NumericValue(numericParam.bitCount()), currentState));
+
+      } else if (options.trackPredicates() && !castParamValue.isUnknown()) {
+
+        checkArgument(castParamValue.isExplicitlyKnown());
+        checkArgument(castParamValue instanceof SymbolicExpression);
+
+        SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
+        int parameterBitSize = machineModel.getSizeofInBits(paramType);
+
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one =
+            SymbolicValueFactory.getInstance().asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression constraint =
+            factory.binaryAnd(
+                symbolicParam,
+                factory.shiftLeft(
+                    one,
+                    SymbolicValueFactory.getInstance()
+                        .asConstant(new NumericValue(0), CNumericTypes.INT),
+                    CNumericTypes.INT,
+                    CNumericTypes.INT),
+                CNumericTypes.INT,
+                CNumericTypes.INT);
+
+        // Add up the bits one by one
+        // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
+        for (int i = 1; i < parameterBitSize; i++) {
+          SymbolicExpression bitAtIndex =
+              factory.binaryAnd(
+                  symbolicParam,
+                  factory.shiftLeft(
+                      one,
+                      SymbolicValueFactory.getInstance()
+                          .asConstant(new NumericValue(i), CNumericTypes.INT),
+                      CNumericTypes.INT,
+                      CNumericTypes.INT),
+                  CNumericTypes.INT,
+                  CNumericTypes.INT);
+          constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+        }
+
+        result.add(ValueAndSMGState.of(constraint, currentState));
+      } else {
+
+        // TODO: we could associate a symbolic output with the input used to assure ==
+        result.add(ValueAndSMGState.of(Value.UnknownValue.getInstance(), currentState));
+      }
+    }
+
+    return result.build();
+  }
 }
