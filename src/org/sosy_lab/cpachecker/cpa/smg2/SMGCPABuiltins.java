@@ -2728,19 +2728,17 @@ public class SMGCPABuiltins {
         int parameterBitSize = machineModel.getSizeofInBits(paramType);
 
         final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        SymbolicExpression one =
-            SymbolicValueFactory.getInstance().asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
             factory.binaryAnd(
                 symbolicParam,
                 factory.shiftLeft(
                     one,
-                    SymbolicValueFactory.getInstance()
-                        .asConstant(new NumericValue(0), CNumericTypes.INT),
-                    CNumericTypes.INT,
-                    CNumericTypes.INT),
+                    factory.asConstant(new NumericValue(0), CNumericTypes.INT),
+                    paramType,
+                    paramType),
                 CNumericTypes.INT,
-                CNumericTypes.INT);
+                paramType);
 
         // Add up the bits one by one
         // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
@@ -2750,12 +2748,11 @@ public class SMGCPABuiltins {
                   symbolicParam,
                   factory.shiftLeft(
                       one,
-                      SymbolicValueFactory.getInstance()
-                          .asConstant(new NumericValue(i), CNumericTypes.INT),
-                      CNumericTypes.INT,
-                      CNumericTypes.INT),
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      paramType,
+                      paramType),
                   CNumericTypes.INT,
-                  CNumericTypes.INT);
+                  paramType);
           constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
 
