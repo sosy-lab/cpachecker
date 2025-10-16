@@ -295,7 +295,7 @@ public class PathChecker {
                 DetailedCounterexampleExport detailedExporter =
                     new DetailedCounterexampleExport(
                         config, logger, solver, pmgr, assignmentToPathAllocator.getMachineModel());
-                out.append(detailedExporter.exportErrorInducingInputs(counterexample));
+                out.append(detailedExporter.exportDetailed(counterexample));
               } catch (CPATransferException
                   | InterruptedException
                   | SolverException

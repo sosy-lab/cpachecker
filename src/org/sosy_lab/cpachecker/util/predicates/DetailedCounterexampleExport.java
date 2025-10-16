@@ -234,8 +234,7 @@ public class DetailedCounterexampleExport {
   /**
    * Convert a counterexample into a detailed error trace with variable assignments for all
    * variables at all locations. If there is a loop, there are as many assignments for a location as
-   * loop iterations. The format is as follows: Functions: <function name> <edge> <variable> ==
-   * <value>; ...
+   * loop iterations.
    *
    * @param counterExample The counterexample to convert.
    * @return A string representation of the detailed error trace.
@@ -243,7 +242,7 @@ public class DetailedCounterexampleExport {
    * @throws InterruptedException Thrown if the operation is interrupted.
    * @throws CPATransferException Thrown if there is an error in the transfer relation.
    */
-  public String exportErrorInducingInputs(CounterexampleInfo counterExample)
+  public String exportDetailed(CounterexampleInfo counterExample)
       throws CPATransferException, InterruptedException, SolverException {
     PathAliasesAndVariables cexPathAliasesAndVariables = computeVariablesToEdgeMap(counterExample);
     List<Map<String, Object>> assignments = calculateAssignments(cexPathAliasesAndVariables.path());

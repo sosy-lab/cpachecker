@@ -201,7 +201,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
     }
 
     try {
-      IO.writeFile(exportPath, StandardCharsets.UTF_8, exporter.exportErrorInducingInputs(trace));
+      IO.writeFile(exportPath, StandardCharsets.UTF_8, exporter.exportDetailed(trace));
     } catch (IOException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not export trace inputs.");
     }
