@@ -802,11 +802,7 @@ public abstract class AbstractExpressionValueVisitor
 
         if (BuiltinFunctions.isPopcountFunction(functionName)) {
           return handlePopcount(
-              functionName,
-              parameterValues,
-              pIastFunctionCallExpression,
-              machineModel,
-              logger);
+              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
