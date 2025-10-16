@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export.DetailedCounterexampleExport;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -386,12 +385,6 @@ public class CoreComponentsFactory {
       name = "algorithm.importFaults",
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.detailedCounterexamples",
-      description = "Convert CEX to C program.")
-  private boolean exportDetailedCounterexamples = false;
 
   @Option(
       secure = true,
@@ -741,11 +734,6 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
-      }
-
-      if (exportDetailedCounterexamples) {
-        algorithm =
-            new DetailedCounterexampleExport(algorithm, config, logger, shutdownNotifier, cfa);
       }
 
       if (useSamplingAlgorithm) {

@@ -2,60 +2,47 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export;
+package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.Optionals;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -69,20 +56,12 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "detailed_cex")
-public class DetailedCounterexampleExport implements Algorithm {
+public class DetailedCounterexampleExport {
 
-  private final Algorithm algorithm;
-  private final Configuration config;
   private final LogManager logger;
-  private final ShutdownNotifier notifier;
-  private final CFA cfa;
-
-  @Option(
-      secure = true,
-      description = "File name for analysis report in case a counterexample was found.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate detailedCounterexample =
-      PathTemplate.ofFormatString("Counterexample.variable.%d.txt");
+  private final Solver solver;
+  private final PathFormulaManager pmgr;
+  private final AssumptionToEdgeAllocator allocator;
 
   @Option(
       secure = true,
@@ -100,7 +79,6 @@ public class DetailedCounterexampleExport implements Algorithm {
    * Exports concrete variable assignments of all variables at all locations. If there is a loop,
    * there are as many assignments as loop iterations for the specific location.
    *
-   * @param pAlgorithm The base algorithm to find counterexamples.
    * @param pConfig The user configuration.
    * @param pLogger Manager for logging warnings.
    * @param pNotifier Notifier for user shut-down requests.
@@ -108,18 +86,44 @@ public class DetailedCounterexampleExport implements Algorithm {
    * @throws InvalidConfigurationException Thrown if the configuration is invalid.
    */
   public DetailedCounterexampleExport(
-      Algorithm pAlgorithm,
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pNotifier,
-      CFA pCfa)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    algorithm = pAlgorithm;
-    config = pConfig;
     logger = pLogger;
-    notifier = pNotifier;
-    cfa = pCfa;
+    solver = Solver.create(pConfig, logger, pNotifier);
+    pmgr =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(),
+            pConfig,
+            logger,
+            pNotifier,
+            pCfa,
+            AnalysisDirection.FORWARD);
+    allocator = AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
+  }
+
+  /**
+   * Exports concrete variable assignments of all variables at all locations. If there is a loop,
+   * there are as many assignments as loop iterations for the specific location.
+   *
+   * @param pConfig The user configuration.
+   * @param pLogger Manager for logging warnings.
+   * @param pSolver The solver to use for finding satisfying assignments.
+   * @param pPathFormulaManager The path formula manager to use for constructing path formulas.
+   * @param pMachineModel The machine model of the input program.
+   * @throws InvalidConfigurationException Thrown if the configuration is invalid.
+   */
+  public DetailedCounterexampleExport(
+      Configuration pConfig,
+      LogManager pLogger,
+      Solver pSolver,
+      PathFormulaManager pPathFormulaManager,
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    solver = pSolver;
+    logger = pLogger;
+    pmgr = pPathFormulaManager;
+    allocator = AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
   }
 
   /**
@@ -127,18 +131,13 @@ public class DetailedCounterexampleExport implements Algorithm {
    * limited by the maxAssignments parameter. If maxAssignments is -1, all satisfying assignments
    * are found.
    *
-   * @param solver The solver to use for finding assignments.
    * @param pPathFormula The path formula for which to find assignments.
    * @return A list of maps, where each map contains variable names and their corresponding values.
    * @throws SolverException Thrown if the solver encounters an error.
    * @throws InterruptedException Thrown if the operation is interrupted.
-   * @throws InvalidConfigurationException Thrown if the AssumptionAllocator configuration is
-   *     invalid.
    */
-  private List<Map<String, Object>> assignments(Solver solver, PathFormula pPathFormula)
-      throws SolverException, InterruptedException, InvalidConfigurationException {
-    AssumptionToEdgeAllocator allocator =
-        AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+  private List<Map<String, Object>> calculateAssignments(PathFormula pPathFormula)
+      throws SolverException, InterruptedException {
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     ImmutableList.Builder<Map<String, Object>> allIterations = ImmutableList.builder();
     int generatedAssignments = 0;
@@ -184,16 +183,13 @@ public class DetailedCounterexampleExport implements Algorithm {
    * variables from the path formula. The mapping is built by comparing the variables before and
    * after each edge.
    *
-   * @param solver The solver to use for extracting variables.
-   * @param pmgr The path formula manager to use for creating path formulas.
    * @param counterExample The counterexample containing the path.
    * @return A PathAliasesAndVariables object containing the path formula and the mapping of
    *     variables to edges.
    * @throws CPATransferException Thrown if there is an error in the transfer relation.
    * @throws InterruptedException Thrown if the operation is interrupted.
    */
-  private PathAliasesAndVariables computeVariablesToEdgeMap(
-      Solver solver, PathFormulaManager pmgr, CounterexampleInfo counterExample)
+  private PathAliasesAndVariables computeVariablesToEdgeMap(CounterexampleInfo counterExample)
       throws CPATransferException, InterruptedException {
     ImmutableMap.Builder<String, String> aliases = ImmutableMap.builder();
     PathFormula cexPath = pmgr.makeEmptyPathFormula();
@@ -201,6 +197,7 @@ public class DetailedCounterexampleExport implements Algorithm {
     ImmutableMap.Builder<FormulaAndName, CFAEdge> variableToLineNumber = ImmutableMap.builder();
     for (CFAEdgeWithAssumptions cfaEdgeWithAssumptions :
         counterExample.getCFAPathWithAssignments()) {
+      assert cfaEdgeWithAssumptions != null;
       CFAEdge cfaEdge = cfaEdgeWithAssumptions.getCFAEdge();
       cexPath = pmgr.makeAnd(cexPath, cfaEdge);
 
@@ -212,7 +209,7 @@ public class DetailedCounterexampleExport implements Algorithm {
         }
       }
 
-      Set<FormulaAndName> after =
+      Set<@NonNull FormulaAndName> after =
           transformedImmutableSetCopy(
               solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet(),
               entry -> new FormulaAndName(entry.getValue(), entry.getKey()));
@@ -234,19 +231,22 @@ public class DetailedCounterexampleExport implements Algorithm {
         cexPath, aliases.buildKeepingLast(), variableToLineNumber.buildOrThrow());
   }
 
-  public void exportErrorInducingInputs(CounterexampleInfo counterExample, Path pCounterexamplePath)
-      throws InvalidConfigurationException,
-          SolverException,
-          InterruptedException,
-          CPATransferException,
-          IOException {
-    Solver solver = Solver.create(config, logger, notifier);
-    PathFormulaManager pmgr =
-        new PathFormulaManagerImpl(
-            solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
-    PathAliasesAndVariables cexPathAliasesAndVariables =
-        computeVariablesToEdgeMap(solver, pmgr, counterExample);
-    List<Map<String, Object>> assignments = assignments(solver, cexPathAliasesAndVariables.path());
+  /**
+   * Convert a counterexample into a detailed error trace with variable assignments for all
+   * variables at all locations. If there is a loop, there are as many assignments for a location as
+   * loop iterations. The format is as follows: Functions: <function name> <edge> <variable> ==
+   * <value>; ...
+   *
+   * @param counterExample The counterexample to convert.
+   * @return A string representation of the detailed error trace.
+   * @throws SolverException Thrown if the solver encounters an error.
+   * @throws InterruptedException Thrown if the operation is interrupted.
+   * @throws CPATransferException Thrown if there is an error in the transfer relation.
+   */
+  public String exportErrorInducingInputs(CounterexampleInfo counterExample)
+      throws CPATransferException, InterruptedException, SolverException {
+    PathAliasesAndVariables cexPathAliasesAndVariables = computeVariablesToEdgeMap(counterExample);
+    List<Map<String, Object>> assignments = calculateAssignments(cexPathAliasesAndVariables.path());
     Multimap<String, String> variableToValues = ArrayListMultimap.create();
     for (Map<String, Object> assignment : assignments) {
       assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
@@ -258,8 +258,8 @@ public class DetailedCounterexampleExport implements Algorithm {
           formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
     }
     ImmutableMap<String, CFAEdge> lines = linesBuilder.buildOrThrow();
+    StringBuilder preciseCexExport = new StringBuilder();
     for (Map<String, Object> assignment : assignments) {
-      StringBuilder preciseCexExport = new StringBuilder();
       for (Entry<String, Object> variableValue : assignment.entrySet()) {
         String variable = variableValue.getKey();
         String value = variableValue.getValue().toString();
@@ -273,6 +273,7 @@ public class DetailedCounterexampleExport implements Algorithm {
         }
         CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
         variable = cexPathAliasesAndVariables.aliases().getOrDefault(variable, variable);
+        assert variable != null;
         if (variable.contains("::")) {
           variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
         }
@@ -291,48 +292,7 @@ public class DetailedCounterexampleExport implements Algorithm {
             .append(value)
             .append(";\n");
       }
-      IO.writeFile(pCounterexamplePath, StandardCharsets.UTF_8, preciseCexExport.toString());
     }
-  }
-
-  /**
-   * Exports a detailed counterexample to a file. The counterexample is exported in a format that
-   * includes the variable assignments at each location in the counterexample path. The
-   * counterexample is exported to a file specified by the detailedCounterexample option.
-   *
-   * @param counterExamples The collection of counterexamples to export.
-   * @param pCounterexamplePath The path template for the counterexample file. Will be instantiated
-   *     with the number of the CEX being exported.
-   */
-  public void exportManyErrorInducingInputs(
-      Collection<CounterexampleInfo> counterExamples, PathTemplate pCounterexamplePath)
-      throws CPAException,
-          InterruptedException,
-          InvalidConfigurationException,
-          SolverException,
-          IOException {
-    int cexCount = 0;
-
-    for (CounterexampleInfo counterExample : counterExamples) {
-      Path counterexamplePath = pCounterexamplePath.getPath(cexCount++);
-      exportErrorInducingInputs(counterExample, counterexamplePath);
-    }
-  }
-
-  @Override
-  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = algorithm.run(reachedSet);
-    FluentIterable<CounterexampleInfo> counterExamples =
-        Optionals.presentInstances(
-            from(reachedSet)
-                .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
-    try {
-      exportManyErrorInducingInputs(counterExamples.toList(), detailedCounterexample);
-    } catch (IOException | InvalidConfigurationException | SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs.");
-    }
-    return status;
+    return preciseCexExport.toString();
   }
 }

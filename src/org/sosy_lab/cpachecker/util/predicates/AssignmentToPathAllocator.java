@@ -612,6 +612,10 @@ public class AssignmentToPathAllocator {
     return result;
   }
 
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
   private static final class AssignableTermsInPath {
 
     private final ImmutableSetMultimap<Integer, ValueAssignment> assignableTermsAtPosition;

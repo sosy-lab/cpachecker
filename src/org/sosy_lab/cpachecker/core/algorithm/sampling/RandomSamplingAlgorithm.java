@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -26,11 +27,11 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export.DetailedCounterexampleExport;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.DetailedCounterexampleExport;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "sampling.random")
@@ -110,9 +112,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
             .copyFrom(pConfig)
             .setOption("detailed_cex.maxAssignments", "1")
             .build();
-    exporter =
-        new DetailedCounterexampleExport(
-            pAlgorithm, detailedCexExportConfig, pLogger, pNotifier, pCfa);
+    exporter = new DetailedCounterexampleExport(detailedCexExportConfig, pLogger, pNotifier, pCfa);
   }
 
   private void copyReachedSet(ReachedSet pSourceReachedSet, ReachedSet pTargetReachedSet) {
@@ -201,8 +201,8 @@ public class RandomSamplingAlgorithm implements Algorithm {
     }
 
     try {
-      exporter.exportErrorInducingInputs(trace, exportPath);
-    } catch (IOException | InvalidConfigurationException | SolverException e) {
+      IO.writeFile(exportPath, StandardCharsets.UTF_8, exporter.exportErrorInducingInputs(trace));
+    } catch (IOException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not export trace inputs.");
     }
   }

@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-import org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export.PotentialOverflowHandler;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -377,18 +376,6 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public MachineModel getMachineModel() {
-    return machineModel;
-  }
-
-  public LogManager getLogger() {
-    return logger;
-  }
-
-  public boolean assumeLinearArithmetics() {
-    return assumeLinearArithmetics;
-  }
-
   private Object getValueObject(
       CExpression pOp1, String pFunctionName, ConcreteState pConcreteState) {
     LModelValueVisitor v = new LModelValueVisitor(pFunctionName, pConcreteState);
@@ -463,11 +450,6 @@ public class AssumptionToEdgeAllocator {
 
     LModelValueVisitor v = new LModelValueVisitor(pFunctionName, pConcreteState);
     return pLeftHandSide.accept(v);
-  }
-
-  public CExpression convert(Object pValue, CSimpleType pSimpleType) {
-    ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, null, null);
-    return v.getValueLiteral(pSimpleType, pValue).getValueLiteral();
   }
 
   private ValueLiterals getValueAsCode(
@@ -720,6 +702,19 @@ public class AssumptionToEdgeAllocator {
     } else {
       return null;
     }
+  }
+
+  /**
+   * Convert a value to a CExpression of the given simple type. This method also handles potential
+   * overflows.
+   *
+   * @param pValue the value to convert
+   * @param pSimpleType the target type
+   * @return the CExpression representing the value
+   */
+  public CExpression convert(Object pValue, CSimpleType pSimpleType) {
+    ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, null, null);
+    return v.getValueLiteral(pSimpleType, pValue).getValueLiteral();
   }
 
   private class LModelValueVisitor implements CLeftHandSideVisitor<@Nullable Object, NoException> {
@@ -1535,10 +1530,91 @@ public class AssumptionToEdgeAllocator {
      */
     private ValueLiteral handlePotentialIntegerOverflow(
         BigInteger pIntegerValue, CSimpleType pType) {
-      return PotentialOverflowHandler.handlePotentialIntegerOverflow(
-              AssumptionToEdgeAllocator.this, pIntegerValue, pType)
-          .map(stub -> ExplicitValueLiteral.valueOf(stub.value(), stub.type()))
-          .orElse(UnknownValueLiteral.getInstance());
+
+      BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
+      BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
+
+      assert lowerInclusiveBound.compareTo(upperInclusiveBound) < 0;
+
+      if (pIntegerValue.compareTo(lowerInclusiveBound) < 0
+          || pIntegerValue.compareTo(upperInclusiveBound) > 0) {
+        if (assumeLinearArithmetics) {
+          return UnknownValueLiteral.getInstance();
+        }
+        LogManagerWithoutDuplicates logManager =
+            logger instanceof LogManagerWithoutDuplicates logManagerWithoutDuplicates
+                ? logManagerWithoutDuplicates
+                : new LogManagerWithoutDuplicates(logger);
+        Value castValue =
+            AbstractExpressionValueVisitor.castCValue(
+                new NumericValue(pIntegerValue), pType, machineModel, logManager);
+        if (castValue.isUnknown()) {
+          return UnknownValueLiteral.getInstance();
+        }
+
+        Number number = castValue.asNumericValue().getNumber();
+        final BigInteger valueAsBigInt;
+        if (number instanceof BigInteger bigInteger) {
+          valueAsBigInt = bigInteger;
+        } else {
+          valueAsBigInt = BigInteger.valueOf(number.longValue());
+        }
+        pType = enlargeTypeIfValueIsMinimalValue(pType, valueAsBigInt);
+        return ExplicitValueLiteral.valueOf(valueAsBigInt, pType);
+      }
+
+      return ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+    }
+
+    private CSimpleType enlargeTypeIfValueIsMinimalValue(
+        CSimpleType pType, final BigInteger valueAsBigInt) {
+      // In C there are no negative literals, so to represent the minimal value of an integer
+      // type, we need that number as positive literal of the next larger type,
+      // and then negate it.
+      // For example for LONG_MIN we want to have -9223372036854775808UL, so the literal is
+      // of type unsigned long and negated. This is only important when exporting the value
+      // e.g. inside a witness, since EclipseCDT will not like -9223372036854775808L.
+      if (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
+          && valueAsBigInt.compareTo(BigInteger.ZERO) < 0
+          && pType.getType().isIntegerType()) {
+        while (valueAsBigInt.abs().compareTo(machineModel.getMaximalIntegerValue(pType)) > 0
+            && !nextLargerIntegerTypeIfPossible(pType).equals(pType)) {
+          pType = nextLargerIntegerTypeIfPossible(pType);
+        }
+      }
+      return pType;
+    }
+
+    private CSimpleType nextLargerIntegerTypeIfPossible(CSimpleType pType) {
+      if (pType.hasSignedSpecifier()) {
+        return new CSimpleType(
+            pType.getQualifiers(),
+            pType.getType(),
+            pType.hasLongSpecifier(),
+            pType.hasShortSpecifier(),
+            false,
+            true,
+            pType.hasComplexSpecifier(),
+            pType.hasImaginarySpecifier(),
+            pType.hasLongLongSpecifier());
+      } else {
+        if (pType.getType() == CBasicType.INT) {
+          if (pType.hasShortSpecifier()) {
+            return CNumericTypes.SIGNED_INT;
+          } else if (pType.hasLongSpecifier()) {
+            return CNumericTypes.SIGNED_LONG_LONG_INT;
+          } else if (pType.hasLongLongSpecifier()) {
+            // fall through, this is already the largest type
+          } else {
+            // if it had neither specifier it is a plain (unsigned) int
+            return CNumericTypes.SIGNED_LONG_INT;
+          }
+        }
+
+        // just log and do not throw an exception in order to not break things
+        logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
+        return pType;
+      }
     }
 
     /** Resolves all subexpressions that can be resolved. Stops at duplicate memory location. */
