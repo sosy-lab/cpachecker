@@ -274,9 +274,6 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Convert CEX to C program.
-analysis.algorithm.detailedCounterexamples = false
-
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
 # https://doi.org/10.1145/3660766 for details.
@@ -1158,6 +1155,9 @@ counterexample.export.compressWitness = true
 
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
+
+# File name for analysis report in case a counterexample was found.
+counterexample.export.dumpDetailedCounterexampleModel = no default value
 
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
@@ -2449,6 +2449,9 @@ cpa.predicate.dumpCounterexampleFormula = "Counterexample.%d.smt2"
 
 # deprecated name for counterexample.export.model
 cpa.predicate.dumpCounterexampleModel = "Counterexample.%d.assignment.txt"
+
+# deprecated name for counterexample.export.dumpDetailedCounterexampleModel
+cpa.predicate.dumpDetailedCounterexampleModel = no default value
 
 # deprecated name for
 # cpa.predicate.invariants.dumpInvariantGenerationAutomata
@@ -4197,9 +4200,6 @@ dependencegraph.pointerAnalysisTime = 0s
 # PointerStateComputationMethod.FLOW_INSENSITIVE
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
-# File name for analysis report in case a counterexample was found.
-detailed_cex.detailedCounterexample = "Counterexample.variable.%d.txt"
-
 # How many satisfying assignments to find per CEX; -1 for all
 detailed_cex.maxAssignments = 10
 
@@ -4247,6 +4247,34 @@ distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
 
+# Abstraction nodes are added to each block after they are created. They are
+# needed to strengthen the preconditions of blocks. Missing blocks make the
+# analysis slower but not impossible.
+distributedSummaries.decomposition.allowMissingAbstractionNodes = no default value
+
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.decomposition.allowSingleBlockDecompositionWhenMerging = no default value
+
+# Where to store the block graph in JSON format
+distributedSummaries.decomposition.blockCFAFile = no default value
+
+# Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
+# creates blocks from each merge/branching point to the next merge/branching
+# point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
+# The final number of blocks should converge to the number of functions in
+# the program. NO_DECOMPOSITION creates one block around the CFA.
+distributedSummaries.decomposition.decompositionType = no default value
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
+             NO_DECOMPOSITION]
+
+# Whether to stop after exporting the blockgraph
+distributedSummaries.decomposition.generateBlockGraphOnly = no default value
+
+# Import an existing decomposition from a file
+distributedSummaries.decomposition.importDecomposition = no default value
+
 # Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
 # creates blocks from each merge/branching point to the next merge/branching
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
@@ -4289,7 +4317,29 @@ distributedSummaries.outputMessages = "messages/"
 distributedSummaries.queue = DEFAULT
   enum:     [VIOLATION_CONDITION, DEFAULT]
 
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'known' by block-summary analysis. Each file must
+# contain a single, valid JSON DssMessage. If at least one file is provided,
+# the block-summary analysis assumes these pre- and verification-conditions.
+# If no file is provided, the block-summary analysis assumes the precondition
+# 'true' and the verification condition 'false'.
+distributedSummaries.singleWorker.knownConditions = no default value
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'new' by block-summary analysis. For each message
+# in this list, block-summary analysis will perform a new analysis run in the
+# order of occurrence. Each file must contain a single, valid JSON
+# DssMessage. If at least one file is provided, the block-summary analysis
+# assumes these pre- and verification-conditions. If no file is provided, the
+# block-summary analysis assumes the precondition 'true' and the verification
+# condition 'false'.
+distributedSummaries.singleWorker.newConditions = no default value
+
+# Where to write responses
+distributedSummaries.singleWorker.outputMessages = no default value
+
 # Whether to spawn a worker for only one block id
+distributedSummaries.singleWorker.spawnWorkerForId = no default value
 distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
