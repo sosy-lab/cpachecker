@@ -30,30 +30,30 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.UFManager;
 
 /**
- * Internally, all integers are treated as unsigned unless a signed operator explicitly requires a
- * signed interpretation. For example, creating a negative number actually produces a large unsigned
- * number in the range [{@code 2^(N-1)}, {@code 2^N}) using 2's complement encoding. It is only when
- * a signed operator is applied that the value is interpreted as negative.
+ * This class encodes bitvector semantics with unbounded integer arithmetic (NLA) and additional
+ * constraints to model wrap-around. Bitvectors are represented as integer formulas where values are
+ * always non-negative; negative bitvector values are encoded via their two's-complement
+ * representation. Concretely, to encode a negative value we compute its two's-complement
+ * representation (as an unsigned value in the range [{@code 2^(N-1)}, {@code 2^N})), then use that
+ * non-negative integer in the encoding. Because bitvectors do not carry signedness information, the
+ * encoding assumes an unsigned interpretation by default; a signed interpretation is applied only
+ * when an operator explicitly requires it.
  *
- * <p>This behavior is necessary because bitvectors themselves do not carry information about
- * signedness; the interpretation must be imposed externally based on the operations used.
+ * <p>Most arithmetic operators (addition, subtraction, multiplication, etc.) behave the same for
+ * signed and unsigned bitvectors when viewed as two's-complement bit patterns, so they are encoded
+ * using integer arithmetic with modulo wrap-around to the bitvector width. Division and remainder
+ * differ between signed and unsigned semantics; for those operations we explicitly convert operands
+ * to a signed interpretation (via {@link #mapToSignedRange}) when requested and use special
+ * encodings (C99-like semantics for division) to model signed behavior.
  *
- * <p>A configuration option, {@code cpa.predicate.signedWraparound}, is available to enable
- * wraparound semantics for signed integers as well. When enabled, signed overflow behaves similarly
- * to unsigned overflow, using more expensive arithmetic transformations. If signed overflow is
- * instead treated as undefined behavior (UB), this option is not needed, and a lightweight
- * conditional (ITE) expression is used whenever a signed interpretation is required from an
- * unsigned value.
+ * <p>The configuration option {@code cpa.predicate.approximateBitwiseWithUFs} controls handling of
+ * bitwise and shift operations that are not supported by the NLA encoding: when enabled,
+ * unsupported bitwise/shift operations are approximated with uninterpreted functions (UFs); when
+ * disabled such operations throw {@link UnsupportedOperationException}.
  *
- * <p>Note that even with {@code signedWraparound} enabled, signed integers are not treated as
- * unbounded. Internally, unsigned wraparound behavior is always assumed for all arithmetic
- * operations.
- *
- * <p>The only operations that differ between signed and unsigned semantics are division and
- * remainder. These operations explicitly encode whether the operands are signed or unsigned,
- * allowing the logic to handle them accordingly. For all other arithmetic operations, the result is
- * unaffected by whether a value is interpreted as a large unsigned number or as a signed 2's
- * complement negative number with the same bit pattern.
+ * <p>Implementation notes: wrap-around is modeled with integer modulo by 2^N (see {@link
+ * #wrapAround}). Methods such as {@link #mapToSignedRange} are used to switch between the unsigned
+ * integer representation and a signed interpretation when required by specific operators.
  */
 @Options(prefix = "cpa.predicate")
 class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
