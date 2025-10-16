@@ -101,7 +101,7 @@ public class MemoryLocationFinder {
     return rMemLocations.build();
   }
 
-  private static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
+  public static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();

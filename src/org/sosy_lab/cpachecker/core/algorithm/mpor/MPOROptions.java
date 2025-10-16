@@ -150,13 +150,8 @@ public class MPOROptions {
       boolean pValidateParse,
       boolean pValidatePc) {
 
-    checkArgument(
-        correctParameterAmount(),
-        "the amount of constructor parameters must match the amount of @Option fields in"
-            + " MPORAlgorithm");
-    checkArgument(
-        equalFieldNames(),
-        "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
+    checkCorrectParameterCount();
+    checkEqualFieldNames();
 
     allowPointerWrites = pAllowPointerWrites;
     atomicBlockMerge = pAtomicBlockMerge;
@@ -324,21 +319,25 @@ public class MPOROptions {
         true);
   }
 
-  private boolean correctParameterAmount() {
+  private void checkCorrectParameterCount() {
     // extract amount of MPOROptions constructor parameters
     Constructor<?>[] constructors = MPOROptions.class.getDeclaredConstructors();
     checkArgument(constructors.length == 1, "MPOROptions can have one constructor only");
-    int paramAmount = constructors[0].getParameterCount();
+    int parameterCount = constructors[0].getParameterCount();
     // extract amount of fields marked as @Option in MPORAlgorithm
-    int optionAmount =
+    int optionCount =
         (int)
             Arrays.stream(MPORAlgorithm.class.getDeclaredFields())
                 .filter(pField -> pField.isAnnotationPresent(Option.class))
                 .count();
-    return paramAmount == optionAmount;
+    if (parameterCount != optionCount) {
+      throw new IllegalArgumentException(
+          "the amount of constructor parameters must match the amount of @Option fields in"
+              + " MPORAlgorithm");
+    }
   }
 
-  private boolean equalFieldNames() {
+  private void checkEqualFieldNames() {
     // extract string of all fields in MPOROptions
     ImmutableSet<String> optionsFieldNames =
         Arrays.stream(MPOROptions.class.getDeclaredFields())
@@ -348,11 +347,14 @@ public class MPOROptions {
     for (Field algorithmField : MPORAlgorithm.class.getDeclaredFields()) {
       if (algorithmField.isAnnotationPresent(Option.class)) {
         if (!optionsFieldNames.contains(algorithmField.getName())) {
-          return false;
+          throw new IllegalArgumentException(
+              String.format(
+                  "MPOROptions fields does not contain field from MPORAlgorithm annotated as"
+                      + " @Option: %s",
+                  algorithmField.getName()));
         }
       }
     }
-    return true;
   }
 
   // TODO best move to input_rejection
@@ -415,6 +417,18 @@ public class MPOROptions {
       if (!bitVectorEncoding.isSparse) {
         pLogger.log(
             Level.SEVERE, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+        throw new AssertionError();
+      }
+      if (reduceIgnoreSleep) {
+        pLogger.log(
+            Level.SEVERE,
+            "reduceIgnoreSleep cannot be enabled when pruneSparseBitVectors is enabled.");
+        throw new AssertionError();
+      }
+      if (reduceLastThreadOrder) {
+        pLogger.log(
+            Level.SEVERE,
+            "reduceLastThreadOrder cannot be enabled when pruneSparseBitVectors is enabled.");
         throw new AssertionError();
       }
     }

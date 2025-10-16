@@ -77,6 +77,13 @@ public class BitVectorEvaluationUtil {
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
   }
 
+  static Optional<SeqExpression> tryLogicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
+    if (pTerms.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(logicalDisjunction(pTerms));
+  }
+
   /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */
   static SeqExpression logicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
     return nestLogicalExpressions(pTerms, SeqLogicalOperator.OR);

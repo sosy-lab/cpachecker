@@ -167,19 +167,20 @@ public class SeqBitVectorDeclarationBuilder {
 
     return switch (pOptions.reductionMode) {
       case NONE -> ImmutableList.of();
-      case ACCESS_ONLY -> buildSparseBitVectorDeclarations(pFields, MemoryAccessType.ACCESS);
+      case ACCESS_ONLY ->
+          buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
-              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.ACCESS))
-              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.READ))
-              .addAll(buildSparseBitVectorDeclarations(pFields, MemoryAccessType.WRITE))
+              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.ACCESS))
+              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.READ))
+              .addAll(buildSparseBitVectorDeclarations(pOptions, pFields, MemoryAccessType.WRITE))
               .build();
     };
   }
 
   // TODO split into separate functions
   private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarations(
-      SequentializationFields pFields, MemoryAccessType pAccessType) {
+      MPOROptions pOptions, SequentializationFields pFields, MemoryAccessType pAccessType) {
 
     BitVectorVariables bitVectorVariables =
         pFields.ghostElements.getBitVectorVariables().orElseThrow();
@@ -197,6 +198,7 @@ public class SeqBitVectorDeclarationBuilder {
       for (var entry : sparseBitVectors.entrySet()) {
         rDeclarations.addAll(
             buildSparseBitVectorDeclarations(
+                pOptions,
                 entry.getValue(),
                 thread,
                 entry.getKey(),
@@ -220,24 +222,37 @@ public class SeqBitVectorDeclarationBuilder {
   }
 
   private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarations(
+      MPOROptions pOptions,
       SparseBitVector pSparseBitVector,
       MPORThread pThread,
       MemoryLocation pMemoryLocation,
       ImmutableSet<MemoryLocation> pDirectMemoryLocations,
       ImmutableSet<MemoryLocation> pReachableMemoryLocations) {
 
-    SeqBitVectorDeclaration directDeclaration =
-        buildSparseBitVectorDeclaration(
-            pSparseBitVector.getVariablesByReachType(ReachType.DIRECT).get(pThread),
-            pDirectMemoryLocations.contains(pMemoryLocation));
-    SeqBitVectorDeclaration reachableDeclaration =
-        buildSparseBitVectorDeclaration(
-            pSparseBitVector.getVariablesByReachType(ReachType.REACHABLE).get(pThread),
-            pReachableMemoryLocations.contains(pMemoryLocation));
-    return ImmutableList.<SeqBitVectorDeclaration>builder()
-        .add(directDeclaration)
-        .add(reachableDeclaration)
-        .build();
+    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    if (pOptions.reduceIgnoreSleep) {
+      if (!isSparseBitVectorPruned(pSparseBitVector, pThread, ReachType.DIRECT)) {
+        SeqBitVectorDeclaration directDeclaration =
+            buildSparseBitVectorDeclaration(
+                pSparseBitVector.getVariablesByReachType(ReachType.DIRECT).get(pThread),
+                pDirectMemoryLocations.contains(pMemoryLocation));
+        rDeclarations.add(directDeclaration);
+      }
+    }
+    if (!isSparseBitVectorPruned(pSparseBitVector, pThread, ReachType.REACHABLE)) {
+      SeqBitVectorDeclaration reachableDeclaration =
+          buildSparseBitVectorDeclaration(
+              pSparseBitVector.getVariablesByReachType(ReachType.REACHABLE).get(pThread),
+              pReachableMemoryLocations.contains(pMemoryLocation));
+      rDeclarations.add(reachableDeclaration);
+    }
+    return rDeclarations.build();
+  }
+
+  private static boolean isSparseBitVectorPruned(
+      SparseBitVector pSparseBitVector, MPORThread pThread, ReachType pReachType) {
+
+    return !pSparseBitVector.getVariablesByReachType(pReachType).containsKey(pThread);
   }
 
   private static SeqBitVectorDeclaration buildSparseBitVectorDeclaration(

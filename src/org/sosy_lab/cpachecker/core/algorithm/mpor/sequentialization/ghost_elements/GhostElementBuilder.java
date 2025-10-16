@@ -44,7 +44,8 @@ public class GhostElementBuilder {
     CIdExpression numThreadsIdExpression =
         SeqExpressionBuilder.buildNumThreadsIdExpression(pThreads.size());
     Optional<BitVectorVariables> bitVectorVariables =
-        BitVectorBuilder.buildBitVectorVariables(pOptions, pThreads, pMemoryModel);
+        BitVectorBuilder.buildBitVectorVariables(
+            pOptions, pThreads, pSubstituteEdges, pMemoryModel);
     ImmutableMap<MPORThread, FunctionStatements> functionStatements =
         FunctionStatementBuilder.buildFunctionStatements(
             pThreads, pSubstitutions, pSubstituteEdges);
@@ -53,6 +54,7 @@ public class GhostElementBuilder {
             pOptions, pThreads.size(), pBinaryExpressionBuilder);
     ThreadSyncFlags threadSyncFlags =
         ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
+
     return new GhostElements(
         numThreadsIdExpression,
         bitVectorVariables,

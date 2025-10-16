@@ -87,14 +87,17 @@ class BitVectorAssignmentUtil {
       ImmutableSet<MemoryLocation> pReachableMemoryLocations,
       CIdExpression pVariable) {
 
-    // if enabled, consider only 0 writes (the memory location is not reachable anymore)
-    if (!pOptions.pruneSparseBitVectorWrites
-        || !pReachableMemoryLocations.contains(pMemoryLocation)) {
-      boolean value = pReachableMemoryLocations.contains(pMemoryLocation);
-      SparseBitVectorValueExpression sparseBitVectorExpression =
-          new SparseBitVectorValueExpression(value);
-      return Optional.of(new SeqBitVectorAssignmentStatement(pVariable, sparseBitVectorExpression));
+    if (pVariable == null) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    // if enabled, consider only 0 writes (the memory location is not reachable anymore)
+    if (pOptions.pruneSparseBitVectorWrites
+        && pReachableMemoryLocations.contains(pMemoryLocation)) {
+      return Optional.empty();
+    }
+    boolean value = pReachableMemoryLocations.contains(pMemoryLocation);
+    SparseBitVectorValueExpression sparseBitVectorExpression =
+        new SparseBitVectorValueExpression(value);
+    return Optional.of(new SeqBitVectorAssignmentStatement(pVariable, sparseBitVectorExpression));
   }
 }

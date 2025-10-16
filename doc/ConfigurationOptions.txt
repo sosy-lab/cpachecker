@@ -365,7 +365,7 @@ analysis.algorithm.MPOR.overwriteFiles = true
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression
 # is 0, then the entire evaluation can be pruned.
-analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
+analysis.algorithm.MPOR.pruneBitVectorEvaluations = false
 
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true

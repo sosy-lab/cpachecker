@@ -190,7 +190,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
               + " if it is known that the left hand side in an & expression is 0, then the entire"
               + " evaluation can be pruned.")
-  private boolean pruneBitVectorEvaluation = false;
+  private boolean pruneBitVectorEvaluations = false;
 
   @Option(
       secure = true,
@@ -365,7 +365,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     outputPath,
                     outputProgram,
                     overwriteFiles,
-                    pruneBitVectorEvaluation,
+                    pruneBitVectorEvaluations,
                     pruneEmptyStatements,
                     pruneSparseBitVectors,
                     pruneSparseBitVectorWrites,
