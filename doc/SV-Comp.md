@@ -17,8 +17,8 @@ Steps used to generate new SV-Comp configurations (might be incomplete, update a
   - when done with the 2 steps above, cut the svcompXX configurations and paste them into the same folder they are in now, but rooted at `config/unmaintained`
   - open each configuration cut and pasted and update all paths such that all paths of none svcompXX configurations are updated to reflect their new location in `config/unmaintained` and its subfolders
     i.e. repair all paths to configurations referenced outside `config/unmaintained` except for svcompXX configurations
-- important: run the old, new, and unmaintained competition configuration on the entire set of SV-COMP XX and check that their results match.
-
+- important: run the old, new, and unmaintained competition configuration on the entire set of SV-COMP XX and check that their results match
+- change the configuration names in all benchmark definitions in `test/test-sets` from svcompXX to svcompYY 
 
 Example commands to copy, rename and sanity check from svcomp25 to svcomp26:
 (Add more folders with svcomp configurations when necessary!)
