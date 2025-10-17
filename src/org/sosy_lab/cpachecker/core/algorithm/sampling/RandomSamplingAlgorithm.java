@@ -12,8 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -31,9 +32,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -46,7 +46,10 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "sampling.random")
 public class RandomSamplingAlgorithm implements Algorithm {
@@ -86,8 +89,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
   private final LogManager logger;
   private final ShutdownNotifier notifier;
   private final ConfigurableProgramAnalysis cpa;
-  private final AssumptionToEdgeAllocator allocator;
-  private final TraceAssignmentExporter exporter;
+  private final PathChecker pathChecker;
 
   public RandomSamplingAlgorithm(
       Algorithm pAlgorithm,
@@ -102,16 +104,11 @@ public class RandomSamplingAlgorithm implements Algorithm {
     notifier = pNotifier;
     cpa = pCpa;
     algorithm = pAlgorithm;
-    allocator = AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
-    // TODO: Refactor this such that the export can be used statically
-    // We need to set the amount of maxAssignments to 1 here, since we want to export exactly the
-    // path we found and not ask an SMT solver for some new assignments.
-    Configuration detailedCexExportConfig =
-        Configuration.builder()
-            .copyFrom(pConfig)
-            .setOption("detailed_cex.maxAssignments", "1")
-            .build();
-    exporter = new TraceAssignmentExporter(detailedCexExportConfig, pLogger, pNotifier, pCfa);
+    Solver solver = Solver.create(pConfig, logger, notifier);
+    PathFormulaManagerImpl pmgr =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(), pConfig, logger, notifier, pCfa, AnalysisDirection.FORWARD);
+    pathChecker = new PathChecker(pConfig, logger, notifier, pCfa.getMachineModel(), pmgr, solver);
   }
 
   private void copyReachedSet(ReachedSet pSourceReachedSet, ReachedSet pTargetReachedSet) {
@@ -137,6 +134,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
     // to copy the precision.
     Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
     ReachedSet newReachedSet = null;
+    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
     while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated
         || samplesToBeGenerated < 0) {
       notifier.shutdownIfNecessary();
@@ -148,7 +146,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
       newReachedSet.add(newInitialState, precision);
 
       // run the algorithm
-      algorithm.run(newReachedSet);
+      status = algorithm.run(newReachedSet);
 
       // export the resulting trace
       exportReachedSet(newReachedSet);
@@ -165,10 +163,10 @@ public class RandomSamplingAlgorithm implements Algorithm {
       copyReachedSet(newReachedSet, reachedSet);
     }
 
-    return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    return status.update(AlgorithmStatus.UNSOUND_AND_PRECISE);
   }
 
-  void exportReachedSet(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  void exportReachedSet(ReachedSet pReachedSet) throws InterruptedException {
     List<ARGState> sortedById =
         FluentIterable.from(pReachedSet.asCollection())
             .filter(ARGState.class)
@@ -179,10 +177,9 @@ public class RandomSamplingAlgorithm implements Algorithm {
     Verify.verify(reachablePaths.size() == 1);
     ARGPath singlePath = FluentIterable.from(reachablePaths).get(0);
 
-    CFAPathWithAssumptions pathWithAssumptions =
-        CFAPathWithAssumptions.of(
-            Objects.requireNonNull(singlePath), pReachedSet.getCPA(), allocator);
-    CounterexampleInfo trace = CounterexampleInfo.feasiblePrecise(singlePath, pathWithAssumptions);
+    CounterexampleInfo trace =
+        pathChecker.handleFeasibleCounterexample(
+            CounterexampleTraceInfo.feasible(ImmutableList.of(), singlePath), singlePath);
 
     boolean isSafeTrace =
         FluentIterable.from(pReachedSet).filter(AbstractStates::isTargetState).isEmpty();
@@ -200,11 +197,8 @@ public class RandomSamplingAlgorithm implements Algorithm {
     }
 
     try {
-      IO.writeFile(
-          exportPath,
-          StandardCharsets.UTF_8,
-          exporter.exportDetailed(trace.getCFAPathWithAssignments()));
-    } catch (IOException | SolverException e) {
+      IO.writeFile(exportPath, Charset.defaultCharset(), trace);
+    } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not export trace inputs.");
     }
   }
