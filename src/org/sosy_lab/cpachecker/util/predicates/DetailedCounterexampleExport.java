@@ -143,13 +143,9 @@ public class DetailedCounterexampleExport {
     int generatedAssignments = 0;
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(pPathFormula.getFormula());
-      while (true) {
+      while (!prover.isUnsat() && generatedAssignments < maxAssignments) {
         // maps the variable name to the value
         ImmutableMap.Builder<String, Object> currentIteration = ImmutableMap.builder();
-        if (prover.isUnsat() || generatedAssignments == maxAssignments) {
-          break;
-        }
-        generatedAssignments++;
         BooleanFormula assignments = bmgr.makeTrue();
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           if (modelAssignment.getName().contains("__VERIFIER_nondet")) {
@@ -172,6 +168,7 @@ public class DetailedCounterexampleExport {
         // incremental solver usage
         prover.push(bmgr.not(assignments));
         allIterations.add(currentIteration.buildKeepingLast());
+        generatedAssignments++;
       }
     }
     return allIterations.build();
