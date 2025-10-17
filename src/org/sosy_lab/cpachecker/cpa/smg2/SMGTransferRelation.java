@@ -1001,14 +1001,14 @@ public class SMGTransferRelation
       throws CPATransferException {
     SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
 
-    if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+    if (builtins.isConfigurableAllocationFunctionWithManualMemoryCleanup(calledFunctionName)) {
       // Shortcut to faster errors
       ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
       String errorMSG =
           "Calling " + functionName + " and not using the return value results in a memory leak.";
       logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
       List<ValueAndSMGState> uselessValuesAndNewStates =
-          builtins.evaluateConfigurableAllocationFunction(
+          builtins.evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
               cFCExpression, calledFunctionName, pState, pCfaEdge);
       for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
         newStatesBuilder.add(

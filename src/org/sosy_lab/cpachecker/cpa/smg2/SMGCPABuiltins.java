@@ -127,7 +127,7 @@ public class SMGCPABuiltins {
           "fgets");
 
   /**
-   * Returns true if the functionName equals a built in function handleable by this class. This
+   * Returns true if the functionName equals a built-in function handleable by this class. This
    * class mostly handles memory related stuff i.e. malloc/free.
    *
    * @param functionName name of the function to check.
@@ -135,20 +135,21 @@ public class SMGCPABuiltins {
    */
   boolean isABuiltIn(String functionName) {
     return (BUILTINS.contains(functionName)
-        || isConfigurableAllocationFunction(functionName)
+        || isMemoryAllocationFunctionWithAutomaticMemoryCleanup(functionName)
+        || isConfigurableAllocationFunctionWithManualMemoryCleanup(functionName)
         || isDeallocationFunction(functionName)
         || isExternalAllocationFunction(functionName));
   }
 
   /**
-   * Checks if the input is one of the following memory allocation methods: "malloc", "__kmalloc",
-   * "kmalloc" and "calloc", maybe more if they are added, and returns true if it is one of those.
-   * false else.
+   * Checks if the input is one of the following memory allocation methods that require calling of
+   * free() to clean up memory: "malloc", "__kmalloc", "kmalloc", and "calloc", maybe more if they
+   * are added through options, and returns true if it is one of those. false else.
    *
    * @param functionName name of the function to check.
    * @return true for the specified names, false else.
    */
-  public boolean isConfigurableAllocationFunction(String functionName) {
+  public boolean isConfigurableAllocationFunctionWithManualMemoryCleanup(String functionName) {
     return options.getMemoryAllocationFunctions().contains(functionName)
         || options.getArrayAllocationFunctions().contains(functionName);
   }
@@ -197,16 +198,28 @@ public class SMGCPABuiltins {
     if (isVerifierNondetFunction(functionName)) {
       return handleVerifierNondetGeneratorFunction(functionName, pState, pCfaEdge);
     } else if (isABuiltIn(functionName)) {
-      if (isDeallocationFunction(functionName)) {
+
+      if (isMemoryAllocationFunctionWithAutomaticMemoryCleanup(functionName)) {
+        // alloca() - automatically freed memory allocation
+        return evaluateAlloca(functionCallExpr, pState, pCfaEdge);
+
+      } else if (isDeallocationFunction(functionName)) {
+        // free()
         return transformedImmutableListCopy(
             evaluateFree(functionCallExpr, pState, pCfaEdge), ValueAndSMGState::ofUnknownValue);
-      } else if (isConfigurableAllocationFunction(functionName)) {
-        return evaluateConfigurableAllocationFunction(
+
+      } else if (isConfigurableAllocationFunctionWithManualMemoryCleanup(functionName)) {
+        // malloc(), calloc() and everything that needs a call to free() to clean up
+        return evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
             functionCallExpr, functionName, pState, pCfaEdge);
+
       } else {
+        // builtin functions like strcmp(), realloc() etc.
         return handleBuiltinFunctionCall(pCfaEdge, functionCallExpr, functionName, pState);
       }
     }
+
+    // All functions not handled somewhere else (yet)
     return handleUnknownFunction(pCfaEdge, functionCallExpr, functionName, pState);
   }
 
@@ -291,8 +304,6 @@ public class SMGCPABuiltins {
     }
 
     return switch (calledFunctionName) {
-      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
-
       case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
 
       case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
@@ -332,7 +343,7 @@ public class SMGCPABuiltins {
 
       default ->
           throw new UnsupportedOperationException(
-              "Unexpected function handled as a builtin: "
+              "Unexpected function handled as a builtin function: "
                   + calledFunctionName
                   + ". At "
                   + pCfaEdge);
@@ -811,7 +822,11 @@ public class SMGCPABuiltins {
                   + " function: "
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
-            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+            infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+            throw new UnsupportedOperationException(infoMsg);
+          } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+            throw new UnsupportedOperationException(infoMsg);
           } else {
             logger.log(Level.FINE, infoMsg + ", in " + cfaEdge);
           }
@@ -938,9 +953,10 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles all allocation methods i.e. malloc Returns the pointer Value to the new memory region
-   * (that may be written to 0 for the correct function i.e. calloc). This also returns a state for
-   * the failure of the allocation function if the option is enabled.
+   * Handles all allocation methods that need a call to free() to clean up, e.g. malloc() and
+   * calloc(). Returns the pointer Value to the new memory region (that may be written to 0 for the
+   * correct function i.e. calloc). This also returns a state for the failure of the allocation
+   * function if the option is enabled.
    *
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
@@ -952,7 +968,7 @@ public class SMGCPABuiltins {
    *     type in case of errors an error state is set.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
-  List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
+  List<ValueAndSMGState> evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -969,7 +985,11 @@ public class SMGCPABuiltins {
                 + ": "
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
-          throw new SMGException(infoMsg);
+          infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+          throw new UnsupportedOperationException(infoMsg);
+        } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+          infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+          throw new UnsupportedOperationException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -1019,6 +1039,14 @@ public class SMGCPABuiltins {
     }
 
     return resultBuilder.build();
+  }
+
+  /**
+   * Checks if the called function is alloca(), which allocates memory that is automatically freed
+   * with signature: void *alloca(size_t size);
+   */
+  private boolean isMemoryAllocationFunctionWithAutomaticMemoryCleanup(String pFunctionName) {
+    return pFunctionName.equals("alloca") || pFunctionName.equals("__builtin_alloca");
   }
 
   // malloc(size) w size in bits
@@ -1436,7 +1464,11 @@ public class SMGCPABuiltins {
             "Could not determine a concrete size for a memory allocation function: "
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
-          throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+          infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+          throw new UnsupportedOperationException(infoMsg);
+        } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+          infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+          throw new UnsupportedOperationException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -2562,7 +2594,11 @@ public class SMGCPABuiltins {
               "Could not determine a concrete size for a memory allocation function: "
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
-            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+            infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+            throw new UnsupportedOperationException(infoMsg);
+          } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+            throw new UnsupportedOperationException(infoMsg);
           } else {
             logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
           }
