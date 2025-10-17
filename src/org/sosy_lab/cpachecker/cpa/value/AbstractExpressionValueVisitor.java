@@ -2310,30 +2310,23 @@ public abstract class AbstractExpressionValueVisitor
         final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
         SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
-            factory.binaryAnd(
-                symbolicParam,
-                factory.shiftLeft(
-                    one,
-                    factory.asConstant(new NumericValue(0), CNumericTypes.INT),
-                    argumentType,
-                    argumentType),
-                CNumericTypes.INT,
-                argumentType);
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, argumentType);
 
         // Add up the bits one by one
-        // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
+        // sum of ((castParamValue >> i) & 1)
         for (int i = 1; i < parameterBitSize; i++) {
-          SymbolicExpression bitAtIndex =
+          SymbolicExpression countOfBitAtIndex =
               factory.binaryAnd(
-                  symbolicParam,
-                  factory.shiftLeft(
-                      one,
+                  factory.shiftRightUnsigned(
+                      symbolicParam,
                       factory.asConstant(new NumericValue(i), CNumericTypes.INT),
                       argumentType,
                       argumentType),
+                  one,
                   CNumericTypes.INT,
                   argumentType);
-          constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+          constraint =
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
         return constraint;
       }
