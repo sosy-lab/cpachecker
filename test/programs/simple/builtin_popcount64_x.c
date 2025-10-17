@@ -7,17 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-void reach_error() { assert(0); }
-
-void __VERIFIER_assert(int cond) {
-    if (!(cond)) {
-          ERROR: {reach_error();abort();}
-                   }
-      return;
-}
 
 void test_popcount(){
   unsigned int test_int1 = 1231;//10011001111
