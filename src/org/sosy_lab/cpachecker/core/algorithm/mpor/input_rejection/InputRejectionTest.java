@@ -181,7 +181,6 @@ public class InputRejectionTest {
             ReductionOrder.NONE,
             false,
             false,
-            false,
             false);
 
     // create cfa for test program pFileName

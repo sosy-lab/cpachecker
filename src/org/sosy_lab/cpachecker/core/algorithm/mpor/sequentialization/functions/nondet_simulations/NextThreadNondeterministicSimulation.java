@@ -98,7 +98,6 @@ public class NextThreadNondeterministicSimulation {
             pClauses,
             pBinaryExpressionBuilder);
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions,
         pOptions.controlEncodingStatement,
         expression,
         precedingStatements,

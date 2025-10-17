@@ -95,8 +95,6 @@ public class MPOROptions {
 
   public final boolean scalarPc;
 
-  public final boolean sequentializationErrors;
-
   public final boolean shortVariableNames;
 
   public final boolean validateNoBackwardGoto;
@@ -138,7 +136,6 @@ public class MPOROptions {
       ReductionMode pReductionMode,
       ReductionOrder pReductionOrder,
       boolean pScalarPc,
-      boolean pSequentializationErrors,
       boolean pShortVariableNames,
       boolean pValidateNoBackwardGoto,
       boolean pValidateParse,
@@ -179,7 +176,6 @@ public class MPOROptions {
     reductionMode = pReductionMode;
     reductionOrder = pReductionOrder;
     scalarPc = pScalarPc;
-    sequentializationErrors = pSequentializationErrors;
     shortVariableNames = pShortVariableNames;
     validateNoBackwardGoto = pValidateNoBackwardGoto;
     validateParse = pValidateParse;
@@ -222,7 +218,6 @@ public class MPOROptions {
         ReductionMode.NONE,
         ReductionOrder.NONE,
         true,
-        false,
         true,
         true,
         true,
@@ -254,7 +249,6 @@ public class MPOROptions {
       ReductionMode pReductionMode,
       ReductionOrder pReductionOrder,
       boolean pScalarPc,
-      boolean pSequentializationErrors,
       boolean pShortVariableNames,
       boolean pValidateNoBackwardGoto) {
 
@@ -297,7 +291,6 @@ public class MPOROptions {
         pReductionMode,
         pReductionOrder,
         pScalarPc,
-        pSequentializationErrors,
         pShortVariableNames,
         pValidateNoBackwardGoto,
         // no parse validation is done separately in unit tests

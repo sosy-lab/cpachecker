@@ -241,13 +241,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "use separate int values (scalars) for tracking thread pcs instead of int arrays?")
   private boolean scalarPc = true;
 
-  @Option(
-      secure = true,
-      description =
-          "include additional reach_error marking sequentialization locations that are only"
-              + " reachable when transformation is faulty?")
-  private boolean sequentializationErrors = false;
-
   @Option(secure = true, description = "use shortened variable names, e.g. THREAD0 -> T0")
   private boolean shortVariableNames = true;
 
@@ -363,7 +356,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     reductionMode,
                     reductionOrder,
                     scalarPc,
-                    sequentializationErrors,
                     shortVariableNames,
                     validateNoBackwardGoto,
                     validateParse,

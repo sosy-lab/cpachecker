@@ -217,7 +217,6 @@ public class NumStatementsNondeterministicSimulation {
             pBinaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-            pOptions,
             pOptions.controlEncodingStatement,
             expression,
             assumption.isPresent()

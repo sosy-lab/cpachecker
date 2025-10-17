@@ -58,12 +58,6 @@ public class Sequentialization {
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
-  public static final String defaultCaseClauseError =
-      SeqToken._default
-          + SeqSyntax.COLON
-          + SeqSyntax.SPACE
-          + Sequentialization.outputReachErrorDummy;
-
   public static final int INIT_PC = 1;
 
   public static final int EXIT_PC = 0;

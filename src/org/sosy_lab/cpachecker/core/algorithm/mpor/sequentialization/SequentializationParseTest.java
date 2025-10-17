@@ -78,7 +78,6 @@ public class SequentializationParseTest {
             ReductionMode.READ_AND_WRITE,
             ReductionOrder.LAST_THREAD_THEN_CONFLICT,
             true,
-            true,
             false,
             true);
     testProgram(path, options);
@@ -117,7 +116,6 @@ public class SequentializationParseTest {
             ReductionMode.NONE,
             ReductionOrder.NONE,
             false,
-            true,
             false,
             // keep enabled
             true);
@@ -154,7 +152,6 @@ public class SequentializationParseTest {
             ReductionMode.NONE,
             ReductionOrder.NONE,
             true,
-            false,
             false,
             false);
     testProgram(path, options);
@@ -193,7 +190,6 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             false,
             false,
-            false,
             true);
     testProgram(path, options);
   }
@@ -230,7 +226,6 @@ public class SequentializationParseTest {
             ReductionOrder.CONFLICT_THEN_LAST_THREAD,
             true,
             true,
-            true,
             false);
     testProgram(path, options);
   }
@@ -264,7 +259,6 @@ public class SequentializationParseTest {
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
             false,
-            true,
             true,
             true);
     testProgram(path, options);
@@ -301,7 +295,6 @@ public class SequentializationParseTest {
             ReductionMode.READ_AND_WRITE,
             ReductionOrder.NONE,
             false,
-            true,
             false,
             false);
     testProgram(path, options);
@@ -336,7 +329,6 @@ public class SequentializationParseTest {
             false,
             ReductionMode.NONE,
             ReductionOrder.NONE,
-            true,
             true,
             false,
             true);
@@ -373,7 +365,6 @@ public class SequentializationParseTest {
             false,
             ReductionMode.READ_AND_WRITE,
             ReductionOrder.NONE,
-            false,
             false,
             false,
             // keep enabled
@@ -414,7 +405,6 @@ public class SequentializationParseTest {
             ReductionOrder.LAST_THREAD_THEN_CONFLICT,
             true,
             false,
-            false,
             false);
     testProgram(path, options);
   }
@@ -449,7 +439,6 @@ public class SequentializationParseTest {
             ReductionMode.READ_AND_WRITE,
             ReductionOrder.NONE,
             false,
-            true,
             false,
             true);
     testProgram(path, options);
@@ -486,7 +475,6 @@ public class SequentializationParseTest {
             ReductionMode.NONE,
             ReductionOrder.NONE,
             true,
-            false,
             true,
             false);
     testProgram(path, options);
@@ -521,7 +509,6 @@ public class SequentializationParseTest {
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
             false,
-            true,
             true,
             true);
     testProgram(path, options);

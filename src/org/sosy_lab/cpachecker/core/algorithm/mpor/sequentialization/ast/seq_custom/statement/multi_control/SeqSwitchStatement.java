@@ -14,8 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSwitchExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -32,8 +30,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqSwitchStatement implements SeqMultiControlStatement {
 
-  private final MPOROptions options;
-
   private final SeqSwitchExpression switchExpression;
 
   private final ImmutableList<CStatement> precedingStatements;
@@ -45,12 +41,10 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
   SeqSwitchStatement(
-      MPOROptions pOptions,
       CLeftHandSide pSwitchExpression,
       ImmutableList<CStatement> pPrecedingStatements,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
-    options = pOptions;
     switchExpression = new SeqSwitchExpression(pSwitchExpression);
     precedingStatements = pPrecedingStatements;
     statements = pStatements;
@@ -61,7 +55,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
     ImmutableList.Builder<String> switchCase = ImmutableList.builder();
     switchCase.addAll(SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
     switchCase.add(SeqStringUtil.appendCurlyBracketLeft(switchExpression.toASTString()));
-    switchCase.addAll(buildCases(options, statements));
+    switchCase.addAll(buildCases(statements));
     switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return SeqStringUtil.joinWithNewlines(switchCase.build());
   }
@@ -72,20 +66,15 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   }
 
   private static ImmutableList<String> buildCases(
-      MPOROptions pOptions, ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<String> rCases = ImmutableList.builder();
-    int index = 0;
     for (var entry : pStatements.entrySet()) {
-      boolean isLast = index == pStatements.size() - 1;
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
       String breakSuffix = buildBreakSuffix(statement);
       rCases.add(casePrefix + statement.toASTString() + breakSuffix);
-      if (isLast && pOptions.sequentializationErrors) {
-        rCases.add(Sequentialization.defaultCaseClauseError);
-      }
     }
     return rCases.build();
   }

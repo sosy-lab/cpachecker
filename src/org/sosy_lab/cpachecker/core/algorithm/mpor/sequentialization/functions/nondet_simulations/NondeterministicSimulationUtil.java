@@ -132,7 +132,6 @@ public class NondeterministicSimulationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions,
         pOptions.controlEncodingThread,
         SeqIdExpression.NEXT_THREAD,
         // the outer multi control statement never has an assumption

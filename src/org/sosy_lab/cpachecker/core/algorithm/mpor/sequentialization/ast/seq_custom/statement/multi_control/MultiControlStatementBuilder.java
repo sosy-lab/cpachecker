@@ -18,14 +18,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
 public class MultiControlStatementBuilder {
 
   /** Creates the {@link SeqMultiControlStatement} for {@code pThread}. */
   public static SeqMultiControlStatement buildMultiControlStatementByEncoding(
-      MPOROptions pOptions,
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
       ImmutableList<CStatement> pPrecedingStatements,
@@ -33,7 +31,6 @@ public class MultiControlStatementBuilder {
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    // TODO add default error statement for binary tree and if-else chain (sequentializationErrors)
     return switch (pMultiControlStatementEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
@@ -42,8 +39,7 @@ public class MultiControlStatementBuilder {
           new SeqBinarySearchTreeStatement(
               pExpression, pPrecedingStatements, pStatements, pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN -> new SeqIfElseChainStatement(pPrecedingStatements, pStatements);
-      case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pExpression, pPrecedingStatements, pStatements);
+      case SWITCH_CASE -> new SeqSwitchStatement(pExpression, pPrecedingStatements, pStatements);
     };
   }
 

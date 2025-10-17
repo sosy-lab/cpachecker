@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -150,11 +149,6 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     }
     // --- loop ends here ---
-
-    if (options.sequentializationErrors) {
-      // end of main function, only reachable if thread simulation finished incorrectly -> error
-      rBody.add(Sequentialization.outputReachErrorDummy);
-    }
     return rBody.build();
   }
 
