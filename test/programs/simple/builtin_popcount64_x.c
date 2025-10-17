@@ -96,16 +96,16 @@ void test_popcountll(){
   assert(__builtin_popcountll(test_uint32BitMaxValue) == 32);
   assert(__builtin_popcountll(test_uint64BitMaxValue) == 64);
 
-  long long test_longDongMax = 9223372036854775807LL;
-  long long test_longDongMin = 0x8000000000000000LL; // 1000...0000
-  long long test_longDongMinPlusOne = -9223372036854775807LL; // 1000...0001
+  long long test_longLongMax = 9223372036854775807LL;
+  long long test_longLongMin = 0x8000000000000000LL; // 1000...0000
+  long long test_longLongMinPlusOne = -9223372036854775807LL; // 1000...0001
 
   unsigned long long test_ulongLongMax = 18446744073709551615ULL;
   unsigned long long test_ulongLongMaxMinusOne = 18446744073709551614ULL;
 
-  assert(__builtin_popcountll(test_longDongMax) == 63);
-  assert(__builtin_popcountll(test_longDongMin) == 1);
-  assert(__builtin_popcountll(test_longDongMinPlusOne) == 2);
+  assert(__builtin_popcountll(test_longLongMax) == 63);
+  assert(__builtin_popcountll(test_longLongMin) == 1);
+  assert(__builtin_popcountll(test_longLongMinPlusOne) == 2);
   assert(__builtin_popcountll(test_ulongLongMax) == 64);
   assert(__builtin_popcountll(test_ulongLongMaxMinusOne) == 63);
 }
