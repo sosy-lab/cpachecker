@@ -704,19 +704,6 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  /**
-   * Convert a value to a CExpression of the given simple type. This method also handles potential
-   * overflows.
-   *
-   * @param pValue the value to convert
-   * @param pSimpleType the target type
-   * @return the CExpression representing the value
-   */
-  public CExpression convert(Object pValue, CSimpleType pSimpleType) {
-    ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, null, null);
-    return v.getValueLiteral(pSimpleType, pValue).getValueLiteral();
-  }
-
   private class LModelValueVisitor implements CLeftHandSideVisitor<@Nullable Object, NoException> {
 
     private final String functionName;
