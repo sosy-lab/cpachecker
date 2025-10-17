@@ -2721,7 +2721,6 @@ public class SMGCPABuiltins {
 
       } else if (options.trackPredicates() && !castParamValue.isUnknown()) {
 
-        checkArgument(castParamValue.isExplicitlyKnown());
         checkArgument(castParamValue instanceof SymbolicExpression);
 
         SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
@@ -2731,29 +2730,30 @@ public class SMGCPABuiltins {
         SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
             factory.binaryAnd(
-                symbolicParam,
-                factory.shiftLeft(
-                    one,
+                factory.shiftRightUnsigned(
+                    symbolicParam,
                     factory.asConstant(new NumericValue(0), CNumericTypes.INT),
                     paramType,
                     paramType),
+                one,
                 CNumericTypes.INT,
                 paramType);
 
         // Add up the bits one by one
-        // castParamValue & (1 << 0) + castParamValue & (1 << 1) + ...
+        // castParamValue >> 0 & 1 + castParamValue >> 1 & 1 + ...
         for (int i = 1; i < parameterBitSize; i++) {
-          SymbolicExpression bitAtIndex =
+          SymbolicExpression countOfBitAtIndex =
               factory.binaryAnd(
-                  symbolicParam,
-                  factory.shiftLeft(
-                      one,
+                  factory.shiftRightUnsigned(
+                      symbolicParam,
                       factory.asConstant(new NumericValue(i), CNumericTypes.INT),
                       paramType,
                       paramType),
+                  one,
                   CNumericTypes.INT,
                   paramType);
-          constraint = factory.add(constraint, bitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+          constraint =
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
 
         result.add(ValueAndSMGState.of(constraint, currentState));
