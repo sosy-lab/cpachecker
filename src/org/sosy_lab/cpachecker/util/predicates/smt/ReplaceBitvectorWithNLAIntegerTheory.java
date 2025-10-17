@@ -13,6 +13,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,7 +68,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Option(
       secure = true,
       description =
-          "When a bitwise/shift operation is not supported by the NLA encoding, approximate it"
+          "When using the NLA encoding, approximate unsupported operations (e.g., bitwise shift)"
               + " with an uninterpreted function (UF). If false, the operation fails early by"
               + " throwing UnsupportedOperationException.")
   private boolean approximateBitwiseWithUFs = true;
@@ -125,7 +126,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FormulaType<BitvectorFormula> retType,
       FunctionDeclaration<IntegerFormula> decl,
       BitvectorFormula... args) {
-    List<Formula> uargs = unwrap(java.util.Arrays.<Formula>asList(args));
+    List<Formula> uargs = unwrap(Arrays.<Formula>asList(args));
     return wrap(retType, functionManager.callUF(decl, uargs));
   }
 

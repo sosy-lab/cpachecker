@@ -2342,8 +2342,8 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
-# When a bitwise/shift operation is not supported by the NLA encoding,
-# approximate it with an uninterpreted function (UF). If false, the operation
+# When using the NLA encoding, approximate unsupported operations (e.g.,
+# bitwise shift) with an uninterpreted function (UF). If false, the operation
 # fails early by throwing UnsupportedOperationException.
 cpa.predicate.approximateBitwiseWithUFs = true
 
