@@ -7,8 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 extern unsigned int __VERIFIER_nondet_uint();
 extern int __VERIFIER_nondet_int();
@@ -19,14 +17,6 @@ extern long __VERIFIER_nondet_long();
 extern unsigned long long __VERIFIER_nondet_ulonglong();
 extern long long __VERIFIER_nondet_longlong();
 
-void reach_error() { assert(0); }
-
-void __VERIFIER_assert(int cond) {
-    if (!(cond)) {
-          ERROR: {reach_error();abort();}
-                   }
-      return 0;
-}
 
 int test_popcount() {
   unsigned int test_int1 = 1231;//10011001111
@@ -253,6 +243,6 @@ int main() {
   int resLongLong = test_popcountll();
   
   // Violates if there is no true result in any of the 3 functions
-  __VERIFIER_assert(resInt || resLong || resLongLong);
+  assert(resInt || resLong || resLongLong);
   return 0;
 }

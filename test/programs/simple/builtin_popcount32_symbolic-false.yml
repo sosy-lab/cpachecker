@@ -13,8 +13,6 @@ input_files: 'builtin_popcount32_symbolic-false.i'
 properties:
   - property_file: ../../config/Assertion.spc
     expected_verdict: false
-  - property_file: ../../../config/properties/unreach-call.prp
-    expected_verdict: false
 
 options:
   language: C
