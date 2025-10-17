@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -2293,8 +2294,10 @@ public abstract class AbstractExpressionValueVisitor
       if (paramValue.isNumericValue()) {
         BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
 
-        // Check that the input is unsigned, as defined by the function
-        checkArgument(
+        // Check that the cast function parameter is really unsigned, as defined by the function and
+        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
+        // results
+        verify(
             numericParam.signum() >= 0,
             "Evaluated parameter for C function %s is negative, but the function defines unsigned"
                 + " parameters only",
