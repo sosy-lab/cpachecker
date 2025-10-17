@@ -82,7 +82,7 @@ public class BitVectorVariables {
     ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
     for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(denseBitVector.getThread())) {
-        rDenseBitVectors.add(denseBitVector.getReachableVariable());
+        rDenseBitVectors.add(denseBitVector.getVariableByReachType(ReachType.REACHABLE));
       }
     }
     return rDenseBitVectors.build();

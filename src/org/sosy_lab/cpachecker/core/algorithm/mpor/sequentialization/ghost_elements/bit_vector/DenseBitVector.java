@@ -39,26 +39,17 @@ public class DenseBitVector {
     return thread;
   }
 
-  public boolean isDirectVariablePresent() {
-    return directVariable.isPresent();
-  }
-
-  public CIdExpression getDirectVariable() {
-    return directVariable.orElseThrow();
-  }
-
-  public boolean isReachableVariablePresent() {
-    return reachableVariable.isPresent();
-  }
-
-  public CIdExpression getReachableVariable() {
-    return reachableVariable.orElseThrow();
+  public boolean isVariablePresentByReachType(ReachType pReachType) {
+    return switch (pReachType) {
+      case DIRECT -> directVariable.isPresent();
+      case REACHABLE -> reachableVariable.isPresent();
+    };
   }
 
   public CIdExpression getVariableByReachType(ReachType pReachType) {
     return switch (pReachType) {
-      case DIRECT -> getDirectVariable();
-      case REACHABLE -> getReachableVariable();
+      case DIRECT -> directVariable.orElseThrow();
+      case REACHABLE -> reachableVariable.orElseThrow();
     };
   }
 }
