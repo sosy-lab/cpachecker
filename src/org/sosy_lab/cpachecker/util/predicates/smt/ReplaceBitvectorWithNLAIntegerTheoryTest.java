@@ -86,7 +86,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
       IntegerFormula expected =
           imgr.makeNumber(BigInteger.valueOf(value).mod(BigInteger.valueOf(16)));
       BooleanFormula constraint = imgr.equal(replacer.wrapAround(formula, 4), expected);
-      assertThatFormula(constraint).isSatisfiable();
+      assertThatFormula(constraint).isTautological();
     }
   }
 
@@ -98,7 +98,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
       IntegerFormula formula = imgr.makeNumber(value);
       IntegerFormula expected = imgr.makeNumber(expectedNumber);
       BooleanFormula constraint = imgr.equal(replacer.mapToSignedRange(formula, 4), expected);
-      assertThatFormula(constraint).isSatisfiable();
+      assertThatFormula(constraint).isTautological();
     }
   }
 
