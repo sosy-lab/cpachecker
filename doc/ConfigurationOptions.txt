@@ -3029,7 +3029,9 @@ cpa.predicate.useMemoryRegions = false
 cpa.predicate.useNondetFlags = false
 
 # When using encodeBitvectorAs=INTEGER, this will modify the bitvector
-# replacement behavior such that unsigned integers will wrap around.
+# replacement behavior such that unbounded integer arithmetic (NLA) (and
+# additional
+#  constraints) is used to model wrap-around and boundedness.
 cpa.predicate.useNonlinearArithmeticForIntAsBv = false
 
 # Insert tmp-variables for parameters at function-entries. The variables are

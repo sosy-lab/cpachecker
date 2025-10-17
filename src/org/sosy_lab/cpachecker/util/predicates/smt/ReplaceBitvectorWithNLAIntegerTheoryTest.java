@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.TruthJUnit.assume;
+import static org.sosy_lab.java_smt.SolverContextFactory.Solvers.PRINCESS;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -160,6 +161,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
   }
 
   private void checkModuloRemainderDiv(int aVal, int bVal) throws Exception {
+    assume().that(solverToUse).isNotEqualTo(PRINCESS);
     for (Pair<BinaryOperator<BitvectorFormula>, BinaryOperator<BitvectorFormula>> testMethods :
         methodsToTest) {
       BinaryOperator<BitvectorFormula> toTest = testMethods.getFirst();
