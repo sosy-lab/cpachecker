@@ -103,14 +103,16 @@ public class SeqBitVectorDeclarationBuilder {
       SeqThreadStatementBlock firstBlock = clauses.get(thread).getFirst().getFirstBlock();
 
       for (ReachType reachType : ReachType.values()) {
-        ImmutableSet<MemoryLocation> memoryLocations =
-            MemoryLocationFinder.findMemoryLocationsByReachType(
-                labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
-        BitVectorValueExpression initializer =
-            BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, memoryLocations);
-        rDeclarations.add(
-            new SeqBitVectorDeclaration(
-                type, denseBitVector.getVariableByReachType(reachType), initializer));
+        if (BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, reachType)) {
+          ImmutableSet<MemoryLocation> memoryLocations =
+              MemoryLocationFinder.findMemoryLocationsByReachType(
+                  labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
+          BitVectorValueExpression initializer =
+              BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, memoryLocations);
+          rDeclarations.add(
+              new SeqBitVectorDeclaration(
+                  type, denseBitVector.getVariableByReachType(reachType), initializer));
+        }
       }
     }
     if (bitVectorVariables.isLastDenseBitVectorPresentByAccessType(pAccessType)) {
