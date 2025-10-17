@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker"
+           timelimit="900s"
+           hardtimelimit="1000s"
+           memlimit="8000 MB"
+           cpuCores="1">
+
+    <option name="--benchmark"/>
+    <option name="--heap">4000M</option>
+    <option name="--no-output-files"/>
+
+
+    <rundefinition name="predicate-delegating-refiner">
+        <includeProperties>config/predicateAnalysis-delegatingrefiner.properties</includeProperties>
+        <option name="--preprocess"/>
+        <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+        <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+
+        <tasks name="Loops">
+            <include>../programs/benchmarks/loop-new/*.c</include>
+            <include>../programs/benchmarks/loops/*.c</include>
+            <include>../programs/benchmarks/loop-simple/*.c</include>
+
+
+        </tasks>
+    </rundefinition>
+</benchmark>
+
+
