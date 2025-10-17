@@ -108,11 +108,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
-      description = "assign K only when the respective thread is active i.e. lazily?")
-  private boolean kAssignLazy = true;
-
-  @Option(
-      secure = true,
       description = "include CPAchecker license header in the sequentialization?")
   private boolean license = false;
 
@@ -346,7 +341,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     controlEncodingThread,
                     inputFunctionDeclarations,
                     inputTypeDeclarations,
-                    kAssignLazy,
                     license,
                     linkReduction,
                     loopIterations,

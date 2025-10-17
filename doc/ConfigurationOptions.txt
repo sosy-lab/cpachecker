@@ -310,9 +310,6 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # include original type declarations from input file?
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# assign K only when the respective thread is active i.e. lazily?
-analysis.algorithm.MPOR.kAssignLazy = true
-
 # include CPAchecker license header in the sequentialization?
 analysis.algorithm.MPOR.license = false
 

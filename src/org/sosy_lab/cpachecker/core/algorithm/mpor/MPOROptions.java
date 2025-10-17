@@ -51,8 +51,6 @@ public class MPOROptions {
 
   public final boolean inputTypeDeclarations;
 
-  public final boolean kAssignLazy;
-
   public final boolean license;
 
   public final boolean linkReduction;
@@ -118,7 +116,6 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
-      boolean pKAssignLazy,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -160,7 +157,6 @@ public class MPOROptions {
     controlEncodingThread = pControlEncodingThread;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
-    kAssignLazy = pKAssignLazy;
     license = pLicense;
     linkReduction = pLinkReduction;
     loopIterations = pLoopIterations;
@@ -203,7 +199,6 @@ public class MPOROptions {
         MultiControlStatementEncoding.NONE,
         false,
         true,
-        true,
         false,
         // linkReduction = true so that MemoryModel is created
         true,
@@ -242,7 +237,6 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
-      boolean pKAssignLazy,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -279,7 +273,6 @@ public class MPOROptions {
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
-        pKAssignLazy,
         pLicense,
         pLinkReduction,
         pLoopIterations,

@@ -164,7 +164,6 @@ public class InputRejectionTest {
             false,
             false,
             false,
-            false,
             0,
             false,
             false,
