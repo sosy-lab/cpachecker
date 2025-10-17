@@ -2729,18 +2729,10 @@ public class SMGCPABuiltins {
         final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
         SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
-            factory.binaryAnd(
-                factory.shiftRightUnsigned(
-                    symbolicParam,
-                    factory.asConstant(new NumericValue(0), CNumericTypes.INT),
-                    paramType,
-                    paramType),
-                one,
-                CNumericTypes.INT,
-                paramType);
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, paramType);
 
         // Add up the bits one by one
-        // castParamValue >> 0 & 1 + castParamValue >> 1 & 1 + ...
+        // (castParamValue >> 0) & 1 + (castParamValue >> 1) & 1 + ...
         for (int i = 1; i < parameterBitSize; i++) {
           SymbolicExpression countOfBitAtIndex =
               factory.binaryAnd(
