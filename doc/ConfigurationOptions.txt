@@ -4194,9 +4194,6 @@ dependencegraph.pointerAnalysisTime = 0s
 # PointerStateComputationMethod.FLOW_INSENSITIVE
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
-# How many satisfying assignments to find per CEX; -1 for all
-detailed_cex.maxAssignments = no default value
-
 # comma-separated list of files with property specifications that should be
 # considered when determining the nodes that are in the reachability
 # property.
