@@ -155,13 +155,6 @@ public class CounterexampleInfo extends AbstractAppender {
     return spurious;
   }
 
-  // Used in DelegatingRefiner via the StopRefiner when it stops refinement because in this case,
-  // feasibility of CEX is no longer relevant
-  public static CounterexampleInfo giveUp(ARGPath spuriousCounterexamplePath) {
-    return new CounterexampleInfo(
-        true, spuriousCounterexamplePath, null, false, CFAPathWithAdditionalInfo.empty());
-  }
-
   /**
    * Gets the target path recorded for this counterexample.
    *
