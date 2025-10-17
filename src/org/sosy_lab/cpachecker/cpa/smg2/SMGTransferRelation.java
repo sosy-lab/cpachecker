@@ -1000,36 +1000,28 @@ public class SMGTransferRelation
       String calledFunctionName)
       throws CPATransferException {
     SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
-    List<ValueAndSMGState> uselessValuesAndStates;
-    if (builtins.isABuiltIn(calledFunctionName)) {
-      if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
-        ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
-        String errorMSG =
-            "Calling " + functionName + " and not using the return value results in a memory leak.";
-        logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
-        List<ValueAndSMGState> uselessValuesAndNewStates =
-            builtins.evaluateConfigurableAllocationFunction(
-                cFCExpression, calledFunctionName, pState, pCfaEdge);
-        for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
-          newStatesBuilder.add(
-              valueAndState
-                  .getState()
-                  .withMemoryLeak(errorMSG, ImmutableList.of(valueAndState.getValue())));
-        }
-        return newStatesBuilder.build();
+
+    if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+      // Shortcut to faster errors
+      ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
+      String errorMSG =
+          "Calling " + functionName + " and not using the return value results in a memory leak.";
+      logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
+      List<ValueAndSMGState> uselessValuesAndNewStates =
+          builtins.evaluateConfigurableAllocationFunction(
+              cFCExpression, calledFunctionName, pState, pCfaEdge);
+      for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
+        newStatesBuilder.add(
+            valueAndState
+                .getState()
+                .withMemoryLeak(errorMSG, ImmutableList.of(valueAndState.getValue())));
       }
-      if (builtins.isDeallocationFunction(calledFunctionName)) {
-        return builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
-      } else {
-        uselessValuesAndStates =
-            builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
-      }
-    } else {
-      // Check arguments for unknown functions without body
-      uselessValuesAndStates =
-          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
+      return newStatesBuilder.build();
     }
-    return transformedImmutableListCopy(uselessValuesAndStates, ValueAndSMGState::getState);
+
+    return transformedImmutableListCopy(
+        builtins.handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, pState, pCfaEdge),
+        ValueAndSMGState::getState);
   }
 
   @Override
