@@ -120,8 +120,4 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   public Collection<TargetInformation> getTargetInformation() {
     return delegate.getTargetInformation();
   }
-
-  public UnmodifiableReachedSet getDelegate() {
-    return delegate;
-  }
 }

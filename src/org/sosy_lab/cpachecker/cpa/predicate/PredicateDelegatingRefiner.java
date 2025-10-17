@@ -67,8 +67,7 @@ public class PredicateDelegatingRefiner implements Refiner {
     // to create refiners and populate the ImmutableList<HeuristicDelegatingRefinerRecord>
     // refinerRecords, it is necessary to call factory.create(strategy) but the resulting refiner is
     // not needed for DelegatingRefiner functionality
-    @SuppressWarnings("unused")
-    ARGBasedRefiner ignoredRefiner = factory.create(strategy);
+    factory.create(strategy);
 
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = factory.getRefinerRecords();
 

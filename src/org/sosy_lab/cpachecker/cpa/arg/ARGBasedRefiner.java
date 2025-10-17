@@ -32,8 +32,4 @@ public interface ARGBasedRefiner {
    */
   CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException;
-
-  default boolean shouldTerminateRefinement() {
-    return false;
-  }
 }
