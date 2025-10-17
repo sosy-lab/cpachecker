@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -101,6 +100,8 @@ public class SMGCPABuiltins {
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
 
+  private static final String VERIFIER_NONDET_PREFIX = "__VERIFIER_nondet_";
+
   // TODO: Properly model printf (dereferences and stuff)
   // TODO: General modelling system for functions which do not modify state?
   private static final ImmutableSet<String> BUILTINS =
@@ -131,23 +132,9 @@ public class SMGCPABuiltins {
    */
   boolean isABuiltIn(String functionName) {
     return (BUILTINS.contains(functionName)
-        || isNondetBuiltin(functionName)
         || isConfigurableAllocationFunction(functionName)
         || isDeallocationFunction(functionName)
         || isExternalAllocationFunction(functionName));
-  }
-
-  private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
-
-  /**
-   * Returns true if the function is some function involving nondeterministic behaviour (i.e.
-   * returning a nondet int).
-   *
-   * @param pFunctionName name of the function to check.
-   * @return true for the specified names, false else.
-   */
-  private boolean isNondetBuiltin(String pFunctionName) {
-    return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
   }
 
   /**
@@ -184,8 +171,9 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Routes to the correct function call. Only handles built in functions. If no such function is
-   * found this returns an unknown value.
+   * Routes to the correct function call. Only handles functions without body, e.g. built-in
+   * functions or __VERIFIER_nondet_int(). If no such function is found this returns an unknown
+   * value or an exception.
    *
    * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
@@ -193,16 +181,18 @@ public class SMGCPABuiltins {
    * @param functionName Name of the function.
    * @param pSmgState current {@link SMGState}.
    * @param pCfaEdge for logging/debugging.
-   * @return the result of the function call and the state for it. May be an error state!
+   * @return the result of the function call and the state for it. Maybe an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleFunctionCall(
+  public List<ValueAndSMGState> handleFunctionCallWithoutBody(
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,
       CFAEdge pCfaEdge)
       throws CPATransferException {
-    if (isABuiltIn(functionName)) {
+    if (isVerifierNondetFunction(functionName)) {
+      return handleVerifierNondetGeneratorFunction(functionName, pSmgState, pCfaEdge);
+    } else if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(
             pFunctionCall, functionName, pSmgState, pCfaEdge);
@@ -211,6 +201,64 @@ public class SMGCPABuiltins {
       }
     }
     return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
+  }
+
+  private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
+      String pFunctionName, SMGState pState, CFAEdge pCfaEdge) throws UnrecognizedCodeException {
+    // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
+    // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
+    // ushort} (no side effects, pointer for void *, etc.).
+
+    // TODO:
+    // __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory block
+    // with arbitrary values. The first argument must be a valid pointer to the start of a memory
+    // block of the given size. The second argument specifies the size of the memory to initialize
+    // and must match the size of the memory block that the first argument points to. The
+    // dereference of any pointer value set through this method results in undefined behavior. This
+    // means that pointer values must be explicitly set through different means before they can be
+    // dereferenced.
+
+    // TODO: consider casting directly to desired type?
+    // castCValue(uncastedValueAndState.getValue(), pTargetType);
+    ValueAndSMGState nondet =
+        switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
+          case "bool",
+              "char",
+              "int",
+              "int128",
+              "float",
+              "double",
+              "long",
+              "longlong",
+              "pchar",
+              "short",
+              "size_t",
+              "u32",
+              "uchar",
+              "uint",
+              "uint128",
+              "ulong",
+              "ulonglong",
+              "unsigned",
+              "ushort" ->
+              ValueAndSMGState.ofUnknownValue(pState);
+          case "loff_t", "pthread_t", "sector_t" ->
+              throw new UnsupportedOperationException(
+                  "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
+          default ->
+              throw new UnsupportedOperationException(
+                  "Unknown and unhandled "
+                      + VERIFIER_NONDET_PREFIX
+                      + "X() function: "
+                      + pFunctionName
+                      + " at "
+                      + pCfaEdge);
+        };
+    return ImmutableList.of(nondet);
+  }
+
+  public static boolean isVerifierNondetFunction(String pFunctionName) {
+    return pFunctionName.contains(VERIFIER_NONDET_PREFIX);
   }
 
   /**
@@ -276,19 +324,12 @@ public class SMGCPABuiltins {
 
       case "fgets" -> evaluateFGets(cFCExpression, pCfaEdge, pState, calledFunctionName);
 
-      default -> {
-        if (isNondetBuiltin(calledFunctionName)) {
-          yield Collections.singletonList(
-              ValueAndSMGState.ofUnknownValue(
-                  pState,
-                  "Returned unknown value due to call to nondeterministic havoc function as defined"
-                      + " in SV-COMP ",
-                  pCfaEdge));
-        } else {
+      default ->
           throw new UnsupportedOperationException(
-              "Unexpected function handled as a builtin: " + calledFunctionName);
-        }
-      }
+              "Unexpected function handled as a builtin: "
+                  + calledFunctionName
+                  + ". At "
+                  + pCfaEdge);
     };
   }
 
