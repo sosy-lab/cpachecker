@@ -38,6 +38,23 @@ public class MemoryLocationFinder {
         .anyMatch(relevantMemoryLocation -> foundMemoryLocations.contains(relevantMemoryLocation));
   }
 
+  public static ImmutableSet<MemoryLocation> findMemoryLocationsByReachType(
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      SeqThreadStatementBlock pBlock,
+      MemoryModel pMemoryModel,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
+
+    return switch (pReachType) {
+      case DIRECT ->
+          findDirectMemoryLocationsByAccessType(pLabelBlockMap, pBlock, pMemoryModel, pAccessType);
+      case REACHABLE ->
+          findReachableMemoryLocationsByAccessType(
+              pLabelClauseMap, pLabelBlockMap, pBlock, pMemoryModel, pAccessType);
+    };
+  }
+
   /**
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
