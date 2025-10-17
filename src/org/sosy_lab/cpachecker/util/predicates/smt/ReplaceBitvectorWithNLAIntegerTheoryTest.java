@@ -168,17 +168,11 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
       BitvectorFormula b = replacer.makeBitvector(4, bVal);
       // Use bitvector semantics as the baseline for expected result
       BitvectorFormula expectedBv =
-          baseline.apply(
-              mgrv.getBitvectorFormulaManager().makeBitvector(4, aVal),
-              mgrv.getBitvectorFormulaManager().makeBitvector(4, bVal));
+          baseline.apply(bvmgr.makeBitvector(4, aVal), bvmgr.makeBitvector(4, bVal));
 
       BitvectorFormula input = toTest.apply(a, b);
       BooleanFormula constraint =
-          mgrv.getBitvectorFormulaManager()
-              .equal(
-                  mgrv.getBitvectorFormulaManager()
-                      .makeBitvector(4, replacer.toIntegerFormula(input, false)),
-                  expectedBv);
+          bvmgr.equal(bvmgr.makeBitvector(4, replacer.toIntegerFormula(input, false)), expectedBv);
       assertThatFormula(constraint).isTautological();
     }
   }
