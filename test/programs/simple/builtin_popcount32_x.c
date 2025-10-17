@@ -92,19 +92,19 @@ void test_popcountll() {
   __VERIFIER_assert(__builtin_popcountll(test_uint32BitMaxValue) == 32);
 
   long long test_longLongMax = 9223372036854775807LL;
-  long long test_longDongMin = 0x8000000000000000LL; // 1000...0000
-  long long test_longDongMinPlusOne = -9223372036854775807LL; // 1000...0001
-  long long test_longDongMinusOne = -1;  // 1111...1111
+  long long test_longLongMin = 0x8000000000000000LL; // 1000...0000
+  long long test_longLongMinPlusOne = -9223372036854775807LL; // 1000...0001
+  long long test_longLongMinusOne = -1;  // 1111...1111
 
   unsigned long long test_ulongLongMax = 18446744073709551615ULL;
   unsigned long long test_ulongLongMaxMinusOne = 18446744073709551614ULL;
 
   __VERIFIER_assert(__builtin_popcountll(test_longLongMax) == 63);
-  __VERIFIER_assert(__builtin_popcountll(test_longDongMinPlusOne) == 2);
-  __VERIFIER_assert(__builtin_popcountll(test_longDongMinusOne) == 64);
+  __VERIFIER_assert(__builtin_popcountll(test_longLongMinPlusOne) == 2);
+  __VERIFIER_assert(__builtin_popcountll(test_longLongMinusOne) == 64);
   __VERIFIER_assert(__builtin_popcountll(test_ulongLongMax) == 64);
   __VERIFIER_assert(__builtin_popcountll(test_ulongLongMaxMinusOne) == 63);
-  __VERIFIER_assert(__builtin_popcountll(test_longDongMin) == 1);
+  __VERIFIER_assert(__builtin_popcountll(test_longLongMin) == 1);
 }
 
 // GCC builtin function -> use GCC to compile!

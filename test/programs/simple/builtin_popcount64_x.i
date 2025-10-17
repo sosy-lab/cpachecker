@@ -395,14 +395,14 @@ void test_popcountll(){
   ((__builtin_popcountll(test_uint16BitMaxValue) == 16) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_uint16BitMaxValue) == 16", "builtin_popcount64_x.c", 95, __extension__ __PRETTY_FUNCTION__));
   ((__builtin_popcountll(test_uint32BitMaxValue) == 32) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_uint32BitMaxValue) == 32", "builtin_popcount64_x.c", 96, __extension__ __PRETTY_FUNCTION__));
   ((__builtin_popcountll(test_uint64BitMaxValue) == 64) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_uint64BitMaxValue) == 64", "builtin_popcount64_x.c", 97, __extension__ __PRETTY_FUNCTION__));
-  long long test_longDongMax = 9223372036854775807LL;
-  long long test_longDongMin = 0x8000000000000000LL;
-  long long test_longDongMinPlusOne = -9223372036854775807LL;
+  long long test_longLongMax = 9223372036854775807LL;
+  long long test_longLongMin = 0x8000000000000000LL;
+  long long test_longLongMinPlusOne = -9223372036854775807LL;
   unsigned long long test_ulongLongMax = 18446744073709551615ULL;
   unsigned long long test_ulongLongMaxMinusOne = 18446744073709551614ULL;
-  ((__builtin_popcountll(test_longDongMax) == 63) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longDongMax) == 63", "builtin_popcount64_x.c", 106, __extension__ __PRETTY_FUNCTION__));
-  ((__builtin_popcountll(test_longDongMin) == 1) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longDongMin) == 1", "builtin_popcount64_x.c", 107, __extension__ __PRETTY_FUNCTION__));
-  ((__builtin_popcountll(test_longDongMinPlusOne) == 2) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longDongMinPlusOne) == 2", "builtin_popcount64_x.c", 108, __extension__ __PRETTY_FUNCTION__));
+  ((__builtin_popcountll(test_longLongMax) == 63) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longLongMax) == 63", "builtin_popcount64_x.c", 106, __extension__ __PRETTY_FUNCTION__));
+  ((__builtin_popcountll(test_longLongMin) == 1) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longLongMin) == 1", "builtin_popcount64_x.c", 107, __extension__ __PRETTY_FUNCTION__));
+  ((__builtin_popcountll(test_longLongMinPlusOne) == 2) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_longLongMinPlusOne) == 2", "builtin_popcount64_x.c", 108, __extension__ __PRETTY_FUNCTION__));
   ((__builtin_popcountll(test_ulongLongMax) == 64) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_ulongLongMax) == 64", "builtin_popcount64_x.c", 109, __extension__ __PRETTY_FUNCTION__));
   ((__builtin_popcountll(test_ulongLongMaxMinusOne) == 63) ? (void) (0) : __assert_fail ("__builtin_popcountll(test_ulongLongMaxMinusOne) == 63", "builtin_popcount64_x.c", 110, __extension__ __PRETTY_FUNCTION__));
 }
