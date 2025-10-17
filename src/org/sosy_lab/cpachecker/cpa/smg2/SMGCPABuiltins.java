@@ -2592,28 +2592,32 @@ public class SMGCPABuiltins {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
     }
+
     CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
     if (pSizeValue.isNumericValue()) {
       sizeInBits =
           new NumericValue(
               pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
+
     } else {
-      if (options.trackPredicates()) {
-        if (!pSizeValue.isNumericValue()) {
-          sizeType =
-              SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  functionCall.getParameterExpressions().getFirst().getExpressionType(),
-                  machineModel);
-        }
+      // Size symbolic
+      if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+        throw new SMGException(
+            "Can't handle symbolic paramter in C function realloc() with option"
+                + " UnknownFunctionHandling.STRICT set. Location in program "
+                + pCfaEdge);
+      } else if (options.trackPredicates()) {
+        sizeType =
+            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                machineModel);
         sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
+
       } else {
-        logger.logf(
-            Level.INFO,
-            "Realloc called in line %s with symbolic size for new memory but no symbolic handling"
-                + " is enabled. Overapproximated. %s",
-            pCfaEdge.getFileLocation().getStartingLineInOrigin(),
-            pCfaEdge);
-        return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+        throw new SMGException(
+            "Can't handle symbolic paramters in C function realloc() without tracking predicates at"
+                + " "
+                + pCfaEdge);
       }
     }
 
@@ -2625,9 +2629,6 @@ public class SMGCPABuiltins {
         && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
       return handleConfigurableMemoryAllocation(
           functionCall, currentState, sizeInBits, sizeType, pCfaEdge);
-    } else if (options.trackPredicates()) {
-      // Check with solver
-      throw new SMGException("Can't handle symbolic realloc parameters.");
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
@@ -2643,6 +2644,19 @@ public class SMGCPABuiltins {
     for (SMGStateAndOptionalSMGObjectAndOffset oldObj :
         currentState.dereferencePointer(pPtrValue)) {
       currentState = oldObj.getSMGState();
+
+      // The copy is always the lesser size of the 2
+      Value oldSize =
+          evaluator.subtractBitOffsetValues(
+              oldObj.getSMGObject().getSize(), oldObj.getOffsetForObject());
+
+      if (!oldSize.isNumericValue() || !sizeInBits.isNumericValue()) {
+        throw new SMGException("Symbolic memory size in realloc() currently not supported.");
+        // TODO: add STRICT function handling check once allowed!
+      }
+      // TODO: check that right is always larger than left, then just copy all edges into the new
+      // memory
+
       // Malloc new memory
       ValueAndSMGState addressAndState =
           evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
@@ -2654,14 +2668,7 @@ public class SMGCPABuiltins {
               .dereferencePointerWithoutMaterilization(addressToNewRegion)
               .orElseThrow()
               .getSMGObject();
-      // The copy is always the lesser size of the 2
-      Value oldSize =
-          evaluator.subtractBitOffsetValues(
-              oldObj.getSMGObject().getSize(), oldObj.getOffsetForObject());
 
-      if (!oldSize.isNumericValue()) {
-        throw new SMGException("Symbolic memory size in realloc() currently not supported.");
-      }
       BigInteger copySizeInBits = sizeInBits.asNumericValue().bigIntegerValue();
       if (oldSize.asNumericValue().bigIntegerValue().compareTo(copySizeInBits) < 0) {
         copySizeInBits = oldSize.asNumericValue().bigIntegerValue();
