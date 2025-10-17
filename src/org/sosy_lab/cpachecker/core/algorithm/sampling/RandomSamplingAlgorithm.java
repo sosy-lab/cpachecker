@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.DetailedCounterexampleExport;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "sampling.random")
@@ -88,7 +87,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
   private final ShutdownNotifier notifier;
   private final ConfigurableProgramAnalysis cpa;
   private final AssumptionToEdgeAllocator allocator;
-  private final DetailedCounterexampleExport exporter;
+  private final TraceAssignmentExporter exporter;
 
   public RandomSamplingAlgorithm(
       Algorithm pAlgorithm,
@@ -112,7 +111,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
             .copyFrom(pConfig)
             .setOption("detailed_cex.maxAssignments", "1")
             .build();
-    exporter = new DetailedCounterexampleExport(detailedCexExportConfig, pLogger, pNotifier, pCfa);
+    exporter = new TraceAssignmentExporter(detailedCexExportConfig, pLogger, pNotifier, pCfa);
   }
 
   private void copyReachedSet(ReachedSet pSourceReachedSet, ReachedSet pTargetReachedSet) {
@@ -201,7 +200,10 @@ public class RandomSamplingAlgorithm implements Algorithm {
     }
 
     try {
-      IO.writeFile(exportPath, StandardCharsets.UTF_8, exporter.exportDetailed(trace));
+      IO.writeFile(
+          exportPath,
+          StandardCharsets.UTF_8,
+          exporter.exportDetailed(trace.getCFAPathWithAssignments()));
     } catch (IOException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not export trace inputs.");
     }

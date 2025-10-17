@@ -1156,9 +1156,6 @@ counterexample.export.compressWitness = true
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
 
-# File name for analysis report in case a counterexample was found.
-counterexample.export.dumpDetailedCounterexampleModel = no default value
-
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
@@ -2449,9 +2446,6 @@ cpa.predicate.dumpCounterexampleFormula = "Counterexample.%d.smt2"
 
 # deprecated name for counterexample.export.model
 cpa.predicate.dumpCounterexampleModel = "Counterexample.%d.assignment.txt"
-
-# deprecated name for counterexample.export.dumpDetailedCounterexampleModel
-cpa.predicate.dumpDetailedCounterexampleModel = no default value
 
 # deprecated name for
 # cpa.predicate.invariants.dumpInvariantGenerationAutomata
@@ -4202,6 +4196,7 @@ dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.
 
 # How many satisfying assignments to find per CEX; -1 for all
 detailed_cex.maxAssignments = 10
+detailed_cex.maxAssignments = no default value
 
 # comma-separated list of files with property specifications that should be
 # considered when determining the nodes that are in the reachability

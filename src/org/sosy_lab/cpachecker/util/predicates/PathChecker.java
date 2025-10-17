@@ -88,12 +88,6 @@ public class PathChecker {
 
   @Option(
       secure = true,
-      description = "File name for analysis report in case a counterexample was found.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpDetailedCounterexampleModel = null;
-
-  @Option(
-      secure = true,
       description =
           "An imprecise counterexample of the Predicate CPA is usually a bug,"
               + " but expected in some configurations. Should it be treated as a bug or accepted?")
@@ -112,7 +106,6 @@ public class PathChecker {
   private final PathFormulaManager pmgr;
   private final Solver solver;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
-  private final Configuration config;
 
   public PathChecker(
       Configuration pConfig,
@@ -141,7 +134,6 @@ public class PathChecker {
     pmgr = pPmgr;
     solver = pSolver;
     assignmentToPathAllocator = pAssignmentToPathAllocator;
-    config = pConfig;
     pConfig.inject(this);
   }
 
@@ -286,26 +278,6 @@ public class PathChecker {
           }
         },
         dumpCounterexampleModel);
-    if (dumpDetailedCounterexampleModel != null) {
-      counterexample.addFurtherInformation(
-          new AbstractAppender() {
-            @Override
-            public void appendTo(Appendable out) throws IOException {
-              try {
-                DetailedCounterexampleExport detailedExporter =
-                    new DetailedCounterexampleExport(
-                        config, logger, solver, pmgr, assignmentToPathAllocator.getMachineModel());
-                out.append(detailedExporter.exportDetailed(counterexample));
-              } catch (CPATransferException
-                  | InterruptedException
-                  | SolverException
-                  | InvalidConfigurationException e) {
-                throw new IOException("Could not write detailed counterexample.", e);
-              }
-            }
-          },
-          dumpDetailedCounterexampleModel);
-    }
   }
 
   private void addCounterexampleFormula(

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -35,13 +35,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -55,8 +54,8 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "detailed_cex")
-public class DetailedCounterexampleExport {
+@Options(prefix = "detailedTrace")
+public class TraceAssignmentExporter {
 
   private final LogManager logger;
   private final Solver solver;
@@ -85,7 +84,7 @@ public class DetailedCounterexampleExport {
    * @param pCfa The CFA of the input program.
    * @throws InvalidConfigurationException Thrown if the configuration is invalid.
    */
-  public DetailedCounterexampleExport(
+  public TraceAssignmentExporter(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -100,30 +99,6 @@ public class DetailedCounterexampleExport {
             pCfa,
             AnalysisDirection.FORWARD);
     allocator = AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
-  }
-
-  /**
-   * Exports concrete variable assignments of all variables at all locations. If there is a loop,
-   * there are as many assignments as loop iterations for the specific location.
-   *
-   * @param pConfig The user configuration.
-   * @param pLogger Manager for logging warnings.
-   * @param pSolver The solver to use for finding satisfying assignments.
-   * @param pPathFormulaManager The path formula manager to use for constructing path formulas.
-   * @param pMachineModel The machine model of the input program.
-   * @throws InvalidConfigurationException Thrown if the configuration is invalid.
-   */
-  public DetailedCounterexampleExport(
-      Configuration pConfig,
-      LogManager pLogger,
-      Solver pSolver,
-      PathFormulaManager pPathFormulaManager,
-      MachineModel pMachineModel)
-      throws InvalidConfigurationException {
-    solver = pSolver;
-    logger = pLogger;
-    pmgr = pPathFormulaManager;
-    allocator = AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
   }
 
   /**
@@ -186,14 +161,13 @@ public class DetailedCounterexampleExport {
    * @throws CPATransferException Thrown if there is an error in the transfer relation.
    * @throws InterruptedException Thrown if the operation is interrupted.
    */
-  private PathAliasesAndVariables computeVariablesToEdgeMap(CounterexampleInfo counterExample)
+  private PathAliasesAndVariables computeVariablesToEdgeMap(CFAPathWithAssumptions counterExample)
       throws CPATransferException, InterruptedException {
     ImmutableMap.Builder<String, String> aliases = ImmutableMap.builder();
     PathFormula cexPath = pmgr.makeEmptyPathFormula();
     Set<FormulaAndName> before = ImmutableSet.of();
     ImmutableMap.Builder<FormulaAndName, CFAEdge> variableToLineNumber = ImmutableMap.builder();
-    for (CFAEdgeWithAssumptions cfaEdgeWithAssumptions :
-        counterExample.getCFAPathWithAssignments()) {
+    for (CFAEdgeWithAssumptions cfaEdgeWithAssumptions : counterExample) {
       assert cfaEdgeWithAssumptions != null;
       CFAEdge cfaEdge = cfaEdgeWithAssumptions.getCFAEdge();
       cexPath = pmgr.makeAnd(cexPath, cfaEdge);
@@ -234,12 +208,12 @@ public class DetailedCounterexampleExport {
    * loop iterations.
    *
    * @param counterExample The counterexample to convert.
-   * @return A string representation of the detailed error trace.
+   * @return A string representation of the detailed error trace for every assignment
    * @throws SolverException Thrown if the solver encounters an error.
    * @throws InterruptedException Thrown if the operation is interrupted.
    * @throws CPATransferException Thrown if there is an error in the transfer relation.
    */
-  public String exportDetailed(CounterexampleInfo counterExample)
+  public List<String> exportDetailed(CFAPathWithAssumptions counterExample)
       throws CPATransferException, InterruptedException, SolverException {
     PathAliasesAndVariables cexPathAliasesAndVariables = computeVariablesToEdgeMap(counterExample);
     List<Map<String, Object>> assignments = calculateAssignments(cexPathAliasesAndVariables.path());
@@ -254,8 +228,9 @@ public class DetailedCounterexampleExport {
           formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
     }
     ImmutableMap<String, CFAEdge> lines = linesBuilder.buildOrThrow();
-    StringBuilder preciseCexExport = new StringBuilder();
+    ImmutableList.Builder<String> detailedCexs = ImmutableList.builder();
     for (Map<String, Object> assignment : assignments) {
+      StringBuilder preciseCexExport = new StringBuilder();
       for (Entry<String, Object> variableValue : assignment.entrySet()) {
         String variable = variableValue.getKey();
         String value = variableValue.getValue().toString();
@@ -287,8 +262,9 @@ public class DetailedCounterexampleExport {
             .append(" == ")
             .append(value)
             .append(";\n");
+        detailedCexs.add(preciseCexExport.toString());
       }
     }
-    return preciseCexExport.toString();
+    return detailedCexs.build();
   }
 }
