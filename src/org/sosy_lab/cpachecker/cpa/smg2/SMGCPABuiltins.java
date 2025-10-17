@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -1055,7 +1056,15 @@ public class SMGCPABuiltins {
     } else {
       if (!options.trackPredicates()) {
         // Symbolic size
-        throw new SMGException(functionCall + " Tried to allocate symbolic memory.");
+        throw new SMGException(
+            functionCall
+                + " tried to allocate symbolic memory, which is not supported without predicate"
+                + " tracking.");
+      } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+        throw new SMGException(
+            functionCall
+                + " tried to allocate symbolic memory, which is not supported for"
+                + " UnknownFunctionHandling.STRICT");
       }
       // Symbolic size allowed
       // sizeInBits is a symbolic expr with a multiplication times 8 inside
