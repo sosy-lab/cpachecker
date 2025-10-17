@@ -133,7 +133,6 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
-
     } else if (terminationState.isPartOfStem()
         && terminationInformation.isPredecessorOfIncomingEdge(location)) {
       statesAtCurrentLocation = declarePrimedVariables(terminationState, pPrecision, location);
@@ -144,7 +143,6 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       targetStatesAtCurrentLocation =
           from(statesAtCurrentLocation).filter(AbstractStates::isTargetState).toList();
       statesAtCurrentLocation.removeAll(targetStatesAtCurrentLocation);
-
     } else {
       statesAtCurrentLocation = Collections.singleton(terminationState);
       targetStatesAtCurrentLocation = ImmutableList.of();
@@ -161,7 +159,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     // before the CPA algorithm stops due to a target state.
     resultingSuccessors.addAll(getAbstractSuccessors0(statesAtCurrentLocation, pPrecision));
 
-    // pass negative ranking relation to other AbstarctStates
+    // pass negative ranking relation to other AbstractStates
     for (TerminationState targetState : targetStatesAtCurrentLocation) {
       Collection<? extends AbstractState> strengthenedStates =
           transferRelation.strengthen(

@@ -77,7 +77,7 @@ public class BlockGraphModification {
       Map<CFANode, CFANode> originalToInstrumentedNodes,
       Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
-  private static MutableCFA createMutableCfaCopy(
+  public static MutableCFA createMutableCfaCopy(
       CFA pCfa, Configuration pConfig, LogManager pLogger) {
     // create a clone of the specified CFA (clones all CFA nodes and edges)
     CFA clone =

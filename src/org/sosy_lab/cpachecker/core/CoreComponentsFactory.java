@@ -450,7 +450,6 @@ public class CoreComponentsFactory {
       final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
-
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
     }
@@ -623,8 +622,8 @@ public class CoreComponentsFactory {
                 cfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
-                algorithm,
-                cpa);
+                aggregatedReachedSets,
+                specification);
       }
 
       if (checkCounterexamples) {

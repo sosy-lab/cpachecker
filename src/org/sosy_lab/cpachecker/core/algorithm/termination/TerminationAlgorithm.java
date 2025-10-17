@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -70,7 +71,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
@@ -82,13 +85,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -148,6 +154,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
   private boolean considerRecursion = false;
 
+  @Option(
+      secure = true,
+      description = "copy to a new CFA because of the changes done to CFA in the analysis")
+  private boolean copyCFA = false;
+
   private final TerminationStatistics statistics;
 
   private final LogManager logger;
@@ -163,6 +174,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private final SetMultimap<String, CVariableDeclaration> localDeclarations;
 
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
+  private final AggregatedReachedSets aggregatedReachedSets;
 
   public TerminationAlgorithm(
       Configuration pConfig,
@@ -171,20 +183,36 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CFA pCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
-      Algorithm pSafetyAlgorithm,
-      ConfigurableProgramAnalysis pSafetyCPA)
-      throws InvalidConfigurationException {
+      AggregatedReachedSets pAggregatedReachedSets,
+      Specification pSpecification)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
-    cfa = checkNotNull(pCfa);
-    reachedSetFactory = checkNotNull(pReachedSetFactory);
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
-    safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
-    safetyCPA = checkNotNull(pSafetyCPA);
+    aggregatedReachedSets = checkNotNull(pAggregatedReachedSets);
+
+    ConfigurationBuilder safetyConfigBuilder = Configuration.builder();
+    safetyConfigBuilder.copyFrom(pConfig);
+    safetyConfigBuilder.clearOption("analysis.algorithm.termination");
+    Configuration safetyConfig = safetyConfigBuilder.build();
+    CoreComponentsFactory coreComponentsFactory =
+        new CoreComponentsFactory(safetyConfig, logger, shutdownNotifier, aggregatedReachedSets);
+
+    if (copyCFA) {
+      cfa =
+          BlockGraphModification.createMutableCfaCopy(checkNotNull(pCfa), pConfig, logger)
+              .immutableCopy();
+    } else {
+      cfa = checkNotNull(pCfa);
+    }
+
+    safetyCPA = coreComponentsFactory.createCPA(cfa, pSpecification);
+    safetyAlgorithm = coreComponentsFactory.createAlgorithm(safetyCPA, cfa, pSpecification);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
 
     TerminationCPA terminationCpa =
-        CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
+        CPAs.retrieveCPAOrFail(safetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
@@ -202,8 +230,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
-    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
   @Override
@@ -222,7 +250,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     statistics.algorithmStarted();
     try {
       return run0(pReachedSet);
-
     } finally {
       statistics.algorithmFinished();
     }
@@ -236,6 +263,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
+    pReachedSet.clear();
+    pReachedSet.add(
+        safetyCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+        safetyCPA.getInitialPrecision(
+            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 

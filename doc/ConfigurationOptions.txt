@@ -5193,6 +5193,9 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
+# copy to a new CFA because of the changes done to CFA in the analysis
+termination.copyCFA = false
+
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
 termination.lassoAnalysis.eigenvectors = 3
