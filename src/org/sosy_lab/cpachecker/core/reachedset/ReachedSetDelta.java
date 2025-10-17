@@ -13,7 +13,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-/** Immutable snapshot of changes in a {@link TrackingForwardingReachedSet} */
+/**
+ * Immutable snapshot of the changes in a reached set. The class stores a record of the differences
+ * between the current and the previous reached set. It is produced by the {@link
+ * TrackingForwardingReachedSet} and consumed by the PredicateDelegatingRefiner and its
+ * DelegatingRefinerHeuristics.
+ */
 public record ReachedSetDelta(
     ImmutableSet<AbstractState> addedStates, ImmutableSet<AbstractState> removedStates) {
 

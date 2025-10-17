@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Extension of {@link ForwardingReachedSet} that tracks changes in the ReachedSet (such as added or
- * removed states). Intended for use with DelegatingRefiner and its heuristics.
+ * removed states) and exposes them as {@link ReachedSetDelta}. Intended for use with
+ * PredicateDelegatingRefiner and its DelegatingRefinerHeuristics.
  */
 public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   private final Set<AbstractState> addedStates = new HashSet<>();
@@ -29,11 +30,18 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
     super(pDelegate);
   }
 
+  /** Clears all records of predicates added and removed in prior refinement iterations. */
   public void resetTracking() {
     addedStates.clear();
     removedStates.clear();
   }
 
+  /**
+   * Returns a snapshot of the predicates added and removed since the last refinement iteration.
+   * Used by PredicateDelegating in its DelegatingRefinerHeuristics to evaluate refinement progress.
+   *
+   * @return a {@link ReachedSetDelta} containing added and removed states.
+   */
   public ReachedSetDelta getDelta() {
     return new ReachedSetDelta(
         ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));

@@ -306,6 +306,8 @@ public class CEGARAlgorithm
     try {
       refinementResult = mRefiner.performRefinement(reached);
 
+      // PredicateDelegatingRefiner signals an early termination after all heuristics failed by
+      // switching the value in shouldTerminateRefinement() from the default false to true
       if (mRefiner.shouldTerminateRefinement()) {
         logger.logf(Level.INFO, "Terminating refinement due to signal from refiner");
       }
