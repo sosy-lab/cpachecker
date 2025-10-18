@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -1370,9 +1371,8 @@ public class ExpressionToFormulaVisitor
         throw new UnsupportedCodeException("Not-sequentially-consistent fetch detected", edge, e);
       }
     }
-    if (ptr instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+    if (ptr instanceof CPointerExpression pointer
+        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
       Formula old = processOperand(leftHandSide, returnType, returnType);
       Formula v = toFormula(val);
 
@@ -1430,12 +1430,10 @@ public class ExpressionToFormulaVisitor
         throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
       }
     }
-    if (ptr instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CLeftHandSide leftHandSide
-        && expectedPtr instanceof CUnaryExpression expUnary
-        && expUnary.getOperator() == UnaryOperator.AMPER
-        && expUnary.getOperand() instanceof CLeftHandSide expLeftHandSide) {
+    if (ptr instanceof CPointerExpression pointer
+        && pointer.getOperand() instanceof CLeftHandSide leftHandSide
+        && expectedPtr instanceof CPointerExpression expPointer
+        && expPointer.getOperand() instanceof CLeftHandSide expLeftHandSide) {
       CType type = leftHandSide.getExpressionType();
       Formula old = processOperand(leftHandSide, type, type);
       Formula exp = processOperand(expLeftHandSide, type, type);
@@ -1477,9 +1475,8 @@ public class ExpressionToFormulaVisitor
             "Not-sequentially-consistent exchange detected", edge, e);
       }
     }
-    if (ptr instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+    if (ptr instanceof CPointerExpression pointer
+        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
       Formula old = processOperand(leftHandSide, returnType, returnType);
       try {
         BooleanFormula assignment =
@@ -1514,8 +1511,8 @@ public class ExpressionToFormulaVisitor
         throw new UnsupportedCodeException("Not-sequentially-consistent load detected", edge, e);
       }
     }
-    if (ptr instanceof CUnaryExpression unary && unary.getOperator() == UnaryOperator.AMPER) {
-      return processOperand(unary.getOperand(), returnType, returnType);
+    if (ptr instanceof CPointerExpression pointer) {
+      return processOperand(pointer.getOperand(), returnType, returnType);
     }
     return null;
   }
@@ -1531,9 +1528,8 @@ public class ExpressionToFormulaVisitor
         throw new UnsupportedCodeException("Not-sequentially-consistent store detected", edge, e);
       }
     }
-    if (ptr instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+    if (ptr instanceof CPointerExpression pointer
+        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
       try {
         BooleanFormula assignment =
             conv.makeAssignment(
