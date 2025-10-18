@@ -9,17 +9,16 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,10 +31,11 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
@@ -64,7 +64,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
       secure = true,
       description = "File name for analysis report in case no counterexample was found.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathCounterTemplate safeExport =  PathCounterTemplate.ofFormatString("Safe.trace.%d.txt");
+  private PathCounterTemplate safeExport = PathCounterTemplate.ofFormatString("Safe.trace.%d.txt");
 
   @Option(
       secure = true,
@@ -80,10 +80,13 @@ public class RandomSamplingAlgorithm implements Algorithm {
               + " analysis.")
   private boolean stopAfterFirstCounterexample = false;
 
-  private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier notifier;
+
+  private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
+
+  // for exporting
   private final PathChecker pathChecker;
 
   public RandomSamplingAlgorithm(
@@ -121,24 +124,22 @@ public class RandomSamplingAlgorithm implements Algorithm {
         (reachedSet.getFirstState() instanceof ARGState),
         "The reached set must contain an ARGState as the first state.");
 
-    ARGState firstStateOriginalArg = (ARGState) reachedSet.getFirstState();
-    ARGState clonedArgState =
-        new ARGState(
-            firstStateOriginalArg.getWrappedState(), null /* The first state has no parent */);
+    CFANode initialLocation = AbstractStates.extractLocation(reachedSet.getFirstState());
+    checkNotNull(initialLocation, "The initial location must not be null.");
+
     // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
     // to copy the precision.
-    Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
     ReachedSet newReachedSet = null;
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+
     // generate at max samplesToBeGenerated samples (or infinite if samplesToBeGenerated < 0)
     for (int i = 0; i < samplesToBeGenerated || samplesToBeGenerated < 0; i++) {
       notifier.shutdownIfNecessary();
 
-      ARGState newInitialState =
-          new ARGState(clonedArgState.getWrappedState(), null /* The first state has no parent */);
-
       newReachedSet = new PartitionedReachedSet(cpa, TraversalMethod.DFS);
-      newReachedSet.add(newInitialState, precision);
+      newReachedSet.add(
+          cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
+          cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
 
       // run the algorithm
       status = algorithm.run(newReachedSet);
@@ -160,36 +161,35 @@ public class RandomSamplingAlgorithm implements Algorithm {
     return status.update(AlgorithmStatus.UNSOUND_AND_PRECISE);
   }
 
-  void exportReachedSet(ReachedSet pReachedSet, boolean pIsCex) throws InterruptedException {
-    List<ARGState> sortedById =
-        FluentIterable.from(pReachedSet.asCollection())
-            .filter(ARGState.class)
-            .toSortedList(Comparator.naturalOrder());
-    ARGState lastOne = sortedById.getLast();
-
-    Set<ARGPath> reachablePaths = ARGUtils.getAllPaths(pReachedSet, lastOne);
-    Verify.verify(reachablePaths.size() == 1);
-    ARGPath singlePath = FluentIterable.from(reachablePaths).get(0);
-
-    CounterexampleInfo trace =
-        pathChecker.handleFeasibleCounterexample(
-            CounterexampleTraceInfo.feasible(ImmutableList.of(), singlePath), singlePath);
-
-    Path exportPath;
+  private Optional<Path> getExportPath(boolean pIsCex) {
     if (pIsCex) {
       if (counterexampleExport == null) {
-        return;
+        return Optional.empty();
       }
-      exportPath = counterexampleExport.getFreshPath();
+      return Optional.of(counterexampleExport.getFreshPath());
     } else {
       if (safeExport == null) {
-        return;
+        return Optional.empty();
       }
-      exportPath = safeExport.getFreshPath();
+      return Optional.of(safeExport.getFreshPath());
     }
+  }
 
+  private void exportReachedSet(ReachedSet pReachedSet, boolean pIsCex)
+      throws InterruptedException {
+    Optional<Path> optionalPath = getExportPath(pIsCex);
+    if (optionalPath.isEmpty()) {
+      return;
+    }
+    Path exportPath = optionalPath.orElseThrow();
+    ARGPath trace =
+        Iterables.getOnlyElement(
+            ARGUtils.getAllPaths(pReachedSet, (ARGState) pReachedSet.getLastState()));
+    CounterexampleInfo traceInfo =
+        pathChecker.handleFeasibleCounterexample(
+            CounterexampleTraceInfo.feasible(ImmutableList.of(), trace), trace);
     try {
-      IO.writeFile(exportPath, Charset.defaultCharset(), trace);
+      IO.writeFile(exportPath, Charset.defaultCharset(), traceInfo);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not export trace inputs.");
     }
