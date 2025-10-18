@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -151,20 +152,30 @@ public enum PthreadFunctionType {
   PthreadFunctionType(
       String pName,
       boolean pIsSupported,
-      // TODO all functions should be explicitly handled -> remove later
+      // TODO if another property such as pthread-undefined-behavior is introduced, then all
+      //  functions need to be explicitly handled (e.g. mutex_init = 1 flag for pthread_mutex_init,
+      //  then check for mutex_init == 1 when (un-)locking the mutex)
       boolean pIsExplicitlyHandled,
       PthreadParameterInfo... pParameterInfo) {
 
     // if the function is not supported, it cannot be explicitly handled
     checkArgument(pIsSupported || !pIsExplicitlyHandled);
+    checkArgument(
+        arePthreadObjectTypesUnique(pParameterInfo),
+        "duplicate PthreadObjectType found in pParameterInfo");
+
     name = pName;
     isSupported = pIsSupported;
     isExplicitlyHandled = pIsExplicitlyHandled;
     parameterInfo = ImmutableSet.copyOf(pParameterInfo);
   }
 
-  // TODO problem: even if the function declaration states that pthread_t is a pointer, the address
-  //  may not necessarily be passed on afaik. need more tests here (same with start_routines)
+  private static boolean arePthreadObjectTypesUnique(PthreadParameterInfo... pParameterInfo) {
+
+    return Arrays.stream(pParameterInfo).map(PthreadParameterInfo::getObjectType).distinct().count()
+        == pParameterInfo.length;
+  }
+
   public boolean isPthreadTPointer() {
     checkArgument(
         isParameterPresent(PthreadObjectType.PTHREAD_T),
