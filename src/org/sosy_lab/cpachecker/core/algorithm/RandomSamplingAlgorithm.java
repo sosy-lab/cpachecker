@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,15 +34,12 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -109,13 +104,6 @@ public class RandomSamplingAlgorithm implements Algorithm {
     pathChecker = new PathChecker(pConfig, logger, notifier, pCfa.getMachineModel(), pmgr, solver);
   }
 
-  private void copyReachedSet(ReachedSet pSourceReachedSet, ReachedSet pTargetReachedSet) {
-    pTargetReachedSet.clear();
-    pTargetReachedSet.addAll(
-        FluentIterable.from(pSourceReachedSet.asCollection())
-            .transform(a -> Pair.of(a, pSourceReachedSet.getPrecision(Objects.requireNonNull(a)))));
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     // Copy the current reached set
@@ -129,33 +117,27 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
     // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
     // to copy the precision.
-    ReachedSet newReachedSet = null;
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
     // generate at max samplesToBeGenerated samples (or infinite if samplesToBeGenerated < 0)
     for (int i = 0; i < samplesToBeGenerated || samplesToBeGenerated < 0; i++) {
       notifier.shutdownIfNecessary();
 
-      newReachedSet = new PartitionedReachedSet(cpa, TraversalMethod.DFS);
-      newReachedSet.add(
+      reachedSet.clear();
+      reachedSet.add(
           cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
 
       // run the algorithm
-      status = algorithm.run(newReachedSet);
+      status = algorithm.run(reachedSet);
 
       // export the resulting trace
-      boolean traceIsCex = AbstractStates.isTargetState(newReachedSet.getLastState());
-      exportReachedSet(newReachedSet, traceIsCex);
+      boolean traceIsCex = AbstractStates.isTargetState(reachedSet.getLastState());
+      exportReachedSet(reachedSet, traceIsCex);
 
       if (stopAfterFirstCounterexample && traceIsCex) {
-        copyReachedSet(newReachedSet, reachedSet);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
-    }
-
-    if (newReachedSet != null) {
-      copyReachedSet(newReachedSet, reachedSet);
     }
 
     return status.update(AlgorithmStatus.UNSOUND_AND_PRECISE);
