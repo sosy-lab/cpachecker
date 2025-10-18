@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -57,14 +57,14 @@ public class RandomSamplingAlgorithm implements Algorithm {
       secure = true,
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate counterexampleExport =
-      PathTemplate.ofFormatString("Counterexample.trace.%d.txt");
+  private PathCounterTemplate counterexampleExport =
+      PathCounterTemplate.ofFormatString("Counterexample.trace.%d.txt");
 
   @Option(
       secure = true,
       description = "File name for analysis report in case no counterexample was found.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate safeExport = PathTemplate.ofFormatString("Safe.trace.%d.txt");
+  private PathCounterTemplate safeExport =  PathCounterTemplate.ofFormatString("Safe.trace.%d.txt");
 
   @Option(
       secure = true,
@@ -79,10 +79,6 @@ public class RandomSamplingAlgorithm implements Algorithm {
           "Stop after finding the first counterexample. This is useful when using this as an actual"
               + " analysis.")
   private boolean stopAfterFirstCounterexample = false;
-
-  private int exportedCounterexampleCount = 0;
-
-  private int exportedSafeTracesCount = 0;
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -134,8 +130,8 @@ public class RandomSamplingAlgorithm implements Algorithm {
     Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
     ReachedSet newReachedSet = null;
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-    while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated
-        || samplesToBeGenerated < 0) {
+    // generate at max samplesToBeGenerated samples (or infinite if samplesToBeGenerated < 0)
+    for (int i = 0; i < samplesToBeGenerated || samplesToBeGenerated < 0; i++) {
       notifier.shutdownIfNecessary();
 
       ARGState newInitialState =
@@ -187,12 +183,12 @@ public class RandomSamplingAlgorithm implements Algorithm {
       if (safeExport == null) {
         return;
       }
-      exportPath = safeExport.getPath(exportedSafeTracesCount++);
+      exportPath = safeExport.getFreshPath();
     } else {
       if (counterexampleExport == null) {
         return;
       }
-      exportPath = counterexampleExport.getPath(exportedCounterexampleCount++);
+      exportPath = counterexampleExport.getFreshPath();
     }
 
     try {
