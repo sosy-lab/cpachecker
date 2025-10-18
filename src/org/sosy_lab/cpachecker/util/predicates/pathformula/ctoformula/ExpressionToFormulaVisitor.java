@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperationsLookup;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -1373,25 +1374,19 @@ public class ExpressionToFormulaVisitor
         && unary.getOperator() == UnaryOperator.AMPER
         && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
       Formula old = processOperand(leftHandSide, returnType, returnType);
-      String[] parts = functionName.split("_");
-
       Formula v = toFormula(val);
 
       Formula newValue =
-          switch (parts[parts.length - 1]) {
-            case "add":
-              yield mgr.makePlus(old, v);
-            case "sub":
-              yield mgr.makeMinus(old, v);
-            case "and":
-              yield mgr.makeAnd(old, v);
-            case "xor":
-              yield mgr.makeXor(old, v);
-            case "or":
-              yield mgr.makeOr(old, v);
-            default:
-              throw new UnsupportedCodeException(
-                  "Unsupported fetch operation " + functionName, edge, e);
+          switch (CAtomicOperationsLookup.fromString(functionName)) {
+            case ATOMIC_FETCH_ADD -> mgr.makePlus(old, v);
+            case ATOMIC_FETCH_SUB -> mgr.makeMinus(old, v);
+            case ATOMIC_FETCH_AND -> mgr.makeAnd(old, v);
+            case ATOMIC_FETCH_XOR -> mgr.makeXor(old, v);
+            case ATOMIC_FETCH_OR -> mgr.makeOr(old, v);
+            case ATOMIC_FETCH_NAND -> mgr.makeNot(mgr.makeAnd(old, v));
+            default ->
+                throw new UnsupportedCodeException(
+                    "Unsupported fetch operation " + functionName, edge, e);
           };
       Formula lvalue =
           conv.buildLvalueTerm(
