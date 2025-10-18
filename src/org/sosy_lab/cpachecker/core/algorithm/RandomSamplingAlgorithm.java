@@ -144,11 +144,10 @@ public class RandomSamplingAlgorithm implements Algorithm {
       status = algorithm.run(newReachedSet);
 
       // export the resulting trace
-      exportReachedSet(newReachedSet);
+      boolean traceIsCex = AbstractStates.isTargetState(newReachedSet.getLastState());
+      exportReachedSet(newReachedSet, traceIsCex);
 
-      boolean isSafeTrace =
-          FluentIterable.from(newReachedSet).filter(AbstractStates::isTargetState).isEmpty();
-      if (stopAfterFirstCounterexample && !isSafeTrace) {
+      if (stopAfterFirstCounterexample && traceIsCex) {
         copyReachedSet(newReachedSet, reachedSet);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
@@ -161,7 +160,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
     return status.update(AlgorithmStatus.UNSOUND_AND_PRECISE);
   }
 
-  void exportReachedSet(ReachedSet pReachedSet) throws InterruptedException {
+  void exportReachedSet(ReachedSet pReachedSet, boolean pIsCex) throws InterruptedException {
     List<ARGState> sortedById =
         FluentIterable.from(pReachedSet.asCollection())
             .filter(ARGState.class)
@@ -176,19 +175,17 @@ public class RandomSamplingAlgorithm implements Algorithm {
         pathChecker.handleFeasibleCounterexample(
             CounterexampleTraceInfo.feasible(ImmutableList.of(), singlePath), singlePath);
 
-    boolean isSafeTrace =
-        FluentIterable.from(pReachedSet).filter(AbstractStates::isTargetState).isEmpty();
     Path exportPath;
-    if (isSafeTrace) {
-      if (safeExport == null) {
-        return;
-      }
-      exportPath = safeExport.getFreshPath();
-    } else {
+    if (pIsCex) {
       if (counterexampleExport == null) {
         return;
       }
       exportPath = counterexampleExport.getFreshPath();
+    } else {
+      if (safeExport == null) {
+        return;
+      }
+      exportPath = safeExport.getFreshPath();
     }
 
     try {
