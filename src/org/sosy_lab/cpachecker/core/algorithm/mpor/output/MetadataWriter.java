@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -18,13 +19,23 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.InputFileRecord;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.MetadataRecord;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.RootRecord;
 
 class MetadataWriter {
+
+  private record InputFileRecord(
+      @JsonProperty("name") String pName, @JsonProperty("path") String pPath) {}
+
+  private record MetadataRecord(
+      @JsonProperty("cpachecker_version") String pCpaCheckerVersion,
+      @JsonProperty("utc_creation_time") String pUtcCreationTime,
+      @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
+
+  private record RootRecord(
+      @JsonProperty("metadata") MetadataRecord pMetadata,
+      @JsonProperty("algorithm_options") Map<String, Object> pAlgorithmOptions) {}
 
   static void write(MPOROptions pOptions, String pMetadataPath, List<Path> pInputFilePaths)
       throws IOException, IllegalAccessException {
