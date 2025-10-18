@@ -50,9 +50,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
   private static final double CATEGORY_REDUNDANCY_THRESHOLD = 0.7;
-  private static final Path DSL_RULE_PATH =
-      Path.of(
-          "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerUtils/redundancyRules.json");
+  private final String dslRulePath;
 
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
@@ -66,6 +64,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   /**
    * Construct a redundant predicates heuristic.
    *
+   * @param pPathToDSL path to the DSL file containing the patterns for redundancy matching
    * @param pAcceptableRedundancyThreshold maximum redundancy rate acceptable
    * @param pFormulaManager formula manager used for normalization
    * @param pLogger logger for diagnostic output
@@ -74,6 +73,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
    * @throws IllegalStateException if the DSL rules cannot be loaded
    */
   public DelegatingRefinerHeuristicRedundantPredicates(
+      String pPathToDSL,
       double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
       final LogManager pLogger)
@@ -82,14 +82,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       throw new InvalidConfigurationException(
           "Acceptable redundancy rate must be between 0.0 and 1.0.");
     }
+    this.dslRulePath = pPathToDSL;
     this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
     normalizer = new DelegatingRefinerAtomNormalizer(formulaManager);
 
     try {
+      Path dslPath = Path.of(dslRulePath);
       ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
-          DelegatingRefinerDslLoader.loadDsl(DSL_RULE_PATH);
+          DelegatingRefinerDslLoader.loadDsl(dslPath);
       this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);

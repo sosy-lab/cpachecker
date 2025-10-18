@@ -14,12 +14,13 @@
     <option name="--heap">4000M</option>
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-    <rundefinition name="ABEl">
-        <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
-    </rundefinition>
-
     <rundefinition name="PredicateDelegatingRefiner">
         <option name="--predicateAnalysis-delegatingrefiner"/>
+        <option name="--option">cpa.predicate.redundancyDSLPath=redundancyRules.json</option>
+    </rundefinition>
+
+    <rundefinition name="ABEl">
+        <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
     </rundefinition>
 
     <tasks name="Loops">
@@ -27,8 +28,9 @@
         <include>../programs/benchmarks/loops/*.c</include>
         <include>../programs/benchmarks/loop-simple/*.c</include>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-        </tasks>
+    </tasks>
 
 </benchmark>
+
 
 

@@ -112,6 +112,13 @@ public final class PredicateCPARefinerFactory {
               + " (0.0 - 1.0)")
   private double acceptableRedundancyThreshold = 0.8;
 
+  @Option(
+      secure = true,
+      description =
+          "Path to the DSL JSON containing the redundancy rules for DelegatingRefiner heuristic")
+  private String pathToDSL =
+      "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerUtils/redundancyRules.json";
+
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
@@ -350,6 +357,7 @@ public final class PredicateCPARefinerFactory {
                     refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
             case REDUNDANT_PREDICATES ->
                 new DelegatingRefinerHeuristicRedundantPredicates(
+                    pathToDSL,
                     acceptableRedundancyThreshold,
                     predicateCpa.getSolver().getFormulaManager(),
                     predicateCpa.getLogger());
