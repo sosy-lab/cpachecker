@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -742,7 +744,7 @@ public class ExpressionToFormulaVisitor
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
-                .makePlusInfinity((FormulaType.FloatingPointType) formulaType);
+                .makePlusInfinity((FloatingPointType) formulaType);
           }
         }
 
@@ -754,7 +756,7 @@ public class ExpressionToFormulaVisitor
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
-                .makePlusInfinity((FormulaType.FloatingPointType) formulaType);
+                .makePlusInfinity((FloatingPointType) formulaType);
           }
         }
 
@@ -765,8 +767,7 @@ public class ExpressionToFormulaVisitor
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
-            return mgr.getFloatingPointFormulaManager()
-                .makeNaN((FormulaType.FloatingPointType) formulaType);
+            return mgr.getFloatingPointFormulaManager().makeNaN((FloatingPointType) formulaType);
           }
         }
 
@@ -779,9 +780,8 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
-            FloatingPointFormula zero =
-                fpfmgr.makeNumber(0.0, (FormulaType.FloatingPointType) formulaType);
-            FloatingPointFormula nan = fpfmgr.makeNaN((FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0.0, (FloatingPointType) formulaType);
+            FloatingPointFormula nan = fpfmgr.makeNaN((FloatingPointType) formulaType);
 
             BooleanFormula isNegative =
                 mgr.makeOr(
@@ -838,8 +838,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
-            FloatingPointFormula fp_zero =
-                fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
@@ -862,8 +861,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
-            FloatingPointFormula fp_zero =
-                fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
@@ -919,8 +917,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
-            FloatingPointFormula zero =
-                fpfmgr.makeNumber(0.0, (FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0.0, (FloatingPointType) formulaType);
             FloatingPointFormula anything =
                 (FloatingPointFormula)
                     conv.makeNondet(functionName + "_NondetAnything", paramType, ssa, constraints);
@@ -1053,8 +1050,7 @@ public class ExpressionToFormulaVisitor
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
-            FloatingPointFormula zero =
-                fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
             BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
             BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
@@ -1242,6 +1238,151 @@ public class ExpressionToFormulaVisitor
         // that the right function is always called.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
+      } else if (BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
+        if (BuiltinAtomicFunctions.matchesStore(functionName) && parameters.size() >= 2) {
+          CExpression ptr = parameters.get(0);
+          CExpression val = parameters.get(1);
+          if (parameters.size() >= 3) {
+            CExpression ordering = parameters.get(2);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential store detected", edge, e);
+            }
+          }
+          if (ptr instanceof CUnaryExpression unary
+              && unary.getOperator() == UnaryOperator.AMPER
+              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+            try {
+              BooleanFormula assignment =
+                  conv.makeAssignment(
+                      leftHandSide,
+                      leftHandSide,
+                      val,
+                      edge,
+                      function,
+                      ssa,
+                      pts,
+                      constraints,
+                      errorConditions);
+              constraints.addConstraint(assignment);
+            } catch (InterruptedException interruptedException) {
+              CtoFormulaConverter.propagateInterruptedException(interruptedException);
+            }
+            // what to return instead of void?
+          }
+        } else if (BuiltinAtomicFunctions.matchesLoad(functionName) && parameters.size() >= 1) {
+          CExpression ptr = parameters.get(0);
+          if (parameters.size() >= 2) {
+            CExpression ordering = parameters.get(1);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential load detected", edge, e);
+            }
+          }
+          if (ptr instanceof CUnaryExpression unary && unary.getOperator() == UnaryOperator.AMPER) {
+            return processOperand(unary.getOperand(), returnType, returnType);
+          }
+        } else if (BuiltinAtomicFunctions.matchesExchange(functionName) && parameters.size() >= 2) {
+          CExpression ptr = parameters.get(0);
+          CExpression val = parameters.get(1);
+          if (parameters.size() >= 3) {
+            CExpression ordering = parameters.get(2);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential exchange detected", edge, e);
+            }
+          }
+          if (ptr instanceof CUnaryExpression unary
+              && unary.getOperator() == UnaryOperator.AMPER
+              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+            Formula old = processOperand(leftHandSide, returnType, returnType);
+            try {
+              BooleanFormula assignment =
+                  conv.makeAssignment(
+                      leftHandSide,
+                      leftHandSide,
+                      val,
+                      edge,
+                      function,
+                      ssa,
+                      pts,
+                      constraints,
+                      errorConditions);
+              constraints.addConstraint(assignment);
+            } catch (InterruptedException interruptedException) {
+              CtoFormulaConverter.propagateInterruptedException(interruptedException);
+            }
+            return old;
+          }
+        } else if (BuiltinAtomicFunctions.matchesCompareExchange(functionName)) {
+          // conservative: return nondet boolean
+          if (parameters.size() >= 3) {
+            CExpression weak = parameters.get(2);
+            if (weak instanceof CIntegerLiteralExpression weakValue
+                && !weakValue.getValue().equals(BigInteger.valueOf(0))) {
+              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+            }
+          }
+          if (parameters.size() >= 4) {
+            CExpression ordering = parameters.get(3);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+            }
+          }
+          if (parameters.size() >= 5) {
+            CExpression ordering = parameters.get(4);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+            }
+          }
+          // TODO: implement compare-exchange
+        } else if (BuiltinAtomicFunctions.matchesFetchOp(functionName) && parameters.size() >= 2) {
+          CExpression ptr = parameters.get(0);
+          CExpression val = parameters.get(1);
+          if (parameters.size() >= 3) {
+            CExpression ordering = parameters.get(2);
+            if (ordering instanceof CIntegerLiteralExpression orderValue
+                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+              throw new UnsupportedCodeException("Non-sequential fetch detected", edge, e);
+            }
+          }
+          if (ptr instanceof CUnaryExpression unary
+              && unary.getOperator() == UnaryOperator.AMPER
+              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+            Formula old = processOperand(leftHandSide, returnType, returnType);
+            String[] parts = functionName.split("_");
+
+            Formula v = toFormula(val);
+
+            Formula newValue =
+                switch (parts[parts.length - 1]) {
+                  case "add":
+                    yield mgr.makePlus(old, v);
+                  case "sub":
+                    yield mgr.makeMinus(old, v);
+                  case "and":
+                    yield mgr.makeAnd(old, v);
+                  case "xor":
+                    yield mgr.makeXor(old, v);
+                  case "or":
+                    yield mgr.makeOr(old, v);
+                  default:
+                    throw new UnsupportedCodeException(
+                        "Unsupported fetch operation " + functionName, edge, e);
+                };
+            Formula lvalue =
+                conv.buildLvalueTerm(
+                    leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
+            BooleanFormula assignment = conv.fmgr.assignment(lvalue, newValue);
+            constraints.addConstraint(assignment);
+            return old;
+          }
+        } else {
+          throw new UnsupportedCodeException(
+              "Unsupported __atomic operation " + functionName, edge, e);
+        }
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0

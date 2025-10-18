@@ -1977,8 +1977,6 @@ public class CtoFormulaConverter {
     String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
-    } else if (functionName.startsWith("__atomic_")) {
-      result = "atomic operations";
     } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
       // Some of these functions are actually supported, but handled before this check here.
       result = "arithmetic function";
