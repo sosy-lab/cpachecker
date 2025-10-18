@@ -74,7 +74,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
   private Value newrandomValue(CFunctionCallExpression call) {
 
     // Determine the type that needs to be returned:
-    if (call.getExpressionType() instanceof CSimpleType pCSimpleType) {
+    if (call.getExpressionType().getCanonicalType() instanceof CSimpleType pCSimpleType) {
       CBasicType basicType = pCSimpleType.getType();
       return switch (basicType) {
         case UNSPECIFIED ->
