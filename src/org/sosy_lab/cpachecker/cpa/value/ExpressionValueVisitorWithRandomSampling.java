@@ -102,6 +102,20 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         .multiply(BigDecimal.valueOf(sign));
   }
 
+  /**
+   * Generates a fast random exponent for floating point numbers
+   *
+   * @param exponentRange The maximum number for the range
+   * @return A random exponent calculated by 2^(random value in [-(exponentRange + 1),
+   *     exponentRange])
+   */
+  private int fastRandomFloatExponent(int exponentRange) {
+    // the exponent is calculated by 2^(random value in [-(exponentRange + 1), exponentRange])
+    // additionally, a random sign is added
+    return (randomGenerator.nextBoolean() ? 1 : -1)
+        * (1 << randomGenerator.nextInt(-(exponentRange + 1), exponentRange));
+  }
+
   private Value newrandomValue(CFunctionCallExpression call) {
 
     // Determine the type that needs to be returned:
@@ -118,17 +132,10 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
                 randomIntInRange(
                     getMachineModel().getMinimalIntegerValue(pCSimpleType),
                     getMachineModel().getMaximalIntegerValue(pCSimpleType)));
-
-        case FLOAT -> {
-          int sign = randomGenerator.nextBoolean() ? 1 : -1;
-          int exponent = randomGenerator.nextInt(-2 ^ 7, 2 ^ 7 - 1);
-          yield new NumericValue(sign * (2 ^ exponent) + randomGenerator.nextFloat());
-        }
-        case DOUBLE -> {
-          int sign = randomGenerator.nextBoolean() ? 1 : -1;
-          int exponent = randomGenerator.nextInt(-2 ^ 10, 2 ^ 10 - 1);
-          yield new NumericValue(sign * (2 ^ exponent) + randomGenerator.nextDouble());
-        }
+        case FLOAT ->
+            new NumericValue(fastRandomFloatExponent(127) * (1f + randomGenerator.nextFloat()));
+        case DOUBLE ->
+            new NumericValue(fastRandomFloatExponent(1023) * (1d + randomGenerator.nextDouble()));
         case FLOAT128 -> new NumericValue(newRandomFloatingPointNumber(15, 112));
       };
     } else {
