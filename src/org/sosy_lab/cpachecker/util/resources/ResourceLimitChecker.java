@@ -188,11 +188,17 @@ public final class ResourceLimitChecker {
                   relativeThreadTimeDividend * totalCpuTimeFactor / relativeThreadTimeDivisor,
                   options.threadTime.getUnit());
 
-        } else if (options.useUnlimitedThreadTimeForUnlimitedCpuTime) {
+        } else {
           // Unlimited thread time as no CPU time-limit is set
           usedThreadTime = options.cpuTime;
         }
         // Thread time-limit used for unlimited global is a fallthrough case
+      }
+
+      if (usedThreadTime.compareTo(options.threadTimeMax) > 0) {
+        usedThreadTime = options.threadTimeMax;
+      } else if (usedThreadTime.compareTo(options.threadTimeMin) < 0) {
+        usedThreadTime = options.threadTimeMin;
       }
 
       // TODO: delete debug info
@@ -288,6 +294,22 @@ public final class ResourceLimitChecker {
 
     @Option(
         secure = true,
+        name = "time.cpu.thread.relative.min",
+        description =
+            "Minimum \"time.cpu.thread\" (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
+    private TimeSpan threadTimeMin = TimeSpan.ofNanos(-1);
+
+    @Option(
+        secure = true,
+        name = "time.cpu.thread.relative.max",
+        description =
+            "Maximum \"time.cpu.thread\" (use seconds or specify a unit; -1 for infinite)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
+    private TimeSpan threadTimeMax = TimeSpan.ofNanos(-1);
+
+    @Option(
+        secure = true,
         name = "time.cpu.thread.relativeTo",
         description =
             "When used, the thread-time-limit used is not equal to \"time.cpu.thread\","
@@ -307,17 +329,6 @@ public final class ResourceLimitChecker {
                 + " \"time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime\".")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan relativeThreadTime = TimeSpan.ofNanos(-1);
-
-    @Option(
-        secure = true,
-        name = "time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime",
-        description =
-            "If this option is set to false and a relative thread time is specified with an"
-                + " unlimited CPU-time, the original time-limit set in"
-                + " \"time.cpu.thread\" is used for the thread. If set to true, the"
-                + " thread time-limit is ignored and unlimited time is allocated for the thread"
-                + " instead.")
-    private boolean useUnlimitedThreadTimeForUnlimitedCpuTime = false;
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {
