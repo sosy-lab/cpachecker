@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -22,19 +23,15 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
 
-  public TerminationToReachTransferRelation(
-      BooleanFormulaManagerView pBfmgr, FormulaManagerView pFmgr) {
+  public TerminationToReachTransferRelation(FormulaManagerView pFmgr) {
     fmgr = pFmgr;
-    bfmgr = pBfmgr;
   }
 
   @Override
@@ -60,26 +57,22 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
     TerminationToReachState terminationState = (TerminationToReachState) pState;
-    BooleanFormula newConstraintformula;
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
     if (location.isLoopStart()) {
       if (terminationState.getStoredValues().containsKey(locationState)) {
-        newConstraintformula =
-            constructConstraintFormula(
-                terminationState.getNumberOfIterationsAtLoopHead(locationState),
-                predicateState.getPathFormula().getFormula());
         terminationState.setNewStoredValues(
             locationState,
-            newConstraintformula,
+            extractLoopHeadVariables(predicateState.getPathFormula().getFormula()),
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        newConstraintformula =
-            constructConstraintFormula(0, predicateState.getPathFormula().getFormula());
-        terminationState.setNewStoredValues(locationState, newConstraintformula, 0);
+        terminationState.setNewStoredValues(
+            locationState,
+            extractLoopHeadVariables(predicateState.getPathFormula().getFormula()),
+            0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
     }
@@ -91,21 +84,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * then it will add a condition to the stored values: __Q__x0 = x@2 Where the storing variables
    * are of the form __Q__[name of variable][number of loop iterations].
    */
-  private BooleanFormula constructConstraintFormula(
-      int pNumberOfIterationsAtLoopHead, BooleanFormula pPathFormula) {
-    BooleanFormula extendedFormula = bfmgr.makeTrue();
+  private List<Formula> extractLoopHeadVariables(BooleanFormula pPathFormula) {
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
-    for (Formula variable : mapNamesToFormulas.values()) {
-      String newVariable = "__Q__" + fmgr.uninstantiate(variable).toString().replace("@", "");
-      extendedFormula =
-          fmgr.makeAnd(
-              extendedFormula,
-              fmgr.assignment(
-                  fmgr.makeVariable(
-                      fmgr.getFormulaType(variable), newVariable, pNumberOfIterationsAtLoopHead),
-                  variable));
-    }
-    return extendedFormula;
+    return new ArrayList<>(mapNamesToFormulas.values());
   }
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {

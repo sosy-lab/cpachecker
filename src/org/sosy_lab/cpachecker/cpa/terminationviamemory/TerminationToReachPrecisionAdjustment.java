@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.base.Function;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -82,19 +82,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             buildCycleFormula(
                 buildFullPathFormula(terminationState.getPathFormulas()),
                 terminationState.getStoredValues().get(locationState),
-                i);
+                predicateState.getPathFormula().getSsa());
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
           continue;
         }
         if (isTargetStateReachable) {
-          // This analysis may be imprecise if the program contains pointers. We return UNKNOWN
-          // instead.
-          // TODO: Implement pointers handling.
-          if (programContainsPointers(ssaMap)) {
-            return Optional.of(result.withAction(Action.BREAK));
-          }
           terminationState.makeTarget();
           result = result.withAbstractState(terminationState);
           statistics.setNonterminatingLoop(
@@ -106,30 +100,24 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.of(result);
   }
 
-  private boolean programContainsPointers(SSAMap pSSAMap) {
-    for (String variable : pSSAMap.allVariables()) {
-      if (pSSAMap.getType(variable) instanceof CPointerType) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private BooleanFormula buildCycleFormula(
-      BooleanFormula pFullPathFormula, List<BooleanFormula> storedValues, int pSSAIndex) {
-    BooleanFormula cycle = pFullPathFormula;
-    BooleanFormula extendedFormula;
-    Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pFullPathFormula);
+      BooleanFormula pFullPathFormula,
+      Map<Integer, List<Formula>> storedValues,
+      SSAMap pLatestValues) {
+    BooleanFormula cycle = bfmgr.makeFalse();
 
-    cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
-    for (Formula variable : mapNamesToFormulas.values()) {
-      String newVariable = "__Q__" + fmgr.uninstantiate(variable).toString().replace("@", "");
-      extendedFormula =
-          fmgr.assignment(
-              fmgr.makeVariable(fmgr.getFormulaType(variable), newVariable, pSSAIndex), variable);
-      cycle = bfmgr.and(cycle, extendedFormula);
+    for (Entry<Integer, List<Formula>> savedVariables : storedValues.entrySet()) {
+      BooleanFormula comparingFormula = bfmgr.makeTrue();
+      for (Formula oldVariable : savedVariables.getValue()) {
+        comparingFormula =
+            bfmgr.and(
+                comparingFormula,
+                fmgr.assignment(
+                    fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
+      }
+      cycle = bfmgr.or(cycle, comparingFormula);
     }
-    return cycle;
+    return bfmgr.and(pFullPathFormula, cycle);
   }
 
   private BooleanFormula buildFullPathFormula(List<BooleanFormula> pPathFormulas) {

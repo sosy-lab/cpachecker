@@ -76,7 +76,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(bfmgr, fmgr);
+    return new TerminationToReachTransferRelation(fmgr);
   }
 
   @Override
