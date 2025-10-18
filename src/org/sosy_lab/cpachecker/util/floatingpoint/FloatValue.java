@@ -541,6 +541,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /**
    * Create a random FloatValue.
+   *
    * @param pFormat The format of the generated value according to machine model and C type.
    * @param pRandomGenerator The random generator to use.
    * @return A random FloatValue.
