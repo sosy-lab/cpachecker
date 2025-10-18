@@ -140,7 +140,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
     checkArgument(
         pI.bitLength() <= pLength,
-        "numeral value %s is too big for bitvector of length %d.",
+        "numeral value %s is too big for bitvector of length %s.",
         pI,
         pLength);
     BigInteger value;
