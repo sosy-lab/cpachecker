@@ -63,6 +63,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private double previousRedundancyPatterns = -1.0;
   private double previousDominantPatternCount = 0.0;
 
+  /**
+   * Construct a redundant predicates heuristic.
+   *
+   * @param pAcceptableRedundancyThreshold maximum redundancy rate acceptable
+   * @param pFormulaManager formula manager used for normalization
+   * @param pLogger logger for diagnostic output
+   * @throws InvalidConfigurationException if the provided redundancy rate is smaller than 0.0 (=
+   *     0%) or higher than 1.0 (= 100%)
+   * @throws IllegalStateException if the DSL rules cannot be loaded
+   */
   public DelegatingRefinerHeuristicRedundantPredicates(
       double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
@@ -86,6 +96,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     }
   }
 
+  /**
+   * Evaluates if the added states in the pDeltas are dominated by one dominant pattern or a
+   * category. It analyzes the abstraction formulas from the newly added states, normalizes them and
+   * matches them against a set of DSL rules. From these resulting patterns, redundancy metrics are
+   * computed.
+   *
+   * @param pReached the current ReachedSet (not used directly)
+   * @param pDeltas the list of changes in the ReachedSet, including newly added states
+   * @return {@code false}, if any stop condition is met, {@code true} otherwise
+   */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
@@ -250,6 +270,11 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     return false;
   }
 
+  /**
+   * Returns the current acceptable redundancy threshold. Used for testing.
+   *
+   * @return the redundancy threshold used in the stop conditions
+   */
   public double getRedundancyThreshold() {
     return redundancyThreshold;
   }

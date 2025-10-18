@@ -22,7 +22,7 @@ public interface DelegatingRefinerHeuristic {
    *
    * @param pReached the current immutable ReachedSet
    * @param pDeltas the list of changes in the ReachedSet since the last refinement
-   * @return true if heuristic conditions are satisfied, false otherwise
+   * @return {@code true} if heuristic conditions are satisfied, {@code false} otherwise
    */
   boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas);
 }

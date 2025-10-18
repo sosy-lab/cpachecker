@@ -18,12 +18,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPred
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A heuristic that monitors the rate interpolant generation in predicate abstraction. All
- * information necessary for monitoring is retrieved from the {@link
- * TrackingPredicateCPARefinementContext}, which stores a history of the number refinements and the
- * generated interpolants. It checks if the number of interpolants produced per refinement remains
- * below the configured threshold. It the interpolant rate exceeds the threshold, the heuristic
- * returns {@code false}.
+ * This class implements a DelegatingRefinerHeuristic. A heuristic that monitors the rate
+ * interpolant generation in predicate abstraction. All information necessary for monitoring is
+ * retrieved from the {@link TrackingPredicateCPARefinementContext}, which stores a history of the
+ * number refinements and the generated interpolants. It checks if the number of interpolants
+ * produced per refinement remains below the configured threshold. If the interpolant rate exceeds
+ * the threshold, the heuristic returns {@code false}.
  */
 public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
   private final TrackingPredicateCPARefinementContext refinementContext;
@@ -31,6 +31,15 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   private final double acceptableInterpolantRate;
   private double currentTotalInterpolantRate;
 
+  /**
+   * Constructs the heuristic monitoring interpolation rate.
+   *
+   * @param pRefinementContext provides information about refinement count and interpolants across
+   *     iterations
+   * @param pLogger logger for diagnostic output
+   * @param pInterpolantRate maximum allowed rate of interpolants generated per refinement
+   * @throws InvalidConfigurationException if the rate provided is negative
+   */
   public DelegatingRefinerHeuristicInterpolationRate(
       TrackingPredicateCPARefinementContext pRefinementContext,
       final LogManager pLogger,
@@ -46,6 +55,17 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
     currentTotalInterpolantRate = 0.0;
   }
 
+  /**
+   * Evaluates if the current interpolant rate is below the acceptable threshold. It computes the
+   * average number of interpolants generated per refinement and compares it to the provided limit.
+   *
+   * @param pReached the current ReachedSet: unused in this heuristic as the ReachedSet does not
+   *     provide information about the refinement iterations
+   * @param pDeltas the list of changes in the ReachedSet: unused in this heuristic as the
+   *     ReachedSet does not provide information about the refinement iterations
+   * @return {@code true} if the current interpolant rate is below the acceptable threshold, {@code
+   *     false} otherwise
+   */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     ImmutableList<BooleanFormula> totalInterpolants = refinementContext.getAllInterpolants();

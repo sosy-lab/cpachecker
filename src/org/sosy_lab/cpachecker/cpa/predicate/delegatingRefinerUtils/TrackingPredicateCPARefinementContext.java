@@ -14,7 +14,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /**
  * A metadata tracker used by {@link
  * org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate}.
- * The class stores refinement count and generated interpolants across iterations.Interpolants are
+ * The class stores refinement count and generated interpolants across iterations. Interpolants are
  * stored as grouped list per refinement steps.
  */
 public class TrackingPredicateCPARefinementContext {

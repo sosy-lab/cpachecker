@@ -11,7 +11,10 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 
 /**
- * Each heuristic for the DelegatingRefiner is stored as a fixed together with a suitable refiner.}
+ * Immutable pairing of a {@link DelegatingRefinerHeuristic} and a corresponding refiner for use in
+ * the PredicateDelegatingRefiner. Each refiner in the record is conditionally activated based on
+ * the outcome of its associated heuristic. When the heuristic returns {@code true}, the paired
+ * refiner is called to perform the refinement.
  */
 public record HeuristicDelegatingRefinerRecord(
     DelegatingRefinerHeuristic pHeuristic, Refiner pRefiner) {}

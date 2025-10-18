@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 /**
- * Describes which types of refiners can be added to the PredicateDelegatingRefiner records as
- * possible refiners.
+ * Describes which types of refiners can be added to the {@link HeuristicDelegatingRefinerRecord} as
+ * possible refiner.
  */
 public enum DelegatingRefinerRefinerType {
   DEFAULT,

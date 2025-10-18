@@ -12,11 +12,22 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 
-/** A simple heuristic that always chooses a static refinement strategy in the first iteration. */
+/**
+ * A simple heuristic that chooses a static refinement strategy in one refinement iteration. To
+ * mirror the default predicate abstraction functionality, this heuristic should be used as the
+ * first heuristic in the PredicateDelegatingRefiner, paired with a PredicateStaticRefiner.
+ */
 public class DelegatingRefinerHeuristicStaticRefinement implements DelegatingRefinerHeuristic {
 
   private boolean staticRefinerUsed = false;
 
+  /**
+   * Evaluates if the static refinement strategy has been applied.
+   *
+   * @param pReached the current ReachedSet (not used directly)
+   * @param pDeltas the list of changes in the ReachedSet (not used directly)
+   * @return {@code true}, if static refinement has not yet been used, {@code false} otherwise
+   */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
