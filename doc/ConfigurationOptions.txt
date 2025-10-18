@@ -4516,6 +4516,29 @@ limits.time.cpu = -1ns
 # great caution! (use seconds or specify a unit; -1 for infinite)
 limits.time.cpu.thread = -1ns
 
+# When used, the thread-time-limit used is not equal to "time.cpu.thread",
+# but relative to the total cpu-time-limit ("time.cpu") multiplied with the
+# proportion of "time.cpu.thread" by the setting of this option. Assuming the
+# following options to be "time.cpu.thread" = threadTime, "time.cpu" =
+# cpuTime, and "time.cpu.thread.relativeTo" = relativeTime, and the used
+# time-limit for a thread to be usedThreadTime, then: (threadTime /
+# relativeTime) * cpuTime = usedThreadTime. For example, setting
+# "time.cpu.thread" = 60s, "time.cpu" = 900s, and
+# "time.cpu.thread.relativeTo" = 600s, then the time-limit used for the
+# thread will be 90s (= 60/600*900). This option is disabled for values in
+# the negative range and does not work for distinct time-units used in
+# between the three related options. Can only be used if "time.cpu.thread" is
+# used as well. If "time.cpu" is not used, i.e. a unlimited time-limit is
+# used for it, this option will behave as dictated by option
+# "time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime".
+limits.time.cpu.thread.relativeTo = -1ns
+
+# If this option is set to false and a relative thread time is specified with
+# an unlimited CPU-time, the original time-limit set in "time.cpu.thread" is
+# used for the thread. If set to true, the thread time-limit is ignored and
+# unlimited time is allocated for the thread instead.
+limits.time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime = false
+
 # Enforce that the given CPU time limit is set as the value of
 # limits.time.cpu.
 limits.time.cpu::required = -1ns

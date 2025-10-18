@@ -144,8 +144,74 @@ public final class ResourceLimitChecker {
             "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
       }
     }
+
+    // TODO: >= is wrong! It crashes for 0! Should be >
     if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(ThreadCpuTimeLimit.create(options.threadTime));
+      // Use threadTime per default
+      TimeSpan usedThreadTime = options.threadTime;
+
+      // TODO: this structure is bad and can be improved!
+      if (options.relativeThreadTime.compareTo(TimeSpan.empty()) >= 0) {
+        // If relativeThreadTime defined: sanity check units
+        if (!options.threadTime.getUnit().equals(options.relativeThreadTime.getUnit())) {
+          throw new InvalidConfigurationException(
+              "The time-units for options \"time.cpu.thread\" and"
+                  + " \"time.cpu.thread.relativeTo\" have to be equal, but were "
+                  + options.threadTime.getUnit()
+                  + " and "
+                  + options.relativeThreadTime.getUnit()
+                  + ".");
+        }
+
+        if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
+          if (!options.threadTime.getUnit().equals(options.cpuTime.getUnit())) {
+            // If global time limit used: sanity check units
+            throw new InvalidConfigurationException(
+                "The time-units for options \"time.cpu.thread\" and"
+                    + " \"time.cpu.thread.cpuTime\" have to be equal, but were "
+                    + options.threadTime.getUnit()
+                    + " and "
+                    + options.cpuTime.getUnit()
+                    + ".");
+          }
+
+          // If global time limit used, we want to use the relative time limit
+          long relativeThreadTimeDividend =
+              options.threadTime.getChecked(options.threadTime.getUnit());
+          long relativeThreadTimeDivisor =
+              options.relativeThreadTime.getChecked(options.relativeThreadTime.getUnit());
+          long totalCpuTimeFactor = options.cpuTime.getChecked(options.cpuTime.getUnit());
+
+          // TODO: calculate more precisely?
+          usedThreadTime =
+              TimeSpan.of(
+                  relativeThreadTimeDividend * totalCpuTimeFactor / relativeThreadTimeDivisor,
+                  options.threadTime.getUnit());
+
+        } else if (options.useUnlimitedThreadTimeForUnlimitedCpuTime) {
+          // Unlimited thread time as no CPU time-limit is set
+          usedThreadTime = options.cpuTime;
+        }
+        // Thread time-limit used for unlimited global is a fallthrough case
+      }
+
+      // TODO: delete debug info
+      System.out.println(
+          "--- CPUTime: "
+              + options.cpuTime
+              + "  with CPUTimeReq: "
+              + options.cpuTimeRequired
+              + "  with  ThreadTime: "
+              + options.threadTime
+              + "  with relative thread time: "
+              + options.relativeThreadTime
+              + "  and final used thread time: "
+              + usedThreadTime
+              + "  ---");
+
+      if (usedThreadTime.compareTo(TimeSpan.empty()) >= 0) {
+        limits.add(ThreadCpuTimeLimit.create(usedThreadTime));
+      }
     }
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
@@ -219,6 +285,39 @@ public final class ResourceLimitChecker {
                 + " caution! (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan threadTime = TimeSpan.ofNanos(-1);
+
+    @Option(
+        secure = true,
+        name = "time.cpu.thread.relativeTo",
+        description =
+            "When used, the thread-time-limit used is not equal to \"time.cpu.thread\","
+                + " but relative to the total cpu-time-limit (\"time.cpu\") multiplied with the"
+                + " proportion of \"time.cpu.thread\" by the setting of this option."
+                + " Assuming the following options to be \"time.cpu.thread\" ="
+                + " threadTime, \"time.cpu\" = cpuTime, and \"time.cpu.thread.relativeTo\""
+                + " = relativeTime, and the used time-limit for a thread to be usedThreadTime,"
+                + " then: (threadTime / relativeTime) * cpuTime = usedThreadTime. For example,"
+                + " setting \"time.cpu.thread\" = 60s, \"time.cpu\" = 900s, and"
+                + " \"time.cpu.thread.relativeTo\" = 600s, then the time-limit used for the"
+                + " thread will be 90s (= 60/600*900). This option is disabled for values in the"
+                + " negative range and does not work for distinct time-units used in between the"
+                + " three related options. Can only be used if \"time.cpu.thread\" is"
+                + " used as well. If \"time.cpu\" is not used, i.e. a unlimited time-limit is used"
+                + " for it, this option will behave as dictated by option"
+                + " \"time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime\".")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
+    private TimeSpan relativeThreadTime = TimeSpan.ofNanos(-1);
+
+    @Option(
+        secure = true,
+        name = "time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime",
+        description =
+            "If this option is set to false and a relative thread time is specified with an"
+                + " unlimited CPU-time, the original time-limit set in"
+                + " \"time.cpu.thread\" is used for the thread. If set to true, the"
+                + " thread time-limit is ignored and unlimited time is allocated for the thread"
+                + " instead.")
+    private boolean useUnlimitedThreadTimeForUnlimitedCpuTime = false;
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {
