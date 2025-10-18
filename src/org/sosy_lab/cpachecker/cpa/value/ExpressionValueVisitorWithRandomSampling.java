@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Random;
 import java.util.logging.Level;
@@ -87,21 +86,6 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
     } while (guess.compareTo(max) >= 0 || guess.compareTo(min) <= 0);
 
     return guess;
-  }
-
-  private BigDecimal newRandomFloatingPointNumber(int exponentBits, int fractionBits) {
-    int sign = randomGenerator.nextBoolean() ? 1 : -1;
-    BigInteger exponent =
-        randomIntInRange(
-            BigInteger.TWO.pow(exponentBits - 1).multiply(BigInteger.valueOf(-1)),
-            BigInteger.TWO.pow(exponentBits - 1));
-    BigInteger fraction =
-        randomIntInRange(
-            BigInteger.ZERO, BigInteger.valueOf(2).pow(fractionBits).subtract(BigInteger.ONE));
-    return new BigDecimal(fraction)
-        .divide(BigDecimal.valueOf(2).pow(fractionBits))
-        .add(new BigDecimal(2).pow(exponent.intValue()))
-        .multiply(BigDecimal.valueOf(sign));
   }
 
   private Value newRandomValue(CFunctionCallExpression call) {
