@@ -85,7 +85,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
       guess = new BigInteger(max.subtract(min).bitLength(), randomGenerator);
     } while (guess.compareTo(max) >= 0 || guess.compareTo(min) <= 0);
 
-    return guess;
+    return guess.add(min);
   }
 
   private Value newRandomValue(CFunctionCallExpression call) {
