@@ -34,7 +34,7 @@ public final class BuiltinAtomicFunctions {
     FETCH
   }
 
-  public enum CAtomicOperationsLookup {
+  public enum CAtomicOperations {
     ATOMIC_STORE_N("__atomic_store_n", CAtomicOperationType.STORE),
     ATOMIC_STORE("__atomic_store", CAtomicOperationType.STORE),
     ATOMIC_LOAD_N("__atomic_load_n", CAtomicOperationType.LOAD),
@@ -53,7 +53,7 @@ public final class BuiltinAtomicFunctions {
     private final String representation;
     private final CAtomicOperationType operationType;
 
-    CAtomicOperationsLookup(String pRepresentation, CAtomicOperationType pOperationType) {
+    CAtomicOperations(String pRepresentation, CAtomicOperationType pOperationType) {
       representation = pRepresentation;
       operationType = pOperationType;
     }
@@ -66,7 +66,7 @@ public final class BuiltinAtomicFunctions {
       return operationType;
     }
 
-    public static CAtomicOperationsLookup fromString(String s) {
+    public static CAtomicOperations fromString(String s) {
       return Arrays.stream(values())
           .filter(it -> it.representation.equals(s))
           .findFirst()
@@ -76,32 +76,29 @@ public final class BuiltinAtomicFunctions {
 
   /** Check whether a given function name identifies an atomic builtin. */
   public static boolean isBuiltinAtomicFunction(String pFunctionName) {
-    return pFunctionName != null && CAtomicOperationsLookup.fromString(pFunctionName) != null;
+    return pFunctionName != null && CAtomicOperations.fromString(pFunctionName) != null;
   }
 
   public static boolean matchesStore(String pFunctionName) {
-    return CAtomicOperationsLookup.fromString(pFunctionName).operationType
-        == CAtomicOperationType.STORE;
+    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.STORE;
   }
 
   public static boolean matchesLoad(String pFunctionName) {
-    return CAtomicOperationsLookup.fromString(pFunctionName).operationType
-        == CAtomicOperationType.LOAD;
+    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.LOAD;
   }
 
   public static boolean matchesExchange(String pFunctionName) {
-    return CAtomicOperationsLookup.fromString(pFunctionName).operationType
+    return CAtomicOperations.fromString(pFunctionName).operationType
         == CAtomicOperationType.EXCHANGE;
   }
 
   public static boolean matchesCompareExchange(String pFunctionName) {
-    return CAtomicOperationsLookup.fromString(pFunctionName).operationType
+    return CAtomicOperations.fromString(pFunctionName).operationType
         == CAtomicOperationType.CMP_XCHG;
   }
 
   public static boolean matchesFetchOp(String pFunctionName) {
-    return CAtomicOperationsLookup.fromString(pFunctionName).operationType
-        == CAtomicOperationType.FETCH;
+    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.FETCH;
   }
 
   /**
