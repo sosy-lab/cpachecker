@@ -50,7 +50,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
   private static final double CATEGORY_REDUNDANCY_THRESHOLD = 0.7;
-  private final String dslRulePath;
+  private String dslRulePath = "config/predicateAnalysis-delegatingrefiner-redundancyRules.json";
 
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
@@ -64,7 +64,6 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   /**
    * Construct a redundant predicates heuristic.
    *
-   * @param pPathToDSL path to the DSL file containing the patterns for redundancy matching
    * @param pAcceptableRedundancyThreshold maximum redundancy rate acceptable
    * @param pFormulaManager formula manager used for normalization
    * @param pLogger logger for diagnostic output
@@ -73,7 +72,6 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
    * @throws IllegalStateException if the DSL rules cannot be loaded
    */
   public DelegatingRefinerHeuristicRedundantPredicates(
-      String pPathToDSL,
       double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
       final LogManager pLogger)
@@ -82,7 +80,6 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       throw new InvalidConfigurationException(
           "Acceptable redundancy rate must be between 0.0 and 1.0.");
     }
-    this.dslRulePath = pPathToDSL;
     this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;

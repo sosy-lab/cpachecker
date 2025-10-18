@@ -7,6 +7,16 @@
 <!-- -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
+
+<?xml version="1.0"?>
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="8000 MB" cpuCores="2">
@@ -16,7 +26,6 @@
 
     <rundefinition name="PredicateDelegatingRefiner">
         <option name="--predicateAnalysis-delegatingrefiner"/>
-        <option name="--option">cpa.predicate.redundancyDSLPath=redundancyRules.json</option>
     </rundefinition>
 
     <rundefinition name="ABEl">
@@ -24,13 +33,11 @@
     </rundefinition>
 
     <tasks name="Loops">
+        <include>../programs/benchmarks/loop-simple/*.c</include>
         <include>../programs/benchmarks/loop-new/*.c</include>
         <include>../programs/benchmarks/loops/*.c</include>
-        <include>../programs/benchmarks/loop-simple/*.c</include>
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
 </benchmark>
-
-
 

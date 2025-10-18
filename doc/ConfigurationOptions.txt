@@ -2794,10 +2794,6 @@ cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.liveVariables = true
 
-# Path to the DSL JSON containing the redundancy rules for DelegatingRefiner
-# heuristic
-cpa.predicate.refinement.pathToDSL = "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerUtils/redundancyRules.json"
-
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
