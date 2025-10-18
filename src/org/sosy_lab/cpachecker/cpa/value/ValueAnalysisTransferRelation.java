@@ -1772,6 +1772,10 @@ public class ValueAnalysisTransferRelation
     if (options.randomlySampleFunctionReturnValues()) {
       if (randomSampler == null) {
         // We cache the visitor such that the visitor can update itself to get a new random value
+        // Be aware that a fresh transfer relation is created each time
+        // `ValueAnalysisCPA.getTransferRelation()` is called, this will reset the seed being used.
+        // For more details see:
+        // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/345#note_2829900573
         randomSampler = new Random(options.randomSamplingSeed());
       }
 
