@@ -1365,9 +1365,9 @@ public class ExpressionToFormulaVisitor
     CExpression val = parameters.get(1);
     if (parameters.size() >= 3) {
       CExpression ordering = parameters.get(2);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential fetch detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent fetch detected", edge, e);
       }
     }
     if (ptr instanceof CUnaryExpression unary
@@ -1411,23 +1411,23 @@ public class ExpressionToFormulaVisitor
     CExpression desired = parameters.get(2);
     if (parameters.size() >= 4) {
       CExpression weak = parameters.get(3);
-      if (weak instanceof CIntegerLiteralExpression weakValue
-          && !weakValue.getValue().equals(BigInteger.valueOf(0))) {
-        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      if (!(weak instanceof CIntegerLiteralExpression weakValue)
+          || !weakValue.equals(BigInteger.valueOf(0))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
       }
     }
     if (parameters.size() >= 5) {
       CExpression ordering = parameters.get(4);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
       }
     }
     if (parameters.size() >= 6) {
       CExpression ordering = parameters.get(5);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
       }
     }
     if (ptr instanceof CUnaryExpression unary
@@ -1471,9 +1471,10 @@ public class ExpressionToFormulaVisitor
     CExpression val = parameters.get(1);
     if (parameters.size() >= 3) {
       CExpression ordering = parameters.get(2);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential exchange detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException(
+            "Not-sequentially-consistent exchange detected", edge, e);
       }
     }
     if (ptr instanceof CUnaryExpression unary
@@ -1508,9 +1509,9 @@ public class ExpressionToFormulaVisitor
     CExpression ptr = parameters.get(0);
     if (parameters.size() >= 2) {
       CExpression ordering = parameters.get(1);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential load detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent load detected", edge, e);
       }
     }
     if (ptr instanceof CUnaryExpression unary && unary.getOperator() == UnaryOperator.AMPER) {
@@ -1525,9 +1526,9 @@ public class ExpressionToFormulaVisitor
     CExpression val = parameters.get(1);
     if (parameters.size() >= 3) {
       CExpression ordering = parameters.get(2);
-      if (ordering instanceof CIntegerLiteralExpression orderValue
-          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Non-sequential store detected", edge, e);
+      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Not-sequentially-consistent store detected", edge, e);
       }
     }
     if (ptr instanceof CUnaryExpression unary
