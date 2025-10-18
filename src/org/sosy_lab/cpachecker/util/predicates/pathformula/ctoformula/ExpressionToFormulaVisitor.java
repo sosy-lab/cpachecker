@@ -1240,144 +1240,29 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
         if (BuiltinAtomicFunctions.matchesStore(functionName) && parameters.size() >= 2) {
-          CExpression ptr = parameters.get(0);
-          CExpression val = parameters.get(1);
-          if (parameters.size() >= 3) {
-            CExpression ordering = parameters.get(2);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential store detected", edge, e);
-            }
-          }
-          if (ptr instanceof CUnaryExpression unary
-              && unary.getOperator() == UnaryOperator.AMPER
-              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
-            try {
-              BooleanFormula assignment =
-                  conv.makeAssignment(
-                      leftHandSide,
-                      leftHandSide,
-                      val,
-                      edge,
-                      function,
-                      ssa,
-                      pts,
-                      constraints,
-                      errorConditions);
-              constraints.addConstraint(assignment);
-            } catch (InterruptedException interruptedException) {
-              CtoFormulaConverter.propagateInterruptedException(interruptedException);
-            }
-            // what to return instead of void?
+          Formula result = atomicStore(e, parameters);
+          if (result != null) {
+            return result;
           }
         } else if (BuiltinAtomicFunctions.matchesLoad(functionName) && parameters.size() >= 1) {
-          CExpression ptr = parameters.get(0);
-          if (parameters.size() >= 2) {
-            CExpression ordering = parameters.get(1);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential load detected", edge, e);
-            }
-          }
-          if (ptr instanceof CUnaryExpression unary && unary.getOperator() == UnaryOperator.AMPER) {
-            return processOperand(unary.getOperand(), returnType, returnType);
+          Formula result = atomicLoad(e, parameters, returnType);
+          if (result != null) {
+            return result;
           }
         } else if (BuiltinAtomicFunctions.matchesExchange(functionName) && parameters.size() >= 2) {
-          CExpression ptr = parameters.get(0);
-          CExpression val = parameters.get(1);
-          if (parameters.size() >= 3) {
-            CExpression ordering = parameters.get(2);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential exchange detected", edge, e);
-            }
-          }
-          if (ptr instanceof CUnaryExpression unary
-              && unary.getOperator() == UnaryOperator.AMPER
-              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
-            Formula old = processOperand(leftHandSide, returnType, returnType);
-            try {
-              BooleanFormula assignment =
-                  conv.makeAssignment(
-                      leftHandSide,
-                      leftHandSide,
-                      val,
-                      edge,
-                      function,
-                      ssa,
-                      pts,
-                      constraints,
-                      errorConditions);
-              constraints.addConstraint(assignment);
-            } catch (InterruptedException interruptedException) {
-              CtoFormulaConverter.propagateInterruptedException(interruptedException);
-            }
-            return old;
+          Formula result = atomicExchange(e, parameters, returnType);
+          if (result != null) {
+            return result;
           }
         } else if (BuiltinAtomicFunctions.matchesCompareExchange(functionName)) {
-          // conservative: return nondet boolean
-          if (parameters.size() >= 3) {
-            CExpression weak = parameters.get(2);
-            if (weak instanceof CIntegerLiteralExpression weakValue
-                && !weakValue.getValue().equals(BigInteger.valueOf(0))) {
-              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
-            }
+          Formula result = atomicCmpXchg(e, parameters, returnType);
+          if (result != null) {
+            return result;
           }
-          if (parameters.size() >= 4) {
-            CExpression ordering = parameters.get(3);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
-            }
-          }
-          if (parameters.size() >= 5) {
-            CExpression ordering = parameters.get(4);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
-            }
-          }
-          // TODO: implement compare-exchange
         } else if (BuiltinAtomicFunctions.matchesFetchOp(functionName) && parameters.size() >= 2) {
-          CExpression ptr = parameters.get(0);
-          CExpression val = parameters.get(1);
-          if (parameters.size() >= 3) {
-            CExpression ordering = parameters.get(2);
-            if (ordering instanceof CIntegerLiteralExpression orderValue
-                && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-              throw new UnsupportedCodeException("Non-sequential fetch detected", edge, e);
-            }
-          }
-          if (ptr instanceof CUnaryExpression unary
-              && unary.getOperator() == UnaryOperator.AMPER
-              && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
-            Formula old = processOperand(leftHandSide, returnType, returnType);
-            String[] parts = functionName.split("_");
-
-            Formula v = toFormula(val);
-
-            Formula newValue =
-                switch (parts[parts.length - 1]) {
-                  case "add":
-                    yield mgr.makePlus(old, v);
-                  case "sub":
-                    yield mgr.makeMinus(old, v);
-                  case "and":
-                    yield mgr.makeAnd(old, v);
-                  case "xor":
-                    yield mgr.makeXor(old, v);
-                  case "or":
-                    yield mgr.makeOr(old, v);
-                  default:
-                    throw new UnsupportedCodeException(
-                        "Unsupported fetch operation " + functionName, edge, e);
-                };
-            Formula lvalue =
-                conv.buildLvalueTerm(
-                    leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-            BooleanFormula assignment = conv.fmgr.assignment(lvalue, newValue);
-            constraints.addConstraint(assignment);
-            return old;
+          Formula result = atomicFetch(e, parameters, returnType, functionName);
+          if (result != null) {
+            return result;
           }
         } else {
           throw new UnsupportedCodeException(
@@ -1466,6 +1351,212 @@ public class ExpressionToFormulaVisitor
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  @Nullable
+  private Formula atomicFetch(
+      CFunctionCallExpression e,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
+      throws UnrecognizedCodeException {
+    CExpression ptr = parameters.get(0);
+    CExpression val = parameters.get(1);
+    if (parameters.size() >= 3) {
+      CExpression ordering = parameters.get(2);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential fetch detected", edge, e);
+      }
+    }
+    if (ptr instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+      Formula old = processOperand(leftHandSide, returnType, returnType);
+      String[] parts = functionName.split("_");
+
+      Formula v = toFormula(val);
+
+      Formula newValue =
+          switch (parts[parts.length - 1]) {
+            case "add":
+              yield mgr.makePlus(old, v);
+            case "sub":
+              yield mgr.makeMinus(old, v);
+            case "and":
+              yield mgr.makeAnd(old, v);
+            case "xor":
+              yield mgr.makeXor(old, v);
+            case "or":
+              yield mgr.makeOr(old, v);
+            default:
+              throw new UnsupportedCodeException(
+                  "Unsupported fetch operation " + functionName, edge, e);
+          };
+      Formula lvalue =
+          conv.buildLvalueTerm(
+              leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
+      BooleanFormula assignment = conv.fmgr.assignment(lvalue, newValue);
+      constraints.addConstraint(assignment);
+      return old;
+    }
+    return null;
+  }
+
+  @Nullable
+  private Formula atomicCmpXchg(
+      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+      throws UnrecognizedCodeException {
+    // This built-in function implements an atomic compare and exchange operation. This compares the
+    // contents of *ptr with the contents of *expected. If equal, the operation is a
+    // read-modify-write operation that writes desired into *ptr. If they are not equal, the
+    // operation is a read and the current contents of *ptr are written into *expected.
+    CExpression ptr = parameters.get(0);
+    CExpression expectedPtr = parameters.get(1);
+    CExpression desired = parameters.get(2);
+    if (parameters.size() >= 4) {
+      CExpression weak = parameters.get(3);
+      if (weak instanceof CIntegerLiteralExpression weakValue
+          && !weakValue.getValue().equals(BigInteger.valueOf(0))) {
+        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      }
+    }
+    if (parameters.size() >= 5) {
+      CExpression ordering = parameters.get(4);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      }
+    }
+    if (parameters.size() >= 6) {
+      CExpression ordering = parameters.get(5);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential cmpxchg detected", edge, e);
+      }
+    }
+    if (ptr instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide leftHandSide
+        && expectedPtr instanceof CUnaryExpression expUnary
+        && expUnary.getOperator() == UnaryOperator.AMPER
+        && expUnary.getOperand() instanceof CLeftHandSide expLeftHandSide) {
+      CType type = leftHandSide.getExpressionType();
+      Formula old = processOperand(leftHandSide, type, type);
+      Formula exp = processOperand(expLeftHandSide, type, type);
+      Formula des = processOperand(desired, type, type);
+      Formula newVal = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), des, old);
+      Formula newExp = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), exp, old);
+
+      FormulaType<?> resultType = conv.getFormulaTypeFromCType(returnType);
+      Formula zero = mgr.makeNumber(resultType, 0);
+      Formula one = mgr.makeNumber(resultType, 1);
+      Formula retVal = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), one, zero);
+
+      Formula lvalue =
+          conv.buildLvalueTerm(
+              leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
+      Formula lvalueExp =
+          conv.buildLvalueTerm(
+              expLeftHandSide, edge, function, ssa, pts, constraints, errorConditions);
+      BooleanFormula assignment1 = conv.fmgr.assignment(lvalue, newVal);
+      constraints.addConstraint(assignment1);
+      BooleanFormula assignment2 = conv.fmgr.assignment(lvalueExp, newExp);
+      constraints.addConstraint(assignment2);
+      return retVal;
+    }
+    return null;
+  }
+
+  @Nullable
+  private Formula atomicExchange(
+      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+      throws UnrecognizedCodeException {
+    CExpression ptr = parameters.get(0);
+    CExpression val = parameters.get(1);
+    if (parameters.size() >= 3) {
+      CExpression ordering = parameters.get(2);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential exchange detected", edge, e);
+      }
+    }
+    if (ptr instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+      Formula old = processOperand(leftHandSide, returnType, returnType);
+      try {
+        BooleanFormula assignment =
+            conv.makeAssignment(
+                leftHandSide,
+                leftHandSide,
+                val,
+                edge,
+                function,
+                ssa,
+                pts,
+                constraints,
+                errorConditions);
+        constraints.addConstraint(assignment);
+      } catch (InterruptedException interruptedException) {
+        CtoFormulaConverter.propagateInterruptedException(interruptedException);
+      }
+      return old;
+    }
+    return null;
+  }
+
+  @Nullable
+  private Formula atomicLoad(
+      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+      throws UnrecognizedCodeException {
+    CExpression ptr = parameters.get(0);
+    if (parameters.size() >= 2) {
+      CExpression ordering = parameters.get(1);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential load detected", edge, e);
+      }
+    }
+    if (ptr instanceof CUnaryExpression unary && unary.getOperator() == UnaryOperator.AMPER) {
+      return processOperand(unary.getOperand(), returnType, returnType);
+    }
+    return null;
+  }
+
+  private Formula atomicStore(CFunctionCallExpression e, List<CExpression> parameters)
+      throws UnrecognizedCodeException {
+    CExpression ptr = parameters.get(0);
+    CExpression val = parameters.get(1);
+    if (parameters.size() >= 3) {
+      CExpression ordering = parameters.get(2);
+      if (ordering instanceof CIntegerLiteralExpression orderValue
+          && !orderValue.getValue().equals(BigInteger.valueOf(5))) {
+        throw new UnsupportedCodeException("Non-sequential store detected", edge, e);
+      }
+    }
+    if (ptr instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide leftHandSide) {
+      try {
+        BooleanFormula assignment =
+            conv.makeAssignment(
+                leftHandSide,
+                leftHandSide,
+                val,
+                edge,
+                function,
+                ssa,
+                pts,
+                constraints,
+                errorConditions);
+        constraints.addConstraint(assignment);
+      } catch (InterruptedException interruptedException) {
+        CtoFormulaConverter.propagateInterruptedException(interruptedException);
+      }
+      // what to return instead of void?
+    }
+    return null;
   }
 
   private record ValidatedFScanFParameter(String format, CExpression receiver) {}
