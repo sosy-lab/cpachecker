@@ -24,9 +24,10 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVisitor {
-  public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
+  public static final String PATTERN_FOR_RANDOM = "__VERIFIER_nondet_";
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -57,14 +58,15 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         && (call.getFunctionNameExpression() instanceof CIdExpression
             && ((CIdExpression) call.getFunctionNameExpression())
                 .getName()
-                .startsWith(PATERN_FOR_RANDOM))) {
+                .startsWith(PATTERN_FOR_RANDOM))) {
 
       Value value = newRandomValue(call);
 
       logger.log(
           Level.FINER,
           "Returning value at position %d, for statement %s that is: ",
-          value, pExp.toASTString());
+          value,
+          pExp.toASTString());
 
       return value;
     }
@@ -102,20 +104,6 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         .multiply(BigDecimal.valueOf(sign));
   }
 
-  /**
-   * Generates a fast random exponent for floating point numbers
-   *
-   * @param exponentRange The maximum number for the range
-   * @return A random exponent calculated by 2^(random value in [-(exponentRange + 1),
-   *     exponentRange])
-   */
-  private int fastRandomFloatExponent(int exponentRange) {
-    // the exponent is calculated by 2^(random value in [-(exponentRange + 1), exponentRange])
-    // additionally, a random sign is added
-    return (randomGenerator.nextBoolean() ? 1 : -1)
-        * (1 << randomGenerator.nextInt(-(exponentRange + 1), exponentRange));
-  }
-
   private Value newRandomValue(CFunctionCallExpression call) {
 
     // Determine the type that needs to be returned:
@@ -126,17 +114,15 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
             throw new IllegalArgumentException(
                 "Cannot handle type UNSPECIFIED in random value generation");
         case BOOL -> new NumericValue(randomGenerator.nextBoolean() ? 1 : 0);
-        case CHAR -> new NumericValue(randomGenerator.nextInt(-128, 127));
-        case INT, INT128 ->
+        case CHAR, INT, INT128 ->
             new NumericValue(
                 randomIntInRange(
                     getMachineModel().getMinimalIntegerValue(pCSimpleType),
                     getMachineModel().getMaximalIntegerValue(pCSimpleType)));
-        case FLOAT ->
-            new NumericValue(fastRandomFloatExponent(127) * (1f + randomGenerator.nextFloat()));
-        case DOUBLE ->
-            new NumericValue(fastRandomFloatExponent(1023) * (1d + randomGenerator.nextDouble()));
-        case FLOAT128 -> new NumericValue(newRandomFloatingPointNumber(15, 112));
+        case FLOAT, DOUBLE, FLOAT128 ->
+            new NumericValue(
+                FloatValue.randomValue(
+                    FloatValue.Format.fromCType(getMachineModel(), pCSimpleType), randomGenerator));
       };
     } else {
       logger.logOnce(
