@@ -251,16 +251,23 @@ javascript-e2e-tests:
 
 
 # Checks for Python code
-check-format-python:
+.base_ruff:
   stage: checks
   dependencies: []
   needs: []
-  image: python
+  interruptible: true
+  image: ghcr.io/astral-sh/ruff:0.14-alpine
   before_script:
-    - pip install 'black[jupyter]<25'
+    - ruff --version
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".ruff_cache"
+
+check-format-python:
+  extends: .base_ruff
   script:
-    - black . --check --diff
-  <<: *pip-cache
+    - "ruff format --check --diff"
 
 flake8:
   stage: checks
