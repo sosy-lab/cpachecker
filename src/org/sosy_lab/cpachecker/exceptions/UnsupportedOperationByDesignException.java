@@ -17,10 +17,6 @@ import java.io.Serial;
 public class UnsupportedOperationByDesignException extends UnsupportedOperationException {
   @Serial private static final long serialVersionUID = 6173271465032705649L;
 
-  public UnsupportedOperationByDesignException() {
-    super();
-  }
-
   public UnsupportedOperationByDesignException(String message) {
     super(message);
   }

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.collect.Lists;

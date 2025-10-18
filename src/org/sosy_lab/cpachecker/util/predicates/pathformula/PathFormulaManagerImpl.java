@@ -241,8 +241,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     try {
       PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
       return Pair.of(pf, errorConditions);
-    } catch (UnsupportedOperationByDesignException pE) {
-      throw new UnsupportedCodeException(pE.getMessage(), pEdge);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
     }
   }
 
@@ -305,8 +305,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     try {
       return makeAnd(pOldFormula, pEdge, errorConditions);
-    } catch (UnsupportedOperationByDesignException pE) {
-      throw new UnsupportedCodeException(pE.getMessage(), pEdge);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
     }
   }
 
