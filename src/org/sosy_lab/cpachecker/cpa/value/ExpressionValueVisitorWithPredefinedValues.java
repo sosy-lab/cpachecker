@@ -119,7 +119,10 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       // }
 
     } else {
-      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      logger.logOnce(
+          Level.WARNING,
+          "Cannot instantiate complex types with a concrete "
+              + "value for random testing, hence returning unknown");
     }
     return new Value.UnknownValue();
   }
