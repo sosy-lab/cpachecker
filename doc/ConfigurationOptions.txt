@@ -499,7 +499,7 @@ analysis.traversal.order = DFS
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
 # to be a double in the range [0, INF)
-analysis.traversal.random.exponent = 1
+analysis.traversal.random.exponent = 8
 
 # Seed for random values.
 analysis.traversal.random.seed = 0
