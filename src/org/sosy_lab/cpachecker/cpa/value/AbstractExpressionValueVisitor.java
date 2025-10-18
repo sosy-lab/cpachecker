@@ -2272,9 +2272,8 @@ public abstract class AbstractExpressionValueVisitor
 
   /**
    * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits of an unsigned int, unsigned long or unsigned long long. Test c programs
-   * available: test/programs/simple/builtin_popcount32_x.c and
-   * test/programs/simple/builtin_popcount64_x.c
+   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
+   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
    */
   private static Value handlePopcount(
       String pFunctionName,
