@@ -59,7 +59,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
                 .getName()
                 .startsWith(PATERN_FOR_RANDOM))) {
 
-      Value value = newrandomValue(call);
+      Value value = newRandomValue(call);
 
       logger.log(
           Level.FINER,
@@ -116,7 +116,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         * (1 << randomGenerator.nextInt(-(exponentRange + 1), exponentRange));
   }
 
-  private Value newrandomValue(CFunctionCallExpression call) {
+  private Value newRandomValue(CFunctionCallExpression call) {
 
     // Determine the type that needs to be returned:
     if (call.getExpressionType().getCanonicalType() instanceof CSimpleType pCSimpleType) {
