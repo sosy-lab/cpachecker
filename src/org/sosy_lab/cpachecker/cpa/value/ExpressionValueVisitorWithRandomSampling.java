@@ -62,7 +62,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
 
       Value value = newRandomValue(call);
 
-      logger.log(
+      logger.logf(
           Level.FINER,
           "Returning value at position %d, for statement %s that is: ",
           value,
