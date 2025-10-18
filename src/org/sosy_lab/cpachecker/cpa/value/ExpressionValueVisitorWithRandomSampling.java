@@ -63,8 +63,8 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
 
       logger.log(
           Level.FINER,
-          "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
-          value);
+          "Returning value at position %d, for statement %s that is: ",
+          value, pExp.toASTString());
 
       return value;
     }

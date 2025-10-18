@@ -5080,6 +5080,9 @@ restartAlgorithm.writeIntermediateOutputFiles = false
 # File name for analysis report in case a counterexample was found.
 sampling.random.counterexampleExport = "Counterexample.trace.%d.txt"
 
+# Whether the random sampling algorithm exports traces.
+sampling.random.exportTraces = false
+
 # File name for analysis report in case no counterexample was found.
 sampling.random.safeExport = "Safe.trace.%d.txt"
 
