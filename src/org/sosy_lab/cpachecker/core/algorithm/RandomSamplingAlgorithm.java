@@ -48,6 +48,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 @Options(prefix = "sampling.random")
 public class RandomSamplingAlgorithm implements Algorithm {
 
+  @Option(secure = true, description = "Whether the random sampling algorithm exports traces.")
+  private boolean exportTraces = false;
+
   @Option(
       secure = true,
       description = "File name for analysis report in case a counterexample was found.")
@@ -144,6 +147,9 @@ public class RandomSamplingAlgorithm implements Algorithm {
   }
 
   private Optional<Path> getExportPath(boolean pIsCex) {
+    if (!exportTraces) {
+      return Optional.empty();
+    }
     if (pIsCex) {
       if (counterexampleExport == null) {
         return Optional.empty();
