@@ -78,13 +78,28 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
    * @param max the maximum value (inclusive)
    * @return a random NumericValue in the given range
    */
-  private NumericValue randomIntInRange(BigInteger min, BigInteger max) {
+  private BigInteger randomIntInRange(BigInteger min, BigInteger max) {
     BigInteger guess;
     do {
       guess = new BigInteger(max.subtract(min).bitLength(), randomGenerator);
     } while (guess.compareTo(max) >= 0 || guess.compareTo(min) <= 0);
 
-    return new NumericValue(guess);
+    return guess;
+  }
+
+  private BigDecimal newRandomFloatingPointNumber(int exponentBits, int fractionBits) {
+    int sign = randomGenerator.nextBoolean() ? 1 : -1;
+    BigInteger exponent =
+        randomIntInRange(
+            BigInteger.TWO.pow(exponentBits - 1).multiply(BigInteger.valueOf(-1)),
+            BigInteger.TWO.pow(exponentBits - 1));
+    BigInteger fraction =
+        randomIntInRange(
+            BigInteger.ZERO, BigInteger.valueOf(2).pow(fractionBits).subtract(BigInteger.ONE));
+    return new BigDecimal(fraction)
+        .divide(BigDecimal.valueOf(2).pow(fractionBits))
+        .add(new BigDecimal(2).pow(exponent.intValue()))
+        .multiply(BigDecimal.valueOf(sign));
   }
 
   private Value newrandomValue(CFunctionCallExpression call) {
@@ -99,14 +114,22 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         case BOOL -> new NumericValue(randomGenerator.nextBoolean() ? 1 : 0);
         case CHAR -> new NumericValue(randomGenerator.nextInt(-128, 127));
         case INT, INT128 ->
-            randomIntInRange(
-                getMachineModel().getMinimalIntegerValue(pCSimpleType),
-                getMachineModel().getMaximalIntegerValue(pCSimpleType));
+            new NumericValue(
+                randomIntInRange(
+                    getMachineModel().getMinimalIntegerValue(pCSimpleType),
+                    getMachineModel().getMaximalIntegerValue(pCSimpleType)));
 
-        case FLOAT -> new NumericValue(randomGenerator.nextFloat());
-        case DOUBLE -> new NumericValue(randomGenerator.nextDouble());
-        // Does not use the full range of FLOAT128, but should be okay
-        case FLOAT128 -> new NumericValue(BigDecimal.valueOf(randomGenerator.nextDouble()));
+        case FLOAT -> {
+          int sign = randomGenerator.nextBoolean() ? 1 : -1;
+          int exponent = randomGenerator.nextInt(-2 ^ 7, 2 ^ 7 - 1);
+          yield new NumericValue(sign * (2 ^ exponent) + randomGenerator.nextFloat());
+        }
+        case DOUBLE -> {
+          int sign = randomGenerator.nextBoolean() ? 1 : -1;
+          int exponent = randomGenerator.nextInt(-2 ^ 10, 2 ^ 10 - 1);
+          yield new NumericValue(sign * (2 ^ exponent) + randomGenerator.nextDouble());
+        }
+        case FLOAT128 -> new NumericValue(newRandomFloatingPointNumber(15, 112));
       };
     } else {
       logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
