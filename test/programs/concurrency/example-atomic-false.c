@@ -60,6 +60,8 @@ void *thr1(void *_) {
 }
 
 void *thr2(void *_) {
+  while (__atomic_load_n(&done, 5) == 0)
+    ;
   if (__atomic_load_n(&a, 5) != 1) reach_error();
   if (__atomic_load_n(&b, 5) != 2) reach_error();
   if (__atomic_load_n(&c, 5) != 3) reach_error();
@@ -74,7 +76,7 @@ void *thr2(void *_) {
   if (__atomic_load_n(&e_out, 5) != 0) reach_error();
 
   if (__atomic_load_n(&xcmp, 5) != 42) reach_error();
-  if (__atomic_load_n(&cmp_res, 5) != 1) reach_error();
+  if (__atomic_load_n(&cmp_res, 5) == 1) reach_error();
 
   return 0;
 }
