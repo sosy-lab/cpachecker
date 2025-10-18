@@ -2342,6 +2342,11 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
+# When using the NLA encoding, approximate unsupported operations (e.g.,
+# bitwise shift) with an uninterpreted function (UF). If false, the operation
+# fails early by throwing UnsupportedOperationByDesignException.
+cpa.predicate.approximateBitwiseWithUFs = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -3022,6 +3027,12 @@ cpa.predicate.useMemoryRegions = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# When using encodeBitvectorAs=INTEGER, this will modify the bitvector
+# replacement behavior such that unbounded integer arithmetic (NLA) (and
+# additional
+#  constraints) is used to model wrap-around and boundedness.
+cpa.predicate.useNonlinearArithmeticForIntAsBv = false
 
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
