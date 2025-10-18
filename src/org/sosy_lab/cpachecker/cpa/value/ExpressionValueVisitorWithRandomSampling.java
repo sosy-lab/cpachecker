@@ -132,7 +132,11 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         case FLOAT128 -> new NumericValue(newRandomFloatingPointNumber(15, 112));
       };
     } else {
-      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      logger.logOnce(
+          Level.WARNING,
+          "Cannot instantiate complex types for call '%s' with a concrete "
+              + "value for random testing, hence returning unknown.",
+          call.toASTString());
     }
     return new UnknownValue();
   }
