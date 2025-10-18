@@ -100,7 +100,7 @@ void test_popcountll() {
 // GCC builtin function -> use GCC to compile!
 int main() {
   test_popcount();
-  // test_popcountl();
-  // test_popcountll();
+  test_popcountl();
+  test_popcountll();
   return 0;
 }

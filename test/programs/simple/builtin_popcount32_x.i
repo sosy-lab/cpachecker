@@ -85,5 +85,7 @@ void test_popcountll() {
 }
 int main() {
   test_popcount();
+  test_popcountl();
+  test_popcountll();
   return 0;
 }
