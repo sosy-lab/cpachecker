@@ -22,7 +22,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -152,7 +151,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ThreadFactory threadFactory =
-        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+        Thread.ofPlatform().name(getClass().getSimpleName() + "-thread-", 0).factory();
     ListeningExecutorService exec =
         listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
 

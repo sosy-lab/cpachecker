@@ -193,8 +193,7 @@ public class CEXExporter {
       try {
         CFAPathWithAssumptions errorPath = counterexample.getCFAPathWithAssignments();
         faultExporter.export(
-            faultLocalizationInfo.getRankedList(),
-            errorPath.get(errorPath.size() - 1).getCFAEdge());
+            faultLocalizationInfo.getRankedList(), errorPath.getLast().getCFAEdge());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }

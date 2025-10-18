@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -156,7 +157,7 @@ class DynamicMemoryHandler {
     List<CExpression> parameters = e.getParameterExpressions();
 
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      CExpression param0 = parameters.get(0);
+      CExpression param0 = parameters.getFirst();
       CExpression param1 = parameters.get(1);
 
       // Build expression for param0 * param1 as new parameter.
@@ -176,7 +177,8 @@ class DynamicMemoryHandler {
                     multiplication,
                     conv.machineModel,
                     conv.logger)
-                .asLong(multiplication.getExpressionType());
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
@@ -191,7 +193,7 @@ class DynamicMemoryHandler {
 
     } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -237,7 +239,7 @@ class DynamicMemoryHandler {
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -248,7 +250,7 @@ class DynamicMemoryHandler {
       }
     }
 
-    final CExpression parameter = parameters.get(0);
+    final CExpression parameter = parameters.getFirst();
     Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
@@ -258,9 +260,9 @@ class DynamicMemoryHandler {
       final CType operand1Type = getSizeofType(product.getOperand1());
       final CType operand2Type = getSizeofType(product.getOperand2());
       if (operand1Type != null) {
-        newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand1Type, product.getOperand2());
       } else if (operand2Type != null) {
-        newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand2Type, product.getOperand1());
       } else {
         throw new UnrecognizedCodeException(
             "Can't determine type for internal memory allocation", edge, e);
@@ -279,7 +281,7 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CVoidType.VOID, length);
+        newType = new CArrayType(CTypeQualifiers.NONE, CVoidType.VOID, length);
       } else {
         newType = null;
       }
@@ -357,8 +359,8 @@ class DynamicMemoryHandler {
     if (errorConditions.isEnabled()) {
       final Formula operand =
           expressionVisitor.asValueFormula(
-              parameters.get(0).accept(expressionVisitor),
-              typeHandler.getSimplifiedType(parameters.get(0)));
+              parameters.getFirst().accept(expressionVisitor),
+              typeHandler.getSimplifiedType(parameters.getFirst()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
@@ -574,8 +576,7 @@ class DynamicMemoryHandler {
       }
 
       return new CArrayType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           new CIntegerLiteralExpression(
               sizeLiteral.getFileLocation(),

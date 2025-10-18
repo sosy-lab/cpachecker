@@ -148,8 +148,6 @@ class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
-  private static final int FIRST = 0;
-
   private final LogManager logger;
 
   private Scope scope;
@@ -675,22 +673,17 @@ class ASTConverter {
 
     JAstNode node = convertExpressionWithSideEffects(s.getExpression());
 
-    if (node instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
-      return jExpressionAssignmentStatement;
-
-    } else if (node
-        instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
-      return jMethodInvocationAssignmentStatement;
-
-    } else if (node instanceof JMethodInvocationExpression jMethodInvocationExpression) {
-      return new JMethodInvocationStatement(getFileLocation(s), jMethodInvocationExpression);
-
-    } else if (node instanceof JExpression jExpression) {
-      return new JExpressionStatement(getFileLocation(s), jExpression);
-
-    } else {
-      throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
-    }
+    return switch (node) {
+      case JExpressionAssignmentStatement jExpressionAssignmentStatement ->
+          jExpressionAssignmentStatement;
+      case JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement ->
+          jMethodInvocationAssignmentStatement;
+      case JMethodInvocationExpression jMethodInvocationExpression ->
+          new JMethodInvocationStatement(getFileLocation(s), jMethodInvocationExpression);
+      case JExpression jExpression -> new JExpressionStatement(getFileLocation(s), jExpression);
+      default ->
+          throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
+    };
   }
 
   /**
@@ -1161,7 +1154,7 @@ class ASTConverter {
       FileLocation pLocation,
       boolean isRightOperandArray) {
 
-    final JType firstElement = pConcreteTypes.remove(FIRST);
+    final JType firstElement = pConcreteTypes.removeFirst();
     if (!(firstElement instanceof JClassType jClassType)) {
       if (isRightOperandArray) {
         return firstElement.equals(pLeftOperand.getExpressionType())
@@ -1642,61 +1635,60 @@ class ASTConverter {
   @VisibleForTesting
   static Optional<Class<?>> getClassOfJType(
       JType pJType, Set<ImportDeclaration> pImportDeclarations) {
-    if (pJType instanceof JSimpleType jSimpleType) {
-      return Optional.of(getClassOfPrimitiveType(jSimpleType));
-    }
-    if (pJType instanceof JClassOrInterfaceType jClassOrInterfaceType) {
-      final String jTypeName = jClassOrInterfaceType.getName();
-      Optional<ImportDeclaration> matchingImportDeclaration =
-          getMatchingImportDeclaration(jTypeName, pImportDeclarations);
-      Optional<Class<?>> cls = Optional.empty();
-      if (matchingImportDeclaration.isPresent()) {
-        try {
-          cls =
-              Optional.of(
-                  Class.forName(
-                      matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
-        } catch (ClassNotFoundException e) {
-          cls = Optional.empty();
+    return switch (pJType) {
+      case JSimpleType jSimpleType -> Optional.of(getClassOfPrimitiveType(jSimpleType));
+
+      case JClassOrInterfaceType jClassOrInterfaceType -> {
+        final String jTypeName = jClassOrInterfaceType.getName();
+        Optional<ImportDeclaration> matchingImportDeclaration =
+            getMatchingImportDeclaration(jTypeName, pImportDeclarations);
+        Optional<Class<?>> cls = Optional.empty();
+        if (matchingImportDeclaration.isPresent()) {
+          try {
+            cls =
+                Optional.of(
+                    Class.forName(
+                        matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
+          } catch (ClassNotFoundException e) {
+            cls = Optional.empty();
+          }
         }
-      }
-      if (!cls.isPresent()) {
-        try {
-          cls = Optional.of(Class.forName(jTypeName));
+        if (!cls.isPresent()) {
+          try {
+            cls = Optional.of(Class.forName(jTypeName));
 
-        } catch (ClassNotFoundException e) {
-          cls = Optional.empty();
+          } catch (ClassNotFoundException e) {
+            cls = Optional.empty();
+          }
         }
-      }
-      if (!cls.isPresent()) {
-        try {
-          final String className = "java.lang." + jTypeName;
-          cls = Optional.of(Class.forName(className));
+        if (!cls.isPresent()) {
+          try {
+            final String className = "java.lang." + jTypeName;
+            cls = Optional.of(Class.forName(className));
 
-        } catch (ClassNotFoundException e) {
+          } catch (ClassNotFoundException e) {
 
-          cls = Optional.empty();
+            cls = Optional.empty();
+          }
         }
+        if (!cls.isPresent()) {
+          yield cls;
+        }
+        yield cls;
       }
-
-      if (!cls.isPresent()) {
-        return cls;
+      case JArrayType jArrayType -> {
+        final JType elementTypeOfJArrayType = jArrayType.getElementType();
+        Optional<Class<?>> typeOfArray =
+            getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
+        int dimensionsOfArray = jArrayType.getDimensions();
+        Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
+        for (int i = 1; i < dimensionsOfArray; i++) {
+          array = Array.newInstance(array, 0).getClass();
+        }
+        yield Optional.of(array);
       }
-      return cls;
-    }
-    if (pJType instanceof JArrayType jArrayType) {
-      final JType elementTypeOfJArrayType = jArrayType.getElementType();
-      Optional<Class<?>> typeOfArray =
-          getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
-      int dimensionsOfArray = jArrayType.getDimensions();
-      Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
-      for (int i = 1; i < dimensionsOfArray; i++) {
-        array = Array.newInstance(array, 0).getClass();
-      }
-      return Optional.of(array);
-    }
-
-    return Optional.empty();
+      case null /*TODO check if null is necessary*/, default -> Optional.empty();
+    };
   }
 
   @VisibleForTesting
@@ -2350,27 +2342,22 @@ class ASTConverter {
           convertExpressionWithSideEffects(
               e.getRightHandSide()); // right-hand side may have a method call
 
-      if (rightHandSide instanceof JExpression jExpression) {
-        // a = b
-        return new JExpressionAssignmentStatement(fileLoc, leftHandSide, jExpression);
-
-      } else if (rightHandSide instanceof JMethodInvocationExpression jMethodInvocationExpression) {
-        // a = f()
-        return new JMethodInvocationAssignmentStatement(
-            fileLoc, leftHandSide, jMethodInvocationExpression);
-
-      } else if (rightHandSide instanceof JAssignment jAssignment) {
-
-        // TODO We need the assignments to be evaluated from left to right
-        // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
-        preSideAssignments.add(rightHandSide);
-
-        return new JExpressionAssignmentStatement(
-            fileLoc, leftHandSide, jAssignment.getLeftHandSide());
-
-      } else {
-        throw new CFAGenerationRuntimeException("Expression is not free of side effects");
-      }
+      return switch (rightHandSide) {
+        case JExpression jExpression -> /* a = b */
+            new JExpressionAssignmentStatement(fileLoc, leftHandSide, jExpression);
+        case JMethodInvocationExpression jMethodInvocationExpression -> /* a = f() */
+            new JMethodInvocationAssignmentStatement(
+                fileLoc, leftHandSide, jMethodInvocationExpression);
+        case JAssignment jAssignment -> {
+          // TODO We need the assignments to be evaluated from left to right
+          // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
+          preSideAssignments.add(rightHandSide);
+          yield new JExpressionAssignmentStatement(
+              fileLoc, leftHandSide, jAssignment.getLeftHandSide());
+        }
+        default ->
+            throw new CFAGenerationRuntimeException("Expression is not free of side effects");
+      };
 
     } else {
       // a += b etc.

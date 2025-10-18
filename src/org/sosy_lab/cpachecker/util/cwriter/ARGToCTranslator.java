@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -69,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.FunctionDefinition;
@@ -384,12 +384,12 @@ public class ARGToCTranslator {
 
         if (truthAssumption && elseCond != null) {
           currentBlock.addStatement(new SimpleStatement(edgeToChild, elseCond));
-          currentBlock.addStatement(result.get(0).getCurrentBlock());
+          currentBlock.addStatement(result.getFirst().getCurrentBlock());
         }
 
         ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         if (truthAssumption) {
-          result.add(0, newEdge);
+          result.addFirst(newEdge);
         } else {
           result.add(newEdge);
         }
@@ -421,7 +421,7 @@ public class ARGToCTranslator {
     for (ARGState child : childrenOfElement) {
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
-      Set<AExpression> conditions = new LinkedHashSet<>();
+      SequencedSet<AExpression> conditions = new LinkedHashSet<>();
       if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         if (assumeEdge.getTruthAssumption()) {
           conditions.add(assumeEdge.getExpression());
@@ -559,41 +559,17 @@ public class ARGToCTranslator {
   }
 
   private CompoundStatement processEdge(
-      ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock)
+      ARGState currentElement,
+      ARGState childElement,
+      @Nullable CFAEdge edge,
+      CompoundStatement currentBlock)
       throws CPAException {
-    if (edge instanceof CFunctionCallEdge) {
-      // if this is a function call edge we need to inline it
-      currentBlock = processFunctionCall(edge, currentBlock);
-    } else if (edge instanceof CReturnStatementEdge returnEdge) {
-      if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
-
-        String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
-        String returnVar;
-
-        if (childElement.isCovered()) {
-          returnVar = " __return_" + getCovering(childElement).getStateId();
-        } else {
-          returnVar = " __return_" + childElement.getStateId();
-          addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
-        }
-        currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
-      }
-    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
-      // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      currentBlock =
-          processReturnStatementCall(
-              returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
-    } else if (edge == null) {
-      // assume that this is the case due to dynamic multi edges
-      List<CFAEdge> innerEdges = currentElement.getEdgesToChild(childElement);
-      StringBuilder edgeStatementCodes = new StringBuilder();
-      for (CFAEdge innerEdge : innerEdges) {
-        assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge
-            : "Unexpected assume edge in dynamic multi edge " + innerEdge;
-        assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
-            : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
-        if (innerEdge instanceof CReturnStatementEdge returnEdge) {
-          assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
+    switch (edge) {
+      case CFunctionCallEdge functionCallEdge ->
+          // if this is a function call edge we need to inline it
+          currentBlock = processFunctionCall(functionCallEdge, currentBlock);
+      case CReturnStatementEdge returnEdge -> {
+        if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
@@ -604,22 +580,56 @@ public class ARGToCTranslator {
             returnVar = " __return_" + childElement.getStateId();
             addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
           }
-          edgeStatementCodes.append(returnVar + " = " + retval + ";");
-        } else {
-          edgeStatementCodes.append(processSimpleEdge(innerEdge));
+          currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
         }
-        edgeStatementCodes.append("\n");
       }
-      currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
-    } else if (mustHandleDefaultReturn(edge)) {
-      processDefaultReturn(
-          (CFunctionDeclaration)
-              ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
-          childElement.getStateId());
-    } else {
-      String statement = processSimpleEdge(edge);
-      if (!statement.isEmpty()) {
-        currentBlock.addStatement(new SimpleStatement(edge, statement));
+      case CFunctionReturnEdge returnEdge ->
+          // assumes that ReturnStateEdge is followed by FunctionReturnEdge
+          currentBlock =
+              processReturnStatementCall(
+                  returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
+      case null -> {
+        // assume that this is the case due to dynamic multi edges
+        List<CFAEdge> innerEdges = currentElement.getEdgesToChild(childElement);
+        StringBuilder edgeStatementCodes = new StringBuilder();
+        for (CFAEdge innerEdge : innerEdges) {
+          assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge
+              : "Unexpected assume edge in dynamic multi edge " + innerEdge;
+          assert !(innerEdge instanceof CFunctionCallEdge
+                  || innerEdge instanceof CFunctionReturnEdge)
+              : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
+          if (innerEdge instanceof CReturnStatementEdge returnEdge) {
+            assert (innerEdges.getLast() == innerEdge);
+
+            String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
+            String returnVar;
+
+            if (childElement.isCovered()) {
+              returnVar = " __return_" + getCovering(childElement).getStateId();
+            } else {
+              returnVar = " __return_" + childElement.getStateId();
+              addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
+            }
+            edgeStatementCodes.append(returnVar + " = " + retval + ";");
+          } else {
+            edgeStatementCodes.append(processSimpleEdge(innerEdge));
+          }
+          edgeStatementCodes.append("\n");
+        }
+        currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
+      }
+      default -> {
+        if (mustHandleDefaultReturn(edge)) {
+          processDefaultReturn(
+              (CFunctionDeclaration)
+                  ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
+              childElement.getStateId());
+        } else {
+          String statement = processSimpleEdge(edge);
+          if (!statement.isEmpty()) {
+            currentBlock.addStatement(new SimpleStatement(edge, statement));
+          }
+        }
       }
     }
 
@@ -751,7 +761,7 @@ public class ARGToCTranslator {
           }
 
           if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+            for (CFAEdge predEdge : pCFAEdge.getPredecessor().getEnteringEdges()) {
               if (predEdge
                   .getRawStatement()
                   .equals(lDeclarationEdge.getDeclaration().toASTString())) {
@@ -790,14 +800,13 @@ public class ARGToCTranslator {
     return "";
   }
 
-  private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
+  private CompoundStatement processFunctionCall(
+      CFunctionCallEdge pCFAEdge, CompoundStatement currentBlock) {
     CompoundStatement newBlock = new InlinedFunction(currentBlock);
     currentBlock.addStatement(newBlock);
 
-    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
-
-    List<CExpression> actualParams = lFunctionCallEdge.getArguments();
-    CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
+    List<CExpression> actualParams = pCFAEdge.getArguments();
+    CFunctionEntryNode fn = pCFAEdge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     List<Statement> actualParamAssignStatements = new ArrayList<>();
@@ -956,7 +965,7 @@ public class ARGToCTranslator {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
               assumeInfo.add(Pair.of(child, decInfo));
             } else {
-              assumeInfo.add(0, Pair.of(child, decInfo));
+              assumeInfo.addFirst(Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));
@@ -981,7 +990,7 @@ public class ARGToCTranslator {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
-      for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
+      for (Entry<CDeclaration, String> prob : probs.getFirst().entrySet()) {
         boolean containAll = true;
         boolean different = false;
         for (int i = 1; i < probs.size(); i++) {
@@ -1074,8 +1083,7 @@ public class ARGToCTranslator {
     DeclarationInfo fromFunctionReturn() {
       checkState(!calleeFunDecInfos.isEmpty());
       return new DeclarationInfo(
-          calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),
-          calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
+          calleeFunDecInfos.getLast(), calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
     }
   }
 }

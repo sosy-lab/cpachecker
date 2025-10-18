@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -546,20 +547,14 @@ public class FormulaManagerView {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNegate(T pNum) {
-    Formula t;
-    if (pNum instanceof IntegerFormula num) {
-      t = getIntegerFormulaManager().negate(num);
-    } else if (pNum instanceof RationalFormula num) {
-      t = getRationalFormulaManager().negate(num);
-    } else if (pNum instanceof BitvectorFormula num) {
-      t = getBitvectorFormulaManager().negate(num);
-    } else if (pNum instanceof FloatingPointFormula num) {
-      t = getFloatingPointFormulaManager().negate(num);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-
-    return (T) t;
+    return (T)
+        switch (pNum) {
+          case IntegerFormula num -> getIntegerFormulaManager().negate(num);
+          case RationalFormula num -> getRationalFormulaManager().negate(num);
+          case BitvectorFormula num -> getBitvectorFormulaManager().negate(num);
+          case FloatingPointFormula num -> getFloatingPointFormulaManager().negate(num);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
   }
 
   @SuppressWarnings("unchecked")
@@ -1157,12 +1152,12 @@ public class FormulaManagerView {
     if (parts.size() == 2) {
       if (parts.get(1).isEmpty()) {
         // Variable name ending in @ marks variables that should not be instantiated
-        return Pair.of(parts.get(0), OptionalInt.empty());
+        return Pair.of(parts.getFirst(), OptionalInt.empty());
       }
-      return Pair.of(parts.get(0), OptionalInt.of(Integer.parseInt(parts.get(1))));
+      return Pair.of(parts.getFirst(), OptionalInt.of(Integer.parseInt(parts.get(1))));
     } else if (parts.size() == 1) {
       // TODO throw exception after forbidding such variable names
-      return Pair.of(parts.get(0), OptionalInt.empty());
+      return Pair.of(parts.getFirst(), OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
@@ -1233,14 +1228,6 @@ public class FormulaManagerView {
             String newName = pRenameFunction.apply(name);
             Formula renamed = unwrap(makeVariable(getFormulaType(f), newName));
             pCache.put(f, renamed);
-            return null;
-          }
-
-          @Override
-          public Void visitBoundVariable(Formula f, int deBruijnIdx) {
-
-            // Bound variables have to stay as-is.
-            pCache.put(f, f);
             return null;
           }
 
@@ -1357,7 +1344,7 @@ public class FormulaManagerView {
           public TraversalProcess visitAtom(
               BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
             if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-              result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
+              result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).getFirst(), false));
             }
             result.add(atom);
             return TraversalProcess.CONTINUE;
@@ -1414,10 +1401,10 @@ public class FormulaManagerView {
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
                     || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-                && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
-                && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
+                && !functionDeclaration.getArgumentTypes().getFirst().isBooleanType()
+                && !functionDeclaration.getArgumentTypes().getFirst().isArrayType()) {
 
-              Formula arg1 = args.get(0);
+              Formula arg1 = args.getFirst();
               Formula arg2;
 
               if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO) {
@@ -1763,7 +1750,7 @@ public class FormulaManagerView {
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
               assert args.size() == 3;
-              BooleanFormula cond = (BooleanFormula) args.get(0);
+              BooleanFormula cond = (BooleanFormula) args.getFirst();
               Formula thenBranch = args.get(1);
               Formula elseBranch = args.get(2);
               FormulaType<T> targetType = getFormulaType(pF);
@@ -1778,7 +1765,7 @@ public class FormulaManagerView {
 
   /** See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for documentation. */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     return manager.applyTactic(input, tactic);
   }
 
@@ -1828,7 +1815,14 @@ public class FormulaManagerView {
   public BooleanFormula filterLiterals(BooleanFormula input, final Predicate<BooleanFormula> toKeep)
       throws InterruptedException {
     // No nested NOT's are possible in NNF.
-    BooleanFormula nnf = applyTactic(input, Tactic.NNF);
+    BooleanFormula nnf;
+    try {
+      nnf = applyTactic(input, Tactic.NNF);
+    } catch (SolverException e) {
+      // TODO: propagate this exception throughout CPAchecker as far as useful and handle possible
+      //  resolutions in the components. See issue #1327.
+      throw new AssertionError("Solver failed when applying tactic NNF", e);
+    }
 
     BooleanFormula nnfNotTransformed =
         booleanFormulaManager.transformRecursively(
@@ -1877,11 +1871,6 @@ public class FormulaManagerView {
     UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
       super(manager);
       delegate = Objects.requireNonNull(pDelegate);
-    }
-
-    @Override
-    public Formula visitBoundVariable(Formula pF, int pDeBruijnIdx) {
-      return unwrap(delegate.visitBoundVariable(pF, pDeBruijnIdx));
     }
 
     @Override
@@ -1940,11 +1929,11 @@ public class FormulaManagerView {
             if (pDecl.getKind() != FunctionDeclarationKind.EQ && pArgs.size() != 2) {
               return visitDefault(pF);
             }
-            Formula dummyVar = makeVariable(getFormulaType(pArgs.get(0)), DUMMY_VAR);
-            if (pArgs.get(0).equals(dummyVar)) {
+            Formula dummyVar = makeVariable(getFormulaType(pArgs.getFirst()), DUMMY_VAR);
+            if (pArgs.getFirst().equals(dummyVar)) {
               return pArgs.get(1);
             } else if (pArgs.get(1).equals(dummyVar)) {
-              return pArgs.get(0);
+              return pArgs.getFirst();
             }
             return visitDefault(pF);
           }
@@ -1983,7 +1972,7 @@ public class FormulaManagerView {
       // split each subformula to a set containing all subformulas of conjunction
       Set<BooleanFormula> conjunctionSet = bmgr.toConjunctionArgs(subformula, true);
       // this set contains all operands of current subformula
-      Set<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
+      SequencedSet<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
       listOfOperands.add(operandsOfSubformula);
       // iterate through all subformulas of a current conjunction
       for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
@@ -1998,7 +1987,8 @@ public class FormulaManagerView {
     }
 
     // set of mutual operands that are contained in all subformulas
-    final Set<BooleanFormula> mutualOperandsSet = new LinkedHashSet<>(listOfOperands.get(0));
+    final SequencedSet<BooleanFormula> mutualOperandsSet =
+        new LinkedHashSet<>(listOfOperands.getFirst());
     for (Set<BooleanFormula> operands : listOfOperands) {
       mutualOperandsSet.retainAll(operands);
     }

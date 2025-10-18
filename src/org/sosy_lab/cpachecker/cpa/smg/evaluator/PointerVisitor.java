@@ -120,21 +120,20 @@ class PointerVisitor extends ExpressionValueVisitor {
         && amperOperand instanceof CIdExpression cIdExpression) {
       // function type &foo
       return createAddressOfFunction(cIdExpression);
-    } else if (amperOperand instanceof CIdExpression cIdExpression) {
-      // &a
-      return createAddressOfVariable(cIdExpression);
-    } else if (amperOperand instanceof CPointerExpression cPointerExpression) {
-      // &(*(a))
-      CExpression rValue = cPointerExpression.getOperand();
-      return smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), rValue);
-    } else if (amperOperand instanceof CFieldReference cFieldReference) {
-      // &(a.b)
-      return createAddressOfField(cFieldReference);
-    } else if (amperOperand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      // &(a[b])
-      return createAddressOfArraySubscript(cArraySubscriptExpression);
     } else {
-      return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+      return switch (amperOperand) {
+        case CIdExpression cIdExpression -> /* &a */ createAddressOfVariable(cIdExpression);
+        case CPointerExpression cPointerExpression -> {
+          // &(*(a))
+          CExpression rValue = cPointerExpression.getOperand();
+          yield smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), rValue);
+        }
+        case CFieldReference cFieldReference -> /* &(a.b) */ createAddressOfField(cFieldReference);
+        case CArraySubscriptExpression cArraySubscriptExpression -> /* &(a[b]) */
+            createAddressOfArraySubscript(cArraySubscriptExpression);
+        case null /*TODO check if null is necessary*/, default ->
+            Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+      };
     }
   }
 

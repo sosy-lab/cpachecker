@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
@@ -252,7 +253,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -299,13 +300,13 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)));
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(CTypeQualifiers.NONE, n)));
 
         List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
 
         // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
@@ -357,7 +358,7 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(CTypeQualifiers.NONE, n)),
                 true,
                 ComplexTypeKind.STRUCT);
 
@@ -365,7 +366,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
 
         // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
@@ -411,7 +412,7 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
+                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(CTypeQualifiers.NONE, n)),
                 false,
                 ComplexTypeKind.STRUCT);
 
@@ -419,7 +420,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
 
         // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
@@ -460,7 +461,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should be the value we entered into the field,
         // which is a NumericValue = testNumericValue
         assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -498,7 +499,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -544,7 +545,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should be the value we entered into the field,
         // which is a NumericValue = testNumericValue
         assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -588,7 +589,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -623,7 +624,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should be the value we entered into the field,
         // which is a NumericValue = testNumericValue
         assertThat(resultValue).isInstanceOf(NumericValue.class);
@@ -677,7 +678,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // Check that 0 always holds
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
@@ -724,7 +725,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct returns
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           // Check that types with the size of the current have the correct value, and all other
           // should be unknown
           if (MACHINE_MODEL
@@ -771,7 +772,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -818,7 +819,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -854,7 +855,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -896,7 +897,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -951,7 +952,7 @@ public class SMGCPAValueVisitorTest {
       // Note: we should reuse the pointer for index 0 from above, but I am lazy and it does not
       // matter in a test
       SMGObject objectForAddressValue =
-          currentState.dereferencePointer(addressValueArray).get(0).getSMGObject();
+          currentState.dereferencePointer(addressValueArray).getFirst().getSMGObject();
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
         // We need a mapping from each value representing an address to an SMGValue that is mapped
         // to
@@ -984,14 +985,14 @@ public class SMGCPAValueVisitorTest {
               // Out of bounds
               List<ValueAndSMGState> visitedValuesAndStates = arrayPointerExpr.accept(visitor);
               assertThat(visitedValuesAndStates).hasSize(1);
-              ValueAndSMGState visitedValueAndState = visitedValuesAndStates.get(0);
+              ValueAndSMGState visitedValueAndState = visitedValuesAndStates.getFirst();
               // Error state + unknown value
               assertThat(visitedValueAndState.getValue())
                   .isEqualTo(Value.UnknownValue.getInstance());
               // There are 2 errors. 1 read and 1 write error. The read error is first however and
               // its the one we are interested in.
               assertThat(visitedValueAndState.getState().getErrorInfo()).hasSize(1);
-              SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().get(0);
+              SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().getFirst();
 
               assertThat(error.isInvalidRead()).isTrue();
             } else {
@@ -999,7 +1000,7 @@ public class SMGCPAValueVisitorTest {
 
               // Assert the correct return values depending on type
               assertThat(resultList).hasSize(1);
-              Value resultValue = resultList.get(0).getValue();
+              Value resultValue = resultList.getFirst().getValue();
               checkValue(currentValueArrayType, realIndex, resultValue);
             }
           }
@@ -1039,7 +1040,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -1102,7 +1103,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -1142,7 +1143,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -1183,7 +1184,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -1288,7 +1289,7 @@ public class SMGCPAValueVisitorTest {
 
             // Assert the correct return values depending on type
             assertThat(resultList).hasSize(1);
-            Value resultValue = resultList.get(0).getValue();
+            Value resultValue = resultList.getFirst().getValue();
             checkValue(currentArrayType, pointerNum + index, resultValue);
           }
         }
@@ -1389,13 +1390,13 @@ public class SMGCPAValueVisitorTest {
 
             List<ValueAndSMGState> visitedValuesAndStates = arrayPointerExpr.accept(visitor);
             assertThat(visitedValuesAndStates).hasSize(1);
-            ValueAndSMGState visitedValueAndState = visitedValuesAndStates.get(0);
+            ValueAndSMGState visitedValueAndState = visitedValuesAndStates.getFirst();
             // Error state + unknown value
             assertThat(visitedValueAndState.getValue()).isEqualTo(Value.UnknownValue.getInstance());
             // There are 2 errors. 1 read and 1 write error. The read error is first however and
             // it's the one we are interested in.
             assertThat(visitedValueAndState.getState().getErrorInfo()).hasSize(1);
-            SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().get(0);
+            SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().getFirst();
 
             assertThat(error.isInvalidRead()).isTrue();
 
@@ -1521,7 +1522,7 @@ public class SMGCPAValueVisitorTest {
 
             // Assert the correct return values depending on type
             assertThat(resultList).hasSize(1);
-            Value resultValue = resultList.get(0).getValue();
+            Value resultValue = resultList.getFirst().getValue();
             checkValue(currentArrayType, pointerNum + index, resultValue);
           }
         }
@@ -1588,7 +1589,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           checkValue(currentArrayType, k, resultValue);
         }
       }
@@ -1643,7 +1644,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           assertThat(resultValue.isNumericValue()).isTrue();
           assertThat(resultValue.asNumericValue().longValue()).isEqualTo(j - k);
         }
@@ -1685,7 +1686,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         assertThat(value.asNumericValue().bigIntegerValue())
@@ -1725,7 +1726,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1766,7 +1767,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1807,7 +1808,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1853,7 +1854,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1894,7 +1895,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1940,7 +1941,7 @@ public class SMGCPAValueVisitorTest {
         List<ValueAndSMGState> result = castExpression.accept(visitor);
         // Chars are translated into their numeric values by the value analysis
         // Also, the numeric value is max 255, therefore every datatype should be able to hold that!
-        Value value = result.get(0).getValue();
+        Value value = result.getFirst().getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
@@ -1991,13 +1992,13 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
       assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
-      currentState = resultList.get(0).getState();
+      currentState = resultList.getFirst().getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2008,11 +2009,11 @@ public class SMGCPAValueVisitorTest {
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
-      assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
           .isTrue();
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2060,13 +2061,13 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
       assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
-      currentState = resultList.get(0).getState();
+      currentState = resultList.getFirst().getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2077,11 +2078,11 @@ public class SMGCPAValueVisitorTest {
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
-      assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
           .isTrue();
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2139,26 +2140,26 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
         assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
-        currentState = resultList.get(0).getState();
+        currentState = resultList.getFirst().getState();
 
         SMGObject expectedTarget =
-            currentState.dereferencePointer(heapAddress).get(0).getSMGObject();
+            currentState.dereferencePointer(heapAddress).getFirst().getSMGObject();
         Value expectedOffset =
             new NumericValue(BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
-        assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
             .isTrue();
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2213,26 +2214,26 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
         assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
-        currentState = resultList.get(0).getState();
+        currentState = resultList.getFirst().getState();
 
         SMGObject expectedTarget =
-            currentState.dereferencePointer(heapAddress).get(0).getSMGObject();
+            currentState.dereferencePointer(heapAddress).getFirst().getSMGObject();
         Value expectedOffset =
             new NumericValue(BigInteger.valueOf(currentIndice).multiply(sizeOfCurrentTypeInBits));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
-        assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
             .isTrue();
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2286,13 +2287,13 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
       assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
-      currentState = resultList.get(0).getState();
+      currentState = resultList.getFirst().getState();
 
       SMGObject expectedTarget =
           currentState
@@ -2303,11 +2304,11 @@ public class SMGCPAValueVisitorTest {
       // The returned Value is an address, theoretically addresses may be any Value type
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
-      assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
           .isTrue();
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
           .isEqualTo(expectedTarget);
-      assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+      assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
@@ -2357,13 +2358,13 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
       assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
-      currentState = resultList.get(0).getState();
+      currentState = resultList.getFirst().getState();
 
       // We want the address of the address to the struct!
       SMGObject expectedTarget =
@@ -2376,7 +2377,7 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultValue).isInstanceOf(Value.class);
       // First check general existance of a points to edge, then its target and offset
       SMGStateAndOptionalSMGObjectAndOffset resultMaybeTarget =
-          currentState.dereferencePointer(resultValue).get(0);
+          currentState.dereferencePointer(resultValue).getFirst();
       assertThat(resultMaybeTarget.hasSMGObjectAndOffset()).isTrue();
       assertThat(resultMaybeTarget.getSMGObject()).isEqualTo(expectedTarget);
       assertThat(resultMaybeTarget.getOffsetForObject()).isEqualTo(expectedOffset);
@@ -2434,26 +2435,26 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
         assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
-        currentState = resultList.get(0).getState();
+        currentState = resultList.getFirst().getState();
 
         SMGObject expectedTarget =
-            currentState.dereferencePointer(addressForHeap).get(0).getSMGObject();
+            currentState.dereferencePointer(addressForHeap).getFirst().getSMGObject();
         Value expectedOffset =
             new NumericValue(BigInteger.valueOf(getOffsetInBitsWithPadding(listOfTypes, indice)));
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
-        assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
             .isTrue();
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2508,13 +2509,13 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
         assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
-        currentState = resultList.get(0).getState();
+        currentState = resultList.getFirst().getState();
 
         SMGObject expectedTarget =
             currentState
@@ -2526,11 +2527,11 @@ public class SMGCPAValueVisitorTest {
         // The returned Value is an address, theoretically addresses may be any Value type
         assertThat(resultValue).isInstanceOf(Value.class);
         // First check general existance of a points to edge, then its target and offset
-        assertThat(currentState.dereferencePointer(resultValue).get(0).hasSMGObjectAndOffset())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().hasSMGObjectAndOffset())
             .isTrue();
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getSMGObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getSMGObject())
             .isEqualTo(expectedTarget);
-        assertThat(currentState.dereferencePointer(resultValue).get(0).getOffsetForObject())
+        assertThat(currentState.dereferencePointer(resultValue).getFirst().getOffsetForObject())
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
@@ -2592,7 +2593,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should == size if the current type by index (in bytes)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Both as bytes
@@ -2629,7 +2630,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should == size if the current type by index (in bytes)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Both as bytes
@@ -2650,7 +2651,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should == size of the entire struct but with padding
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
@@ -2700,7 +2701,7 @@ public class SMGCPAValueVisitorTest {
 
           // Assert the correct returns
           assertThat(resultList).hasSize(1);
-          Value resultValue = resultList.get(0).getValue();
+          Value resultValue = resultList.getFirst().getValue();
           // The returned Value should == size of the current type (at index i)
           assertThat(resultValue).isInstanceOf(NumericValue.class);
           // Transform the result in bits
@@ -2722,7 +2723,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should == size of the entire struct but with padding
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
@@ -2754,7 +2755,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
@@ -2770,7 +2771,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should == size of the current type (at index i)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
@@ -2804,7 +2805,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
@@ -2823,7 +2824,7 @@ public class SMGCPAValueVisitorTest {
 
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
-      Value resultValue = resultList.get(0).getValue();
+      Value resultValue = resultList.getFirst().getValue();
       // The returned Value should == size of the current type (at index i)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
@@ -2858,7 +2859,7 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
-        Value resultValue = resultList.get(0).getValue();
+        Value resultValue = resultList.getFirst().getValue();
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
@@ -2884,7 +2885,7 @@ public class SMGCPAValueVisitorTest {
    */
   private CUnaryExpression wrapInAmper(CExpression exprToWrap) {
     CType typeOfExpr = exprToWrap.getExpressionType();
-    CType newType = new CPointerType(false, false, typeOfExpr);
+    CType newType = new CPointerType(CTypeQualifiers.NONE, typeOfExpr);
     return new CUnaryExpression(
         FileLocation.DUMMY, newType, exprToWrap, CUnaryExpression.UnaryOperator.AMPER);
   }
@@ -2945,10 +2946,11 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, members, "someName", "someName");
+        new CCompositeType(
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, members, "someName", "someName");
     CElaboratedType elaboratedType =
         new CElaboratedType(
-            false, false, ComplexTypeKind.STRUCT, "someName", "someName", structType);
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "someName", "someName", structType);
     return MACHINE_MODEL.getSizeofInBits(elaboratedType).intValue();
   }
 
@@ -3038,13 +3040,14 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, members, structName, structName);
+        new CCompositeType(
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, members, structName, structName);
 
     CElaboratedType elaboratedType =
         new CElaboratedType(
-            false, false, ComplexTypeKind.STRUCT, structName, structName, structType);
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, structName, structName, structType);
 
-    CPointerType structPointerType = new CPointerType(false, false, elaboratedType);
+    CPointerType structPointerType = new CPointerType(CTypeQualifiers.NONE, elaboratedType);
 
     CSimpleDeclaration declararation =
         new CVariableDeclaration(
@@ -3109,12 +3112,13 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, structOrUnion, members, structName, structName);
+        new CCompositeType(CTypeQualifiers.NONE, structOrUnion, members, structName, structName);
 
     CElaboratedType elaboratedType =
-        new CElaboratedType(false, false, structOrUnion, structName, structName, structType);
+        new CElaboratedType(
+            CTypeQualifiers.NONE, structOrUnion, structName, structName, structType);
 
-    CPointerType structPointerType = new CPointerType(false, false, elaboratedType);
+    CPointerType structPointerType = new CPointerType(CTypeQualifiers.NONE, elaboratedType);
 
     CSimpleDeclaration declararation;
 
@@ -3396,7 +3400,7 @@ public class SMGCPAValueVisitorTest {
     // Get the pte for the objects 0 position via the original malloc pointer (always the value in
     // the addressExpr)
     SMGStateAndOptionalSMGObjectAndOffset objectAndOffset =
-        currentState.dereferencePointer(addressOfTargetWith0Offset).get(0);
+        currentState.dereferencePointer(addressOfTargetWith0Offset).getFirst();
     Preconditions.checkArgument(
         objectAndOffset.getOffsetForObject().asNumericValue().longValue() == 0);
 
@@ -3428,7 +3432,7 @@ public class SMGCPAValueVisitorTest {
       throws SMGException {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
     SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
-        currentState.dereferencePointer(addressValue).get(0);
+        currentState.dereferencePointer(addressValue).getFirst();
     spc = spc.copyAndCreateValue(valueToWrite);
     spc =
         spc.writeValue(
@@ -3472,7 +3476,7 @@ public class SMGCPAValueVisitorTest {
     CInitializerList initializerList = new CInitializerList(FileLocation.DUMMY, builder.build());
      */
 
-    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+    CArrayType arrayType = new CArrayType(CTypeQualifiers.NONE, elementType, length);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3511,7 +3515,7 @@ public class SMGCPAValueVisitorTest {
     CIntegerLiteralExpression length =
         new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(lengthInt));
 
-    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+    CArrayType arrayType = new CArrayType(CTypeQualifiers.NONE, elementType, length);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration arrayDeclararation =
@@ -3557,7 +3561,7 @@ public class SMGCPAValueVisitorTest {
         new CIntegerLiteralExpression(
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(subscriptIndexInt));
 
-    CPointerType pointerType = new CPointerType(false, false, elementType);
+    CPointerType pointerType = new CPointerType(CTypeQualifiers.NONE, elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3587,7 +3591,7 @@ public class SMGCPAValueVisitorTest {
    */
   public CArraySubscriptExpression arraySubscriptHeapAccessWithVariable(
       String variableName, String indexVariableName, CType indexVariableType, CType elementType) {
-    CPointerType pointerType = new CPointerType(false, false, elementType);
+    CPointerType pointerType = new CPointerType(CTypeQualifiers.NONE, elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration arrayDeclararation =
@@ -3633,10 +3637,10 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(arrayIndiceInt)));
 
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // The type for the returned value after the binary expr
     // TODO: why the f does this change?
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration idDeclararation =
@@ -3692,7 +3696,7 @@ public class SMGCPAValueVisitorTest {
   public CPointerExpression pointerWithBinaryAccessFromExpression(
       String variableName, CType elementType, int innerIndiceInt, int outerindiceInt) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // The inner return type needs to be a nested ** type, since it adds 1 pointer itself we need 1
     // extra
     CPointerExpression inner = arrayPointerAccess(variableName, cPointerReturnType, innerIndiceInt);
@@ -3701,7 +3705,7 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(outerindiceInt)));
 
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, elementType);
 
     if (outerindiceInt == 0) {
       // *inner
@@ -3744,12 +3748,13 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(indiceInt)));
 
     // The type for the returned value after the first deref type*
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // outermost type; type**
-    CPointerType cPointerPointerReturnType = new CPointerType(false, false, cPointerReturnType);
+    CPointerType cPointerPointerReturnType =
+        new CPointerType(CTypeQualifiers.NONE, cPointerReturnType);
     // The type for the returned value after the binary expr
     // TODO: why the f does this change?
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3809,9 +3814,9 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3831,9 +3836,9 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3853,9 +3858,9 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3872,9 +3877,9 @@ public class SMGCPAValueVisitorTest {
   public CBinaryExpression arrayPointerMinusArrayPointer(
       String leftArrayVariableName, String rightArrayVariableName, CType arrayType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, arrayType);
+    CPointerType cPointerReturnType = new CPointerType(CTypeQualifiers.NONE, arrayType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
     // In this case the operation and binary type are always equal!
     return new CBinaryExpression(

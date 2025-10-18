@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -59,6 +58,13 @@ import org.sosy_lab.cpachecker.util.Pair;
  * be additional temporary variables, and also some functions / variables may be called different)
  */
 public class PathToCWithLoopsTranslator extends PathTranslator {
+
+  private static final String HEADER_DEFINITIONS =
+      """
+      #include <stdlib.h>
+      #include <time.h>
+      #define __VERIFIER_nondet_int() rand()
+      """;
 
   private static final Pattern uniqueFunction = Pattern.compile(".*_[0-9]+(.*)");
 
@@ -119,9 +125,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   @Override
   protected Appender generateCCode() {
     // proper order and c-code without warnings
-    mGlobalDefinitionsList.add(0, "#include <stdlib.h>\n");
-    mGlobalDefinitionsList.add(1, "#include <time.h>\n");
-    mGlobalDefinitionsList.add(2, "#define __VERIFIER_nondet_int() rand()");
+    mGlobalDefinitionsList.addFirst(HEADER_DEFINITIONS);
 
     mGlobalDefinitionsList.remove("int __VERIFIER_nondet_int()");
 
@@ -274,8 +278,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
             .toList();
 
     // we do not go into a loop that has to be uprolled, so just continue normally
-    if (loopsAfter.isEmpty()
-        || !loopsInPathToRecreate.get(loopsAfter.get(loopsAfter.size() - 1)).contains(state)) {
+    if (loopsAfter.isEmpty() || !loopsInPathToRecreate.get(loopsAfter.getLast()).contains(state)) {
       return processSimpleWithLoop(pCFAEdge, currentBlock, "").trim();
     } else {
       return recreateLoop(pCFAEdge, currentBlock, loopsAfter).getFirst();
@@ -422,9 +425,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     // this should be already handled by the handledEdges check at the beginning
     // of the processEdge method
-    assert loopsAfter.get(loopsAfter.size() - 1).getIncomingEdges().contains(pCFAEdge);
+    assert loopsAfter.getLast().getIncomingEdges().contains(pCFAEdge);
 
-    Loop loop = loopsAfter.get(loopsAfter.size() - 1);
+    Loop loop = loopsAfter.getLast();
 
     // create necessary mappings
     String labelStayInLoop = createFreshLabelForLoop(pCFAEdge, loop);
@@ -477,7 +480,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       CFAEdge currentEdge = edgesToHandle.pop();
       handledEdges.add(currentEdge);
       FluentIterable<CFAEdge> leaving =
-          CFAUtils.leavingEdges(currentEdge.getSuccessor())
+          currentEdge
+              .getSuccessor()
+              .getLeavingEdges()
               .filter(not(instanceOf(FunctionCallEdge.class)));
 
       // there was a function call, we need to replace it with the correct successor
@@ -649,7 +654,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       return;
     }
 
-    Loop newInnerLoop = newLoops.get(newLoops.size() - 1);
+    Loop newInnerLoop = newLoops.getLast();
     if (newInnerLoop.getIncomingEdges().contains(onlyEdge)) {
       String newLabel = createFreshLabelForLoop(onlyEdge, newInnerLoop);
       wholeLoopString.append(newLabel + ": ;\n");
@@ -789,7 +794,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       final CFANode thenNode,
       final CFANode elseNode) {
     return findEndOfBranchesNonRecursive(
-        elseNode, thenNode, functionStart, intermediateFunctionEnds.get(0));
+        elseNode, thenNode, functionStart, intermediateFunctionEnds.getFirst());
   }
 
   private CFANode findEndOfBranchesNonRecursive(

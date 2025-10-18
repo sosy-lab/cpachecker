@@ -237,7 +237,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         edgesSet.map.entrySet();
     assert entries.size() == 1;
 
-    Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry = entries.first();
+    Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry = entries.getFirst();
 
     assert !map.containsKey(entry.getKey());
     PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> newMap =

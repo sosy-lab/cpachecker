@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -377,8 +376,7 @@ public class ArrayAbstraction {
     createIndexStepCondition(index).ifPresent(conditions::add);
 
     // reverse list, because the last edge inserted with insertSuccessor is the first condition edge
-    Collections.reverse(conditions);
-    for (CExpression condition : conditions) {
+    for (CExpression condition : conditions.reversed()) {
 
       CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
       pGraph.insertSuccessor(pBodyEntryNode, new CFANode(function), enterBodyEdge);

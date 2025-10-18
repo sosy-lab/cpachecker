@@ -21,6 +21,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -157,7 +158,7 @@ public class ThreadingState
   }
 
   Set<Integer> getThreadNums() {
-    Set<Integer> result = new LinkedHashSet<>();
+    SequencedSet<Integer> result = new LinkedHashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());
     }

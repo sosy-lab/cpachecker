@@ -78,11 +78,10 @@ public class CFACloner {
             functions.containsKey(newFunctionName), "function %s not available", newFunctionName);
         final FunctionCallCollector visitor = new FunctionCallCollector();
         CFATraversal.dfs().traverseOnce(functions.get(newFunctionName), visitor);
-        final Collection<AStatementEdge> functionCalls = visitor.getFunctionCalls();
 
         // redirect from caller to new (cloned) called function,
         // but only if the calling and the called function have equal clone-indices
-        for (AStatementEdge statementEdge : functionCalls) {
+        for (AStatementEdge statementEdge : visitor.getFunctionCalls()) {
           if (FunctionCallUnwinder.isFunctionCall(statementEdge, functions.keySet())) {
             final String calledFunctionName = FunctionCallUnwinder.getNameOfFunction(statementEdge);
             final String newCalledFunctionName = getFunctionName(calledFunctionName, i);

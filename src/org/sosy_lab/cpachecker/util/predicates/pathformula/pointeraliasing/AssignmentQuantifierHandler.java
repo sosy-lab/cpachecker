@@ -391,7 +391,7 @@ class AssignmentQuantifierHandler {
     }
 
     // not all variables have been quantified, get the variable to quantify
-    final SliceVariable variableToQuantify = variablesToQuantify.get(0);
+    final SliceVariable variableToQuantify = variablesToQuantify.getFirst();
 
     // make a sublist without the variable to quantify
     final ImmutableList<SliceVariable> nextVariablesToQuantify =

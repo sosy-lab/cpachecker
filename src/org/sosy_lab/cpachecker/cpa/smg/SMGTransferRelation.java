@@ -24,6 +24,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -104,7 +106,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -327,7 +328,8 @@ public class SMGTransferRelation
     }
 
     SMGState initialNewState = state.copyOf();
-    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap = new LinkedHashMap<>();
+    SequencedMap<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap =
+        new LinkedHashMap<>();
     List<Pair<SMGRegion, SMGValue>> initialValuesList = new ArrayList<>();
     valuesMap.put(initialNewState, initialValuesList);
     List<SMGState> newStates =
@@ -449,7 +451,7 @@ public class SMGTransferRelation
 
         final List<Pair<SMGRegion, SMGValue>> curValues = valuesMap.get(curState);
         assert curValues.size() == i : "evaluation of parameters out of order";
-        curValues.add(i, Pair.of(paramObj, value));
+        curValues.add(Pair.of(paramObj, value));
 
         // Check that previous values are not merged with new one
         if (newStateWithExpVal.getSecond() != null) {
@@ -485,8 +487,7 @@ public class SMGTransferRelation
       // if function declaration is in form 'int foo(char b[32])' then omit array length
       if (cParamType instanceof CArrayType) {
         cParamType =
-            new CPointerType(
-                cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
+            new CPointerType(cParamType.getQualifiers(), ((CArrayType) cParamType).getType());
       }
 
       SMGRegion newObject = values.get(i).getFirst();
@@ -708,7 +709,7 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      Set<SMGState> states = new LinkedHashSet<>();
+      SequencedSet<SMGState> states = new LinkedHashSet<>();
       states.add(state.copyOf());
 
       // check that we can safely read all args,
@@ -1211,7 +1212,7 @@ public class SMGTransferRelation
     assert pInitializer.getDesignators().size() == 1;
 
     String fieldDesignator =
-        ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
+        ((CFieldDesignator) pInitializer.getDesignators().getFirst()).getFieldName();
 
     BigInteger offset = BigInteger.valueOf(offsetAtStartOfStruct);
     int sizeOfByte = machineModel.getSizeofCharInBits();
@@ -1410,7 +1411,7 @@ public class SMGTransferRelation
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       if (initializer instanceof CDesignatedInitializer designatedInitializer) {
         assert designatedInitializer.getDesignators().size() == 1;
-        CDesignator cDesignator = designatedInitializer.getDesignators().get(0);
+        CDesignator cDesignator = designatedInitializer.getDesignators().getFirst();
         if (cDesignator instanceof CArrayDesignator cArrayDesignator) {
           CExpression subscriptExpression = cArrayDesignator.getSubscriptExpression();
           SMGExplicitValueAndState smgExplicitValueAndState =
@@ -1503,7 +1504,7 @@ public class SMGTransferRelation
     if (pCfaEdge instanceof CAssumeEdge && !((CAssumeEdge) pCfaEdge).getTruthAssumption()) {
       CFANode pred = pCfaEdge.getPredecessor();
       final CFAEdge thisEdge = pCfaEdge;
-      pCfaEdge = Iterables.getOnlyElement(CFAUtils.leavingEdges(pred).filter(e -> e != thisEdge));
+      pCfaEdge = Iterables.getOnlyElement(pred.getLeavingEdges().filter(e -> e != thisEdge));
       Preconditions.checkState(
           pCfaEdge instanceof CAssumeEdge && ((CAssumeEdge) pCfaEdge).getTruthAssumption());
     }

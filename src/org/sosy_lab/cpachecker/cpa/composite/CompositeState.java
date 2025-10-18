@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -40,9 +41,9 @@ public class CompositeState
         Splitable {
   @Serial private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
-  private transient Object partitionKey; // lazily initialized
-  private transient Comparable<?> pseudoPartitionKey; // lazily initialized
-  private transient Object pseudoHashCode; // lazily initialized
+  private transient @Nullable Object partitionKey; // lazily initialized
+  private transient @Nullable Comparable<?> pseudoPartitionKey; // lazily initialized
+  private transient @Nullable Object pseudoHashCode; // lazily initialized
 
   public CompositeState(List<AbstractState> elements) {
     states = ImmutableList.copyOf(elements);
@@ -190,7 +191,7 @@ public class CompositeState
 
   private static final class CompositePartitionKey {
 
-    private final Object[] keys;
+    private final @Nullable Object[] keys;
 
     private CompositePartitionKey(Object[] pElements) {
       keys = pElements;
@@ -221,7 +222,7 @@ public class CompositeState
   private static final class CompositePseudoPartitionKey
       implements Comparable<CompositePseudoPartitionKey> {
 
-    private final Comparable<?>[] keys;
+    private final @Nullable Comparable<?>[] keys;
 
     private CompositePseudoPartitionKey(Comparable<?>[] pElements) {
       keys = pElements;

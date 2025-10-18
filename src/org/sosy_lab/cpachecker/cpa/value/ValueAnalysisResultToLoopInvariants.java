@@ -318,7 +318,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     return switch (combinationStrategy) {
       case ALL -> Predicates.alwaysTrue();
-      case FUNCTION_SCOPE -> vars -> globalOrSameFunction(vars);
+      case FUNCTION_SCOPE -> this::globalOrSameFunction;
       case PROGRAM_RELATION -> {
         ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
             detectVariablesAllowedForCombination(pCfa, Predicates.alwaysTrue());
@@ -666,7 +666,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     numBooleanInvariants = Math.max(0, numBooleanInvariants);
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
       if (!varAndVals.getKey().isReference()) {
-        Value val = varAndVals.getValue().get(0).getValue();
+        Value val = varAndVals.getValue().getFirst().getValue();
         if (val.isExplicitlyKnown() && val.isNumericValue()) {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
@@ -765,8 +765,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           List<ValueAndType> val2 = varWithVals2.getValue();
           if (val1.isEmpty()
               || val1.size() != val2.size()
-              || !val1.get(0).getValue().isNumericValue()
-              || !val2.get(0).getValue().isNumericValue()) {
+              || !val1.getFirst().getValue().isNumericValue()
+              || !val2.getFirst().getValue().isNumericValue()) {
             continue;
           }
 
@@ -778,11 +778,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 computeCoefficientsForLinearEquation(
                     new ValueAndType[][] {
                       {
-                        val2.get(0), val2.get(1),
+                        val2.getFirst(), val2.get(1),
                       },
                     },
                     new ValueAndType[] {
-                      val1.get(0), val1.get(1),
+                      val1.getFirst(), val1.get(1),
                     },
                     0,
                     type1.getType().isFloatingPointType());
@@ -803,11 +803,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 computeCoefficientsForLinearEquation(
                     new ValueAndType[][] {
                       {
-                        val1.get(0), val1.get(1),
+                        val1.getFirst(), val1.get(1),
                       },
                     },
                     new ValueAndType[] {
-                      val2.get(0), val2.get(1),
+                      val2.getFirst(), val2.get(1),
                     },
                     1,
                     type1.getType().isFloatingPointType());
@@ -834,9 +834,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             arInv =
                 new TwoVariableArithmeticInvariant(
                     varWithVals1.getKey(),
-                    val1.get(0).getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue(),
                     varWithVals2.getKey(),
-                    val2.get(0).getValue().asNumericValue());
+                    val2.getFirst().getValue().asNumericValue());
           } else {
             arInv = null;
           }
@@ -845,18 +845,18 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportBitops
               && type1.getType().isIntegerType()
               && type2.getType().isIntegerType()
-              && (!(val1.get(0).getValue().asNumericValue().getNumber()
+              && (!(val1.getFirst().getValue().asNumericValue().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))
-              && (!(val2.get(0).getValue().asNumericValue().getNumber()
+              && (!(val2.getFirst().getValue().asNumericValue().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))) {
             bitInv =
                 new TwoVariableBitOpsInvariant(
                     varWithVals1.getKey(),
-                    val1.get(0).getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue(),
                     varWithVals2.getKey(),
-                    val2.get(0).getValue().asNumericValue(),
+                    val2.getFirst().getValue().asNumericValue(),
                     exportShiftops);
           } else {
             bitInv = null;
@@ -864,18 +864,18 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           TwoVariableRelationInvariant relInv;
           if (exportRelational
-              && (!(val1.get(0).getValue().asNumericValue().getNumber()
+              && (!(val1.getFirst().getValue().asNumericValue().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))
-              && (!(val2.get(0).getValue().asNumericValue().getNumber()
+              && (!(val2.getFirst().getValue().asNumericValue().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))) {
             relInv =
                 new TwoVariableRelationInvariant(
                     varWithVals1.getKey(),
-                    val1.get(0).getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue(),
                     varWithVals2.getKey(),
-                    val2.get(0).getValue().asNumericValue());
+                    val2.getFirst().getValue().asNumericValue());
 
           } else {
             relInv = null;
@@ -1024,14 +1024,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
                         {
-                          val2.get(0), val2.get(1), val2.get(2),
+                          val2.getFirst(), val2.get(1), val2.get(2),
                         },
                         {
-                          val3.get(0), val3.get(1), val3.get(2),
+                          val3.getFirst(), val3.get(1), val3.get(2),
                         },
                       },
                       new ValueAndType[] {
-                        val1.get(0), val1.get(1), val1.get(2),
+                        val1.getFirst(), val1.get(1), val1.get(2),
                       },
                       0,
                       type1.getType().isFloatingPointType());
@@ -1053,14 +1053,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
                         {
-                          val1.get(0), val1.get(1), val1.get(2),
+                          val1.getFirst(), val1.get(1), val1.get(2),
                         },
                         {
-                          val3.get(0), val3.get(1), val3.get(2),
+                          val3.getFirst(), val3.get(1), val3.get(2),
                         },
                       },
                       new ValueAndType[] {
-                        val2.get(0), val2.get(1), val2.get(2),
+                        val2.getFirst(), val2.get(1), val2.get(2),
                       },
                       1,
                       type1.getType().isFloatingPointType());
@@ -1082,14 +1082,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                   computeCoefficientsForLinearEquation(
                       new ValueAndType[][] {
                         {
-                          val1.get(0), val1.get(1), val1.get(2),
+                          val1.getFirst(), val1.get(1), val1.get(2),
                         },
                         {
-                          val2.get(0), val2.get(1), val2.get(2),
+                          val2.getFirst(), val2.get(1), val2.get(2),
                         },
                       },
                       new ValueAndType[] {
-                        val3.get(0), val3.get(1), val3.get(2),
+                        val3.getFirst(), val3.get(1), val3.get(2),
                       },
                       2,
                       type1.getType().isFloatingPointType());

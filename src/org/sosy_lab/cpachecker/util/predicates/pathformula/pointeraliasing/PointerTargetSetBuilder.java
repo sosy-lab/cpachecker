@@ -471,7 +471,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
+          } while (!Objects.equals(current, currentChain.getLast()));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {

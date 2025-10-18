@@ -45,8 +45,6 @@ class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean SKIP_CHILDREN = false;
 
-  private static final int FIRST = 0;
-
   private final LogManager logger;
   private final THTypeTable typeTable;
   private final TypeHierachyConverter converter;
@@ -125,7 +123,7 @@ class TypeHierachyCreator extends ASTVisitor {
 
     Set<JFieldDeclaration> decl = converter.convert(fD, fileOfCU);
 
-    VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().get(FIRST);
+    VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().getFirst();
 
     // TODO Add declaring class to JFielddeclaration
     IVariableBinding variableBinding = vdf.resolveBinding();

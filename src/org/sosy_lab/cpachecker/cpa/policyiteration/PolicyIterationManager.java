@@ -762,13 +762,18 @@ public class PolicyIterationManager {
     }
   }
 
-  private Set<BooleanFormula> toLemmas(BooleanFormula formula) throws InterruptedException {
-    return switch (toLemmasAlgorithm) {
-      case "CNF" -> bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
-      case "RCNF" -> rcnfManager.toLemmas(formula, fmgr);
-      case "NONE" -> ImmutableSet.of(formula);
-      default -> throw new UnsupportedOperationException("Unexpected state");
-    };
+  private Set<BooleanFormula> toLemmas(BooleanFormula formula)
+      throws InterruptedException, CPATransferException {
+    try {
+      return switch (toLemmasAlgorithm) {
+        case "CNF" -> bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+        case "RCNF" -> rcnfManager.toLemmas(formula, fmgr);
+        case "NONE" -> ImmutableSet.of(formula);
+        default -> throw new UnsupportedOperationException("Unexpected state");
+      };
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed with exception", e);
+    }
   }
 
   private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();
@@ -1015,7 +1020,7 @@ public class PolicyIterationManager {
 
     // Abstraction required if not all predecessors, SSA forms,
     // and pointer target sets are the same.
-    PolicyBound firstBound = policyBounds.get(0);
+    PolicyBound firstBound = policyBounds.getFirst();
     for (PolicyBound bound : policyBounds) {
       if (!bound.getPredecessor().equals(firstBound.getPredecessor())
           || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())

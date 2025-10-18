@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -131,12 +132,12 @@ public final class LoopStructure {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
+        n.getEnteringEdges().copyInto(newIncomingEdges);
+        n.getLeavingEdges().copyInto(newOutgoingEdges);
       }
 
       innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
@@ -478,7 +479,7 @@ public final class LoopStructure {
     @Nullable CFANode nodeAfterInitialChain = null;
     {
       // The function exit node is always the first
-      if (pNodes.first() instanceof FunctionExitNode functionExitNode) {
+      if (pNodes.getFirst() instanceof FunctionExitNode functionExitNode) {
         CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
@@ -490,7 +491,7 @@ public final class LoopStructure {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.removeLast();
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -597,7 +598,7 @@ public final class LoopStructure {
         // We just pick a node randomly and merge it into others.
         // This is imprecise, but not wrong.
 
-        CFANode currentNode = nodes.last();
+        CFANode currentNode = nodes.getLast();
         final int current = arrayIndexForNode.apply(currentNode);
 
         // Mark this node as a loop head

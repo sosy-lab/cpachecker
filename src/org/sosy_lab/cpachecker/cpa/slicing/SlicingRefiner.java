@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
@@ -412,7 +412,7 @@ public class SlicingRefiner implements Refiner {
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException, CPAException {
 
-    List<CFAEdge> innerEdges = pPath.getInnerEdges();
+    List<@Nullable CFAEdge> innerEdges = pPath.getInnerEdges();
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 
@@ -426,7 +426,7 @@ public class SlicingRefiner implements Refiner {
         List<InfeasiblePrefix> prefixes = prefixProvider.extractInfeasiblePrefixes(pPath);
         if (!prefixes.isEmpty()) {
           Set<CFAEdge> prefixAssumeEdges =
-              prefixes.get(0).getPath().getInnerEdges().stream()
+              prefixes.getFirst().getPath().getInnerEdges().stream()
                   .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
                   .collect(ImmutableSet.toImmutableSet());
           criteriaEdges.addAll(prefixAssumeEdges);
@@ -463,7 +463,7 @@ public class SlicingRefiner implements Refiner {
 
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
-        CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
+        finalNode.getEnteringEdges().filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
     relevantEdges.addAll(slicer.getSlice(cfa, criteriaEdges).getRelevantEdges());

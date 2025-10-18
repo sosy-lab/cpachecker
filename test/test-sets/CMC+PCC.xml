@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -20,584 +20,697 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--stack">512000k</option>
   <option name="--option">specification=config/specification/sv-comp-reachability.spc</option>
 
-<rundefinition name="Verification">
-		
-    <tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <!-- Verification -->
+  <rundefinition name="Verification_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
+      
+    <tasks>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
-<tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
+  <rundefinition name="Verification_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
-<tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
- <tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification_value10+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-    
-<tasks>
-	  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=false</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
-   
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+    <rundefinition name="Verification_value10+apron-cmc">
+      <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=false</option>
+
       <tasks>
-	  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=false</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
+    </rundefinition>
 
-</rundefinition>
+    <rundefinition name="Verification_valueCegar60+apronCegar-cmc">
+      <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=false</option>
 
-<rundefinition name="Verification Memory">
-		
-    <tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-<tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
-<tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
- <tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	<option name="--option">pcc.proofgen.doPCC=false</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-    
-<tasks>
-	  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	  <option name="--option">pcc.proofgen.doPCC=false</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
-   
       <tasks>
-	  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
-	  <option name="--option">pcc.proofgen.doPCC=false</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+        <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+        <include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
+    </rundefinition>
+  ?>
 
-</rundefinition>
+<!-- Verification Memory -->
+  <rundefinition name="Verification-Memory_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
 
-<rundefinition name="Proof Generation">
-
-<!-- ARG -->		
     <tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification-Memory_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification-Memory_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification-Memory_value10+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+  <rundefinition name="Verification-Memory_value10+apron-cmc">
+    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+
+    <tasks>
+      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Verification-Memory_valueCegar60+apronCegar-cmc">
+    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
+    <option name="--option">pcc.proofgen.doPCC=false</option>
+
+    <tasks>
+      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+    </tasks>
+</rundefinition>
+  ?>
+
+  <!-- Proof Generation -->
+  <!-- ARG -->
+  <rundefinition name="Proof-Generation_arg_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
-<tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
+    <tasks>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_arg_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
-<tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_arg.proof</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_arg_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_arg.proof</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
 
-</tasks>
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
- <tasks>
-	<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
+  <rundefinition name="Proof-Generation_arg_value10+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_arg.proof</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-    
-<tasks>
-	  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+    <rundefinition name="Proof-Generation_arg_value10+apron-cmc">
+      <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=true</option>
       <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
       <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
-   
-      <tasks>
-	  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-	  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
-
-
-<!-- Reached set proof -->
-    <tasks>
-		<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-    <tasks>
-	<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-    <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_reached.proof</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
-    <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
-    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
     
       <tasks>
-	  <option name="--option">pcc.strategy=ReachedSetStrategy</option>  
-	  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-      <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_reached.proof</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
-	  
+    </rundefinition>
+
+    <rundefinition name="Proof-Generation_arg_valueCegar60+apronCegar-cmc">
+      <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=true</option>
+      <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
+    
       <tasks>
-		  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_reached.proof</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+        <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+        <include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
+    </rundefinition>
+  ?>
+
+<!-- Reached set proof -->
+  <rundefinition name="Proof-Generation_reached-set_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_reached-set_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_reached-set_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_reached.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_reached-set_value10+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Proof-Generation_reached-set_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_reached.proof</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="Proof-Generation_reached-set_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_reached.proof</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
 
 <!-- partial reached set proof -->
- 
-     <tasks>
-		<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.partial.certificateType=ARG</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_partial.proof</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+  <rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.partial.certificateType=ARG</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_partial.proof</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
+
     <tasks>
-		<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
     <option name="--option">pcc.partial.certificateType=ARG</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_partial.proof</option>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_partial-reached-set_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_partial.proof</option>
     <option name="--option">pcc.partial.certificateType=ARG</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.partial.certificateType=ARG</option>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_partial-reached-set_value10+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.partial.certificateType=ARG</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_partial.proof</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-<option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-	  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
-      <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_partial.proof</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>  
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
-      <tasks>
-		  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-	  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
-      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_partial.proof</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option> 
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Proof-Generation_partial-reached-set_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_partial.proof</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_partial.proof</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
 
 <!-- CMC args proof -->
-	
-    <tasks>
-		<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>
-	<option name="--option">analysis.memorizeReachedAfterRestart=true</option>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
-    <option name="--option">solver.solver=MATHSAT5</option>
-    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
-    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-    <tasks>
-		<option name="--combinations-valueCegar60+pred-cmc"/>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
+  <rundefinition name="Proof-Generation_cmc-args_valueCegar60+pred-cmc">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
+    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
+
+    <tasks>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_cmc-args_valueCegar60+pred-cmc_alwaysAtJoin">
+    <option name="--combinations-valueCegar60+pred-cmc"/>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
+    <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
     <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
-	<option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_cmc-args_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
+    <option name="--option">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
     <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-		<option name="--combinations-value10+pred-cmc"/>
-	<option name="--option">pcc.proofgen.doPCC=true</option>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Proof-Generation_cmc-args_value10+pred-cmc">
+    <option name="--combinations-value10+pred-cmc"/>
+    <option name="--option">pcc.proofgen.doPCC=true</option>
     <option name="--option">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
     <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
-	<option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
     <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-		<option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-      <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
-      <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
-    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
-    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
-    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
-	  
-      <tasks>
-		  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-	  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	  <option name="--option">pcc.proofgen.doPCC=true</option>
-      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
-      <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
-    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option> 
-    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
-    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Proof-Generation_cmc-args_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
+  <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+  <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
+  <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
 </rundefinition>
 
-<rundefinition name="Complete proof check">
-<!-- ARG Proof -->
- 
-     <tasks>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+<rundefinition name="Proof-Generation_cmc-args_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
+  <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+  <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
+  <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
+
+<!-- Complete proof check -->
+
+  <!-- ARG Proof -->
+  <rundefinition name="Complete-proof-check_arg-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -607,16 +720,19 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_arg-proof_valueAnalysis-predicateAnalysis-proofcheck">
     <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -627,13 +743,16 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_arg-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_arg.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -643,17 +762,20 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
- <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_arg-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_arg.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -664,376 +786,445 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-      <tasks>
-	<option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_arg.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
-    <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
-
-      <tasks>
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_arg.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
-    <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
-
-<!-- Reached set proof -->
 
     <tasks>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_arg.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+  <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_arg.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+  <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
+
+<!-- Reached set proof -->
+  <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
     <option name="--option">pcc.strategy=ReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_reached.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
- <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-	
+
     <tasks>
-	<option name="--option">pcc.strategy=ReachedSetStrategy</option>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+  
+  <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-   
-      <tasks>
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_reached.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
 
-      <tasks>
-	<option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_reached.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_reached.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
+
+<rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_reached.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
 
 <!-- partial reached set proof -->
- 
-    <tasks>
+  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
-    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_partial.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_partial.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
- <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
+      
     <tasks>
-	<option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
+    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
-    <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_partial.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
-
-    <tasks>
-	<option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_partial.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option> 
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option> 
-		  <!-- only possible in combination-->
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
 
-      <tasks>
+    <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Complete-proof-check_partial-reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_partial.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+
+     only possible in combination
+     <tasks>
+      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueApronAnalysis-proofcheck">
     <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-	<option name="--option">analysis.algorithm.proofCheck=true</option>
+    <option name="--option">analysis.algorithm.proofCheck=true</option>
     <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_partial.proof</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-     <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
 
-<!-- CMC args proof -->
+    <tasks>
+      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+    </tasks>
+</rundefinition>
+  ?>
 
-     <tasks>
-	<option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
-	<option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>	
-	<option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <!-- CMC args proof -->
+  <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
+    <option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
+    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="--option">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>  
+    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--option">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
+    <option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
+    <option name="--option">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="--option">solver.solver=MATHSAT5</option>
     <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-	<option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
-	<option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-	<option name="--option">solver.solver=MATHSAT5</option>
-	<option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
-	<option name="--option">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
-	<option name="--option">pcc.arg.checkPropertyPerElement=true</option>
- <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loop-new/nested-1.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
-<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
-    <tasks>
-	<option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
-	<option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-	<option name="--option">solver.solver=MATHSAT5</option>
-	<option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
+  <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
+    <option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
+    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
+    <option name="--option">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
+    <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
+     <tasks>
+      <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loop-new/nested-1.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+      <include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
+    <option name="--config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
+    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+    <option name="--option">solver.solver=MATHSAT5</option>
+    <option name="--option">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="--option">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="--option">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_cmcarg.proof</option>
     <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/benchmarks/float-benchs/filter2.yml</include>
-<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
-<include>../programs/benchmarks/loops/matrix-1.yml</include>
-<include>../programs/CMC+PCC/bonus.c</include>
-</tasks>
 
     <tasks>
-	<option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
-	<option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
-    <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-      </tasks>
+      <include>../programs/benchmarks/float-benchs/filter2.yml</include>
+      <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+      <include>../programs/benchmarks/loops/matrix-1.yml</include>
+      <include>../programs/CMC+PCC/bonus.c</include>
+    </tasks>
+  </rundefinition>
 
-      <tasks>
-    <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
-    <option name="--skip-recursion"/>
-	<option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-	<option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
-<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-<include>../programs/benchmarks/systemc/toy.cil.yml</include>
-      </tasks>
+  <!-- Apron is currently not working -->
+  <?ignore
+<rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
+  <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
 
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
 </rundefinition>
 
-  <columns>
-    <column title="total">Total time for CPAchecker</column>
-    <column title="Analysis time">Time for Analysis</column>
-    <column title="Verif time">Time for program analyis</column>
-    <column title="Total val time">Total time for proof check algorithm</column>
-    <column title="Proof read">Time for reading in proof (not complete time in interleaved modes)</column>
-    <column title="Algorithms">Number of algorithms used</column>
-    <column title="Combination time">Time to combine ARGs</column>
-    <column title="Proof gen time">Time for proof writing</column>
-    <column title="Proof size">Proof file size (bytes)</column>
-    <column title="Proof states">Number of proof elements</column>
-    <column title="Reached size">Size of reached set</column>
-    <column title="Heap Mem">Used heap memory</column>
-    <column title="Non-Heap Mem">Used non-heap memory</column>
-  </columns>
+<rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
+  <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
+  <option name="--skip-recursion"/>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+  ?>
+
+<columns>
+  <column title="total">Total time for CPAchecker</column>
+  <column title="Analysis time">Time for Analysis</column>
+  <column title="Verif time">Time for program analyis</column>
+  <column title="Total val time">Total time for proof check algorithm</column>
+  <column title="Proof read">Time for reading in proof (not complete time in interleaved modes)</column>
+  <column title="Algorithms">Number of algorithms used</column>
+  <column title="Combination time">Time to combine ARGs</column>
+  <column title="Proof gen time">Time for proof writing</column>
+  <column title="Proof size">Proof file size (bytes)</column>
+  <column title="Proof states">Number of proof elements</column>
+  <column title="Reached size">Size of reached set</column>
+  <column title="Heap Mem">Used heap memory</column>
+  <column title="Non-Heap Mem">Used non-heap memory</column>
+</columns>
 </benchmark>

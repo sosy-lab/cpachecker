@@ -92,7 +92,7 @@ public class SMGBuiltins {
 
   private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
-    String name = functionCall.getParameterExpressions().get(0).toASTString();
+    String name = functionCall.getParameterExpressions().getFirst().toASTString();
     if (exportSMGOptions.hasExportPath() && currentState != null) {
       SMGUtils.dumpSMGPlot(
           logger,
@@ -326,7 +326,7 @@ public class SMGBuiltins {
                   + "already being evaluated once in this transferrelation step.");
         }
 
-        SMGExplicitValueAndState valueAndState = valueAndStates.get(0);
+        SMGExplicitValueAndState valueAndState = valueAndStates.getFirst();
 
         sizeValue = valueAndState.getObject();
         currentState = valueAndState.getSmgState();
@@ -450,7 +450,7 @@ public class SMGBuiltins {
                     + "already being evaluated once in this transferrelation step.");
           }
 
-          resultValueAndState = forcedvalueAndStates.get(0);
+          resultValueAndState = forcedvalueAndStates.getFirst();
 
           value = resultValueAndState.getObject();
 
@@ -530,7 +530,7 @@ public class SMGBuiltins {
     CExpression pointerExp;
 
     try {
-      pointerExp = pFunctionCall.getParameterExpressions().get(0);
+      pointerExp = pFunctionCall.getParameterExpressions().getFirst();
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException(

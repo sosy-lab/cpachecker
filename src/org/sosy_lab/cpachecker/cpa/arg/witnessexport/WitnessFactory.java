@@ -56,6 +56,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
@@ -170,9 +172,11 @@ class WitnessFactory implements EdgeAppender {
   private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
   private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
-  private final Map<String, ExpressionTree<Object>> stateInvariants = new LinkedHashMap<>();
-  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = new LinkedHashMap<>();
-  private final Map<String, String> stateScopes = new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateQuasiInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, String> stateScopes = new LinkedHashMap<>();
   private final Set<String> invariantExportStates = new TreeSet<>();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
@@ -403,7 +407,7 @@ class WitnessFactory implements EdgeAppender {
           // by creating a transition for the function call, to the sink:
           FunctionCallEdge callEdge =
               Iterables.getOnlyElement(
-                  CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
+                  assumeEdge.getSuccessor().getLeavingEdges().filter(FunctionCallEdge.class));
           FunctionEntryNode in = callEdge.getSuccessor();
           result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
         }
@@ -527,7 +531,7 @@ class WitnessFactory implements EdgeAppender {
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
                   pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-          FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+          FluentIterable<CFAEdge> nextEdges = pEdge.getSuccessor().getLeavingEdges();
 
           if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
             String keyFrom = pTo;
@@ -1037,7 +1041,7 @@ class WitnessFactory implements EdgeAppender {
         if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
-            Fault bestFault = faults.get(0);
+            Fault bestFault = faults.getFirst();
             FluentIterable.from(bestFault)
                 .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);
@@ -1291,14 +1295,14 @@ class WitnessFactory implements EdgeAppender {
           if (witnessOptions.produceInvariantWitnesses()) {
             // First, collect all invariants
             List<ExpressionTree<Object>> iterableList = new ArrayList<>();
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               iterableList.add(
                   invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
             }
             // Next,compute the invariant as disjunction
             loopHeadInvariant = computeInvariantForInvariantWitnesses(iterableList);
           } else {
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               loopHeadInvariant =
                   Or.of(
                       loopHeadInvariant,
@@ -1514,7 +1518,7 @@ class WitnessFactory implements EdgeAppender {
     // Merge mapping
     stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
-    Set<Edge> replacementEdges = new LinkedHashSet<>();
+    SequencedSet<Edge> replacementEdges = new LinkedHashSet<>();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
@@ -1802,7 +1806,8 @@ class WitnessFactory implements EdgeAppender {
     // loop proximity
     return FluentIterable.concat(
             Collections.singleton(referenceNode),
-            CFAUtils.enteringEdges(referenceNode)
+            referenceNode
+                .getEnteringEdges()
                 .filter(AssumeEdge.class)
                 .transform(CFAEdge::getPredecessor))
         .anyMatch(this::isInLoopProximity);
@@ -1829,7 +1834,7 @@ class WitnessFactory implements EdgeAppender {
     }
     while (!waitlist.isEmpty()) {
       List<CFANode> current = waitlist.pop();
-      CFANode currentNode = current.get(current.size() - 1);
+      CFANode currentNode = current.getLast();
       Boolean memoized = loopProximityMemo.get(currentNode);
       if (memoized != null && !memoized) {
         continue;
@@ -1841,7 +1846,7 @@ class WitnessFactory implements EdgeAppender {
         return true;
       }
       // boolean isFirst = true;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
+      for (CFAEdge enteringEdge : currentNode.getEnteringEdges().filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
           waitlist.push(listAndElement(current, predecessor));
@@ -1878,7 +1883,7 @@ class WitnessFactory implements EdgeAppender {
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
           if (pNode instanceof CFALabelNode node) {
-            for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
+            for (BlankEdge e : pNode.getEnteringEdges().filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;
                 break;

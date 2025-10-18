@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -83,10 +82,10 @@ public abstract class ConditionFolder {
         if (loopStack.isEmpty()) {
           l = null;
         } else {
-          l = loopStack.get(loopStack.size() - 1);
+          l = loopStack.getLast();
         }
 
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        for (CFAEdge edge : node.getAllLeavingEdges()) {
           if (loopMapResult.containsKey(edge.getSuccessor())) {
             continue;
           }
@@ -106,11 +105,11 @@ public abstract class ConditionFolder {
           while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
             // leave edge
             succLoopStack = new ArrayList<>(succLoopStack);
-            succLoopStack.remove(succLoopStack.size() - 1);
+            succLoopStack.removeLast();
             if (succLoopStack.isEmpty()) {
               lsucc = null;
             } else {
-              lsucc = succLoopStack.get(succLoopStack.size() - 1);
+              lsucc = succLoopStack.getLast();
             }
           }
 

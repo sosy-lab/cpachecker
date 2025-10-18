@@ -69,14 +69,15 @@ public class ExpressionSimplificationVisitor
   }
 
   private @Nullable NumericValue getValue(CExpression expr) {
-    if (expr instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      return new NumericValue(cIntegerLiteralExpression.getValue());
-    } else if (expr instanceof CCharLiteralExpression cCharLiteralExpression) {
-      return new NumericValue((int) cCharLiteralExpression.getCharacter());
-    } else if (expr instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      return new NumericValue(cFloatLiteralExpression.getValue());
-    }
-    return null;
+    return switch (expr) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          new NumericValue(cIntegerLiteralExpression.getValue());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          new NumericValue((int) cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          new NumericValue(cFloatLiteralExpression.getValue());
+      default -> null;
+    };
   }
 
   /**
@@ -204,7 +205,7 @@ public class ExpressionSimplificationVisitor
     // TODO: handle the case that the result is not a numeric value
     final Value castedValue =
         AbstractExpressionValueVisitor.castCValue(
-            value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+            value, expr.getExpressionType(), machineModel, logger);
 
     return convertExplicitValueToExpression(expr, castedValue);
   }
@@ -264,7 +265,7 @@ public class ExpressionSimplificationVisitor
         final NumericValue negatedValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    value.negate(), exprType, machineModel, logger, loc);
+                    value.negate(), exprType, machineModel, logger);
         switch (cSimpleType.getType()) {
           case BOOL, CHAR, INT -> {
             // negation of zero is zero, other values should be irrelevant
@@ -289,7 +290,7 @@ public class ExpressionSimplificationVisitor
         final NumericValue complementValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
+                    new NumericValue(~value.longValue()), exprType, machineModel, logger);
         return new CIntegerLiteralExpression(loc, exprType, complementValue.bigIntegerValue());
       }
 

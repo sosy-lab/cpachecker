@@ -16,6 +16,8 @@ SPDX-License-Identifier: Apache-2.0
          even if that field is not used from other threads.
          Maybe re-evaluate in the future. -->
     <Match><Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/></Match>
+    <!-- Warns about every harmless subclass of Guava's Equivalence -->
+    <Match><Bug pattern="HE_INHERITS_EQUALS_USE_HASHCODE"/></Match>
 
     <!-- Forbidding static methods in subclasses with same name often makes no sense,
          for example for factor() etc. -->
@@ -37,6 +39,8 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
     <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+    <!-- Useless check because we forbid classic switch labels, and produces false alarms -->
+    <Match><Bug pattern="SF_SWITCH_FALLTHROUGH"/></Match>
     <!-- Exclude AutoValue classes -->
     <Match><Class name="~.*\.AutoValue_.*"/></Match>
 

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -329,7 +328,7 @@ public class BlockGraphModification {
       CFA pOriginal, CFA pInstrumented) {
     record NodePair(CFANode n1, CFANode n2) {}
 
-    Set<CFANode> covered = new LinkedHashSet<>();
+    SequencedSet<CFANode> covered = new LinkedHashSet<>();
     ImmutableMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableMap.builder();
 
@@ -337,16 +336,16 @@ public class BlockGraphModification {
     waitlist.add(new NodePair(pOriginal.getMainFunction(), pInstrumented.getMainFunction()));
     originalToInstrumentedNodes.put(pOriginal.getMainFunction(), pInstrumented.getMainFunction());
     while (!waitlist.isEmpty()) {
-      NodePair pair = waitlist.remove(0);
+      NodePair pair = waitlist.removeFirst();
       CFANode originalNode = pair.n1();
       if (covered.contains(originalNode)) {
         continue;
       }
       covered.add(originalNode);
       CFANode instrumentedNode = pair.n2();
-      FluentIterable<CFAEdge> instrumentedOutgoing = CFAUtils.allLeavingEdges(instrumentedNode);
-      FluentIterable<CFAEdge> originalOutgoing = CFAUtils.allLeavingEdges(originalNode);
-      Set<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
+      FluentIterable<CFAEdge> instrumentedOutgoing = instrumentedNode.getAllLeavingEdges();
+      FluentIterable<CFAEdge> originalOutgoing = originalNode.getAllLeavingEdges();
+      SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
         assertOrFail(

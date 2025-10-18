@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -36,8 +37,8 @@ public interface Value extends Serializable {
    */
   @Nullable NumericValue asNumericValue();
 
-  /** Return the long value if this is a long value, null otherwise. */
-  @Nullable Long asLong(CType type);
+  /** Return the long value if this is a long value. */
+  OptionalLong asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
@@ -67,9 +68,9 @@ public interface Value extends Serializable {
     }
 
     @Override
-    public @Nullable Long asLong(CType type) {
+    public OptionalLong asLong(CType type) {
       checkNotNull(type);
-      return null;
+      return OptionalLong.empty();
     }
 
     @Override

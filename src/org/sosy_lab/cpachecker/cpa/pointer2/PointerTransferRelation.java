@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -309,7 +308,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private MemoryLocation toLocation(Type pType, String name) {
     Type type = pType;
     if (type instanceof CType cType) {
-      type = CTypes.copyDequalified(cType.getCanonicalType());
+      type = cType.getCanonicalType().withoutQualifiers();
     }
     if (isStructOrUnion(type)) {
       // TODO find a better way to handle this
@@ -491,7 +490,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
       type = innerType;
     }
-    String prefix = CTypes.copyDequalified(type).toString();
+    String prefix = type.withoutQualifiers().toString();
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
@@ -548,7 +547,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(CIdExpression pIastIdExpression)
               throws UnrecognizedCodeException {
-            CType type = CTypes.copyDequalified(pIastIdExpression.getExpressionType());
+            CType type = pIastIdExpression.getExpressionType().withoutQualifiers();
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               // TODO find a better way to handle this
@@ -738,16 +737,18 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static Optional<AFunctionCall> asFunctionCall(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
-        return Optional.of(aFunctionCall);
-      }
-    } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
-      return Optional.of(functionCallEdge.getFunctionCall());
-    } else if (pEdge instanceof FunctionSummaryEdge functionSummaryEdge) {
-      return Optional.of(functionSummaryEdge.getExpression());
-    }
-    return Optional.empty();
+    return switch (pEdge) {
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall aFunctionCall ->
+          Optional.of(aFunctionCall);
+
+      case FunctionCallEdge functionCallEdge -> Optional.of(functionCallEdge.getFunctionCall());
+
+      case FunctionSummaryEdge functionSummaryEdge ->
+          Optional.of(functionSummaryEdge.getExpression());
+
+      default -> Optional.empty();
+    };
   }
 
   private static Collection<? extends AbstractState> strengthenFieldReference(

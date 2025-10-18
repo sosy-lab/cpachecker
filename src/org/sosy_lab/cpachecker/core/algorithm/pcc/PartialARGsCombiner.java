@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
@@ -219,7 +218,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       // identify possible successor edges
       CFANode locPred = AbstractStates.extractLocation(composedState);
       nextEdge:
-      for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
+      for (CFAEdge succEdge : locPred.getAllLeavingEdges()) {
         shutdown.shutdownIfNecessary();
 
         successorsForEdge.clear();
@@ -232,7 +231,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
               Lists.newArrayList(
                   Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
           // check if stopped because no concrete successors exists, then do not
-          if (successorsForEdge.get(successorsForEdge.size() - 1).isEmpty()
+          if (successorsForEdge.getLast().isEmpty()
               && noConcreteSuccessorExist(component, succEdge, pForwaredReachedSet)) {
             continue nextEdge;
           }
@@ -436,7 +435,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     int[] indices = new int[pSuccessorsForEdge.size()];
     int nextIndex = 0;
     boolean restart;
-    int lastSize = pSuccessorsForEdge.get(pSuccessorsForEdge.size() - 1).size();
+    int lastSize = pSuccessorsForEdge.getLast().size();
 
     if (lastSize == 0) {
       lastSize = 1;
