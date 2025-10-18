@@ -78,6 +78,7 @@ public class SerializationInfoStorage {
           case PredicateCPA predicateCPA -> {
             info.absManager = predicateCPA.getAbstractionManager();
             info.predicateFormulaManagerView = predicateCPA.getSolver().getFormulaManager();
+            info.predicateSolver = predicateCPA.getSolver();
           }
           case LocationCPA locationCPA ->
               info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
