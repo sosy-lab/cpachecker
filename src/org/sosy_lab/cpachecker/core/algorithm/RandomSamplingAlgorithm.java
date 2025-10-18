@@ -118,8 +118,6 @@ public class RandomSamplingAlgorithm implements Algorithm {
     CFANode initialLocation = AbstractStates.extractLocation(reachedSet.getFirstState());
     checkNotNull(initialLocation, "The initial location must not be null.");
 
-    // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
-    // to copy the precision.
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
     // generate at max samplesToBeGenerated samples (or infinite if samplesToBeGenerated < 0)
