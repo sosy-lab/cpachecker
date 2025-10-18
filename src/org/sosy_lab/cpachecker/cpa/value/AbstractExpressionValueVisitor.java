@@ -802,7 +802,7 @@ public abstract class AbstractExpressionValueVisitor
         }
 
         if (BuiltinFunctions.isPopcountFunction(functionName)) {
-          return handlePopCount(
+          return handlePopcount(
               functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
@@ -2272,11 +2272,10 @@ public abstract class AbstractExpressionValueVisitor
 
   /**
    * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits of an unsigned int, unsigned long or unsigned long long. Test c programs
-   * available: test/programs/simple/builtin_popcount32_x.c and
-   * test/programs/simple/builtin_popcount64_x.c
+   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
+   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
    */
-  private static Value handlePopCount(
+  private static Value handlePopcount(
       String pFunctionName,
       List<Value> pParameters,
       CFunctionCallExpression e,
@@ -2284,12 +2283,12 @@ public abstract class AbstractExpressionValueVisitor
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
-      CSimpleType paramType =
+      CSimpleType argumentType =
           BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
-      assert paramType.hasUnsignedSpecifier();
+      assert argumentType.hasUnsignedSpecifier();
 
       // Cast to unsigned target type
-      Value paramValue = castCValue(pParameters.getFirst(), paramType, pMachineModel, logger);
+      Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
 
       if (paramValue.isNumericValue()) {
         BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
@@ -2304,11 +2303,39 @@ public abstract class AbstractExpressionValueVisitor
             pFunctionName);
 
         return new NumericValue(numericParam.bitCount());
+
+      } else if (paramValue instanceof SymbolicExpression symbolicParam) {
+        // Value Analysis without SymEx never ends up here!
+
+        int parameterBitSize = pMachineModel.getSizeofInBits(argumentType);
+
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression constraint =
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, argumentType);
+
+        // Add up the bits one by one
+        // sum of ((castParamValue >> i) & 1)
+        for (int i = 1; i < parameterBitSize; i++) {
+          SymbolicExpression countOfBitAtIndex =
+              factory.binaryAnd(
+                  factory.shiftRightUnsigned(
+                      symbolicParam,
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      argumentType,
+                      argumentType),
+                  one,
+                  CNumericTypes.INT,
+                  argumentType);
+          constraint =
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+        }
+        return constraint;
       }
 
-      // TODO: add impl for SymExec
       return Value.UnknownValue.getInstance();
     }
+
     throw new UnrecognizedCodeException(
         "Function "
             + pFunctionName
