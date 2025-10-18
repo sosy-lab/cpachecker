@@ -71,6 +71,22 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
     return super.evaluate(pExp, pTargetType);
   }
 
+  /**
+   * Generates a random BigInteger in the given range [min, max]
+   *
+   * @param min the minimum value (inclusive)
+   * @param max the maximum value (inclusive)
+   * @return a random NumericValue in the given range
+   */
+  private NumericValue randomIntInRange(BigInteger min, BigInteger max) {
+    BigInteger guess;
+    do {
+      guess = new BigInteger(max.subtract(min).bitLength(), randomGenerator);
+    } while (guess.compareTo(max) >= 0 || guess.compareTo(min) <= 0);
+
+    return new NumericValue(guess);
+  }
+
   private Value newrandomValue(CFunctionCallExpression call) {
 
     // Determine the type that needs to be returned:
@@ -82,23 +98,11 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
                 "Cannot handle type UNSPECIFIED in random value generation");
         case BOOL -> new NumericValue(randomGenerator.nextBoolean() ? 1 : 0);
         case CHAR -> new NumericValue(randomGenerator.nextInt(-128, 127));
-        case INT -> {
-          if (pCSimpleType.hasLongSpecifier()) {
-            yield new NumericValue(
-                randomGenerator.nextLong(
-                    -2 ^ getMachineModel().getSizeofLongInt(),
-                    2 ^ getMachineModel().getSizeofLongInt()));
-          } else if (pCSimpleType.hasShortSpecifier()) {
-            yield new NumericValue(
-                randomGenerator.nextLong(
-                    -2 ^ getMachineModel().getSizeofShortInt(),
-                    2 ^ getMachineModel().getSizeofShortInt()));
-          } else {
-            yield new NumericValue(randomGenerator.nextInt());
-          }
-        }
-        // Does not use the full range of INT128, but should be okay
-        case INT128 -> new NumericValue(BigInteger.valueOf(randomGenerator.nextLong()));
+        case INT, INT128 ->
+            randomIntInRange(
+                getMachineModel().getMinimalIntegerValue(pCSimpleType),
+                getMachineModel().getMaximalIntegerValue(pCSimpleType));
+
         case FLOAT -> new NumericValue(randomGenerator.nextFloat());
         case DOUBLE -> new NumericValue(randomGenerator.nextDouble());
         // Does not use the full range of FLOAT128, but should be okay
