@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperationsLookup;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperations;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -1373,26 +1373,37 @@ public class ExpressionToFormulaVisitor
     }
     if (ptr instanceof CPointerExpression pointer
         && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
-      Formula old = processOperand(leftHandSide, returnType, returnType);
-      Formula v = toFormula(val);
-
-      Formula newValue =
-          switch (CAtomicOperationsLookup.fromString(functionName)) {
-            case ATOMIC_FETCH_ADD -> mgr.makePlus(old, v);
-            case ATOMIC_FETCH_SUB -> mgr.makeMinus(old, v);
-            case ATOMIC_FETCH_AND -> mgr.makeAnd(old, v);
-            case ATOMIC_FETCH_XOR -> mgr.makeXor(old, v);
-            case ATOMIC_FETCH_OR -> mgr.makeOr(old, v);
-            case ATOMIC_FETCH_NAND -> mgr.makeNot(mgr.makeAnd(old, v));
+      Formula old = toFormula(leftHandSide);
+      CAtomicOperations op = CAtomicOperations.fromString(functionName);
+      BinaryOperator operator =
+          switch (op) {
+            case ATOMIC_FETCH_ADD -> BinaryOperator.PLUS;
+            case ATOMIC_FETCH_SUB -> BinaryOperator.MINUS;
+            case ATOMIC_FETCH_AND -> BinaryOperator.BINARY_AND;
+            case ATOMIC_FETCH_XOR -> BinaryOperator.BINARY_XOR;
+            case ATOMIC_FETCH_OR -> BinaryOperator.BINARY_OR;
             default ->
                 throw new UnsupportedCodeException(
                     "Unsupported fetch operation " + functionName, edge, e);
           };
-      Formula lvalue =
-          conv.buildLvalueTerm(
-              leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-      BooleanFormula assignment = conv.fmgr.assignment(lvalue, newValue);
-      constraints.addConstraint(assignment);
+      CExpression newValue =
+          new CBinaryExpression(null, returnType, returnType, leftHandSide, val, operator);
+      try {
+        BooleanFormula assignment =
+            conv.makeAssignment(
+                leftHandSide,
+                leftHandSide,
+                newValue,
+                edge,
+                function,
+                ssa,
+                pts,
+                constraints,
+                errorConditions);
+        constraints.addConstraint(assignment);
+      } catch (InterruptedException interruptedException) {
+        CtoFormulaConverter.propagateInterruptedException(interruptedException);
+      }
       return old;
     }
     return null;
