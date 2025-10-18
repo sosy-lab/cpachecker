@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -800,7 +801,11 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+        if (BuiltinFunctions.isPopcountFunction(functionName)) {
+          return handlePopCount(
+              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
+
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
 
@@ -2263,6 +2268,56 @@ public abstract class AbstractExpressionValueVisitor
     } else {
       return null;
     }
+  }
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
+   * sums up all 1-bits of an unsigned int, unsigned long or unsigned long long. Test c programs
+   * available: test/programs/simple/builtin_popcount32_x.c and
+   * test/programs/simple/builtin_popcount64_x.c
+   */
+  private static Value handlePopCount(
+      String pFunctionName,
+      List<Value> pParameters,
+      CFunctionCallExpression e,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    if (pParameters.size() == 1) {
+      CSimpleType paramType =
+          BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+      assert paramType.hasUnsignedSpecifier();
+
+      // Cast to unsigned target type
+      Value paramValue = castCValue(pParameters.getFirst(), paramType, pMachineModel, logger);
+
+      if (paramValue.isNumericValue()) {
+        BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
+
+        // Check that the cast function parameter is really unsigned, as defined by the function and
+        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
+        // results
+        verify(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
+
+        return new NumericValue(numericParam.bitCount());
+      }
+
+      // TODO: add impl for SymExec
+      return Value.UnknownValue.getInstance();
+    }
+    throw new UnrecognizedCodeException(
+        "Function "
+            + pFunctionName
+            + " received "
+            + pParameters.size()
+            + " parameters"
+            + " instead of the expected "
+            + 1,
+        e);
   }
 
   /**

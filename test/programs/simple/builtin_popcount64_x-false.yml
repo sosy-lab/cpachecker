@@ -8,11 +8,11 @@
 
 format_version: '2.0'
 
-input_files: 'builtin_popcount64_x.i'
+input_files: 'builtin_popcount64_x-false.i'
 
 properties:
   - property_file: ../../config/Assertion.spc
-    expected_verdict: true
+    expected_verdict: false
 
 options:
   language: C
