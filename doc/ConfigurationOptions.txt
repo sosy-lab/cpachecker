@@ -2344,8 +2344,8 @@ cpa.predicate.appendToAbstractionFormula = false
 
 # When using the NLA encoding, approximate unsupported operations (e.g.,
 # bitwise shift) with an uninterpreted function (UF). If false, the operation
-# fails early by throwing UnsupportedOperationException.
-cpa.predicate.approximateBitwiseWithUFs = true
+# fails early by throwing UnsupportedOperationByDesignException.
+cpa.predicate.approximateBitwiseWithUFs = false
 
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false

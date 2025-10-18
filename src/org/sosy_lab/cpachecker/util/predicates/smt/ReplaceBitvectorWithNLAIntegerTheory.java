@@ -19,6 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -51,7 +52,7 @@ import org.sosy_lab.java_smt.api.UFManager;
  * <p>The configuration option {@code cpa.predicate.approximateBitwiseWithUFs} controls handling of
  * bitwise and shift operations that are not supported by the NLA encoding: when enabled,
  * unsupported bitwise/shift operations are approximated with uninterpreted functions (UFs); when
- * disabled such operations throw {@link UnsupportedOperationException}.
+ * disabled such operations throw {@link UnsupportedOperationByDesignException}.
  *
  * <p>Implementation notes: wrap-around is modeled with integer modulo by 2^N (see {@link
  * #wrapAround}). Methods such as {@link #mapToSignedRange} are used to switch between the unsigned
@@ -70,8 +71,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       description =
           "When using the NLA encoding, approximate unsupported operations (e.g., bitwise shift)"
               + " with an uninterpreted function (UF). If false, the operation fails early by"
-              + " throwing UnsupportedOperationException.")
-  private boolean approximateBitwiseWithUFs = true;
+              + " throwing UnsupportedOperationByDesignException.")
+  private boolean approximateBitwiseWithUFs = false;
 
   ReplaceBitvectorWithNLAIntegerTheory(
       FormulaWrappingHandler pWrappingHandler,
@@ -214,7 +215,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   @Override
   public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     // Note: signed bv modulo behaves differently compared to int modulo or bv remainder!
-    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+    throw new UnsupportedOperationByDesignException("smodulo not yet implemented for CPAchecker");
   }
 
   @Override
@@ -385,7 +386,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_shiftRight_approx");
       return makeUf(getFormulaType(pNumber), decl, pNumber, pToShift);
     }
-    throw new UnsupportedOperationException("shiftRight not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("shiftRight not implemented for NLA encoding");
   }
 
   @Override
@@ -394,7 +395,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_shiftLeft_approx");
       return makeUf(getFormulaType(pNumber), decl, pNumber, pToShift);
     }
-    throw new UnsupportedOperationException("shiftLeft not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("shiftLeft not implemented for NLA encoding");
   }
 
   @Override
@@ -403,7 +404,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_rotateLeft_const_approx");
       return makeUf(getFormulaType(number), decl, number);
     }
-    throw new UnsupportedOperationException("rotateLeft not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("rotateLeft not implemented for NLA encoding");
   }
 
   @Override
@@ -412,7 +413,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_rotateLeft_approx");
       return makeUf(getFormulaType(number), decl, number, toRotate);
     }
-    throw new UnsupportedOperationException("rotateLeft not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("rotateLeft not implemented for NLA encoding");
   }
 
   @Override
@@ -421,7 +422,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_rotateRight_const_approx");
       return makeUf(getFormulaType(number), decl, number);
     }
-    throw new UnsupportedOperationException("rotateRight not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("rotateRight not implemented for NLA encoding");
   }
 
   @Override
@@ -430,7 +431,7 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_rotateRight_approx");
       return makeUf(getFormulaType(number), decl, number, toRotate);
     }
-    throw new UnsupportedOperationException("rotateRight not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("rotateRight not implemented for NLA encoding");
   }
 
   @Override
@@ -439,13 +440,14 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_concat_approx");
       return makeUf(getFormulaType(pFirst), decl, pFirst, pSecound);
     }
-    throw new UnsupportedOperationException("concat not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException("concat not implemented for NLA encoding");
   }
 
   @Override
   public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
     if (pLsb != 0) {
-      throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+      throw new UnsupportedOperationByDesignException(
+          "extract with lsb!=0 not yet implemented for CPAchecker");
     }
     return wrap(getBitvectorTypeWithSize(pMsb + 1), wrapAround(unwrap(pNumber), pMsb + 1));
   }
@@ -482,7 +484,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createUnaryFunction("_not_approx");
       return makeUf(getFormulaType(pBits), decl, pBits);
     }
-    throw new UnsupportedOperationException("not operation not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException(
+        "not operation not implemented for NLA encoding");
   }
 
   @Override
@@ -491,7 +494,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_and_approx");
       return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
     }
-    throw new UnsupportedOperationException("and operation not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException(
+        "and operation not implemented for NLA encoding");
   }
 
   @Override
@@ -500,7 +504,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_or_approx");
       return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
     }
-    throw new UnsupportedOperationException("or operation not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException(
+        "or operation not implemented for NLA encoding");
   }
 
   @Override
@@ -509,7 +514,8 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
       FunctionDeclaration<IntegerFormula> decl = createBinaryFunction("_xor_approx");
       return makeUf(getFormulaType(pBits1), decl, pBits1, pBits2);
     }
-    throw new UnsupportedOperationException("xor operation not implemented for NLA encoding");
+    throw new UnsupportedOperationByDesignException(
+        "xor operation not implemented for NLA encoding");
   }
 
   @Override
