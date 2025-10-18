@@ -140,7 +140,9 @@ class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
   public BitvectorFormula makeBitvector(int pLength, BigInteger pI) {
     checkArgument(
         pI.bitLength() <= pLength,
-        String.format("numeral value %s is too big for bitvector of length %d.", pI, pLength));
+        "numeral value %s is too big for bitvector of length %d.",
+        pI,
+        pLength);
     BigInteger value;
     if (pI.compareTo(BigInteger.ZERO) < 0) {
       // Convert to two's complement as an unsigned long value
