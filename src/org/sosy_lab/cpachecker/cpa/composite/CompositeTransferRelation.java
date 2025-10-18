@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.indexOf;
@@ -34,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -45,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -84,7 +88,36 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     if (locState == null) {
       getAbstractSuccessors(compositeState, compositePrecision, results);
     } else {
-      for (CFAEdge edge : locState.getOutgoingEdges()) {
+      Iterable<CFAEdge> outgoingEdges;
+
+      // Try an optimization for #1416
+      // If we are at a function exit and everything seems regular, we can skip iterating over all
+      // outgoing edges, which could be costly.
+      Iterator<CFANode> locations = locState.getLocationNodes().iterator();
+      CFANode currentLocation = locations.next();
+      CallstackState callStack = extractStateByType(compositeState, CallstackState.class);
+      if (!locations.hasNext() // single current location
+          && currentLocation instanceof FunctionExitNode // at end of function
+          && locState.getOutgoingEdges() == currentLocation.getLeavingEdges() // no dynamic edges
+          // TODO: we would need to make sure that getOutgoingEdges() contains only return edges
+          && callStack != null // we have a callstack
+          // TODO next line is not exactly what CallstackTransferRelation checks
+          && callStack.isNormalFunctionCall()) {
+
+        CFANode targetNode = callStack.getCallNode().getLeavingSummaryEdge().getSuccessor();
+        CFAEdge returnEdge =
+            Iterables.getOnlyElement(
+                targetNode
+                    .getEnteringEdges()
+                    .filter(edge -> !(edge instanceof CFunctionSummaryStatementEdge)));
+        verify(returnEdge.getPredecessor().equals(currentLocation));
+        outgoingEdges = ImmutableList.of(returnEdge);
+
+      } else {
+        outgoingEdges = locState.getOutgoingEdges();
+      }
+
+      for (CFAEdge edge : outgoingEdges) {
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
     }
