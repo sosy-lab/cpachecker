@@ -322,7 +322,8 @@ public class LiveVariablesTransferRelation
     Type aVarDeclType = aVarDecl.getType();
     BitSet out = state.getDataCopy();
 
-    if (aVarDeclType instanceof CArrayType cArrayType) {
+    if (aVarDeclType instanceof CArrayType cArrayType
+        && cArrayType.getCanonicalType().getLength() instanceof ALeftHandSide lhsLen) {
       // Length of variable sized arrays are ignored when just looking at the initializer. This
       //  is a problem for statements like:
       //  int a[n]; // n being some length statement that is not concrete at compile time
@@ -333,14 +334,14 @@ public class LiveVariablesTransferRelation
       // Since this is possible: a = b[n]; we need to init this when declaring.
       // There is also never an initializer, the length information is ONLY encoded in the type!
       //  (CArrayType has nested length that may have a CIdExpression)
-      CExpression length = cArrayType.getCanonicalType().getLength();
-      // Skip if there is no var in there
-      if (length instanceof ALeftHandSide lhsLen) {
-        handleLeftHandSide(lhsLen, out);
-      }
+      // So we skip it if there is no var in there!
+      handleLeftHandSide(lhsLen, out);
+      // init might be null, but we want to keep the info!
+
     } else if (init == null) {
-      // there is no initializer thus we only have to remove the initialized variable
-      // from the live variables
+      // There is no initializer thus we only have to remove the initialized variable
+      // from the live variables. Cases like above are except, as they still have info we want to
+      // track!
       return state.removeLiveVariable(varDeclPos);
     }
 
@@ -349,7 +350,9 @@ public class LiveVariablesTransferRelation
       return state;
     }
 
-    getVariablesUsedForInitialization(init, out);
+    if (init != null) {
+      getVariablesUsedForInitialization(init, out);
+    }
     out.clear(varDeclPos);
 
     return LiveVariablesState.ofUnique(out, this);
