@@ -92,13 +92,13 @@ public class NumStatementsNondeterministicSimulation {
     // round_max > 0
     CBinaryExpression roundMaxGreaterZero =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pActiveThread.getKVariable().orElseThrow(),
+            SeqIdExpression.ROUND_MAX,
             SeqIntegerLiteralExpression.INT_0,
             BinaryOperator.GREATER_THAN);
 
     // create T{thread_id}: label
-    if (pActiveThread.getLabel().isPresent()) {
-      rLines.add(pActiveThread.getLabel().orElseThrow().toASTString());
+    if (pGhostElements.isThreadLabelPresent(pActiveThread)) {
+      rLines.add(pGhostElements.getThreadLabelByThread(pActiveThread).toASTString());
     }
 
     // create "if (pc != 0 ...)" condition
@@ -109,8 +109,7 @@ public class NumStatementsNondeterministicSimulation {
     rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
 
     // add the round_max = nondet assignment for this thread
-    rLines.addAll(
-        buildSingleRoundMaxAssignment(pOptions, pActiveThread.getKVariable().orElseThrow()));
+    rLines.addAll(buildRoundMaxNondetAssignment(pOptions));
     SeqExpression lazyIfCondition =
         buildRoundMaxGreaterZeroExpression(
             pOptions,
@@ -137,13 +136,12 @@ public class NumStatementsNondeterministicSimulation {
     return rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT).add(SeqSyntax.CURLY_BRACKET_RIGHT).build();
   }
 
-  private static ImmutableList<String> buildSingleRoundMaxAssignment(
-      MPOROptions pOptions, CIdExpression pRoundMaxVariable) {
-
+  private static ImmutableList<String> buildRoundMaxNondetAssignment(MPOROptions pOptions) {
     ImmutableList.Builder<String> rAssignment = ImmutableList.builder();
-    // k = nondet() ...
+    // round_max = nondet() ...
     CFunctionCallAssignmentStatement assignment =
-        NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(pOptions, pRoundMaxVariable);
+        NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
+            pOptions, SeqIdExpression.ROUND_MAX);
     rAssignment.add(assignment.toASTString());
     return rAssignment.build();
   }
@@ -247,10 +245,10 @@ public class NumStatementsNondeterministicSimulation {
     CExpressionAssignmentStatement countDecrement =
         SeqStatementBuilder.buildDecrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
     // round
-    CBinaryExpression roundSmallerK =
+    CBinaryExpression roundSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ROUND, pThread.getKVariable().orElseThrow(), BinaryOperator.LESS_THAN);
-    CExpressionAssignmentStatement rIncrement =
+            SeqIdExpression.ROUND, SeqIdExpression.ROUND_MAX, BinaryOperator.LESS_THAN);
+    CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
             SeqIdExpression.ROUND, pBinaryExpressionBuilder);
     // sync
@@ -266,8 +264,8 @@ public class NumStatementsNondeterministicSimulation {
                 block,
                 countIncrement,
                 countDecrement,
-                roundSmallerK,
-                rIncrement,
+                roundSmallerMax,
+                roundIncrement,
                 syncFlag,
                 labelClauseMap));
       }
@@ -283,7 +281,7 @@ public class NumStatementsNondeterministicSimulation {
       SeqThreadStatementBlock pBlock,
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement,
-      CBinaryExpression pRoundSmallerK,
+      CBinaryExpression pRoundSmallerMax,
       CExpressionAssignmentStatement pRoundIncrement,
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
@@ -292,7 +290,7 @@ public class NumStatementsNondeterministicSimulation {
         tryInjectCountUpdatesIntoBlock(pOptions, pBlock, pCountIncrement, pCountDecrement);
     SeqThreadStatementBlock withRoundGoto =
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-            pOptions, withCountUpdate, pRoundSmallerK, pRoundIncrement, pLabelClauseMap);
+            pOptions, withCountUpdate, pRoundSmallerMax, pRoundIncrement, pLabelClauseMap);
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
         pOptions, withRoundGoto, pSyncFlag, pLabelClauseMap);
   }

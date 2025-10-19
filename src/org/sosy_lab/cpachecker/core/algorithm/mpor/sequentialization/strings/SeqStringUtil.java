@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -26,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -68,6 +68,7 @@ public class SeqStringUtil {
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<MPORThread> pNextThread,
+      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       ImmutableList<SeqThreadStatement> pStatements)
       throws UnrecognizedCodeException {
 
@@ -77,11 +78,15 @@ public class SeqStringUtil {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(buildBlockSuffixByControlStatementEncoding(pOptions, pNextThread));
+    return Optional.of(
+        buildBlockSuffixByControlStatementEncoding(pOptions, pNextThread, pThreadLabels));
   }
 
   private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions, Optional<MPORThread> pNextThread) throws UnrecognizedCodeException {
+      MPOROptions pOptions,
+      Optional<MPORThread> pNextThread,
+      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels)
+      throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement) {
@@ -93,10 +98,10 @@ public class SeqStringUtil {
           // with loop unrolling enabled, always return to main()
           yield SeqToken._return + SeqSyntax.SEMICOLON;
         }
-        if (ThreadUtil.isThreadLabelRequired(pOptions)) {
+        if (pOptions.isThreadLabelRequired()) {
           // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
           if (pNextThread.isPresent()) {
-            SeqThreadLabelStatement nextLabel = pNextThread.orElseThrow().getLabel().orElseThrow();
+            SeqThreadLabelStatement nextLabel = pThreadLabels.get(pNextThread.orElseThrow());
             SeqGotoStatement gotoStatement = new SeqGotoStatement(nextLabel);
             yield gotoStatement.toASTString();
           }

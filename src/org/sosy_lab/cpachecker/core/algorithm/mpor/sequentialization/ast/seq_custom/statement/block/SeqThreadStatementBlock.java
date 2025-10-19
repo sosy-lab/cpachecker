@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -28,6 +30,8 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   private final Optional<MPORThread> nextThread;
 
+  private final ImmutableMap<MPORThread, SeqThreadLabelStatement> threadLabels;
+
   /**
    * The goto label for the block, e.g. {@code T0_42;}. It is mandatory for all blocks, but may not
    * actually be targeted with a {@code goto}.
@@ -41,11 +45,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
   public SeqThreadStatementBlock(
       MPOROptions pOptions,
       Optional<MPORThread> pNextThread,
+      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       SeqBlockLabelStatement pLabel,
       ImmutableList<SeqThreadStatement> pStatements) {
 
     options = pOptions;
     nextThread = pNextThread;
+    threadLabels = pThreadLabels;
     label = pLabel;
     statements = pStatements;
     isLoopStart = SeqThreadStatementBlockUtil.isLoopStart(statements);
@@ -58,7 +64,8 @@ public class SeqThreadStatementBlock implements SeqStatement {
     for (SeqThreadStatement statement : statements) {
       lines.add(statement.toASTString() + SeqSyntax.SPACE);
     }
-    Optional<String> suffix = SeqStringUtil.tryBuildBlockSuffix(options, nextThread, statements);
+    Optional<String> suffix =
+        SeqStringUtil.tryBuildBlockSuffix(options, nextThread, threadLabels, statements);
     if (suffix.isPresent()) {
       lines.add(suffix.orElseThrow());
     }
@@ -83,13 +90,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public SeqThreadStatementBlock cloneWithLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementBlock(
-        options, nextThread, label.cloneWithLabelNumber(pLabelNumber), statements);
+        options, nextThread, threadLabels, label.cloneWithLabelNumber(pLabelNumber), statements);
   }
 
   public SeqThreadStatementBlock cloneWithStatements(
       ImmutableList<SeqThreadStatement> pStatements) {
 
-    return new SeqThreadStatementBlock(options, nextThread, label, pStatements);
+    return new SeqThreadStatementBlock(options, nextThread, threadLabels, label, pStatements);
   }
 
   public boolean startsAtomicBlock() {

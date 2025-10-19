@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlagsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -60,6 +62,21 @@ public class GhostElementBuilder {
         bitVectorVariables,
         functionStatements,
         programCounterVariables,
+        buildThreadLabels(pOptions, pThreads),
         threadSyncFlags);
+  }
+
+  private static ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels(
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+
+    if (!pOptions.isThreadLabelRequired()) {
+      return ImmutableMap.of();
+    }
+    ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.getId());
+      rLabels.put(thread, new SeqThreadLabelStatement(name));
+    }
+    return rLabels.buildOrThrow();
   }
 }

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.V
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -384,18 +383,10 @@ public class SequentializationBuilder {
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
       rDeclarations.add(SeqVariableDeclaration.ROUND.toASTString());
-      if (pOptions.nondeterminismSource.equals(
-          NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS)) {
-        if (pOptions.nondeterminismSigned) {
-          rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_SIGNED.toASTString());
-        } else {
-          rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_UNSIGNED.toASTString());
-        }
-      }
-      if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
-        for (MPORThread thread : pFields.threads) {
-          rDeclarations.add(thread.getKVariable().orElseThrow().getDeclaration().toASTString());
-        }
+      if (pOptions.nondeterminismSigned) {
+        rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_SIGNED.toASTString());
+      } else {
+        rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_UNSIGNED.toASTString());
       }
     }
 

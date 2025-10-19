@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -43,9 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -137,9 +133,7 @@ public class ThreadBuilder {
         pStartRoutineCall,
         startRoutineExitVariable,
         localVariables,
-        threadCfa,
-        tryBuildKVariable(pOptions, newThreadId),
-        tryBuildLabel(pOptions, newThreadId));
+        threadCfa);
   }
 
   private static ThreadCFA buildThreadCfa(
@@ -299,30 +293,5 @@ public class ThreadBuilder {
       rThreadEdges.put(new ThreadEdge(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
     return rThreadEdges.buildOrThrow();
-  }
-
-  private static Optional<CIdExpression> tryBuildKVariable(MPOROptions pOptions, int pThreadId) {
-    if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
-      String variableName = SeqNameUtil.buildThreadRoundMaxVariable(pThreadId);
-      CVariableDeclaration declaration =
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              false,
-              pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
-              variableName,
-              SeqInitializer.INT_0);
-      CIdExpression KVariable = SeqExpressionBuilder.buildIdExpression(declaration);
-      return Optional.of(KVariable);
-    }
-    return Optional.empty();
-  }
-
-  private static Optional<SeqThreadLabelStatement> tryBuildLabel(
-      MPOROptions pOptions, int pThreadId) {
-
-    if (ThreadUtil.isThreadLabelRequired(pOptions)) {
-      String name = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
-      return Optional.of(new SeqThreadLabelStatement(name));
-    }
-    return Optional.empty();
   }
 }

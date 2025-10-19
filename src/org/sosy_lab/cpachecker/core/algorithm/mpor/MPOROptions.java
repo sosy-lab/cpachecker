@@ -457,4 +457,18 @@ public class MPOROptions {
   public boolean isThreadCountRequired() {
     return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
   }
+
+  public boolean isThreadLabelRequired() {
+    // only needed if the loop is finite i.e. not 0, otherwise just use continue;
+    if (loopIterations > 0 && !loopUnrolling) {
+      // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
+      if (!nondeterminismSource.isNextThreadNondeterministic()) {
+        // in switch case, just use break; instead of continue;
+        if (!controlEncodingStatement.equals(MultiControlStatementEncoding.SWITCH_CASE)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

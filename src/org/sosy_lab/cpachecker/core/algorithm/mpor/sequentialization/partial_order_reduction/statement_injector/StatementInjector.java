@@ -197,7 +197,6 @@ public class StatementInjector {
       pStatement =
           ReduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(
               pOptions,
-              pActiveThread.getKVariable(),
               pOtherThreads,
               pStatement,
               pLabelClauseMap,

@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
@@ -37,7 +35,6 @@ class ReduceIgnoreSleepInjector {
 
   static SeqThreadStatement injectIgnoreSleepReductionIntoStatement(
       MPOROptions pOptions,
-      Optional<CIdExpression> pRoundVariable,
       ImmutableSet<MPORThread> pOtherThreads,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -65,11 +62,7 @@ class ReduceIgnoreSleepInjector {
                   pBinaryExpressionBuilder);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
-                  pRoundVariable,
-                  pCurrentStatement,
-                  evaluationExpression,
-                  newTarget,
-                  pBinaryExpressionBuilder);
+                  pCurrentStatement, evaluationExpression, newTarget, pBinaryExpressionBuilder);
           return pCurrentStatement.cloneReplacingInjectedStatements(
               replaceReductionAssumptions(
                   pCurrentStatement.getInjectedStatements(), ignoreSleepReductionStatement));
@@ -81,7 +74,6 @@ class ReduceIgnoreSleepInjector {
   }
 
   private static SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
-      Optional<CIdExpression> pRoundMaxVariable,
       SeqThreadStatement pStatement,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause,
@@ -97,7 +89,7 @@ class ReduceIgnoreSleepInjector {
       }
     }
     return new SeqIgnoreSleepReductionStatement(
-        pRoundMaxVariable.isPresent() ? pRoundMaxVariable.orElseThrow() : SeqIdExpression.ROUND_MAX,
+        SeqIdExpression.ROUND_MAX,
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
         reductionAssumptions.build(),

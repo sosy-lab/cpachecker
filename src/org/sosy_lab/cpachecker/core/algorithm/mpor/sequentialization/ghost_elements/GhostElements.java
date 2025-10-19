@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -30,6 +31,8 @@ public class GhostElements {
 
   private final ProgramCounterVariables programCounterVariables;
 
+  private final ImmutableMap<MPORThread, SeqThreadLabelStatement> threadLabels;
+
   private final ThreadSyncFlags threadSyncFlags;
 
   public GhostElements(
@@ -37,12 +40,14 @@ public class GhostElements {
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements,
       ProgramCounterVariables pProgramCounterVariables,
+      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       ThreadSyncFlags pThreadSyncFlags) {
 
     numThreadsIdExpression = pNumThreadsIdExpression;
     bitVectorVariables = pBitVectorVariables;
     functionStatements = pFunctionStatements;
     programCounterVariables = pProgramCounterVariables;
+    threadLabels = pThreadLabels;
     threadSyncFlags = pThreadSyncFlags;
   }
 
@@ -55,13 +60,25 @@ public class GhostElements {
   }
 
   public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
-    assert functionStatements.containsKey(pThread)
-        : "functionStatements does not contain pThread key";
+    assert functionStatements.containsKey(pThread) : "functionStatements does not contain pThread";
     return functionStatements.get(pThread);
   }
 
   public ProgramCounterVariables getPcVariables() {
     return programCounterVariables;
+  }
+
+  public ImmutableMap<MPORThread, SeqThreadLabelStatement> getThreadLabels() {
+    return threadLabels;
+  }
+
+  public boolean isThreadLabelPresent(MPORThread pThread) {
+    return threadLabels.containsKey(pThread);
+  }
+
+  public SeqThreadLabelStatement getThreadLabelByThread(MPORThread pThread) {
+    assert threadLabels.containsKey(pThread) : "threadLabels does not contain pThread";
+    return threadLabels.get(pThread);
   }
 
   public ThreadSyncFlags getThreadSyncFlags() {

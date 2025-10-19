@@ -187,7 +187,7 @@ public class NondeterministicSimulationUtil {
   static SeqThreadStatementBlock injectRoundGotoIntoBlock(
       MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
-      CBinaryExpression pRoundSmallerK,
+      CBinaryExpression pRoundSmallerMax,
       CExpressionAssignmentStatement pRoundIncrement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -195,7 +195,7 @@ public class NondeterministicSimulationUtil {
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
-              pOptions, pRoundSmallerK, pRoundIncrement, statement, pLabelClauseMap);
+              pOptions, pRoundSmallerMax, pRoundIncrement, statement, pLabelClauseMap);
       newStatements.add(withRoundGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -203,7 +203,7 @@ public class NondeterministicSimulationUtil {
 
   private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
       MPOROptions pOptions,
-      CBinaryExpression pRoundSmallerK,
+      CBinaryExpression pRoundSmallerMax,
       CExpressionAssignmentStatement pRoundIncrement,
       SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
@@ -216,14 +216,14 @@ public class NondeterministicSimulationUtil {
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
           return injectRoundGotoIntoStatementByTargetPc(
-              targetPc, pRoundSmallerK, pRoundIncrement, pStatement, pLabelClauseMap);
+              targetPc, pRoundSmallerMax, pRoundIncrement, pStatement, pLabelClauseMap);
         }
       }
     }
     if (pStatement.getTargetGoto().isPresent()) {
       // target goto present -> use goto label for injection
       return injectRoundGotoIntoStatementByTargetGoto(
-          pStatement.getTargetGoto().orElseThrow(), pRoundSmallerK, pRoundIncrement, pStatement);
+          pStatement.getTargetGoto().orElseThrow(), pRoundSmallerMax, pRoundIncrement, pStatement);
     }
     // no int target pc -> no replacement
     return pStatement;
@@ -247,12 +247,12 @@ public class NondeterministicSimulationUtil {
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
       SeqBlockLabelStatement pTargetGoto,
-      CBinaryExpression pRoundSmallerK,
+      CBinaryExpression pRoundSmallerMax,
       CExpressionAssignmentStatement pRoundIncrement,
       SeqThreadStatement pStatement) {
 
     SeqRoundGotoStatement roundGoto =
-        new SeqRoundGotoStatement(pRoundSmallerK, pRoundIncrement, pTargetGoto);
+        new SeqRoundGotoStatement(pRoundSmallerMax, pRoundIncrement, pTargetGoto);
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 

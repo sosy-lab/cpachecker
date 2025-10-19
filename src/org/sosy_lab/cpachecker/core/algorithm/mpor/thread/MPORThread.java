@@ -14,7 +14,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -48,14 +47,6 @@ public class MPORThread {
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
-  // TODO move both into GhostElements
-  /**
-   * The thread-specific nondeterministic {@code K{thread_id}} variable (statement round counter).
-   */
-  private final Optional<CIdExpression> kVariable;
-
-  private final Optional<SeqThreadLabelStatement> label;
-
   protected MPORThread(
       int pId,
       Optional<CIdExpression> pThreadObject,
@@ -63,9 +54,7 @@ public class MPORThread {
       Optional<ThreadEdge> pStartRoutineCall,
       Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
-      ThreadCFA pCfa,
-      Optional<CIdExpression> pKVariable,
-      Optional<SeqThreadLabelStatement> pLabel) {
+      ThreadCFA pCfa) {
 
     id = pId;
     threadObject = pThreadObject;
@@ -74,8 +63,6 @@ public class MPORThread {
     startRoutineExitVariable = pStartRoutineExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
-    kVariable = pKVariable;
-    label = pLabel;
   }
 
   public int getId() {
@@ -84,14 +71,6 @@ public class MPORThread {
 
   public boolean isMain() {
     return threadObject.isEmpty();
-  }
-
-  public Optional<CIdExpression> getKVariable() {
-    return kVariable;
-  }
-
-  public Optional<SeqThreadLabelStatement> getLabel() {
-    return label;
   }
 
   @Override
