@@ -204,7 +204,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    CBinaryExpression roundSmallerK =
+    CBinaryExpression roundSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.ROUND, SeqIdExpression.ROUND_MAX, BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement roundIncrement =
@@ -217,7 +217,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         SeqThreadStatementBlock withRoundGoto =
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-                pOptions, block, roundSmallerK, roundIncrement, labelClauseMap);
+                pOptions, block, roundSmallerMax, roundIncrement, labelClauseMap);
         SeqThreadStatementBlock withSyncUpdate =
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 pOptions,

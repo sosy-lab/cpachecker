@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -190,7 +191,7 @@ public class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> pInjectedStatements)
       throws UnrecognizedCodeException {
 
-    StringBuilder statements = new StringBuilder();
+    StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
     if (pTargetPc.isPresent()) {
       // first create pruned statements
       ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
@@ -201,25 +202,18 @@ public class SeqThreadStatementUtil {
           SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pruned);
       // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
       if (emptyBitVectorEvaluation) {
-        statements.append(pcWrite.toASTString()).append(SeqSyntax.SPACE);
+        statements.add(pcWrite.toASTString());
       }
       // add all injected statements in the correct order
       ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pOptions, pruned);
       assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
       for (int i = 0; i < ordered.size(); i++) {
         SeqInjectedStatement injectedStatement = ordered.get(i);
-        statements.append(injectedStatement.toASTString());
-        if (i != ordered.size() - 1) {
-          // append space to all statements except last
-          statements.append(SeqSyntax.SPACE);
-        }
+        statements.add(injectedStatement.toASTString());
       }
       // for non-empty bit vector evaluations, place pc write after injections for optimization
       if (!emptyBitVectorEvaluation) {
-        if (!ordered.isEmpty()) {
-          statements.append(SeqSyntax.SPACE);
-        }
-        statements.append(pcWrite.toASTString());
+        statements.add(pcWrite.toASTString());
       }
 
     } else if (pTargetGoto.isPresent()) {
@@ -227,10 +221,10 @@ public class SeqThreadStatementUtil {
       for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
         if (injectedStatement instanceof SeqCountUpdateStatement) {
           // count updates are included, even with target gotos
-          statements.append(injectedStatement.toASTString());
+          statements.add(injectedStatement.toASTString());
         }
       }
-      statements.append(gotoStatement.toASTString());
+      statements.add(gotoStatement.toASTString());
     }
     return statements.toString();
   }

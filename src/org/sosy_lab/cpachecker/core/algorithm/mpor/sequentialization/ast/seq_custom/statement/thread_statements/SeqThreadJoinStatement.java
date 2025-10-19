@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -91,18 +92,14 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(joinedThreadNotActive);
-    Optional<String> returnValueRead =
-        buildReturnValueRead(joinedThreadExitVariable, substituteEdges);
+    String returnValueRead =
+        buildReturnValueRead(joinedThreadExitVariable, substituteEdges)
+            .orElse(SeqSyntax.EMPTY_STRING);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return assumeCall.toASTString()
-        + (returnValueRead.isPresent()
-            ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
-            : SeqSyntax.EMPTY_STRING)
-        + SeqSyntax.SPACE
-        + injected;
+    return Joiner.on(SeqSyntax.SPACE).join(assumeCall.toASTString(), returnValueRead, injected);
   }
 
   private static Optional<String> buildReturnValueRead(

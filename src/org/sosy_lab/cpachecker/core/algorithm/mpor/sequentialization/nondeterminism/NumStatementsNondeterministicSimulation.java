@@ -123,9 +123,9 @@ public class NumStatementsNondeterministicSimulation {
     SeqIfExpression ifRoundMaxExpression = new SeqIfExpression(lazyIfCondition);
     rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifRoundMaxExpression.toASTString()));
 
-    // reset iteration only when needed i.e. after if (...) for performance
-    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRoundReset();
-    rLines.add(rReset.toASTString());
+    // reset round only when needed i.e. after if (...) for performance
+    CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
+    rLines.add(roundReset.toASTString());
 
     // add the thread loop statements (assumptions and switch)
     rLines.addAll(

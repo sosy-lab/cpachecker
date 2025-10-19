@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -106,11 +108,11 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
     CExpressionAssignmentStatement createdPcWrite =
         SeqStatementBuilder.buildPcWrite(
             pcVariables.getPcLeftHandSide(createdThread.getId()), Sequentialization.INIT_PC);
-    StringBuilder bitVectorInitializationString = new StringBuilder();
-    if (this.bitVectorInitializations.isPresent()) {
+    StringJoiner bitVectorInitializationString = new StringJoiner(SeqSyntax.SPACE);
+    if (bitVectorInitializations.isPresent()) {
       for (SeqBitVectorAssignmentStatement initialization :
-          this.bitVectorInitializations.orElseThrow()) {
-        bitVectorInitializationString.append(initialization.toASTString()).append(SeqSyntax.SPACE);
+          bitVectorInitializations.orElseThrow()) {
+        bitVectorInitializationString.add(initialization.toASTString());
       }
     }
     String injectedStatementsString =
@@ -120,20 +122,16 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
             targetPc,
             targetGoto,
             injectedStatements);
-    Optional<String> startRoutineArgAssignmentString =
-        buildStartRoutineArgAssignmentString(startRoutineArgAssignment);
-    if (startRoutineArgAssignmentString.isPresent()) {
-      return startRoutineArgAssignmentString.orElseThrow()
-          + SeqSyntax.SPACE
-          + bitVectorInitializationString
-          + createdPcWrite.toASTString()
-          + SeqSyntax.SPACE
-          + injectedStatementsString;
-    }
-    return bitVectorInitializationString
-        + createdPcWrite.toASTString()
-        + SeqSyntax.SPACE
-        + injectedStatementsString;
+    String startRoutineArgAssignmentString =
+        buildStartRoutineArgAssignmentString(startRoutineArgAssignment)
+            .orElse(SeqSyntax.EMPTY_STRING);
+
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(
+            startRoutineArgAssignmentString,
+            bitVectorInitializationString,
+            createdPcWrite.toASTString(),
+            injectedStatementsString);
   }
 
   private static Optional<String> buildStartRoutineArgAssignmentString(

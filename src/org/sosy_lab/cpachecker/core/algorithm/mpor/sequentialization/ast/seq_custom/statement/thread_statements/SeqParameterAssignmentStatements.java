@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
@@ -78,17 +79,14 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringBuilder rString = new StringBuilder();
+    StringJoiner rString = new StringJoiner(SeqSyntax.SPACE);
     for (FunctionParameterAssignment assignment : assignments) {
-      rString
-          .append(assignment.toExpressionAssignmentStatement().toASTString())
-          .append(SeqSyntax.SPACE);
+      rString.add(assignment.toExpressionAssignmentStatement().toASTString());
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    rString.append(injected);
-    return rString.toString();
+    return rString.add(injected).toString();
   }
 
   @Override

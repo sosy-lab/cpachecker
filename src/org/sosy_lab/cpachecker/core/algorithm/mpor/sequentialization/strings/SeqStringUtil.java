@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -118,18 +120,17 @@ public class SeqStringUtil {
   public static String buildStringFromSeqASTNodes(ImmutableList<SeqASTNode> pSeqASTNodes)
       throws UnrecognizedCodeException {
 
-    StringBuilder rString = new StringBuilder();
+    StringJoiner rString = new StringJoiner(SeqSyntax.NEWLINE);
     for (SeqASTNode seqASTNode : pSeqASTNodes) {
-      rString.append(seqASTNode.toASTString()).append(SeqSyntax.NEWLINE);
+      rString.add(seqASTNode.toASTString());
     }
     return rString.toString();
   }
 
   public static String buildStringFromCAstNodes(ImmutableList<CAstNode> pCASTNodes) {
-
-    StringBuilder rString = new StringBuilder();
+    StringJoiner rString = new StringJoiner(SeqSyntax.NEWLINE);
     for (CAstNode cASTNode : pCASTNodes) {
-      rString.append(cASTNode.toASTString()).append(SeqSyntax.NEWLINE);
+      rString.add(cASTNode.toASTString());
     }
     return rString.toString();
   }
@@ -159,20 +160,14 @@ public class SeqStringUtil {
 
   /** Returns "{ pString }" */
   public static String wrapInCurlyBracketsInwards(String pString) {
-    return SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.SPACE
-        + pString
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(SeqSyntax.CURLY_BRACKET_LEFT, pString, SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   /** Returns "} pString {" */
   public static String wrapInCurlyBracketsOutwards(String pString) {
-    return SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.SPACE
-        + pString
-        + SeqSyntax.SPACE
-        + SeqSyntax.CURLY_BRACKET_LEFT;
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(SeqSyntax.CURLY_BRACKET_RIGHT, pString, SeqSyntax.CURLY_BRACKET_LEFT);
   }
 
   /** Returns "pString {" */

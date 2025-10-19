@@ -51,8 +51,8 @@ public class ThreadSyncFlagsBuilder {
         getIdExpressionsByObjectType(pThreads, PthreadObjectType.PTHREAD_RWLOCK_T);
     return new ThreadSyncFlags(
         buildCondSignaledFlags(condExpressions, pBinaryExpressionBuilder),
-        buildMutexLockedFlags(pOptions, mutexExpressions, pBinaryExpressionBuilder),
-        buildRwLockFlags(pOptions, rwLockExpressions, pBinaryExpressionBuilder),
+        buildMutexLockedFlags(mutexExpressions, pBinaryExpressionBuilder),
+        buildRwLockFlags(rwLockExpressions, pBinaryExpressionBuilder),
         buildSyncFlags(pOptions, pThreads));
   }
 
@@ -101,14 +101,13 @@ public class ThreadSyncFlagsBuilder {
    * CVariableDeclaration} due to call-context sensitivity.
    */
   private static ImmutableMap<CIdExpression, MutexLockedFlag> buildMutexLockedFlags(
-      MPOROptions pOptions,
       ImmutableSet<CIdExpression> pMutexExpressions,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CIdExpression, MutexLockedFlag> rMutexLockedFlags = ImmutableMap.builder();
     for (CIdExpression mutexExpression : pMutexExpressions) {
-      String varName = SeqNameUtil.buildMutexLockedName(pOptions, mutexExpression.getName());
+      String varName = SeqNameUtil.buildMutexLockedName(mutexExpression.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression mutexLocked =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -127,7 +126,6 @@ public class ThreadSyncFlagsBuilder {
   }
 
   private static ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> buildRwLockFlags(
-      MPOROptions pOptions,
       ImmutableSet<CIdExpression> pRwLockExpressions,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -135,10 +133,8 @@ public class ThreadSyncFlagsBuilder {
     ImmutableMap.Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags =
         ImmutableMap.builder();
     for (CIdExpression rwLockExpression : pRwLockExpressions) {
-      String readersVarName =
-          SeqNameUtil.buildRwLockReadersName(pOptions, rwLockExpression.getName());
-      String writersVarName =
-          SeqNameUtil.buildRwLockWritersName(pOptions, rwLockExpression.getName());
+      String readersVarName = SeqNameUtil.buildRwLockReadersName(rwLockExpression.getName());
+      String writersVarName = SeqNameUtil.buildRwLockWritersName(rwLockExpression.getName());
       // use int (32 bit), we increment the READERS flag for every rdlock
       CIdExpression readersIdExpression =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(

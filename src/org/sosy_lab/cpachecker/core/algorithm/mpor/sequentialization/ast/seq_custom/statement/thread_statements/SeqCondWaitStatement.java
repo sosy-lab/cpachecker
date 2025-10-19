@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -100,13 +101,12 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return assumeSignaled.toASTString()
-        + SeqSyntax.SPACE
-        + setSignaledFalse.toASTString()
-        + SeqSyntax.SPACE
-        + setMutexLockedTrue
-        + SeqSyntax.SPACE
-        + injected;
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(
+            assumeSignaled.toASTString(),
+            setSignaledFalse.toASTString(),
+            setMutexLockedTrue.toASTString(),
+            injected);
   }
 
   @Override

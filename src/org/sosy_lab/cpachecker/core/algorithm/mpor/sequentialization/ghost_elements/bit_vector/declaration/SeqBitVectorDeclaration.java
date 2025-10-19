@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration;
 
+import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
@@ -32,13 +33,11 @@ public class SeqBitVectorDeclaration implements SeqDeclaration {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return type.toASTString()
-        + SeqSyntax.SPACE
-        + variable.toASTString()
-        + SeqSyntax.SPACE
-        + SeqSyntax.EQUALS
-        + SeqSyntax.SPACE
-        + initializer.toASTString()
-        + SeqSyntax.SEMICOLON;
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(
+            type.toASTString(),
+            variable.toASTString(),
+            SeqSyntax.EQUALS,
+            initializer.toASTString() + SeqSyntax.SEMICOLON);
   }
 }

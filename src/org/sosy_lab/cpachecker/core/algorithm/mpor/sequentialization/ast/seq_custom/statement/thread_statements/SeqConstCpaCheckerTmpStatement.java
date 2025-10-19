@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -184,18 +185,21 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    String substituteEdgeBString =
+        substituteEdgeB
+            .map(substituteEdge -> substituteEdge.cfaEdge.getCode())
+            .orElse(SeqSyntax.EMPTY_STRING);
+
     String targetStatements =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    // we only want name and initializer here, the declaration is done beforehand
-    return constCpaCheckerTmpDeclaration.toASTString()
-        + SeqSyntax.SPACE
-        + substituteEdgeA.cfaEdge.getCode()
-        + (substituteEdgeB.isPresent()
-            ? (SeqSyntax.SPACE + substituteEdgeB.orElseThrow().cfaEdge.getCode())
-            : SeqSyntax.EMPTY_STRING)
-        + SeqSyntax.SPACE
-        + targetStatements;
+
+    return Joiner.on(SeqSyntax.SPACE)
+        .join(
+            constCpaCheckerTmpDeclaration.toASTString(),
+            substituteEdgeA.cfaEdge.getCode(),
+            substituteEdgeBString,
+            targetStatements);
   }
 
   @Override
