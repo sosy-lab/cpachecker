@@ -12,7 +12,7 @@
     <rundefinition name="SV-COMP25_valid-memsafety">
         <tasks name="C.valid-memsafety.Arrays">
         <includesfile>../../../sv-benchmarks/c/MemSafety-Arrays.set</includesfile>
-            <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+            <propertyfile>../../config/properties/valid-memsafety.prp</propertyfile>
         </tasks>
     </rundefinition>
     <columns>
