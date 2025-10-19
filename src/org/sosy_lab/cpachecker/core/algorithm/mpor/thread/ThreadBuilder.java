@@ -64,7 +64,6 @@ public class ThreadBuilder {
     currentPc = Sequentialization.INIT_PC;
   }
 
-  // TODO pthread_create calls in loops can be considered by loop unrolling
   /**
    * Extracts all threads (main and pthreads) and the FunctionEntry / ExitNodes of their start
    * routines from the given CFA.
@@ -288,9 +287,6 @@ public class ThreadBuilder {
     }
     return rLocalVars.build();
   }
-
-  // TODO barriers see pthread-divine for examples
-  //  SV benchmarks use their custom barrier objects and functions, e.g. pthread-divine/barrier_2t.i
 
   // (Private) Helpers =============================================================================
 

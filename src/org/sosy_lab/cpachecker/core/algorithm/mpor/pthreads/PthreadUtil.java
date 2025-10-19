@@ -151,8 +151,6 @@ public class PthreadUtil {
     } else if (pCfaEdge instanceof CStatementEdge statementEdge) {
       // m = PTHREAD_MUTEX_INITIALIZER; (assignment)
       if (statementEdge.getStatement() instanceof CExpressionAssignmentStatement assignment) {
-        // TODO this means we only support CIdExpression for pthread_mutex_t
-        //  -> check if this still holds later when unrolling loops etc.
         if (assignment.getLeftHandSide() instanceof CIdExpression idExpression) {
           if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
             return isPthreadMutexTWithInitializerList(variableDeclaration);

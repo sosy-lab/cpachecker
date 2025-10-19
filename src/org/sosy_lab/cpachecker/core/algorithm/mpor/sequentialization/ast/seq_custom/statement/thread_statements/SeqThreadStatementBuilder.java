@@ -346,11 +346,6 @@ public class SeqThreadStatementBuilder {
       ImmutableList<FunctionParameterAssignment> assignments =
           pFunctionStatements.parameterAssignments.get(pThreadEdge);
       assert !assignments.isEmpty() : "function has no parameters";
-      if (MPORUtil.isAssumeAbortIfNotCall(pThreadEdge.cfaEdge)) {
-        // add separate assume call - it triggers loop head assumption re-evaluation
-        return new SeqAssumeAbortIfNotStatement(
-            pOptions, assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
-      }
       return new SeqParameterAssignmentStatements(
           pOptions, assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
     } else {

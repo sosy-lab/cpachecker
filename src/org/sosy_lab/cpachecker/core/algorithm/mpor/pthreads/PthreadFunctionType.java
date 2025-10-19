@@ -20,6 +20,8 @@ import java.util.Optional;
  */
 public enum PthreadFunctionType {
 
+  // TODO add more support: pthread_yield, pthread_barrier, etc.
+
   // Note that all indices start at 0.
   PTHREAD_BARRIER_INIT("pthread_barrier_init", false, false),
   PTHREAD_BARRIER_WAIT("pthread_barrier_wait", false, false),
@@ -132,10 +134,6 @@ public enum PthreadFunctionType {
   // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
   __VERIFIER_ATOMIC_BEGIN("__VERIFIER_atomic_begin", true, true),
   __VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
-
-  // TODO unsure about pthread_yield
-  //  pthread_barrier stuff (cf. pthread-divine/barrier_2t.i)
-  //  etc. probably a lot more things
 
   public final String name;
 

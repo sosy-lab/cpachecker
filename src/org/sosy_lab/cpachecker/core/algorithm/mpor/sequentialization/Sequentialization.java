@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
 
-  // TODO move all this to hardcoded strings?
-
   private static final String license = "Apache-2.0";
 
   private static final ImmutableList<String> mporHeader =

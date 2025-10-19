@@ -106,10 +106,7 @@ public class InputRejectionTest {
         InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
-  // TODO also create a test for pthread_create(...) != 0
-
-  // TODO the pthread_create call is nested inside binary expression(s). this should be checked for
-  //  when substituting (cf. pointer write), the expression search is already implemented there
+  // TODO check binary expressions e.g. pthread_create != 0 when substituting
   @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {

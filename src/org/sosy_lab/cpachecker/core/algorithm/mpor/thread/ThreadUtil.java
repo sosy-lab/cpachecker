@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadUtil {
 
-  // TODO this method is outdated, since the pthread_create is now the default call context
-  //  and main function statements do not have any call context
   /**
    * Returns either {@code pCallContext} if present or the start_routine call of {@code pThread},
    * which serves as the default call context.

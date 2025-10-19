@@ -145,45 +145,6 @@ public final class MPORUtil {
         .equals(SeqToken.reach_error);
   }
 
-  // assume calls ==================================================================================
-
-  // TODO it becomes a problem if a program uses if (!cond) abort(); in the code itself, instead of
-  //  calling one of these functions... should identify the code itself
-  /**
-   * The set of function names used for assumptions in the SV-Benchmarks:
-   *
-   * <ul>
-   *   <li>{@code assume_abort_if_not} e.g. in pthread/stack_longer-1 (most relevant)
-   *   <li>{@code ldv_assume} used by linux device driver programs e.g. ldv-challenges folder
-   *   <li>{@code __VERIFIER_assume} seems deprecated, but is still included here
-   * </ul>
-   */
-  private static final ImmutableSet<String> ASSUME_FUNCTION_NAMES =
-      ImmutableSet.<String>builder()
-          .add(SeqToken.assume_abort_if_not)
-          .add(SeqToken.ldv_assume)
-          .add(SeqToken.__VERIFIER_assume)
-          .build();
-
-  public static boolean isAssumeAbortIfNotCall(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
-      return isAssumeAbortIfNotCall(functionSummaryEdge);
-    } else if (pCfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-      return isAssumeAbortIfNotCall(functionCallEdge);
-    }
-    return false;
-  }
-
-  private static boolean isAssumeAbortIfNotCall(CFunctionSummaryEdge pFunctionSummaryEdge) {
-    return ASSUME_FUNCTION_NAMES.contains(
-        pFunctionSummaryEdge.getFunctionEntry().getFunction().getOrigName());
-  }
-
-  private static boolean isAssumeAbortIfNotCall(CFunctionCallEdge pFunctionCallEdge) {
-    return ASSUME_FUNCTION_NAMES.contains(
-        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
-  }
-
   // const CPAchecker_TMP ==========================================================================
 
   public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {

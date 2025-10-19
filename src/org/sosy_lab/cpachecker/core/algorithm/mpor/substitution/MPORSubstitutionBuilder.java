@@ -468,8 +468,8 @@ public class MPORSubstitutionBuilder {
         pOriginal.getCStorageClass(),
         pOriginal.getType(),
         pName,
-        pOriginal.getOrigName(), // TODO (not relevant for seq)
-        pOriginal.getQualifiedName(), // TODO funcName::name but not relevant for seq
+        pOriginal.getOrigName(),
+        pOriginal.getQualifiedName(),
         pOriginal.getInitializer());
   }
 
@@ -479,7 +479,7 @@ public class MPORSubstitutionBuilder {
    * @param pOriginal the variable declaration to substitute
    */
   private static CVariableDeclaration substituteVariableDeclaration(
-      CVariableDeclaration pOriginal, CInitializerExpression pInitExpression) {
+      CVariableDeclaration pOriginal, CInitializerExpression pInitializerExpression) {
 
     return new CVariableDeclaration(
         pOriginal.getFileLocation(),
@@ -488,8 +488,8 @@ public class MPORSubstitutionBuilder {
         pOriginal.getType(),
         pOriginal.getName(),
         pOriginal.getOrigName(),
-        pOriginal.getQualifiedName(), // TODO funcName::name but not relevant for seq
-        pInitExpression);
+        pOriginal.getQualifiedName(),
+        pInitializerExpression);
   }
 
   private static CParameterDeclaration substituteParameterDeclaration(

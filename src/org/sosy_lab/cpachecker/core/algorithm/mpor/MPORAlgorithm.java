@@ -46,11 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @SuppressWarnings("unused") // this is necessary because we don't use the cpa and config
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
-  // TODO with more benchmarks, find out which settings work best for which verifier
-  //  then create an enum with preferred verifier, overriding all options, but output a warning
-
-  // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume)
-
   // using Optional for @Option is not allowed, so we use 'NONE' for enums that can be disabled.
 
   @Option(secure = true, description = "allow input programs that write pointer variables?")
@@ -102,7 +97,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " function pointers for CPAchecker)")
   private boolean inputFunctionDeclarations = false;
 
-  // TODO make this secure by checking if all types for all variables are included
+  // TODO make this secure by checking if all types for all variables are included.
+  //  note that this is probably a lot of work (recursive type checking, and the only benefit would
+  //  be that the output programs are smaller in size.
   @Option(description = "include original type declarations from input file?")
   private boolean inputTypeDeclarations = true;
 
@@ -234,7 +231,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " in which their statements are placed in the output program.")
   private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
-  // TODO also add option for scalar / array bit vectors
   @Option(
       secure = true,
       description =

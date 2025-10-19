@@ -42,7 +42,6 @@ public class SeqDeclarationBuilder {
     return buildFunctionDeclarationWithoutParameters(functionType, functionName);
   }
 
-  // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
   public static CVariableDeclaration buildVariableDeclaration(
       boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
 
@@ -53,7 +52,7 @@ public class SeqDeclarationBuilder {
         pCType,
         pName,
         pName,
-        SeqNameUtil.buildQualifiedName(pName),
+        SeqNameUtil.buildDummyQualifiedName(pName),
         pInitializer);
   }
 

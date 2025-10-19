@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-// TODO pthread_once_t
-// TODO pthread_key_t
+// TODO add more support: pthread_once_t, pthread_key_t, pthread_barrier_t, etc.
+
 public enum PthreadObjectType {
   PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER"),
   PTHREAD_COND_T("pthread_cond_t"),

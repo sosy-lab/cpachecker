@@ -305,8 +305,8 @@ public class SeqNameUtil {
 
   // Other =========================================================================================
 
-  public static String buildQualifiedName(String pVarName) {
-    // TODO the qualified names are not relevant in the seq, so we just use dummy::
+  public static String buildDummyQualifiedName(String pVarName) {
+    // the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
