@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Algorithms and data structures that help represent threads (main and pthreads) of a concurrent C
- * program.
- */
+/** Contains representations of threads including their CFAs which are subsets of the input CFA. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;

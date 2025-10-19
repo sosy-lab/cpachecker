@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -70,7 +70,9 @@ public enum VerifierNondetFunctionType {
 
   // Helpers =======================================================================================
 
-  public static Optional<CFunctionCallExpression> buildVerifierNondetByType(CType pType) {
+  public static Optional<CFunctionCallExpression> tryBuildFunctionCallExpressionByType(
+      CType pType) {
+
     for (VerifierNondetFunctionType nondetType : VerifierNondetFunctionType.values()) {
       if (nondetType.getReturnType().equals(pType)) {
         return Optional.of(nondetType.getFunctionCallExpression());

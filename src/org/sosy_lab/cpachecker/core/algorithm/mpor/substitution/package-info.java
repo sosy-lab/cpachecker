@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes that handle substituting variables and parameters in Expressions. */
+/** Classes that handle substituting expressions and statements from the input CFA / AST. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;

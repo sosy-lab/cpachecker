@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
 public enum NondeterminismSource {
   /** When the next thread executing a (single) statement is chosen non-deterministically. */

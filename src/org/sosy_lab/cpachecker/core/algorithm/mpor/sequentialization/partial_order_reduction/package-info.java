@@ -6,4 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * Contains everything relevant for applying a partial order reduction to the sequentialization. It
+ * merges statements that are guaranteed to commute, and injects statements that allow a thread to
+ * continue execution, if its memory location accesses are not in conflict with another thread.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;

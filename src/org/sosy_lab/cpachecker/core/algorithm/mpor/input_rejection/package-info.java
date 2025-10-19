@@ -6,4 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/** Used to reject certain characteristics from the input program, such as unsupported functions. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;

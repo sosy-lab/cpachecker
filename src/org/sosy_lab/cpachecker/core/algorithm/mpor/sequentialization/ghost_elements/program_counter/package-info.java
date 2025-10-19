@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * To store the pc expressions for all threads, i.e. {@code pc[0]} for array or {@code pc0} for
- * scalar.
- */
+/** Used to create the program counter (pc) i.e. current location variables for all threads. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter;

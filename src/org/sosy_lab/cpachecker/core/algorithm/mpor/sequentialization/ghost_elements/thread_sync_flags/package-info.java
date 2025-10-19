@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * (Wrapper) Classes for variables injected into the sequentialization to create assumptions over
- * thread simulations.
+ * Contains ghost variables used to simulate functions that synchronize threads, e.g. {@code
+ * pthread_mutex_lock}.
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags;

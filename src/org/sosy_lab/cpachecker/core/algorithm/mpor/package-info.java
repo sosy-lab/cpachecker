@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Algorithms and data structures for Modular Partial Order Reduction. Bachelor Thesis of Noah
- * König, 2024.
+ * Use Modular Partial Order Reduction (MPOR) to transform a concurrent C program into an
+ * equivalent, nondeterministic, sequential program.
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpor;

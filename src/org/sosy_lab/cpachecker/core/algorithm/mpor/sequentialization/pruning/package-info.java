@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Functions for the pruning of {@code case}s in the sequentialization. */
+/** Functions for the pruning of unnecessary statements that add bloat in the sequentialization. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning;

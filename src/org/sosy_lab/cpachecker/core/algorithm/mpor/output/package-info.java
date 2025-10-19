@@ -6,4 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/** Includes writers to export the sequentialized program. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.output;

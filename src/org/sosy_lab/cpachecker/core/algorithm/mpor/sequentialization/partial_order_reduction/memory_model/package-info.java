@@ -6,4 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * Used to build a Memory Model based on the input CFA / AST. Also handles pointer assignments. The
+ * Memory Model can be used to reason about memory location accesses by threads to apply partial
+ * order reduction.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;

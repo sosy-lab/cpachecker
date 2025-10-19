@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Helper ASTNodes to handle function calls and pthread method replacements in the
- * sequentialization.
- */
+/** Helpers to inline function calls from the input program in the sequentialization. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements;

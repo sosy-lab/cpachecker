@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** This package contains helpers to work with pthread methods and objects. */
+/** This package contains helpers to work with methods and objects from the pthread standard. */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
