@@ -4284,6 +4284,9 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# Path to the DSL rules file
+dslRulePath = no default value
+
 # output file for visualizing message exchange
 dss.logging.reportFiles = "block_analysis/messages"
 

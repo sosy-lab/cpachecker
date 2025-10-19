@@ -350,6 +350,7 @@ public final class PredicateCPARefinerFactory {
                     refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
             case REDUNDANT_PREDICATES ->
                 new DelegatingRefinerHeuristicRedundantPredicates(
+                    predicateCpa.getConfiguration(),
                     acceptableRedundancyThreshold,
                     predicateCpa.getSolver().getFormulaManager(),
                     predicateCpa.getLogger());

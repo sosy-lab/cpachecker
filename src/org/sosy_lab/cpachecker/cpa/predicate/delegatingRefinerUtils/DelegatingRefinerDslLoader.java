@@ -12,6 +12,8 @@ import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -22,10 +24,17 @@ public final class DelegatingRefinerDslLoader {
 
   public static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Path pPathToDsl)
       throws IOException {
+    try (Reader reader = Files.newBufferedReader(pPathToDsl)) {
+      return loadDsl(reader);
+    }
+  }
+
+  public static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Reader pReader)
+      throws IOException {
     ObjectMapper JSONMapper = new ObjectMapper();
     JSONMapper.configure(Feature.ALLOW_COMMENTS, true);
     DelegatingRefinerPatternRule[] patternRules =
-        JSONMapper.readValue(pPathToDsl.toFile(), DelegatingRefinerPatternRule[].class);
+        JSONMapper.readValue(pReader, DelegatingRefinerPatternRule[].class);
     return ImmutableList.copyOf(patternRules);
   }
 }

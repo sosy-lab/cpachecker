@@ -13,10 +13,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.io.Resources;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -47,10 +55,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *   <li>Overall pattern redundancy exceeds beyond the configured threshold.
  * </ul>
  */
+@Options
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
   private static final double CATEGORY_REDUNDANCY_THRESHOLD = 0.7;
-  private String dslRulePath = "config/predicateAnalysis-delegatingrefiner-redundancyRules.json";
+
+  @Option(secure = true, name = "dslRulePath", description = "Path to the DSL rules file")
+  private Path dslRulePath = null;
+
+  private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
 
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
@@ -64,6 +77,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   /**
    * Construct a redundant predicates heuristic.
    *
+   * @param pConfiguration configuration used to inject the DSL rule path
    * @param pAcceptableRedundancyThreshold maximum redundancy rate acceptable
    * @param pFormulaManager formula manager used for normalization
    * @param pLogger logger for diagnostic output
@@ -72,10 +86,13 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
    * @throws IllegalStateException if the DSL rules cannot be loaded
    */
   public DelegatingRefinerHeuristicRedundantPredicates(
+      Configuration pConfiguration,
       double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
       final LogManager pLogger)
       throws InvalidConfigurationException {
+
+    pConfiguration.inject(this);
     if (pAcceptableRedundancyThreshold < 0.0 || pAcceptableRedundancyThreshold > 1.0) {
       throw new InvalidConfigurationException(
           "Acceptable redundancy rate must be between 0.0 and 1.0.");
@@ -85,14 +102,30 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     this.logger = pLogger;
     normalizer = new DelegatingRefinerAtomNormalizer(formulaManager);
 
+    ImmutableList<DelegatingRefinerPatternRule> allPatternRules;
     try {
-      Path dslPath = Path.of(dslRulePath);
-      ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
-          DelegatingRefinerDslLoader.loadDsl(dslPath);
-      this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);
+      if (dslRulePath != null && Files.exists(dslRulePath)) {
+        logger.logf(Level.INFO, "Loading redundancy rules from file: %s ", dslRulePath);
+        try (Reader reader = Files.newBufferedReader(dslRulePath)) {
+          allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
+        }
+      } else {
+        logger.logf(
+            Level.INFO, "Loading redundancy rules from class path resource: %s", DSL_RESOURCE_NAME);
+        try (BufferedReader reader =
+            Resources.asCharSource(
+                    Resources.getResource(
+                        DelegatingRefinerHeuristicRedundantPredicates.class, DSL_RESOURCE_NAME),
+                    StandardCharsets.UTF_8)
+                .openBufferedStream()) {
+          allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
+        }
+      }
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
     }
+
+    this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);
   }
 
   /**

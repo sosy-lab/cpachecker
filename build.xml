@@ -70,6 +70,7 @@ SPDX-License-Identifier: Apache-2.0
         <include name="**/*.properties" />
         <include name="org/sosy_lab/cpachecker/core/counterexample/build/*" />
         <include name="org/sosy_lab/cpachecker/core/counterexample/report.html" />
+        <include name="org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/delegatingRefiner-redundancyRules.json"  />
     </patternset>
 
     <path id="classpath">
