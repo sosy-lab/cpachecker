@@ -50,7 +50,7 @@ public class StatementInjector {
           "bit vectors are enabled, but the program does not contain any global memory locations.");
       return pClauses; // no relevant memory locations -> no bit vectors needed
     }
-    if (!pOptions.areBitVectorsEnabled()) {
+    if (!pOptions.isAnyReductionEnabled()) {
       return pClauses;
     }
     // otherwise inject statements into clauses

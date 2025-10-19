@@ -371,7 +371,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     cfa = pInputCfa;
 
     options.handleOptionRejections(logger);
-    options.handleOptionWarnings(logger);
     InputRejection.handleRejections(logger, cfa);
   }
 

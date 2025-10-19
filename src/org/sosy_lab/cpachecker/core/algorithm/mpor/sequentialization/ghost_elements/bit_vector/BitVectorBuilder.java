@@ -41,7 +41,7 @@ public class BitVectorBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       Optional<MemoryModel> pMemoryModel) {
 
-    if (!pOptions.areBitVectorsEnabled()) {
+    if (!pOptions.isAnyReductionEnabled()) {
       // no bit vector reduction -> no bit vector variables
       return Optional.empty();
     }

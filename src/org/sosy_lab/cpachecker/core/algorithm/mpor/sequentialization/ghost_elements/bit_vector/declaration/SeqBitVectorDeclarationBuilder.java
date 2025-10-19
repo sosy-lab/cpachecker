@@ -45,7 +45,7 @@ public class SeqBitVectorDeclarationBuilder {
   public static ImmutableList<SeqBitVectorDeclaration> buildBitVectorDeclarationsByEncoding(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    if (!pOptions.areBitVectorsEnabled()) {
+    if (!pOptions.isAnyReductionEnabled()) {
       return ImmutableList.of();
     }
     return switch (pOptions.bitVectorEncoding) {

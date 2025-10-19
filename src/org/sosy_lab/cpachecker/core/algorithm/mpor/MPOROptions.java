@@ -335,172 +335,122 @@ public class MPOROptions {
     }
   }
 
-  // TODO best move to input_rejection
   void handleOptionRejections(LogManager pLogger) {
+    if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
+      handleOptionRejection(
+          pLogger, "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE);
+    }
+    if (!linkReduction) {
+      if (bitVectorEncoding.isEnabled()) {
+        handleOptionRejection(
+            pLogger, "bitVectorEncoding cannot be set when linkReduction is disabled.");
+      }
+      if (reduceLastThreadOrder) {
+        handleOptionRejection(
+            pLogger, "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
+      }
+      if (reduceUntilConflict) {
+        handleOptionRejection(
+            pLogger, "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
+      }
+    }
     if (loopIterations < 0) {
-      pLogger.logfUserException(
-          Level.SEVERE,
-          new RuntimeException(),
-          "loopIterations must be 0 or greater, cannot be %s",
-          loopIterations);
-      throw new AssertionError();
+      handleOptionRejection(
+          pLogger, "loopIterations must be 0 or greater, cannot be %s", loopIterations);
     }
     if (loopIterations == 0) {
       if (loopUnrolling) {
-        pLogger.logfUserException(
-            Level.SEVERE,
-            new RuntimeException(),
-            "loopUnrolling can only be enabled when loopIterations > 0");
-        throw new AssertionError();
-      }
-    }
-    if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
-      pLogger.log(
-          Level.SEVERE,
-          "controlEncodingStatement cannot be %s",
-          MultiControlStatementEncoding.NONE);
-      throw new AssertionError();
-    }
-    if (areBitVectorsEnabled()) {
-      if (!reductionMode.isEnabled()) {
-        pLogger.log(
-            Level.SEVERE,
-            "reduceLastThreadOrder and/or reduceUntilConflict is enabled, but reductionMode is not"
-                + " set.");
-        throw new AssertionError();
-      }
-      if (!bitVectorEncoding.isEnabled()) {
-        pLogger.log(
-            Level.SEVERE,
-            "reduceLastThreadOrder and/or reduceUntilConflict is enabled, but bitVectorEncoding is"
-                + " not set.");
-        throw new AssertionError();
+        handleOptionRejection(pLogger, "loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
     if (reduceLastThreadOrder && reduceUntilConflict) {
       if (!reductionOrder.isEnabled()) {
-        pLogger.log(
-            Level.SEVERE,
+        handleOptionRejection(
+            pLogger,
             "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
                 + " is specified.");
-        throw new AssertionError();
       }
     }
-    if (!noBackwardGoto && validateNoBackwardGoto) {
-      pLogger.log(
-          Level.SEVERE, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
-      throw new AssertionError();
-    }
-    if (pruneSparseBitVectors) {
-      if (!bitVectorEncoding.isSparse) {
-        pLogger.log(
-            Level.SEVERE, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
-        throw new AssertionError();
+    if (!noBackwardGoto) {
+      if (validateNoBackwardGoto) {
+        handleOptionRejection(
+            pLogger, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
-      if (reduceIgnoreSleep) {
-        pLogger.log(
-            Level.SEVERE,
-            "reduceIgnoreSleep cannot be enabled when pruneSparseBitVectors is enabled.");
-        throw new AssertionError();
-      }
-      if (reduceLastThreadOrder) {
-        pLogger.log(
-            Level.SEVERE,
-            "reduceLastThreadOrder cannot be enabled when pruneSparseBitVectors is enabled.");
-        throw new AssertionError();
-      }
-    }
-  }
-
-  // TODO need more warnings here
-  /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
-  void handleOptionWarnings(LogManager pLogger) {
-    if (!linkReduction && reduceUntilConflict) {
-      pLogger.log(
-          Level.WARNING,
-          "reduceUntilConflict is only considered with linkReduction"
-              + " enabled. Either enable linkReduction or disable reduceUntilConflict.");
-    }
-    if (!linkReduction && reduceLastThreadOrder) {
-      pLogger.log(
-          Level.WARNING,
-          "reduceLastThreadOrder is only considered with linkReduction"
-              + " enabled. Either enable linkReduction or disable reduceLastThreadOrder.");
-    }
-    if (!linkReduction && bitVectorEncoding.isEnabled()) {
-      pLogger.log(
-          Level.WARNING,
-          "bitVectorEncoding is only considered with linkReduction"
-              + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
-    }
-    if (pruneBitVectorEvaluations && !areBitVectorsEnabled()) {
-      pLogger.log(
-          Level.WARNING,
-          "pruneBitVectorEvaluation is only considered when reduceLastThreadOrder and/or"
-              + " reduceUntilConflict is enabled. Either disable pruneBitVectorEvaluation or enable"
-              + " reduceLastThreadOrder and/or reduceUntilConflict.");
-    }
-    if (pruneBitVectorEvaluations && !bitVectorEncoding.isEnabled()) {
-      pLogger.log(
-          Level.WARNING,
-          "pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
-              + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
-    }
-    if (pruneSparseBitVectorWrites && !areBitVectorsEnabled()) {
-      pLogger.log(
-          Level.WARNING,
-          "pruneBitVectorWrite is only considered when reduceLastThreadOrder and/or"
-              + " reduceUntilConflict enabled. Either disable pruneBitVectorWrite or enable"
-              + " reduceLastThreadOrder and/or reduceUntilConflict.");
-    }
-    if (pruneSparseBitVectorWrites && !bitVectorEncoding.isEnabled()) {
-      pLogger.log(
-          Level.WARNING,
-          "pruneBitVectorWrite is only considered when bitVectorEncoding is not"
-              + " NONE. Either disable pruneBitVectorWrite or set bitVectorEncoding.");
-    }
-    if (pruneSparseBitVectorWrites && !bitVectorEncoding.isSparse) {
-      pLogger.log(
-          Level.WARNING,
-          "pruneBitVectorWrite only has an effect when bitVectorEncoding is SPARSE.");
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!controlEncodingThread.equals(MultiControlStatementEncoding.NONE)) {
-        pLogger.log(
-            Level.WARNING,
-            "controlEncodingThread is not NONE, but the next thread is not chosen"
-                + " non-deterministically. Either set controlEncodingThread to NONE or choose a"
-                + " nondeterminismSource that makes the next thread non-deterministic.");
+      if (!controlEncodingThread.isEnabled()) {
+        handleOptionRejection(
+            pLogger,
+            "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
     if (!nondeterminismSource.isNumStatementsNondeterministic()) {
       if (reduceIgnoreSleep) {
-        pLogger.log(
-            Level.WARNING,
-            "reduceIgnoreSleep is enabled, but the number of statements is not chosen"
-                + " non-deterministically. Either disable reduceIgnoreSleep or choose a"
-                + " nondeterminismSource that makes the number of statements non-deterministic.");
+        handleOptionRejection(
+            pLogger,
+            "reduceIgnoreSleep cannot be enabled when nondeterminismSource does not contain"
+                + " NUM_STATEMENTS");
       }
     }
-    if (reductionMode.isEnabled()) {
-      if (!areBitVectorsEnabled()) {
-        pLogger.log(
-            Level.WARNING,
-            "reductionMode is set, but both reduceLastThreadOrder and reduceUntilConflict are"
-                + " disabled.");
+    if (pruneBitVectorEvaluations) {
+      if (!isAnyReductionEnabled()) {
+        handleOptionRejection(
+            pLogger, "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
+      }
+      if (!bitVectorEncoding.isEnabled()) {
+        handleOptionRejection(
+            pLogger, "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
       }
     }
-    if (bitVectorEncoding.isEnabled()) {
-      if (!areBitVectorsEnabled()) {
-        pLogger.log(
-            Level.WARNING,
-            "bitVectorEncoding is set, but both reduceLastThreadOrder and reduceUntilConflict are"
-                + " disabled.");
+    if (pruneSparseBitVectors) {
+      if (!bitVectorEncoding.isSparse) {
+        handleOptionRejection(
+            pLogger, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+      }
+      if (reduceIgnoreSleep) {
+        handleOptionRejection(
+            pLogger, "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
+      }
+      if (reduceLastThreadOrder) {
+        handleOptionRejection(
+            pLogger,
+            "pruneSparseBitVectors cannot be enabled when reduceLastThreadOrder is enabled.");
+      }
+    }
+    if (pruneSparseBitVectorWrites) {
+      if (!bitVectorEncoding.isSparse) {
+        handleOptionRejection(
+            pLogger, "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
+      }
+    }
+    if (isAnyReductionEnabled()) {
+      if (!reductionMode.isEnabled()) {
+        handleOptionRejection(
+            pLogger, "a reduce* option is enabled, but reductionMode is not set.");
+      }
+      if (!bitVectorEncoding.isEnabled()) {
+        handleOptionRejection(
+            pLogger, "a reduce* option is enabled, but bitVectorEncoding is not set.");
+      }
+    } else {
+      if (reductionMode.isEnabled()) {
+        handleOptionRejection(pLogger, "reductionMode is set, but no reduce* option is enabled");
+      }
+      if (bitVectorEncoding.isEnabled()) {
+        handleOptionRejection(
+            pLogger, "bitVectorEncoding is set, but no reduce* option is enabled");
       }
     }
   }
 
-  public boolean areBitVectorsEnabled() {
+  private void handleOptionRejection(LogManager pLogger, Object... pMessage) {
+    pLogger.log(Level.SEVERE, pMessage);
+    throw new AssertionError();
+  }
+
+  // boolean helpers ===============================================================================
+
+  public boolean isAnyReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 

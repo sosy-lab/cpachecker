@@ -368,7 +368,7 @@ public class SequentializationBuilder {
     }
 
     // if enabled: bit vectors
-    if (pOptions.areBitVectorsEnabled()) {
+    if (pOptions.isAnyReductionEnabled()) {
       ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
           SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(pOptions, pFields);
       for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {

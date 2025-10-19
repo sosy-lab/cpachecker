@@ -39,7 +39,7 @@ public class PartialOrderReducer {
       MemoryModel memoryModel = pMemoryModel.orElseThrow();
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pOptions, pClauses, memoryModel);
-      if (pOptions.areBitVectorsEnabled()) {
+      if (pOptions.isAnyReductionEnabled()) {
         return StatementInjector.injectStatements(
             pOptions,
             linked,
