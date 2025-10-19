@@ -526,10 +526,15 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(pProgram);
+      if (pOriginalCfa.isPresent()) {
+        parseResult =
+            parseResult.withOriginalCfaAndProgramTransformation(
+                pOriginalCfa.orElseThrow(), pProgramTransformation);
+      }
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction, pOriginalCfa, pProgramTransformation);
+      CFA cfa = createCFA(parseResult, mainFunction);
 
       return cfa;
     } finally {
@@ -573,7 +578,7 @@ public class CFACreator {
         default -> throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction, Optional.empty(), ProgramTransformation.NONE);
+      CFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
         SyntacticBlockStructureBuilder blockStructureBuilder =
@@ -631,11 +636,7 @@ public class CFACreator {
                 "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
-  private CFA createCFA(
-      ParseResult pParseResult,
-      FunctionEntryNode pMainFunction,
-      Optional<CFA> pOriginalCfa,
-      ProgramTransformation pProgramTransformation)
+  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
       throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
@@ -650,10 +651,10 @@ public class CFACreator {
             pParseResult.fileNames(),
             mainFunction,
             CfaConnectedness.UNCONNECTED_FUNCTIONS,
-            pProgramTransformation);
+            pParseResult.programTransformation());
 
-    if (pOriginalCfa.isPresent()) {
-      cfaMetadata = cfaMetadata.withOriginalCfa(pOriginalCfa.orElseThrow());
+    if (pParseResult.originalCfa().isPresent()) {
+      cfaMetadata = cfaMetadata.withOriginalCfa(pParseResult.originalCfa().orElseThrow());
     }
 
     MutableCFA cfa = new MutableCFA(pParseResult.functions(), pParseResult.cfaNodes(), cfaMetadata);
@@ -768,6 +769,7 @@ public class CFACreator {
    */
   private ParseResult parseToCFAs(final String program)
       throws ParserException, InterruptedException {
+
     final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {
