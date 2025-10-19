@@ -289,7 +289,7 @@ public class MPORSubstitution {
         // TODO need CFieldReference, CPointerExpression, ... here too
         if (leftHandSide instanceof CIdExpression idExpression) {
           CExpression substitute =
-              substitute(idExpression, pCallContext, false, false, false, false, pTracker);
+              substitute(idExpression, pCallContext, false, true, false, false, pTracker);
           if (substitute instanceof CIdExpression idExpressionSubstitute) {
             return new CFunctionCallAssignmentStatement(
                 fileLocation,
@@ -299,7 +299,7 @@ public class MPORSubstitution {
         } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
           CExpression substitute =
               substitute(
-                  arraySubscriptExpression, pCallContext, false, false, false, false, pTracker);
+                  arraySubscriptExpression, pCallContext, false, true, false, false, pTracker);
           if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
             return new CFunctionCallAssignmentStatement(
                 fileLocation,

@@ -48,9 +48,6 @@ public class SeqToken {
   /** b for bit vector */
   public static final String b = "b";
 
-  /** "bit vector write" */
-  public static final String bw = "bw";
-
   public static final String BIT_VECTOR = "BIT_VECTOR";
 
   public static final String _break = "break";
@@ -136,6 +133,9 @@ public class SeqToken {
   public static final String pc = "pc";
 
   public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
+
+  /** r for reachable, or read. */
+  public static final String r = "r";
 
   public static final String REACHABLE = "REACHABLE";
 

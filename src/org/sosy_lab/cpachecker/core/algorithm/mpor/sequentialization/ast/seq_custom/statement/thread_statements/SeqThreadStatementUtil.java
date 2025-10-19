@@ -207,8 +207,7 @@ public class SeqThreadStatementUtil {
       // add all injected statements in the correct order
       ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pOptions, pruned);
       assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
-      for (int i = 0; i < ordered.size(); i++) {
-        SeqInjectedStatement injectedStatement = ordered.get(i);
+      for (SeqInjectedStatement injectedStatement : ordered) {
         statements.add(injectedStatement.toASTString());
       }
       // for non-empty bit vector evaluations, place pc write after injections for optimization
