@@ -198,16 +198,13 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
     Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
     if (dominantCategory != null) {
-      logger.logf(Level.FINEST, "Dominant category is %s.", dominantCategory);
+      logger.logf(Level.INFO, "Dominant category is %s.", dominantCategory);
     }
 
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.FINEST,
-          "Dominant pattern is %s for %s.",
-          dominantPattern,
-          pPatternFrequency.size());
+          Level.INFO, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
     }
   }
 
@@ -263,8 +260,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
     if (pPatternSize > 1000 && isRedundancyPlateauingPatterns && isDominantPatternGrowing) {
       logger.logf(
-          Level.FINEST,
-          "Redundancy is plateauing and only pattern %s is growing ",
+          Level.INFO,
+          "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
+              + " pattern %s is growing ",
           pCurrentDominantPattern);
       return true;
     }
@@ -279,8 +277,8 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     if (pPatternSize > 1000 && isOneCategoryDominant) {
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
-          Level.FINEST,
-          "Category %s is dominant at %.2f",
+          Level.INFO,
+          "Stop condition isCategoryDominant: Category %s is dominant at %.2f",
           currentDominantCategory,
           maxRedundancyDetectedCategories);
       return true;
@@ -293,8 +291,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
     if (isPatternRedundancyAboveThreshold) {
       logger.logf(
-          Level.FINEST,
-          "Redundancy in patterns too high: %.2f for threshold %.2f.",
+          Level.INFO,
+          " Stop condition isPatternRedundancyAboveThreshold: Redundancy in patterns too high: %.2f"
+              + " for threshold %.2f.",
           maxRedundancyDetectedPatterns,
           redundancyThreshold);
       return true;

@@ -28,5 +28,10 @@
         <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
+    <tasks name="Overflow-Simple">
+        <includesfile>../programs/benchmarks/Loops.set</includesfile>
+        <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+
 </benchmark>
 

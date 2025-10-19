@@ -76,13 +76,13 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       currentTotalInterpolantRate = (double) totalInterpolantNumber / (double) numberOfRefinements;
 
       logger.logf(
-          Level.FINEST,
+          Level.INFO,
           "Checking current rate of interpolants generated per refinement: %.2f.",
           currentTotalInterpolantRate);
     }
 
     logger.logf(
-        Level.FINEST,
+        Level.INFO,
         "Number of interpolants per refinement is too high:  %.2f. Heuristic INTERPOLATION_RATE is"
             + " no longer applicable.",
         currentTotalInterpolantRate);
