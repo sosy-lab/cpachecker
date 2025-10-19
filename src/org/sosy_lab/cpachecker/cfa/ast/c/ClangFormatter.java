@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting;
+package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -16,7 +16,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 /** A formatter for C code. Requires {@code clang-format} to be installed and in system PATH. */
 public class ClangFormatter {
@@ -25,17 +24,18 @@ public class ClangFormatter {
 
   private static final Charset charset = Charset.defaultCharset();
 
-  /** Formats and returns the C code given in {@code pCode} if enabled. */
-  public static String tryFormat(MPOROptions pOptions, String pCode, LogManager pLogger) {
-    if (pOptions.clangFormatStyle.isEnabled()) {
-      try {
-        return format(pCode, pOptions.clangFormatStyle);
-      } catch (IOException | InterruptedException e) {
-        pLogger.logfUserException(
-            Level.SEVERE,
-            e,
-            CLANG_FORMAT + " failed due to an error. using unformatted code instead.");
-      }
+  /**
+   * Tries to format and return the C code given in {@code pCode} using {@code clang}. If it fails,
+   * returns {@code pCode} as is.
+   */
+  public static String tryFormat(String pCode, ClangFormatStyle pStyle, LogManager pLogger) {
+    try {
+      return format(pCode, pStyle);
+    } catch (IOException | InterruptedException e) {
+      pLogger.logfUserException(
+          Level.SEVERE,
+          e,
+          CLANG_FORMAT + " failed due to an error. returning unformatted code instead.");
     }
     return pCode;
   }

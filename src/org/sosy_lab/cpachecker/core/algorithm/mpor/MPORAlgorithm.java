@@ -19,6 +19,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatStyle;
+import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
@@ -26,8 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
@@ -291,7 +291,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String program =
         Sequentialization.tryBuildProgramString(
             options, cfa, inputFileName, shutdownNotifier, logger);
-    return ClangFormatter.tryFormat(options, program, logger);
+    return options.clangFormatStyle.isEnabled()
+        ? ClangFormatter.tryFormat(program, options.clangFormatStyle, logger)
+        : program;
   }
 
   private final ConfigurableProgramAnalysis cpa;
