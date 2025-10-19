@@ -32,10 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqPruner {
 
-  // TODO binary expressions such as (A || B) are transformed into multiple edges in the cfa
-  //  due to short circuit evaluation
-  //  -> identify assume edges that map to the same input expression and merge into single case
-
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pruneClauses(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {

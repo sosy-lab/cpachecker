@@ -18,10 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
-public class MemoryLocationUtil {
+public class SeqMemoryLocationUtil {
 
   public static boolean isMemoryLocationReachableByThread(
-      MemoryLocation pMemoryLocation,
+      SeqMemoryLocation pMemoryLocation,
       MemoryModel pMemoryModel,
       MPORThread pThread,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
@@ -29,8 +29,8 @@ public class MemoryLocationUtil {
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-      ImmutableSet<MemoryLocation> memoryLocations =
-          MemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
+      ImmutableSet<SeqMemoryLocation> memoryLocations =
+          SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
               substituteEdge, pMemoryModel, pAccessType);
       if (memoryLocations.contains(pMemoryLocation)) {
         return true;
@@ -46,7 +46,7 @@ public class MemoryLocationUtil {
     return false;
   }
 
-  static boolean isConstCpaCheckerTmp(MemoryLocation pMemoryLocation) {
+  static boolean isConstCpaCheckerTmp(SeqMemoryLocation pMemoryLocation) {
     if (pMemoryLocation.declaration instanceof CVariableDeclaration variableDeclaration) {
       return MPORUtil.isConstCpaCheckerTmp(variableDeclaration);
     }

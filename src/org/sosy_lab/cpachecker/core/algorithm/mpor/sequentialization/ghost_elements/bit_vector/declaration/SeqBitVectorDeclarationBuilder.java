@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqBitVectorDeclarationBuilder {
@@ -104,8 +104,8 @@ public class SeqBitVectorDeclarationBuilder {
 
       for (ReachType reachType : ReachType.values()) {
         if (BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, reachType)) {
-          ImmutableSet<MemoryLocation> memoryLocations =
-              MemoryLocationFinder.findMemoryLocationsByReachType(
+          ImmutableSet<SeqMemoryLocation> memoryLocations =
+              SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
           BitVectorValueExpression initializer =
               BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, memoryLocations);
@@ -165,7 +165,7 @@ public class SeqBitVectorDeclarationBuilder {
               pAccessType));
     }
     // then handle the declarations for the last bit vectors, if present
-    Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
+    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
         bitVectorVariables.tryGetLastSparseBitVectorByAccessType(pAccessType);
     if (lastSparseBitVectors.isPresent()) {
       for (LastSparseBitVector sparseBitVector : lastSparseBitVectors.orElseThrow().values()) {
@@ -182,7 +182,7 @@ public class SeqBitVectorDeclarationBuilder {
 
   private static ImmutableList<SeqBitVectorDeclaration> buildCurrentSparseBitVectorDeclarations(
       MPORThread pThread,
-      ImmutableMap<MemoryLocation, SparseBitVector> pSparseBitVectors,
+      ImmutableMap<SeqMemoryLocation, SparseBitVector> pSparseBitVectors,
       ImmutableList<SeqThreadStatementClause> pClauses,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
@@ -196,11 +196,11 @@ public class SeqBitVectorDeclarationBuilder {
     SeqThreadStatementBlock firstBlock = pClauses.getFirst().getFirstBlock();
 
     for (ReachType reachType : ReachType.values()) {
-      ImmutableSet<MemoryLocation> memoryLocations =
-          MemoryLocationFinder.findMemoryLocationsByReachType(
+      ImmutableSet<SeqMemoryLocation> memoryLocations =
+          SeqMemoryLocationFinder.findMemoryLocationsByReachType(
               labelClauseMap, labelBlockMap, firstBlock, pMemoryModel, pAccessType, reachType);
       for (var entry : pSparseBitVectors.entrySet()) {
-        MemoryLocation memoryLocation = entry.getKey();
+        SeqMemoryLocation memoryLocation = entry.getKey();
         SparseBitVector sparseBitVector = entry.getValue();
         if (sparseBitVector.getVariablesByReachType(reachType).containsKey(pThread)) {
           rDeclarations.add(

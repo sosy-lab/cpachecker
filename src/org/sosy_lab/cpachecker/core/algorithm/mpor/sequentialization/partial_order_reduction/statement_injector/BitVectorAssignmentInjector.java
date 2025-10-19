@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAssignmentInjector {
@@ -129,8 +129,8 @@ public class BitVectorAssignmentInjector {
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
         if (BitVectorUtil.isAccessReachPairNeeded(pOptions, accessType, reachType)) {
-          ImmutableSet<MemoryLocation> memoryLocations =
-              MemoryLocationFinder.findMemoryLocationsByReachType(
+          ImmutableSet<SeqMemoryLocation> memoryLocations =
+              SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   pLabelClauseMap,
                   pLabelBlockMap,
                   pTargetClause.getFirstBlock(),
@@ -157,7 +157,7 @@ public class BitVectorAssignmentInjector {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      ImmutableSet<MemoryLocation> pMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
@@ -185,7 +185,7 @@ public class BitVectorAssignmentInjector {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      ImmutableSet<MemoryLocation> pMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
@@ -204,7 +204,7 @@ public class BitVectorAssignmentInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<MemoryLocation> pMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
@@ -228,8 +228,8 @@ public class BitVectorAssignmentInjector {
 
   private static Optional<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignment(
       MPOROptions pOptions,
-      MemoryLocation pMemoryLocation,
-      ImmutableSet<MemoryLocation> pMemoryLocations,
+      SeqMemoryLocation pMemoryLocation,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       CIdExpression pVariable) {
 
     if (pVariable == null) {

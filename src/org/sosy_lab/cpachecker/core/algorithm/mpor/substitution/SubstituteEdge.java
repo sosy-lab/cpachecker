@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -33,37 +33,37 @@ public class SubstituteEdge {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  public final ImmutableMap<MemoryLocation, MemoryLocation> pointerAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
   /** The set of accessed pointer derefs i.e. reads and writes. */
-  public final ImmutableSet<MemoryLocation> accessedPointerDereferences;
+  public final ImmutableSet<SeqMemoryLocation> accessedPointerDereferences;
 
   /** The set of read pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
-  public final ImmutableSet<MemoryLocation> readPointerDereferences;
+  public final ImmutableSet<SeqMemoryLocation> readPointerDereferences;
 
   /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
-  public final ImmutableSet<MemoryLocation> writtenPointerDereferences;
+  public final ImmutableSet<SeqMemoryLocation> writtenPointerDereferences;
 
   // MEMORY LOCATIONS ==============================================================================
 
   /** The set of global variable declarations that this edge accesses. */
-  public final ImmutableSet<MemoryLocation> accessedMemoryLocations;
+  public final ImmutableSet<SeqMemoryLocation> accessedMemoryLocations;
 
-  public final ImmutableSet<MemoryLocation> readMemoryLocations;
+  public final ImmutableSet<SeqMemoryLocation> readMemoryLocations;
 
-  public final ImmutableSet<MemoryLocation> writtenMemoryLocations;
+  public final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
 
   private SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableSet<MemoryLocation> pAccessedPointerDereferences,
-      ImmutableSet<MemoryLocation> pWrittenPointerDereferences,
-      ImmutableSet<MemoryLocation> pAccessedMemoryLocations,
-      ImmutableSet<MemoryLocation> pWrittenMemoryLocations) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
+      ImmutableSet<SeqMemoryLocation> pWrittenPointerDereferences,
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pWrittenMemoryLocations) {
 
     // TODO maybe make it an optional single entry then? ...
     checkArgument(
@@ -128,7 +128,8 @@ public class SubstituteEdge {
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
   }
 
-  public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(MemoryAccessType pAccessType) {
+  public ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
+      MemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> accessedMemoryLocations;
@@ -137,7 +138,7 @@ public class SubstituteEdge {
     };
   }
 
-  public ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
+  public ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
       MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {

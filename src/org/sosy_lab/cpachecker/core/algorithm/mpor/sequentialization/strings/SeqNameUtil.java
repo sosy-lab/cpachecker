@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDirection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -150,7 +150,7 @@ public class SeqNameUtil {
   public static String buildBitVectorName(
       MPOROptions pOptions,
       Optional<MPORThread> pThread,
-      Optional<MemoryLocation> pMemoryLocation,
+      Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType,
       ReachType pReachType,
       BitVectorDirection pDirection) {
@@ -166,7 +166,7 @@ public class SeqNameUtil {
   private static String buildBitVectorName(
       MPOROptions pOptions,
       int pThreadId,
-      Optional<MemoryLocation> pMemoryLocation,
+      Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
@@ -182,7 +182,7 @@ public class SeqNameUtil {
 
   private static String buildLastBitVectorName(
       MPOROptions pOptions,
-      Optional<MemoryLocation> pMemoryLocation,
+      Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType) {
 
     return switch (pOptions.bitVectorEncoding) {
@@ -227,7 +227,7 @@ public class SeqNameUtil {
   private static String buildSparseBitVectorName(
       MPOROptions pOptions,
       int pThreadId,
-      MemoryLocation pMemoryLocation,
+      SeqMemoryLocation pMemoryLocation,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
@@ -249,7 +249,7 @@ public class SeqNameUtil {
   }
 
   private static String buildLastSparseBitVectorName(
-      MPOROptions pOptions, MemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
+      MPOROptions pOptions, SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
         ? SeqToken.last

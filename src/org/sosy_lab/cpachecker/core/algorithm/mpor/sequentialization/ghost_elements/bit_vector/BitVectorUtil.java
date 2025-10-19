@@ -23,9 +23,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.DecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
 public class BitVectorUtil {
@@ -50,7 +50,7 @@ public class BitVectorUtil {
   public static BitVectorValueExpression buildBitVectorExpression(
       MPOROptions pOptions,
       MemoryModel pMemoryModel,
-      ImmutableSet<MemoryLocation> pMemoryLocations) {
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
@@ -82,7 +82,7 @@ public class BitVectorUtil {
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
-      MemoryModel pMemoryModel, ImmutableSet<MemoryLocation> pMemoryLocations) {
+      MemoryModel pMemoryModel, ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
     checkArgument(
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
@@ -116,12 +116,12 @@ public class BitVectorUtil {
   }
 
   private static ImmutableSet<Integer> getSetBits(
-      ImmutableSet<MemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
 
     ImmutableSet.Builder<Integer> rSetBits = ImmutableSet.builder();
-    final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations =
+    final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocations =
         pMemoryModel.getRelevantMemoryLocations();
-    for (MemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
+    for (SeqMemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
       if (relevantMemoryLocations.containsKey(accessedMemoryLocation)) {
         rSetBits.add(Objects.requireNonNull(relevantMemoryLocations.get(accessedMemoryLocation)));
       }

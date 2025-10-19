@@ -24,9 +24,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -55,7 +55,7 @@ class BitVectorAccessEvaluationBuilder {
   static BitVectorEvaluationExpression buildDenseEvaluation(
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherBitVectors,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -71,8 +71,8 @@ class BitVectorAccessEvaluationBuilder {
 
   static BitVectorEvaluationExpression buildSparseEvaluation(
       MPOROptions pOptions,
-      ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseBitVectorMap,
-      ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
+      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations) {
@@ -88,7 +88,7 @@ class BitVectorAccessEvaluationBuilder {
 
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
-      ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -103,7 +103,7 @@ class BitVectorAccessEvaluationBuilder {
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -147,8 +147,8 @@ class BitVectorAccessEvaluationBuilder {
   // Sparse Access Bit Vectors =====================================================================
 
   private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
-      ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseBitVectorMap,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
@@ -157,7 +157,7 @@ class BitVectorAccessEvaluationBuilder {
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      MemoryLocation memoryLocation = entry.getKey();
+      SeqMemoryLocation memoryLocation = entry.getKey();
       // if the LHS is 0, then the entire && expression is 0 -> prune
       if (pDirectMemoryLocations.contains(memoryLocation)) {
         // if the LHS is 1, check if any expression exists for the RHS
@@ -173,8 +173,8 @@ class BitVectorAccessEvaluationBuilder {
   }
 
   private static BitVectorEvaluationExpression buildFullSparseEvaluation(
-      ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseBitVectorMap,
-      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+      ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
@@ -182,7 +182,8 @@ class BitVectorAccessEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    for (MemoryLocation memoryLocation : pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
+    for (SeqMemoryLocation memoryLocation :
+        pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
       SeqExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(
               memoryLocation, pDirectMemoryLocations);
@@ -202,7 +203,7 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables) {
 
-    ImmutableListMultimap<MemoryLocation, SeqExpression> sparseBitVectorMap =
+    ImmutableListMultimap<SeqMemoryLocation, SeqExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
@@ -222,9 +223,9 @@ class BitVectorAccessEvaluationBuilder {
   }
 
   private static SeqExpression buildSingleSparseLogicalAndExpression(
-      ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseBitVectorMap,
+      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
       SeqExpression pDirectBitVector,
-      MemoryLocation pMemoryLocation) {
+      SeqMemoryLocation pMemoryLocation) {
 
     // create logical disjunction -> (B || C || ...)
     ImmutableList<SeqExpression> sparseBitVectors = pSparseBitVectorMap.get(pMemoryLocation);

@@ -151,25 +151,25 @@ public class MemoryModelStructTest {
 
   // Memory Locations (primitives)
 
-  private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
-  private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
-  private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
 
-  private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
@@ -178,14 +178,14 @@ public class MemoryModelStructTest {
   @Test
   public void test_field_owner_field_member() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment
-    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
 
     // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
@@ -201,15 +201,15 @@ public class MemoryModelStructTest {
   public void test_outer_inner_struct() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment and
     // global_ptr_B = &outer_struct.inner_struct.inner_member
-    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .put(GLOBAL_POINTER_B_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
 
     // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<MemoryLocation> memoryLocationsA =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocationsA =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_A_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
@@ -219,8 +219,8 @@ public class MemoryModelStructTest {
     assertThat(memoryLocationsA.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
 
     // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<MemoryLocation> memoryLocationsB =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocationsB =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             GLOBAL_POINTER_B_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),

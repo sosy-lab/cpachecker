@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
-public class MemoryLocationFinder {
+public class SeqMemoryLocationFinder {
 
   /**
    * Returns {@code true} if any global memory location is (possibly) accessed when executing {@code
@@ -31,14 +31,14 @@ public class MemoryLocationFinder {
       SeqThreadStatementBlock pBlock,
       MemoryModel pMemoryModel) {
 
-    ImmutableSet<MemoryLocation> foundMemoryLocations =
+    ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
         findDirectMemoryLocationsByAccessType(
             pLabelBlockMap, pBlock, pMemoryModel, MemoryAccessType.ACCESS);
     return pMemoryModel.getRelevantMemoryLocations().keySet().stream()
         .anyMatch(relevantMemoryLocation -> foundMemoryLocations.contains(relevantMemoryLocation));
   }
 
-  public static ImmutableSet<MemoryLocation> findMemoryLocationsByReachType(
+  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByReachType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
@@ -59,18 +59,18 @@ public class MemoryLocationFinder {
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
    */
-  public static ImmutableSet<MemoryLocation> findDirectMemoryLocationsByAccessType(
+  public static ImmutableSet<SeqMemoryLocation> findDirectMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
-      ImmutableSet<MemoryLocation> foundMemoryLocations =
+      ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(ImmutableSet.copyOf(found), pMemoryModel, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
@@ -81,20 +81,20 @@ public class MemoryLocationFinder {
    * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
    * and all possible successor blocks, that may or may not actually be executed.
    */
-  public static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
+  public static ImmutableSet<SeqMemoryLocation> findReachableMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetStatements(
           found, statement, pLabelClauseMap, pLabelBlockMap);
-      ImmutableSet<MemoryLocation> foundMemoryLocations =
+      ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(ImmutableSet.copyOf(found), pMemoryModel, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
@@ -103,12 +103,12 @@ public class MemoryLocationFinder {
 
   // Memory Location Extraction ====================================================================
 
-  private static ImmutableSet<MemoryLocation> findMemoryLocationsByStatements(
+  private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         rMemLocations.addAll(
@@ -118,16 +118,16 @@ public class MemoryLocationFinder {
     return rMemLocations.build();
   }
 
-  public static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
+  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the memory locations themselves
     rMemLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
     // then check indirect accesses via pointers that point to the variables
-    ImmutableSet<MemoryLocation> pointerDereferences =
+    ImmutableSet<SeqMemoryLocation> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
-    for (MemoryLocation pointerDereference : pointerDereferences) {
+    for (SeqMemoryLocation pointerDereference : pointerDereferences) {
       rMemLocations.addAll(
           findMemoryLocationsByPointerDereference(pointerDereference, pMemoryModel));
     }
@@ -136,8 +136,8 @@ public class MemoryLocationFinder {
 
   // Extraction by Pointer Dereference =============================================================
 
-  private static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
-      MemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
+  private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
+      SeqMemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
 
     return findMemoryLocationsByPointerDereference(
         pPointerDereference,
@@ -146,13 +146,13 @@ public class MemoryLocationFinder {
         pMemoryModel.pointerParameterAssignments);
   }
 
-  static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
-      MemoryLocation pPointerDereference,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+  static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
+      SeqMemoryLocation pPointerDereference,
+      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
-    Set<MemoryLocation> found = new HashSet<>();
+    Set<SeqMemoryLocation> found = new HashSet<>();
     recursivelyFindMemoryLocationsByPointerDereference(
         pPointerDereference,
         pPointerAssignments,
@@ -169,12 +169,12 @@ public class MemoryLocationFinder {
    * assigned to the pointer variable / parameter.
    */
   private static void recursivelyFindMemoryLocationsByPointerDereference(
-      MemoryLocation pCurrentMemoryLocation,
-      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      final ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      final ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
-      Set<MemoryLocation> pFound,
-      Set<MemoryLocation> pVisited) {
+      SeqMemoryLocation pCurrentMemoryLocation,
+      final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      Set<SeqMemoryLocation> pFound,
+      Set<SeqMemoryLocation> pVisited) {
 
     // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
     if (pVisited.add(pCurrentMemoryLocation)) {
@@ -183,13 +183,13 @@ public class MemoryLocationFinder {
           pPointerAssignments,
           pStartRoutineArgAssignments,
           pPointerParameterAssignments)) {
-        ImmutableSet<MemoryLocation> rightHandSides =
+        ImmutableSet<SeqMemoryLocation> rightHandSides =
             MemoryModel.getPointerAssignmentRightHandSides(
                 pCurrentMemoryLocation,
                 pPointerAssignments,
                 pStartRoutineArgAssignments,
                 pPointerParameterAssignments);
-        for (MemoryLocation rightHandSide : rightHandSides) {
+        for (SeqMemoryLocation rightHandSide : rightHandSides) {
           recursivelyFindMemoryLocationsByPointerDereference(
               rightHandSide,
               pPointerAssignments,

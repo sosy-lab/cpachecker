@@ -70,22 +70,22 @@ public class MemoryModelStartRoutineArgTest {
 
   // Memory Locations (primitives)
 
-  private final MemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
-  private final MemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableMap<MemoryLocation, MemoryLocation> startRoutineArgAssignments =
-        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)

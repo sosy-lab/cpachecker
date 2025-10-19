@@ -13,8 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
@@ -25,33 +25,33 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
-  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors;
+  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors;
 
-  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseReadBitVectors;
+  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors;
 
-  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors;
+  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors;
 
   private final Optional<LastDenseBitVector> lastDenseAccessBitVector;
 
   private final Optional<LastDenseBitVector> lastDenseWriteBitVector;
 
-  private final Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
+  private final Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
       lastSparseAccessBitVector;
 
-  private final Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
+  private final Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
       lastSparseWriteBitVector;
 
   public BitVectorVariables(
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
-      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseAccessBitVectors,
-      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseReadBitVectors,
-      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseWriteBitVectors,
+      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseAccessBitVectors,
+      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseReadBitVectors,
+      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseWriteBitVectors,
       Optional<LastDenseBitVector> pLastDenseAccessBitVector,
       Optional<LastDenseBitVector> pLastDenseWriteBitVector,
-      Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
-      Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
+      Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
+      Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
 
     denseAccessBitVectors = pDenseAccessBitVectors;
     denseReadBitVectors = pDenseReadBitVectors;
@@ -97,7 +97,7 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
+  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
       MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -117,7 +117,7 @@ public class BitVectorVariables {
     };
   }
 
-  public Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
+  public Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
       tryGetLastSparseBitVectorByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -128,7 +128,7 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<MemoryLocation, LastSparseBitVector> getLastSparseBitVectorByAccessType(
+  public ImmutableMap<SeqMemoryLocation, LastSparseBitVector> getLastSparseBitVectorByAccessType(
       MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -160,15 +160,15 @@ public class BitVectorVariables {
 
   // Getters =======================================================================================
 
-  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
+  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
     return sparseAccessBitVectors.orElseThrow();
   }
 
-  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseReadBitVectors() {
+  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseReadBitVectors() {
     return sparseReadBitVectors.orElseThrow();
   }
 
-  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseWriteBitVectors() {
+  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseWriteBitVectors() {
     return sparseWriteBitVectors.orElseThrow();
   }
 }

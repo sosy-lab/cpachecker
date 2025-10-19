@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -55,7 +55,8 @@ public class BitVectorEvaluationUtil {
   }
 
   static SeqExpression buildSparseDirectBitVector(
-      MemoryLocation pMemoryLocation, ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations) {
+      SeqMemoryLocation pMemoryLocation,
+      ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations) {
 
     CIntegerLiteralExpression integerLiteralExpression =
         pDirectAccessMemoryLocations.contains(pMemoryLocation)
@@ -117,16 +118,16 @@ public class BitVectorEvaluationUtil {
     return rNested;
   }
 
-  static ImmutableListMultimap<MemoryLocation, SeqExpression>
+  static ImmutableListMultimap<SeqMemoryLocation, SeqExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
           BitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
-    ImmutableListMultimap.Builder<MemoryLocation, SeqExpression> rMap =
+    ImmutableListMultimap.Builder<SeqMemoryLocation, SeqExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      MemoryLocation memoryLocation = entry.getKey();
+      SeqMemoryLocation memoryLocation = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> variables =
           entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
       ImmutableList<SeqExpression> otherVariables =

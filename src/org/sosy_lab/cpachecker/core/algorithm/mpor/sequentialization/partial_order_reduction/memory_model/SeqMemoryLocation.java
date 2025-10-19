@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
-public class MemoryLocation {
+public class SeqMemoryLocation {
 
   public final MPOROptions options;
 
@@ -35,7 +35,7 @@ public class MemoryLocation {
 
   public final Optional<CCompositeTypeMemberDeclaration> fieldMember;
 
-  private MemoryLocation(
+  private SeqMemoryLocation(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pDeclaration,
@@ -43,7 +43,7 @@ public class MemoryLocation {
 
     options = pOptions;
     callContext = pCallContext;
-    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration);
+    isExplicitGlobal = SeqMemoryLocationUtil.isExplicitGlobal(pDeclaration);
     isParameter = pDeclaration instanceof CParameterDeclaration;
     declaration = pDeclaration;
     fieldMember = pFieldMember;
@@ -52,19 +52,19 @@ public class MemoryLocation {
         : "explicit global memory locations cannot be parameters";
   }
 
-  public static MemoryLocation of(
+  public static SeqMemoryLocation of(
       MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
 
-    return new MemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
+    return new SeqMemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
   }
 
-  public static MemoryLocation of(
+  public static SeqMemoryLocation of(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
-    return new MemoryLocation(pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember));
+    return new SeqMemoryLocation(pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember));
   }
 
   public String getName() {
@@ -111,9 +111,9 @@ public class MemoryLocation {
     return false;
   }
 
-  public MemoryLocation getFieldOwnerMemoryLocation() {
+  public SeqMemoryLocation getFieldOwnerMemoryLocation() {
     assert fieldMember.isPresent() : "cannot get field owner MemoryLocation, field member is empty";
-    return MemoryLocation.of(options, callContext, declaration);
+    return SeqMemoryLocation.of(options, callContext, declaration);
   }
 
   @Override
@@ -132,7 +132,7 @@ public class MemoryLocation {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof MemoryLocation other
+    return pOther instanceof SeqMemoryLocation other
         // consider the call context only if it is a parameter memory location
         && (!isParameter || callContext.equals(other.callContext))
         && isExplicitGlobal == other.isExplicitGlobal

@@ -192,36 +192,36 @@ public class MemoryModelParameterTest {
 
   // Memory Locations (primitives)
 
-  private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
-  private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
-  private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
-  private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
-  private final MemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_P);
 
-  private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_Q);
 
-  private final MemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
-      MemoryLocation.of(
+  private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_R);
@@ -229,16 +229,16 @@ public class MemoryModelParameterTest {
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
             ImmutableMap.of(),
@@ -252,22 +252,22 @@ public class MemoryModelParameterTest {
   @Test
   public void test_transitive_pointer_parameter_dereference() {
     // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
-    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(LOCAL_POINTER_C_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P_MEMORY_LOCATION,
             pointerAssignments,
             ImmutableMap.of(),
@@ -281,16 +281,16 @@ public class MemoryModelParameterTest {
   @Test
   public void test_parameter_implicit_global() {
     // param_Q = local_Z; i.e. non-pointer parameter assignment with local variable
-    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
-    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
             .build();
 
@@ -320,12 +320,12 @@ public class MemoryModelParameterTest {
   public void test_transitive_pointer_parameter_assignments() {
     // param_ptr_R = &local_Z; and param_ptr_P = param_ptr_R;
     // i.e. transitive pointer parameter assignments
-    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_R_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // all are not explicit global memory locations
@@ -334,8 +334,8 @@ public class MemoryModelParameterTest {
     assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+    ImmutableSet<SeqMemoryLocation> memoryLocations =
+        SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
             ImmutableMap.of(),

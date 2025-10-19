@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -102,10 +102,10 @@ public class SubstituteUtil {
    * The initial memory locations do not factor in memory locations that are only used in pointer
    * parameter assignments.
    */
-  public static ImmutableList<MemoryLocation> getInitialMemoryLocations(
+  public static ImmutableList<SeqMemoryLocation> getInitialMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    List<MemoryLocation> rMemoryLocations = new ArrayList<>();
+    List<SeqMemoryLocation> rMemoryLocations = new ArrayList<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
       rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
@@ -115,16 +115,16 @@ public class SubstituteUtil {
     return rMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
-  static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
+  static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(MemoryLocation.of(pOptions, pCallContext, pointerDereference));
+      rPointerDereferences.add(SeqMemoryLocation.of(pOptions, pCallContext, pointerDereference));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
@@ -133,27 +133,27 @@ public class SubstituteUtil {
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
         rPointerDereferences.add(
-            MemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
+            SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rPointerDereferences.build();
   }
 
-  static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
+  static ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
 
-    ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CSimpleDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
-      rMemoryLocations.add(MemoryLocation.of(pOptions, pCallContext, declaration));
+      rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, declaration));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CSimpleDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(MemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
+        rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rMemoryLocations.build();
@@ -165,19 +165,22 @@ public class SubstituteUtil {
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableMap<MemoryLocation, MemoryLocation> mapPointerAssignments(
+  public static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
       MPOROptions pOptions, Optional<ThreadEdge> pCallContext, MPORSubstitutionTracker pTracker) {
 
-    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
+        ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, entry.getKey());
-      MemoryLocation rightHandSide = MemoryLocation.of(pOptions, pCallContext, entry.getValue());
+      SeqMemoryLocation leftHandSide = SeqMemoryLocation.of(pOptions, pCallContext, entry.getKey());
+      SeqMemoryLocation rightHandSide =
+          SeqMemoryLocation.of(pOptions, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
-      MemoryLocation rightHandSide =
-          MemoryLocation.of(pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
+      SeqMemoryLocation leftHandSide =
+          SeqMemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
+      SeqMemoryLocation rightHandSide =
+          SeqMemoryLocation.of(pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

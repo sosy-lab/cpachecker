@@ -24,45 +24,45 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
  */
 public class MemoryModel {
 
-  private final ImmutableList<MemoryLocation> allMemoryLocations;
+  private final ImmutableList<SeqMemoryLocation> allMemoryLocations;
 
   private final int relevantMemoryLocationAmount;
 
   /**
-   * The set of relevant {@link MemoryLocation}s, i.e. all that are needed to decide whether a
+   * The set of relevant {@link SeqMemoryLocation}s, i.e. all that are needed to decide whether a
    * statement commutes. This includes explicit and implicit (through pointers) memory locations.
    */
-  private final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations;
+  private final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocations;
 
-  public final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
+  public final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments;
 
   /**
    * Keep track of {@code start_routine arg} assignments in {@code pthread_create} separately, since
    * even a local memory address passed here is implicitly global.
    */
-  public final ImmutableMap<MemoryLocation, MemoryLocation> startRoutineArgAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments;
 
   /**
-   * The map of call context-sensitive {@link MemoryLocation} mapped to their assigned {@link
-   * MemoryLocation}. Each parameter is only assigned once due to function cloning. Note that this
-   * is not restricted to pointers, since non-pointer parameters can be made implicitly global
+   * The map of call context-sensitive {@link SeqMemoryLocation} mapped to their assigned {@link
+   * SeqMemoryLocation}. Each parameter is only assigned once due to function cloning. Note that
+   * this is not restricted to pointers, since non-pointer parameters can be made implicitly global
    * through global pointers.
    */
-  public final ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments;
 
   /** The subset of parameters that are pointers. */
-  public final ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments;
 
-  public final ImmutableSet<MemoryLocation> pointerDereferences;
+  public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
   MemoryModel(
-      ImmutableList<MemoryLocation> pAllMemoryLocations,
-      ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocationIds,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<MemoryLocation> pPointerDereferences) {
+      ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
+      ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
+      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     checkArguments(pPointerAssignments, pParameterAssignments, pPointerParameterAssignments);
     allMemoryLocations = pAllMemoryLocations;
@@ -76,12 +76,12 @@ public class MemoryModel {
   }
 
   private static void checkArguments(
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     // check that all left hand sides in pointer assignments are CPointerType
-    for (MemoryLocation memoryLocation : pPointerAssignments.keySet()) {
+    for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
       if (memoryLocation.fieldMember.isPresent()) {
         // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
@@ -116,10 +116,10 @@ public class MemoryModel {
    * the address of a non-pointer {@code &non_ptr}.
    */
   static boolean isLeftHandSideInPointerAssignment(
-      MemoryLocation pMemoryLocation,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+      SeqMemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       return isLeftHandSideInPointerAssignment(
@@ -136,11 +136,11 @@ public class MemoryModel {
   // getters =======================================================================================
 
   // TODO this can be optimized by using an ImmutableSetMultimap and saving it on creation
-  static ImmutableSet<MemoryLocation> getPointerAssignmentRightHandSides(
-      MemoryLocation pMemoryLocation,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+  static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
+      SeqMemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       return getPointerAssignmentRightHandSides(
@@ -149,7 +149,7 @@ public class MemoryModel {
           pStartRoutineArgAssignments,
           pPointerParameterAssignments);
     }
-    ImmutableSet.Builder<MemoryLocation> rRightHandSides = ImmutableSet.builder();
+    ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
     rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
     if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
       rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
@@ -165,7 +165,7 @@ public class MemoryModel {
     return relevantMemoryLocationAmount;
   }
 
-  public ImmutableList<MemoryLocation> getAllMemoryLocations() {
+  public ImmutableList<SeqMemoryLocation> getAllMemoryLocations() {
     return allMemoryLocations;
   }
 
@@ -173,7 +173,7 @@ public class MemoryModel {
    * Returns the set of relevant memory locations, i.e. all that are important to decide whether two
    * statements commute. These are all explicit and implicit global memory locations.
    */
-  public ImmutableMap<MemoryLocation, Integer> getRelevantMemoryLocations() {
+  public ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocations() {
     return relevantMemoryLocations;
   }
 }

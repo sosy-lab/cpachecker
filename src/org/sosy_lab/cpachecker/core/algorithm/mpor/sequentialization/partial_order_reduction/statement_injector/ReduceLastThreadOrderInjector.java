@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -234,16 +234,16 @@ class ReduceLastThreadOrderInjector {
           MemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
-    ImmutableMap<MemoryLocation, LastSparseBitVector> lastSparseBitVectors =
+    ImmutableMap<SeqMemoryLocation, LastSparseBitVector> lastSparseBitVectors =
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
-    ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
+    ImmutableMap<SeqMemoryLocation, SparseBitVector> sparseBitVectors =
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> reachableVariableMap =
           entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
       for (var reachableVariable : reachableVariableMap.entrySet()) {
         if (reachableVariable.getKey().equals(pActiveThread)) {
-          MemoryLocation memoryLocation = entry.getKey();
+          SeqMemoryLocation memoryLocation = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
           assert lastSparseBitVector != null;
           CIdExpression rightHandSide = reachableVariable.getValue();
