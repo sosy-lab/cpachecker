@@ -18,7 +18,7 @@
     <!-- Only one small reach-safety task -->
     <rundefinition name="mini-test_unreach-call">
         <tasks name="ReachSafety-Simple">
-            <include>../../../sv-benchmarks/c/test_true-unreach-call.c</include>
+            <include>../../../sv-benchmarks/c/ReachSafety-Arrays.set</include>
             <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
