@@ -32,9 +32,6 @@ public enum PthreadObjectType {
   }
 
   public boolean equalsType(CType pType) {
-    if (this.name.equals(pType.toASTString("name").strip())) {
-      System.out.print("");
-    }
     // there seems no better way than comparing by string, unfortunately
     return this.name.equals(pType.toASTString("").strip());
   }
