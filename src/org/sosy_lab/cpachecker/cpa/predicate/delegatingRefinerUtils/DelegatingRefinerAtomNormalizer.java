@@ -65,10 +65,21 @@ public class DelegatingRefinerAtomNormalizer
           .put("=_T", "=")
           .buildKeepingLast();
 
+  /**
+   * Constructs a normalizing visitor for boolean formulas.
+   *
+   * @param pFormulaManager the formulaManager traverses and normalizes boolean formulas
+   */
   public DelegatingRefinerAtomNormalizer(FormulaManagerView pFormulaManager) {
     this.formulaManager = checkNotNull(pFormulaManager);
   }
 
+  /**
+   * Converts a boolean formula into a normalized s-expression for structural pattern matching
+   *
+   * @param pFormula the boolean formula to normalize
+   * @return the root of a normalized s-expression tree
+   */
   public DelegatingRefinerSExpression buildAtom(BooleanFormula pFormula) {
     return formulaManager.visit(pFormula, this);
   }
@@ -158,6 +169,9 @@ public class DelegatingRefinerAtomNormalizer
     return new DelegatingRefinerSExpressionAtom(pS);
   }
 
+  // When implementing the FormulaVisitor interface, it is necessary to implement
+  // visitBoundVariable(). The method has been deprecated (and is not needed here), but the build
+  // fails if the deprecation warning is not suppressed
   @SuppressWarnings("deprecation")
   @Override
   public DelegatingRefinerSExpression visitBoundVariable(Formula pFormula, int pI) {
@@ -217,4 +231,8 @@ public class DelegatingRefinerAtomNormalizer
   }
 }
 
+/**
+ * Represents a bitvector slice with high and low indices. Needed for normalizing the bvextract
+ * expression.
+ */
 record HiLo(String hi, String lo) {}

@@ -25,6 +25,12 @@ public final class DelegatingRefinerMatchingVisitor
         ImmutableList<DelegatingRefinerNormalizedFormula>> {
   private final ImmutableList<CompiledRule> compiledRules;
 
+  /**
+   * Constructs a matching visitor using provided DSL pattern rules. Each rule is parsed into a
+   * pattern tree for structural redundancy matching.
+   *
+   * @param pPatternRules a list of pattern rules to apply during matching
+   */
   public DelegatingRefinerMatchingVisitor(
       ImmutableList<DelegatingRefinerPatternRule> pPatternRules) {
 
@@ -37,12 +43,24 @@ public final class DelegatingRefinerMatchingVisitor
     this.compiledRules = compiledRuleBuilder.build();
   }
 
+  /**
+   * Matches an atomic s-expression against all compiled DSL rules.
+   *
+   * @param atom the atomic s-expression to assess
+   * @return a list of matched formulas
+   */
   @Override
   public ImmutableList<DelegatingRefinerNormalizedFormula> visitAtom(
       DelegatingRefinerSExpressionAtom atom) {
     return matchAll(atom);
   }
 
+  /**
+   * Matches an s-expression node against all compiled DSL rules.
+   *
+   * @param operator the operator node to assess
+   * @return a list of matched formulas
+   */
   @Override
   public ImmutableList<DelegatingRefinerNormalizedFormula> visitOperator(
       DelegatingRefinerSExpressionSExpressionOperator operator) {

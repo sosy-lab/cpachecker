@@ -33,6 +33,13 @@ import java.util.List;
  */
 public class DelegatingRefinerParser {
 
+  /**
+   * Parses a DSL pattern String into a structured pattern tree.
+   *
+   * @param pPatternMatch DSL pattern String to parse and match
+   * @return the root node of the parsed, structured pattern tree
+   * @throws IllegalArgumentException if the input contains extra tokens
+   */
   public static DelegatingRefinerPatternNode parseExpression(String pPatternMatch) {
     List<String> tokens = tokenize(pPatternMatch);
     ArrayDeque<String> stack = new ArrayDeque<>(tokens);
@@ -46,6 +53,13 @@ public class DelegatingRefinerParser {
     return root;
   }
 
+  /**
+   * Splits a DSL pattern String into individual tokens such as parentheses, operators, and
+   * wildcards
+   *
+   * @param pPatternMatch DSL pattern String to parse and match
+   * @return a list of tokens, ordered by appearance in DSL pattern String
+   */
   private static List<String> tokenize(String pPatternMatch) {
     ImmutableList.Builder<String> tokens = ImmutableList.builder();
     StringBuilder current = new StringBuilder();
@@ -73,6 +87,12 @@ public class DelegatingRefinerParser {
     return tokens.build();
   }
 
+  /**
+   * Recursively parses tokens into a structured pattern node tree.
+   *
+   * @param stack the tokens to consume
+   * @return a structured pattern node tree
+   */
   private static DelegatingRefinerPatternNode parseNode(ArrayDeque<String> stack) {
     checkArgument(!stack.isEmpty(), "Pattern ended unexpectedly");
     String token = stack.removeFirst();
@@ -101,11 +121,23 @@ public class DelegatingRefinerParser {
     return new DelegatingRefinerPatternOperator(token, ImmutableList.of());
   }
 
+  /**
+   * Fetches and removes the next token from the stack.
+   *
+   * @param stack the tokens to consume
+   * @return the next token
+   */
   private static String require(ArrayDeque<String> stack) {
     checkArgument(!stack.isEmpty(), "Expected operator after '('");
     return stack.removeFirst();
   }
 
+  /**
+   * Looks for the next token in the stack, making sure it exists.
+   *
+   * @param stack the tokens to consume
+   * @return the next token
+   */
   private static String peek(ArrayDeque<String> stack) {
     String token = stack.peekFirst();
     checkArgument(token != null, "Missing ')' to close '(' for operator");

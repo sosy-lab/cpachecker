@@ -24,15 +24,31 @@ public class TrackingPredicateCPARefinementContext {
   private ImmutableList<ImmutableList<BooleanFormula>> allInterpolantsAdded = ImmutableList.of();
   private int numberOfRefinements = 0;
 
+  /**
+   * Stores a list of interpolants generated during a refinement iteration. Each call adds a new
+   * interpolant group to the overall history of generated interpolants.
+   *
+   * @param pInterpolantList the interpolants generated in one refinement step
+   */
   public void storeInterpolants(ImmutableList<BooleanFormula> pInterpolantList) {
     allInterpolantsAddedBuilder.add(pInterpolantList);
     allInterpolantsAdded = allInterpolantsAddedBuilder.build();
   }
 
+  /**
+   * Stores the total number of refinement iterations already executed.
+   *
+   * @param pNumberOfRefinements the total number of refinements
+   */
   public void storeNumberOfRefinements(int pNumberOfRefinements) {
     numberOfRefinements = pNumberOfRefinements;
   }
 
+  /**
+   * Returns a flattened list of all interpolants generated across all refinement iterations.
+   *
+   * @return a list of all interpolants computed
+   */
   public ImmutableList<BooleanFormula> getAllInterpolants() {
     ImmutableList.Builder<BooleanFormula> totalInterpolants = ImmutableList.builder();
     for (ImmutableList<BooleanFormula> interpolantList : allInterpolantsAdded) {
@@ -41,6 +57,11 @@ public class TrackingPredicateCPARefinementContext {
     return totalInterpolants.build();
   }
 
+  /**
+   * Returns the total number of refinements already executed.
+   *
+   * @return the refinement count
+   */
   public int getNumberOfRefinements() {
     return numberOfRefinements;
   }
