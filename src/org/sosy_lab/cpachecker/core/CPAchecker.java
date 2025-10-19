@@ -83,8 +83,7 @@ public class CPAchecker {
     private final ReachedSet reached;
     private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(
-        ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
+    CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
@@ -354,8 +353,8 @@ public class CPAchecker {
       }
       stats.setCPA(cpa);
 
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
@@ -425,23 +424,21 @@ public class CPAchecker {
     StringBuilder msg = new StringBuilder();
     msg.append("Please make sure that the code can be compiled by a compiler.\n");
     switch (e.getLanguage()) {
-      case C:
-        msg.append(
-            """
-            If the code was not preprocessed, please use a C preprocessor
-            or specify the --preprocess command-line argument.
-            """);
-        break;
-      case LLVM:
-        msg.append(
-            """
-            If you want to use the LLVM frontend, please make sure that
-            the code can be compiled by clang or input valid LLVM code.
-            """);
-        break;
-      default:
+      case C ->
+          msg.append(
+              """
+              If the code was not preprocessed, please use a C preprocessor
+              or specify the --preprocess command-line argument.
+              """);
+      case LLVM ->
+          msg.append(
+              """
+              If you want to use the LLVM frontend, please make sure that
+              the code can be compiled by clang or input valid LLVM code.
+              """);
+      default -> {
         // do not log additional messages
-        break;
+      }
     }
     msg.append(
         """
@@ -456,8 +453,8 @@ public class CPAchecker {
       pLogger.logUserException(Level.SEVERE, e, "Could not read file");
     } else if (e instanceof InvalidConfigurationException) {
       pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
-    } else if (e instanceof ParserException) {
-      handleParserException((ParserException) e, pLogger);
+    } else if (e instanceof ParserException parserException) {
+      handleParserException(parserException, pLogger);
     } else if (e instanceof InterruptedException) {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
@@ -506,7 +503,7 @@ public class CPAchecker {
           Classes.getCodeLocation(CPAchecker.class)
               .resolveSibling("config/specification/default.spc");
       if (specificationFiles.size() == 1
-          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+          && Files.isSameFile(specificationFiles.getFirst(), defaultSpec)) {
         logger.log(
             Level.INFO,
             "Using default specification, which checks for assertion failures and error labels.");
@@ -563,8 +560,8 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
-    if (reached instanceof ResultProviderReachedSet) {
-      return ((ResultProviderReachedSet) reached).getOverallResult();
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      return resultProviderReachedSet.getOverallResult();
     }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");

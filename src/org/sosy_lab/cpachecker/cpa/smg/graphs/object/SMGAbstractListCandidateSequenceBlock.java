@@ -33,11 +33,10 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
 
-    if (!(pCandidate instanceof SMGAbstractListCandidateSequence<?>)) {
+    if (!(pCandidate instanceof SMGAbstractListCandidateSequence<?> lcs)) {
       return false;
     }
 
-    SMGAbstractListCandidateSequence<?> lcs = (SMGAbstractListCandidateSequence<?>) pCandidate;
     if (!shape.equals(lcs.getCandidate().getShape())) {
       return false;
     }

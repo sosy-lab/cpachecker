@@ -50,7 +50,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
- * the given CFA edge. Afterwards it optionally computes an abstraction.
+ * the given CFA edge. Afterward, it optionally computes an abstraction.
  */
 @Options(prefix = "cpa.predicate")
 public final class PredicateTransferRelation extends SingleEdgeTransferRelation {
@@ -244,7 +244,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   * since specifications should not be hard-coded in analysis,
   * but instead given as automata.
   * Furthermore, these checks were too expensive to be usable.
-  * Thus this code is disabled now.
+  * Thus, this code is disabled now.
   * If it is one day desired to re-add these checks,
   * the checks should get executed on request of the AutomatonCPA,
   * possibly via the AbstractQueryableState interface or strengthen.
@@ -327,23 +327,25 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
-        if (lElement instanceof AssumptionStorageState) {
-          element = strengthen(element, (AssumptionStorageState) lElement);
+        if (lElement instanceof AssumptionStorageState assumptionStorageState) {
+          element = strengthen(element, assumptionStorageState);
         }
 
-        if (lElement instanceof ThreadingState) {
-          element = strengthen(element, (ThreadingState) lElement);
+        if (lElement instanceof ThreadingState threadingState) {
+          element = strengthen(element, threadingState);
         }
 
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
+        if (!ignoreStateAssumptions
+            && lElement instanceof AbstractStateWithAssumptions abstractStateWithAssumptions) {
+          element = strengthen(element, abstractStateWithAssumptions, edge);
         }
 
-        if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
-          element = strengthen(element, (FormulaReportingState) lElement);
+        if (strengthenWithFormulaReportingStates
+            && lElement instanceof FormulaReportingState formulaReportingState) {
+          element = strengthen(element, formulaReportingState);
         }
 
         if (AbstractStates.isTargetState(lElement)) {

@@ -55,17 +55,16 @@ public class SimpleIntProviderFactory {
   /** Helper method for counting matching declarations. */
   private static int countDeclarations(CFAEdge pEdge, Predicate<CDeclaration> matcher) {
     switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
+      case DeclarationEdge -> {
         CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
         CDeclaration decl = declEdge.getDeclaration();
         if (matcher.apply(decl)) {
           return 1;
         }
-        break;
-
-      default:
+      }
+      default -> {
         // no declaration
-        break;
+      }
     }
 
     return 0;
@@ -79,7 +78,7 @@ public class SimpleIntProviderFactory {
   private static int countExpressions(CFAEdge pEdge, final Predicate<CExpression> matcher) {
     int count = 0;
     switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
+      case DeclarationEdge -> {
         CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
         CDeclaration decl = declEdge.getDeclaration();
         if (decl instanceof CVariableDeclaration varDecl) {
@@ -88,35 +87,33 @@ public class SimpleIntProviderFactory {
             count += countExpressions(init, matcher);
           }
         }
-        break;
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
         count += countExpressions(assumeEdge.getExpression(), matcher);
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
         for (CExpression arg : fcallEdge.getArguments()) {
           count += countExpressions(arg, matcher);
         }
-
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
         CStatement stmt = stmtEdge.getStatement();
         count += countExpressions(stmt, matcher);
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
         if (returnEdge.getExpression().isPresent()) {
           count += countExpressions(returnEdge.getExpression().orElseThrow(), matcher);
         }
-        break;
-
-      default:
+      }
+      default -> {
         // no expressions
-        break;
+      }
     }
     return count;
   }
@@ -228,21 +225,18 @@ public class SimpleIntProviderFactory {
   private static int countFunctionCalls(CFAEdge pEdge) {
     int count = 0;
     switch (pEdge.getEdgeType()) {
-      case FunctionCallEdge:
-        count += 1;
-        break;
-      case StatementEdge:
+      case FunctionCallEdge -> count += 1;
+      case StatementEdge -> {
         CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
         CStatement stmt = stmtEdge.getStatement();
         if (stmt instanceof CFunctionCall) {
           count++;
         }
-        break;
-
-      default:
+      }
+      default -> {
         // no function calls
-        break;
+      }
     }
     return count;
   }
@@ -475,15 +469,11 @@ public class SimpleIntProviderFactory {
 
   private static boolean isBitwiseOperation(CBinaryExpression exp) {
     switch (exp.getOperator()) {
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
+      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
         // TODO: check if custom overload (ie no real bitwise operation) = types are ok
         return true;
-      default:
-        break;
+      }
+      default -> {}
     }
     return false;
   }
@@ -529,13 +519,10 @@ public class SimpleIntProviderFactory {
   private static int countAssumeStmts(CFAEdge pEdge) {
     int count = 0;
     switch (pEdge.getEdgeType()) {
-      case AssumeEdge:
-        count += 1;
-        break;
-
-      default:
+      case AssumeEdge -> count += 1;
+      default -> {
         // no assume
-        break;
+      }
     }
     return count;
   }
@@ -559,15 +546,11 @@ public class SimpleIntProviderFactory {
 
   private static boolean isArithmeticOperation(CBinaryExpression exp) {
     switch (exp.getOperator()) {
-      case DIVIDE:
-      case MINUS:
-      case MODULO:
-      case MULTIPLY:
-      case PLUS:
+      case DIVIDE, MINUS, MODULO, MULTIPLY, PLUS -> {
         // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
         return true;
-      default:
-        break;
+      }
+      default -> {}
     }
     return false;
   }

@@ -15,7 +15,7 @@ import java.math.BigInteger;
 public abstract class SMGKnownValue {
 
   /**
-   * A symbolic value representing an explicit value. Depending on the sub-class, this value either
+   * A symbolic value representing an explicit value. Depending on the subclass, this value either
    * represents a direct explicit numeral value or a unique symbolic identifier.
    */
   private final BigInteger value;
@@ -27,7 +27,7 @@ public abstract class SMGKnownValue {
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof SMGKnownValue && value.equals(((SMGKnownValue) pObj).value);
+    return pObj instanceof SMGKnownValue other && value.equals(other.value);
   }
 
   @Override

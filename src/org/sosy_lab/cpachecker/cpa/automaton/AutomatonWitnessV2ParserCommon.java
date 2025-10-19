@@ -56,6 +56,14 @@ class AutomatonWitnessV2ParserCommon {
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
+  @Option(
+      secure = true,
+      name = "checkInvariantsHoldForEveryPath",
+      description =
+          "When the witness is used as an automaton, "
+              + "check that the invariants hold for every path in the program")
+  protected boolean checkInvariantsHoldForEveryPath = true;
+
   final CFA cfa;
   final LogManager logger;
   final Configuration config;
@@ -161,15 +169,14 @@ class AutomatonWitnessV2ParserCommon {
   private void checkTargetIsAtEnd(WaypointRecord latest, int numTargetWaypoints)
       throws InvalidYAMLWitnessException {
     switch (numTargetWaypoints) {
-      case 0:
-        throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
-      case 1:
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1 -> {
         if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
           throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
         }
-        break;
-      default:
-        throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
     }
   }
 

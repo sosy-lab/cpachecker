@@ -61,10 +61,12 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
     // empty pending messages (non blocking)
     while (!queue.isEmpty()) {
       DssMessage message = queue.take();
-      switch (message.getType()) {
-        case STATISTICS, FOUND_RESULT, ERROR -> highestPriority.add(message);
-        case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType()).add(message);
-      }
+      Deque<DssMessage> queueForMessage =
+          switch (message.getType()) {
+            case STATISTICS, FOUND_RESULT, ERROR -> highestPriority;
+            case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType());
+          };
+      queueForMessage.add(message);
     }
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();

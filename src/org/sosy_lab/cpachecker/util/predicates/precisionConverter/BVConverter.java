@@ -13,15 +13,14 @@ import static java.lang.String.format;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -37,7 +36,8 @@ public class BVConverter extends Converter {
   private final Map<String, String> unaryOps; // input-type == output-type
   private final Map<String, Pair<String, String>> binOps; // type is Bool
   private final Map<String, Pair<String, String>> arithmeticOps; // type is BV
-  private final Set<String> ignorableFunctions = Sets.newHashSet("to_int", "to_real");
+  private static final ImmutableSet<String> IGNORABLE_FUNCTIONS =
+      ImmutableSet.of("to_int", "to_real");
 
   public BVConverter(CFA pCfa, LogManager pLogger) {
     super(pLogger, pCfa);
@@ -258,7 +258,7 @@ public class BVConverter extends Converter {
       // extract number N from "(_ bvN 32)", we want the "N" from "bvN"
       int n =
           Integer.parseInt(
-              Splitter.on(' ').splitToList(terms.get(0).getFirst()).get(1).substring(2));
+              Splitter.on(' ').splitToList(terms.getFirst().getFirst()).get(1).substring(2));
       return Pair.of(format("(__string__ %d)", n), new Type<>(op.getSecond().getReturnType()));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
@@ -269,14 +269,14 @@ public class BVConverter extends Converter {
               Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           Iterables.getOnlyElement(terms).getSecond());
 
-    } else if (terms.size() == 1 && ignorableFunctions.contains(op.getFirst())) {
+    } else if (terms.size() == 1 && IGNORABLE_FUNCTIONS.contains(op.getFirst())) {
       // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in
       // BV-theory
       return Iterables.getOnlyElement(terms);
 
     } else if (terms.size() == 2
         && (binOps.containsKey(op.getFirst()) || arithmeticOps.containsKey(op.getFirst()))) {
-      Pair<String, Type<FormulaType<?>>> e1 = terms.get(0);
+      Pair<String, Type<FormulaType<?>>> e1 = terms.getFirst();
       Pair<String, Type<FormulaType<?>>> e2 = terms.get(1);
       Type<FormulaType<?>> t1 = e1.getSecond();
       Type<FormulaType<?>> t2 = e2.getSecond();
@@ -303,7 +303,7 @@ public class BVConverter extends Converter {
           type);
 
     } else if (terms.size() == 3 && "ite".equals(op.getFirst())) {
-      Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
+      Pair<String, Type<FormulaType<?>>> cond = terms.getFirst();
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
       if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
@@ -326,7 +326,7 @@ public class BVConverter extends Converter {
             type);
       }
 
-    } else if (binBooleanOps.contains(op.getFirst())) {
+    } else if (BIN_BOOLEAN_OPS.contains(op.getFirst())) {
       return Pair.of(
           format(
               "(%s %s)",
@@ -347,7 +347,7 @@ public class BVConverter extends Converter {
       return Pair.of(format("(%s %s)", op.getFirst(), Joiner.on(' ').join(params)), op.getSecond());
 
     } else { // UF
-      if (!("_".equals(op.getFirst()) && "divisible".equals(terms.get(0).getFirst()))) {
+      if (!("_".equals(op.getFirst()) && "divisible".equals(terms.getFirst().getFirst()))) {
         logger.log(Level.SEVERE, "unhandled term:", op, terms);
       }
       return Pair.of(

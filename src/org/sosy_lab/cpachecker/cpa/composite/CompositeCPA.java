@@ -169,7 +169,7 @@ public final class CompositeCPA
     }
 
     switch (merge) {
-      case "AGREE":
+      case "AGREE" -> {
         if (inCPAEnabledAnalysis) {
           PredicateCPA predicateCPA =
               Collections3.filterByClass(cpas.stream(), PredicateCPA.class)
@@ -184,17 +184,16 @@ public final class CompositeCPA
         } else {
           return () -> new CompositeMergeAgreeOperator(getMergeOperators(), getStopOperators());
         }
-
-      case "PLAIN":
+      }
+      case "PLAIN" -> {
         if (inCPAEnabledAnalysis) {
           throw new InvalidConfigurationException(
               "Merge PLAIN is currently not supported for CompositeCPA in predicated analysis");
         } else {
           return () -> new CompositeMergePlainOperator(getMergeOperators());
         }
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 
@@ -281,8 +280,8 @@ public final class CompositeCPA
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (pType.isAssignableFrom(cpa.getClass())) {
         return pType.cast(cpa);
-      } else if (cpa instanceof WrapperCPA) {
-        T result = ((WrapperCPA) cpa).retrieveWrappedCpa(pType);
+      } else if (cpa instanceof WrapperCPA wrapperCPA) {
+        T result = wrapperCPA.retrieveWrappedCpa(pType);
         if (result != null) {
           return result;
         }

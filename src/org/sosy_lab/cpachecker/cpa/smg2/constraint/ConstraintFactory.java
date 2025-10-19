@@ -141,8 +141,8 @@ public class ConstraintFactory {
 
       if (symbolicExpression == null) {
         return null;
-      } else if (symbolicExpression instanceof Constraint) {
-        builder.add(ConstraintAndSMGState.of((Constraint) symbolicExpression, currentState));
+      } else if (symbolicExpression instanceof Constraint constraint) {
+        builder.add(ConstraintAndSMGState.of(constraint, currentState));
 
       } else {
         builder.add(
@@ -174,15 +174,16 @@ public class ConstraintFactory {
   }
 
   private boolean isNumeric(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        switch (((CSimpleType) canonicalType).getType()) {
-          case FLOAT:
-          case INT:
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        switch (cSimpleType.getType()) {
+          case FLOAT, INT -> {
             return true;
-          default:
+          }
+          default -> {
             // DO NOTHING, false is returned below
+          }
         }
       }
 

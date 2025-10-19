@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *        Identifier ( [ Expression { , Expression } ] )
  * }</pre>
  *
- * Note that in the cfa, all method names are transformed to have unique names. It is therefore
+ * Note that in the CFA, all method names are transformed to have unique names. It is therefore
  * unnecessary to have Qualifiers for methods with the same simple name.
  */
 public sealed class JMethodInvocationExpression extends AFunctionCallExpression

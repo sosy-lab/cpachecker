@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
 /**
  * A {@link CfaNetwork} that never changes.
  *
- * <p>Due to it's immutability, it's possible to use a more efficient internal representation, which
+ * <p>Due to its immutability, it's possible to use a more efficient internal representation, which
  * can improve performance.
  */
 final class ImmutableCfaNetwork extends ForwardingNetwork<CFANode, CFAEdge> implements CfaNetwork {

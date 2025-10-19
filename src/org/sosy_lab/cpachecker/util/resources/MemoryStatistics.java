@@ -108,7 +108,7 @@ public class MemoryStatistics implements Runnable {
   private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
 
   /**
-   * Instantiate this thread. You need to call {@link Thread#start()} afterwards to start measuring.
+   * Instantiate this thread. You need to call {@link Thread#start()} afterward to start measuring.
    */
   public MemoryStatistics(LogManager pLogger) {
     //    super("CPAchecker memory statistics collector");
@@ -139,7 +139,7 @@ public class MemoryStatistics implements Runnable {
 
   @Override
   @SuppressFBWarnings(
-      value = "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE",
+      value = {"AT_NONATOMIC_64BIT_PRIMITIVE", "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE"},
       justification =
           "synchronization guaranteed externally, "
               + "printStatistics is called only after thread is stopped")
