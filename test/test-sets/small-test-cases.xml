@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+
+<benchmark tool="cpachecker" timelimit="2 min" hardtimelimit="3 min" memlimit="4 GB" cpuCores="2">
+
+    <option name="--svcomp25"/>
+    <option name="--heap">1000M</option>
+    <option name="--benchmark"/>
+
+    <!-- Only one small reach-safety task -->
+    <rundefinition name="mini-test_unreach-call">
+        <tasks name="ReachSafety-Simple">
+            <include>../../../sv-benchmarks/c/test_true-unreach-call.c</include>
+            <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <resultfiles>**/*.graphml</resultfiles>
+
+    <columns>
+        <column title="UsedConfig">Used algorithm property</column>
+    </columns>
+
+</benchmark>
