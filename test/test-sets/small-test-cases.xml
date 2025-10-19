@@ -16,9 +16,21 @@
     <option name="--benchmark"/>
 
     <!-- Only one small reach-safety task -->
-    <rundefinition name="mini-test_unreach-call">
-        <tasks name="ReachSafety-Simple">
-            <include>../../../sv-benchmarks/c/ReachSafety-Arrays.set</include>
+    <rundefinition name="unreach-call">
+        <tasks name="C.unreach-call.Arrays">
+            <include>../../../sv-benchmarks/c/Arrays.set</include>
+            <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+        </tasks>
+        <tasks name="C.unreach-call.BitVectors">
+            <includesfile>../../../sv-benchmarks/c/BitVectors.set</includesfile>
+            <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+        </tasks>
+        <tasks name="C.unreach-call.ControlFlow">
+            <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
+            <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+        </tasks>
+        <tasks name="C.unreach-call.ECA">
+            <includesfile>../../../sv-benchmarks/c/ECA.set</includesfile>
             <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
