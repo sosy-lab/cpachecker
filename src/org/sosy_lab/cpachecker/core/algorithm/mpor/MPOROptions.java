@@ -378,7 +378,7 @@ public class MPOROptions {
       }
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!controlEncodingThread.isEnabled()) {
+      if (controlEncodingThread.isEnabled()) {
         handleOptionRejection(
             pLogger,
             "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
@@ -445,7 +445,7 @@ public class MPOROptions {
 
   private void handleOptionRejection(LogManager pLogger, Object... pMessage) {
     pLogger.log(Level.SEVERE, pMessage);
-    throw new AssertionError();
+    throw new AssertionError(Arrays.toString(pMessage));
   }
 
   // boolean helpers ===============================================================================

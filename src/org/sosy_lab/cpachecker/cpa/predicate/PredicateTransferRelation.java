@@ -199,7 +199,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
    * Checks if lastAbstraction & pathFromLastAbstraction is unsat. Collects sat check information
    * for statistics
    */
-  public boolean unsatCheck(
+  private boolean unsatCheck(
       final AbstractionFormula lastAbstraction, final PathFormula pathFormulaFromLastAbstraction)
       throws SolverException, InterruptedException {
     satCheckTimer.start();

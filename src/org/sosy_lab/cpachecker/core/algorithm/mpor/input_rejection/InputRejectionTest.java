@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -55,8 +56,11 @@ public class InputRejectionTest {
     T throwable =
         assertThrows(
             pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, pOptions));
-    assertThat(pExpectedThrowable.isInstance(throwable)).isTrue();
-    assertThat(throwable.getMessage().contains(pExpected.message)).isTrue();
+    assertWithMessage(
+            "Expected throwable message to contain '%s' but was '%s'",
+            pExpected.message, throwable.getMessage())
+        .that(throwable.getMessage())
+        .contains(pExpected.message);
   }
 
   @Test
