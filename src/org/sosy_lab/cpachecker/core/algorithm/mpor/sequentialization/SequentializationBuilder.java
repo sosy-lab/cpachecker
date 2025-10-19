@@ -381,15 +381,15 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqVariableDeclaration.CNT.toASTString());
     }
 
-    // if enabled: K and r
+    // if enabled: round_max and round
     if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
-      rDeclarations.add(SeqVariableDeclaration.R.toASTString());
+      rDeclarations.add(SeqVariableDeclaration.ROUND.toASTString());
       if (pOptions.nondeterminismSource.equals(
           NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS)) {
         if (pOptions.nondeterminismSigned) {
-          rDeclarations.add(SeqVariableDeclaration.K_SIGNED.toASTString());
+          rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_SIGNED.toASTString());
         } else {
-          rDeclarations.add(SeqVariableDeclaration.K_UNSIGNED.toASTString());
+          rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_UNSIGNED.toASTString());
         }
       }
       if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {

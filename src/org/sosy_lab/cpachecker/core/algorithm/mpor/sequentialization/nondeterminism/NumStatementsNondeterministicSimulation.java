@@ -89,8 +89,8 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
 
-    // K' > 0
-    CBinaryExpression kGreaterZero =
+    // round_max > 0
+    CBinaryExpression roundMaxGreaterZero =
         pBinaryExpressionBuilder.buildBinaryExpression(
             pActiveThread.getKVariable().orElseThrow(),
             SeqIntegerLiteralExpression.INT_0,
@@ -108,23 +108,24 @@ public class NumStatementsNondeterministicSimulation {
     SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
     rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
 
-    // add the K = nondet assignment for this thread
-    rLines.addAll(buildSingleKAssignment(pOptions, pActiveThread.getKVariable().orElseThrow()));
+    // add the round_max = nondet assignment for this thread
+    rLines.addAll(
+        buildSingleRoundMaxAssignment(pOptions, pActiveThread.getKVariable().orElseThrow()));
     SeqExpression lazyIfCondition =
-        buildKGreaterZeroExpression(
+        buildRoundMaxGreaterZeroExpression(
             pOptions,
             pActiveThread,
             pOtherThreads,
-            kGreaterZero,
+            roundMaxGreaterZero,
             pGhostElements,
             pBinaryExpressionBuilder);
 
-    // if (K > 0) ...
-    SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
-    rLines.add(SeqStringUtil.appendCurlyBracketLeft(lazyIfExpression.toASTString()));
+    // if (round_max > 0) ...
+    SeqIfExpression ifRoundMaxExpression = new SeqIfExpression(lazyIfCondition);
+    rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifRoundMaxExpression.toASTString()));
 
     // reset iteration only when needed i.e. after if (...) for performance
-    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
+    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRoundReset();
     rLines.add(rReset.toASTString());
 
     // add the thread loop statements (assumptions and switch)
@@ -136,13 +137,13 @@ public class NumStatementsNondeterministicSimulation {
     return rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT).add(SeqSyntax.CURLY_BRACKET_RIGHT).build();
   }
 
-  private static ImmutableList<String> buildSingleKAssignment(
-      MPOROptions pOptions, CIdExpression pKVariable) {
+  private static ImmutableList<String> buildSingleRoundMaxAssignment(
+      MPOROptions pOptions, CIdExpression pRoundMaxVariable) {
 
     ImmutableList.Builder<String> rAssignment = ImmutableList.builder();
     // k = nondet() ...
     CFunctionCallAssignmentStatement assignment =
-        NondeterministicSimulationUtil.buildKNondetAssignment(pOptions, pKVariable);
+        NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(pOptions, pRoundMaxVariable);
     rAssignment.add(assignment.toASTString());
     return rAssignment.build();
   }
@@ -159,17 +160,17 @@ public class NumStatementsNondeterministicSimulation {
     return new CToSeqExpression(pcUnequalExitPc);
   }
 
-  private static SeqExpression buildKGreaterZeroExpression(
+  private static SeqExpression buildRoundMaxGreaterZeroExpression(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      CBinaryExpression pKGreaterZero,
+      CBinaryExpression pRoundMaxGreaterZero,
       GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     if (pOptions.reduceIgnoreSleep) {
-      // if enabled, add bit vector evaluation: "K > 0 || {bitvector_evaluation}"
+      // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
       BitVectorEvaluationExpression bitVectorEvaluationExpression =
           BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
               pOptions,
@@ -183,10 +184,11 @@ public class NumStatementsNondeterministicSimulation {
       SeqLogicalAndExpression notSyncAndNotConflict =
           new SeqLogicalAndExpression(notSync, bitVectorEvaluationExpression.negate());
       // the usual bit vector expression is true if there is a conflict
-      //  -> negate (we want no conflict if we ignore K == 0)
-      return new SeqLogicalOrExpression(new CToSeqExpression(pKGreaterZero), notSyncAndNotConflict);
+      //  -> negate (we want no conflict if we ignore round_max == 0)
+      return new SeqLogicalOrExpression(
+          new CToSeqExpression(pRoundMaxGreaterZero), notSyncAndNotConflict);
     } else {
-      return new CToSeqExpression(pKGreaterZero);
+      return new CToSeqExpression(pRoundMaxGreaterZero);
     }
   }
 
@@ -245,11 +247,12 @@ public class NumStatementsNondeterministicSimulation {
     CExpressionAssignmentStatement countDecrement =
         SeqStatementBuilder.buildDecrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
     // round
-    CBinaryExpression rSmallerK =
+    CBinaryExpression roundSmallerK =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.R, pThread.getKVariable().orElseThrow(), BinaryOperator.LESS_THAN);
+            SeqIdExpression.ROUND, pThread.getKVariable().orElseThrow(), BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement rIncrement =
-        SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.R, pBinaryExpressionBuilder);
+        SeqStatementBuilder.buildIncrementStatement(
+            SeqIdExpression.ROUND, pBinaryExpressionBuilder);
     // sync
     CIdExpression syncFlag = pGhostElements.getThreadSyncFlags().getSyncFlag(pThread);
 
@@ -263,7 +266,7 @@ public class NumStatementsNondeterministicSimulation {
                 block,
                 countIncrement,
                 countDecrement,
-                rSmallerK,
+                roundSmallerK,
                 rIncrement,
                 syncFlag,
                 labelClauseMap));
@@ -280,8 +283,8 @@ public class NumStatementsNondeterministicSimulation {
       SeqThreadStatementBlock pBlock,
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement,
-      CBinaryExpression pRSmallerK,
-      CExpressionAssignmentStatement pRIncrement,
+      CBinaryExpression pRoundSmallerK,
+      CExpressionAssignmentStatement pRoundIncrement,
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -289,7 +292,7 @@ public class NumStatementsNondeterministicSimulation {
         tryInjectCountUpdatesIntoBlock(pOptions, pBlock, pCountIncrement, pCountDecrement);
     SeqThreadStatementBlock withRoundGoto =
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-            pOptions, withCountUpdate, pRSmallerK, pRIncrement, pLabelClauseMap);
+            pOptions, withCountUpdate, pRoundSmallerK, pRoundIncrement, pLabelClauseMap);
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
         pOptions, withRoundGoto, pSyncFlag, pLabelClauseMap);
   }

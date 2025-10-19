@@ -93,11 +93,13 @@ public class SeqExpressions {
 
     public static final CIdExpression CNT = buildIdExpression(SeqVariableDeclaration.CNT);
 
-    public static final CIdExpression K = buildIdExpression(SeqVariableDeclaration.K_SIGNED);
+    public static final CIdExpression ROUND_MAX =
+        buildIdExpression(SeqVariableDeclaration.ROUND_MAX_SIGNED);
 
-    public static final CIdExpression R = buildIdExpression(SeqVariableDeclaration.R);
+    public static final CIdExpression ROUND = buildIdExpression(SeqVariableDeclaration.ROUND);
 
-    public static final CIdExpression I = buildIdExpression(SeqVariableDeclaration.I);
+    public static final CIdExpression ITERATION =
+        buildIdExpression(SeqVariableDeclaration.ITERATION);
 
     // functions:
 

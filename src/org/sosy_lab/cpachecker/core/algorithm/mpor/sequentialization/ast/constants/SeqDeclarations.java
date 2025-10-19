@@ -51,32 +51,33 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             true, CNumericTypes.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
-    // cnt
+    // cnt (thread count)
 
-    // TODO add long variable name option for all of these?
     public static final CVariableDeclaration CNT =
         buildVariableDeclaration(
             false, CNumericTypes.UNSIGNED_INT, SeqToken.cnt, SeqInitializer.INT_1);
 
-    // K
+    // round_max
 
-    public static final CVariableDeclaration K_SIGNED =
-        buildVariableDeclaration(false, CNumericTypes.INT, SeqToken.K, SeqInitializer.INT_0);
-
-    public static final CVariableDeclaration K_UNSIGNED =
+    public static final CVariableDeclaration ROUND_MAX_SIGNED =
         buildVariableDeclaration(
-            false, CNumericTypes.UNSIGNED_INT, SeqToken.K, SeqInitializer.INT_0);
+            false, CNumericTypes.INT, SeqToken.round_max, SeqInitializer.INT_0);
 
-    // r
-
-    public static final CVariableDeclaration R =
+    public static final CVariableDeclaration ROUND_MAX_UNSIGNED =
         buildVariableDeclaration(
-            false, CNumericTypes.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
+            false, CNumericTypes.UNSIGNED_INT, SeqToken.round_max, SeqInitializer.INT_0);
 
-    // i
+    // round
 
-    public static final CVariableDeclaration I =
-        buildVariableDeclaration(false, CNumericTypes.INT, SeqToken.i, SeqInitializer.INT_0);
+    public static final CVariableDeclaration ROUND =
+        buildVariableDeclaration(
+            false, CNumericTypes.UNSIGNED_INT, SeqToken.round, SeqInitializer.INT_0);
+
+    // iteration
+
+    public static final CVariableDeclaration ITERATION =
+        buildVariableDeclaration(
+            false, CNumericTypes.INT, SeqToken.iteration, SeqInitializer.INT_0);
   }
 
   public static class SeqParameterDeclaration {

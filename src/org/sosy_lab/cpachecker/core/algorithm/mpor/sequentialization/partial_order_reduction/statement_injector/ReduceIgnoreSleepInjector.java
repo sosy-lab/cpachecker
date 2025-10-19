@@ -37,7 +37,7 @@ class ReduceIgnoreSleepInjector {
 
   static SeqThreadStatement injectIgnoreSleepReductionIntoStatement(
       MPOROptions pOptions,
-      Optional<CIdExpression> pKVariable,
+      Optional<CIdExpression> pRoundVariable,
       ImmutableSet<MPORThread> pOtherThreads,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -65,7 +65,7 @@ class ReduceIgnoreSleepInjector {
                   pBinaryExpressionBuilder);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
-                  pKVariable,
+                  pRoundVariable,
                   pCurrentStatement,
                   evaluationExpression,
                   newTarget,
@@ -81,7 +81,7 @@ class ReduceIgnoreSleepInjector {
   }
 
   private static SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
-      Optional<CIdExpression> pKVariable,
+      Optional<CIdExpression> pRoundMaxVariable,
       SeqThreadStatement pStatement,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause,
@@ -97,7 +97,7 @@ class ReduceIgnoreSleepInjector {
       }
     }
     return new SeqIgnoreSleepReductionStatement(
-        pKVariable.isPresent() ? pKVariable.orElseThrow() : SeqIdExpression.K,
+        pRoundMaxVariable.isPresent() ? pRoundMaxVariable.orElseThrow() : SeqIdExpression.ROUND_MAX,
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
         reductionAssumptions.build(),

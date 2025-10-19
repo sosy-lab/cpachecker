@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
- * C program. The sequentialization contains reductions in the state space by grouping commuting
- * statements together. Sequentializations can be given to any verifier capable of verifying
- * sequential C programs, hence modular.
+ * C program. The algorithm contains options that allow both static and dynamic reductions in the
+ * state space. Sequentializations can be given to any verifier capable of verifying sequential C
+ * programs, hence modular.
  */
 @Options(prefix = "analysis.algorithm.MPOR")
 @SuppressWarnings("unused") // this is necessary because we don't use the cpa and config

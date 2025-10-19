@@ -217,7 +217,7 @@ public class SeqMainFunction extends SeqFunction {
     } else {
       return Optional.of(
           new SeqForExpression(
-              SeqIdExpression.I, pOptions.loopIterations, pBinaryExpressionBuilder));
+              SeqIdExpression.ITERATION, pOptions.loopIterations, pBinaryExpressionBuilder));
     }
   }
 }

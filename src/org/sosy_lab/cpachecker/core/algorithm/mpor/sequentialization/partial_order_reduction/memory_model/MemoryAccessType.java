@@ -15,7 +15,7 @@ public enum MemoryAccessType {
   NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
   /** For both read and write. */
   ACCESS(SeqToken.a, SeqToken.ACCESS),
-  READ(SeqToken.r, SeqToken.READ),
+  READ(SeqToken.round, SeqToken.READ),
   WRITE(SeqToken.w, SeqToken.WRITE);
 
   public final String shortName;

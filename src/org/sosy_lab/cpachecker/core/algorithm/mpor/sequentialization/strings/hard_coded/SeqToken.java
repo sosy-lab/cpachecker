@@ -73,8 +73,6 @@ public class SeqToken {
   /** d for direct */
   public static final String d = "d";
 
-  public static final String _default = "default";
-
   public static final String DIRECT = "DIRECT";
 
   public static final String dummy = "dummy";
@@ -95,9 +93,7 @@ public class SeqToken {
 
   public static final String _goto = "goto";
 
-  public static final String i = "i";
-
-  public static final String K = "K";
+  public static final String iteration = "i";
 
   public static final String __line = "__line";
 
@@ -141,9 +137,6 @@ public class SeqToken {
 
   public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
 
-  /** r for reachable */
-  public static final String r = "r";
-
   public static final String REACHABLE = "REACHABLE";
 
   public static final String reach_error = "reach_error";
@@ -155,6 +148,10 @@ public class SeqToken {
   public static final String _return = "return";
 
   public static final String return_value = "return_value";
+
+  public static final String round = "round";
+
+  public static final String round_max = "round_max";
 
   public static final String S = "S";
 

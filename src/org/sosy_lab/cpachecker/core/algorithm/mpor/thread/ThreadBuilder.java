@@ -303,7 +303,7 @@ public class ThreadBuilder {
 
   private static Optional<CIdExpression> tryBuildKVariable(MPOROptions pOptions, int pThreadId) {
     if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
-      String variableName = SeqNameUtil.buildThreadKVariable(pThreadId);
+      String variableName = SeqNameUtil.buildThreadRoundMaxVariable(pThreadId);
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               false,

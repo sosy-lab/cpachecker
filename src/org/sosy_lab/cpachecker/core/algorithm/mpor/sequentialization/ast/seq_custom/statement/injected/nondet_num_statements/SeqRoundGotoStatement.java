@@ -20,28 +20,28 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqRoundGotoStatement implements SeqInjectedStatement {
 
-  private final CBinaryExpression rSmallerK;
+  private final CBinaryExpression roundSmallerK;
 
-  private final CExpressionAssignmentStatement rIncrement;
+  private final CExpressionAssignmentStatement roundIncrement;
 
   private final SeqLabelStatement gotoLabel;
 
   public SeqRoundGotoStatement(
-      CBinaryExpression pRSmallerK,
-      CExpressionAssignmentStatement pRIncrement,
+      CBinaryExpression pRoundSmallerK,
+      CExpressionAssignmentStatement pRoundIncrement,
       SeqLabelStatement pGotoLabel) {
 
-    rSmallerK = pRSmallerK;
-    rIncrement = pRIncrement;
+    roundSmallerK = pRoundSmallerK;
+    roundIncrement = pRoundIncrement;
     gotoLabel = pGotoLabel;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqIfExpression ifExpression = new SeqIfExpression(rSmallerK);
+    SeqIfExpression ifExpression = new SeqIfExpression(roundSmallerK);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     String innerStatement =
-        rIncrement.toASTString() + SeqSyntax.SPACE + gotoStatement.toASTString();
+        roundIncrement.toASTString() + SeqSyntax.SPACE + gotoStatement.toASTString();
     return ifExpression.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyBracketsInwards(innerStatement);

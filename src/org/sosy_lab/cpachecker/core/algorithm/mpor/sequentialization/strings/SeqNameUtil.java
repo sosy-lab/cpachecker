@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
 
-  public static String buildThreadKVariable(int pThreadId) {
-    return SeqToken.K + pThreadId;
+  public static String buildThreadRoundMaxVariable(int pThreadId) {
+    return SeqToken.round_max + pThreadId;
   }
 
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
@@ -212,7 +212,7 @@ public class SeqNameUtil {
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
-        ? SeqToken.last + SeqSyntax.UNDERSCORE + SeqToken.b + SeqToken.r + pAccessType.shortName
+        ? SeqToken.last + SeqSyntax.UNDERSCORE + SeqToken.b + SeqToken.round + pAccessType.shortName
         : SeqToken.LAST
             + SeqSyntax.UNDERSCORE
             + SeqToken.BIT_VECTOR
@@ -255,7 +255,7 @@ public class SeqNameUtil {
         ? SeqToken.last
             + SeqSyntax.UNDERSCORE
             + SeqToken.b
-            + SeqToken.r
+            + SeqToken.round
             + pAccessType.shortName
             + SeqSyntax.UNDERSCORE
             + pMemoryLocation.getName()

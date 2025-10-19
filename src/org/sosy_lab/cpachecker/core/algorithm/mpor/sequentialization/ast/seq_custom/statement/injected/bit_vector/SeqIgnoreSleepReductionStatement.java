@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorStatement {
 
-  private final CIdExpression kVariable;
+  private final CIdExpression roundMaxVariable;
 
   private final BitVectorEvaluationExpression bitVectorEvaluationExpression;
 
@@ -36,13 +36,13 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public SeqIgnoreSleepReductionStatement(
-      CIdExpression pKVariable,
+      CIdExpression pRoundMaxVariable,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqBlockLabelStatement pNextLabel,
       ImmutableList<SeqInjectedStatement> pReductionAssumptions,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    kVariable = pKVariable;
+    roundMaxVariable = pRoundMaxVariable;
     bitVectorEvaluationExpression = pBitVectorEvaluationExpression;
     nextLabel = pNextLabel;
     reductionAssumptions = pReductionAssumptions;
@@ -79,7 +79,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
     SeqIfExpression ifKEqualsZero =
         new SeqIfExpression(
             binaryExpressionBuilder.buildBinaryExpression(
-                kVariable, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
+                roundMaxVariable, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
     // negate the evaluation expression
     SeqIfExpression ifCommutes = new SeqIfExpression(bitVectorEvaluationExpression.negate());
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
@@ -98,7 +98,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
 
   public SeqIgnoreSleepReductionStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqIgnoreSleepReductionStatement(
-        kVariable,
+        roundMaxVariable,
         bitVectorEvaluationExpression,
         nextLabel.cloneWithLabelNumber(pLabelNumber),
         reductionAssumptions,
@@ -109,7 +109,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
       ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
 
     return new SeqIgnoreSleepReductionStatement(
-        kVariable,
+        roundMaxVariable,
         bitVectorEvaluationExpression,
         nextLabel,
         pReductionAssumptions,
