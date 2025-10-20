@@ -63,7 +63,9 @@ public class SeqThreadStatementClauseBuilder {
         initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements, pLogger);
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
-        pOptions.pruneEmptyStatements ? SeqPruner.pruneClauses(initialClauses) : initialClauses;
+        pOptions.pruneEmptyStatements
+            ? SeqPruner.pruneClauses(pOptions, initialClauses, pLogger)
+            : initialClauses;
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
         pOptions.atomicBlockMerge ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;

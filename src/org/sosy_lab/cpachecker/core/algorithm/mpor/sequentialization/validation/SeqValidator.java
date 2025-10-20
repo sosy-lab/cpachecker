@@ -103,6 +103,7 @@ public class SeqValidator {
 
     tryValidateProgramCounters(pOptions, pClauses, pLogger);
     tryValidateNoBackwardGoto(pOptions, pClauses, pLogger);
+    tryValidateNoBlankClauses(pOptions, pClauses, pLogger);
   }
 
   // Program Counter (pc) ==========================================================================
@@ -260,6 +261,31 @@ public class SeqValidator {
                   pLogger);
             }
           }
+        }
+      }
+    }
+  }
+
+  // No Blank Clauses ==============================================================================
+
+  /** Checks that no clause is blank, when {@link MPOROptions#pruneEmptyStatements} is enabled. */
+  public static void tryValidateNoBlankClauses(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      LogManager pLogger) {
+
+    if (pOptions.pruneEmptyStatements) {
+      for (MPORThread thread : pClauses.keySet()) {
+        // ignore threads that have only one clause, they may be blank
+        if (pClauses.get(thread).size() > 1) {
+          for (SeqThreadStatementClause clause : pClauses.get(thread)) {
+            if (!clause.isBlank()) {
+              return;
+            }
+          }
+          handleValidationException(
+              String.format("thread %s contains a blank statement after pruning", thread.getId()),
+              pLogger);
         }
       }
     }

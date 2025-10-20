@@ -115,14 +115,13 @@ public class SeqThreadStatementClause implements SeqStatement {
     return new SeqThreadStatementClause(id, pLabelNumber, blocks);
   }
 
-  /**
-   * Returns true if all statements in the first {@link SeqThreadStatementBlock} are blank, i.e.
-   * they only update a pc.
-   */
-  public boolean onlyWritesPc() {
-    for (SeqThreadStatement statement : getFirstBlock().getStatements()) {
-      if (!statement.onlyWritesPc()) {
-        return false;
+  /** Returns true if all statements in all blocks are blank. */
+  public boolean isBlank() {
+    for (SeqThreadStatementBlock block : blocks) {
+      for (SeqThreadStatement statement : block.getStatements()) {
+        if (!statement.onlyWritesPc()) {
+          return false;
+        }
       }
     }
     return true;

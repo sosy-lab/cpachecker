@@ -36,7 +36,6 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       BitVectorEvaluationExpression pEvaluationExpression,
       SeqBlockLabelStatement pGotoLabel) {
 
-    // TODO handle empty evaluation expressions
     options = pOptions;
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
