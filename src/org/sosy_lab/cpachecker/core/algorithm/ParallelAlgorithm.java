@@ -290,14 +290,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleConfig,
             singleLogger,
             singleShutdownManager.getNotifier(),
-            aggregatedReachedSetManager.asView());
+            aggregatedReachedSetManager.asView(),
+            cfa);
 
     final ConfigurableProgramAnalysis cpa;
     final Algorithm algorithm;
     final ReachedSet reached;
     try {
-      cpa = coreComponents.createCPA(cfa, specification);
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      cpa = coreComponents.createCPA(specification);
+      algorithm = coreComponents.createAlgorithm(cpa, specification);
       reached = coreComponents.createReachedSet(cpa);
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
