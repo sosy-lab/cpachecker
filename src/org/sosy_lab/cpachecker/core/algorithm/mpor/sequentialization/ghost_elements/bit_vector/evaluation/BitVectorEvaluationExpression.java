@@ -12,7 +12,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorEvaluationExpression implements SeqExpression {
@@ -39,7 +38,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
     } else if (logicalExpression.isPresent()) {
       return logicalExpression.orElseThrow().toASTString();
     }
-    return SeqSyntax.EMPTY_STRING;
+    throw new IllegalStateException("both binaryExpression and logicalExpression are empty");
   }
 
   /**

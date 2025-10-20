@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -192,7 +191,7 @@ public class BitVectorAssignmentInjector {
     if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
-    CExpression bitVectorVariable =
+    CIdExpression bitVectorVariable =
         pBitVectorVariables.getDenseBitVector(pThread, pAccessType, pReachType);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pMemoryLocations);

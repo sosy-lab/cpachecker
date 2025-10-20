@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.thread_sync.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -232,11 +233,14 @@ public class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     Set<SeqInjectedStatement> pruned = new HashSet<>();
-    if (SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pInjectedStatements)) {
-      // prune all bit vector assignments if the evaluation expression is empty
+    if (containsEmptyBitVectorEvaluationExpression(pInjectedStatements)) {
       pruned.addAll(
           pInjectedStatements.stream()
-              .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
+              // prune all bit vector assignments and round goto statements if evaluation is empty
+              .filter(
+                  s ->
+                      s instanceof SeqBitVectorAssignmentStatement
+                          || s instanceof SeqRoundGotoStatement)
               .collect(ImmutableSet.toImmutableSet()));
     }
     return pInjectedStatements.stream()

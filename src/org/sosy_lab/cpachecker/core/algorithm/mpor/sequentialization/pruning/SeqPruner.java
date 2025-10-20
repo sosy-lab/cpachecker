@@ -44,13 +44,12 @@ public class SeqPruner {
         // if all case clauses are prunable then we want to include only the thread termination case
         //  e.g. goblint-regression/13-privatized_66-mine-W-init_true.i (t_fun exits immediately)
         if (allPrunable(clauses)) {
-          // TODO we should check that there are not multiple thread exits when all are prunable
-          SeqThreadStatementClause threadExit = getThreadExitClause(clauses);
+          SeqThreadStatementClause threadExit = getAnyThreadExitClause(clauses);
           SeqThreadStatementBlock firstBlock = threadExit.getFirstBlock();
-          // ensure that the single thread exit case clause has label INIT_PC
           rPruned.putAll(
               thread,
               ImmutableList.of(
+                  // ensure that the single thread exit case clause has label INIT_PC
                   threadExit.labelNumber == Sequentialization.INIT_PC
                       ? threadExit
                       : threadExit.cloneWithFirstBlock(
@@ -182,7 +181,7 @@ public class SeqPruner {
     return pNonBlank.labelNumber;
   }
 
-  private static SeqThreadStatementClause getThreadExitClause(
+  private static SeqThreadStatementClause getAnyThreadExitClause(
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     for (SeqThreadStatementClause clause : pClauses) {

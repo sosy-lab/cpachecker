@@ -8,19 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAssignmentStatement implements SeqInjectedBitVectorStatement {
 
-  // TODO CIdExpression?
-  public final CExpression variable;
+  public final CIdExpression variable;
 
   public final BitVectorValueExpression value;
 
-  public SeqBitVectorAssignmentStatement(CExpression pVariable, BitVectorValueExpression pValue) {
+  public SeqBitVectorAssignmentStatement(CIdExpression pVariable, BitVectorValueExpression pValue) {
     variable = pVariable;
     value = pValue;
   }

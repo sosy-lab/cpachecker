@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -56,11 +57,14 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
     SeqIfExpression ifExpression = new SeqIfExpression(lastThreadLessThanThreadId);
-    // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-    String assumeCall = SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString());
-    // add all LOC
     lines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
-    lines.add(assumeCall);
+    if (lastBitVectorEvaluation.isEmpty()) {
+      // if the evaluation is empty, it results in assume(0) i.e. abort()
+      lines.add(SeqFunctionCallExpressions.ABORT.toASTString());
+    } else {
+      // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
+      lines.add(SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString()));
+    }
     lines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return SeqStringUtil.joinWithNewlines(lines.build());
   }

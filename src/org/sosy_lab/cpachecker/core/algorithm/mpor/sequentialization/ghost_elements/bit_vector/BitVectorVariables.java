@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
@@ -65,7 +66,7 @@ public class BitVectorVariables {
     lastSparseWriteBitVector = pLastSparseWriteBitVector;
   }
 
-  public CExpression getDenseBitVector(
+  public CIdExpression getDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
     for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
