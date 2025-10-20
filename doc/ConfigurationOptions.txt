@@ -2695,8 +2695,8 @@ cpa.predicate.pseudoExistQE.useUPD = true
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# Acceptable redundancy percentage for added predicates for DelegatingRefiner
-# heuristic (0.0 - 1.0)
+# Acceptable redundancy percentage for added predicates for
+# PredicateDelegatingRefiner heuristic (0.0 - 1.0)
 cpa.predicate.refinement.acceptableRedundancyThreshold = 0.8
 
 # use only the atoms from the interpolantsas predicates, and not the whole
@@ -2713,11 +2713,11 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
 # Number of times the PredicateCPARefiner should run to collect data for
-# subsequent DelegatingRefiner heuristics 
-cpa.predicate.refinement.defaultFixedRuns = 10
+# subsequent PredicateDelegatingRefiner heuristics 
+cpa.predicate.refinement.defaultFixedRuns = 13
 
 # Acceptable number of interpolants generated per refinement for
-# DelegatingRefiner heuristic
+# PredicateDelegatingRefiner heuristic
 cpa.predicate.refinement.defaultInterpolantRate = 7.0
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
@@ -2748,8 +2748,8 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 # BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)
 cpa.predicate.refinement.graphblockformulastrategy = false
 
-# List of heuristic-refiner pairs for the DelegatingRefiner. Only use when
-# usePredicateDelegatingRefiner = true.
+# List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only
+# use when usePredicateDelegatingRefiner = true.
 cpa.predicate.refinement.heuristicRefinerPairs = [
           "STATIC:STATIC",
           "DEFAULT_N_TIMES:DEFAULT",
@@ -2889,7 +2889,7 @@ cpa.predicate.refinement.useNewtonRefinement = false
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
 
-# use DelegatingRefiner to switch between refiners bases on a set of
+# use PredicateDelegatingRefiner to switch between refiners bases on a set of
 # heuristics.
 cpa.predicate.refinement.usePredicateDelegatingRefiner = false
 

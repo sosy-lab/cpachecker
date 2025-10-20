@@ -296,6 +296,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
                 abstractionStatesTrace,
                 counterexample.getInterpolants(),
                 repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
+        // Used to collect data for DelegatingRefinerHeuristicInterpolationRate for
+        // PredicateDelegatingRefiner
         refinementContext.storeInterpolants(counterexample.getInterpolants());
         refinementContext.storeNumberOfRefinements(totalRefinement.getUpdateCount());
 

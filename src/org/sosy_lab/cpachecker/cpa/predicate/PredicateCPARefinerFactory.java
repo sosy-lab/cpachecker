@@ -76,13 +76,13 @@ public final class PredicateCPARefinerFactory {
   @Option(
       secure = true,
       description =
-          "use DelegatingRefiner to switch between refiners bases on a set of heuristics.")
+          "use PredicateDelegatingRefiner to switch between refiners bases on a set of heuristics.")
   private boolean usePredicateDelegatingRefiner = false;
 
   @Option(
       secure = true,
       description =
-          "List of heuristic-refiner pairs for the DelegatingRefiner. Only use when"
+          "List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only use when"
               + " usePredicateDelegatingRefiner = true.")
   private ImmutableList<String> heuristicRefinerPairs =
       ImmutableList.of(
@@ -95,21 +95,21 @@ public final class PredicateCPARefinerFactory {
       secure = true,
       description =
           "Number of times the PredicateCPARefiner should run to collect data for subsequent"
-              + " DelegatingRefiner heuristics ")
-  private int defaultFixedRuns = 10;
+              + " PredicateDelegatingRefiner heuristics ")
+  private int defaultFixedRuns = 13;
 
   @Option(
       secure = true,
       description =
-          "Acceptable number of interpolants generated per refinement for DelegatingRefiner"
-              + " heuristic")
+          "Acceptable number of interpolants generated per refinement for"
+              + " PredicateDelegatingRefiner heuristic")
   private double defaultInterpolantRate = 7.0;
 
   @Option(
       secure = true,
       description =
-          "Acceptable redundancy percentage for added predicates for DelegatingRefiner heuristic"
-              + " (0.0 - 1.0)")
+          "Acceptable redundancy percentage for added predicates for PredicateDelegatingRefiner"
+              + " heuristic (0.0 - 1.0)")
   private double acceptableRedundancyThreshold = 0.8;
 
   private final PredicateCPA predicateCpa;
