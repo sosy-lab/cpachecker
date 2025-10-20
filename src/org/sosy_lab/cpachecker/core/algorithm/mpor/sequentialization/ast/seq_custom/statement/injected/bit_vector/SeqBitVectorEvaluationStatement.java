@@ -55,7 +55,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       return ifExpression.toASTStringWithSeqAstNodeBlock(ImmutableList.of(gotoStatement));
 
     } else {
-      return SeqAssumptionBuilder.buildAssumption(evaluationExpression.toASTString());
+      return SeqAssumptionBuilder.buildAssumption(evaluationExpression);
     }
   }
 

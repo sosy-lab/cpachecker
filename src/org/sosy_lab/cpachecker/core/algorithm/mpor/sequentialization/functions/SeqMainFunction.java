@@ -57,8 +57,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
+      LogManager pLogger) {
 
     options = pOptions;
     fields = pFields;

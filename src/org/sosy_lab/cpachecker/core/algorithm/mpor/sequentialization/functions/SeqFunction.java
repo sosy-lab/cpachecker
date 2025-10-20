@@ -41,7 +41,6 @@ public abstract class SeqFunction {
         getParameterDeclarations().stream()
             .map(CParameterDeclaration::getType)
             .collect(ImmutableList.toImmutableList()),
-        // TODO add support
         false);
   }
 
@@ -51,7 +50,6 @@ public abstract class SeqFunction {
         getFunctionType(),
         getFunctionName().toASTString(),
         getParameterDeclarations(),
-        // TODO add support
         ImmutableSet.of());
   }
 

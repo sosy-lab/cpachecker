@@ -63,7 +63,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
       lines.add(SeqFunctionCallExpressions.ABORT.toASTString());
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-      lines.add(SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString()));
+      lines.add(SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation));
     }
     lines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return SeqStringUtil.joinWithNewlines(lines.build());

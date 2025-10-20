@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -33,10 +34,10 @@ public class SeqAssumptionBuilder {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
   }
 
-  public static String buildAssumption(String pCondition) {
+  public static String buildAssumption(SeqExpression pCondition) throws UnrecognizedCodeException {
     return SeqFunctionDeclaration.ASSUME.getName()
         + SeqSyntax.BRACKET_LEFT
-        + pCondition
+        + pCondition.toASTString()
         + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.SEMICOLON;
   }

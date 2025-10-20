@@ -191,7 +191,10 @@ public class BitVectorUtil {
     return pHexLength * 4;
   }
 
-  // TODO it would be great to also include bit vector direction here (current/last)
+  /**
+   * Returns {@code true} if creating a bit vector with the given {@link MemoryAccessType} and
+   * {@link ReachType} is required based on the specified options.
+   */
   public static boolean isAccessReachPairNeeded(
       MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
 

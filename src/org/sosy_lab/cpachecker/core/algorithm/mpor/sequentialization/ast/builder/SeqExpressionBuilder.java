@@ -57,6 +57,7 @@ public class SeqExpressionBuilder {
 
   // CBinaryExpression =============================================================================
 
+  /** Returns a list of {@code pc{thread_id} != 0} expressions for all {@code pPcLeftHandSides}. */
   public static ImmutableList<CBinaryExpression> buildThreadNotActiveExpressions(
       ImmutableList<CLeftHandSide> pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -69,10 +70,7 @@ public class SeqExpressionBuilder {
     return rExpressions.build();
   }
 
-  /**
-   * Returns {@code pc[pThreadId] != -1} for array and {@code pc{pThreadId} != -1} for scalar {@code
-   * pc}.
-   */
+  /** Returns {@code pc{thread_id} != 0}. */
   public static CBinaryExpression buildPcUnequalExitPc(
       CLeftHandSide pPcLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
