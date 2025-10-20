@@ -176,11 +176,11 @@ public final class ResourceLimitChecker {
     }
 
     // Unify all time-limits to the same unit
-    TimeSpan threadTimeLimit = options.threadTime.toChecked(TimeUnit.SECONDS);
-    final TimeSpan cpuTimeLimit = options.cpuTime.toChecked(TimeUnit.SECONDS);
-    final TimeSpan relativeThreadTime = options.relativeThreadTime.toChecked(TimeUnit.SECONDS);
-    final TimeSpan maximumThreadTime = options.threadTimeMax.toChecked(TimeUnit.SECONDS);
-    final TimeSpan minimumThreadTime = options.threadTimeMin.toChecked(TimeUnit.SECONDS);
+    TimeSpan threadTimeLimit = options.threadTime.toChecked(TimeUnit.NANOSECONDS);
+    final TimeSpan cpuTimeLimit = options.cpuTime.toChecked(TimeUnit.NANOSECONDS);
+    final TimeSpan relativeThreadTime = options.relativeThreadTime.toChecked(TimeUnit.NANOSECONDS);
+    final TimeSpan maximumThreadTime = options.threadTimeMax.toChecked(TimeUnit.NANOSECONDS);
+    final TimeSpan minimumThreadTime = options.threadTimeMin.toChecked(TimeUnit.NANOSECONDS);
 
     if (relativeThreadTime.compareTo(TimeSpan.empty()) > 0) {
       if (cpuTimeLimit.compareTo(TimeSpan.empty()) >= 0) {
@@ -301,23 +301,9 @@ public final class ResourceLimitChecker {
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.relativeTo",
+        name = "time.cpu.thread.factor",
         description =
-            "When used, the thread-time-limit used is not equal to \"time.cpu.thread\","
-                + " but relative to the total cpu-time-limit (\"time.cpu\") multiplied with the"
-                + " proportion of \"time.cpu.thread\" by the setting of this option."
-                + " Assuming the following options to be \"time.cpu.thread\" ="
-                + " threadTime, \"time.cpu\" = cpuTime, and \"time.cpu.thread.relativeTo\""
-                + " = relativeTime, and the used time-limit for a thread to be usedThreadTime,"
-                + " then: (threadTime / relativeTime) * cpuTime = usedThreadTime. For example,"
-                + " setting \"time.cpu.thread\" = 60s, \"time.cpu\" = 900s, and"
-                + " \"time.cpu.thread.relativeTo\" = 600s, then the time-limit used for the"
-                + " thread will be 90s (= 60/600*900). This option is disabled for values in the"
-                + " negative range and does not work for distinct time-units used in between the"
-                + " three related options. Can only be used if \"time.cpu.thread\" is"
-                + " used as well. If \"time.cpu\" is not used, i.e. a unlimited time-limit is used"
-                + " for it, this option will behave as dictated by option"
-                + " \"time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime\".")
+            "When used, the thread-time-limit used .")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan relativeThreadTime = TimeSpan.ofNanos(-1);
   }
