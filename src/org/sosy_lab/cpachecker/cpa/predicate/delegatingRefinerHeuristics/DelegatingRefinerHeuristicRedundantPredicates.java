@@ -262,8 +262,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       logger.logf(
           Level.INFO,
           "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
-              + " pattern %s is growing ",
-          pCurrentDominantPattern);
+              + " pattern %s is growing, total patternsize is at %d",
+          pCurrentDominantPattern,
+          pPatternSize);
       return true;
     }
     return false;
@@ -274,7 +275,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     double maxRedundancyDetectedCategories = calculateMaxRedundancy(pCategoryFrequency);
     boolean isOneCategoryDominant = maxRedundancyDetectedCategories > CATEGORY_REDUNDANCY_THRESHOLD;
 
-    if (pPatternSize > 1000 && isOneCategoryDominant) {
+    if (pPatternSize > 2000 && isOneCategoryDominant) {
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
           Level.INFO,
