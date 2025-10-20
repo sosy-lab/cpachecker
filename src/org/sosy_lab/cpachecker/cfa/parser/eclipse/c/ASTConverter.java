@@ -2755,12 +2755,36 @@ class ASTConverter {
 
     List<CDesignator> designators = new ArrayList<>(desInit.length);
 
+    CType currentContainerType = type.getCanonicalType();
+
     // convert all designators
     for (ICASTDesignator designator : desInit) {
       CDesignator r =
           switch (designator) {
-            case ICASTFieldDesignator iCASTFieldDesignator ->
-                new CFieldDesignator(fileLoc, convert(iCASTFieldDesignator.getName()));
+            case ICASTFieldDesignator iCASTFieldDesignator -> {
+              final String requestedFieldName = convert(iCASTFieldDesignator.getName());
+              if (currentContainerType instanceof CCompositeType ownerType) {
+                // Try to find a path through anonymous members.
+                List<Pair<String, CType>> path =
+                    getWayToInnerField(ownerType, requestedFieldName, fileLoc, new ArrayList<>());
+                if (!path.isEmpty()) {
+                  // Emit all designators along the path.
+                  for (Pair<String, CType> step : path) {
+                    designators.add(new CFieldDesignator(fileLoc, step.getFirst()));
+                  }
+                  currentContainerType = path.getLast().getSecond().getCanonicalType();
+                  yield null; // Already added inside.
+                } else {
+                  currentContainerType =
+                      findDirectMemberType(ownerType, requestedFieldName)
+                          .orElse(currentContainerType);
+                  yield new CFieldDesignator(fileLoc, requestedFieldName);
+                }
+              } else {
+                yield new CFieldDesignator(fileLoc, requestedFieldName);
+              }
+            }
+
             case ICASTArrayDesignator iCASTArrayDesignator ->
                 new CArrayDesignator(
                     fileLoc,
@@ -2775,10 +2799,22 @@ class ASTConverter {
                         iGCCASTArrayRangeDesignator.getRangeCeiling()));
             default -> throw parseContext.parseError("Unsupported Designator", designator);
           };
-      designators.add(r);
+      if (r != null) {
+        designators.add(r);
+      }
     }
 
     return new CDesignatedInitializer(fileLoc, designators, cInit);
+  }
+
+  /** Find the direct member type for a field of a composite type (no anonymous traversal). */
+  private static Optional<CType> findDirectMemberType(CCompositeType owner, String fieldName) {
+    for (CCompositeTypeMemberDeclaration m : owner.getMembers()) {
+      if (m.getName().equals(fieldName)) {
+        return Optional.of(m.getType().getCanonicalType());
+      }
+    }
+    return Optional.empty();
   }
 
   private CInitializer convert(
