@@ -75,7 +75,7 @@ public class DssBlockAnalysis {
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
-  record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
+  private record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
 
     private ARGState getLastState() {
       return states.getLast();
