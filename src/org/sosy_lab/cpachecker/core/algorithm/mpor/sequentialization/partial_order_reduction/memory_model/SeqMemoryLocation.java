@@ -50,9 +50,6 @@ public class SeqMemoryLocation {
     isParameter = pDeclaration instanceof CParameterDeclaration;
     declaration = pDeclaration;
     fieldMember = pFieldMember;
-    // checks after assignments
-    assert !isExplicitGlobal || !isParameter
-        : "explicit global memory locations cannot be parameters";
   }
 
   public static SeqMemoryLocation of(

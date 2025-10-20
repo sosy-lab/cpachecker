@@ -79,7 +79,7 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, ensure that no backward goto exist
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         pOptions.noBackwardGoto
-            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses, pLogger)
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(pOptions, reducedClauses, pLogger)
             : reducedClauses;
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
@@ -87,7 +87,7 @@ public class SeqThreadStatementClauseBuilder {
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
     // validate clauses based on pOptions
-    SeqValidator.validateClauses(pOptions, consecutiveLabels, pLogger);
+    SeqValidator.tryValidateClauses(pOptions, consecutiveLabels, pLogger);
     return consecutiveLabels;
   }
 
@@ -118,7 +118,8 @@ public class SeqThreadStatementClauseBuilder {
               pGhostElements));
       rClauses.putAll(thread, clauses.build());
     }
-    SeqValidator.validateClauses(pOptions, rClauses.build(), pLogger);
+    // only check pc validation, since clauses are not reordered at this point
+    SeqValidator.tryValidateProgramCounters(pOptions, rClauses.build(), pLogger);
     return reorderClauses(rClauses.build());
   }
 

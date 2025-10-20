@@ -89,55 +89,49 @@ public class SeqValidator {
 
   // Clauses =======================================================================================
 
-  public static void validateClauses(
+  // TODO validate that if there is a ThreadJoin, MutexLock etc. that it MUST be the
+  //  first statement
+
+  /**
+   * Validates correctness properties of {@code pClauses} based on the options set in {@code
+   * pOptions}.
+   */
+  public static void tryValidateClauses(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
 
-    if (pOptions.validatePc) {
-      validateProgramCounters(pClauses, pLogger);
-    }
-    if (pOptions.validateNoBackwardGoto) {
-      for (MPORThread thread : pClauses.keySet()) {
-        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
-        validateBlockLabelLessThanTargetLabel(pOptions, thread, labelBlockMap, pLogger);
-      }
-    }
+    tryValidateProgramCounters(pOptions, pClauses, pLogger);
+    tryValidateNoBackwardGoto(pOptions, pClauses, pLogger);
   }
 
   // Program Counter (pc) ==========================================================================
 
   /**
-   * Returns {@code pClauses} as is or throws an {@link AssertionError} if:
+   * If enabled in {@code pOptions}, ensures that all {@code pc} writes are to a valid location
+   * (except exit), and that all locations are at some point written to (except start).
    *
-   * <ul>
-   *   <li>not all origin {@code pc} are also target {@code pc} somewhere in the thread simulation,
-   *       except {@link Sequentialization#INIT_PC}
-   *   <li>not all target {@code pc} (e.g. {@code 42} in {@code pc[0] = 42;} are present as origin
-   *       {@code pc} (e.g. {@code case 42:}), except {@link Sequentialization#EXIT_PC}
-   * </ul>
-   *
-   * Every sequentialization needs to fulfill this property, otherwise it is faulty.
+   * <p>Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
-  private static void validateProgramCounters(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
+  public static void tryValidateProgramCounters(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      LogManager pLogger) {
 
-    // TODO validate that if there is a ThreadJoin, MutexLock etc. that it MUST be the
-    //  first statement in the clause so that total strict orders can be enforced
-
-    for (MPORThread thread : pClauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
-      // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
-      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(clauses);
-      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      ImmutableSet<Integer> allTargetPcs =
-          pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
-      for (var pcEntry : pcMap.entrySet()) {
-        validateLabelPcAsTargetPc(
-            pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.getId(), pLogger);
-        validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.getId(), pLogger);
+    if (pOptions.validatePc) {
+      for (MPORThread thread : pClauses.keySet()) {
+        ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
+        // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
+        ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(clauses);
+        ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
+        ImmutableSet<Integer> allTargetPcs =
+            pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
+        for (var pcEntry : pcMap.entrySet()) {
+          validateLabelPcAsTargetPc(
+              pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.getId(), pLogger);
+          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.getId(), pLogger);
+        }
       }
     }
   }
@@ -221,6 +215,24 @@ public class SeqValidator {
     for (SeqThreadStatementBlock blockA : pBlocksA) {
       if (!pBlocksB.contains(blockA)) {
         handleValidationException("pBlocksB does not contain all blocks from pBlocksA", pLogger);
+      }
+    }
+  }
+
+  /**
+   * Validates that all {@code goto} statements inside a thread simulation target a forward
+   * location.
+   */
+  public static void tryValidateNoBackwardGoto(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      LogManager pLogger) {
+
+    if (pOptions.validateNoBackwardGoto) {
+      for (MPORThread thread : pClauses.keySet()) {
+        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
+        validateBlockLabelLessThanTargetLabel(pOptions, thread, labelBlockMap, pLogger);
       }
     }
   }
