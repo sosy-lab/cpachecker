@@ -75,6 +75,33 @@ public class DssBlockAnalysis {
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
+  record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
+
+    private ARGState getLastState() {
+      return states.getLast();
+    }
+
+    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
+      if (!edges.isEmpty()) {
+        CFAEdge lastEdge = edges.getLast();
+        if (!lastEdge.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
+          List<CFAEdge> path = new ArrayList<>();
+          path.add(lastEdge);
+          CFAEdge last = lastEdge;
+          while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
+            Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
+            path.add(Iterables.getOnlyElement(successors));
+            last = path.getLast();
+          }
+          pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
+        }
+      }
+      return new ArgPathWithEdges(
+          listAndElement(states, pNewParent),
+          ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
+    }
+  }
+
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
@@ -205,33 +232,6 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
       throws CPAException, InterruptedException, SolverException {
     return reportViolationConditions(violations, null, true);
-  }
-
-  record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
-
-    private ARGState getLastState() {
-      return states.getLast();
-    }
-
-    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
-      if (!edges.isEmpty()) {
-        CFAEdge lastEdge = edges.getLast();
-        if (!lastEdge.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-          List<CFAEdge> path = new ArrayList<>();
-          path.add(lastEdge);
-          CFAEdge last = lastEdge;
-          while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
-            Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
-            path.add(Iterables.getOnlyElement(successors));
-            last = path.getLast();
-          }
-          pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
-        }
-      }
-      return new ArgPathWithEdges(
-          listAndElement(states, pNewParent),
-          ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
-    }
   }
 
   private Collection<ARGPath> allArgPathsFromState(ARGState state) {
