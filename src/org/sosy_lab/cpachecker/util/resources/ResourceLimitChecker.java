@@ -175,14 +175,12 @@ public final class ResourceLimitChecker {
       return;
     }
 
-    // Use threadTime per default
-    TimeSpan threadTimeLimit = options.threadTime;
-    final TimeSpan cpuTimeLimit = options.cpuTime;
-    final TimeSpan relativeThreadTime = options.relativeThreadTime;
-    final TimeSpan maximumThreadTime = options.threadTimeMax;
-    final TimeSpan minimumThreadTime = options.threadTimeMin;
-
-    // TODO: unify time-units of times!
+    // Unify all time-limits to the same unit
+    TimeSpan threadTimeLimit = options.threadTime.toChecked(TimeUnit.SECONDS);
+    final TimeSpan cpuTimeLimit = options.cpuTime.toChecked(TimeUnit.SECONDS);
+    final TimeSpan relativeThreadTime = options.relativeThreadTime.toChecked(TimeUnit.SECONDS);
+    final TimeSpan maximumThreadTime = options.threadTimeMax.toChecked(TimeUnit.SECONDS);
+    final TimeSpan minimumThreadTime = options.threadTimeMin.toChecked(TimeUnit.SECONDS);
 
     if (relativeThreadTime.compareTo(TimeSpan.empty()) > 0) {
       if (cpuTimeLimit.compareTo(TimeSpan.empty()) >= 0) {
