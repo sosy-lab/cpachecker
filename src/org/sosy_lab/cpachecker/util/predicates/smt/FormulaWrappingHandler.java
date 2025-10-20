@@ -59,6 +59,10 @@ final class FormulaWrappingHandler {
     return encodeBitvectorAs == Theory.BITVECTOR;
   }
 
+  boolean useIntForBitvectors() {
+    return encodeBitvectorAs == Theory.INTEGER;
+  }
+
   @SuppressWarnings("unchecked")
   <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
@@ -133,7 +137,10 @@ final class FormulaWrappingHandler {
         case BITVECTOR -> FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
         case INTEGER -> FormulaType.IntegerType;
         case RATIONAL -> FormulaType.RationalType;
-        default -> throw new AssertionError("unexpected encoding for integers: " + type);
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeIntegerAs set to UNSUPPORTED, but integers were attempted to be used");
+        default -> throw new AssertionError("unexpected encoding for integers: " + encodeIntegerAs);
       };
     }
 
@@ -142,7 +149,11 @@ final class FormulaWrappingHandler {
         case BITVECTOR -> type;
         case INTEGER -> FormulaType.IntegerType;
         case RATIONAL -> FormulaType.RationalType;
-        default -> throw new AssertionError("unexpected encoding for bitvectors: " + type);
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeBitvectorAs set to UNSUPPORTED, but bitvectors were attempted to be used");
+        default ->
+            throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
       };
     }
 
@@ -151,7 +162,10 @@ final class FormulaWrappingHandler {
         case FLOAT -> type;
         case INTEGER -> FormulaType.IntegerType;
         case RATIONAL -> FormulaType.RationalType;
-        default -> throw new AssertionError("unexpected encoding for floats: " + type);
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeFloatAs set to UNSUPPORTED, but floats  were attempted to be used");
+        default -> throw new AssertionError("unexpected encoding for floats: " + encodeFloatAs);
       };
     }
 

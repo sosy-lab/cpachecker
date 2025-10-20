@@ -403,8 +403,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         argForPathFormulaBasedGeneration.add(
             Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
-      } else if (!node.equals(
-          extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
+      } else if (!node.equals(extractLocation(abstractionStatesTrace.getLast()))) {
         argForPathFormulaBasedGeneration.add(Pair.of(null, node));
       }
     }
@@ -591,9 +590,14 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
     try {
       stats.pfKindTime.start();
 
-      Set<BooleanFormula> conjuncts =
-          Collections3.transformedImmutableSetCopy(
-              semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      final Set<BooleanFormula> conjuncts;
+      try {
+        conjuncts =
+            Collections3.transformedImmutableSetCopy(
+                semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed with exception", e);
+      }
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
@@ -707,7 +711,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (ARGState s : abstractionStatesTrace) {
         // the last one will always be false, we don't need it here
-        if (!Objects.equals(s, abstractionStatesTrace.get(abstractionStatesTrace.size() - 1))) {
+        if (!Objects.equals(s, abstractionStatesTrace.getLast())) {
           CFANode location = extractLocation(s);
           Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
@@ -892,7 +896,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       return candidates.iterator();
     }
 
-    public boolean hasFoundInvariants() {
+    boolean hasFoundInvariants() {
       return !foundInvariants.isEmpty();
     }
 
@@ -901,13 +905,13 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       return new HashSet<>(foundInvariants);
     }
 
-    public List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
+    List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
       FluentIterable<CandidateInvariant> found = from(foundInvariants);
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (final CFANode node : abstractionNodes) {
         // we don't want the last node to be here, as the invariant will always
         // be FALSE
-        if (node.equals(abstractionNodes.get(abstractionNodes.size() - 1))) {
+        if (node.equals(abstractionNodes.getLast())) {
           continue;
         }
         invariants.add(
@@ -948,7 +952,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
 
     private final LogManager logger;
 
-    public OnlyWarningsLogmanager(LogManager pLogger) {
+    OnlyWarningsLogmanager(LogManager pLogger) {
       logger = pLogger;
     }
 

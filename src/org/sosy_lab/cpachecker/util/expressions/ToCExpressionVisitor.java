@@ -37,9 +37,12 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.get(0);
+    CExpression result = elements.getFirst();
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
+      // TODO: AFAIK this should be wrong, since the result of a binary AND operation must not
+      //   be the same as a boolean AND, e.g. 01 & 10 = 00, but 01 && 10 = true.
+      //   but I don't know how to fix this. Therefore I leave it as a comment.
       result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_AND);
     }
 
@@ -53,7 +56,7 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.get(0);
+    CExpression result = elements.getFirst();
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
       result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_OR);
@@ -65,8 +68,8 @@ public class ToCExpressionVisitor
   @Override
   protected CExpression cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
       throws UnrecognizedCodeException {
-    if (pLeafExpression.getExpression() instanceof CExpression) {
-      return (CExpression) pLeafExpression.getExpression();
+    if (pLeafExpression.getExpression() instanceof CExpression cExpression) {
+      return cExpression;
     }
     throw new AssertionError("Unsupported expression type.");
   }

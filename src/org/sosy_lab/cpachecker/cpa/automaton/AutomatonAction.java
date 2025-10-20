@@ -139,8 +139,8 @@ abstract class AutomatonAction {
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
         AutomatonVariable automatonVariable = vars.get(varId);
-        if (automatonVariable instanceof AutomatonIntVariable) {
-          ((AutomatonIntVariable) automatonVariable).setValue(res.getValue());
+        if (automatonVariable instanceof AutomatonIntVariable automatonIntVariable) {
+          automatonIntVariable.setValue(res.getValue());
         } else {
           throw new CPATransferException(
               "Cannot assign integer expression to variable '" + automatonVariable.getName() + "'");

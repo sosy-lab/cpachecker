@@ -128,8 +128,8 @@ public class CPAcheckerResult {
       return;
     }
 
-    if (reached instanceof ResultProviderReachedSet) {
-      ((ResultProviderReachedSet) reached).printResults(out);
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      resultProviderReachedSet.printResults(out);
     }
     if (result == Result.DONE) {
       out.println("Finished.");

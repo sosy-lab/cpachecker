@@ -285,7 +285,7 @@ public class AppliedCustomInstructionParser {
       }
 
       // search for endNodes in the subtree of pred, breadth-first search
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pred)) {
+      for (CFAEdge leavingEdge : pred.getLeavingEdges()) {
         if (leavingEdge instanceof FunctionReturnEdge) {
           continue;
         }
@@ -347,46 +347,54 @@ public class AppliedCustomInstructionParser {
   }
 
   private Collection<String> getPotentialInputVariables(final CFAEdge pLeavingEdge) {
-    if (pLeavingEdge instanceof CStatementEdge) {
-      CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
-
-      if (edgeStmt instanceof CExpressionAssignmentStatement) {
-        return CFAUtils.getVariableNamesOfExpression(
-                ((CExpressionAssignmentStatement) edgeStmt).getRightHandSide())
-            .toSet();
-      } else if (edgeStmt instanceof CExpressionStatement) {
-        return CFAUtils.getVariableNamesOfExpression(
-                ((CExpressionStatement) edgeStmt).getExpression())
-            .toSet();
-      } else if (edgeStmt instanceof CFunctionCallStatement) {
-        return getFunctionParameterInput(
-            ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression());
-      } else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        return getFunctionParameterInput(
-            ((CFunctionCallAssignmentStatement) edgeStmt).getFunctionCallExpression());
-      }
-    } else if (pLeavingEdge instanceof CDeclarationEdge) {
-      CDeclaration edgeDec = ((CDeclarationEdge) pLeavingEdge).getDeclaration();
-      if (edgeDec instanceof CVariableDeclaration) {
-        CInitializer edgeDecInit = ((CVariableDeclaration) edgeDec).getInitializer();
-        if (edgeDecInit instanceof CInitializerExpression) {
-          return CFAUtils.getVariableNamesOfExpression(
-                  ((CInitializerExpression) edgeDecInit).getExpression())
-              .toSet();
+    switch (pLeavingEdge) {
+      case CStatementEdge cStatementEdge -> {
+        CStatement edgeStmt = cStatementEdge.getStatement();
+        switch (edgeStmt) {
+          case CExpressionAssignmentStatement cExpressionAssignmentStatement -> {
+            return CFAUtils.getVariableNamesOfExpression(
+                    cExpressionAssignmentStatement.getRightHandSide())
+                .toSet();
+          }
+          case CExpressionStatement cExpressionStatement -> {
+            return CFAUtils.getVariableNamesOfExpression(cExpressionStatement.getExpression())
+                .toSet();
+          }
+          case CFunctionCallStatement cFunctionCallStatement -> {
+            return getFunctionParameterInput(cFunctionCallStatement.getFunctionCallExpression());
+          }
+          case CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement -> {
+            return getFunctionParameterInput(
+                cFunctionCallAssignmentStatement.getFunctionCallExpression());
+          }
+          case null /*TODO check if null is necessary*/, default -> {}
         }
       }
-    } else if (pLeavingEdge instanceof CReturnStatementEdge) {
-      Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
-      if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
+      case CDeclarationEdge cDeclarationEdge -> {
+        CDeclaration edgeDec = cDeclarationEdge.getDeclaration();
+        if (edgeDec instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer edgeDecInit = cVariableDeclaration.getInitializer();
+          if (edgeDecInit instanceof CInitializerExpression cInitializerExpression) {
+            return CFAUtils.getVariableNamesOfExpression(cInitializerExpression.getExpression())
+                .toSet();
+          }
+        }
       }
-    } else if (pLeavingEdge instanceof CAssumeEdge) {
-      return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) pLeavingEdge).getExpression())
-          .toSet();
-    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      return from(((CFunctionCallEdge) pLeavingEdge).getArguments())
-          .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
-          .toSet();
+      case CReturnStatementEdge cReturnStatementEdge -> {
+        Optional<CExpression> edgeExp = cReturnStatementEdge.getExpression();
+        if (edgeExp.isPresent()) {
+          return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
+        }
+      }
+      case CAssumeEdge cAssumeEdge -> {
+        return CFAUtils.getVariableNamesOfExpression(cAssumeEdge.getExpression()).toSet();
+      }
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        return from(cFunctionCallEdge.getArguments())
+            .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
+            .toSet();
+      }
+      case null /*TODO check if null is necessary*/, default -> {}
     }
     return ImmutableSet.of();
   }
@@ -402,33 +410,37 @@ public class AppliedCustomInstructionParser {
       final Set<String> pPredOutputVars,
       final Set<String> pOutputVariables) {
     Set<String> edgeOutputVariables;
-    if (pLeavingEdge instanceof CStatementEdge) {
-      CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
-      if (edgeStmt instanceof CExpressionAssignmentStatement) {
-        edgeOutputVariables =
-            CFAUtils.getVariableNamesOfExpression(
-                    ((CExpressionAssignmentStatement) edgeStmt).getLeftHandSide())
-                .toSet();
-      } else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        edgeOutputVariables =
-            getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) edgeStmt);
-      } else {
+    switch (pLeavingEdge) {
+      case CStatementEdge cStatementEdge -> {
+        CStatement edgeStmt = cStatementEdge.getStatement();
+        if (edgeStmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+          edgeOutputVariables =
+              CFAUtils.getVariableNamesOfExpression(
+                      cExpressionAssignmentStatement.getLeftHandSide())
+                  .toSet();
+        } else if (edgeStmt
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+          edgeOutputVariables =
+              getFunctionalCallAssignmentOutputVars(cFunctionCallAssignmentStatement);
+        } else {
+          return pPredOutputVars;
+        }
+      }
+      case CDeclarationEdge cDeclarationEdge ->
+          edgeOutputVariables =
+              ImmutableSet.of(cDeclarationEdge.getDeclaration().getQualifiedName());
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        CFunctionCall funCall = cFunctionCallEdge.getFunctionCall();
+        if (funCall instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+          edgeOutputVariables =
+              getFunctionalCallAssignmentOutputVars(cFunctionCallAssignmentStatement);
+        } else {
+          edgeOutputVariables = ImmutableSet.of();
+        }
+      }
+      case null /*TODO check if null is necessary*/, default -> {
         return pPredOutputVars;
       }
-    } else if (pLeavingEdge instanceof CDeclarationEdge) {
-      edgeOutputVariables =
-          ImmutableSet.of(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
-
-    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getFunctionCall();
-      if (funCall instanceof CFunctionCallAssignmentStatement) {
-        edgeOutputVariables =
-            getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
-      } else {
-        edgeOutputVariables = ImmutableSet.of();
-      }
-    } else {
-      return pPredOutputVars;
     }
 
     pOutputVariables.addAll(edgeOutputVariables);
@@ -458,11 +470,12 @@ public class AppliedCustomInstructionParser {
         continue;
       }
 
-      if (visit instanceof FunctionEntryNode && !noGlobalVarUse.add((FunctionEntryNode) visit)) {
+      if (visit instanceof FunctionEntryNode functionEntryNode
+          && !noGlobalVarUse.add(functionEntryNode)) {
         continue;
       }
 
-      for (CFAEdge leave : CFAUtils.allLeavingEdges(visit)) {
+      for (CFAEdge leave : visit.getAllLeavingEdges()) {
         if (containsGlobalVars(leave)) {
           return false;
         }
@@ -518,34 +531,38 @@ public class AppliedCustomInstructionParser {
   }
 
   private boolean globalVarInStatement(final CStatement statement) {
-    if (statement instanceof CExpressionStatement) {
-      return ((CExpressionStatement) statement).getExpression().accept(visitor);
-    } else if (statement instanceof CFunctionCallStatement) {
-      for (CExpression param :
-          ((CFunctionCallStatement) statement)
-              .getFunctionCallExpression()
-              .getParameterExpressions()) {
-        if (param.accept(visitor)) {
-          return true;
+    switch (statement) {
+      case CExpressionStatement cExpressionStatement -> {
+        return cExpressionStatement.getExpression().accept(visitor);
+      }
+      case CFunctionCallStatement cFunctionCallStatement -> {
+        for (CExpression param :
+            cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+          if (param.accept(visitor)) {
+            return true;
+          }
         }
       }
-    } else if (statement instanceof CExpressionAssignmentStatement) {
-      if (((CExpressionAssignmentStatement) statement).getLeftHandSide().accept(visitor)) {
-        return true;
-      }
-      return ((CExpressionAssignmentStatement) statement).getRightHandSide().accept(visitor);
-    } else if (statement instanceof CFunctionCallAssignmentStatement) {
-      if (((CFunctionCallAssignmentStatement) statement).getLeftHandSide().accept(visitor)) {
-        return true;
-      }
-      for (CExpression param :
-          ((CFunctionCallAssignmentStatement) statement)
-              .getFunctionCallExpression()
-              .getParameterExpressions()) {
-        if (param.accept(visitor)) {
+      case CExpressionAssignmentStatement cExpressionAssignmentStatement -> {
+        if (cExpressionAssignmentStatement.getLeftHandSide().accept(visitor)) {
           return true;
         }
+        return cExpressionAssignmentStatement.getRightHandSide().accept(visitor);
       }
+      case CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement -> {
+        if (cFunctionCallAssignmentStatement.getLeftHandSide().accept(visitor)) {
+          return true;
+        }
+        for (CExpression param :
+            cFunctionCallAssignmentStatement
+                .getFunctionCallExpression()
+                .getParameterExpressions()) {
+          if (param.accept(visitor)) {
+            return true;
+          }
+        }
+      }
+      case null /*TODO check if null is necessary*/, default -> {}
     }
     return false;
   }
@@ -559,7 +576,7 @@ public class AppliedCustomInstructionParser {
       if (!pIastArraySubscriptExpression.getArrayExpression().accept(this)) {
         return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
       }
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override
@@ -574,9 +591,9 @@ public class AppliedCustomInstructionParser {
           .getDeclaration()
           .getQualifiedName()
           .equals(pIastIdExpression.getDeclaration().getName())) {
-        return Boolean.TRUE;
+        return true;
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -594,7 +611,7 @@ public class AppliedCustomInstructionParser {
       if (!pIastBinaryExpression.getOperand1().accept(this)) {
         return pIastBinaryExpression.getOperand2().accept(this);
       }
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override
@@ -609,7 +626,7 @@ public class AppliedCustomInstructionParser {
 
     @Override
     protected Boolean visitDefault(final CExpression pExp) {
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -621,23 +638,23 @@ public class AppliedCustomInstructionParser {
     public Boolean visit(final CInitializerList pInitializerList) {
       for (CInitializer init : pInitializerList.getInitializers()) {
         if (init.accept(this)) {
-          return Boolean.TRUE;
+          return true;
         }
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
     public Boolean visit(final CDesignatedInitializer pCStructInitializerPart) {
       for (CDesignator des : pCStructInitializerPart.getDesignators()) {
         if (des.accept(this)) {
-          return Boolean.TRUE;
+          return true;
         }
       }
       if (pCStructInitializerPart.getRightHandSide() != null) {
         return pCStructInitializerPart.getRightHandSide().accept(this);
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -648,14 +665,14 @@ public class AppliedCustomInstructionParser {
     @Override
     public Boolean visit(final CArrayRangeDesignator pArrayRangeDesignator) {
       if (pArrayRangeDesignator.getCeilExpression().accept(this)) {
-        return Boolean.TRUE;
+        return true;
       }
       return pArrayRangeDesignator.getFloorExpression().accept(this);
     }
 
     @Override
     public Boolean visit(final CFieldDesignator pFieldDesignator) {
-      return Boolean.FALSE;
+      return false;
     }
   }
 

@@ -166,7 +166,7 @@ public abstract class Preprocessor {
 
     private volatile StringBuffer buffer;
 
-    public PreprocessorExecutor(LogManager logger, String[] args) throws IOException {
+    PreprocessorExecutor(LogManager logger, String[] args) throws IOException {
       super(logger, IOException.class, ENV_VARS, args);
     }
 

@@ -1,0 +1,417 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- This run-collection reflects the memsafety category of SV-COMP2025 including memcleanup with all important CPAchecker SMG based configurations -->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
+
+  <!-- Default for SV-COMP, override if necessary/desired, e.g. in command-line-->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900s</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
+
+  <!-- #################### MemSafety #################### -->
+  <!-- Note: MemCleanup is below, as they need to be separate since they share the same tasks -->
+
+    <rundefinition name="SV-COMP25_MemSafety_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-Portfolio">
+    <option name="--smg" />
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-Value">
+    <option name="--smgValueAnalysis"></option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-NoStop-NoAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-Value-NoStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemSafety_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <tasks name="MemSafety-Arrays">
+      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Heap">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-LinkedLists">
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Other">
+      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+    <tasks name="MemSafety-Juliet">
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+  <!-- #################### MemCleanup #################### -->
+
+  <rundefinition name="SV-COMP25_MemCleanup_SVCOMP26">
+    <option name="--svcomp26" />
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx">
+    <option name="--smgSymbolicExecution" />
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemCleanup_SMG-Value">
+    <option name="--smgValueAnalysis" />
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+    <rundefinition name="SV-COMP25_MemCleanup_SMG-Value-overapproximateConcreteValues">
+    <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-concreteMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
+    <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+    <rundefinition name="SV-COMP25_MemCleanup_SMG-Value-noStop-noAbstr">
+    <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-noStop-noAbstr">
+    <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <!-- MemCleanup category synced to SV-COMP25 -->
+    <tasks name="MemSafety-MemCleanup">
+      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+
+
+</benchmark>

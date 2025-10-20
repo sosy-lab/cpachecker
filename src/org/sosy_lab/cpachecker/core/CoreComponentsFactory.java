@@ -392,6 +392,7 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
@@ -402,10 +403,12 @@ public class CoreComponentsFactory {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CFA pCFA)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
+    cfa = pCFA;
 
     config.inject(this);
 
@@ -447,7 +450,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
+      final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -667,11 +670,11 @@ public class CoreComponentsFactory {
       }
 
       if (usePropertyCheckingAlgorithm) {
-        if (!(cpa instanceof PropertyCheckerCPA)) {
+        if (!(cpa instanceof PropertyCheckerCPA propertyCheckerCPA)) {
           throw new InvalidConfigurationException(
               "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
         }
-        algorithm = new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
+        algorithm = new AlgorithmWithPropertyCheck(algorithm, logger, propertyCheckerCPA);
       }
 
       if (useResultCheckAlgorithm) {
@@ -759,7 +762,7 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
+  public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 

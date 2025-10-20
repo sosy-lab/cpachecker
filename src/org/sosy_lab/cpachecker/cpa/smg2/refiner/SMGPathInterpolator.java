@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -304,7 +305,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     // The original call edge, importance in relation to slicing, position in abstractEdges
     record FunctionCallInfo(FunctionCallEdge edge, boolean isImportant, int index) {}
     ArrayDeque<FunctionCallInfo> functionCalls = new ArrayDeque<>();
-    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
+    List<@Nullable CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {

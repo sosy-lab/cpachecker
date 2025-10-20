@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 parser code {:
 
@@ -202,7 +201,7 @@ parser code {:
       // evaluated in the post-state
       Optional<FunctionExitNode> exitNode = entry.getExitNode();
       if (exitNode.isPresent()) {
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
+        for (CFAEdge currentEdge : exitNode.orElseThrow().getEnteringEdges()) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
         }
       }
@@ -226,7 +225,7 @@ parser code {:
       }
     } else {
       // this is a statement contract for a simple statement, e.g. x = 10;
-      for (CFAEdge previousEdge : CFAUtils.enteringEdges(edge.getPredecessor())) {
+      for (CFAEdge previousEdge : edge.getPredecessor().getEnteringEdges()) {
         cfaWithLocs
             .getEdgesToAnnotations()
             .put(previousEdge, annotation.getCopyForPreState());
@@ -250,12 +249,12 @@ parser code {:
         if (successor.getNumLeavingEdges() == 1) {
           node = successor.getLeavingEdge(0).getSuccessor();
         }
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+        for (CFAEdge enteringEdge : node.getEnteringEdges()) {
           cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
         }
       } else {
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(successor)) {
+        for (CFAEdge currentEdge : successor.getEnteringEdges()) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
@@ -288,7 +287,7 @@ parser code {:
         }
       } else {
         CFANode node = next.getPredecessor();
-        for (CFAEdge currentEdge : CFAUtils.enteringEdges(node)) {
+        for (CFAEdge currentEdge : node.getEnteringEdges()) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }

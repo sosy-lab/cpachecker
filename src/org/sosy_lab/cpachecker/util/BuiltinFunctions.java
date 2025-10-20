@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
@@ -35,7 +36,15 @@ public class BuiltinFunctions {
 
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
-          false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false);
+          CTypeQualifiers.NONE,
+          CBasicType.UNSPECIFIED,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false);
 
   private static final ImmutableMap<String, CType> supportedScanfFormatSpecifiers =
       ImmutableMap.<String, CType>builder()
@@ -115,7 +124,7 @@ public class BuiltinFunctions {
 
     if (isPopcountFunction(pFunctionName)) {
       return new CSimpleType(
-          false, false, CBasicType.INT, false, false, false, false, false, false, false);
+          CTypeQualifiers.NONE, CBasicType.INT, false, false, false, false, false, false, false);
     }
 
     return UNSPECIFIED_TYPE;
@@ -146,7 +155,9 @@ public class BuiltinFunctions {
   }
 
   /**
-   * Get the parameter type of a builtin popcount function.
+   * Get the parameter type of builtin C functions popcount(), popcountl(), or popcountll(). The
+   * parameters types are either type unsigned int for popcount(), unsigned long for popcountl(), or
+   * unsigned long long for popcountll().
    *
    * @param pFunctionName A function name for which {@link #isPopcountFunction(String)} returns
    *     true.
@@ -155,11 +166,11 @@ public class BuiltinFunctions {
   public static CSimpleType getParameterTypeOfBuiltinPopcountFunction(String pFunctionName) {
     if (isPopcountFunction(pFunctionName)) {
       if (pFunctionName.endsWith(POPCOUNT + "ll")) {
-        return CNumericTypes.LONG_LONG_INT;
+        return CNumericTypes.UNSIGNED_LONG_LONG_INT;
       } else if (pFunctionName.endsWith(POPCOUNT + "l")) {
-        return CNumericTypes.LONG_INT;
+        return CNumericTypes.UNSIGNED_LONG_INT;
       } else if (pFunctionName.endsWith(POPCOUNT)) {
-        return CNumericTypes.INT;
+        return CNumericTypes.UNSIGNED_INT;
       } else {
         throw new IllegalArgumentException(
             "Builtin function '"

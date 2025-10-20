@@ -99,7 +99,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Builder to traverse AST. */
@@ -469,11 +468,9 @@ class CFAMethodBuilder extends ASTVisitor {
       JAstNode sideeffect) {
     CFAEdge previous;
 
-    if (sideeffect instanceof JStatement) {
+    if (sideeffect instanceof JStatement jStatement) {
 
-      previous =
-          new JStatementEdge(
-              rawSignature, (JStatement) sideeffect, fileLocation, prevNode, nextNode);
+      previous = new JStatementEdge(rawSignature, jStatement, fileLocation, prevNode, nextNode);
 
     } else if (sideeffect instanceof JAssignment) { // TODO always false??
 
@@ -538,23 +535,22 @@ class CFAMethodBuilder extends ASTVisitor {
     prevNode = nextNode;
 
     // JFieldDeclaration are already parsed elsewhere
-    if (newD instanceof JVariableDeclaration && !(newD instanceof JFieldDeclaration)) {
+    if (newD instanceof JVariableDeclaration jVariableDeclaration
+        && !(newD instanceof JFieldDeclaration)) {
 
       scope.registerDeclarationOfThisClass(newD);
 
-      AInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
+      AInitializer initializer = jVariableDeclaration.getInitializer();
 
       // resolve Boolean Initializer for easier analysis
       // if initializer is boolean. Not necessary for simple boolean literal.
       boolean resolveInitializer =
-          initializer instanceof JInitializerExpression
-              && astCreator.isBooleanExpression(
-                  ((JInitializerExpression) initializer).getExpression())
-              && !(((JInitializerExpression) initializer).getExpression()
-                  instanceof JBooleanLiteralExpression);
+          initializer instanceof JInitializerExpression jInitializerExpression
+              && astCreator.isBooleanExpression(jInitializerExpression.getExpression())
+              && !(jInitializerExpression.getExpression() instanceof JBooleanLiteralExpression);
 
       if (resolveInitializer) {
-        prevNode = resolveBooleanInitializer((JVariableDeclaration) newD, prevNode);
+        prevNode = resolveBooleanInitializer(jVariableDeclaration, prevNode);
       }
     }
 
@@ -742,8 +738,8 @@ class CFAMethodBuilder extends ASTVisitor {
     JStatement statement = astCreator.convert(expressionStatement);
 
     boolean isReferencedInstanceMethod =
-        statement instanceof AFunctionCall
-            && ((AFunctionCall) statement).getFunctionCallExpression()
+        statement instanceof AFunctionCall aFunctionCall
+            && aFunctionCall.getFunctionCallExpression()
                 instanceof JReferencedMethodInvocationExpression;
 
     // If this is a ReferencedFunctionCall, see if
@@ -772,10 +768,9 @@ class CFAMethodBuilder extends ASTVisitor {
       CFANode nextNode = handleSideassignments(prevNode, rawSignature, statement.getFileLocation());
 
       boolean isResolvable =
-          statement instanceof JExpressionAssignmentStatement
-              && astCreator.isBooleanExpression(
-                  ((JExpressionAssignmentStatement) statement).getRightHandSide())
-              && !(((JExpressionAssignmentStatement) statement).getRightHandSide()
+          statement instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement
+              && astCreator.isBooleanExpression(jExpressionAssignmentStatement.getRightHandSide())
+              && !(jExpressionAssignmentStatement.getRightHandSide()
                   instanceof JBooleanLiteralExpression);
 
       // Resolve boolean Assignments, resolve & , && , | , || to be easier analyzed
@@ -917,12 +912,11 @@ class CFAMethodBuilder extends ASTVisitor {
 
         JStatement statement = ((JStatementEdge) currentEdge).getStatement();
 
-        if (statement instanceof JExpressionAssignmentStatement) {
+        if (statement instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
 
           if (isReferencableVariable(referencedVariable, (JAssignment) statement)) {
 
-            referencedVariable =
-                assignVariableReference((JExpressionAssignmentStatement) statement);
+            referencedVariable = assignVariableReference(jExpressionAssignmentStatement);
 
           } else {
 
@@ -932,13 +926,14 @@ class CFAMethodBuilder extends ASTVisitor {
 
           finished = (referencedVariable instanceof JFieldDeclaration);
 
-        } else if (statement instanceof JMethodInvocationAssignmentStatement) {
+        } else if (statement
+            instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
 
           finished = isReferenced(referencedVariable, (JAssignment) statement);
 
           if (finished) {
             assignClassRunTimeInstanceIfInstanceCreation(
-                methodInvocation, (JMethodInvocationAssignmentStatement) statement);
+                methodInvocation, jMethodInvocationAssignmentStatement);
           }
         }
       }
@@ -955,11 +950,8 @@ class CFAMethodBuilder extends ASTVisitor {
   private boolean isReferenced(JSimpleDeclaration referencedVariable, JAssignment assignment) {
     JExpression leftHandSide = assignment.getLeftHandSide();
 
-    return (leftHandSide instanceof JIdExpression)
-        && ((JIdExpression) leftHandSide)
-            .getDeclaration()
-            .getName()
-            .equals(referencedVariable.getName());
+    return (leftHandSide instanceof JIdExpression jIdExpression)
+        && jIdExpression.getDeclaration().getName().equals(referencedVariable.getName());
   }
 
   private void assignClassRunTimeInstanceIfInstanceCreation(
@@ -968,8 +960,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JMethodInvocationExpression methodCall = functionCallAssignment.getFunctionCallExpression();
 
-    if (methodCall instanceof JClassInstanceCreation) {
-      astCreator.assignRunTimeClass(methodInvocation, (JClassInstanceCreation) methodCall);
+    if (methodCall instanceof JClassInstanceCreation jClassInstanceCreation) {
+      astCreator.assignRunTimeClass(methodInvocation, jClassInstanceCreation);
     }
   }
 
@@ -986,12 +978,9 @@ class CFAMethodBuilder extends ASTVisitor {
     JExpression leftHandSide = assignment.getLeftHandSide();
     JRightHandSide rightHandSide = assignment.getRightHandSide();
 
-    return (leftHandSide instanceof JIdExpression)
+    return (leftHandSide instanceof JIdExpression jIdExpression)
         && (rightHandSide instanceof JIdExpression)
-        && ((JIdExpression) leftHandSide)
-            .getDeclaration()
-            .getName()
-            .equals(referencedVariable.getName());
+        && jIdExpression.getDeclaration().getName().equals(referencedVariable.getName());
   }
 
   private void handleConditionalStatement(
@@ -1126,18 +1115,17 @@ class CFAMethodBuilder extends ASTVisitor {
       FileLocation fileLoc = astCreator.getFileLocation(condExp);
       String rawSignature = condExp.toString();
 
-      if (exp instanceof JExpression) {
+      if (exp instanceof JExpression jExpression) {
 
         JExpressionAssignmentStatement assignment =
-            new JExpressionAssignmentStatement(fileLoc, tempVar, (JExpression) exp);
+            new JExpressionAssignmentStatement(fileLoc, tempVar, jExpression);
 
         edge = new JStatementEdge(rawSignature, assignment, fileLocation, prevNode, lastNode);
         addToCFA(edge);
-      } else if (exp instanceof JMethodInvocationExpression) {
+      } else if (exp instanceof JMethodInvocationExpression jMethodInvocationExpression) {
 
         JMethodInvocationAssignmentStatement assignment =
-            new JMethodInvocationAssignmentStatement(
-                fileLoc, tempVar, (JMethodInvocationExpression) exp);
+            new JMethodInvocationAssignmentStatement(fileLoc, tempVar, jMethodInvocationExpression);
 
         edge = new JStatementEdge(rawSignature, assignment, fileLocation, prevNode, lastNode);
         addToCFA(edge);
@@ -1184,21 +1172,21 @@ class CFAMethodBuilder extends ASTVisitor {
 
       JStatementEdge edge;
 
-      if (exp instanceof JExpression) {
+      if (exp instanceof JExpression jExpression) {
         edge =
             new JStatementEdge(
                 condExp.toString(),
-                new JExpressionStatement(astCreator.getFileLocation(condExp), (JExpression) exp),
+                new JExpressionStatement(astCreator.getFileLocation(condExp), jExpression),
                 fileLocation,
                 prevNode,
                 lastNode);
         addToCFA(edge);
-      } else if (exp instanceof JMethodInvocationExpression) {
+      } else if (exp instanceof JMethodInvocationExpression jMethodInvocationExpression) {
         edge =
             new JStatementEdge(
                 condExp.toString(),
                 new JMethodInvocationStatement(
-                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
+                    astCreator.getFileLocation(condExp), jMethodInvocationExpression),
                 fileLocation,
                 prevNode,
                 lastNode);
@@ -1309,7 +1297,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     if (isReachableNode(prevNode)) {
 
-      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
+      for (CFAEdge prevEdge : prevNode.getAllEnteringEdges().toList()) {
 
         boolean isBlankEdge =
             (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
@@ -1404,13 +1392,12 @@ class CFAMethodBuilder extends ASTVisitor {
       boolean furtherThenComputation,
       boolean furtherElseComputation) {
 
-    if (condition instanceof JBinaryExpression
-        && (((JBinaryExpression) condition).getOperator()
-            == JBinaryExpression.BinaryOperator.CONDITIONAL_AND)) {
+    if (condition instanceof JBinaryExpression jBinaryExpression
+        && (jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_AND)) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand1(),
+          jBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           innerNode,
@@ -1420,7 +1407,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1430,13 +1417,12 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
 
-    } else if (condition instanceof JBinaryExpression
-        && ((JBinaryExpression) condition).getOperator()
-            == JBinaryExpression.BinaryOperator.CONDITIONAL_OR) {
+    } else if (condition instanceof JBinaryExpression jBinaryExpression
+        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.CONDITIONAL_OR) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand1(),
+          jBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           thenNode,
@@ -1446,7 +1432,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1456,15 +1442,14 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
 
-    } else if (condition instanceof JBinaryExpression
-        && ((JBinaryExpression) condition).getOperator()
-            == JBinaryExpression.BinaryOperator.LOGICAL_OR) {
+    } else if (condition instanceof JBinaryExpression jBinaryExpression
+        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_OR) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       CFANode innerEagerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);
       cfaNodes.add(innerEagerNode);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand1(),
+          jBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           innerEagerNode,
@@ -1474,7 +1459,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1484,7 +1469,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerEagerNode,
           thenNode,
@@ -1494,15 +1479,14 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
 
-    } else if (condition instanceof JBinaryExpression
-        && ((JBinaryExpression) condition).getOperator()
-            == JBinaryExpression.BinaryOperator.LOGICAL_AND) {
+    } else if (condition instanceof JBinaryExpression jBinaryExpression
+        && jBinaryExpression.getOperator() == JBinaryExpression.BinaryOperator.LOGICAL_AND) {
       CFANode innerNode = new CFANode(cfa.getFunction());
       CFANode innerEagerNode = new CFANode(cfa.getFunction());
       cfaNodes.add(innerNode);
       cfaNodes.add(innerEagerNode);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand1(),
+          jBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           innerNode,
@@ -1512,7 +1496,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1522,7 +1506,7 @@ class CFAMethodBuilder extends ASTVisitor {
           true,
           true);
       buildConditionTree(
-          ((JBinaryExpression) condition).getOperand2(),
+          jBinaryExpression.getOperand2(),
           fileLocation,
           innerEagerNode,
           elseNode,
@@ -1628,8 +1612,8 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   private Condition getConditionKind(JExpression condition) {
-    if (condition instanceof JBooleanLiteralExpression) {
-      if (((JBooleanLiteralExpression) condition).getBoolean()) {
+    if (condition instanceof JBooleanLiteralExpression jBooleanLiteralExpression) {
+      if (jBooleanLiteralExpression.getBoolean()) {
         return Condition.ALWAYS_TRUE;
       } else {
         return Condition.ALWAYS_FALSE;
@@ -2237,23 +2221,20 @@ class CFAMethodBuilder extends ASTVisitor {
           addToCFA(blankEdge);
 
           // "counter++;"
-        } else if (node instanceof JExpressionAssignmentStatement) {
+        } else if (node instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
 
           final JStatementEdge lastEdge =
               new JStatementEdge(
-                  exp.toString(),
-                  (JExpressionAssignmentStatement) node,
-                  fileLocation,
-                  prevNode,
-                  nextNode);
+                  exp.toString(), jExpressionAssignmentStatement, fileLocation, prevNode, nextNode);
           addToCFA(lastEdge);
 
-        } else if (node instanceof JMethodInvocationAssignmentStatement) {
+        } else if (node
+            instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
 
           final JStatementEdge edge =
               new JStatementEdge(
                   exp.toString(),
-                  (JMethodInvocationAssignmentStatement) node,
+                  jMethodInvocationAssignmentStatement,
                   fileLocation,
                   prevNode,
                   nextNode);
@@ -2298,21 +2279,18 @@ class CFAMethodBuilder extends ASTVisitor {
             new BlankEdge(node.toASTString(), fileLocation, loopInit, nextNode, "");
         addToCFA(blankEdge);
 
-      } else if (node instanceof JExpressionAssignmentStatement) {
+      } else if (node instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
 
         nextNode = new CFANode(cfa.getFunction());
         cfaNodes.add(nextNode);
 
         final JStatementEdge lastEdge =
             new JStatementEdge(
-                exp.toString(),
-                (JExpressionAssignmentStatement) node,
-                fileLocation,
-                loopInit,
-                nextNode);
+                exp.toString(), jExpressionAssignmentStatement, fileLocation, loopInit, nextNode);
         addToCFA(lastEdge);
 
-      } else if (node instanceof JMethodInvocationAssignmentStatement) {
+      } else if (node
+          instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
 
         nextNode = new CFANode(cfa.getFunction());
         cfaNodes.add(nextNode);
@@ -2320,7 +2298,7 @@ class CFAMethodBuilder extends ASTVisitor {
         final JStatementEdge edge =
             new JStatementEdge(
                 exp.toString(),
-                (JMethodInvocationAssignmentStatement) node,
+                jMethodInvocationAssignmentStatement,
                 fileLocation,
                 loopInit,
                 nextNode);
@@ -2534,8 +2512,8 @@ class CFAMethodBuilder extends ASTVisitor {
         scope.getTypeHierarchy().getMethodDeclarations(pClass);
 
     for (JMethodDeclaration d : classMethods) {
-      if (d instanceof JConstructorDeclaration) {
-        constructors.add((JConstructorDeclaration) d);
+      if (d instanceof JConstructorDeclaration jConstructorDeclaration) {
+        constructors.add(jConstructorDeclaration);
       }
     }
 
