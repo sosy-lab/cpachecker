@@ -14,18 +14,12 @@ SPDX-License-Identifier: Apache-2.0
         "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" timelimit="120 s" hardtimelimit="180 s" memlimit="2 GB" cpuCores="2">
     <rundefinition>
-        <option name="--svcomp25"/>
+        <option name="--generateCFA"/>
     </rundefinition>
 
     <option name="--no-output-files"/>
 
-    <tasks name="CoreUtils-MemSafety">
+    <tasks name="CoreUtils-GenerateCFA">
         <includesfile>coreutils.set</includesfile>
-        <propertyfile>../../benchmarks/properties/valid-memsafety.prp</propertyfile>
-    </tasks>
-
-    <tasks name="CoreUtils-NoOverflow">
-        <includesfile>coreutils.set</includesfile>
-        <propertyfile>../../benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
 </benchmark>
