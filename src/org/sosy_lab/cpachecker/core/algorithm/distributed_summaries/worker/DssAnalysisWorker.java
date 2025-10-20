@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -127,11 +127,11 @@ public class DssAnalysisWorker extends DssWorker {
           backwardAnalysisTime.stop();
         }
       }
-      case PRECONDITION -> {
+      case POST_CONDITION -> {
         try {
           forwardAnalysisTime.start();
           DssMessageProcessing processing =
-              dssBlockAnalysis.storePrecondition((DssPreconditionMessage) message);
+              dssBlockAnalysis.storePrecondition((DssPostConditionMessage) message);
           if (!processing.shouldProceed()) {
             yield processing;
           }
@@ -157,7 +157,7 @@ public class DssAnalysisWorker extends DssWorker {
       case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
-      case PRECONDITION -> dssBlockAnalysis.storePrecondition((DssPreconditionMessage) message);
+      case POST_CONDITION -> dssBlockAnalysis.storePrecondition((DssPostConditionMessage) message);
     };
   }
 
@@ -177,10 +177,10 @@ public class DssAnalysisWorker extends DssWorker {
     for (DssMessage message : pMessages) {
       sentMessages.inc();
       switch (message.getType()) {
-        case PRECONDITION -> {
+        case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);
           broadcaster.broadcastToIds(
-              message, ImmutableSet.copyOf(((DssPreconditionMessage) message).getReceivers()));
+              message, ImmutableSet.copyOf(((DssPostConditionMessage) message).getReceivers()));
         }
         case VIOLATION_CONDITION -> {
           broadcaster.broadcastToObserver(message);

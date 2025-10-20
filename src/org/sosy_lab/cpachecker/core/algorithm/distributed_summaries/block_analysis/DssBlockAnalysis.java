@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -180,7 +180,7 @@ public class DssBlockAnalysis {
             ImmutableMap.of()));
   }
 
-  private Collection<DssMessage> reportBlockPostConditions(
+  private Collection<DssMessage> reportPostConditions(
       Set<@NonNull ARGState> blockEnds, boolean allowTop, Set<String> pEligibleSuccessors) {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (ARGState abstraction : blockEnds) {
@@ -301,14 +301,14 @@ public class DssBlockAnalysis {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(
+      return reportPostConditions(
           result.getFinalLocationStates(), true, block.getSuccessorIds());
     }
 
     return reportFirstViolationConditions(result.getViolations());
   }
 
-  public DssMessageProcessing storePrecondition(DssPreconditionMessage pReceived)
+  public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     if (!pReceived.isReachable()) {
@@ -445,7 +445,7 @@ public class DssBlockAnalysis {
             block.getLoopPredecessorIds().isEmpty()
                 ? block.getSuccessorIds()
                 : ImmutableSet.of(pSuccessor);
-        messages.addAll(reportBlockPostConditions(result.getSummaries(), false, eligible));
+        messages.addAll(reportPostConditions(result.getSummaries(), false, eligible));
       }
     } else {
       messages.addAll(

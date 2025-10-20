@@ -62,7 +62,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
       Deque<DssMessage> queueForMessage =
           switch (message.getType()) {
             case STATISTIC, RESULT, EXCEPTION -> highestPriority;
-            case VIOLATION_CONDITION, PRECONDITION -> next;
+            case VIOLATION_CONDITION, POST_CONDITION -> next;
           };
       queueForMessage.add(message);
     }

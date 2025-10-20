@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public abstract class DssMessage {
 
   public enum DssMessageType {
-    PRECONDITION,
+    POST_CONDITION,
     VIOLATION_CONDITION,
     EXCEPTION,
     RESULT,
@@ -76,7 +76,7 @@ public abstract class DssMessage {
 
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
-        type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
         "Cannot get content for type: " + "%s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
@@ -126,7 +126,7 @@ public abstract class DssMessage {
 
   public final AlgorithmStatus getAlgorithmStatus() {
     checkArgument(
-        type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
         "Cannot get content for type: " + "%s",
         type);
     ContentReader reader =
@@ -237,7 +237,7 @@ public abstract class DssMessage {
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
-      case PRECONDITION -> new DssPreconditionMessage(senderId, ImmutableList.of(), content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);

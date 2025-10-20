@@ -22,7 +22,7 @@ public interface DeserializeOperator {
   static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
     if (pMessage.getType() == DssMessageType.VIOLATION_CONDITION) {
       return blockNode.getFinalLocation();
-    } else if (pMessage.getType() == DssMessageType.PRECONDITION) {
+    } else if (pMessage.getType() == DssMessageType.POST_CONDITION) {
       return blockNode.getInitialLocation();
     } else {
       throw new IllegalArgumentException(

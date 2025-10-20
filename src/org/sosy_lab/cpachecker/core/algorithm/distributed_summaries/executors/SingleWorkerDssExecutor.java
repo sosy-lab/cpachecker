@@ -133,7 +133,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     boolean isFirstPostcondition = true;
     for (Path newMessageFile : pNewConditions) {
       DssMessage message = DssMessage.fromJson(newMessageFile);
-      if (message.getType() == DssMessageType.PRECONDITION) {
+      if (message.getType() == DssMessageType.POST_CONDITION) {
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked

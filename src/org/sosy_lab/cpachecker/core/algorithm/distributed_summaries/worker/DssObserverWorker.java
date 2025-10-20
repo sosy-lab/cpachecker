@@ -65,7 +65,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
         result = Optional.of(pMessage.getResult());
         statusObserver.updateStatus(pMessage);
       }
-      case VIOLATION_CONDITION, PRECONDITION -> statusObserver.updateStatus(pMessage);
+      case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
         errorMessage = Optional.of(pMessage.getExceptionMessage());
         shutdown = true;
@@ -109,7 +109,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
 
     private void updateStatus(DssMessage pMessage) {
       switch (pMessage.getType()) {
-        case VIOLATION_CONDITION, PRECONDITION ->
+        case VIOLATION_CONDITION, POST_CONDITION ->
             statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
         case RESULT, EXCEPTION, STATISTIC -> {}
       }
