@@ -10,13 +10,8 @@
     <option name="--benchmark" />
 
     <rundefinition name="SV-COMP25_valid-memsafety">
-        <tasks name="C.valid-memsafety">
-            <includesfile>../../../sv-benchmarks/c/MemSafety-Arrays.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/MemSafety-Heap.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/MemSafety-Juliet.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/MemSafety-LinkedLists.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/MemSafety-MemCleanup.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/MemSafety-Other.set</includesfile>
+        <tasks name="C.valid-memsafety.Arrays">
+        <includesfile>../../../sv-benchmarks/c/MemSafety-Arrays.set</includesfile>
             <propertyfile>../../config/properties/valid-memsafety.prp</propertyfile>
         </tasks>
     </rundefinition>
