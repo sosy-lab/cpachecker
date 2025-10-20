@@ -97,9 +97,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       BitvectorFormula pNumber, FloatingPointType pTargetType) {
     if (useBitvectors()) {
       return manager.fromIeeeBitvector(pNumber, pTargetType);
-    } else if (useIntForBitvectors() && bitvectorFormulaManager != null) {
+    } else if (useIntForBitvectors() && useFloatForFloats() && bitvectorFormulaManager != null) {
       // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
       // representing a bitvector
+      // useFloatForFloats() is required here, because if it's not the case, then the actual manager
+      // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not accept actual
+      // bitvectors, only wrapped integers. In those cases, we fall back to the approximation in the
+      // else branch of this decision.
       final BitvectorFormula bv =
           bitvectorFormulaManager.makeBitvector(
               bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
@@ -114,7 +118,11 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
     if (useBitvectors()) {
       return manager.toIeeeBitvector(pNumber);
-    } else if (useIntForBitvectors() && bitvectorFormulaManager != null) {
+    } else if (useIntForBitvectors() && useFloatForFloats() && bitvectorFormulaManager != null) {
+      // useFloatForFloats() is required here, because if it's not the case, then the actual manager
+      // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not accept actual
+      // bitvectors, only wrapped integers. In those cases, we fall back to the approximation in the
+      // else branch of this decision.
       final BitvectorFormula bv = manager.toIeeeBitvector(pNumber);
       final FormulaType<BitvectorFormula> retType = getFormulaType(bv);
       return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));
