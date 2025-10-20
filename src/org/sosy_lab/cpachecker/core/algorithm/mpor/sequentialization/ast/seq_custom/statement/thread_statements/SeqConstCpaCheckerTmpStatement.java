@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -42,9 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>{@code const int __CPAchecker_TMP = q->head; q->head = (q->head) + 1; CPAchecker_TMP;}
  *
- * <p>The sequentialization treats these 3 statements as one, i.e. atomic. The code generating this
- * class asserts that all usages of {@code const CPAchecker_TMP} vars have the above structure (3
- * statements: 1 {@link CDeclarationEdge} followed by 2 {@link CStatementEdge}s).
+ * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3.
  *
  * <p>Reasoning: given that we declare all variables outside the main function in the
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
@@ -55,9 +52,9 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
-  private final SubstituteEdge substituteEdgeA;
+  private final SubstituteEdge firstSuccessorEdge;
 
-  private final Optional<SubstituteEdge> substituteEdgeB;
+  private final Optional<SubstituteEdge> secondSuccessorEdge;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -71,47 +68,49 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   private void checkArguments(
       CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pSubstituteEdgeA,
-      Optional<SubstituteEdge> pSubstituteEdgeB) {
+      SubstituteEdge pFirstSuccessorEdge,
+      Optional<SubstituteEdge> pSecondSuccessorEdge) {
 
     checkArgument(
         MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
         "pDeclaration must declare a const __CPAchecker_TMP variable");
     checkArgument(
-        pSubstituteEdgeA.cfaEdge instanceof CStatementEdge,
-        "pSubstituteEdgeA.cfaEdge must be CStatementEdge");
-    if (pSubstituteEdgeB.isPresent()) {
+        pFirstSuccessorEdge.cfaEdge instanceof CStatementEdge,
+        "pFirstSuccessorEdge.cfaEdge must be CStatementEdge");
+    if (pSecondSuccessorEdge.isPresent()) {
       checkArgument(
-          pSubstituteEdgeB.orElseThrow().cfaEdge instanceof CStatementEdge,
-          "pSubstituteEdgeB.cfaEdge must be CStatementEdge");
+          pSecondSuccessorEdge.orElseThrow().cfaEdge instanceof CStatementEdge,
+          "pSecondSuccessorEdge.cfaEdge must be CStatementEdge");
 
-      CStatement statementB =
-          ((CStatementEdge) pSubstituteEdgeB.orElseThrow().cfaEdge).getStatement();
-      if (statementB instanceof CExpressionStatement bExpressionStatement) {
-        CIdExpression idExpressionB = extractIdExpressionB(bExpressionStatement.getExpression());
-        CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
+      CStatement secondStatement =
+          ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement();
+      if (secondStatement instanceof CExpressionStatement secondExpressionStatement) {
+        CIdExpression secondIdExpression =
+            getIdExpressionFromSecondSuccessor(secondExpressionStatement.getExpression());
+        CSimpleDeclaration secondDeclaration = secondIdExpression.getDeclaration();
         checkArgument(
-            pVariableDeclaration.equals(declarationB),
-            "pDeclaration and pSubstituteEdgeB must use the same __CPAchecker_TMP variable when"
-                + " pSubstituteEdgeB is a CExpressionStatement");
+            pVariableDeclaration.equals(secondDeclaration),
+            "pDeclaration and pSecondSuccessorEdge must use the same __CPAchecker_TMP variable when"
+                + " pSecondSuccessorEdge is a CExpressionStatement");
 
-      } else if (statementB instanceof CExpressionAssignmentStatement bAssignment) {
-        CStatement statementA = ((CStatementEdge) pSubstituteEdgeA.cfaEdge).getStatement();
+      } else if (secondStatement instanceof CExpressionAssignmentStatement secondAssignment) {
+        CStatement firstStatement = ((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement();
         checkArgument(
-            statementA instanceof CExpressionAssignmentStatement,
-            "pSubstituteEdgeA must be CExpressionAssignmentStatement when pSubstituteEdgeB is a"
-                + " CExpressionAssignmentStatement");
-        CExpressionAssignmentStatement aAssignment = (CExpressionAssignmentStatement) statementA;
+            firstStatement instanceof CExpressionAssignmentStatement,
+            "pFirstSuccessorEdge must be CExpressionAssignmentStatement when pSecondSuccessorEdge"
+                + " is a CExpressionAssignmentStatement");
+        CExpressionAssignmentStatement firstAssignment =
+            (CExpressionAssignmentStatement) firstStatement;
         if (pVariableDeclaration.getInitializer()
             instanceof CInitializerExpression initializerExpression) {
-          if (initializerExpression.getExpression().equals(aAssignment.getLeftHandSide())) {
-            if (bAssignment.getRightHandSide() instanceof CIdExpression bIdExpression) {
+          if (initializerExpression.getExpression().equals(firstAssignment.getLeftHandSide())) {
+            if (secondAssignment.getRightHandSide() instanceof CIdExpression secondIdExpression) {
               // this happens e.g. in weaver/parallel-ticket-6.wvr.c
               // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
               // we want to ensure that the declaration is equal to the RHS in the last statement
               checkArgument(
-                  pVariableDeclaration.equals(bIdExpression.getDeclaration()),
-                  "pVariableDeclaration must equal pSubstituteEdgeB RHS");
+                  pVariableDeclaration.equals(secondIdExpression.getDeclaration()),
+                  "pVariableDeclaration must equal pSecondSuccessorEdge RHS");
               return;
             }
           }
@@ -120,14 +119,14 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
         // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
         // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
         checkArgument(
-            aAssignment.getLeftHandSide().equals(bAssignment.getRightHandSide()),
-            "pSubstituteEdgeA LHS must equal pSubstituteEdgeB RHS when pSubstituteEdgeB is a"
-                + " CExpressionAssignmentStatement");
+            firstAssignment.getLeftHandSide().equals(secondAssignment.getRightHandSide()),
+            "pFirstSuccessorEdge LHS must equal pSecondSuccessorEdge RHS when pSecondSuccessorEdge"
+                + " is a CExpressionAssignmentStatement");
       }
     }
   }
 
-  private CIdExpression extractIdExpressionB(CExpression pExpression) {
+  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression) {
     if (pExpression instanceof CIdExpression idExpression) {
       return idExpression;
     } else if (pExpression instanceof CPointerExpression pointerExpression) {
@@ -142,16 +141,16 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   SeqConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       CVariableDeclaration pDeclaration,
-      SubstituteEdge pSubstituteEdgeA,
-      Optional<SubstituteEdge> pSubstituteEdgeB,
+      SubstituteEdge pFirstSuccessorEdge,
+      Optional<SubstituteEdge> pSecondSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    checkArguments(pDeclaration, pSubstituteEdgeA, pSubstituteEdgeB);
+    checkArguments(pDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
     options = pOptions;
-    substituteEdgeA = pSubstituteEdgeA;
-    substituteEdgeB = pSubstituteEdgeB;
+    firstSuccessorEdge = pFirstSuccessorEdge;
+    secondSuccessorEdge = pSecondSuccessorEdge;
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -173,8 +172,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
     checkArguments(pConstCpaCheckerTmpDeclaration, pSubstituteEdgeA, pSubstituteEdgeB);
     options = pOptions;
-    substituteEdgeA = pSubstituteEdgeA;
-    substituteEdgeB = pSubstituteEdgeB;
+    firstSuccessorEdge = pSubstituteEdgeA;
+    secondSuccessorEdge = pSubstituteEdgeB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -186,7 +185,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String substituteEdgeBString =
-        substituteEdgeB
+        secondSuccessorEdge
             .map(substituteEdge -> substituteEdge.cfaEdge.getCode())
             .orElse(SeqSyntax.EMPTY_STRING);
 
@@ -197,7 +196,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return Joiner.on(SeqSyntax.SPACE)
         .join(
             constCpaCheckerTmpDeclaration.toASTString(),
-            substituteEdgeA.cfaEdge.getCode(),
+            firstSuccessorEdge.cfaEdge.getCode(),
             substituteEdgeBString,
             targetStatements);
   }
@@ -227,8 +226,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        substituteEdgeA,
-        substituteEdgeB,
+        firstSuccessorEdge,
+        secondSuccessorEdge,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -241,8 +240,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        substituteEdgeA,
-        substituteEdgeB,
+        firstSuccessorEdge,
+        secondSuccessorEdge,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -257,8 +256,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        substituteEdgeA,
-        substituteEdgeB,
+        firstSuccessorEdge,
+        secondSuccessorEdge,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -273,8 +272,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        substituteEdgeA,
-        substituteEdgeB,
+        firstSuccessorEdge,
+        secondSuccessorEdge,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

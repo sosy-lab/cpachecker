@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -167,11 +166,6 @@ public class SeqValidator {
         // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
         SeqThreadStatementClause clause = pLabelClauseMap.get(pLabelPc);
         assert clause != null;
-        SeqThreadStatement firstStatement = clause.getFirstBlock().getFirstStatement();
-        // TODO test if this can be removed now?
-        if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-          return; // for statements in atomic blocks, the label pcs may not be targets due to gotos
-        }
         handleValidationException(
             String.format(
                 "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),

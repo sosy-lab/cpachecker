@@ -112,43 +112,50 @@ public class SeqThreadStatementBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     // ensure there are two single successors that are both statement edges
-    ThreadNode threadNodeA = pThreadEdge.getSuccessor();
-    assert threadNodeA.leavingEdges().size() == 1;
-    ThreadEdge threadEdgeA = threadNodeA.firstLeavingEdge();
-    assert threadEdgeA.cfaEdge instanceof CStatementEdge;
-    ThreadNode threadNodeB = threadEdgeA.getSuccessor();
-    assert threadNodeB.leavingEdges().size() == 1;
-    ThreadEdge threadEdgeB = threadNodeB.firstLeavingEdge();
-    assert threadEdgeB.cfaEdge instanceof CStatementEdge;
+    ThreadNode firstSuccessor = pThreadEdge.getSuccessor();
+    pCoveredNodes.add(firstSuccessor);
+    assert firstSuccessor.leavingEdges().size() == 1
+        : "const CPAchecker_TMP declarations can have only 1 successor edge";
+    ThreadEdge firstSuccessorEdge = firstSuccessor.firstLeavingEdge();
+    assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
+        : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
+    ThreadNode secondSuccessor = firstSuccessorEdge.getSuccessor();
+    assert secondSuccessor.leavingEdges().size() == 1
+        : "second successor of const CPAchecker_TMP declarations can have only 1 successor edge";
+    ThreadEdge secondSuccessorEdge = secondSuccessor.firstLeavingEdge();
 
-    CStatementEdge statementEdgeB = (CStatementEdge) threadEdgeB.cfaEdge;
-    if (statementEdgeB.getStatement() instanceof CFunctionCallStatement) {
-      // add successors to visited edges / nodes
-      pCoveredNodes.add(threadNodeA);
+    CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
+    // there are programs where a const CPAchecker_TMP statement has only two parts.
+    // in the tested programs, this only happened when the statement was followed by a function call
+    if (secondSuccessorStatement.getStatement() instanceof CFunctionCallStatement) {
       return buildTwoPartConstCpaCheckerTmpStatement(
-          pOptions, pThreadEdge, pPcLeftHandSide, threadEdgeA, pSubstituteEdges);
+          pOptions, pThreadEdge, firstSuccessorEdge, pPcLeftHandSide, pSubstituteEdges);
     } else {
-      // add successors to visited edges / nodes
-      pCoveredNodes.add(threadNodeA);
-      pCoveredNodes.add(threadNodeB);
+      // cover second successor only when it is a three part const CPAchecker_TMP statement
+      pCoveredNodes.add(secondSuccessor);
       return buildThreePartConstCpaCheckerTmpStatement(
-          pOptions, pThreadEdge, threadEdgeA, threadEdgeB, pPcLeftHandSide, pSubstituteEdges);
+          pOptions,
+          pThreadEdge,
+          firstSuccessorEdge,
+          secondSuccessorEdge,
+          pPcLeftHandSide,
+          pSubstituteEdges);
     }
   }
 
   private static SeqConstCpaCheckerTmpStatement buildTwoPartConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       ThreadEdge pThreadEdge,
+      ThreadEdge pSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
-      ThreadEdge pThreadEdgeA,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdge));
     CFAEdge cfaEdge = substituteEdge.cfaEdge;
     assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
-    SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdgeA));
-    int newTargetPc = pThreadEdgeA.getSuccessor().pc;
+    SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(pSuccessorEdge));
+    int newTargetPc = pSuccessorEdge.getSuccessor().pc;
 
     return buildConstCpaCheckerTmpStatement(
         pOptions,
@@ -163,8 +170,8 @@ public class SeqThreadStatementBuilder {
   private static SeqConstCpaCheckerTmpStatement buildThreePartConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       ThreadEdge pThreadEdge,
-      ThreadEdge pThreadEdgeA,
-      ThreadEdge pThreadEdgeB,
+      ThreadEdge pFirstSuccessorEdge,
+      ThreadEdge pSecondSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
@@ -172,16 +179,18 @@ public class SeqThreadStatementBuilder {
     SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdge));
     CFAEdge cfaEdge = substituteEdge.cfaEdge;
     assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
-    SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdgeA));
-    SubstituteEdge substituteEdgeB = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdgeB));
-    int newTargetPc = pThreadEdgeB.getSuccessor().pc;
+    SubstituteEdge firstSuccessorEdge =
+        Objects.requireNonNull(pSubstituteEdges.get(pFirstSuccessorEdge));
+    SubstituteEdge secondSuccessorEdge =
+        Objects.requireNonNull(pSubstituteEdges.get(pSecondSuccessorEdge));
+    int newTargetPc = pSecondSuccessorEdge.getSuccessor().pc;
 
     return buildConstCpaCheckerTmpStatement(
         pOptions,
         cfaEdge,
-        substituteEdgeA,
-        Optional.of(substituteEdgeB),
-        ImmutableSet.of(substituteEdge, substituteEdgeA, substituteEdgeB),
+        firstSuccessorEdge,
+        Optional.of(secondSuccessorEdge),
+        ImmutableSet.of(substituteEdge, firstSuccessorEdge, secondSuccessorEdge),
         pPcLeftHandSide,
         newTargetPc);
   }
@@ -189,8 +198,8 @@ public class SeqThreadStatementBuilder {
   private static SeqConstCpaCheckerTmpStatement buildConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       CFAEdge pCfaEdge,
-      SubstituteEdge pSubstituteEdgeA,
-      Optional<SubstituteEdge> pSubstituteEdgeB,
+      SubstituteEdge pFirstSuccessorEdge,
+      Optional<SubstituteEdge> pSecondSuccessorEdge,
       ImmutableSet<SubstituteEdge> pAllSubstituteEdges,
       CLeftHandSide pPcLeftHandSide,
       int pNewTargetPc) {
@@ -204,8 +213,8 @@ public class SeqThreadStatementBuilder {
     return new SeqConstCpaCheckerTmpStatement(
         pOptions,
         variableDeclaration,
-        pSubstituteEdgeA,
-        pSubstituteEdgeB,
+        pFirstSuccessorEdge,
+        pSecondSuccessorEdge,
         pPcLeftHandSide,
         pAllSubstituteEdges,
         pNewTargetPc);
@@ -593,8 +602,6 @@ public class SeqThreadStatementBuilder {
     CIdExpression pthreadMutexT =
         PthreadUtil.extractPthreadObject(
             pSubstituteEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
-    // TODO goblint-regression/13-privatized_68-pfscan_protected_loop_minimal_interval_true
-    //  causes issues here, the pthreadMutexT is a parameter which is not in the locked map
     MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
     return new SeqMutexUnlockStatement(
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);

@@ -21,10 +21,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Handles the assignments of a <strong>single</strong> return value of functions, e.g. {@code int x
- * = fib(5);} where {@code fib} has a return statement {@code return fibNumber;} then we create a
- * statement {@code x = fibNumber;} (where {@code x} is declared beforehand) in the
- * sequentialization.
+ * Represents the assignments of a function return value, e.g. {@code x = fib(5);} where {@code fib}
+ * has a return statement {@code return fibNumber;} then we create a statement {@code x =
+ * fibNumber;}.
  */
 public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
 
