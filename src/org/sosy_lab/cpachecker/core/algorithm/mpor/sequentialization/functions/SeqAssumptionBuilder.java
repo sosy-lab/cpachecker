@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -19,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -61,6 +59,7 @@ public class SeqAssumptionBuilder {
     ImmutableList.Builder<CFunctionCallStatement> rAssumptions = ImmutableList.builder();
     // split the assumption into 2 calls so that we don't have to use logical and (&&)
     if (pIsSigned) {
+      // ensure that 0 <= next_thread
       CBinaryExpression nextThreadAtLeastZero =
           pBinaryExpressionBuilder.buildBinaryExpression(
               SeqIntegerLiteralExpression.INT_0,
@@ -69,6 +68,7 @@ public class SeqAssumptionBuilder {
       rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
     CIdExpression numThreads = pFields.ghostElements.numThreadsIdExpression;
+    // ensure that next_thread < NUM_THREADS
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
@@ -76,36 +76,25 @@ public class SeqAssumptionBuilder {
     return rAssumptions.build();
   }
 
-  public static Optional<CFunctionCallStatement> buildNextThreadActiveAssumption(
-      MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  public static CFunctionCallStatement buildNextThreadActiveAssumption(
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
 
-    if (pOptions.scalarPc) {
-      // scalar pc: place assume(pci != -1); directly at respective thread head
-      return Optional.empty();
-    }
     // pc array: single assume(pc[next_thread] != -1);
     CBinaryExpression nextThreadActive =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpression.NEXT_THREAD),
             SeqIntegerLiteralExpression.INT_EXIT_PC,
             BinaryOperator.NOT_EQUALS);
-    CFunctionCallStatement assumeCall = buildAssumption(nextThreadActive);
-    return Optional.of(assumeCall);
+    return buildAssumption(nextThreadActive);
   }
 
-  public static Optional<CFunctionCallStatement> tryBuildCountGreaterZeroAssumption(
-      MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  public static CFunctionCallStatement buildCountGreaterZeroAssumption(
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
 
-    if (!pOptions.isThreadCountRequired()) {
-      return Optional.empty();
-    }
     // assume(cnt > 0);
     CBinaryExpression countGreaterZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.CNT, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
-    CFunctionCallStatement assumeCall = buildAssumption(countGreaterZeroExpression);
-    return Optional.of(assumeCall);
+    return buildAssumption(countGreaterZeroExpression);
   }
 }

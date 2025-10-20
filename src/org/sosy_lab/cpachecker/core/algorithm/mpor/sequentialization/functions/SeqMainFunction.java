@@ -49,16 +49,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final SequentializationFields fields;
 
-  // TODO make Optional
-  private final CFunctionCallAssignmentStatement nextThreadAssignment;
-
-  // TODO make Optional (and also shouldn't be a list)
-  private final ImmutableList<CFunctionCallStatement> nextThreadAssumptions;
-
-  private final Optional<CFunctionCallStatement> nextThreadActiveAssumption;
-
-  private final Optional<CFunctionCallStatement> countAssumption;
-
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   private final LogManager logger;
@@ -72,20 +62,8 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     fields = pFields;
-
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
-
-    nextThreadAssignment =
-        SeqStatementBuilder.buildNextThreadAssignment(pOptions.nondeterminismSigned);
-    nextThreadAssumptions =
-        SeqAssumptionBuilder.buildNextThreadAssumption(
-            pOptions.nondeterminismSigned, pFields, binaryExpressionBuilder);
-    nextThreadActiveAssumption =
-        SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
-
-    countAssumption =
-        SeqAssumptionBuilder.tryBuildCountGreaterZeroAssumption(options, binaryExpressionBuilder);
   }
 
   @Override
@@ -116,23 +94,37 @@ public class SeqMainFunction extends SeqFunction {
       if (options.comments) {
         rBody.add(SeqComment.NEXT_THREAD_NONDET);
       }
+      // next_thread = __VERIFIER_nondet_...()
+      CFunctionCallAssignmentStatement nextThreadAssignment =
+          SeqStatementBuilder.buildNextThreadAssignment(options.nondeterminismSigned);
       rBody.add(nextThreadAssignment.toASTString());
-      for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
-        rBody.add(nextThreadAssumption.toASTString());
-      }
-      // assumptions over next_thread being active (pc != 0)
-      if (nextThreadActiveAssumption.isPresent()) {
+
+      // assume(0 <= next_thread && next_thread < NUM_THREADS)
+      ImmutableList<CFunctionCallStatement> nextThreadAssumption =
+          SeqAssumptionBuilder.buildNextThreadAssumption(
+              options.nondeterminismSigned, fields, binaryExpressionBuilder);
+      nextThreadAssumption.forEach(assumption -> rBody.add(assumption.toASTString()));
+
+      // for scalar pc, this is done separately at the start of the respective thread
+      if (!options.scalarPc) {
+        // assumptions over next_thread being active: pc[next_thread] != 0
         if (options.comments) {
           rBody.add(SeqComment.NEXT_THREAD_ACTIVE);
         }
-        CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
-        rBody.addAll(SeqStringUtil.splitOnNewline(assumption.toASTString()));
+        CFunctionCallStatement nextThreadActiveAssumption =
+            SeqAssumptionBuilder.buildNextThreadActiveAssumption(binaryExpressionBuilder);
+        rBody.add(nextThreadActiveAssumption.toASTString());
       }
-    } else if (countAssumption.isPresent()) {
+    }
+
+    if (options.isThreadCountRequired()) {
+      // assumptions that at least one thread is still active: assume(cnt > 0)
       if (options.comments) {
         rBody.add(SeqComment.ACTIVE_THREAD_COUNT);
       }
-      rBody.add(countAssumption.orElseThrow().toASTString());
+      CFunctionCallStatement countAssumption =
+          SeqAssumptionBuilder.buildCountGreaterZeroAssumption(binaryExpressionBuilder);
+      rBody.add(countAssumption.toASTString());
     }
 
     // add all thread simulation control flow statements
