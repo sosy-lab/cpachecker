@@ -4516,28 +4516,29 @@ limits.time.cpu = -1ns
 # great caution! (use seconds or specify a unit; -1 for infinite)
 limits.time.cpu.thread = -1ns
 
-# When used, the thread-time-limit used is not equal to "time.cpu.thread",
-# but relative to the total cpu-time-limit ("time.cpu") multiplied with the
-# proportion of "time.cpu.thread" by the setting of this option. Assuming the
-# following options to be "time.cpu.thread" = threadTime, "time.cpu" =
-# cpuTime, and "time.cpu.thread.relativeTo" = relativeTime, and the used
-# time-limit for a thread to be usedThreadTime, then: (threadTime /
-# relativeTime) * cpuTime = usedThreadTime. For example, setting
-# "time.cpu.thread" = 60s, "time.cpu" = 900s, and
-# "time.cpu.thread.relativeTo" = 600s, then the time-limit used for the
-# thread will be 90s (= 60/600*900). This option is disabled for values in
-# the negative range and does not work for distinct time-units used in
-# between the three related options. Can only be used if "time.cpu.thread" is
-# used as well. If "time.cpu" is not used, i.e. a unlimited time-limit is
-# used for it, this option will behave as dictated by option
-# "time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime".
-limits.time.cpu.thread.relativeTo = -1ns
+# Thread time-limit in percent (%) of total CPU time-limit "limit.time.cpu"
+# used by CPAchecker. Example: using this option with value 15.6 leads to
+# 15.6% of 900s "limits.time.cpu" = 140s thread CPU time limit used. A
+# maximum and minimum can be set using the options "time.cpu.thread.maximum"
+# and "time.cpu.thread.minimum" respectively. The value of this option may
+# not be greater than 100 or less or equal to 0.
+limits.time.cpu.thread.factorOfTotalCpuTime = 100.00
 
-# If this option is set to false and a relative thread time is specified with
-# an unlimited CPU-time, the original time-limit set in "time.cpu.thread" is
-# used for the thread. If set to true, the thread time-limit is ignored and
-# unlimited time is allocated for the thread instead.
-limits.time.cpu.thread.useUnlimitedThreadTimeForUnlimitedCpuTime = false
+# Maximum limit for thread cpu time used by CPAchecker. I.e. iff the thread
+# CPU time limit calculated with "time.cpu.thread.factor" is larger than this
+# option, the limit specified in this option is used instead. This option
+# will in general not work when multi-threading is used in more than one
+# place, use only with great caution! (use seconds or specify a unit; -1 for
+# infinite)
+limits.time.cpu.thread.maximum = -1ns
+
+# Minimum limit for thread cpu time used by CPAchecker. I.e. iff the thread
+# CPU time limit calculated with "time.cpu.thread.factor" is less than the
+# limit specified in this option, the limit of this option is used instead.
+# This option will in general not work when multi-threading is used in more
+# than one place, use only with great caution! (use seconds or specify a
+# unit)
+limits.time.cpu.thread.minimum = 0ns
 
 # Enforce that the given CPU time limit is set as the value of
 # limits.time.cpu.

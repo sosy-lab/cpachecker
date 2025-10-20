@@ -21,6 +21,7 @@ import com.google.common.math.LongMath;
 import com.google.common.primitives.Longs;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import javax.management.JMException;
@@ -171,54 +172,67 @@ public final class ResourceLimitChecker {
       ResourceLimitOptions options, Builder<ResourceLimit> limits, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    if (options.threadTime.compareTo(TimeSpan.empty()) < 0) {
-      return;
+    Optional<TimeSpan> maximumThreadTime = Optional.empty();
+    Optional<TimeSpan> minimumThreadTime = Optional.empty();
+    if (options.threadTimeMax.compareTo(TimeSpan.empty()) > 0) {
+      maximumThreadTime = Optional.of(options.threadTimeMax);
+    }
+    if (options.threadTimeMin.compareTo(TimeSpan.empty()) > 0) {
+      minimumThreadTime = Optional.of(options.threadTimeMin);
     }
 
-    // Unify all time-limits to the same unit
-    TimeSpan threadTimeLimit = options.threadTime.toChecked(TimeUnit.NANOSECONDS);
-    final TimeSpan cpuTimeLimit = options.cpuTime.toChecked(TimeUnit.NANOSECONDS);
-    final TimeSpan relativeThreadTime = options.relativeThreadTime.toChecked(TimeUnit.NANOSECONDS);
-    final TimeSpan maximumThreadTime = options.threadTimeMax.toChecked(TimeUnit.NANOSECONDS);
-    final TimeSpan minimumThreadTime = options.threadTimeMin.toChecked(TimeUnit.NANOSECONDS);
+    if (maximumThreadTime.isPresent()
+        && minimumThreadTime.isPresent()
+        && options.threadTimeMin.compareTo(options.threadTimeMax) > 0) {
+      throw new InvalidConfigurationException(
+          "Invalid Configuration: the minimum thread time-limit \"time.cpu.thread.minimum\" can not"
+              + " be larger than the maximum time-limit \"time.cpu.thread.maximum\"!");
+    }
 
-    if (relativeThreadTime.compareTo(TimeSpan.empty()) > 0) {
-      if (cpuTimeLimit.compareTo(TimeSpan.empty()) >= 0) {
-        // If global time limit used, we want to use the relative time limit
-        long relativeThreadTimeDividend =
-            options.threadTime.getChecked(options.threadTime.getUnit());
-        long relativeThreadTimeDivisor =
-            relativeThreadTime.getChecked(relativeThreadTime.getUnit());
-        long totalCpuTimeFactor = cpuTimeLimit.getChecked(cpuTimeLimit.getUnit());
+    if (options.threadCpuTimeInPercentOfTotal > 100.0) {
+      throw new InvalidConfigurationException(
+          "Invalid Configuration: the thread time limit can not be more than 100%."
+              + " \"limit.time.cpu.thread.factorOfTotalCpuTime\" is "
+              + options.threadCpuTimeInPercentOfTotal
+              + "%.");
+    } else if (options.threadCpuTimeInPercentOfTotal <= 0.0) {
+      throw new InvalidConfigurationException(
+          "Invalid Configuration: the thread time limit can not be less or equal to 0% of the total"
+              + " CPU time-limit. \"limit.time.cpu.thread.factorOfTotalCpuTime\" is "
+              + options.threadCpuTimeInPercentOfTotal
+              + "%.");
+    }
 
-        threadTimeLimit =
-            TimeSpan.of(
-                relativeThreadTimeDividend * totalCpuTimeFactor / relativeThreadTimeDivisor,
-                options.threadTime.getUnit());
+    double threadTimeFactor = options.threadCpuTimeInPercentOfTotal / 100.0;
 
-      } else {
-        // Unlimited thread time as no CPU time-limit is set
-        limits.add(
-            ThreadCpuTimeLimit.create(
-                applyMinAndMaxThreadTime(cpuTimeLimit, maximumThreadTime, minimumThreadTime)));
+    if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
+      // Legacy system
+      limits.add(
+          ThreadCpuTimeLimit.create(options.threadTime, maximumThreadTime, minimumThreadTime));
+      if (options.threadCpuTimeInPercentOfTotal != 100.00) {
+        pLogger.log(
+            Level.WARNING,
+            "Found conflicting options \"limit.time.cpu.thread\" with setting "
+                + options.threadTime
+                + " and \"limit.time.cpu.thread.factor\" with setting "
+                + options.threadCpuTimeInPercentOfTotal
+                + "%, using option \"limit.time.cpu.thread\""
+                + " with setting "
+                + options.threadTime);
       }
     }
 
-    limits.add(
-        ThreadCpuTimeLimit.create(
-            applyMinAndMaxThreadTime(threadTimeLimit, maximumThreadTime, minimumThreadTime)));
-  }
-
-  private static TimeSpan applyMinAndMaxThreadTime(
-      TimeSpan timeSpanToApplyTo, TimeSpan maximumThreadTime, TimeSpan minimumThreadTime) {
-    if (maximumThreadTime.compareTo(TimeSpan.empty()) >= 0
-        && timeSpanToApplyTo.compareTo(maximumThreadTime) > 0) {
-      return maximumThreadTime;
-    } else if (minimumThreadTime.compareTo(TimeSpan.empty()) >= 0
-        && timeSpanToApplyTo.compareTo(minimumThreadTime) < 0) {
-      return minimumThreadTime;
+    // TODO: the 2 cases below are just split for more accurate info given in the command line.
+    //  We could just use the same creation method and ignore factor == 1.0 cases.
+    // Unlimited thread time (within min and max) as no CPU time-limit is set
+    if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0 && threadTimeFactor != 1.0) {
+      limits.add(
+          ThreadCpuTimeLimit.createByFactorOfTotalCpuTime(
+              threadTimeFactor, options.cpuTime, maximumThreadTime, minimumThreadTime));
+    } else if (maximumThreadTime.isPresent() || minimumThreadTime.isPresent()) {
+      // Default threadTimeFactor is 1, so just CPU time
+      limits.add(ThreadCpuTimeLimit.create(options.cpuTime, maximumThreadTime, minimumThreadTime));
     }
-    return timeSpanToApplyTo;
   }
 
   /**
@@ -285,27 +299,39 @@ public final class ResourceLimitChecker {
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.relative.minimum",
+        name = "time.cpu.thread.minimum",
         description =
-            "Minimum \"time.cpu.thread\" (use seconds or specify a unit; -1 for infinite)")
-    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan threadTimeMin = TimeSpan.ofNanos(-1);
+            "Minimum limit for thread cpu time used by CPAchecker. I.e. iff the thread CPU time"
+                + " limit calculated with \"time.cpu.thread.factor\" is less than the limit"
+                + " specified in this option, the limit of this option is used instead. This option"
+                + " will in general not work when multi-threading is used in more than one place,"
+                + " use only with great caution! (use seconds or specify a unit)")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+    private TimeSpan threadTimeMin = TimeSpan.ofNanos(0);
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.relative.maximum",
+        name = "time.cpu.thread.maximum",
         description =
-            "Maximum \"time.cpu.thread\" (use seconds or specify a unit; -1 for infinite)")
+            "Maximum limit for thread cpu time used by CPAchecker. I.e. iff the thread CPU time"
+                + " limit calculated with \"time.cpu.thread.factor\" is larger than this option,"
+                + " the limit specified in this option is used instead. This option will in general"
+                + " not work when multi-threading is used in more than one place, use only with"
+                + " great caution! (use seconds or specify a unit; -1 for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan threadTimeMax = TimeSpan.ofNanos(-1);
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.factor",
+        name = "time.cpu.thread.factorOfTotalCpuTime",
         description =
-            "When used, the thread-time-limit used .")
-    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan relativeThreadTime = TimeSpan.ofNanos(-1);
+            "Thread time-limit in percent (%) of total CPU time-limit \"limit.time.cpu\" used by"
+                + " CPAchecker. Example: using this option with value 15.6 leads to 15.6% of 900s"
+                + " \"limits.time.cpu\" = 140s thread CPU time limit used. A maximum and minimum"
+                + " can be set using the options \"time.cpu.thread.maximum\" and"
+                + " \"time.cpu.thread.minimum\" respectively. The value of this option may not be"
+                + " greater than 100 or less or equal to 0.")
+    private double threadCpuTimeInPercentOfTotal = 100.00;
   }
 
   private static class ResourceLimitCheckRunnable implements Runnable {
