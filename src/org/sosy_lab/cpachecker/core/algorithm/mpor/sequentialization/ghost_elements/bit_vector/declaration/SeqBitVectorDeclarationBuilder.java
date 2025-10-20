@@ -173,7 +173,7 @@ public class SeqBitVectorDeclarationBuilder {
         SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(
-                BitVectorDataType.__UINT8_T, sparseBitVector.reachableVariable, initializer);
+                BitVectorDataType.UINT8_T, sparseBitVector.reachableVariable, initializer);
         rDeclarations.add(declaration);
       }
     }
@@ -217,6 +217,6 @@ public class SeqBitVectorDeclarationBuilder {
       CIdExpression pVariable, boolean pValue) {
 
     SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(pValue);
-    return new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, pVariable, initializer);
+    return new SeqBitVectorDeclaration(BitVectorDataType.UINT8_T, pVariable, initializer);
   }
 }

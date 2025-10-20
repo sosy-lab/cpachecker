@@ -9,26 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded;
 
 /**
- * All tokens used for function and variable names in the sequentialization. Make sure:
- *
- * <ul>
- *   <li>that the variable name is an exact representation for the string including lower/upper case
- *       and underscores but excluding quotation marks ", e.g. {@code var = "var"} or {@code TEST =
- *       "\"TEST\""}
- *   <li>to use a single preceding underscore for variable names that cannot have the strings value,
- *       e.g. {@code _break = "break"} or {@code _0 = "0"}
- *   <li>to sort the variables by alphabet after removing underscores
- * </ul>
+ * All tokens used for function and variable names in the sequentialization. Make sure to sort the
+ * variables alphabetically.
  */
 public class SeqToken {
-
-  public static final String _0 = "0";
-
-  public static final String _0b = "0b";
-
-  public static final String _0x = "0x";
-
-  public static final String _1 = "1";
 
   /** a for access */
   public static final String a = "a";
@@ -37,35 +21,36 @@ public class SeqToken {
 
   public static final String ACCESS = "ACCESS";
 
-  public static final String __assert_fail = "__assert_fail";
+  public static final String ASSERT_FAIL_KEYWORD = "__assert_fail";
 
-  public static final String __assertion = "__assertion";
+  public static final String ASSERTION_KEYWORD_ASSERT_FAIL = "__assertion";
 
   public static final String assume = "assume";
-
-  public static final String assume_abort_if_not = "assume_abort_if_not";
 
   /** b for bit vector */
   public static final String b = "b";
 
+  public static final String BINARY_LITERAL = "0b";
+
   public static final String BIT_VECTOR = "BIT_VECTOR";
 
-  public static final String _break = "break";
+  public static final String BREAK_KEYWORD = "break";
 
   /** C for Call */
   public static final String C = "C";
 
   public static final String CALL = "CALL";
 
-  public static final String _case = "case";
+  public static final String CASE_KEYWORD = "case";
 
+  /** cnt for count */
   public static final String cnt = "cnt";
 
   public static final String cond = "cond";
 
-  public static final String _continue = "continue";
+  public static final String CONTINUE_KEYWORD = "continue";
 
-  public static final String __CPAchecker_TMP_ = "__CPAchecker_TMP_";
+  public static final String CPACHECKER_TMP_KEYWORD = "__CPAchecker_TMP_";
 
   /** d for direct */
   public static final String d = "d";
@@ -78,21 +63,23 @@ public class SeqToken {
 
   public static final String EXIT = "EXIT";
 
-  public static final String __file = "__file";
+  public static final String FILE_KEYWORD_ASSERT_FAIL = "__file";
 
-  public static final String __FILE_NAME_PLACEHOLDER__ = "__FILE_NAME_PLACEHOLDER__";
+  public static final String FILE_NAME_PLACEHOLDER = "__FILE_NAME_PLACEHOLDER__";
 
-  public static final String __function = "__function";
+  public static final String FUNCTION_KEYWORD_ASSERT_FAIL = "__function";
 
   public static final String G = "G";
 
   public static final String GLOBAL = "GLOBAL";
 
-  public static final String _goto = "goto";
+  public static final String GOTO_KEYWORD = "goto";
+
+  public static final String HEXADECIMAL_LITERAL = "0x";
 
   public static final String iteration = "i";
 
-  public static final String __line = "__line";
+  public static final String LINE_KEYWORD_ASSERT_FAIL = "__line";
 
   public static final String L = "L";
 
@@ -101,8 +88,6 @@ public class SeqToken {
   public static final String LAST = "LAST";
 
   public static final String last_thread = "last_thread";
-
-  public static final String ldv_assume = "ldv_assume";
 
   public static final String LOCAL = "LOCAL";
 
@@ -116,7 +101,7 @@ public class SeqToken {
 
   public static final String malloc = "malloc";
 
-  public static final String __MPOR__ = "__MPOR__";
+  public static final String MPOR_PREFIX = "__MPOR__";
 
   public static final String next_thread = "next_thread";
 
@@ -125,6 +110,8 @@ public class SeqToken {
   /** Constant, hence uppercase. */
   public static final String NUM_THREADS = "NUM_THREADS";
 
+  public static final String ONE_BIT = "1";
+
   public static final String P = "P";
 
   public static final String PARAMETER = "PARAMETER";
@@ -132,7 +119,7 @@ public class SeqToken {
   /** pc for program counter */
   public static final String pc = "pc";
 
-  public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
+  public static final String PRETTY_FUNCTION_KEYWORD = "__PRETTY_FUNCTION__";
 
   /** r for reachable, or read. */
   public static final String r = "r";
@@ -145,7 +132,7 @@ public class SeqToken {
 
   public static final String READERS = "READERS";
 
-  public static final String _return = "return";
+  public static final String RETURN_KEYWORD = "return";
 
   public static final String return_value = "return_value";
 
@@ -155,21 +142,17 @@ public class SeqToken {
 
   public static final String S = "S";
 
-  public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
-
   public static final String SIGNALED = "SIGNALED";
 
   public static final String size = "size";
 
   public static final String START_ROUTINE_ARG = "START_ROUTINE_ARG";
 
-  public static final String STRING_0 = "\"0\"";
-
   public static final String SYNC = "SYNC";
 
-  public static final String T = "T";
+  public static final String t = "_t";
 
-  public static final String _t = "_t";
+  public static final String T = "T";
 
   public static final String thread = "thread";
 
@@ -177,12 +160,14 @@ public class SeqToken {
 
   public static final String uint = "uint";
 
-  public static final String __VERIFIER_assume = "__VERIFIER_assume";
-
   /** w for write */
   public static final String w = "w";
 
   public static final String WRITE = "WRITE";
 
   public static final String WRITERS = "WRITERS";
+
+  public static final String ZERO_BIT = "0";
+
+  public static final String ZERO_STRING = "\"0\"";
 }

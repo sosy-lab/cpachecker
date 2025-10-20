@@ -32,11 +32,11 @@ public class BinaryBitVectorValueExpression implements BitVectorValueExpression 
   @Override
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(SeqToken._0b);
+    rBitVector.append(SeqToken.BINARY_LITERAL);
     int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binaryLength);
     // build bit vector from left to right
     for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
-      rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
+      rBitVector.append(setBits.contains(i) ? SeqToken.ONE_BIT : SeqToken.ZERO_BIT);
     }
     return rBitVector.toString();
   }

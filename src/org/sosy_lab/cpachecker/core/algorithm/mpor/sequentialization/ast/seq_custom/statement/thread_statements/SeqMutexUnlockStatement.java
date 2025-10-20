@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_unlock} of the form:
  *
- * <p>{@code __MPOR_SEQ__GLOBAL_14_m_LOCKED = 0; }
+ * <p>{@code m_LOCKED = 0; }
  */
 public class SeqMutexUnlockStatement implements SeqThreadStatement {
 

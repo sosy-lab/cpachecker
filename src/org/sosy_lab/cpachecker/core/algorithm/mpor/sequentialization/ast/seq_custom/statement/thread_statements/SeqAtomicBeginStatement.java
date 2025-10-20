@@ -71,7 +71,7 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.wrapInBlockComment(
-            PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
+            PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
         + injected;
   }

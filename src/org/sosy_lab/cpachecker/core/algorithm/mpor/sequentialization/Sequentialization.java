@@ -19,9 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -37,22 +35,11 @@ public class Sequentialization {
       ImmutableList.of(
           "// This sequentialization (transformation of a concurrent program into an"
               + " equivalent",
-          "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.",
-          "//",
-          "// Assertion fails from the function "
-              + SeqToken.__SEQUENTIALIZATION_ERROR__
-              + " mark faulty sequentializations.",
-          "// All other assertion fails are induced by faulty input programs.");
+          "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
 
   public static final String inputReachErrorDummy =
       SeqExpressionBuilder.buildReachError(
-                  SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
-              .toASTString()
-          + SeqSyntax.SEMICOLON;
-
-  public static final String outputReachErrorDummy =
-      SeqExpressionBuilder.buildReachError(
-                  SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
+                  SeqToken.FILE_NAME_PLACEHOLDER, -1, SeqToken.PRETTY_FUNCTION_KEYWORD)
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
@@ -175,11 +162,9 @@ public class Sequentialization {
     if (pOptions.comments) {
       rProgram.addAll(mporHeader);
     }
-    String outputFileName = SeqNameUtil.buildOutputFileName(pInputFileName);
     for (String lineOfCode : pInitProgram) {
       // replace dummy line numbers (-1) with actual line numbers in the seq
-      rProgram.add(
-          replaceReachErrorDummies(pInputFileName, outputFileName, lineOfCode, currentLine));
+      rProgram.add(replaceReachErrorDummies(pInputFileName, lineOfCode, currentLine));
       currentLine++;
     }
     return rProgram.build();
@@ -202,25 +187,15 @@ public class Sequentialization {
    * none.
    */
   private static String replaceReachErrorDummies(
-      String pInputFileName, String pOutputFileName, String pLineOfCode, int pLineNumber) {
+      String pInputFileName, String pLineOfCode, int pLineNumber) {
 
     if (pLineOfCode.contains(inputReachErrorDummy)) {
       // reach_error calls from the input program
       CFunctionCallExpression reachErrorCall =
           SeqExpressionBuilder.buildReachError(
-              pInputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
+              pInputFileName, pLineNumber, SeqToken.PRETTY_FUNCTION_KEYWORD);
       return pLineOfCode.replace(
           inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-
-    } else if (pLineOfCode.contains(outputReachErrorDummy)) {
-      // reach_error calls injected by the sequentialization
-      CFunctionCallExpression reachErrorCall =
-          SeqExpressionBuilder.buildReachError(
-              pOutputFileName + FileExtension.I.suffix,
-              pLineNumber,
-              SeqToken.__SEQUENTIALIZATION_ERROR__);
-      return pLineOfCode.replace(
-          outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
     }
     return pLineOfCode;
   }

@@ -309,9 +309,7 @@ public class SeqThreadStatementClauseUtil {
   // No Backward Goto ==============================================================================
 
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
         ImmutableListMultimap.builder();
@@ -326,7 +324,6 @@ public class SeqThreadStatementClauseUtil {
       SeqValidator.validateEqualBlocks(allBlocks, reorderedBlocks, pLogger);
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
-    SeqValidator.tryValidateNoBackwardGoto(pOptions, rNoBackwardGoto.build(), pLogger);
     return rNoBackwardGoto.build();
   }
 

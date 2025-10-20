@@ -80,12 +80,12 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   }
 
   private static String buildCasePrefix(CExpression pExpression) {
-    return SeqToken._case + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
+    return SeqToken.CASE_KEYWORD + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
   }
 
   private static String buildBreakSuffix(SeqStatement pStatement) {
     if (pStatement instanceof SeqSwitchStatement) {
-      return SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
+      return SeqSyntax.SPACE + SeqToken.BREAK_KEYWORD + SeqSyntax.SEMICOLON;
     }
     return SeqSyntax.EMPTY_STRING;
   }

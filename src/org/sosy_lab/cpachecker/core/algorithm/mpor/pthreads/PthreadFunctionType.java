@@ -131,8 +131,8 @@ public enum PthreadFunctionType {
   PTHREAD_SETSPECIFIC("pthread_setspecific", false, false),
   // pthread_yield is deprecated: https://www.man7.org/linux/man-pages/man3/pthread_yield.3.html
   // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
-  __VERIFIER_ATOMIC_BEGIN("__VERIFIER_atomic_begin", true, true),
-  __VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
+  VERIFIER_ATOMIC_BEGIN("__VERIFIER_atomic_begin", true, true),
+  VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
 
   public final String name;
 

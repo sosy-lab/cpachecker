@@ -23,6 +23,9 @@ public class SeqGotoStatement implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return SeqToken._goto + SeqSyntax.SPACE + label.toASTStringWithoutColon() + SeqSyntax.SEMICOLON;
+    return SeqToken.GOTO_KEYWORD
+        + SeqSyntax.SPACE
+        + label.toASTStringWithoutColon()
+        + SeqSyntax.SEMICOLON;
   }
 }

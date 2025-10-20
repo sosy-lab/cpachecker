@@ -24,8 +24,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /**
  * Represents the assignment of a parameter given to a function to an injected parameter variable in
  * the sequentialization.
- *
- * <p>E.g. {@code __MPOR_SEQ__THREAD0_PARAM_q = GLOBAL_queue; }
  */
 public class SeqParameterAssignmentStatements implements SeqThreadStatement {
 

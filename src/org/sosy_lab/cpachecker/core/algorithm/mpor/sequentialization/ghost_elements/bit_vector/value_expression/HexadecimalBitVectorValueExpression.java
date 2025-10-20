@@ -34,14 +34,14 @@ public class HexadecimalBitVectorValueExpression implements BitVectorValueExpres
   @Override
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(SeqToken._0x);
+    rBitVector.append(SeqToken.HEXADECIMAL_LITERAL);
     // build the binary vector, then parse to long and convert to hex
     StringBuilder binaryBitVector = new StringBuilder();
     int binLength = BitVectorUtil.convertHexLengthToBinary(hexLength);
     int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binLength);
     // build bit vector from left to right
     for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
-      binaryBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
+      binaryBitVector.append(setBits.contains(i) ? SeqToken.ONE_BIT : SeqToken.ZERO_BIT);
     }
     // use long in case we have 64 length bit vectors
     BigInteger bigInteger = new BigInteger(binaryBitVector.toString(), 2);

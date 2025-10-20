@@ -41,9 +41,9 @@ public class BitVectorUtil {
     return pBinaryLength + RIGHT_INDEX - 1;
   }
 
-  public static final int MIN_BINARY_LENGTH = BitVectorDataType.__UINT8_T.size;
+  public static final int MIN_BINARY_LENGTH = BitVectorDataType.UINT8_T.size;
 
-  public static final int MAX_BINARY_LENGTH = BitVectorDataType.__UINT64_T.size;
+  public static final int MAX_BINARY_LENGTH = BitVectorDataType.UINT64_T.size;
 
   // Creation ======================================================================================
 

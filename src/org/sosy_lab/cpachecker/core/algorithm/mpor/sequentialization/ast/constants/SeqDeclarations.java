@@ -84,21 +84,28 @@ public class SeqDeclarations {
 
     public static final CParameterDeclaration ASSERTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__assertion);
+            FileLocation.DUMMY,
+            CPointerType.POINTER_TO_CONST_CHAR,
+            SeqToken.ASSERTION_KEYWORD_ASSERT_FAIL);
 
     public static final CParameterDeclaration COND =
         new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.cond);
 
     public static final CParameterDeclaration FUNCTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__function);
+            FileLocation.DUMMY,
+            CPointerType.POINTER_TO_CONST_CHAR,
+            SeqToken.FUNCTION_KEYWORD_ASSERT_FAIL);
 
     public static final CParameterDeclaration FILE =
         new CParameterDeclaration(
-            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__file);
+            FileLocation.DUMMY,
+            CPointerType.POINTER_TO_CONST_CHAR,
+            SeqToken.FILE_KEYWORD_ASSERT_FAIL);
 
     public static final CParameterDeclaration LINE =
-        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.__line);
+        new CParameterDeclaration(
+            FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.LINE_KEYWORD_ASSERT_FAIL);
 
     public static final CParameterDeclaration SIZE =
         new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.size);
@@ -145,7 +152,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ASSERT_FAIL,
-            SeqToken.__assert_fail,
+            SeqToken.ASSERT_FAIL_KEYWORD,
             ImmutableList.of(
                 SeqParameterDeclaration.ASSERTION,
                 SeqParameterDeclaration.FILE,

@@ -21,7 +21,7 @@ public class SparseBitVectorValueExpression implements BitVectorValueExpression 
 
   @Override
   public String toASTString() {
-    return value ? SeqToken._1 : SeqToken._0;
+    return value ? SeqToken.ONE_BIT : SeqToken.ZERO_BIT;
   }
 
   @Override

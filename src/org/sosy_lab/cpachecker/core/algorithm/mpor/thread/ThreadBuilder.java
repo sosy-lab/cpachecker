@@ -228,11 +228,10 @@ public class ThreadBuilder {
 
   /** Checks if, after calling {@code pCfaEdge}, the thread is still/yet in an atomic block. */
   private static boolean updateIsInAtomicBlock(CFAEdge pCfaEdge, boolean pPreviousIsInAtomicBlock) {
-    if (PthreadUtil.isCallToPthreadFunction(
-        pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
+    if (PthreadUtil.isCallToPthreadFunction(pCfaEdge, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
       return true;
     } else if (PthreadUtil.isCallToPthreadFunction(
-        pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_END)) {
+        pCfaEdge, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
       return false;
     }
     return pPreviousIsInAtomicBlock;

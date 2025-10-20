@@ -450,9 +450,9 @@ public class SeqThreadStatementBuilder {
               pcLeftHandSide,
               pGhostElements.getThreadSyncFlags(),
               pthreadFunctionType);
-      case __VERIFIER_ATOMIC_BEGIN ->
+      case VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pOptions, pSubstituteEdge, pTargetPc, pcLeftHandSide);
-      case __VERIFIER_ATOMIC_END ->
+      case VERIFIER_ATOMIC_END ->
           buildAtomicEndStatement(pOptions, pSubstituteEdge, pTargetPc, pcLeftHandSide);
       default ->
           throw new AssertionError(

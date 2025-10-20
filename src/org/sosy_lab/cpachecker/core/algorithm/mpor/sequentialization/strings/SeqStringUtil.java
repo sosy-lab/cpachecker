@@ -98,7 +98,7 @@ public class SeqStringUtil {
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (pOptions.loopUnrolling) {
           // with loop unrolling enabled, always return to main()
-          yield SeqToken._return + SeqSyntax.SEMICOLON;
+          yield SeqToken.RETURN_KEYWORD + SeqSyntax.SEMICOLON;
         }
         if (pOptions.isThreadLabelRequired()) {
           // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
@@ -108,10 +108,10 @@ public class SeqStringUtil {
             yield gotoStatement.toASTString();
           }
         }
-        yield SeqToken._continue + SeqSyntax.SEMICOLON;
+        yield SeqToken.CONTINUE_KEYWORD + SeqSyntax.SEMICOLON;
       }
       // it is best to always use break; for switch cases, tests showed it is more efficient
-      case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
+      case SWITCH_CASE -> SeqToken.BREAK_KEYWORD + SeqSyntax.SEMICOLON;
     };
   }
 
