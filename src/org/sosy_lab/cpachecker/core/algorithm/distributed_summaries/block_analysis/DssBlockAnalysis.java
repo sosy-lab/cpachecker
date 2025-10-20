@@ -188,13 +188,17 @@ public class DssBlockAnalysis {
         return messages.build();
       }
     }
-    ImmutableMap<String, String> serialized =
+    ImmutableMap<String, String> serializedStatesAtBlockEnd =
         dcpa.serialize(
             transformedImmutableListCopy(
                 blockEnds, a -> new StateAndPrecision(a, reachedSet.getPrecision(a))));
     messages.add(
         messageFactory.createDssPreconditionMessage(
-            block.getId(), true, status, ImmutableList.copyOf(pEligibleSuccessors), serialized));
+            block.getId(),
+            true,
+            status,
+            ImmutableList.copyOf(pEligibleSuccessors),
+            serializedStatesAtBlockEnd));
     return messages.build();
   }
 
@@ -301,8 +305,7 @@ public class DssBlockAnalysis {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportPostConditions(
-          result.getFinalLocationStates(), true, block.getSuccessorIds());
+      return reportPostConditions(result.getFinalLocationStates(), true, block.getSuccessorIds());
     }
 
     return reportFirstViolationConditions(result.getViolations());

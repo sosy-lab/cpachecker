@@ -118,14 +118,14 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   /**
-   * Serialize a list of states and precisions into a map of strings.
-   * Every entry in the list will be serialized under its own key (prefixed by state#num.
-   * The {@link DistributedConfigurableProgramAnalysis#deserialize(DssMessage)} method
-   * restores the list of states and precisions.
+   * Serialize a list of states and precisions into a map of strings. Every entry in the list will
+   * be serialized under its own key (prefixed by state#num. The {@link
+   * DistributedConfigurableProgramAnalysis#deserialize(DssMessage)} method restores the list of
+   * states and precisions.
+   *
    * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
-   * @return Map of strings representing the serialized states and precisions.
-   *  Every state will be serialized with the given serialize operators but all keys
-   *  will be prefixed with state#num.
+   * @return Map of strings representing the serialized states and precisions. Every state will be
+   *     serialized with the given serialize operators but all keys will be prefixed with state#num.
    */
   default ImmutableMap<String, String> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
@@ -149,10 +149,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   /**
-   * The method restores a lis of states and precisions from a DssMessage.
-   * In general, it should hold that the concretization of the list of states
-   * is a subset of the concretization after serializing and deserializing them, i.e.,
-   * [[states]] <= [[deserialize(serialize(states))]].
+   * The method restores a lis of states and precisions from a DssMessage. In general, it should
+   * hold that the concretization of the list of states is a subset of the concretization after
+   * serializing and deserializing them, i.e., [[states]] <= [[deserialize(serialize(states))]].
+   *
    * @param pMessage The message with potentially multiple abstract states to deserialize
    * @return A list of StateAndPrecision objects restored from the message.
    * @throws InterruptedException If the deserialization is interrupted.
