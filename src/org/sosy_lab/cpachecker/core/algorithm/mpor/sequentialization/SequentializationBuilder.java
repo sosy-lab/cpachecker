@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
@@ -339,21 +337,13 @@ public class SequentializationBuilder {
       CInitializer lastThreadInitializer =
           SeqInitializerBuilder.buildInitializerExpression(numThreadsLiteral);
       CVariableDeclaration lastThreadDeclaration =
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              false,
-              CNumericTypes.UNSIGNED_INT,
-              SeqIdExpression.LAST_THREAD.getName(),
-              lastThreadInitializer);
+          SeqDeclarationBuilder.buildLastThreadDeclaration(lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());
     }
 
     // next_thread
     if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      if (pOptions.nondeterminismSigned) {
-        rDeclarations.add(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString());
-      } else {
-        rDeclarations.add(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString());
-      }
+      rDeclarations.add(SeqDeclarationBuilder.buildNextThreadDeclaration(pOptions).toASTString());
     }
 
     // pc variable(s)
@@ -383,11 +373,7 @@ public class SequentializationBuilder {
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
       rDeclarations.add(SeqVariableDeclaration.ROUND.toASTString());
-      if (pOptions.nondeterminismSigned) {
-        rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_SIGNED.toASTString());
-      } else {
-        rDeclarations.add(SeqVariableDeclaration.ROUND_MAX_UNSIGNED.toASTString());
-      }
+      rDeclarations.add(SeqDeclarationBuilder.buildRoundMaxDeclaration(pOptions).toASTString());
     }
 
     // thread synchronization variables (e.g. mutex_locked)

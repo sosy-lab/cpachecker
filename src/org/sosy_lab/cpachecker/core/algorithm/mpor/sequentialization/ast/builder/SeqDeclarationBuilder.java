@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -34,6 +35,31 @@ public class SeqDeclarationBuilder {
 
     return new CFunctionDeclaration(
         FileLocation.DUMMY, pFunctionType, pFunctionName, ImmutableList.of(), ImmutableSet.of());
+  }
+
+  public static CVariableDeclaration buildLastThreadDeclaration(CInitializer pInitializer) {
+    return buildVariableDeclaration(
+        true,
+        CNumericTypes.UNSIGNED_INT,
+        SeqIdExpression.LAST_THREAD.getName(),
+        // the initializer is dependent on the number of threads
+        pInitializer);
+  }
+
+  public static CVariableDeclaration buildNextThreadDeclaration(MPOROptions pOptions) {
+    return buildVariableDeclaration(
+        true,
+        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        SeqIdExpression.NEXT_THREAD.getName(),
+        SeqInitializer.INT_0);
+  }
+
+  public static CVariableDeclaration buildRoundMaxDeclaration(MPOROptions pOptions) {
+    return buildVariableDeclaration(
+        true,
+        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        SeqIdExpression.ROUND_MAX.getName(),
+        SeqInitializer.INT_0);
   }
 
   public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {

@@ -31,25 +31,21 @@ public class SeqDeclarations {
 
   public static class SeqVariableDeclaration {
 
-    protected static final CVariableDeclaration DUMMY_PC =
+    protected static final CVariableDeclaration PC_DUMMY =
         buildVariableDeclaration(
             false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
-    // last_thread, initialized with 0, but updated later in main()
+    // last_thread
 
-    public static final CVariableDeclaration LAST_THREAD_UNSIGNED =
+    public static final CVariableDeclaration LAST_THREAD_DUMMY =
         buildVariableDeclaration(
             true, CNumericTypes.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
 
     // next_thread
 
-    public static final CVariableDeclaration NEXT_THREAD_SIGNED =
+    public static final CVariableDeclaration NEXT_THREAD_DUMMY =
         buildVariableDeclaration(
             true, CNumericTypes.INT, SeqToken.next_thread, SeqInitializer.INT_0);
-
-    public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
-        buildVariableDeclaration(
-            true, CNumericTypes.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     // cnt (thread count)
 
@@ -59,13 +55,9 @@ public class SeqDeclarations {
 
     // round_max
 
-    public static final CVariableDeclaration ROUND_MAX_SIGNED =
+    public static final CVariableDeclaration ROUND_MAX_DUMMY =
         buildVariableDeclaration(
             false, CNumericTypes.INT, SeqToken.round_max, SeqInitializer.INT_0);
-
-    public static final CVariableDeclaration ROUND_MAX_UNSIGNED =
-        buildVariableDeclaration(
-            false, CNumericTypes.UNSIGNED_INT, SeqToken.round_max, SeqInitializer.INT_0);
 
     // round
 
