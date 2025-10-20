@@ -1076,10 +1076,13 @@ counterexample.checker = CBMC
 counterexample.checker.changeCEXInfo = false
 
 # counterexample check checks MemSafety sub-properties (valid-deref,
-# valid-free, valid-memtrack) additionally to the path.
+# valid-free, valid-memtrack) additionally to the path. This is generally
+# only needed if there are multiple sub-properties.
 counterexample.checker.checkMemorySafetySubproperty = false
 
-# configuration file for counterexample checks with CPAchecker
+# configuration file for counterexample checks with CPAchecker. The config is
+# only loaded once a CEX-check is performed and is not influenced by settings
+# of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
 # counterexample check should fully replace existing counterexamples with own
@@ -3446,18 +3449,20 @@ cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
 # predicate, depends on trackPredicates
 cpa.smg2.handleUnknownDereferenceAsSafe = false
 
-# Sets how unknown functions are handled. Strict: Unknown functions cause a
-# stop in the analysis except for known and handled functions or functions
-# defined in option safeUnknownFunctions, which are handled as SAFE.
+# Sets how unknown functions are handled.
+# STRICT: Unknown functions cause a stop in the analysis, i.e. known and
+# handled functions are evaluated normally, while functions defined in option
+# safeUnknownFunctions are handled as SAFE.
 # ASSUME_SAFE: unknown functions are assumed to be safe. No input into the
 # function is checked for validity and the result is a UNKNOWN value (which
-# may itself violate memorysafety etc.). ASSUME_EXTERNAL_ALLOCATED: Input
-# into the function is checked for validity and may cause memory based
-# errors. Returned values are unknown, but in a valid new memory section that
-# can be freed normally. Functions allocating external memory and returning
-# their address can be defined with option externalAllocationFunction.
-# externalAllocationSize.
-cpa.smg2.handleUnknownFunctions = STRICT
+# may itself violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound
+# due to side effects!
+# ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity
+# and may cause memory based errors. Returned values are unknown, but in a
+# valid new memory section that can be freed normally. Functions allocating
+# external memory and returning their address can be defined with option
+# externalAllocationFunction and externalAllocationSize.
+cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNAL_ALLOCATED
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
@@ -3498,7 +3503,7 @@ cpa.smg2.memoryArrayAllocationFunctionsElemSizeParameter = 1
 cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
-cpa.smg2.memoryErrors = true
+cpa.smg2.memoryErrors = false
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
@@ -3578,7 +3583,7 @@ cpa.smg2.stop = "SEP"
 cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
-cpa.smg2.trackPredicates = false
+cpa.smg2.trackPredicates = true
 
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.treatSymbolicValuesAsUnknown = false
@@ -4135,7 +4140,9 @@ dar.removeUnreachableStopStates = false
 dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 datarace.config = no default value
 
 # Whether to consider pointees. Only if this option is set to true, a pointer
@@ -4558,11 +4565,15 @@ locmapper.dumpTokenizedProgramToFile = no default value
 log.usedOptions.export = false
 
 # When checking for memory cleanup properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorycleanup.config = no default value
 
 # When checking for memory safety properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorysafety.config = no default value
 
 # which merge operator to use for LiveVariablesCPA
@@ -4640,7 +4651,9 @@ mpv.propertySeparator = FILE
 overflow.checkUnsigned = false
 
 # When checking for the overflow property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 overflow.config = no default value
 
 # Simplify overflow assumptions.
@@ -5198,7 +5211,9 @@ stop = "SEP"
 termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
