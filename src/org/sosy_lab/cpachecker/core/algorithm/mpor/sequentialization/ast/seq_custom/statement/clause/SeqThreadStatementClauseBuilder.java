@@ -60,7 +60,7 @@ public class SeqThreadStatementClauseBuilder {
 
     // initialize clauses from ThreadCFAs
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses =
-        initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements);
+        initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements, pLogger);
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         pOptions.pruneEmptyStatements ? SeqPruner.pruneClauses(initialClauses) : initialClauses;
@@ -96,7 +96,8 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostElements)
+      GhostElements pGhostElements,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
@@ -117,7 +118,7 @@ public class SeqThreadStatementClauseBuilder {
               pGhostElements));
       rClauses.putAll(thread, clauses.build());
     }
-    // TODO add optional pc validation here
+    SeqValidator.validateClauses(pOptions, rClauses.build(), pLogger);
     return reorderClauses(rClauses.build());
   }
 
