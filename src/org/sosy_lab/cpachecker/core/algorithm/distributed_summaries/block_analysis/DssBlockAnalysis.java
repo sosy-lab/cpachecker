@@ -81,6 +81,13 @@ public class DssBlockAnalysis {
       return states.getLast();
     }
 
+    /**
+     * Create a copy of the current arg path with edges and append
+     * a new abstract state with its corresponding edges to it.
+     * @param pNewParent the new parent state to append
+     * @param pEdges the corresponding list of edges traversed to reach this abstract state.
+     * @return A new instance of ArgPathWithEdges combining the current with the new information.
+     */
     private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
       if (!edges.isEmpty()) {
         CFAEdge lastEdge = edges.getLast();
