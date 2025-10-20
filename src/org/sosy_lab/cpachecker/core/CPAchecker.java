@@ -304,17 +304,15 @@ public class CPAchecker {
       shutdownNotifier.shutdownIfNecessary();
 
       // select CFA based on program transformation type
-      switch (pProgramTransformation) {
-        case NONE -> {
-          finalCfa = baseCfa;
-        }
+      finalCfa = switch (pProgramTransformation) {
+        case NONE -> baseCfa;
         case SEQUENTIALIZATION -> {
           MPORAlgorithm mporAlgorithm =
               new MPORAlgorithm(null, config, logger, shutdownNotifier, baseCfa, null);
           String sequentializedProgram = mporAlgorithm.buildSequentializedProgram();
-          finalCfa = parse(sequentializedProgram, baseCfa, stats, pProgramTransformation);
+          yield parse(sequentializedProgram, baseCfa, stats, pProgramTransformation);
         }
-      }
+      };
       return run0(finalCfa, stats);
 
     } catch (InvalidConfigurationException
