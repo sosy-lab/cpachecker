@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.collectAllArgPaths;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -65,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -74,39 +71,6 @@ public class DssBlockAnalysis {
 
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
-
-  private record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
-
-    private ARGState getLastState() {
-      return states.getLast();
-    }
-
-    /**
-     * Create a copy of the current arg path with edges and append
-     * a new abstract state with its corresponding edges to it.
-     * @param pNewParent the new parent state to append
-     * @param pEdges The corresponding list of edges traversed to reach this abstract state.
-     *               The list is reveresed (i.e., from child to parent).
-     * @return A new instance of ArgPathWithEdges combining the current with the new information.
-     */
-    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
-      CFAEdge last = edges.getLast();
-      ImmutableList<ARGState> argStates = listAndElement(states, pNewParent);
-      if (edges.isEmpty() || last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-        return new ArgPathWithEdges(
-            argStates, ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
-      }
-
-      ImmutableList.Builder<CFAEdge> path =
-          ImmutableList.<CFAEdge>builder().addAll(edges).add(last);
-      while (!last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-        Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
-        last = Objects.requireNonNull(Iterables.getOnlyElement(successors));
-        path.add(last);
-      }
-      return new ArgPathWithEdges(argStates, path.build());
-    }
-  }
 
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
@@ -238,36 +202,6 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
       throws CPAException, InterruptedException, SolverException {
     return reportViolationConditions(violations, null, true);
-  }
-
-  private Collection<ARGPath> allArgPathsFromState(ARGState state) {
-    List<ArgPathWithEdges> waitlist = new ArrayList<>();
-    waitlist.add(new ArgPathWithEdges(ImmutableList.of(state), ImmutableList.of()));
-    ImmutableList.Builder<ARGPath> finished = ImmutableList.builder();
-    while (!waitlist.isEmpty()) {
-      ArgPathWithEdges current = waitlist.removeLast();
-      ARGState last = current.getLastState();
-      if (last.getParents().isEmpty()) {
-        finished.add(
-            new ARGPath(
-                current.states().reversed(),
-                current.edges().reversed(),
-                current.edges().reversed()));
-        continue;
-      }
-      for (ARGState parent : last.getParents()) {
-        waitlist.add(current.copyWith(parent, parent.getEdgesToChild(last).reversed()));
-      }
-    }
-    return finished.build();
-  }
-
-  private Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
-    ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
-    for (ARGState state : states) {
-      builder.addAll(allArgPathsFromState(state));
-    }
-    return builder.build();
   }
 
   private Collection<DssMessage> reportViolationConditions(
