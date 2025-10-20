@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -249,8 +248,8 @@ public class BitVectorBuilder {
               BitVectorDirection.CURRENT);
       if (pOptions.pruneSparseBitVectors) {
         boolean isReachable =
-            SeqMemoryLocationUtil.isMemoryLocationReachableByThread(
-                pMemoryLocation, pMemoryModel, thread, pSubstituteEdges, pAccessType);
+            pMemoryModel.isMemoryLocationReachableByThread(
+                pMemoryLocation, thread, pSubstituteEdges, pAccessType);
         if (isReachable) {
           rAccessVariables.put(thread, idExpression);
         }

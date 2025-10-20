@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,7 +56,6 @@ public class MemoryModelBuilder {
           mapParameterAssignments(pOptions, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
           extractPointerParameters(parameterAssignments);
-      // TODO ensure order of values / keySets
       ImmutableList<SeqMemoryLocation> newMemoryLocations =
           ImmutableList.<SeqMemoryLocation>builder()
               .addAll(parameterAssignments.values())
@@ -153,7 +153,7 @@ public class MemoryModelBuilder {
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (!SeqMemoryLocationUtil.isConstCpaCheckerTmp(pMemoryLocation)) {
+    if (!pMemoryLocation.isConstCpaCheckerTmp()) {
       // relevant locations are either explicit or implicit (e.g. through pointers) global
       if (pMemoryLocation.isExplicitGlobal()
           || isImplicitGlobal(
@@ -446,10 +446,6 @@ public class MemoryModelBuilder {
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
     List<CParameterDeclaration> parameterDeclarations =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
-    // TODO this should be removed, see e.g.
-    //  pthread-driver-races/char_generic_nvram_read_nvram_nvram_unlocked_ioctl
-    //  with the function declaration int printk(const char * fmt, ...);
-    //  -> one parameter, but e.g. 2 arguments possible
     assert arguments.size() == parameterDeclarations.size()
         : "function argument number should be same as parameter declaration number";
     for (int i = 0; i < arguments.size(); i++) {
@@ -547,6 +543,7 @@ public class MemoryModelBuilder {
 
   // Pointer Parameter Assignments =================================================================
 
+  @VisibleForTesting
   static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> extractPointerParameters(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments) {
 

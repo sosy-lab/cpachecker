@@ -17,6 +17,9 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /**
  * A class to keep track of all memory locations in the concurrent input program, including pointers
@@ -131,6 +134,24 @@ public class MemoryModel {
     return pPointerAssignments.containsKey(pMemoryLocation)
         || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
         || pPointerParameterAssignments.containsKey(pMemoryLocation);
+  }
+
+  public boolean isMemoryLocationReachableByThread(
+      SeqMemoryLocation pMemoryLocation,
+      MPORThread pThread,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      MemoryAccessType pAccessType) {
+
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+      ImmutableSet<SeqMemoryLocation> memoryLocations =
+          SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
+              substituteEdge, this, pAccessType);
+      if (memoryLocations.contains(pMemoryLocation)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // getters =======================================================================================

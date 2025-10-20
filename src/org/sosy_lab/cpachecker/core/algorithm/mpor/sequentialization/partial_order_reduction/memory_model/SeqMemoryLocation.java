@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -43,7 +44,9 @@ public class SeqMemoryLocation {
 
     options = pOptions;
     callContext = pCallContext;
-    isExplicitGlobal = SeqMemoryLocationUtil.isExplicitGlobal(pDeclaration);
+    isExplicitGlobal =
+        pDeclaration instanceof CVariableDeclaration variableDeclaration
+            && variableDeclaration.isGlobal();
     isParameter = pDeclaration instanceof CParameterDeclaration;
     declaration = pDeclaration;
     fieldMember = pFieldMember;
@@ -107,6 +110,13 @@ public class SeqMemoryLocation {
   public boolean isFieldOwnerPointerType() {
     if (fieldMember.isPresent()) {
       return declaration.getType() instanceof CPointerType;
+    }
+    return false;
+  }
+
+  public boolean isConstCpaCheckerTmp() {
+    if (declaration instanceof CVariableDeclaration variableDeclaration) {
+      return MPORUtil.isConstCpaCheckerTmp(variableDeclaration);
     }
     return false;
   }
