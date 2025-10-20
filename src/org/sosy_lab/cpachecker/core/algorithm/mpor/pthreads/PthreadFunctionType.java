@@ -20,8 +20,6 @@ import java.util.Optional;
  */
 public enum PthreadFunctionType {
 
-  // TODO add more support: pthread_yield, pthread_barrier, etc.
-
   // Note that all indices start at 0.
   PTHREAD_BARRIER_INIT("pthread_barrier_init", false, false),
   PTHREAD_BARRIER_WAIT("pthread_barrier_wait", false, false),
@@ -131,6 +129,7 @@ public enum PthreadFunctionType {
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_SELF("pthread_self", false, false),
   PTHREAD_SETSPECIFIC("pthread_setspecific", false, false),
+  // pthread_yield is deprecated: https://www.man7.org/linux/man-pages/man3/pthread_yield.3.html
   // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
   __VERIFIER_ATOMIC_BEGIN("__VERIFIER_atomic_begin", true, true),
   __VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
@@ -150,9 +149,6 @@ public enum PthreadFunctionType {
   PthreadFunctionType(
       String pName,
       boolean pIsSupported,
-      // TODO if another property such as pthread-undefined-behavior is introduced, then all
-      //  functions need to be explicitly handled (e.g. mutex_init = 1 flag for pthread_mutex_init,
-      //  then check for mutex_init == 1 when (un-)locking the mutex)
       boolean pIsExplicitlyHandled,
       PthreadParameterInfo... pParameterInfo) {
 
