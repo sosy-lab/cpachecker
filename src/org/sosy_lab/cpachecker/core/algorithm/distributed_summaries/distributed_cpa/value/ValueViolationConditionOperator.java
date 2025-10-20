@@ -45,12 +45,6 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
       if (state instanceof ValueAnalysisState valueState) violationCondition = valueState;
     }
 
-    ValueAnalysisState violationValue = getViolationValueState(states.getLast(), machineModel);
-    for (Map.Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
-      if (!violationCondition.contains(variable.getKey()))
-        violationCondition.assignConstant(
-            variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
-    }
     return Optional.of(violationCondition);
   }
 
