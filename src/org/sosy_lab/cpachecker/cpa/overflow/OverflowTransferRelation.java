@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
@@ -49,7 +48,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    for (CFAEdge nextEdge : CFAUtils.leavingEdges(cfaEdge.getSuccessor())) {
+    for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {
       Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
 
       for (CExpression assumption : assumptions) {

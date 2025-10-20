@@ -251,9 +251,7 @@ def export_messages_table(
                 html.read()
                 .replace(
                     "<!--<<<TABLE>>><!-->",
-                    html_dict_to_html_table(
-                        all_messages, block_logs, export_keys
-                    ),
+                    html_dict_to_html_table(all_messages, block_logs, export_keys),
                 )
                 .replace("/*CSS*/", css.read())
             )

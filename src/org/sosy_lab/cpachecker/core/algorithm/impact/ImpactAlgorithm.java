@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.impact;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -178,7 +177,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       Precision precision = reached.getPrecision(v);
 
       CFANode loc = extractLocation(v);
-      for (CFAEdge edge : leavingEdges(loc)) {
+      for (CFAEdge edge : loc.getLeavingEdges()) {
 
         Collection<? extends AbstractState> successors =
             cpa.getTransferRelation().getAbstractSuccessorsForEdge(predecessor, precision, edge);

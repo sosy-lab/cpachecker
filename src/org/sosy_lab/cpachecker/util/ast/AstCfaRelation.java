@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
@@ -360,7 +359,7 @@ public final class AstCfaRelation {
 
     if (pNode.getNumLeavingEdges() != 0) {
       FileLocation closestFileLocationToNode =
-          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
               .min(Comparator.naturalOrder())
               .orElseThrow();
       StartingLocation closestStartingLocationToNode =
@@ -379,7 +378,7 @@ public final class AstCfaRelation {
       return Optional.of(element.getValue().location());
     } else if (pNode.getNumLeavingEdges() != 0) {
       FileLocation closestFileLocationToNode =
-          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
               .max(Comparator.naturalOrder())
               .orElseThrow();
       StartingLocation closestStartingLocationToNode =

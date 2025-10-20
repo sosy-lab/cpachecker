@@ -39,6 +39,11 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * The sequential mode spawns one worker for each block and runs them one after the other for every
+ * message until there are either no messages left to process (proof) or a violation condition is
+ * broadcasted by a worker operating on a block node without predecessors.
+ */
 public class SequentialDssExecutor implements DssExecutor {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";

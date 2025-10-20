@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockExport {
 
@@ -51,7 +50,7 @@ public class BlockExport {
     CFANode initialLocation = pNode.getInitialLocation();
     ImmutableList.Builder<BlockSegment> segments =
         ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
-    FluentIterable<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(initialLocation);
+    FluentIterable<CFAEdge> leavingEdges = initialLocation.getAllLeavingEdges();
     int numLeavingEdges = leavingEdges.size();
     int containedLeavingEdges = 0;
     Optional<Boolean> follow = Optional.empty();
@@ -107,7 +106,7 @@ public class BlockExport {
     }
 
     FileLocation latestFileLocation = null;
-    for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(finalLocation)) {
+    for (CFAEdge enteringEdge : finalLocation.getAllEnteringEdges()) {
       if (pNode.getEdges().contains(enteringEdge)) {
         if (latestFileLocation == null) {
           latestFileLocation = enteringEdge.getFileLocation();

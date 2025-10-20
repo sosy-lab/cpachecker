@@ -92,7 +92,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.llvm_j.BasicBlock;
@@ -300,10 +299,10 @@ class CFABuilder {
         CFATraversal.dfs().collectNodesReachableFromTo(pBlock.getEntryNode(), pBlock.getExitNode());
 
     for (CFANode toRemove : blockNodes) {
-      for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(toRemove)) {
+      for (CFAEdge enteringEdge : toRemove.getAllEnteringEdges()) {
         enteringEdge.getPredecessor().removeLeavingEdge(enteringEdge);
       }
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(toRemove)) {
+      for (CFAEdge leavingEdge : toRemove.getAllLeavingEdges()) {
         leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
       }
     }

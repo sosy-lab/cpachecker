@@ -205,15 +205,21 @@ public class CTypeCompatibilityTest {
         continue;
       }
       CTypeQualifiers qualifiers = type.getQualifiers();
+      CType differentAtomic =
+          type.withQualifiersSetTo(qualifiers.withAtomicSetTo(!qualifiers.containsAtomic()));
       CType differentConst =
           type.withQualifiersSetTo(qualifiers.withConstSetTo(!qualifiers.containsConst()));
       CType differentVolatile =
           type.withQualifiersSetTo(qualifiers.withVolatileSetTo(!qualifiers.containsVolatile()));
-      CType differentBoth =
+      CType differentAll =
           type.withQualifiersSetTo(
-              CTypeQualifiers.create(!qualifiers.containsConst(), !qualifiers.containsVolatile()));
+              CTypeQualifiers.create(
+                  !qualifiers.containsAtomic(),
+                  !qualifiers.containsConst(),
+                  !qualifiers.containsVolatile()));
 
-      assertAreAllIncompatible(type, differentConst, differentVolatile, differentBoth);
+      assertAreAllIncompatible(
+          type, differentAtomic, differentConst, differentVolatile, differentAll);
     }
   }
 
@@ -395,25 +401,33 @@ public class CTypeCompatibilityTest {
             type.getCanonicalType() instanceof CArrayType arrayType
                 ? arrayType.getType().getQualifiers()
                 : type.getQualifiers();
+        CTypedefType differentAtomic =
+            new CTypedefType(qualifiers.withAtomicSetTo(!qualifiers.containsAtomic()), "t", type);
         CTypedefType differentVolatile =
             new CTypedefType(
                 qualifiers.withVolatileSetTo(!qualifiers.containsVolatile()), "t", type);
         CTypedefType differentConst =
             new CTypedefType(qualifiers.withConstSetTo(!qualifiers.containsConst()), "t", type);
-        CTypedefType differentBoth =
+        CTypedefType differentAll =
             new CTypedefType(
-                CTypeQualifiers.create(!qualifiers.containsConst(), !qualifiers.containsVolatile()),
+                CTypeQualifiers.create(
+                    !qualifiers.containsAtomic(),
+                    !qualifiers.containsConst(),
+                    !qualifiers.containsVolatile()),
                 "t",
                 type);
 
+        if (!qualifiers.containsAtomic()) {
+          assertAreIncompatible(type, differentAtomic);
+        }
         if (!qualifiers.containsConst()) {
           assertAreIncompatible(type, differentConst);
         }
         if (!qualifiers.containsVolatile()) {
           assertAreIncompatible(type, differentVolatile);
         }
-        if (!qualifiers.equals(CTypeQualifiers.CONST_VOLATILE)) {
-          assertAreIncompatible(type, differentBoth);
+        if (!qualifiers.equals(CTypeQualifiers.ATOMIC_CONST_VOLATILE)) {
+          assertAreIncompatible(type, differentAll);
         }
       }
     }

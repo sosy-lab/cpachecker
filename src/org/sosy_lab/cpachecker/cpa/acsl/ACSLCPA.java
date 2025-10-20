@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /** This CPA is for deriving invariants from ACSL annotations. */
@@ -79,7 +78,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
-    for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
+    for (CFAEdge edge : node.getEnteringEdges()) {
       Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
       if (usePureExpressionsOnly) {
         ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
