@@ -165,7 +165,7 @@ public class PthreadUtil {
       CVariableDeclaration pVariableDeclaration) {
 
     // if the type yields a trailing white space (from declaration edge), we strip it
-    String typeName = pVariableDeclaration.getType().toString().strip();
+    String typeName = pVariableDeclaration.getType().toASTString("").strip();
     if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
       // preprocessing yields initializer lists for PTHREAD_MUTEX_INITIALIZER
       // see e.g. goblint-regression/13-privatized_34-traces-minepp-L-needs-to-be-um_true

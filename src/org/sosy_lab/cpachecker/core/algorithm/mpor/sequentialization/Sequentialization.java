@@ -144,8 +144,7 @@ public class Sequentialization {
 
   /**
    * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
-   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
-   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
+   * file name and line in {@code reach_error();} dummies with the actual values.
    */
   private static ImmutableList<String> finalProgram(
       MPOROptions pOptions, String pInputFileName, ImmutableList<String> pInitProgram) {
