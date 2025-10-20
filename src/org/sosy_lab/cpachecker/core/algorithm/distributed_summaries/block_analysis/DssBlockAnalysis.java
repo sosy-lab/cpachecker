@@ -464,13 +464,10 @@ public class DssBlockAnalysis {
       boolean putStates = true;
 
       // check whether a loop predecessor is top
-      if (block.getLoopPredecessorIds().contains(predecessorId)) {
-        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-            putStates = false;
-            break;
-          }
-        }
+      if (block.getLoopPredecessorIds().contains(predecessorId)
+          && statesAndPrecisions.stream()
+              .anyMatch(sp -> dcpa.isMostGeneralBlockEntryState(sp.state()))) {
+        putStates = false;
       }
 
       // if not, add the states to the precondition
