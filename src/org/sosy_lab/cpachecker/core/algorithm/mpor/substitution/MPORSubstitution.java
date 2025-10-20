@@ -483,9 +483,7 @@ public class MPORSubstitution {
   public ImmutableList<CVariableDeclaration> getGlobalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
     for (CIdExpression globalVariable : globalVariableSubstitutes.values()) {
-      CVariableDeclaration variableDeclaration =
-          castTo(globalVariable.getDeclaration(), CVariableDeclaration.class);
-      rGlobalDeclarations.add(variableDeclaration);
+      rGlobalDeclarations.add((CVariableDeclaration) globalVariable.getDeclaration());
     }
     return rGlobalDeclarations.build();
   }
@@ -505,9 +503,7 @@ public class MPORSubstitution {
   public ImmutableList<CParameterDeclaration> getSubstituteParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (var cell : parameterSubstitutes.cellSet()) {
-      CParameterDeclaration substituteDeclaration =
-          castTo(cell.getValue().getDeclaration(), CParameterDeclaration.class);
-      rParameterDeclarations.add(substituteDeclaration);
+      rParameterDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
     }
     return rParameterDeclarations.build();
   }
@@ -516,9 +512,7 @@ public class MPORSubstitution {
     ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
     for (var cell : startRoutineArgSubstitutes.cellSet()) {
-      CParameterDeclaration substituteDeclaration =
-          castTo(cell.getValue().getDeclaration(), CParameterDeclaration.class);
-      rStartRoutineArgDeclarations.add(substituteDeclaration);
+      rStartRoutineArgDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
     }
     return rStartRoutineArgDeclarations.build();
   }
