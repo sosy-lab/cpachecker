@@ -85,27 +85,26 @@ public class DssBlockAnalysis {
      * Create a copy of the current arg path with edges and append
      * a new abstract state with its corresponding edges to it.
      * @param pNewParent the new parent state to append
-     * @param pEdges the corresponding list of edges traversed to reach this abstract state.
+     * @param pEdges The corresponding list of edges traversed to reach this abstract state.
+     *               The list is reveresed (i.e., from child to parent).
      * @return A new instance of ArgPathWithEdges combining the current with the new information.
      */
     private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
-      if (!edges.isEmpty()) {
-        CFAEdge lastEdge = edges.getLast();
-        if (!lastEdge.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-          List<CFAEdge> path = new ArrayList<>();
-          path.add(lastEdge);
-          CFAEdge last = lastEdge;
-          while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
-            Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
-            path.add(Iterables.getOnlyElement(successors));
-            last = path.getLast();
-          }
-          pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
-        }
+      CFAEdge last = edges.getLast();
+      ImmutableList<ARGState> argStates = listAndElement(states, pNewParent);
+      if (edges.isEmpty() || last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
+        return new ArgPathWithEdges(
+            argStates, ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
       }
-      return new ArgPathWithEdges(
-          listAndElement(states, pNewParent),
-          ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
+
+      ImmutableList.Builder<CFAEdge> path =
+          ImmutableList.<CFAEdge>builder().addAll(edges).add(last);
+      while (!last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
+        Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
+        last = Objects.requireNonNull(Iterables.getOnlyElement(successors));
+        path.add(last);
+      }
+      return new ArgPathWithEdges(argStates, path.build());
     }
   }
 
