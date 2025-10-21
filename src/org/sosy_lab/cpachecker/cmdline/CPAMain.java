@@ -224,8 +224,9 @@ public class CPAMain {
         secure = true,
         name = "memorysafety.config",
         description =
-            "When checking for memory safety properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory safety properties, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
@@ -233,8 +234,9 @@ public class CPAMain {
         secure = true,
         name = "memorycleanup.config",
         description =
-            "When checking for memory cleanup properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory cleanup properties, use this configuration file instead of"
+                + " the current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memcleanupConfig = null;
 
@@ -242,8 +244,9 @@ public class CPAMain {
         secure = true,
         name = "overflow.config",
         description =
-            "When checking for the overflow property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the overflow property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
@@ -251,8 +254,9 @@ public class CPAMain {
         secure = true,
         name = "datarace.config",
         description =
-            "When checking for the data race property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the data race property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path dataraceConfig = null;
 
@@ -260,8 +264,9 @@ public class CPAMain {
         secure = true,
         name = "termination.config",
         description =
-            "When checking for the termination property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the termination property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 

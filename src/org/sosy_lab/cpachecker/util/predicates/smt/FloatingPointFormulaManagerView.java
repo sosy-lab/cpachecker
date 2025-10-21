@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
@@ -22,6 +24,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.UFManager;
 
 public class FloatingPointFormulaManagerView extends BaseManagerView
@@ -29,14 +32,26 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
 
   private final FloatingPointFormulaManager manager;
   private final UFManager functionManager;
+  @Nullable private final BitvectorFormulaManager bitvectorFormulaManager;
 
   FloatingPointFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager,
-      UFManager pFunctionManager) {
+      UFManager pFunctionManager,
+      @Nullable BitvectorFormulaManager pBitvectorFormulaManager) {
     super(pWrappingHandler);
     manager = Preconditions.checkNotNull(pManager);
     functionManager = Preconditions.checkNotNull(pFunctionManager);
+    bitvectorFormulaManager = pBitvectorFormulaManager;
+  }
+
+  // unwraps a type, unless it is a bitvector type, and useIntForBitvectors()
+  private FormulaType<?> unwrapTypeUnlessBvAsInt(FormulaType<?> pType) {
+    if (useIntForBitvectors() && pType.isBitvectorType()) {
+      return pType;
+    } else {
+      return unwrapType(pType);
+    }
   }
 
   @Override
@@ -44,7 +59,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointFormula pNumber, boolean pSigned, FormulaType<T> pTargetType) {
     // This method needs to unwrap/wrap pTargetType and the return value,
     // in case they are replaced with other formula types.
-    return wrap(pTargetType, manager.castTo(pNumber, pSigned, unwrapType(pTargetType)));
+    return wrap(
+        pTargetType, manager.castTo(pNumber, pSigned, unwrapTypeUnlessBvAsInt(pTargetType)));
   }
 
   @Override
@@ -55,7 +71,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(
         targetType,
-        manager.castTo(number, pSigned, unwrapType(targetType), pFloatingPointRoundingMode));
+        manager.castTo(
+            number, pSigned, unwrapTypeUnlessBvAsInt(targetType), pFloatingPointRoundingMode));
   }
 
   @Override
@@ -80,6 +97,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       BitvectorFormula pNumber, FloatingPointType pTargetType) {
     if (useBitvectors()) {
       return manager.fromIeeeBitvector(pNumber, pTargetType);
+    } else if (useIntForBitvectors() && bitvectorFormulaManager != null) {
+      // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
+      // representing a bitvector
+      final BitvectorFormula bv =
+          bitvectorFormulaManager.makeBitvector(
+              bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
+      return manager.fromIeeeBitvector(bv, pTargetType);
     } else {
       return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
           pNumber, pTargetType, this, functionManager);
@@ -90,6 +114,10 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
     if (useBitvectors()) {
       return manager.toIeeeBitvector(pNumber);
+    } else if (useIntForBitvectors() && bitvectorFormulaManager != null) {
+      final BitvectorFormula bv = manager.toIeeeBitvector(pNumber);
+      final FormulaType<BitvectorFormula> retType = getFormulaType(bv);
+      return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));
     } else {
       FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
       BitvectorType targetType = FormulaType.getBitvectorTypeWithSize(type.getTotalSize());
