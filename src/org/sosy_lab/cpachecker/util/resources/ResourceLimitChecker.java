@@ -61,11 +61,11 @@ public final class ResourceLimitChecker {
    * <p>Note that {@link #start()} needs to be called in order to actually start the limits.
    *
    * @param shutdownManager A non-null shutdown notifier instance.
-   * @param limits A (possibly empty) list without null entries of not-yet-started resource limits.
+   * @param pLimits A (possibly empty) list without null entries of not-yet-started resource limits.
    */
-  public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {
+  public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> pLimits) {
     checkNotNull(shutdownManager);
-    this.limits = limits;
+    this.limits = pLimits;
     if (limits.isEmpty() || shutdownManager.getNotifier().shouldShutdown()) {
       // limits are irrelevant
       thread = null;
