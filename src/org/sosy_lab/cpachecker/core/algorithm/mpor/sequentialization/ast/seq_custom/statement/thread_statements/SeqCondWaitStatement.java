@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
@@ -91,11 +91,11 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
         SeqAssumptionBuilder.buildAssumption(condSignaledFlag.isSignaledExpression);
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression, SeqIntegerLiteralExpression.INT_0);
+            condSignaledFlag.idExpression, SeqIntegerLiteralExpressions.INT_0);
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression, SeqIntegerLiteralExpression.INT_1);
+            mutexLockedFlag.idExpression, SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

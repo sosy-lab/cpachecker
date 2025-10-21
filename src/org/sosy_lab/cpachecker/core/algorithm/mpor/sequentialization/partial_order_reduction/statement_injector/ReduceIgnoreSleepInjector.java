@@ -15,7 +15,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -89,7 +89,7 @@ class ReduceIgnoreSleepInjector {
       }
     }
     return new SeqIgnoreSleepReductionStatement(
-        SeqIdExpression.ROUND_MAX,
+        SeqIdExpressions.ROUND_MAX,
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
         reductionAssumptions.build(),

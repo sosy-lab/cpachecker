@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -65,7 +65,7 @@ public class NextThreadNondeterministicSimulation {
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
-              SeqIdExpression.NEXT_THREAD,
+              SeqIdExpressions.NEXT_THREAD,
               thread.getId(),
               pBinaryExpressionBuilder);
       SeqMultiControlStatement multiControlStatement =

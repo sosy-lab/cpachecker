@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains final variables for ASTNodes used in the sequentialization. */
+/**
+ * Contains fields for ASTNodes used in the sequentialization that are constant and not build
+ * depending on the input program or the options specified by the user.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;

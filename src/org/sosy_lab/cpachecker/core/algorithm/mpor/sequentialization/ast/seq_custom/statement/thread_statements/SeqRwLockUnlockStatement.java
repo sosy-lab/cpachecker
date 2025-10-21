@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
@@ -78,7 +78,7 @@ public class SeqRwLockUnlockStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            rwLockFlags.writersIdExpression, SeqIntegerLiteralExpression.INT_0);
+            rwLockFlags.writersIdExpression, SeqIntegerLiteralExpressions.INT_0);
 
     SeqIfExpression ifExpression = new SeqIfExpression(rwLockFlags.writerEqualsZero);
     SeqElseExpression elseExpression = new SeqElseExpression();

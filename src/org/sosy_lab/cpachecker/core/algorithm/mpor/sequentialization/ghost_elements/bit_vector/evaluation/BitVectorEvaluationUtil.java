@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
@@ -60,8 +60,8 @@ public class BitVectorEvaluationUtil {
 
     CIntegerLiteralExpression integerLiteralExpression =
         pDirectAccessMemoryLocations.contains(pMemoryLocation)
-            ? SeqIntegerLiteralExpression.INT_1
-            : SeqIntegerLiteralExpression.INT_0;
+            ? SeqIntegerLiteralExpressions.INT_1
+            : SeqIntegerLiteralExpressions.INT_0;
     return new CToSeqExpression(integerLiteralExpression);
   }
 

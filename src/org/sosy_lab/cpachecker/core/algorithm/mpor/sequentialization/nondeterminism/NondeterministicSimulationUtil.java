@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -133,7 +133,7 @@ public class NondeterministicSimulationUtil {
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions.controlEncodingThread,
-        SeqIdExpression.NEXT_THREAD,
+        SeqIdExpressions.NEXT_THREAD,
         // the outer multi control statement never has an assumption
         ImmutableList.of(),
         pInnerMultiControlStatements,
@@ -179,7 +179,7 @@ public class NondeterministicSimulationUtil {
   static CExpressionAssignmentStatement buildRoundReset() {
     // r is set to 1, because we increment after the r < K check succeeds
     return SeqStatementBuilder.buildExpressionAssignmentStatement(
-        SeqIdExpression.ROUND, SeqIntegerLiteralExpression.INT_1);
+        SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
   }
 
   // round and round_max injections ================================================================
@@ -308,7 +308,7 @@ public class NondeterministicSimulationUtil {
             && SeqThreadStatementUtil.anySynchronizesThreads(
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
-        isSync ? SeqIntegerLiteralExpression.INT_1 : SeqIntegerLiteralExpression.INT_0;
+        isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
     SeqSyncUpdateStatement syncUpdate =
         new SeqSyncUpdateStatement(
             SeqStatementBuilder.buildExpressionAssignmentStatement(pSyncVariable, value));

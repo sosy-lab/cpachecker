@@ -22,9 +22,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqArrayTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -41,7 +41,7 @@ public class SeqDeclarationBuilder {
     return buildVariableDeclaration(
         true,
         CNumericTypes.UNSIGNED_INT,
-        SeqIdExpression.LAST_THREAD.getName(),
+        SeqIdExpressions.LAST_THREAD.getName(),
         // the initializer is dependent on the number of threads
         pInitializer);
   }
@@ -50,16 +50,16 @@ public class SeqDeclarationBuilder {
     return buildVariableDeclaration(
         true,
         pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
-        SeqIdExpression.NEXT_THREAD.getName(),
-        SeqInitializer.INT_0);
+        SeqIdExpressions.NEXT_THREAD.getName(),
+        SeqInitializers.INT_0);
   }
 
   public static CVariableDeclaration buildRoundMaxDeclaration(MPOROptions pOptions) {
     return buildVariableDeclaration(
         true,
         pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
-        SeqIdExpression.ROUND_MAX.getName(),
-        SeqInitializer.INT_0);
+        SeqIdExpressions.ROUND_MAX.getName(),
+        SeqInitializers.INT_0);
   }
 
   public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
@@ -94,19 +94,19 @@ public class SeqDeclarationBuilder {
                 true,
                 CNumericTypes.UNSIGNED_INT,
                 pFields.ghostElements.getPcVariables().getPcLeftHandSide(i).toASTString(),
-                SeqInitializer.getPcInitializer(i == 0)));
+                SeqInitializers.getPcInitializer(i == 0)));
       }
     } else {
       // declare int array: pc[] = { 0, -1, ... };
       ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
       for (int i = 0; i < pFields.numThreads; i++) {
-        initializers.add(SeqInitializer.getPcInitializer(i == 0));
+        initializers.add(SeqInitializers.getPcInitializer(i == 0));
       }
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
-              true, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
+              true, SeqArrayTypes.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
   }

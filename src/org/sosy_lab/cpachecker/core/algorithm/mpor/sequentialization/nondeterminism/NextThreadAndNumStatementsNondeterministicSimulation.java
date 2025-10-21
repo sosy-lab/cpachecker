@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -48,7 +48,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
-            pOptions, SeqIdExpression.ROUND_MAX);
+            pOptions, SeqIdExpressions.ROUND_MAX);
     CFunctionCallStatement roundMaxGreaterZeroAssumption =
         SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero(pBinaryExpressionBuilder));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
@@ -72,7 +72,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
-            pOptions, SeqIdExpression.ROUND_MAX);
+            pOptions, SeqIdExpressions.ROUND_MAX);
     CFunctionCallStatement roundMaxGreaterZeroAssumption =
         SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero(pBinaryExpressionBuilder));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
@@ -134,7 +134,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
-              SeqIdExpression.NEXT_THREAD,
+              SeqIdExpressions.NEXT_THREAD,
               thread.getId(),
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
@@ -206,10 +206,10 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     CBinaryExpression roundSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ROUND, SeqIdExpression.ROUND_MAX, BinaryOperator.LESS_THAN);
+            SeqIdExpressions.ROUND, SeqIdExpressions.ROUND_MAX, BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
-            SeqIdExpression.ROUND, pBinaryExpressionBuilder);
+            SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -238,6 +238,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        SeqIdExpression.ROUND_MAX, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+        SeqIdExpressions.ROUND_MAX,
+        SeqIntegerLiteralExpressions.INT_0,
+        BinaryOperator.GREATER_THAN);
   }
 }

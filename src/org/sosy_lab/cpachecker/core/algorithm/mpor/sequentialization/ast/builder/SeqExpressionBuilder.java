@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -34,11 +33,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqArrayTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -50,8 +48,8 @@ public class SeqExpressionBuilder {
   public static CArraySubscriptExpression buildPcSubscriptExpression(CExpression pSubscriptExpr) {
     return new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        SeqArrayType.UNSIGNED_INT_ARRAY,
-        SeqIdExpression.DUMMY_PC,
+        SeqArrayTypes.UNSIGNED_INT_ARRAY,
+        SeqIdExpressions.PC_ARRAY_DUMMY,
         pSubscriptExpr);
   }
 
@@ -76,7 +74,7 @@ public class SeqExpressionBuilder {
       throws UnrecognizedCodeException {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.NOT_EQUALS);
+        pPcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, BinaryOperator.NOT_EQUALS);
   }
 
   /**
@@ -88,7 +86,7 @@ public class SeqExpressionBuilder {
       throws UnrecognizedCodeException {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.EQUALS);
+        pPcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, BinaryOperator.EQUALS);
   }
 
   // CFunctionCallExpression =======================================================================
@@ -107,18 +105,9 @@ public class SeqExpressionBuilder {
 
     return buildFunctionCallExpression(
         CVoidType.VOID,
-        SeqIdExpression.REACH_ERROR,
+        SeqIdExpressions.REACH_ERROR,
         ImmutableList.of(file, line, function),
-        SeqFunctionDeclaration.REACH_ERROR);
-  }
-
-  public static Optional<CFunctionCallExpression> buildVerifierNondetByType(CType pType) {
-    for (VerifierNondetFunctionType nondetType : VerifierNondetFunctionType.values()) {
-      if (nondetType.getReturnType().equals(pType)) {
-        return Optional.of(nondetType.getFunctionCallExpression());
-      }
-    }
-    return Optional.empty();
+        SeqFunctionDeclarations.REACH_ERROR);
   }
 
   public static CFunctionCallExpression buildFunctionCallExpression(

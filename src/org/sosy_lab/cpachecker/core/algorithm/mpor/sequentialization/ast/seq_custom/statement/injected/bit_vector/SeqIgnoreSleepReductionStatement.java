@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
@@ -79,7 +79,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
     SeqIfExpression ifKEqualsZero =
         new SeqIfExpression(
             binaryExpressionBuilder.buildBinaryExpression(
-                roundMaxVariable, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
+                roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS));
     // negate the evaluation expression
     SeqIfExpression ifCommutes = new SeqIfExpression(bitVectorEvaluationExpression.negate());
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);

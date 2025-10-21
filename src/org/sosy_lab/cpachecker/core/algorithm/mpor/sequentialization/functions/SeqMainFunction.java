@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqForExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqWhileExpression;
@@ -83,7 +83,7 @@ public class SeqMainFunction extends SeqFunction {
       // add last_thread = next_thread assignment (before setting next_thread)
       if (options.nondeterminismSource.isNextThreadNondeterministic()) {
         CExpressionAssignmentStatement assignment =
-            SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpression.NEXT_THREAD);
+            SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpressions.NEXT_THREAD);
         rBody.add(assignment.toASTString());
       }
     }
@@ -148,7 +148,7 @@ public class SeqMainFunction extends SeqFunction {
 
   @Override
   public CIdExpression getFunctionName() {
-    return SeqIdExpression.MAIN;
+    return SeqIdExpressions.MAIN;
   }
 
   @Override
@@ -204,11 +204,11 @@ public class SeqMainFunction extends SeqFunction {
       return Optional.empty();
     }
     if (pOptions.loopIterations == 0) {
-      return Optional.of(new SeqWhileExpression(SeqIntegerLiteralExpression.INT_1));
+      return Optional.of(new SeqWhileExpression(SeqIntegerLiteralExpressions.INT_1));
     } else {
       return Optional.of(
           new SeqForExpression(
-              SeqIdExpression.ITERATION, pOptions.loopIterations, pBinaryExpressionBuilder));
+              SeqIdExpressions.ITERATION, pOptions.loopIterations, pBinaryExpressionBuilder));
     }
   }
 }

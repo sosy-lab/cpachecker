@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
@@ -92,8 +92,8 @@ public class NumStatementsNondeterministicSimulation {
     // round_max > 0
     CBinaryExpression roundMaxGreaterZero =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ROUND_MAX,
-            SeqIntegerLiteralExpression.INT_0,
+            SeqIdExpressions.ROUND_MAX,
+            SeqIntegerLiteralExpressions.INT_0,
             BinaryOperator.GREATER_THAN);
 
     // create T{thread_id}: label
@@ -141,7 +141,7 @@ public class NumStatementsNondeterministicSimulation {
     // round_max = nondet() ...
     CFunctionCallAssignmentStatement assignment =
         NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
-            pOptions, SeqIdExpression.ROUND_MAX);
+            pOptions, SeqIdExpressions.ROUND_MAX);
     rAssignment.add(assignment.toASTString());
     return rAssignment.build();
   }
@@ -241,16 +241,16 @@ public class NumStatementsNondeterministicSimulation {
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     // count
     CExpressionAssignmentStatement countIncrement =
-        SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
+        SeqStatementBuilder.buildIncrementStatement(SeqIdExpressions.CNT, pBinaryExpressionBuilder);
     CExpressionAssignmentStatement countDecrement =
-        SeqStatementBuilder.buildDecrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
+        SeqStatementBuilder.buildDecrementStatement(SeqIdExpressions.CNT, pBinaryExpressionBuilder);
     // round
     CBinaryExpression roundSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ROUND, SeqIdExpression.ROUND_MAX, BinaryOperator.LESS_THAN);
+            SeqIdExpressions.ROUND, SeqIdExpressions.ROUND_MAX, BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
-            SeqIdExpression.ROUND, pBinaryExpressionBuilder);
+            SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
     // sync
     CIdExpression syncFlag = pGhostElements.getThreadSyncFlags().getSyncFlag(pThread);
 

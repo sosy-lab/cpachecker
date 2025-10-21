@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -85,10 +85,10 @@ public class ThreadSyncFlagsBuilder {
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression condSignaled =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializers.INT_0);
       CBinaryExpression isSignaledExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              condSignaled, SeqIntegerLiteralExpression.INT_1, BinaryOperator.EQUALS);
+              condSignaled, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.EQUALS);
       rCondSignaledFlags.put(
           condExpression, new CondSignaledFlag(condSignaled, isSignaledExpression));
     }
@@ -111,13 +111,13 @@ public class ThreadSyncFlagsBuilder {
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression mutexLocked =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializers.INT_0);
       CBinaryExpression isLockedExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              mutexLocked, SeqIntegerLiteralExpression.INT_1, BinaryOperator.EQUALS);
+              mutexLocked, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.EQUALS);
       CBinaryExpression notLockedExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+              mutexLocked, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
       rMutexLockedFlags.put(
           mutexExpression,
           new MutexLockedFlag(mutexLocked, isLockedExpression, notLockedExpression));
@@ -138,18 +138,18 @@ public class ThreadSyncFlagsBuilder {
       // use int (32 bit), we increment the READERS flag for every rdlock
       CIdExpression readersIdExpression =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              true, CNumericTypes.UNSIGNED_INT, readersVarName, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_INT, readersVarName, SeqInitializers.INT_0);
       // use unsigned char (8 bit), we only need values 0 and 1 (only one writer at a time)
       CIdExpression writersIdExpression =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              true, CNumericTypes.UNSIGNED_CHAR, writersVarName, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_CHAR, writersVarName, SeqInitializers.INT_0);
 
       CBinaryExpression readersEqualsZero =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              readersIdExpression, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+              readersIdExpression, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
       CBinaryExpression writersEqualsZero =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              writersIdExpression, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+              writersIdExpression, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
       CExpressionAssignmentStatement readersIncrement =
           SeqStatementBuilder.buildIncrementStatement(
@@ -181,7 +181,7 @@ public class ThreadSyncFlagsBuilder {
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
               // TODO a thread could also start with pthread_mutex_lock -> initialize with 1
-              true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializers.INT_0);
       rSyncFlags.put(thread, sync);
     }
     return rSyncFlags.buildOrThrow();

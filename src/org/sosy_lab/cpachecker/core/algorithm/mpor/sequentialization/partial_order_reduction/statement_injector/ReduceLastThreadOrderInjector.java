@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -126,7 +126,7 @@ class ReduceLastThreadOrderInjector {
         // if a thread exits, set last_thread to NUM_THREADS - 1
         CExpressionAssignmentStatement lastThreadExit =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                SeqIdExpression.LAST_THREAD,
+                SeqIdExpressions.LAST_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(lastThreadExit, ImmutableList.of());
@@ -135,7 +135,7 @@ class ReduceLastThreadOrderInjector {
         // for all other target pc, set last_thread to current thread id and update last bitvectors
         CExpressionAssignmentStatement lastThreadUpdate =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                SeqIdExpression.LAST_THREAD,
+                SeqIdExpressions.LAST_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.getId()));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(

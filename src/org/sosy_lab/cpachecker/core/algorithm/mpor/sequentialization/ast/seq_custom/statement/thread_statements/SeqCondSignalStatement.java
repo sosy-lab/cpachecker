@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
@@ -77,7 +77,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setCondSignaledTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression, SeqIntegerLiteralExpression.INT_1);
+            condSignaledFlag.idExpression, SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

@@ -42,6 +42,7 @@ public class CFAEdgeForThread {
 
   public CFAEdgeForThread(
       int pThreadId, CFAEdge pCfaEdge, Optional<CFAEdgeForThread> pCallContext) {
+
     id = getNewId();
     threadId = pThreadId;
     cfaEdge = pCfaEdge;

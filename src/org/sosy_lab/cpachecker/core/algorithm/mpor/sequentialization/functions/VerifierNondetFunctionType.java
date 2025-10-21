@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqFunctionCallExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionCallExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 
 /**
  * Taken from <a
@@ -49,15 +49,15 @@ public enum VerifierNondetFunctionType {
 
   public @NonNull CIdExpression getNameExpression() {
     return switch (this) {
-      case INT -> SeqIdExpression.VERIFIER_NONDET_INT;
-      case UINT -> SeqIdExpression.VERIFIER_NONDET_UINT;
+      case INT -> SeqIdExpressions.VERIFIER_NONDET_INT;
+      case UINT -> SeqIdExpressions.VERIFIER_NONDET_UINT;
     };
   }
 
   public @NonNull CFunctionDeclaration getFunctionDeclaration() {
     return switch (this) {
-      case INT -> SeqFunctionDeclaration.VERIFIER_NONDET_INT;
-      case UINT -> SeqFunctionDeclaration.VERIFIER_NONDET_UINT;
+      case INT -> SeqFunctionDeclarations.VERIFIER_NONDET_INT;
+      case UINT -> SeqFunctionDeclarations.VERIFIER_NONDET_UINT;
     };
   }
 

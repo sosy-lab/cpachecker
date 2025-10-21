@@ -17,10 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -33,9 +33,9 @@ public class SeqAssumeFunction extends SeqFunction {
       new CFunctionCallExpression(
           FileLocation.DUMMY,
           CVoidType.VOID,
-          SeqIdExpression.ABORT,
+          SeqIdExpressions.ABORT,
           ImmutableList.of(),
-          SeqFunctionDeclaration.ABORT);
+          SeqFunctionDeclarations.ABORT);
 
   private final SeqSingleControlExpression ifCond;
 
@@ -44,7 +44,7 @@ public class SeqAssumeFunction extends SeqFunction {
     ifCond =
         new SeqIfExpression(
             pBinaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.COND, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
+                SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS));
   }
 
   @Override
@@ -68,13 +68,13 @@ public class SeqAssumeFunction extends SeqFunction {
 
   @Override
   public CIdExpression getFunctionName() {
-    return SeqIdExpression.ASSUME;
+    return SeqIdExpressions.ASSUME;
   }
 
   @Override
   public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
-    rParameters.add(SeqParameterDeclaration.COND);
+    rParameters.add(SeqParameterDeclarations.COND);
     return rParameters.build();
   }
 }

@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -33,7 +33,7 @@ public class SeqStatementBuilder {
     return buildExpressionAssignmentStatement(
         pLeftHandSide,
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
+            pLeftHandSide, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.PLUS));
   }
 
   public static CExpressionAssignmentStatement buildDecrementStatement(
@@ -43,7 +43,7 @@ public class SeqStatementBuilder {
     return buildExpressionAssignmentStatement(
         pLeftHandSide,
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.MINUS));
+            pLeftHandSide, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.MINUS));
   }
 
   // Assignments ===================================================================================
@@ -71,7 +71,7 @@ public class SeqStatementBuilder {
   public static CExpressionAssignmentStatement buildLastThreadAssignment(
       CExpression pRightHandSide) {
 
-    return buildExpressionAssignmentStatement(SeqIdExpression.LAST_THREAD, pRightHandSide);
+    return buildExpressionAssignmentStatement(SeqIdExpressions.LAST_THREAD, pRightHandSide);
   }
 
   /**
@@ -80,7 +80,7 @@ public class SeqStatementBuilder {
    */
   public static CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
     return buildFunctionCallAssignmentStatement(
-        SeqIdExpression.NEXT_THREAD,
+        SeqIdExpressions.NEXT_THREAD,
         pIsSigned
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
             : VerifierNondetFunctionType.UINT.getFunctionCallExpression());

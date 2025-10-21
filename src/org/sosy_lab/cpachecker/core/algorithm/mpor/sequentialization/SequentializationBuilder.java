@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
@@ -265,13 +265,13 @@ public class SequentializationBuilder {
       rFunctionDeclarations.add(
           VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rFunctionDeclarations.add(SeqFunctionDeclaration.REACH_ERROR.toASTString());
-    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSERT_FAIL.toASTString());
-    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSUME.toASTString());
-    rFunctionDeclarations.add(SeqFunctionDeclaration.ABORT.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.REACH_ERROR.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.ASSERT_FAIL.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.ASSUME.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.ABORT.toASTString());
 
     // malloc is required for valid-memsafety tasks
-    rFunctionDeclarations.add(SeqFunctionDeclaration.MALLOC.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled with loop is unrolled
     if (pOptions.loopUnrolling) {
@@ -282,7 +282,7 @@ public class SequentializationBuilder {
       }
     }
     // main should always be duplicate
-    rFunctionDeclarations.add(SeqFunctionDeclaration.MAIN.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclarations.MAIN.toASTString());
     return rFunctionDeclarations.build();
   }
 
@@ -367,12 +367,12 @@ public class SequentializationBuilder {
 
     // active_thread_count / cnt
     if (pOptions.isThreadCountRequired()) {
-      rDeclarations.add(SeqVariableDeclaration.CNT.toASTString());
+      rDeclarations.add(SeqVariableDeclarations.CNT.toASTString());
     }
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
-      rDeclarations.add(SeqVariableDeclaration.ROUND.toASTString());
+      rDeclarations.add(SeqVariableDeclarations.ROUND.toASTString());
       rDeclarations.add(SeqDeclarationBuilder.buildRoundMaxDeclaration(pOptions).toASTString());
     }
 

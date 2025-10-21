@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -321,7 +321,7 @@ public class BitVectorBuilder {
     // this declaration is not actually used, we only need it for the CIdExpression
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
-            true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+            true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializers.INT_0);
     return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 }

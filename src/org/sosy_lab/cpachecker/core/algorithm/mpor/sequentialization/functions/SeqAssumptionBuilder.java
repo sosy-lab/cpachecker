@@ -21,9 +21,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -35,7 +35,7 @@ public class SeqAssumptionBuilder {
   }
 
   public static String buildAssumption(SeqExpression pCondition) throws UnrecognizedCodeException {
-    return SeqFunctionDeclaration.ASSUME.getName()
+    return SeqFunctionDeclarations.ASSUME.getName()
         + SeqSyntax.BRACKET_LEFT
         + pCondition.toASTString()
         + SeqSyntax.BRACKET_RIGHT
@@ -46,9 +46,9 @@ public class SeqAssumptionBuilder {
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         CVoidType.VOID,
-        SeqIdExpression.ASSUME,
+        SeqIdExpressions.ASSUME,
         ImmutableList.of(pCondition),
-        SeqFunctionDeclaration.ASSUME);
+        SeqFunctionDeclarations.ASSUME);
   }
 
   public static ImmutableList<CFunctionCallStatement> buildNextThreadAssumption(
@@ -63,8 +63,8 @@ public class SeqAssumptionBuilder {
       // ensure that 0 <= next_thread
       CBinaryExpression nextThreadAtLeastZero =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              SeqIntegerLiteralExpression.INT_0,
-              SeqIdExpression.NEXT_THREAD,
+              SeqIntegerLiteralExpressions.INT_0,
+              SeqIdExpressions.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
       rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
@@ -72,7 +72,7 @@ public class SeqAssumptionBuilder {
     // ensure that next_thread < NUM_THREADS
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
+            SeqIdExpressions.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
     rAssumptions.add(buildAssumption(nextThreadLessThanNumThreads));
     return rAssumptions.build();
   }
@@ -83,8 +83,8 @@ public class SeqAssumptionBuilder {
     // pc array: single assume(pc[next_thread] != -1);
     CBinaryExpression nextThreadActive =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpression.NEXT_THREAD),
-            SeqIntegerLiteralExpression.INT_EXIT_PC,
+            SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpressions.NEXT_THREAD),
+            SeqIntegerLiteralExpressions.INT_EXIT_PC,
             BinaryOperator.NOT_EQUALS);
     return buildAssumption(nextThreadActive);
   }
@@ -95,7 +95,7 @@ public class SeqAssumptionBuilder {
     // assume(cnt > 0);
     CBinaryExpression countGreaterZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.CNT, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+            SeqIdExpressions.CNT, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.GREATER_THAN);
     return buildAssumption(countGreaterZeroExpression);
   }
 }

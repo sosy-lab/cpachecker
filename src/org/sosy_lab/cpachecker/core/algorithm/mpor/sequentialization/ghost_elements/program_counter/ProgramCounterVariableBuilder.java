@@ -16,11 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -55,12 +56,11 @@ public class ProgramCounterVariableBuilder {
   private static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
     ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
-      CInitializer initializer = SeqInitializer.getPcInitializer(i == 0);
-      rScalarPc.add(
-          new CIdExpression(
-              FileLocation.DUMMY,
-              SeqDeclarationBuilder.buildVariableDeclaration(
-                  false, CNumericTypes.UNSIGNED_INT, SeqToken.pc + i, initializer)));
+      CInitializer initializer = SeqInitializers.getPcInitializer(i == 0);
+      CVariableDeclaration declaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              true, CNumericTypes.UNSIGNED_INT, SeqToken.pc + i, initializer);
+      rScalarPc.add(new CIdExpression(FileLocation.DUMMY, declaration));
     }
     return rScalarPc.build();
   }

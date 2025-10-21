@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
@@ -78,7 +78,7 @@ public class SeqRwLockWrLockStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setWritersToOne =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            rwLockFlags.writersIdExpression, SeqIntegerLiteralExpression.INT_1);
+            rwLockFlags.writersIdExpression, SeqIntegerLiteralExpressions.INT_1);
 
     CFunctionCallStatement assumptionWriters =
         SeqAssumptionBuilder.buildAssumption(rwLockFlags.writerEqualsZero);

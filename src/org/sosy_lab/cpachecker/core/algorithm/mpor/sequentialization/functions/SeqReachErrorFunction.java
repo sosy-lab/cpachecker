@@ -15,10 +15,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqStringLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqStringLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqReachErrorFunction extends SeqFunction {
@@ -30,13 +30,13 @@ public class SeqReachErrorFunction extends SeqFunction {
         new CFunctionCallExpression(
             FileLocation.DUMMY,
             CVoidType.VOID,
-            SeqIdExpression.ASSERT_FAIL,
+            SeqIdExpressions.ASSERT_FAIL,
             ImmutableList.of(
-                SeqStringLiteralExpression.STRING_0,
-                SeqIdExpression.FILE,
-                SeqIdExpression.LINE,
-                SeqIdExpression.FUNCTION),
-            SeqFunctionDeclaration.ASSERT_FAIL);
+                SeqStringLiteralExpressions.STRING_0,
+                SeqIdExpressions.FILE,
+                SeqIdExpressions.LINE,
+                SeqIdExpressions.FUNCTION),
+            SeqFunctionDeclarations.ASSERT_FAIL);
   }
 
   @Override
@@ -53,16 +53,16 @@ public class SeqReachErrorFunction extends SeqFunction {
 
   @Override
   public CIdExpression getFunctionName() {
-    return SeqIdExpression.REACH_ERROR;
+    return SeqIdExpressions.REACH_ERROR;
   }
 
   @Override
   public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
     rParameters.add(
-        SeqParameterDeclaration.FILE,
-        SeqParameterDeclaration.LINE,
-        SeqParameterDeclaration.FUNCTION);
+        SeqParameterDeclarations.FILE,
+        SeqParameterDeclarations.LINE,
+        SeqParameterDeclarations.FUNCTION);
     return rParameters.build();
   }
 }
