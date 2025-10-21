@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.randomWalk;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -127,6 +128,10 @@ public class RandomWalkState
 
   @Override
   public int compareTo(RandomWalkState o) {
+    // compares states based on the taken assume edges
+    // as long as callstack is properly handled and
+    // the program's control-flow only splits due to AssumeEdges otherwise
+    // this should be consistent with equals due to construction of RandomWalkState
     for (int i = 0;
         i < Math.min(this.numberOfSuccessorTaken.size(), o.numberOfSuccessorTaken.size());
         i++) {
@@ -135,7 +140,35 @@ public class RandomWalkState
         return compare;
       }
     }
-    return this.numberOfSuccessorTaken.size() - o.numberOfSuccessorTaken.size();
+    if (this.numberOfSuccessorTaken.size() == o.numberOfSuccessorTaken.size()) {
+      if (this.edgeToTakeNext == null) {
+        if (o.edgeToTakeNext == null) {
+          return 0;
+        } else {
+          return 1;
+        }
+      } else {
+        if (o.edgeToTakeNext == null) {
+          return 1;
+        } else {
+          if (this.edgeToTakeNext.equals(o.edgeToTakeNext)) {
+            return 0;
+          } else {
+            Preconditions.checkState(
+                this.edgeToTakeNext.getPredecessor().equals(o.edgeToTakeNext.getPredecessor()));
+            for (CFAEdge succ : edgeToTakeNext.getPredecessor().getAllLeavingEdges()) {
+              if (succ.equals(this.edgeToTakeNext)) {
+                return -1;
+              }
+              if (succ.equals(o.edgeToTakeNext)) {
+                return 1;
+              }
+            }
+          }
+        }
+      }
+    }
+    return Integer.compare(this.numberOfSuccessorTaken.size(), o.numberOfSuccessorTaken.size());
   }
 
   @Override
