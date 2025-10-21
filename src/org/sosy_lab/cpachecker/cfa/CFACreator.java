@@ -463,7 +463,9 @@ public class CFACreator {
             new CParserWithLocationMapper(
                 pConfig, pLogger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
-        // do not preprocess when transforming program
+        // for program transformations, parseString is used (not supported in
+        // CParserWithPreprocessor), instead of parseFiles. but preprocessing is not necessary for
+        // program transformations anyway, since the original CFA was preprocessed already
         if (usePreprocessor && pProgramTransformation.equals(ProgramTransformation.NONE)) {
           CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
           outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
