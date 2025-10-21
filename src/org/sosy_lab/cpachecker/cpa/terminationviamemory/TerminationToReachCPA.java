@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -82,7 +81,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new ArrayList<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashMap<>());
   }
 
   @Override

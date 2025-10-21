@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -31,18 +30,18 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private boolean isTarget;
 
   /** The constraints on values of the variables that has already been seen in a loop-head */
-  private Map<LocationState, Map<Integer, List<Formula>>> storedValues;
+  private Map<LocationState, Map<Integer, Set<Formula>>> storedValues;
 
   /** We store number of times that we have iterated over a loop */
   private Map<LocationState, Integer> numberOfIterations;
 
   /** Stores assumptions from path formula after i iterations of the loop */
-  private List<BooleanFormula> pathFormulaForIteration;
+  private Map<LocationState, BooleanFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
-      Map<LocationState, Map<Integer, List<Formula>>> pStoredValues,
+      Map<LocationState, Map<Integer, Set<Formula>>> pStoredValues,
       Map<LocationState, Integer> pNumberOfIterations,
-      List<BooleanFormula> pPathFormulaForIteration) {
+      Map<LocationState, BooleanFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -70,26 +69,26 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   }
 
   public void setNewStoredValues(
-      LocationState pLoopHead, List<Formula> pNewStoredValues, int index) {
+      LocationState pLoopHead, Set<Formula> pNewStoredValues, int index) {
     if (storedValues.containsKey(pLoopHead)) {
-      Map<Integer, List<Formula>> assumptions = storedValues.get(pLoopHead);
+      Map<Integer, Set<Formula>> assumptions = storedValues.get(pLoopHead);
       assumptions.put(index, pNewStoredValues);
     } else {
-      Map<Integer, List<Formula>> newValues = new HashMap<>();
+      Map<Integer, Set<Formula>> newValues = new HashMap<>();
       newValues.put(0, pNewStoredValues);
       storedValues.put(pLoopHead, newValues);
     }
   }
 
-  public Map<LocationState, Map<Integer, List<Formula>>> getStoredValues() {
+  public Map<LocationState, Map<Integer, Set<Formula>>> getStoredValues() {
     return storedValues;
   }
 
-  public void putNewPathFormula(BooleanFormula pPathFormula) {
-    pathFormulaForIteration.add(pPathFormula);
+  public void putNewPathFormula(LocationState pLocationState, BooleanFormula pPathFormula) {
+    pathFormulaForIteration.put(pLocationState, pPathFormula);
   }
 
-  public List<BooleanFormula> getPathFormulas() {
+  public Map<LocationState, BooleanFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
 
@@ -129,7 +128,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private String getReadableStoredValues() {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<LocationState, Map<Integer, List<Formula>>> entry :
+    for (Map.Entry<LocationState, Map<Integer, Set<Formula>>> entry :
         getStoredValues().entrySet()) {
       sb.append(entry);
     }

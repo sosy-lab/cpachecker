@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,21 +71,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(predicateState.getPathFormula().getFormula());
-
-      for (int i = 0;
-          i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1;
-          ++i) {
-        boolean isTargetStateReachable = false;
+      if (terminationState.getNumberOfIterationsAtLoopHead(locationState) > 1) {
+        boolean isTargetStateReachable;
         BooleanFormula targetFormula =
             buildCycleFormula(
-                buildFullPathFormula(terminationState.getPathFormulas()),
+                terminationState.getPathFormulas().get(locationState),
                 terminationState.getStoredValues().get(locationState),
-                predicateState.getPathFormula().getSsa());
+                predicateState.getPathFormula().getSsa(),
+                terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1);
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
-          continue;
+          return Optional.of(result);
         }
         if (isTargetStateReachable) {
           terminationState.makeTarget();
@@ -101,11 +98,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   private BooleanFormula buildCycleFormula(
       BooleanFormula pFullPathFormula,
-      Map<Integer, List<Formula>> storedValues,
-      SSAMap pLatestValues) {
+      Map<Integer, Set<Formula>> storedValues,
+      SSAMap pLatestValues,
+      int pMaxIndex) {
     BooleanFormula cycle = bfmgr.makeFalse();
 
-    for (Entry<Integer, List<Formula>> savedVariables : storedValues.entrySet()) {
+    for (Entry<Integer, Set<Formula>> savedVariables : storedValues.entrySet()) {
+      if (savedVariables.getKey().intValue() >= pMaxIndex) {
+        continue;
+      }
       BooleanFormula comparingFormula = bfmgr.makeTrue();
       for (Formula oldVariable : savedVariables.getValue()) {
         comparingFormula =
@@ -117,9 +118,5 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       cycle = bfmgr.or(cycle, comparingFormula);
     }
     return bfmgr.and(pFullPathFormula, cycle);
-  }
-
-  private BooleanFormula buildFullPathFormula(List<BooleanFormula> pPathFormulas) {
-    return bfmgr.and(pPathFormulas);
   }
 }

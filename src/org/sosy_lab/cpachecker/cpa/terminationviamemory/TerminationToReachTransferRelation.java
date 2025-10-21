@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -23,8 +22,9 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
@@ -43,7 +43,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         new TerminationToReachState(
             new HashMap<>(terminationState.getStoredValues()),
             new HashMap<>(terminationState.getNumberOfIterationsMap()),
-            new ArrayList<>(terminationState.getPathFormulas())));
+            new HashMap<>(terminationState.getPathFormulas())));
   }
 
   @Override
@@ -62,17 +62,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
     if (location.isLoopStart()) {
+      terminationState.putNewPathFormula(
+          locationState, predicateState.getPathFormula().getFormula());
       if (terminationState.getStoredValues().containsKey(locationState)) {
         terminationState.setNewStoredValues(
             locationState,
-            extractLoopHeadVariables(predicateState.getPathFormula().getFormula()),
+            extractLoopHeadVariables(predicateState.getPathFormula()),
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
         terminationState.setNewStoredValues(
-            locationState,
-            extractLoopHeadVariables(predicateState.getPathFormula().getFormula()),
-            0);
+            locationState, extractLoopHeadVariables(predicateState.getPathFormula()), 0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
     }
@@ -84,9 +84,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * then it will add a condition to the stored values: __Q__x0 = x@2 Where the storing variables
    * are of the form __Q__[name of variable][number of loop iterations].
    */
-  private List<Formula> extractLoopHeadVariables(BooleanFormula pPathFormula) {
-    Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
-    return new ArrayList<>(mapNamesToFormulas.values());
+  private Set<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
+    SSAMap ssaMap = pPathFormula.getSsa();
+    Set<Formula> newStoredIndices = new HashSet<>();
+    for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
+      newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));
+    }
+    return newStoredIndices;
   }
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
