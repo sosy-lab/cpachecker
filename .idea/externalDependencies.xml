@@ -13,6 +13,5 @@ SPDX-License-Identifier: Apache-2.0
 <project version="4">
   <component name="ExternalDependencies">
     <plugin id="AntSupport" />
-    <plugin id="Error-prone plugin" min-version="253.24325.38" />
   </component>
 </project>
