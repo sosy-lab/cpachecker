@@ -8,23 +8,31 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-
-set -e  # Exit immediately if any command fails
+set -e
 
 echo "==============================================="
 echo "Starting smoke test for SV-COMP..."
 echo "==============================================="
 
-# Determine the absolute path to the CPAchecker root directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CPACHECKER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Move up directories until we find the CPAchecker root
+SEARCH_DIR="$(dirname "$0")"
+while [ ! -x "$SEARCH_DIR/bin/cpachecker" ]; do
+  if [ "$SEARCH_DIR" = "/" ] || [ -z "$SEARCH_DIR" ]; then
+    echo "Could not locate CPAchecker root (missing bin/cpachecker)."
+    exit 1
+  fi
+  SEARCH_DIR="$SEARCH_DIR/.."
+done
 
-# Run CPAchecker using absolute paths
-"$CPACHECKER_ROOT/bin/cpachecker" \
+# Change to the CPAchecker root directory (relative traversal only)
+cd "$SEARCH_DIR"
+
+# Run CPAchecker using relative paths
+bin/cpachecker \
   --svcomp26 \
   --no-output-files \
-  --spec "$CPACHECKER_ROOT/config/properties/unreach-call.prp" \
-  "$CPACHECKER_ROOT/doc/examples/example-safe.c"
+  --spec config/properties/unreach-call.prp \
+  doc/examples/example-safe.c
 
 echo "==============================================="
 echo "The smoke test finished successfully!"
