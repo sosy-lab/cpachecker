@@ -15,7 +15,6 @@ import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutd
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Longs;
@@ -169,7 +168,7 @@ public final class ResourceLimitChecker {
    *     time configuration options.
    */
   private static void handleThreadTimeLimit(
-      ResourceLimitOptions options, Builder<ResourceLimit> limits, LogManager pLogger)
+      ResourceLimitOptions options, ImmutableList.Builder<ResourceLimit> limits, LogManager pLogger)
       throws InvalidConfigurationException {
 
     Optional<TimeSpan> maximumThreadTime = Optional.empty();
