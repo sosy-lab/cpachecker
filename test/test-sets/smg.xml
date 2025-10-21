@@ -20,7 +20,6 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
   <option name="--timelimit">900s</option>
-  <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
 
   <!-- #################### MemSafety #################### -->
@@ -28,6 +27,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="SV-COMP25_MemSafety_SVCOMP26">
     <option name="--svcomp26" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -59,6 +60,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-Portfolio">
     <option name="--smg" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -90,6 +93,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -121,6 +126,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-Value">
     <option name="--smgValueAnalysis"></option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -152,6 +158,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-NoStop-NoAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -183,6 +190,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-Value-NoStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -214,6 +222,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -245,6 +254,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -276,6 +286,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -323,6 +334,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -336,6 +349,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-Value">
     <option name="--smgValueAnalysis" />
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -349,6 +364,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="SV-COMP25_MemCleanup_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -362,6 +378,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -375,6 +392,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -388,6 +406,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="SV-COMP25_MemCleanup_SMG-Value-noStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -401,6 +420,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx-noStop-noAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -411,7 +431,5 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
     </tasks>
   </rundefinition>
-
-
 
 </benchmark>
