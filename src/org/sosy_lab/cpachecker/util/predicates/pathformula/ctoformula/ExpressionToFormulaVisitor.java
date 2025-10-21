@@ -1389,6 +1389,11 @@ public class ExpressionToFormulaVisitor
     if (pType instanceof CPointerType pointerType) {
       if (pointerType.getType() instanceof CTypedefType typedefType) {
         CType realType = typedefType.getRealType();
+        // Unwrap an extra typedefs, which can occur e.g. in:
+        // ../../sv-benchmarks/c/Juliet_Test/CWE190_Integer_Overflow__int64_t_fscanf_add_01_bad.i
+        if (realType instanceof CTypedefType nestedTypedefType) {
+          realType = nestedTypedefType.getRealType();
+        }
         if (realType instanceof CElaboratedType elaboratedType) {
           return elaboratedType.getKind() == ComplexTypeKind.STRUCT
               && elaboratedType.getName().equals("_IO_FILE");
