@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -205,7 +204,7 @@ public class RangedExecutionInputComputation implements Algorithm {
 
   private boolean hasRandom() {
     for (CFANode node : cfa.nodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge edge : node.getAllLeavingEdges()) {
         if (edge instanceof CStatementEdge stmtEdge
             && stmtEdge.getStatement() instanceof CAssignment) {
           if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression funCall
