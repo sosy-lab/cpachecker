@@ -332,6 +332,12 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# Generate samples using the provided algorithm. Currently this only works
+# using the configuration 'config/valueAnalysis-NoCegar.properties' as an
+# algorithm.Ideally never use this option directly, but only through a
+# configuration
+analysis.algorithm.useSamplingAlgorithm = false
+
 # If not already done by the analysis, store a found counterexample in the
 # ARG for later re-use. Does nothing if no ARGCPA is used
 analysis.alwaysStoreCounterexamples = false
@@ -3942,6 +3948,15 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# random seed for sampling function return values. If not set, a seed of '0'
+# is taken. This options only has an effect if the option
+# 'randomlySampleFunctionReturnValues' is used.
+cpa.value.randomSamplingSeed = 0
+
+# if set to true this option will generate random test values for function
+# calls to VERIFIER_nondet_*.
+cpa.value.randomlySampleFunctionReturnValues = false
+
 # whether to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
@@ -5085,6 +5100,23 @@ restartAlgorithm.printIntermediateStatistics = true
 # let each component of the restart algorithm write output files and not only
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
+
+# File name for analysis report in case a counterexample was found.
+sampling.random.counterexampleExport = "Counterexample.trace.%d.txt"
+
+# Whether the random sampling algorithm exports traces.
+sampling.random.exportTraces = false
+
+# File name for analysis report in case no counterexample was found.
+sampling.random.safeExport = "Safe.trace.%d.txt"
+
+# Amount of samples to be generated. Generate an infinite amount of samples
+# with a value less than 0.
+sampling.random.samplesToBeGenerated = 10
+
+# Stop after finding the first counterexample. This is useful when using this
+# as an actual analysis.
+sampling.random.stopAfterFirstCounterexample = false
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
