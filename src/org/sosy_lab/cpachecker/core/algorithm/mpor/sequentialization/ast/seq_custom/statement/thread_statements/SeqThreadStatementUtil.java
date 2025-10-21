@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.thread_sync.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementUtil {
@@ -51,7 +51,7 @@ public class SeqThreadStatementUtil {
    */
   public static boolean startsInAtomicBlock(SeqThreadStatement pStatement) {
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
-      ThreadEdge threadEdge = substituteEdge.getThreadEdge();
+      CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
       if (threadEdge.getPredecessor().isInAtomicBlock) {
         return true;

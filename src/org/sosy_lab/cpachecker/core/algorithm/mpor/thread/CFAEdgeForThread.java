@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class ThreadEdge {
+public class CFAEdgeForThread {
 
   private static int currentId = 0;
 
@@ -34,36 +34,37 @@ public class ThreadEdge {
   public final CFAEdge cfaEdge;
 
   /** Not all edges have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<ThreadEdge> callContext;
+  public final Optional<CFAEdgeForThread> callContext;
 
-  private ThreadNode predecessor = null;
+  private CFANodeForThread predecessor = null;
 
-  private ThreadNode successor = null;
+  private CFANodeForThread successor = null;
 
-  public ThreadEdge(int pThreadId, CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
+  public CFAEdgeForThread(
+      int pThreadId, CFAEdge pCfaEdge, Optional<CFAEdgeForThread> pCallContext) {
     id = getNewId();
     threadId = pThreadId;
     cfaEdge = pCfaEdge;
     callContext = pCallContext;
   }
 
-  public ThreadNode getPredecessor() {
+  public CFANodeForThread getPredecessor() {
     checkArgument(predecessor != null, "predecessor not set yet");
     return predecessor;
   }
 
-  protected void setPredecessor(ThreadNode pPredecessor) {
+  protected void setPredecessor(CFANodeForThread pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
   }
 
-  public ThreadNode getSuccessor() {
+  public CFANodeForThread getSuccessor() {
     checkArgument(successor != null, "successor not set yet");
     return successor;
   }
 
-  protected void setSuccessor(ThreadNode pSuccessor) {
+  protected void setSuccessor(CFANodeForThread pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
@@ -84,7 +85,7 @@ public class ThreadEdge {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof ThreadEdge other
+    return pOther instanceof CFAEdgeForThread other
         && id == other.id
         && threadId == other.threadId
         && cfaEdge.equals(other.cfaEdge)

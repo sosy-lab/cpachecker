@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class GhostElementBuilder {
@@ -38,7 +38,7 @@ public class GhostElementBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       Optional<MemoryModel> pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {

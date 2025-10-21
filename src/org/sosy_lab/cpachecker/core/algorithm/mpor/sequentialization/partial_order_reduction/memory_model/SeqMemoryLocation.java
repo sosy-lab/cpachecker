@@ -20,13 +20,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SeqMemoryLocation {
 
   public final MPOROptions options;
 
-  public final Optional<ThreadEdge> callContext;
+  public final Optional<CFAEdgeForThread> callContext;
 
   private final boolean isExplicitGlobal;
 
@@ -38,7 +38,7 @@ public class SeqMemoryLocation {
 
   private SeqMemoryLocation(
       MPOROptions pOptions,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
@@ -53,14 +53,16 @@ public class SeqMemoryLocation {
   }
 
   public static SeqMemoryLocation of(
-      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
+      MPOROptions pOptions,
+      Optional<CFAEdgeForThread> pCallContext,
+      CSimpleDeclaration pDeclaration) {
 
     return new SeqMemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
   }
 
   public static SeqMemoryLocation of(
       MPOROptions pOptions,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
@@ -79,7 +81,9 @@ public class SeqMemoryLocation {
   }
 
   private static String buildThreadPrefix(
-      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
+      MPOROptions pOptions,
+      Optional<CFAEdgeForThread> pCallContext,
+      CSimpleDeclaration pDeclaration) {
 
     if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {

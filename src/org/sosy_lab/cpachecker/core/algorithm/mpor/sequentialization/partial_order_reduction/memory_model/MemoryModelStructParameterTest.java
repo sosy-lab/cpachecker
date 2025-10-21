@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class MemoryModelStructParameterTest {
 
@@ -212,8 +212,8 @@ public class MemoryModelStructParameterTest {
 
   // ThreadEdge
 
-  private final ThreadEdge DUMMY_CALL_CONTEXT =
-      new ThreadEdge(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
+  private final CFAEdgeForThread DUMMY_CALL_CONTEXT =
+      new CFAEdgeForThread(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
 
   // CDeclaration
 

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
 public class SubstituteEdge {
@@ -27,7 +27,7 @@ public class SubstituteEdge {
   /** The substituted {@link CFAEdge}. */
   public final CFAEdge cfaEdge;
 
-  private final ThreadEdge threadEdge;
+  private final CFAEdgeForThread threadEdge;
 
   public final ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs;
 
@@ -57,7 +57,7 @@ public class SubstituteEdge {
 
   private SubstituteEdge(
       CFAEdge pCfaEdge,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableSet<SeqMemoryLocation> pAccessedPointerDereferences,
@@ -91,7 +91,7 @@ public class SubstituteEdge {
         Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
   }
 
-  public static SubstituteEdge of(CFAEdge pCfaEdge, ThreadEdge pThreadEdge) {
+  public static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
@@ -110,7 +110,7 @@ public class SubstituteEdge {
   public static SubstituteEdge of(
       MPOROptions pOptions,
       CFAEdge pCfaEdge,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       MPORSubstitutionTracker pTracker) {
 
     return new SubstituteEdge(
@@ -149,11 +149,11 @@ public class SubstituteEdge {
     };
   }
 
-  public ThreadEdge getThreadEdge() {
+  public CFAEdgeForThread getThreadEdge() {
     return threadEdge;
   }
 
-  public Optional<ThreadEdge> getCallContext() {
+  public Optional<CFAEdgeForThread> getCallContext() {
     return threadEdge.callContext;
   }
 

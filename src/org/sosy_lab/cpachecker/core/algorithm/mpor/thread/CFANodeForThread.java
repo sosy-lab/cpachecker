@@ -17,7 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
-public class ThreadNode {
+public class CFANodeForThread {
 
   private static int currentId = 0;
 
@@ -40,19 +40,19 @@ public class ThreadNode {
   public final int pc;
 
   /** Not all nodes have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<ThreadEdge> callContext;
+  public final Optional<CFAEdgeForThread> callContext;
 
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
-  private final List<ThreadEdge> leavingEdges;
+  private final List<CFAEdgeForThread> leavingEdges;
 
   public final boolean isInAtomicBlock;
 
-  protected ThreadNode(
+  protected CFANodeForThread(
       int pThreadId,
       CFANode pCfaNode,
       int pPc,
-      Optional<ThreadEdge> pCallContext,
-      List<ThreadEdge> pLeavingEdges,
+      Optional<CFAEdgeForThread> pCallContext,
+      List<CFAEdgeForThread> pLeavingEdges,
       boolean pIsInAtomicBlock) {
 
     id = getNewId();
@@ -64,16 +64,16 @@ public class ThreadNode {
     isInAtomicBlock = pIsInAtomicBlock;
   }
 
-  public ThreadEdge firstLeavingEdge() {
+  public CFAEdgeForThread firstLeavingEdge() {
     checkArgument(!leavingEdges.isEmpty(), "cannot get first leaving edge, list is empty");
     return leavingEdges.getFirst();
   }
 
-  public ImmutableList<ThreadEdge> leavingEdges() {
+  public ImmutableList<CFAEdgeForThread> leavingEdges() {
     return ImmutableList.copyOf(leavingEdges);
   }
 
-  protected void pruneLeavingEdge(ThreadEdge pThreadEdge) {
+  protected void pruneLeavingEdge(CFAEdgeForThread pThreadEdge) {
     checkArgument(leavingEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
     checkArgument(
         pThreadEdge.cfaEdge instanceof CFunctionReturnEdge,
@@ -92,7 +92,7 @@ public class ThreadNode {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof ThreadNode other
+    return pOther instanceof CFANodeForThread other
         && id == other.id
         && threadId == other.threadId
         && cfaNode.equals(other.cfaNode)

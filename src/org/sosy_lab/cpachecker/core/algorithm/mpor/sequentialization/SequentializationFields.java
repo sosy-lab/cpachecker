@@ -29,10 +29,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -52,7 +52,7 @@ public class SequentializationFields {
   /** The {@link MPORSubstitution} of the main thread, containing global variable substitutes. */
   public final MPORSubstitution mainSubstitution;
 
-  public final ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges;
+  public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
 
   public final Optional<MemoryModel> memoryModel;
 
@@ -73,7 +73,7 @@ public class SequentializationFields {
       throws UnrecognizedCodeException {
 
     resetStaticFields();
-    threads = ThreadBuilder.createThreads(pOptions, pInputCfa);
+    threads = MPORThreadBuilder.createThreads(pOptions, pInputCfa);
     numThreads = threads.size();
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
@@ -118,9 +118,9 @@ public class SequentializationFields {
 
   /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */
   private static void resetStaticFields() {
-    ThreadBuilder.resetThreadId();
-    ThreadBuilder.resetPc();
-    ThreadEdge.resetId();
-    ThreadNode.resetId();
+    MPORThreadBuilder.resetThreadId();
+    MPORThreadBuilder.resetPc();
+    CFAEdgeForThread.resetId();
+    CFANodeForThread.resetId();
   }
 }

@@ -26,29 +26,29 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class ThreadUtil {
+public class MPORThreadUtil {
 
   /**
    * Returns either {@code pCallContext} if present or the start_routine call of {@code pThread},
    * which serves as the default call context.
    */
-  public static Optional<ThreadEdge> getCallContextOrStartRoutineCall(
-      Optional<ThreadEdge> pCallContext, MPORThread pThread) {
+  public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
+      Optional<CFAEdgeForThread> pCallContext, MPORThread pThread) {
 
     return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall;
   }
 
-  public static Optional<ThreadEdge> getCallContextOrStartRoutineCall(
-      Optional<ThreadEdge> pCallContext, Optional<ThreadEdge> pStartRoutineCall) {
+  public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
+      Optional<CFAEdgeForThread> pCallContext, Optional<CFAEdgeForThread> pStartRoutineCall) {
 
     return pCallContext.isPresent() ? pCallContext : pStartRoutineCall;
   }
 
-  protected static <T extends CFAEdge> ImmutableList<ThreadEdge> getEdgesByClass(
-      ImmutableSet<ThreadEdge> pThreadEdges, Class<T> pEdgeClass) {
+  protected static <T extends CFAEdge> ImmutableList<CFAEdgeForThread> getEdgesByClass(
+      ImmutableSet<CFAEdgeForThread> pThreadEdges, Class<T> pEdgeClass) {
 
-    ImmutableList.Builder<ThreadEdge> rEdges = ImmutableList.builder();
-    for (ThreadEdge threadEdge : pThreadEdges) {
+    ImmutableList.Builder<CFAEdgeForThread> rEdges = ImmutableList.builder();
+    for (CFAEdgeForThread threadEdge : pThreadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
       if (pEdgeClass.isInstance(cfaEdge)) {
         rEdges.add(threadEdge);
@@ -63,7 +63,7 @@ public class ThreadUtil {
    */
   public static ImmutableList<CDeclaration> extractNonVariableDeclarations(MPORThread pThread) {
     ImmutableList.Builder<CDeclaration> rNonVariableDeclarations = ImmutableList.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (!(declaration instanceof CVariableDeclaration)) {
@@ -121,9 +121,9 @@ public class ThreadUtil {
     throw new IllegalArgumentException("no MPORThread with pId found in pThreads");
   }
 
-  static int getHighestPc(ImmutableList<ThreadNode> pThreadNodes) {
+  static int getHighestPc(ImmutableList<CFANodeForThread> pThreadNodes) {
     int highestPc = Sequentialization.EXIT_PC;
-    for (ThreadNode threadNode : pThreadNodes) {
+    for (CFANodeForThread threadNode : pThreadNodes) {
       if (threadNode.pc > highestPc) {
         highestPc = threadNode.pc;
       }

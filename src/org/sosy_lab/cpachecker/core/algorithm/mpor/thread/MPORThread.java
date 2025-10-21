@@ -31,7 +31,7 @@ public class MPORThread {
    */
   public final CFunctionDeclaration startRoutine;
 
-  public final Optional<ThreadEdge> startRoutineCall;
+  public final Optional<CFAEdgeForThread> startRoutineCall;
 
   /**
    * The intermediate variable storing the {@code retval} given to {@code pthread_exit}, if called
@@ -40,19 +40,20 @@ public class MPORThread {
   public final Optional<CIdExpression> startRoutineExitVariable;
 
   /** The set of context-sensitive local variable declarations of this thread. */
-  public final ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
+  public final ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
+      localVariables;
 
   /** The subset of the original CFA executed by the thread. */
-  public final ThreadCFA cfa;
+  public final CFAForThread cfa;
 
   protected MPORThread(
       int pId,
       Optional<CIdExpression> pThreadObject,
       CFunctionDeclaration pStartRoutine,
-      Optional<ThreadEdge> pStartRoutineCall,
+      Optional<CFAEdgeForThread> pStartRoutineCall,
       Optional<CIdExpression> pStartRoutineExitVariable,
-      ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
-      ThreadCFA pCfa) {
+      ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>> pLocalVariables,
+      CFAForThread pCfa) {
 
     id = pId;
     threadObject = pThreadObject;

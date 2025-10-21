@@ -16,18 +16,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class FunctionParameterAssignment {
 
-  private final ThreadEdge callContext;
+  private final CFAEdgeForThread callContext;
 
   private final CLeftHandSide leftHandSide;
 
   private final CExpression rightHandSide;
 
   public FunctionParameterAssignment(
-      ThreadEdge pCallContext, CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
+      CFAEdgeForThread pCallContext, CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
 
     callContext = pCallContext;
     leftHandSide = pLeftHandSide;
@@ -60,7 +60,7 @@ public class FunctionParameterAssignment {
     return rightHandSide;
   }
 
-  public ThreadEdge getCallContext() {
+  public CFAEdgeForThread getCallContext() {
     return callContext;
   }
 }

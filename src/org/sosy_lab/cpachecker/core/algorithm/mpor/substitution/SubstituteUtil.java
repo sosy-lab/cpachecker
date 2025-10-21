@@ -29,17 +29,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteUtil {
 
   public static SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
       CFAEdge pCfaEdge,
-      Optional<ThreadEdge> pCallContext,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      Optional<CFAEdgeForThread> pCallContext,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
-    for (ThreadEdge threadEdge : pSubstituteEdges.keySet()) {
+    for (CFAEdgeForThread threadEdge : pSubstituteEdges.keySet()) {
       if (threadEdge.cfaEdge.equals(pCfaEdge)) {
         if (threadEdge.callContext.equals(pCallContext)) {
           return pSubstituteEdges.get(threadEdge);
@@ -117,7 +117,7 @@ public class SubstituteUtil {
 
   static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
       MPOROptions pOptions,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
 
@@ -141,7 +141,7 @@ public class SubstituteUtil {
 
   static ImmutableSet<SeqMemoryLocation> getMemoryLocationsByAccessType(
       MPOROptions pOptions,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
 
@@ -166,7 +166,9 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
-      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, MPORSubstitutionTracker pTracker) {
+      MPOROptions pOptions,
+      Optional<CFAEdgeForThread> pCallContext,
+      MPORSubstitutionTracker pTracker) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();

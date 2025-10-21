@@ -40,10 +40,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseBuilder {
@@ -51,7 +51,7 @@ public class SeqThreadStatementClauseBuilder {
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> buildClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -97,7 +97,7 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -108,7 +108,7 @@ public class SeqThreadStatementClauseBuilder {
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
-      Set<ThreadNode> coveredNodes = new HashSet<>();
+      Set<CFANodeForThread> coveredNodes = new HashSet<>();
       clauses.addAll(
           initClauses(
               pOptions,
@@ -165,13 +165,13 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
-      Set<ThreadNode> pCoveredNodes,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      Set<CFANodeForThread> pCoveredNodes,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
-    for (ThreadNode threadNode : pThread.cfa.threadNodes) {
+    for (CFANodeForThread threadNode : pThread.cfa.threadNodes) {
       if (pCoveredNodes.add(threadNode)) {
         rClauses.addAll(
             buildClausesFromThreadNode(
@@ -198,9 +198,9 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
-      Set<ThreadNode> pCoveredNodes,
-      ThreadNode pThreadNode,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      Set<CFANodeForThread> pCoveredNodes,
+      CFANodeForThread pThreadNode,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     pCoveredNodes.add(pThreadNode);
@@ -215,7 +215,7 @@ public class SeqThreadStatementClauseBuilder {
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
     CLeftHandSide pcLeftHandSide =
         pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
-    ThreadEdge firstThreadEdge = pThreadNode.firstLeavingEdge();
+    CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
     int targetPc = firstThreadEdge.getSuccessor().pc;
     ImmutableList<SeqThreadStatementClause> multiClauseEdge =
         handleMultipleClauseEdge(
@@ -273,7 +273,7 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread pCurrentThread, ImmutableList<MPORThread> pAllThreads) {
 
     if (pCurrentThread.getId() < pAllThreads.size() - 1) {
-      return Optional.of(ThreadUtil.getThreadById(pAllThreads, pCurrentThread.getId() + 1));
+      return Optional.of(MPORThreadUtil.getThreadById(pAllThreads, pCurrentThread.getId() + 1));
     }
     return Optional.empty();
   }
@@ -282,7 +282,7 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
@@ -308,13 +308,13 @@ public class SeqThreadStatementClauseBuilder {
    * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_COND_WAIT}. This
    * function requires an interleaving between the locking of the mutex and the blocking on the cond
    * variable, forcing us two create two {@link SeqThreadStatement} from a single {@link
-   * ThreadEdge}.
+   * CFAEdgeForThread}.
    */
   private static ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
       MPOROptions pOptions,
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,

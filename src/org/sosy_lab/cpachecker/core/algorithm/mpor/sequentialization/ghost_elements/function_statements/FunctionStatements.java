@@ -11,23 +11,26 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class FunctionStatements {
 
-  public final ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment> parameterAssignments;
+  public final ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment>
+      parameterAssignments;
 
-  private final ImmutableMap<ThreadEdge, FunctionParameterAssignment> startRoutineArgAssignments;
+  private final ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
+      startRoutineArgAssignments;
 
-  public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> returnValueAssignments;
+  public final ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> returnValueAssignments;
 
-  public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> startRoutineExitAssignments;
+  public final ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
+      startRoutineExitAssignments;
 
   FunctionStatements(
-      ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment> pParameterAssignments,
-      ImmutableMap<ThreadEdge, FunctionParameterAssignment> pStartRoutineArgAssignments,
-      ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pReturnValueAssignments,
-      ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pStartRoutineExitAssignments) {
+      ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment> pParameterAssignments,
+      ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment> pStartRoutineArgAssignments,
+      ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> pReturnValueAssignments,
+      ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> pStartRoutineExitAssignments) {
 
     parameterAssignments = pParameterAssignments;
     startRoutineArgAssignments = pStartRoutineArgAssignments;
@@ -36,7 +39,7 @@ public class FunctionStatements {
   }
 
   public Optional<FunctionParameterAssignment> tryGetStartRoutineArgAssignmentByThreadEdge(
-      ThreadEdge pThreadEdge) {
+      CFAEdgeForThread pThreadEdge) {
 
     if (startRoutineArgAssignments.containsKey(pThreadEdge)) {
       return Optional.ofNullable(startRoutineArgAssignments.get(pThreadEdge));

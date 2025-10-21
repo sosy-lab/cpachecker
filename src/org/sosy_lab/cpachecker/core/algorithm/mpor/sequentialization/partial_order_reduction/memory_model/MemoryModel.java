@@ -18,8 +18,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /**
  * A class to keep track of all memory locations in the concurrent input program, including pointers
@@ -139,10 +139,10 @@ public class MemoryModel {
   public boolean isMemoryLocationReachableByThread(
       SeqMemoryLocation pMemoryLocation,
       MPORThread pThread,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       MemoryAccessType pAccessType) {
 
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
       ImmutableSet<SeqMemoryLocation> memoryLocations =
           SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(

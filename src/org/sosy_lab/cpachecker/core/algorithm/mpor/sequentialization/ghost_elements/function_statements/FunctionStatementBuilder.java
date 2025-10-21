@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionStatementBuilder {
@@ -42,7 +42,7 @@ public class FunctionStatementBuilder {
   public static ImmutableMap<MPORThread, FunctionStatements> buildFunctionStatements(
       ImmutableList<MPORThread> pThreads,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<MPORThread, FunctionStatements> rFunctionStatements =
         ImmutableMap.builder();
@@ -60,7 +60,7 @@ public class FunctionStatementBuilder {
   private static FunctionStatements buildFunctionStatements(
       MPORThread pThread,
       MPORSubstitution pSubstitution,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     return new FunctionStatements(
         buildParameterAssignments(pSubstitution),
@@ -72,21 +72,21 @@ public class FunctionStatementBuilder {
   // Function Parameter Assignments ================================================================
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionCallEdge} to a list of
-   * {@link FunctionParameterAssignment}s.
+   * Maps {@link CFAEdgeForThread}s whose {@link CFAEdge} is a {@link CFunctionCallEdge} to a list
+   * of {@link FunctionParameterAssignment}s.
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
    * MPORSubstitution#parameterSubstitutes}.
    */
-  private static ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment>
+  private static ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment>
       buildParameterAssignments(MPORSubstitution pSubstitution) {
 
-    ImmutableListMultimap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
+    ImmutableListMultimap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
 
     // for each function call edge (= calling context)
-    for (ThreadEdge callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
+    for (CFAEdgeForThread callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
       assert callContext.cfaEdge instanceof CFunctionCallEdge;
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
       List<CParameterDeclaration> parameterDeclarations =
@@ -118,15 +118,15 @@ public class FunctionStatementBuilder {
     return rAssignments.build();
   }
 
-  private static ImmutableMap<ThreadEdge, FunctionParameterAssignment>
+  private static ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
       buildStartRoutineArgAssignments(MPORSubstitution pSubstitution) {
 
-    ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();
-    Set<ThreadEdge> visited = new HashSet<>();
+    Set<CFAEdgeForThread> visited = new HashSet<>();
     for (var cell : pSubstitution.startRoutineArgSubstitutes.cellSet()) {
       // this call context is the call to pthread_create
-      ThreadEdge callContext = cell.getRowKey();
+      CFAEdgeForThread callContext = cell.getRowKey();
       if (visited.add(callContext)) {
         // only the thread calling pthread_create assigns the start_routine arg
         if (pSubstitution.thread.getId() == callContext.threadId) {
@@ -155,28 +155,29 @@ public class FunctionStatementBuilder {
   // return value assignments ======================================================================
 
   /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
-   * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
+   * Maps {@link CFAEdgeForThread}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to
+   * {@link FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return
+   * value.
    *
    * <p>The return statement may be linked to multiple function calls, thus the inner set.
    *
    * <p>Note that {@code main} functions and start_routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
-  private static ImmutableMap<ThreadEdge, FunctionReturnValueAssignment>
+  private static ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
       buildReturnValueAssignments(
-          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+          MPORThread pThread, ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rReturnStatements =
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rReturnStatements =
         ImmutableMap.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
       assert pSubstituteEdges.containsKey(threadEdge)
           : "pSubstituteEdges must contain all threadEdges";
       // consider only edges with call context, e.g. return 0; in main has no call context
       if (threadEdge.callContext.isPresent()) {
         SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
         if (substituteEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
-          ThreadEdge callContext = threadEdge.callContext.orElseThrow();
+          CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
           Optional<SubstituteEdge> functionSummaryEdge =
               tryGetFunctionSummaryEdgeByReturnStatementEdge(
                   pThread, pSubstituteEdges, returnStatementEdge, callContext);
@@ -196,23 +197,23 @@ public class FunctionStatementBuilder {
 
   private static Optional<SubstituteEdge> tryGetFunctionSummaryEdgeByReturnStatementEdge(
       MPORThread pThread,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       CReturnStatementEdge pReturnStatementEdge,
-      ThreadEdge pCallContext) {
+      CFAEdgeForThread pCallContext) {
 
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
       assert pSubstituteEdges.containsKey(threadEdge)
           : "pSubstituteEdges must contain all threadEdges";
       // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
       if (threadEdge.callContext.isPresent()) {
-        ThreadEdge callContext = threadEdge.callContext.orElseThrow();
+        CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
         if (callContext.equals(pCallContext)) {
           ImmutableSet<CFunctionCallEdge> functionCallEdges =
               CFAUtils.getFunctionCallEdgesByReturnStatementEdge(pReturnStatementEdge);
           for (CFunctionCallEdge functionCallEdge : functionCallEdges) {
             if (callContext.cfaEdge.equals(functionCallEdge)) {
               // use the call contexts predecessor, which is used by the functionSummaryEdge
-              Optional<ThreadEdge> predecessorCallContext =
+              Optional<CFAEdgeForThread> predecessorCallContext =
                   callContext.getPredecessor().callContext;
               return Optional.of(
                   SubstituteUtil.getSubstituteEdgeByCfaEdgeAndCallContext(
@@ -251,17 +252,17 @@ public class FunctionStatementBuilder {
   // start_routine exit ============================================================================
 
   /**
-   * Links {@link ThreadEdge}s that call {@code pthread_exit} to {@link
+   * Links {@link CFAEdgeForThread}s that call {@code pthread_exit} to {@link
    * FunctionReturnValueAssignment} where the {@code retval} is stored in an intermediate value that
    * can be retrieved by other threads calling {@code pthread_join}.
    */
-  private static ImmutableMap<ThreadEdge, FunctionReturnValueAssignment>
+  private static ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(
-          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+          MPORThread pThread, ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
-        ImmutableMap.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment>
+        rStartRoutineExitAssignments = ImmutableMap.builder();
+    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
       if (PthreadUtil.isCallToPthreadFunction(
           threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
         assert pThread.startRoutineExitVariable.isPresent()

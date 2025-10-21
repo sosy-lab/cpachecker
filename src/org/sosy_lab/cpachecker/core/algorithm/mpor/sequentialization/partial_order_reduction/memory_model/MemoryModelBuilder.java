@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class MemoryModelBuilder {
@@ -389,7 +389,7 @@ public class MemoryModelBuilder {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (PthreadUtil.isCallToPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
-        ThreadEdge callContext = substituteEdge.getThreadEdge();
+        CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
         int index =
             PthreadFunctionType.PTHREAD_CREATE.getParameterIndex(
                 PthreadObjectType.START_ROUTINE_ARGUMENT);
@@ -426,7 +426,7 @@ public class MemoryModelBuilder {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (original instanceof CFunctionCallEdge functionCallEdge) {
-        ThreadEdge callContext = substituteEdge.getThreadEdge();
+        CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
         rAssignments.putAll(
             buildParameterAssignments(
                 pOptions, callContext, functionCallEdge, pInitialMemoryLocations));
@@ -437,7 +437,7 @@ public class MemoryModelBuilder {
 
   private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
       MPOROptions pOptions,
-      ThreadEdge pCallContext,
+      CFAEdgeForThread pCallContext,
       CFunctionCallEdge pFunctionCallEdge,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
@@ -464,7 +464,7 @@ public class MemoryModelBuilder {
 
   private static Optional<SeqMemoryLocation> extractMemoryLocation(
       MPOROptions pOptions,
-      ThreadEdge pCallContext,
+      CFAEdgeForThread pCallContext,
       CExpression pRightHandSide,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
@@ -492,7 +492,7 @@ public class MemoryModelBuilder {
 
   private static SeqMemoryLocation extractFieldReferenceMemoryLocation(
       MPOROptions pOptions,
-      ThreadEdge pCallContext,
+      CFAEdgeForThread pCallContext,
       CFieldReference pFieldReference,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
@@ -506,7 +506,7 @@ public class MemoryModelBuilder {
 
   private static SeqMemoryLocation getMemoryLocationByDeclaration(
       MPOROptions pOptions,
-      ThreadEdge pCallContext,
+      CFAEdgeForThread pCallContext,
       CSimpleDeclaration pDeclaration,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
@@ -520,7 +520,7 @@ public class MemoryModelBuilder {
 
   private static SeqMemoryLocation getMemoryLocationByFieldReference(
       MPOROptions pOptions,
-      ThreadEdge pCallContext,
+      CFAEdgeForThread pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations) {

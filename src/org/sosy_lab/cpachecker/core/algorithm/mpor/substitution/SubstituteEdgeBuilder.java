@@ -28,21 +28,21 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 
 public class SubstituteEdgeBuilder {
 
-  public static ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges(
+  public static ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     // using map so that we can use .containsKey (+ linked hash map retains insertion order)
-    Map<ThreadEdge, SubstituteEdge> rSubstituteEdges = new LinkedHashMap<>();
+    Map<CFAEdgeForThread, SubstituteEdge> rSubstituteEdges = new LinkedHashMap<>();
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
 
-      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -63,15 +63,16 @@ public class SubstituteEdgeBuilder {
 
   // TODO create separate method for each edge type for better overview
   /**
-   * Tries to substitute the given {@link ThreadEdge}. Not all edges are substituted, e.g. function
-   * declarations from the input program are included if specified by {@link MPOROptions}.
+   * Tries to substitute the given {@link CFAEdgeForThread}. Not all edges are substituted, e.g.
+   * function declarations from the input program are included if specified by {@link MPOROptions}.
    */
   private static Optional<SubstituteEdge> trySubstituteEdge(
-      MPOROptions pOptions, MPORSubstitution pSubstitution, ThreadEdge pThreadEdge) {
+      MPOROptions pOptions, MPORSubstitution pSubstitution, CFAEdgeForThread pThreadEdge) {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
-    Optional<ThreadEdge> callContext =
-        ThreadUtil.getCallContextOrStartRoutineCall(pThreadEdge.callContext, pSubstitution.thread);
+    Optional<CFAEdgeForThread> callContext =
+        MPORThreadUtil.getCallContextOrStartRoutineCall(
+            pThreadEdge.callContext, pSubstitution.thread);
 
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?

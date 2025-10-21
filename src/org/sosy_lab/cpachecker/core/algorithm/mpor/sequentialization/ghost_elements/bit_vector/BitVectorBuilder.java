@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class BitVectorBuilder {
 
@@ -37,7 +37,7 @@ public class BitVectorBuilder {
   public static Optional<BitVectorVariables> buildBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       Optional<MemoryModel> pMemoryModel) {
 
     if (!pOptions.isAnyReductionEnabled()) {
@@ -59,7 +59,7 @@ public class BitVectorBuilder {
   private static Optional<BitVectorVariables> buildAccessOnlyBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       MemoryModel pMemoryModel) {
 
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
@@ -91,7 +91,7 @@ public class BitVectorBuilder {
   private static Optional<BitVectorVariables> buildReadWriteBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       MemoryModel pMemoryModel) {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
@@ -190,7 +190,7 @@ public class BitVectorBuilder {
   private static Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> buildSparseBitVectors(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
@@ -227,7 +227,7 @@ public class BitVectorBuilder {
   private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectors(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       SeqMemoryLocation pMemoryLocation,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType,

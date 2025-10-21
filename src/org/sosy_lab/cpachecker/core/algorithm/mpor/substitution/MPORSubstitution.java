@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MPORSubstitution {
@@ -66,19 +66,19 @@ public class MPORSubstitution {
 
   /** The map of call context-sensitive thread local variable declarations to their substitutes. */
   private final ImmutableTable<
-          Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+          Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       localVariableSubstitutes;
 
   /**
-   * The map of parameter to variable declaration substitutes. The {@link ThreadEdge}s allow
+   * The map of parameter to variable declaration substitutes. The {@link CFAEdgeForThread}s allow
    * call-context sensitive parameter substitutes.
    */
-  public final ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
+  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       parameterSubstitutes;
 
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
-  public final ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
+  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -90,11 +90,13 @@ public class MPORSubstitution {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVariableSubstitutes,
-      ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+      ImmutableTable<
+              Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
+      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> pStartRoutineArgSubstitutes,
+      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+          pStartRoutineArgSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger) {
 
@@ -119,7 +121,7 @@ public class MPORSubstitution {
    */
   public CExpression substitute(
       final CExpression pExpression,
-      final Optional<ThreadEdge> pCallContext,
+      final Optional<CFAEdgeForThread> pCallContext,
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -276,7 +278,7 @@ public class MPORSubstitution {
 
   CStatement substitute(
       CStatement pStatement,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
@@ -344,7 +346,7 @@ public class MPORSubstitution {
 
   CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     // substitute all parameters in the function call expression
@@ -374,7 +376,7 @@ public class MPORSubstitution {
 
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
@@ -394,7 +396,7 @@ public class MPORSubstitution {
   private CIdExpression getVariableSubstitute(
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
@@ -419,7 +421,7 @@ public class MPORSubstitution {
         return mainFunctionArgSubstitutes.get(parameterDeclaration);
       }
       // normal function called within thread, including start_routines, always have call context
-      ThreadEdge callContext = pCallContext.orElseThrow();
+      CFAEdgeForThread callContext = pCallContext.orElseThrow();
       if (parameterSubstitutes.containsRow(callContext)) {
         return getSubstituteParameterDeclarationByCallContext(callContext, parameterDeclaration);
 
@@ -433,7 +435,7 @@ public class MPORSubstitution {
   }
 
   public CIdExpression getSubstituteParameterDeclarationByCallContext(
-      ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
+      CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
       return parameterSubstitutes.get(pCallContext, pParameterDeclaration);
@@ -459,7 +461,7 @@ public class MPORSubstitution {
 
   public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
-      Optional<ThreadEdge> pCallContext,
+      Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(

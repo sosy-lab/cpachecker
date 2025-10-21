@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqThreadStatementBuilder {
@@ -63,18 +63,18 @@ public class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
-      ThreadNode pThreadNode,
+      CFANodeForThread pThreadNode,
       CLeftHandSide pPcLeftHandSide,
-      Set<ThreadNode> pCoveredNodes,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      Set<CFANodeForThread> pCoveredNodes,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
 
-    ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
+    ImmutableList<CFAEdgeForThread> leavingEdges = pThreadNode.leavingEdges();
     int numLeavingEdges = leavingEdges.size();
     for (int i = 0; i < numLeavingEdges; i++) {
-      ThreadEdge threadEdge = leavingEdges.get(i);
+      CFAEdgeForThread threadEdge = leavingEdges.get(i);
 
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
@@ -106,23 +106,23 @@ public class SeqThreadStatementBuilder {
 
   private static SeqConstCpaCheckerTmpStatement buildConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       CLeftHandSide pPcLeftHandSide,
-      Set<ThreadNode> pCoveredNodes,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      Set<CFANodeForThread> pCoveredNodes,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     // ensure there are two single successors that are both statement edges
-    ThreadNode firstSuccessor = pThreadEdge.getSuccessor();
+    CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
     pCoveredNodes.add(firstSuccessor);
     assert firstSuccessor.leavingEdges().size() == 1
         : "const CPAchecker_TMP declarations can have only 1 successor edge";
-    ThreadEdge firstSuccessorEdge = firstSuccessor.firstLeavingEdge();
+    CFAEdgeForThread firstSuccessorEdge = firstSuccessor.firstLeavingEdge();
     assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
         : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
-    ThreadNode secondSuccessor = firstSuccessorEdge.getSuccessor();
+    CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
     assert secondSuccessor.leavingEdges().size() == 1
         : "second successor of const CPAchecker_TMP declarations can have only 1 successor edge";
-    ThreadEdge secondSuccessorEdge = secondSuccessor.firstLeavingEdge();
+    CFAEdgeForThread secondSuccessorEdge = secondSuccessor.firstLeavingEdge();
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
     // there are programs where a const CPAchecker_TMP statement has only two parts.
@@ -145,10 +145,10 @@ public class SeqThreadStatementBuilder {
 
   private static SeqConstCpaCheckerTmpStatement buildTwoPartConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
-      ThreadEdge pSuccessorEdge,
+      CFAEdgeForThread pThreadEdge,
+      CFAEdgeForThread pSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdge));
@@ -169,11 +169,11 @@ public class SeqThreadStatementBuilder {
 
   private static SeqConstCpaCheckerTmpStatement buildThreePartConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
-      ThreadEdge pFirstSuccessorEdge,
-      ThreadEdge pSecondSuccessorEdge,
+      CFAEdgeForThread pThreadEdge,
+      CFAEdgeForThread pFirstSuccessorEdge,
+      CFAEdgeForThread pSecondSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
     SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdge));
@@ -228,7 +228,7 @@ public class SeqThreadStatementBuilder {
       final ImmutableList<MPORThread> pAllThreads,
       boolean pFirstEdge,
       boolean pLastEdge,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       GhostElements pGhostElements) {
 
@@ -337,7 +337,7 @@ public class SeqThreadStatementBuilder {
   private static SeqThreadStatement buildFunctionCallStatement(
       MPOROptions pOptions,
       MPORThread pThread,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       ProgramCounterVariables pProgramCounterVariables,
@@ -367,7 +367,7 @@ public class SeqThreadStatementBuilder {
 
   private static SeqThreadStatement buildReturnValueAssignmentStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
@@ -393,7 +393,7 @@ public class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       GhostElements pGhostElements) {
@@ -471,7 +471,7 @@ public class SeqThreadStatementBuilder {
 
   private static SeqCondSignalStatement buildCondSignalStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
@@ -486,7 +486,7 @@ public class SeqThreadStatementBuilder {
 
   public static SeqCondWaitStatement buildCondWaitStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
@@ -513,7 +513,7 @@ public class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       FunctionStatements pFunctionStatements,
@@ -526,7 +526,7 @@ public class SeqThreadStatementBuilder {
     CExpression pthreadTObject =
         PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
-        ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
+        MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
     Optional<FunctionParameterAssignment> startRoutineArgAssignment =
         pFunctionStatements.tryGetStartRoutineArgAssignmentByThreadEdge(pThreadEdge);
     return new SeqThreadCreationStatement(
@@ -541,7 +541,7 @@ public class SeqThreadStatementBuilder {
 
   private static SeqThreadExitStatement buildThreadExitStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       FunctionStatements pFunctionStatements,
@@ -567,7 +567,8 @@ public class SeqThreadStatementBuilder {
       int pTargetPc,
       GhostElements pGhostElements) {
 
-    MPORThread targetThread = ThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
+    MPORThread targetThread =
+        MPORThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
     return new SeqThreadJoinStatement(
         pOptions,
         targetThread.startRoutineExitVariable,
@@ -579,7 +580,7 @@ public class SeqThreadStatementBuilder {
 
   private static SeqMutexLockStatement buildMutexLockStatement(
       MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
+      CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
