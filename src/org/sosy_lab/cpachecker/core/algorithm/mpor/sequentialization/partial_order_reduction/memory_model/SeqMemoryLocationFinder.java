@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -129,78 +131,67 @@ public class SeqMemoryLocationFinder {
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (SeqMemoryLocation pointerDereference : pointerDereferences) {
       rMemLocations.addAll(
-          findMemoryLocationsByPointerDereference(pointerDereference, pMemoryModel));
+          findMemoryLocationsByPointerDereference(
+              pointerDereference,
+              pMemoryModel.pointerAssignments,
+              pMemoryModel.startRoutineArgAssignments,
+              pMemoryModel.pointerParameterAssignments));
     }
     return rMemLocations.build();
   }
 
   // Extraction by Pointer Dereference =============================================================
 
-  private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
-      SeqMemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
-
-    return findMemoryLocationsByPointerDereference(
-        pPointerDereference,
-        pMemoryModel.pointerAssignments,
-        pMemoryModel.startRoutineArgAssignments,
-        pMemoryModel.pointerParameterAssignments);
-  }
-
+  /**
+   * Finds the set of {@link SeqMemoryLocation}s that have {@link CVariableDeclaration}s that are
+   * associated by the given pointer dereference, i.e. the set of global variables whose addresses
+   * are at some point in the program assigned to the pointer.
+   */
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       SeqMemoryLocation pPointerDereference,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
+    // the set of memory locations associated with the pointer dereference
     Set<SeqMemoryLocation> found = new HashSet<>();
-    recursivelyFindMemoryLocationsByPointerDereference(
-        pPointerDereference,
-        pPointerAssignments,
-        pStartRoutineArgAssignments,
-        pPointerParameterAssignments,
-        found,
-        new HashSet<>());
-    return ImmutableSet.copyOf(found);
-  }
+    // set of already visited memory locations
+    Set<SeqMemoryLocation> visited = new HashSet<>();
+    // stack to iteratively perform depth first search
+    Deque<SeqMemoryLocation> stack = new ArrayDeque<>();
 
-  /**
-   * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer
-   * dereference, i.e. the set of global variables whose addresses are at some point in the program
-   * assigned to the pointer variable / parameter.
-   */
-  private static void recursivelyFindMemoryLocationsByPointerDereference(
-      SeqMemoryLocation pCurrentMemoryLocation,
-      final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      Set<SeqMemoryLocation> pFound,
-      Set<SeqMemoryLocation> pVisited) {
+    // start the search by pushing the initial pointer dereference
+    stack.push(pPointerDereference);
+    visited.add(pPointerDereference); // Add initial location to visited immediately
 
-    // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
-    if (pVisited.add(pCurrentMemoryLocation)) {
+    while (!stack.isEmpty()) {
+      SeqMemoryLocation currentMemoryLocation = stack.pop();
+      // check if the current location is a pointer (an LHS in an assignment)
       if (MemoryModel.isLeftHandSideInPointerAssignment(
-          pCurrentMemoryLocation,
+          currentMemoryLocation,
           pPointerAssignments,
           pStartRoutineArgAssignments,
           pPointerParameterAssignments)) {
+
+        // if it is a pointer, find what it points to (the RHS in the assignment)
         ImmutableSet<SeqMemoryLocation> rightHandSides =
             MemoryModel.getPointerAssignmentRightHandSides(
-                pCurrentMemoryLocation,
+                currentMemoryLocation,
                 pPointerAssignments,
                 pStartRoutineArgAssignments,
                 pPointerParameterAssignments);
+
+        // add unvisited RHSs into the stack
         for (SeqMemoryLocation rightHandSide : rightHandSides) {
-          recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide,
-              pPointerAssignments,
-              pStartRoutineArgAssignments,
-              pPointerParameterAssignments,
-              pFound,
-              pVisited);
+          if (visited.add(rightHandSide)) {
+            stack.push(rightHandSide);
+          }
         }
       } else {
-        pFound.add(pCurrentMemoryLocation);
+        // if it is not a pointer (i.e. a target memory location), add it to found
+        found.add(currentMemoryLocation);
       }
     }
+    return ImmutableSet.copyOf(found);
   }
 }
