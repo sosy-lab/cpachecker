@@ -26,4 +26,6 @@ CPACHECKER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
   --spec "$CPACHECKER_ROOT/config/properties/unreach-call.prp" \
   "$CPACHECKER_ROOT/doc/examples/example-safe.c"
 
+echo "==============================================="
 echo "The smoke test finished successfully!"
+echo "==============================================="
