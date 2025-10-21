@@ -53,13 +53,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -1387,17 +1385,9 @@ public class ExpressionToFormulaVisitor
 
   private boolean isFilePointer(CType pType) {
     if (pType instanceof CPointerType pointerType) {
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CType realType = typedefType.getRealType();
-        // Unwrap an extra typedefs, which can occur e.g. in:
-        // ../../sv-benchmarks/c/Juliet_Test/CWE190_Integer_Overflow__int64_t_fscanf_add_01_bad.i
-        if (realType instanceof CTypedefType nestedTypedefType) {
-          realType = nestedTypedefType.getRealType();
-        }
-        if (realType instanceof CElaboratedType elaboratedType) {
-          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
-              && elaboratedType.getName().equals("_IO_FILE");
-        }
+      if (pointerType.getType().getCanonicalType() instanceof CCompositeType actualType) {
+        return actualType.getKind() == ComplexTypeKind.STRUCT
+            && actualType.getName().equals("_IO_FILE");
       }
     }
     return false;
