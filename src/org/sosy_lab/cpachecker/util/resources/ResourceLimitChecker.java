@@ -327,7 +327,7 @@ public final class ResourceLimitChecker {
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.factorOfTotalCpuTime",
+        name = "time.cpu.thread.percentageOfTotalCpuTime",
         description =
             "Thread time-limit in percent (%) of total CPU time-limit \"limit.time.cpu\" used by"
                 + " CPAchecker. Example: using this option with value 15.6 leads to 15.6% of 900s"

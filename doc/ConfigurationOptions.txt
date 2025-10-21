@@ -4516,14 +4516,6 @@ limits.time.cpu = -1ns
 # great caution! (use seconds or specify a unit; -1 for infinite)
 limits.time.cpu.thread = -1ns
 
-# Thread time-limit in percent (%) of total CPU time-limit "limit.time.cpu"
-# used by CPAchecker. Example: using this option with value 15.6 leads to
-# 15.6% of 900s "limits.time.cpu" = 140s thread CPU time limit used. A
-# maximum and minimum can be set using the options "time.cpu.thread.maximum"
-# and "time.cpu.thread.minimum" respectively. The value of this option may
-# not be greater than 100 or less or equal to 0.
-limits.time.cpu.thread.factorOfTotalCpuTime = 100.00
-
 # Maximum limit for thread cpu time used by CPAchecker. I.e. iff the thread
 # CPU time limit calculated with "time.cpu.thread.factor" is larger than this
 # option, the limit specified in this option is used instead. This option
@@ -4539,6 +4531,14 @@ limits.time.cpu.thread.maximum = -1ns
 # than one place, use only with great caution! (use seconds or specify a
 # unit)
 limits.time.cpu.thread.minimum = 0ns
+
+# Thread time-limit in percent (%) of total CPU time-limit "limit.time.cpu"
+# used by CPAchecker. Example: using this option with value 15.6 leads to
+# 15.6% of 900s "limits.time.cpu" = 140s thread CPU time limit used. A
+# maximum and minimum can be set using the options "time.cpu.thread.maximum"
+# and "time.cpu.thread.minimum" respectively. The value of this option may
+# not be greater than 100 or less or equal to 0.
+limits.time.cpu.thread.percentageOfTotalCpuTime = 100.00
 
 # Enforce that the given CPU time limit is set as the value of
 # limits.time.cpu.
