@@ -79,16 +79,16 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
     int size = pCurrentStatements.size();
 
-    // TODO actually use the CExpression keys
     if (size == 1) {
       // single element -> just place statement without any control flow
       pTree.add(pCurrentStatements.getFirst().getValue().toASTString());
 
     } else if (size == 2) {
       // only two elements -> create if and else leafs with ==
-      int low = pAllStatements.indexOf(pCurrentStatements.getFirst());
-      pTree.add(buildIfEqualsLeaf(pAllStatements.get(low).getValue(), low, pPc));
-      pTree.add(buildElseLeaf(pCurrentStatements.get(1).getValue()));
+      Map.Entry<CExpression, ? extends SeqStatement> ifStatement = pCurrentStatements.getFirst();
+      SeqStatement elseStatement = pCurrentStatements.get(1).getValue();
+      pTree.add(buildLeaf(new SeqIfExpression(ifStatement.getKey()), ifStatement.getValue()));
+      pTree.add(buildLeaf(new SeqElseExpression(), elseStatement));
 
     } else {
       // more than two elements -> create if and else subtrees with <
@@ -121,26 +121,6 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
   private String buildElseSubtree() throws UnrecognizedCodeException {
     SeqElseExpression elseSubtree = new SeqElseExpression();
     return SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString());
-  }
-
-  private String buildIfEqualsLeaf(SeqStatement pStatement, int pLow, CLeftHandSide pPc)
-      throws UnrecognizedCodeException {
-
-    // if statement is a clause, use its label number as the equals check
-    int low = getLabelNumberOrIndex(pStatement, pLow);
-    SeqIfExpression ifLeaf =
-        new SeqIfExpression(
-            binaryExpressionBuilder.buildBinaryExpression(
-                pPc,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(low),
-                BinaryOperator.EQUALS));
-    return buildLeaf(ifLeaf, pStatement);
-  }
-
-  private String buildElseLeaf(SeqStatement pHighStatement) throws UnrecognizedCodeException {
-
-    SeqElseExpression elseLeaf = new SeqElseExpression();
-    return buildLeaf(elseLeaf, pHighStatement);
   }
 
   private String buildLeaf(
