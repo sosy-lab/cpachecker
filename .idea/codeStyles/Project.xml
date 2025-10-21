@@ -12,7 +12,7 @@
     <option name="RIGHT_MARGIN" value="100" />
     <option name="DO_NOT_FORMAT">
       <list>
-        <fileSet type="globPattern" pattern=".idea/" />
+        <fileSet type="globPattern" pattern=".idea/**/*" />
       </list>
     </option>
     <JavaCodeStyleSettings>
