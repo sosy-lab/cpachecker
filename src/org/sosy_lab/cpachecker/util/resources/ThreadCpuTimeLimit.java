@@ -174,6 +174,7 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   @Override
   public String getName() {
     String additionalInfo = "";
+    // TODO: simplify additional info String generation
     if (factorOfTotalTime.isPresent()) {
       checkState(totalCpuTimeUsedInThreadTimeCalculation.isPresent());
       additionalInfo =
@@ -181,14 +182,35 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
               + "% of total CPU time-limit "
               + totalCpuTimeUsedInThreadTimeCalculation.orElseThrow().asSeconds()
               + "s";
+      if (maximumThreadTime.isPresent()) {
+        // Max was applied
+        additionalInfo +=
+            ", with set upper thread CPU time-limit "
+                + maximumThreadTime.orElseThrow().asSeconds()
+                + "s";
+      } else if (minimumThreadTime.isPresent()) {
+        // Min was applied
+        additionalInfo +=
+            ", with set lower thread CPU time-limit "
+                + minimumThreadTime.orElseThrow().asSeconds()
+                + "s";
+      }
+    } else {
+      if (maximumThreadTime.isPresent()) {
+        // Max was applied
+        additionalInfo +=
+            "Used set upper thread CPU time-limit "
+                + maximumThreadTime.orElseThrow().asSeconds()
+                + "s";
+      } else if (minimumThreadTime.isPresent()) {
+        // Min was applied
+        additionalInfo +=
+            "Used set lower thread CPU time-limit "
+                + minimumThreadTime.orElseThrow().asSeconds()
+                + "s";
+      }
     }
-    if (maximumThreadTime.isPresent()) {
-      // Max was applied
-      additionalInfo += ", with upper limit " + maximumThreadTime.orElseThrow().asSeconds() + "s";
-    } else if (minimumThreadTime.isPresent()) {
-      // Min was applied
-      additionalInfo += ", with lower limit " + minimumThreadTime.orElseThrow().asSeconds() + "s";
-    }
+
     if (!additionalInfo.isEmpty()) {
       additionalInfo = " (" + additionalInfo + ")";
     }
@@ -222,8 +244,10 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
       Optional<TimeSpan> maybeTotalCpuTimeInformation) {
 
     if (maximumThreadTime.isPresent()
-        && timeSpanToApplyTo.compareTo(maximumThreadTime.orElseThrow()) > 0) {
-      // maximumThreadTime < timeSpanToApplyTo -> use maximumThreadTime
+        && (timeSpanToApplyTo.compareTo(maximumThreadTime.orElseThrow()) > 0
+            || timeSpanToApplyTo.compareTo(TimeSpan.empty()) < 0)) {
+      // Either maximumThreadTime < timeSpanToApplyTo -> use maximumThreadTime
+      // or timeSpanToApplyTo is unlimited -> use maximumThreadTime if present
       checkArgument(maximumThreadTime.orElseThrow().compareTo(TimeSpan.empty()) > 0);
       return new ThreadCpuTimeLimit(
           maximumThreadTime.orElseThrow().asNanos(),
@@ -235,8 +259,13 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
 
     } else if (minimumThreadTime.isPresent()
         && timeSpanToApplyTo.compareTo(minimumThreadTime.orElseThrow()) < 0) {
-      // timeSpanToApplyTo < minimumThreadTime -> use minimumThreadTime
+      // Either timeSpanToApplyTo < minimumThreadTime -> use minimumThreadTime
       checkArgument(minimumThreadTime.orElseThrow().compareTo(TimeSpan.empty()) > 0);
+      // Minimum for timeSpanToApplyTo unlimited does not make sense!
+      checkArgument(
+          timeSpanToApplyTo.compareTo(TimeSpan.empty()) > 0,
+          "Applying a minimum thread CPU time-limit to an unlimited time-limit does not make"
+              + " sense!");
       return new ThreadCpuTimeLimit(
           minimumThreadTime.orElseThrow().asNanos(),
           TimeUnit.NANOSECONDS,

@@ -208,6 +208,7 @@ public final class ResourceLimitChecker {
       // Legacy system
       limits.add(
           ThreadCpuTimeLimit.create(options.threadTime, maximumThreadTime, minimumThreadTime));
+
       if (options.threadCpuTimeInPercentOfTotal != 100.00) {
         pLogger.log(
             Level.WARNING,
@@ -221,17 +222,21 @@ public final class ResourceLimitChecker {
       }
     }
 
-    // TODO: the 2 cases below are just split for more accurate info given in the command line.
-    //  We could just use the same creation method and ignore factor == 1.0 cases.
     // Unlimited thread time (within min and max) as no CPU time-limit is set
     if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0 && threadTimeFactor != 1.0) {
       limits.add(
           ThreadCpuTimeLimit.createByFactorOfTotalCpuTime(
               threadTimeFactor, options.cpuTime, maximumThreadTime, minimumThreadTime));
-    } else if (maximumThreadTime.isPresent() || minimumThreadTime.isPresent()) {
+    } else if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0 && minimumThreadTime.isPresent()) {
       // Default threadTimeFactor is 1, so just CPU time
+      // Apply minimum (minimum does not make sense for thread time being unlimited!)
+      limits.add(ThreadCpuTimeLimit.create(options.cpuTime, maximumThreadTime, minimumThreadTime));
+    } else if (maximumThreadTime.isPresent()) {
+      // Default threadTimeFactor is 1, so just CPU time. Apply maximum if set.
       limits.add(ThreadCpuTimeLimit.create(options.cpuTime, maximumThreadTime, minimumThreadTime));
     }
+    // Fallthrough for unlimited thread time (in that case we don't need a thread time-limit)
+    // TODO: also for equal to total CPU time?
   }
 
   /**
