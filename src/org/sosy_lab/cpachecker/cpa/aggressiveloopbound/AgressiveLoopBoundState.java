@@ -35,7 +35,7 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
     this(new HashMap<>(), false);
   }
 
-  AgressiveLoopBoundState(
+  private AgressiveLoopBoundState(
       Map<Loop, Integer> pLoopHeadsVisited,
       boolean pStopIt,
       ArrayDeque<Loop> pStack,
@@ -46,7 +46,7 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
     this.anyLoopSeen = pAnyLoopSeen;
   }
 
-  AgressiveLoopBoundState(Map<Loop, Integer> pLoopHeadsVisited, boolean pStopIt) {
+  private AgressiveLoopBoundState(Map<Loop, Integer> pLoopHeadsVisited, boolean pStopIt) {
     this.loopHeadsVisited = pLoopHeadsVisited;
     this.stopIt = pStopIt;
     this.loopStack = new ArrayDeque<>();
@@ -102,18 +102,17 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof AgressiveLoopBoundState that)) {
-      return false;
-    }
-    return stopIt == that.stopIt
+
+    return pO instanceof AgressiveLoopBoundState that
+        && stopIt == that.stopIt
         && loopHeadsVisited.equals(that.loopHeadsVisited)
-        && anyLoopSeen == that.anyLoopSeen;
+        && anyLoopSeen == that.anyLoopSeen
+        && loopStack.equals(that.loopStack);
   }
 
   @Override
   public int hashCode() {
-    int hashCache = 0;
-    return Objects.hash(stopIt, hashCache, loopHeadsVisited, anyLoopSeen);
+    return Objects.hash(stopIt, loopHeadsVisited, anyLoopSeen, loopStack);
   }
 
   @Override
