@@ -884,10 +884,5 @@ class KInductionProver implements AutoCloseable {
     public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
       return TraversalProcess.CONTINUE;
     }
-
-    @Override
-    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
-      return TraversalProcess.CONTINUE;
-    }
   }
 }

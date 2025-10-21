@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.FunctionDefinition;
@@ -764,7 +763,7 @@ public class ARGToCTranslator {
           }
 
           if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+            for (CFAEdge predEdge : pCFAEdge.getPredecessor().getEnteringEdges()) {
               if (predEdge
                   .getRawStatement()
                   .equals(lDeclarationEdge.getDeclaration().toASTString())) {

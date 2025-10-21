@@ -793,6 +793,8 @@ public class CtoFormulaConverter {
           fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
       final Formula upperBound =
           fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+
+      constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
       constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }

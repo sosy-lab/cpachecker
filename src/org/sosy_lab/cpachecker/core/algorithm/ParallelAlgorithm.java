@@ -333,14 +333,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleConfig,
             singleLogger,
             singleShutdownManager.getNotifier(),
-            aggregatedReachedSetManager.asView());
+            aggregatedReachedSetManager.asView(),
+            cfa);
 
     final ConfigurableProgramAnalysis cpa;
     final Algorithm algorithm;
     final ReachedSet reached;
     try {
-      cpa = coreComponents.createCPA(cfa, specification);
-      algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      cpa = coreComponents.createCPA(specification);
+      algorithm = coreComponents.createAlgorithm(cpa, specification);
       reached = coreComponents.createReachedSet(cpa);
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
@@ -530,10 +531,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
+      // TODO: log/return the config that triggers this!
       pLogger.logUserException(
           Level.WARNING,
           e,
-          "Skipping one analysis because the configuration file "
+          "Skipping one analysis in building a parallel analysis because the configuration file "
               + singleConfigFileName
               + " could not be read");
       return null;

@@ -288,7 +288,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
     for (CFANode u : cfa.nodes()) {
-      Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
+      Deque<CFAEdge> edgesToHandle = u.getLeavingEdges().copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
@@ -377,7 +377,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
     for (ARGState s : allStatesOnPath) {
       CFANode u = AbstractStates.extractLocation(s);
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+      for (CFAEdge e : u.getLeavingEdges()) {
         CFANode v = e.getSuccessor();
         Collection<AbstractState> reachedOnV = reached.getReached(v);
 
