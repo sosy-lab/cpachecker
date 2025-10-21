@@ -39,17 +39,11 @@ public class RandomWalkState
 
   private final List<Integer> numberOfSuccessorTaken;
 
-  private CFAEdge edgeToTakeNext;
+  private @Nullable CFAEdge edgeToTakeNext;
 
   private @Nullable RandomWalkState lastBranchingPoint;
 
-  public RandomWalkState(PathFormula pPathFormula) {
-    currentPathFormula = pPathFormula;
-    nodesOnPath = new ArrayList<>();
-    numberOfSuccessorTaken = new ArrayList<>();
-  }
-
-  public RandomWalkState(
+  private RandomWalkState(
       PathFormula pCurrentPathFormula,
       List<CFANode> pAssumeEdgesTaken,
       List<Integer> pNumberOfSuccessorTaken,
@@ -101,19 +95,24 @@ public class RandomWalkState
 
   @Override
   public boolean equals(Object pO) {
+    // exclude lastBranchingPoint from check
+    // because by construction all of its information is stored in the other objects
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof RandomWalkState that)) {
-      return false;
-    }
-    return Objects.equals(currentPathFormula, that.currentPathFormula)
-        && Objects.equals(nodesOnPath, that.nodesOnPath);
+
+    return pO instanceof RandomWalkState that
+        && Objects.equals(currentPathFormula, that.currentPathFormula)
+        && nodesOnPath.equals(that.nodesOnPath)
+        && numberOfSuccessorTaken.equals(that.numberOfSuccessorTaken)
+        && Objects.equals(edgeToTakeNext, that.edgeToTakeNext);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(currentPathFormula, nodesOnPath);
+    // exclude lastBranchingPoint from check
+    // because by construction all of its information is stored in the other objects
+    return Objects.hash(currentPathFormula, nodesOnPath, numberOfSuccessorTaken, edgeToTakeNext);
   }
 
   @Override
