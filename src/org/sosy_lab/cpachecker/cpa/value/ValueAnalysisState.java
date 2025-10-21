@@ -165,6 +165,10 @@ public final class ValueAnalysisState
     addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
   }
 
+  private synchronized void addToHashCode(int pAddedVal) {
+    hashCode += pAddedVal;
+  }
+
   private void addToConstantsMap(
       final MemoryLocation pMemLoc, final Value pValue, final @Nullable Type pType) {
 
@@ -181,11 +185,13 @@ public final class ValueAnalysisState
 
     ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
     ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
+    int hashCodeAdd = 0;
     if (oldValueAndType != null) {
-      hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+      hashCodeAdd -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
     }
     constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
-    hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
+    hashCodeAdd += (pMemLoc.hashCode() ^ valueAndType.hashCode());
+    addToHashCode(hashCodeAdd);
   }
 
   /**
@@ -252,7 +258,7 @@ public final class ValueAnalysisState
 
     ValueAndType value = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
-    hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
+    addToHashCode(-(pMemoryLocation.hashCode() ^ value.hashCode()));
 
     PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
