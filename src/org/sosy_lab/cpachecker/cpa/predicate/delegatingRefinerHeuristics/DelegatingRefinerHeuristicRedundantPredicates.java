@@ -258,7 +258,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         pCurrentDominantPattern.getCount() > previousDominantPatternCount;
     previousDominantPatternCount = pCurrentDominantPattern.getCount();
 
-    if (pPatternSize > 1000 && isRedundancyPlateauingPatterns && isDominantPatternGrowing) {
+    if (pPatternSize > 10000 && isRedundancyPlateauingPatterns && isDominantPatternGrowing) {
       logger.logf(
           Level.INFO,
           "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
