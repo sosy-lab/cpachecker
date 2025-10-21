@@ -15,9 +15,15 @@ echo "==============================================="
 echo "Starting smoke test for SV-COMP..."
 echo "==============================================="
 
-bin/cpachecker \
+# Determine the absolute path to the CPAchecker root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CPACHECKER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Run CPAchecker using absolute paths
+"$CPACHECKER_ROOT/bin/cpachecker" \
   --svcomp26 \
-  --spec config/properties/unreach-call.prp \
-  doc/examples/example-safe.c
+  --no-output-files \
+  --spec "$CPACHECKER_ROOT/config/properties/unreach-call.prp" \
+  "$CPACHECKER_ROOT/doc/examples/example-safe.c"
 
 echo "The smoke test finished successfully!"
