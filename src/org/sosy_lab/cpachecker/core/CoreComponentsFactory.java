@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import java.util.logging.Level;
@@ -20,6 +21,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
@@ -397,6 +399,15 @@ public class CoreComponentsFactory {
               + "a configuration")
   private boolean useSamplingAlgorithm = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.copyCFA",
+      description =
+          "Copy to a new CFA because of the changes done to CFA in the algorithm."
+              + "If an algorithm modifies given CFA, it is not compatible with other algorithms"
+              + "in parallel. Hence, it needs its own copy of CFA.")
+  private boolean copyCFA = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -420,7 +431,12 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    cfa = pCFA;
+
+    if (copyCFA) {
+      cfa = ImmutableCFA.copyOf(checkNotNull(pCFA), pConfig, logger);
+    } else {
+      cfa = checkNotNull(pCFA);
+    }
 
     config.inject(this);
 
@@ -637,8 +653,8 @@ public class CoreComponentsFactory {
                 cfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
-                aggregatedReachedSets,
-                specification);
+                algorithm,
+                cpa);
       }
 
       if (checkCounterexamples) {

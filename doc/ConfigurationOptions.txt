@@ -274,6 +274,11 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# Copy to a new CFA because of the changes done to CFA in the algorithm.If an
+# algorithm modifies given CFA, it is not compatible with other algorithmsin
+# parallel. Hence, it needs its own copy of CFA.
+analysis.algorithm.copyCFA = false
+
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
 # https://doi.org/10.1145/3660766 for details.
@@ -5250,9 +5255,6 @@ termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
-
-# copy to a new CFA because of the changes done to CFA in the analysis
-termination.copyCFA = false
 
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
