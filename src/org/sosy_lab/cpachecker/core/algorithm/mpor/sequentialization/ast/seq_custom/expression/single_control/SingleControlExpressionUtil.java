@@ -22,7 +22,7 @@ public class SingleControlExpressionUtil {
   static String buildStatementString(
       SeqSingleControlExpression pStatement, String pExpressionString) {
 
-    return pStatement.getEncoding().keyword
+    return pStatement.getEncoding().getKeyword()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInBrackets(pExpressionString);
   }

@@ -57,7 +57,7 @@ public class SeqIfExpression implements SeqSingleControlExpression {
   }
 
   @Override
-  public SingleControlExpressionEncoding getEncoding() {
-    return SingleControlExpressionEncoding.IF;
+  public SingleControlStatementType getEncoding() {
+    return SingleControlStatementType.IF;
   }
 }

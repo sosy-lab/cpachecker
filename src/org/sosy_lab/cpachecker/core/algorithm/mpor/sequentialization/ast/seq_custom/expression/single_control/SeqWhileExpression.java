@@ -25,7 +25,7 @@ public class SeqWhileExpression implements SeqSingleControlExpression {
   }
 
   @Override
-  public SingleControlExpressionEncoding getEncoding() {
-    return SingleControlExpressionEncoding.WHILE;
+  public SingleControlStatementType getEncoding() {
+    return SingleControlStatementType.WHILE;
   }
 }

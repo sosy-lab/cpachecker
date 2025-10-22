@@ -19,7 +19,7 @@ public class SeqElseExpression implements SeqSingleControlExpression {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return getEncoding().keyword;
+    return getEncoding().getKeyword();
   }
 
   public String toASTStringWithCAstNodeBlock(ImmutableList<CAstNode> pBlockStatements)
@@ -30,7 +30,7 @@ public class SeqElseExpression implements SeqSingleControlExpression {
   }
 
   @Override
-  public SingleControlExpressionEncoding getEncoding() {
-    return SingleControlExpressionEncoding.ELSE;
+  public SingleControlStatementType getEncoding() {
+    return SingleControlStatementType.ELSE;
   }
 }

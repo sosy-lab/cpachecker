@@ -37,7 +37,7 @@ public class SeqElseIfExpression implements SeqSingleControlExpression {
   }
 
   @Override
-  public SingleControlExpressionEncoding getEncoding() {
-    return SingleControlExpressionEncoding.ELSE_IF;
+  public SingleControlStatementType getEncoding() {
+    return SingleControlStatementType.ELSE_IF;
   }
 }

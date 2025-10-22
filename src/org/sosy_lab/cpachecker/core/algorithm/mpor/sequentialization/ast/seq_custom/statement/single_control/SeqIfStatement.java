@@ -10,13 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -56,7 +55,7 @@ public class SeqIfStatement implements SeqStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(buildIfExpressionString(ifExpression));
+    joiner.add(SingleControlStatementType.IF.buildControlFlowPrefix(ifExpression));
     ifStatements.forEach(ifStatement -> joiner.add(ifStatement.toASTString()));
 
     if (elseStatements.isEmpty()) {
@@ -68,28 +67,17 @@ public class SeqIfStatement implements SeqStatement {
         // if (...) { ... } else { ... }
         joiner.add(
             SeqStringUtil.wrapInCurlyBracketsOutwards(
-                SingleControlExpressionEncoding.ELSE.keyword));
+                SingleControlStatementType.ELSE.getKeyword()));
 
       } else {
         // if (...) { ... } else if (...) { ... }
         joiner.add(
-            Joiner.on(SeqSyntax.SPACE)
-                .join(
-                    SeqSyntax.CURLY_BRACKET_RIGHT,
-                    SingleControlExpressionEncoding.ELSE.keyword,
-                    buildIfExpressionString(elseIfExpression.orElseThrow())));
+            SingleControlStatementType.ELSE_IF.buildControlFlowPrefix(
+                elseIfExpression.orElseThrow()));
       }
       elseStatements.forEach(elseStatement -> joiner.add(elseStatement.toASTString()));
       joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     }
     return joiner.toString();
-  }
-
-  private static String buildIfExpressionString(CExpression pIfExpression) {
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(
-            SingleControlExpressionEncoding.IF.keyword,
-            SeqStringUtil.wrapInBrackets(pIfExpression.toASTString()),
-            SeqSyntax.CURLY_BRACKET_LEFT);
   }
 }

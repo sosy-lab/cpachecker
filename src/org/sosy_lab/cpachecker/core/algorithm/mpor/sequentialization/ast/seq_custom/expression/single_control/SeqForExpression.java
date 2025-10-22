@@ -79,7 +79,7 @@ public class SeqForExpression implements SeqSingleControlExpression {
   }
 
   @Override
-  public SingleControlExpressionEncoding getEncoding() {
-    return SingleControlExpressionEncoding.FOR;
+  public SingleControlStatementType getEncoding() {
+    return SingleControlStatementType.FOR;
   }
 }
