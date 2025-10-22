@@ -825,6 +825,9 @@ bmc.simplifyBooleanFormula = false
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
+# Threshold of maximum acceptable dominance of one category
+categoryRedundancyThreshold = 0.8
+
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -4720,6 +4723,9 @@ parser.useClang = false
 # line numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
+
+# Total size of patterns to trigger a stop condition check
+patternSizeTrigger = 6000
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR

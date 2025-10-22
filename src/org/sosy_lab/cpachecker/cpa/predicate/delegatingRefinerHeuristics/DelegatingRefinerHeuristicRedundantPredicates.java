@@ -58,21 +58,34 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
-  private static final double CATEGORY_REDUNDANCY_THRESHOLD = 0.7;
+  private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
+  private static final int MAX_PLATEAU_STEPS = 3;
+
+  @Option(
+      secure = true,
+      name = "patternSizeTrigger",
+      description = "Total size of patterns to trigger a stop condition check")
+  private int patternSizeTrigger = 6000;
+
+  @Option(
+      secure = true,
+      name = "categoryRedundancyThreshold",
+      description = "Threshold of maximum acceptable dominance of one category")
+  private double categoryRedundancyThreshold = 0.8;
 
   @Option(secure = true, name = "dslRulePath", description = "Path to the DSL rules file")
   private Path dslRulePath = null;
 
-  private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
-
   private final double redundancyThreshold;
+  private double previousRedundancyPatterns = -1.0;
+  private double previousDominantPatternCount = 0.0;
+  private int plateauSteps = 0;
+  private String lastDominantPatternKey = null;
+
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
   private final DelegatingRefinerAtomNormalizer normalizer;
   private final DelegatingRefinerMatchingVisitor matcher;
-
-  private double previousRedundancyPatterns = -1.0;
-  private double previousDominantPatternCount = 0.0;
 
   /**
    * Construct a redundant predicates heuristic.
@@ -249,20 +262,37 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       double pMaxRedundancyDetectedPatterns,
       Multiset.Entry<String> pCurrentDominantPattern,
       int pPatternSize) {
+
+    if (pCurrentDominantPattern == null) {
+      return false;
+    }
+
     boolean isRedundancyPlateauingPatterns =
         (previousRedundancyPatterns >= 0.0)
             && (Math.abs(pMaxRedundancyDetectedPatterns - previousRedundancyPatterns) < EPSILON);
     previousRedundancyPatterns = pMaxRedundancyDetectedPatterns;
 
+    if (isRedundancyPlateauingPatterns
+        && lastDominantPatternKey != null
+        && lastDominantPatternKey.equals(pCurrentDominantPattern.getElement())) {
+      plateauSteps++;
+    } else {
+      plateauSteps = 0;
+    }
+
     boolean isDominantPatternGrowing =
         pCurrentDominantPattern.getCount() > previousDominantPatternCount;
     previousDominantPatternCount = pCurrentDominantPattern.getCount();
+    lastDominantPatternKey = pCurrentDominantPattern.getElement();
 
-    if (pPatternSize > 10000 && isRedundancyPlateauingPatterns && isDominantPatternGrowing) {
+    if (pPatternSize > patternSizeTrigger
+        && isRedundancyPlateauingPatterns
+        && isDominantPatternGrowing
+        && plateauSteps > MAX_PLATEAU_STEPS) {
       logger.logf(
           Level.INFO,
           "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
-              + " pattern %s is growing, total patternsize is at %d",
+              + " pattern %s is growing, total pattern size is at %d",
           pCurrentDominantPattern,
           pPatternSize);
       return true;
@@ -273,9 +303,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private boolean isCategoryDominant(
       ImmutableMultiset<String> pCategoryFrequency, int pPatternSize) {
     double maxRedundancyDetectedCategories = calculateMaxRedundancy(pCategoryFrequency);
-    boolean isOneCategoryDominant = maxRedundancyDetectedCategories > CATEGORY_REDUNDANCY_THRESHOLD;
+    boolean isOneCategoryDominant = maxRedundancyDetectedCategories > categoryRedundancyThreshold;
 
-    if (pPatternSize > 2000 && isOneCategoryDominant) {
+    if (pPatternSize > patternSizeTrigger && isOneCategoryDominant) {
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
           Level.INFO,
