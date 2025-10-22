@@ -15,21 +15,21 @@ echo "Starting smoke test for SV-COMP..."
 echo "==============================================="
 
 # Move up directories until we find the CPAchecker root
-PATH_TO_CPACHECKER="$(dirname "$0")"
-while [ ! -x "$PATH_TO_CPACHECKER/bin/cpachecker" ]; do
-  if [ "$PATH_TO_CPACHECKER" = "/" ] || [ -z "$PATH_TO_CPACHECKER" ]; then
+CPACHECKER_DIR="$(dirname "$0")"
+while [ ! -x "$CPACHECKER_DIR/bin/cpachecker" ]; do
+  if [ "$CPACHECKER_DIR" = "/" ] || [ -z "$CPACHECKER_DIR" ]; then
     echo "Could not locate CPAchecker root (missing bin/cpachecker)."
     exit 1
   fi
-  PATH_TO_CPACHECKER="$PATH_TO_CPACHECKER/.."
+  CPACHECKER_DIR="$CPACHECKER_DIR/.."
 done
 
 # Run CPAchecker using relative paths
-$PATH_TO_CPACHECKER/bin/cpachecker \
+$CPACHECKER_DIR/bin/cpachecker \
   --svcomp26 \
-  --output-path $PATH_TO_CPACHECKER/output/ \
-  --spec $PATH_TO_CPACHECKER/config/properties/unreach-call.prp \
-  $PATH_TO_CPACHECKER/doc/examples/example-safe.c
+  --output-path $CPACHECKER_DIR/output/ \
+  --spec $CPACHECKER_DIR/config/properties/unreach-call.prp \
+  $CPACHECKER_DIR/doc/examples/example-safe.c
 
 echo "==============================================="
 echo "The smoke test finished successfully!"
