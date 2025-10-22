@@ -48,7 +48,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -201,7 +203,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     if (copyCFA) {
       cfa =
-          BlockGraphModification.createMutableCfaCopy(checkNotNull(pCfa), pConfig, logger)
+          ImmutableCFA.copyOf(checkNotNull(pCfa), pConfig, logger)
               .immutableCopy();
     } else {
       cfa = checkNotNull(pCfa);
