@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -31,6 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
@@ -300,7 +304,11 @@ public class SequentializationBuilder {
     // custom function definitions: reach_error(), assume(), main()
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
     rFunctionDefinitions.addAll(reachError.buildDefinition());
-    SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
+
+    CBinaryExpression condEqualsZeroExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+    SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rFunctionDefinitions.addAll(assume.buildDefinition());
     // create separate thread simulation functions, if enabled
     if (pOptions.loopUnrolling) {

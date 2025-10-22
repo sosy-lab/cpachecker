@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -56,8 +56,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.getId()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
-    SeqIfExpression ifExpression = new SeqIfExpression(lastThreadLessThanThreadId);
-    lines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
+    lines.add(SingleControlStatementType.IF.buildControlFlowPrefix(lastThreadLessThanThreadId));
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
       lines.add(SeqFunctionCallExpressions.ABORT.toASTString());

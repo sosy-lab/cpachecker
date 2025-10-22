@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public enum SingleControlStatementType {
   ELSE("else"),
@@ -32,6 +34,29 @@ public enum SingleControlStatementType {
   }
 
   public String buildControlFlowPrefix(CExpression pExpression) {
+    return switch (this) {
+      case ELSE, FOR ->
+          throw new UnsupportedOperationException(
+              String.format("cannot build prefix for encoding %s", this));
+      case ELSE_IF ->
+          // "} else if (...) {" needs additional "}" prefix
+          Joiner.on(SeqSyntax.SPACE)
+              .join(
+                  SeqSyntax.CURLY_BRACKET_RIGHT,
+                  getKeyword(),
+                  SeqStringUtil.wrapInBrackets(pExpression.toASTString()),
+                  SeqSyntax.CURLY_BRACKET_LEFT);
+      case IF, SWITCH, WHILE ->
+          Joiner.on(SeqSyntax.SPACE)
+              .join(
+                  getKeyword(),
+                  SeqStringUtil.wrapInBrackets(pExpression.toASTString()),
+                  SeqSyntax.CURLY_BRACKET_LEFT);
+    };
+  }
+
+  // TODO combine CExpression and SeqExpression into one via AstCExpression or similar
+  public String buildControlFlowPrefix(SeqExpression pExpression) throws UnrecognizedCodeException {
     return switch (this) {
       case ELSE, FOR ->
           throw new UnsupportedOperationException(

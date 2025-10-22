@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -74,24 +76,20 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
 
   private String buildStringWithoutAssumptions() throws UnrecognizedCodeException {
     // create necessary expressions and statements
-    SeqIfExpression ifKEqualsZero =
-        new SeqIfExpression(
-            binaryExpressionBuilder.buildBinaryExpression(
-                roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS));
+    CBinaryExpression roundMaxEqualsZeroExpression =
+        binaryExpressionBuilder.buildBinaryExpression(
+            roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
     // negate the evaluation expression
     SeqIfExpression ifCommutes = new SeqIfExpression(bitVectorEvaluationExpression.negate());
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
-
     // create string
-    return SeqStringUtil.appendCurlyBracketLeft(ifKEqualsZero.toASTString())
-        + SeqSyntax.NEWLINE
-        + SeqStringUtil.appendCurlyBracketLeft(ifCommutes.toASTString())
-        + SeqSyntax.NEWLINE
-        + gotoNext.toASTString()
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.CURLY_BRACKET_RIGHT
-        + SeqSyntax.NEWLINE
-        + SeqSyntax.CURLY_BRACKET_RIGHT;
+    return Joiner.on(SeqSyntax.NEWLINE)
+        .join(
+            SingleControlStatementType.IF.buildControlFlowPrefix(roundMaxEqualsZeroExpression),
+            SeqStringUtil.appendCurlyBracketLeft(ifCommutes.toASTString()),
+            gotoNext.toASTString(),
+            SeqSyntax.CURLY_BRACKET_RIGHT,
+            SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   public SeqIgnoreSleepReductionStatement cloneWithGotoLabelNumber(int pLabelNumber) {
