@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.LinkedHashMultimap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,9 +67,7 @@ public class AutomatonACSLParser {
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
       for (CFAEdge edge : cfa.edges()) {
         Collection<ACSLAnnotation> annotations =
-            cfa.getEdgesToAnnotations()
-                .orElse(ImmutableListMultimap.copyOf(LinkedHashMultimap.create()))
-                .get(edge);
+            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(edge);
         if (!annotations.isEmpty()) {
           ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
           List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
