@@ -309,7 +309,7 @@ parser code {:
     }
 
     /** Make sure that all behaviors are actually in scope when they are referenced. */
-    private static Multimap<CFAEdge, ACSLAnnotation> checkBehaviors(
+    private static ImmutableListMultimap<CFAEdge, ACSLAnnotation> checkBehaviors(
         CFA cfa, Multimap<CFAEdge, ACSLAnnotation> pMap, SyntacticBlockStructure blockStructure) {
       LinkedHashMultimap<CFAEdge, ACSLAnnotation> newMap = LinkedHashMultimap.create(pMap);
       Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
@@ -351,7 +351,7 @@ parser code {:
           }
         }
       }
-      return newMap;
+      return ImmutableListMultimap.copyOf(newMap);
     }
 
     private List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
