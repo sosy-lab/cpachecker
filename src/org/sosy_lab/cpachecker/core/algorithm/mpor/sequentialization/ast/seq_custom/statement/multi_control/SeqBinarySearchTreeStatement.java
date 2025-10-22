@@ -12,15 +12,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -87,8 +87,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
       // only two elements -> create if and else leafs with ==
       Map.Entry<CExpression, ? extends SeqStatement> ifStatement = pCurrentStatements.getFirst();
       SeqStatement elseStatement = pCurrentStatements.get(1).getValue();
-      pTree.add(buildLeaf(new SeqIfExpression(ifStatement.getKey()), ifStatement.getValue()));
-      pTree.add(buildLeaf(new SeqElseExpression(), elseStatement));
+      pTree.add(buildLeaf(ifStatement.getKey(), ifStatement.getValue(), elseStatement));
 
     } else {
       // more than two elements -> create if and else subtrees with <
@@ -109,27 +108,31 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
   private String buildIfSmallerSubtree(int pMid, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
-    SeqIfExpression ifSubtree =
-        new SeqIfExpression(
-            binaryExpressionBuilder.buildBinaryExpression(
-                pPc,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
-                BinaryOperator.LESS_THAN));
-    return ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
+    CBinaryExpression ifExpression =
+        binaryExpressionBuilder.buildBinaryExpression(
+            pPc,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
+            BinaryOperator.LESS_THAN);
+    return SingleControlStatementType.IF.buildControlFlowPrefix(ifExpression);
   }
 
-  private String buildElseSubtree() throws UnrecognizedCodeException {
-    SeqElseExpression elseSubtree = new SeqElseExpression();
-    return SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString());
+  private String buildElseSubtree() {
+    return SeqStringUtil.wrapInCurlyBracketsOutwards(SingleControlStatementType.ELSE.getKeyword());
   }
 
   private String buildLeaf(
-      SeqSingleControlExpression pSingleControlStatement, SeqStatement pStatement)
+      CExpression pIfExpression, SeqStatement pIfBranchStatement, SeqStatement pElseIfStatement)
       throws UnrecognizedCodeException {
 
-    String prefix = pSingleControlStatement.toASTString() + SeqSyntax.SPACE;
-    String code = SeqStringUtil.wrapInCurlyBracketsInwards(pStatement.toASTString());
-    return prefix + code;
+    // TODO use a SeqIfStatement here with an else branch
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
+    joiner.add(SingleControlStatementType.IF.buildControlFlowPrefix(pIfExpression));
+    joiner.add(pIfBranchStatement.toASTString());
+    joiner.add(
+        SeqStringUtil.wrapInCurlyBracketsOutwards(SingleControlStatementType.ELSE.getKeyword()));
+    joiner.add(pElseIfStatement.toASTString());
+    joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return joiner.toString();
   }
 
   // Helpers =======================================================================================

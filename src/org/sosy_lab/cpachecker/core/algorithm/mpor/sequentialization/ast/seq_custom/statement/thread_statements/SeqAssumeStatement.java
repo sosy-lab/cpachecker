@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -26,7 +29,9 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  public final SeqSingleControlExpression controlStatement;
+  public final SingleControlStatementType statementType;
+
+  private final Optional<CExpression> ifExpression;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -40,13 +45,23 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   SeqAssumeStatement(
       MPOROptions pOptions,
-      SeqSingleControlExpression pControlStatement,
+      SingleControlStatementType pStatementType,
+      Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    checkArgument(
+        pStatementType.equals(SingleControlStatementType.IF)
+            || pStatementType.equals(SingleControlStatementType.ELSE),
+        "pStatementType must be IF or ELSE");
+    checkArgument(
+        !pStatementType.equals(SingleControlStatementType.IF) || pIfExpression.isPresent(),
+        "if pStatementType is IF, then pIfExpression must be present");
+
     options = pOptions;
-    controlStatement = pControlStatement;
+    statementType = pStatementType;
+    ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -56,7 +71,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private SeqAssumeStatement(
       MPOROptions pOptions,
-      SeqSingleControlExpression pControlStatement,
+      SingleControlStatementType pStatementType,
+      Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -64,7 +80,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    controlStatement = pControlStatement;
+    statementType = pStatementType;
+    ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -74,12 +91,17 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    String controlFlowPrefix;
+    if (statementType.equals(SingleControlStatementType.IF)) {
+      controlFlowPrefix = statementType.buildControlFlowPrefix(ifExpression.orElseThrow());
+    } else {
+      controlFlowPrefix =
+          SeqStringUtil.appendCurlyBracketLeft(SingleControlStatementType.ELSE.getKeyword());
+    }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return controlStatement.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyBracketsInwards(injected);
+    return controlFlowPrefix + SeqSyntax.SPACE + SeqStringUtil.wrapInCurlyBracketsInwards(injected);
   }
 
   @Override
@@ -106,7 +128,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
         options,
-        controlStatement,
+        statementType,
+        ifExpression,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -118,7 +141,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
-        controlStatement,
+        statementType,
+        ifExpression,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -132,7 +156,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
     return new SeqAssumeStatement(
         options,
-        controlStatement,
+        statementType,
+        ifExpression,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -146,7 +171,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
     return new SeqAssumeStatement(
         options,
-        controlStatement,
+        statementType,
+        ifExpression,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

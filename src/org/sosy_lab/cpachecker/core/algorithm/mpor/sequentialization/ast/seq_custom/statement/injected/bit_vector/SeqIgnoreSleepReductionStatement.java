@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -58,13 +58,11 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
   }
 
   private String buildStringWithAssumptions() throws UnrecognizedCodeException {
-    // create necessary expressions and statements
-    SeqElseExpression elseExpression = new SeqElseExpression();
-
     // create string
     StringBuilder statement = new StringBuilder();
     statement.append(buildStringWithoutAssumptions());
-    statement.append(SeqStringUtil.appendCurlyBracketLeft(elseExpression.toASTString()));
+    statement.append(
+        SeqStringUtil.appendCurlyBracketLeft(SingleControlStatementType.ELSE.getKeyword()));
     statement.append(SeqSyntax.NEWLINE);
     for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
       statement.append(reductionAssumption.toASTString());

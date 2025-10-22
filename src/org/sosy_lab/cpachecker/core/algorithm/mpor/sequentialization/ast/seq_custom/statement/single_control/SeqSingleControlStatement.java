@@ -6,10 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.single_control;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
-public interface SeqSingleControlExpression extends SeqStatement {
-  SingleControlStatementType getEncoding();
-}
+public interface SeqSingleControlStatement extends SeqStatement {}

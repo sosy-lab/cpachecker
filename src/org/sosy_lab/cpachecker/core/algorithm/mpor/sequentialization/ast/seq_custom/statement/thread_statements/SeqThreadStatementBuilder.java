@@ -37,9 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
@@ -88,14 +86,7 @@ public class SeqThreadStatementBuilder {
           SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
           rStatements.add(
               SeqThreadStatementBuilder.buildStatementFromThreadEdge(
-                  pOptions,
-                  pThread,
-                  pAllThreads,
-                  i == 0,
-                  i == numLeavingEdges - 1,
-                  threadEdge,
-                  substitute,
-                  pGhostElements));
+                  pOptions, pThread, pAllThreads, i == 0, threadEdge, substitute, pGhostElements));
         }
       }
     }
@@ -227,7 +218,6 @@ public class SeqThreadStatementBuilder {
       final MPORThread pThread,
       final ImmutableList<MPORThread> pAllThreads,
       boolean pFirstEdge,
-      boolean pLastEdge,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       GhostElements pGhostElements) {
@@ -244,7 +234,7 @@ public class SeqThreadStatementBuilder {
     } else {
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
         return buildAssumeStatement(
-            pOptions, pFirstEdge, pLastEdge, assumeEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
+            pOptions, pFirstEdge, assumeEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         return buildLocalVariableDeclarationWithInitializerStatement(
@@ -293,25 +283,20 @@ public class SeqThreadStatementBuilder {
   private static SeqAssumeStatement buildAssumeStatement(
       MPOROptions pOptions,
       boolean pFirstEdge,
-      boolean pLastEdge,
       CAssumeEdge pAssumeEdge,
       SubstituteEdge pSubstituteEdge,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
-    // the CFA converts the assumptions into 2 assume edges, even with if ... else if ... else
-    checkArgument(pFirstEdge || pLastEdge, "either pFirstEdge and pLastEdge must be true");
-
-    SeqSingleControlExpression expression;
-    if (pFirstEdge) {
-      // if (condition) for first assume edge
-      expression = new SeqIfExpression(pAssumeEdge.getExpression());
-    } else {
-      // use else ... for last (= second) assume edge
-      expression = new SeqElseExpression();
-    }
+    SingleControlStatementType statementType =
+        pFirstEdge ? SingleControlStatementType.IF : SingleControlStatementType.ELSE;
     return new SeqAssumeStatement(
-        pOptions, expression, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        pOptions,
+        statementType,
+        pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty(),
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
   }
 
   private static SeqLocalVariableDeclarationWithInitializerStatement

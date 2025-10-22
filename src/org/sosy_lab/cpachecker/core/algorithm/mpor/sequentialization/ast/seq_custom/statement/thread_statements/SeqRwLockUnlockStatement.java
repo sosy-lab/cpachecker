@@ -16,10 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.single_control.SeqIfStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -80,16 +79,16 @@ public class SeqRwLockUnlockStatement implements SeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             rwLockFlags.writersIdExpression, SeqIntegerLiteralExpressions.INT_0);
 
-    SeqIfExpression ifExpression = new SeqIfExpression(rwLockFlags.writerEqualsZero);
-    SeqElseExpression elseExpression = new SeqElseExpression();
-
+    SeqIfStatement ifStatement =
+        new SeqIfStatement(
+            rwLockFlags.writerEqualsZero,
+            ImmutableList.of(rwLockFlags.readersDecrement),
+            Optional.empty(),
+            Optional.of(ImmutableList.of(setNumWritersToZero)));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-
-    return ifExpression.toASTStringWithCAstNodeBlock(ImmutableList.of(rwLockFlags.readersDecrement))
-        + elseExpression.toASTStringWithCAstNodeBlock(ImmutableList.of(setNumWritersToZero))
-        + injected;
+    return ifStatement.toASTString() + injected;
   }
 
   @Override
