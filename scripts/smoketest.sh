@@ -15,20 +15,17 @@ echo "Starting smoke test for SV-COMP..."
 echo "==============================================="
 
 # Move up directories until we find the CPAchecker root
-SEARCH_DIR="$(dirname "$0")"
-while [ ! -x "$SEARCH_DIR/bin/cpachecker" ]; do
-  if [ "$SEARCH_DIR" = "/" ] || [ -z "$SEARCH_DIR" ]; then
+PATH_TO_CPACHECKER="$(dirname "$0")"
+while [ ! -x "$PATH_TO_CPACHECKER/bin/cpachecker" ]; do
+  if [ "$PATH_TO_CPACHECKER" = "/" ] || [ -z "$PATH_TO_CPACHECKER" ]; then
     echo "Could not locate CPAchecker root (missing bin/cpachecker)."
     exit 1
   fi
-  SEARCH_DIR="$SEARCH_DIR/.."
+  PATH_TO_CPACHECKER="$PATH_TO_CPACHECKER/.."
 done
 
-# Change to the CPAchecker root directory (relative traversal only)
-cd "$SEARCH_DIR"
-
 # Run CPAchecker using relative paths
-bin/cpachecker \
+$PATH_TO_CPACHECKER/bin/cpachecker \
   --svcomp26 \
   --no-output-files \
   --spec config/properties/unreach-call.prp \
