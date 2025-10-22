@@ -84,6 +84,7 @@ public class ACSLParserTest {
   }
 
   @Test
+  @SuppressWarnings("OptionalOrElseThrow")
   public void annotationParsingProducesExpectedNumberOfAnnotations() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
