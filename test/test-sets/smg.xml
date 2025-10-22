@@ -27,8 +27,6 @@ SPDX-License-Identifier: Apache-2.0
 
     <rundefinition name="SV-COMP25_MemSafety_SVCOMP26">
     <option name="--svcomp26" />
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -61,7 +59,6 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition name="SV-COMP25_MemSafety_SMG-Portfolio">
     <option name="--smg" />
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
       <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
@@ -93,7 +90,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemSafety_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
     <tasks name="MemSafety-Arrays">
@@ -335,7 +331,6 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition name="SV-COMP25_MemCleanup_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
       <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
@@ -349,7 +344,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="SV-COMP25_MemCleanup_SMG-Value">
     <option name="--smgValueAnalysis" />
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <!-- MemCleanup category synced to SV-COMP25 -->
     <tasks name="MemSafety-MemCleanup">
