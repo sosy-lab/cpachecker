@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RandomSamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -385,6 +386,17 @@ public class CoreComponentsFactory {
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.useSamplingAlgorithm",
+      description =
+          "Generate samples using the provided algorithm. Currently this "
+              + "only works using the configuration "
+              + "'config/valueAnalysis-NoCegar.properties' as an algorithm."
+              + "Ideally never use this option directly, but only through "
+              + "a configuration")
+  private boolean useSamplingAlgorithm = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -392,6 +404,7 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
@@ -402,10 +415,12 @@ public class CoreComponentsFactory {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CFA pCFA)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
+    cfa = pCFA;
 
     config.inject(this);
 
@@ -447,7 +462,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
+      final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
     if (disableAnalysis) {
@@ -712,7 +727,6 @@ public class CoreComponentsFactory {
                 ShutdownManager.createWithParent(shutdownNotifier),
                 specification);
       }
-
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
@@ -722,6 +736,11 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
+      }
+
+      if (useSamplingAlgorithm) {
+        algorithm =
+            new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
       }
     }
 
@@ -758,7 +777,7 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
+  public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 
