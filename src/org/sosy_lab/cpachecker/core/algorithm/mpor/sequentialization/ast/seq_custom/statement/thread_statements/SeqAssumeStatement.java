@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -101,7 +102,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return controlFlowPrefix + SeqSyntax.SPACE + SeqStringUtil.wrapInCurlyBracketsInwards(injected);
+    return Joiner.on(SeqSyntax.NEWLINE)
+        .join(controlFlowPrefix, injected, SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   @Override

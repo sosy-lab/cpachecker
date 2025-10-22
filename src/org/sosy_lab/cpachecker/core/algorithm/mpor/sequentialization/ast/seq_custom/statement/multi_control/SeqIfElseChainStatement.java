@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -50,15 +48,9 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     boolean isFirst = true;
     for (var statement : pStatements.entrySet()) {
       // first statement: use "if", otherwise "else if"
-      SeqSingleControlExpression controlExpression =
-          isFirst
-              ? new SeqIfExpression(statement.getKey())
-              : new SeqElseIfExpression(statement.getKey());
-      String controlStatementString = controlExpression.toASTString();
-      ifElseChain.add(
-          isFirst
-              ? SeqStringUtil.appendCurlyBracketLeft(controlStatementString)
-              : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString));
+      SingleControlStatementType statementType =
+          isFirst ? SingleControlStatementType.IF : SingleControlStatementType.ELSE_IF;
+      ifElseChain.add(statementType.buildControlFlowPrefix(statement.getKey()));
       ifElseChain.add(statement.getValue().toASTString());
       isFirst = false;
     }
