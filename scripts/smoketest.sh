@@ -27,10 +27,10 @@ done
 # Run CPAchecker using relative paths
 $CPACHECKER_DIR/bin/cpachecker \
   --svcomp26 \
-  --output-path $CPACHECKER_DIR/output/ \
   --spec $CPACHECKER_DIR/config/properties/unreach-call.prp \
   $CPACHECKER_DIR/doc/examples/example-safe.c
 
 echo "==============================================="
+echo "WARNING: The output/ folder has been created in the current directory!"
 echo "The smoke test finished successfully!"
 echo "==============================================="
