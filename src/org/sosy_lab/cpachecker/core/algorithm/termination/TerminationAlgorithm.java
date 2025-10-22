@@ -174,7 +174,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       AggregatedReachedSetManager pAggregatedReachedSetManager,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
