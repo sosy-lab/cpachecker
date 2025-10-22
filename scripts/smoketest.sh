@@ -28,8 +28,8 @@ done
 $PATH_TO_CPACHECKER/bin/cpachecker \
   --svcomp26 \
   --no-output-files \
-  --spec config/properties/unreach-call.prp \
-  doc/examples/example-safe.c
+  --spec $PATH_TO_CPACHECKER/config/properties/unreach-call.prp \
+  $PATH_TO_CPACHECKER/doc/examples/example-safe.c
 
 echo "==============================================="
 echo "The smoke test finished successfully!"
