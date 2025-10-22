@@ -27,7 +27,7 @@ done
 # Run CPAchecker using relative paths
 $PATH_TO_CPACHECKER/bin/cpachecker \
   --svcomp26 \
-  --no-output-files \
+  --output-path $PATH_TO_CPACHECKER/output/ \
   --spec $PATH_TO_CPACHECKER/config/properties/unreach-call.prp \
   $PATH_TO_CPACHECKER/doc/examples/example-safe.c
 
