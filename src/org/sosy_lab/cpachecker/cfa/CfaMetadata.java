@@ -12,11 +12,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.ProgramTransformation;
@@ -48,6 +51,7 @@ public final class CfaMetadata {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -61,7 +65,8 @@ public final class CfaMetadata {
       @Nullable AstCfaRelation pAstCfaRelation,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
-      @Nullable LiveVariables pLiveVariables) {
+      @Nullable LiveVariables pLiveVariables,
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
 
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
@@ -76,6 +81,7 @@ public final class CfaMetadata {
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
+    edgesToAnnotations = pEdgesToAnnotations;
   }
 
   /**
@@ -115,6 +121,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -148,7 +155,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -209,7 +217,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -241,7 +250,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   public ProgramTransformation getProgramTransformation() {
@@ -261,7 +271,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   public Optional<CFA> getOriginalCfa() {
@@ -281,7 +292,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -326,7 +338,8 @@ public final class CfaMetadata {
         pAstCfaRelation,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -349,7 +362,8 @@ public final class CfaMetadata {
         astCFARelation,
         pLoopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -384,7 +398,8 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         pVariableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   /**
@@ -418,7 +433,47 @@ public final class CfaMetadata {
         astCFARelation,
         loopStructure,
         variableClassification,
-        pLiveVariables);
+        pLiveVariables,
+        edgesToAnnotations);
+  }
+
+  /**
+   * Returns the map from edges to ACSL annotations for the CFA, if the information is stored in
+   * this metadata instance.
+   *
+   * @return If this metadata instance contains the map from edges to ACSL annotations for the CFA,
+   *     an optional containing the map is returned. Otherwise, if this metadata instance doesn't
+   *     contain the map for the CFA, an empty optional is returned.
+   */
+  public Optional<ImmutableListMultimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+    return Optional.ofNullable(edgesToAnnotations);
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified map from edges to ACSL
+   * annotations.
+   *
+   * @param pedgesToAnnotations the map to store in the returned metadata instance (use {@code null}
+   *     to create an instance without map)
+   * @return a copy of this metadata instance, but with the specified map from edges to ACSL
+   *     annotations
+   */
+  public CfaMetadata withEdgesToAnnotations(
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pedgesToAnnotations) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        programTransformation,
+        originalCfa,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        pedgesToAnnotations);
   }
 
   @Override
@@ -430,9 +485,12 @@ public final class CfaMetadata {
         fileNames,
         mainFunctionEntry,
         connectedness,
+        programTransformation,
+        originalCfa,
         loopStructure,
         variableClassification,
-        liveVariables);
+        liveVariables,
+        edgesToAnnotations);
   }
 
   @Override
@@ -447,9 +505,12 @@ public final class CfaMetadata {
         && Objects.equals(fileNames, other.fileNames)
         && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)
         && connectedness == other.connectedness
+        && Objects.equals(programTransformation, other.programTransformation)
+        && Objects.equals(originalCfa, other.originalCfa)
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
-        && Objects.equals(liveVariables, other.liveVariables);
+        && Objects.equals(liveVariables, other.liveVariables)
+        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations);
   }
 
   @Override
@@ -461,9 +522,12 @@ public final class CfaMetadata {
         .add("fileNames", fileNames)
         .add("mainFunctionEntry", mainFunctionEntry)
         .add("connectedness", connectedness)
+        .add("programTransformation", programTransformation)
+        .add("originalCfa", originalCfa)
         .add("loopStructure", loopStructure)
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
+        .add("edgesToAnnotations", edgesToAnnotations)
         .toString();
   }
 }
