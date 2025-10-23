@@ -285,8 +285,6 @@ public class SMGCPABuiltins {
 
       case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
 
-      case "fgets" -> evaluateFGets(cFCExpression, pCfaEdge, pState, calledFunctionName);
-
       default -> {
         if (isNondetBuiltin(calledFunctionName)) {
           yield Collections.singletonList(
