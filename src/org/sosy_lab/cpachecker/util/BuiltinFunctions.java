@@ -40,6 +40,14 @@ public class BuiltinFunctions {
       ImmutableSet.of(
           "fgetc", "fgets", "fread", "fscanf", "getc", "getchar", "scanf", "vfscanf", "vscanf");
 
+  public static final Set<String> STANDARD_STRING_INPUT_FUNCTIONS =
+      ImmutableSet.of("sscanf", "sscanf_s", "scanf_s");
+
+  // TODO: wide char first arg: "swscanf", "swscanf_s"
+
+  // TODO: add missing:  vsscanf, vswscanf_s, vfwscanf_s, wscanf_s, fscanf_s, vscanf_s, vwscanf_s,
+  //  vsscanf_s, vswscanf, fwscanf_s, vfscanf_s
+
   public static final Set<String> STANDARD_BYTE_OUTPUT_FUNCTIONS =
       ImmutableSet.of(
           "fprintf",
@@ -233,6 +241,13 @@ public class BuiltinFunctions {
    */
   public static boolean isStandardByteInputFunction(String functionName) {
     return STANDARD_BYTE_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as string input functions (in §7.21.1).
+   */
+  public static boolean isStandardStringInputFunction(String functionName) {
+    return STANDARD_STRING_INPUT_FUNCTIONS.contains(functionName);
   }
 
   /**
