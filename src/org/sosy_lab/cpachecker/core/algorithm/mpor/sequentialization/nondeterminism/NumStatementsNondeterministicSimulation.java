@@ -67,7 +67,7 @@ public class NumStatementsNondeterministicSimulation {
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
     for (MPORThread thread : clauses.keySet()) {
       rLines.addAll(
-          buildThreadSimulation(
+          buildSingleThreadSimulation(
               pOptions,
               pFields.ghostElements,
               thread,
@@ -78,7 +78,7 @@ public class NumStatementsNondeterministicSimulation {
     return rLines.build();
   }
 
-  static ImmutableList<String> buildThreadSimulation(
+  static ImmutableList<String> buildSingleThreadSimulation(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pActiveThread,
@@ -206,7 +206,7 @@ public class NumStatementsNondeterministicSimulation {
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
     Optional<CFunctionCallStatement> assumption =
-        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
+        NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =

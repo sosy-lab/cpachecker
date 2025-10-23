@@ -90,7 +90,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
   /**
    * If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
-   * yields {@code int x}.
+   * yields {@code int x;}.
    */
   public String toASTStringWithoutInitializer(AAstNodeRepresentation pAAstNodeRepresentation) {
     return buildStorageClassNameAndTypeASTString(pAAstNodeRepresentation) + ";";

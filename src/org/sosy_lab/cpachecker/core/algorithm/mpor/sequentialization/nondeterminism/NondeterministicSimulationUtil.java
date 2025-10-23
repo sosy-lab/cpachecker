@@ -8,12 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -21,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
@@ -68,7 +73,7 @@ public class NondeterministicSimulationUtil {
     };
   }
 
-  public static ImmutableList<String> buildThreadSimulationByNondeterminismSource(
+  public static ImmutableList<String> buildSingleThreadSimulationByNondeterminismSource(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
@@ -79,27 +84,27 @@ public class NondeterministicSimulationUtil {
 
     return switch (pOptions.nondeterminismSource) {
       case NEXT_THREAD ->
-          NextThreadNondeterministicSimulation.buildThreadSimulation(
+          NextThreadNondeterministicSimulation.buildSingleThreadSimulation(
               pOptions,
               pGhostElements.getPcVariables(),
               pThread,
               pClauses,
               pBinaryExpressionBuilder);
       case NUM_STATEMENTS ->
-          NumStatementsNondeterministicSimulation.buildThreadSimulation(
+          NumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
               pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pBinaryExpressionBuilder);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulation(
+          NextThreadAndNumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
               pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
     };
   }
 
-  // Thread Simulation Function Calls ==============================================================
+  // Thread Simulation Functions ===================================================================
 
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
+    Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main function call
     CFunctionCallStatement mainThreadFunctionCallStatement =
         pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCallStatement();
@@ -115,6 +120,33 @@ public class NondeterministicSimulationUtil {
       rFunctionCalls.add(mainThreadFunctionCallStatement);
     }
     return rFunctionCalls.build();
+  }
+
+  static Optional<ImmutableList<CStatement>> buildNextThreadStatementsForThreadSimulationFunction(
+      MPOROptions pOptions, MPORThread pThread, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(
+        pOptions.nondeterminismSource.isNextThreadNondeterministic(),
+        "nondeterminismSource must contain NEXT_THREAD");
+
+    if (!pOptions.loopUnrolling) {
+      // when loopUnrolling is disabled, the next_thread is chosen -> no assumption needed
+      return Optional.empty();
+    }
+
+    // next_thread = __VERIFIER_nondet_...()
+    CFunctionCallAssignmentStatement nextThreadAssignment =
+        SeqStatementBuilder.buildNextThreadAssignment(pOptions.nondeterminismSigned);
+    // assume(next_thread == {thread_id})
+    CBinaryExpression nextThreadEqualsThreadId =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.NEXT_THREAD,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.getId()),
+            BinaryOperator.EQUALS);
+    CFunctionCallStatement nextThreadAssumption =
+        SeqAssumptionBuilder.buildAssumption(nextThreadEqualsThreadId);
+    return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
   }
 
   // Multi Control Flow Statements =================================================================
@@ -137,7 +169,7 @@ public class NondeterministicSimulationUtil {
         pBinaryExpressionBuilder);
   }
 
-  static Optional<CFunctionCallStatement> tryBuildNextThreadActiveAssumption(
+  static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
       MPOROptions pOptions,
       ProgramCounterVariables pPcVariables,
       MPORThread pThread,
@@ -188,7 +220,7 @@ public class NondeterministicSimulationUtil {
       CExpressionAssignmentStatement pRoundIncrement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
@@ -265,7 +297,7 @@ public class NondeterministicSimulationUtil {
     if (!pOptions.reduceIgnoreSleep) {
       return pBlock;
     }
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withGoto =
           tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);

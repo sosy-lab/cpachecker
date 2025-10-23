@@ -112,7 +112,7 @@ public class SequentializationFields {
     mainThreadSimulationFunction =
         pOptions.loopUnrolling
             ? Optional.of(
-                SeqFunctionBuilder.extractMainThreadSimulationFunction(threadSimulationFunctions))
+                SeqFunctionBuilder.getMainThreadSimulationFunction(threadSimulationFunctions))
             : Optional.empty();
   }
 

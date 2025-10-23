@@ -37,14 +37,14 @@ public class SeqFunctionBuilder {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableList<String> threadSimulation =
-          NondeterministicSimulationUtil.buildThreadSimulationByNondeterminismSource(
+          NondeterministicSimulationUtil.buildSingleThreadSimulationByNondeterminismSource(
               pOptions, pGhostElements, thread, otherThreads, clauses, pBinaryExpressionBuilder);
       rFunctions.add(new SeqThreadSimulationFunction(threadSimulation, thread));
     }
     return rFunctions.build();
   }
 
-  public static SeqThreadSimulationFunction extractMainThreadSimulationFunction(
+  public static SeqThreadSimulationFunction getMainThreadSimulationFunction(
       ImmutableList<SeqThreadSimulationFunction> pFunctions) {
 
     for (SeqThreadSimulationFunction function : pFunctions) {

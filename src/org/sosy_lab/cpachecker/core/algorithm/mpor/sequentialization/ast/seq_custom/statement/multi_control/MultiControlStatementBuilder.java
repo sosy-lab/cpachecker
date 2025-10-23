@@ -44,25 +44,21 @@ public class MultiControlStatementBuilder {
   }
 
   public static ImmutableList<CStatement> buildPrecedingStatements(
-      Optional<CFunctionCallStatement> pThreadActiveAssumption,
+      Optional<CFunctionCallStatement> pPcUnequalExitAssumption,
+      Optional<ImmutableList<CStatement>> pNextThreadAssumption,
       Optional<CFunctionCallAssignmentStatement> pRoundMaxNondetAssignment,
       Optional<CFunctionCallStatement> pRoundMaxGreaterZeroAssumption,
       Optional<CExpressionAssignmentStatement> pRoundReset) {
 
     ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
-    if (pThreadActiveAssumption.isPresent()) {
-      rPreceding.add(pThreadActiveAssumption.orElseThrow());
+    pPcUnequalExitAssumption.ifPresent(statement -> rPreceding.add(statement));
+    if (pNextThreadAssumption.isPresent()) {
+      pNextThreadAssumption.orElseThrow().forEach(statement -> rPreceding.add(statement));
     }
-    if (pRoundMaxNondetAssignment.isPresent()) {
-      rPreceding.add(pRoundMaxNondetAssignment.orElseThrow());
-    }
-    if (pRoundMaxGreaterZeroAssumption.isPresent()) {
-      rPreceding.add(pRoundMaxGreaterZeroAssumption.orElseThrow());
-    }
+    pRoundMaxNondetAssignment.ifPresent(statement -> rPreceding.add(statement));
+    pRoundMaxGreaterZeroAssumption.ifPresent(statement -> rPreceding.add(statement));
     // place r reset after the assumption for optimization
-    if (pRoundReset.isPresent()) {
-      rPreceding.add(pRoundReset.orElseThrow());
-    }
+    pRoundReset.ifPresent(statement -> rPreceding.add(statement));
     return rPreceding.build();
   }
 }

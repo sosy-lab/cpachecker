@@ -147,8 +147,8 @@ public class SequentializationBuilder {
         // const CPAchecker_TMP variables are declared and initialized directly in the case.
         // everything else: add declaration without initializer (and assign later in cases)
         return Optional.of(
-            pLocalVariableDeclaration.toASTStringWithoutInitializer(AAstNodeRepresentation.DEFAULT)
-                + SeqSyntax.SEMICOLON);
+            pLocalVariableDeclaration.toASTStringWithoutInitializer(
+                AAstNodeRepresentation.DEFAULT));
       }
     }
     return Optional.empty();

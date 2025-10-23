@@ -84,12 +84,19 @@ public class NextThreadNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Optional<CFunctionCallStatement> assumption =
-        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
+    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
+        NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+    Optional<ImmutableList<CStatement>> nextThreadStatements =
+        NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
+            pOptions, pThread, pBinaryExpressionBuilder);
     ImmutableList<CStatement> precedingStatements =
         MultiControlStatementBuilder.buildPrecedingStatements(
-            assumption, Optional.empty(), Optional.empty(), Optional.empty());
+            pcUnequalExitAssumption,
+            nextThreadStatements,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty());
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.getId());
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
@@ -105,7 +112,7 @@ public class NextThreadNondeterministicSimulation {
         pBinaryExpressionBuilder);
   }
 
-  static ImmutableList<String> buildThreadSimulation(
+  static ImmutableList<String> buildSingleThreadSimulation(
       MPOROptions pOptions,
       ProgramCounterVariables pPcVariables,
       MPORThread pThread,

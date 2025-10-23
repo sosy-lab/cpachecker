@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -62,7 +63,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pBinaryExpressionBuilder);
   }
 
-  static ImmutableList<String> buildThreadSimulation(
+  static ImmutableList<String> buildSingleThreadSimulation(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
@@ -171,9 +172,12 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
-    Optional<CFunctionCallStatement> assumption =
-        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
+    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
+        NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
+    Optional<ImmutableList<CStatement>> nextThreadStatements =
+        NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
+            pOptions, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
@@ -186,7 +190,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pOptions.controlEncodingStatement,
         expression,
         MultiControlStatementBuilder.buildPrecedingStatements(
-            assumption,
+            pcUnequalExitAssumption,
+            nextThreadStatements,
             Optional.of(pRoundMaxNondetAssignment),
             Optional.of(pRoundMaxGreaterZeroAssumption),
             Optional.of(pRoundReset)),
