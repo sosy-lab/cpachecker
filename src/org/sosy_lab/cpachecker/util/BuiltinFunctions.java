@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -21,7 +22,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin one. The
- * builtin functions of gcc are used as a reference for the provided function names.
+ * builtin functions of gcc are used as a reference for the provided function names. A more complete
+ * list of all builtin functions can be found in {@link StandardFunctions}.
  *
  * <p>Float-specific builtin functions are implemented in {@link BuiltinFloatFunctions}.
  */
@@ -33,6 +35,34 @@ public class BuiltinFunctions {
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
   private static final String FSCANF = "fscanf";
+
+  public static final Set<String> STANDARD_BYTE_INPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fgetc", "fgets", "fread", "fscanf", "getc", "getchar", "scanf", "vfscanf", "vscanf");
+
+  public static final Set<String> STANDARD_BYTE_OUTPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fprintf",
+          "fputc",
+          "fputs",
+          "fwrite",
+          "printf",
+          "vfprintf",
+          "vprintf",
+          "putc",
+          "putchar",
+          "puts",
+          "ungetc");
+
+  private static final Set<String> BUILTIN_STANDARD_WIDE_CHARACTER_INPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fgetwc", "fgetws", "getwc", "getwchar", "fwscanf", "wscanf", "vfwscanf", "vwscanf");
+
+  private static final String UNGETWC_FUNCTION = "ungetwc";
+
+  private static final Set<String> BUILTIN_STANDARD_WIDE_CHARACTER_OUTPUT_FUNCTIONS =
+      ImmutableSet.of(
+          "fputwc", "fputws", "putwc", "putwchar", "fwprintf", "wprintf", "vfwprintf", "vwprintf");
 
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
@@ -152,6 +182,65 @@ public class BuiltinFunctions {
 
   public static boolean isPopcountFunction(String pFunctionName) {
     return pFunctionName.contains(POPCOUNT);
+  }
+
+  /**
+   * True for built-in input or output functions defined by the C11 standard (in §7.21.1.5). Checks
+   * for wide character and byte input and output functions.
+   */
+  @SuppressWarnings("unused")
+  public static boolean isStandardInputOrOutputFunction(String functionName) {
+    return isStandardWideCharInputOrOutputFunction(functionName)
+        || isStandardByteInputOrOutputFunction(functionName);
+  }
+
+  /**
+   * True for built-in wide character input or output functions defined by the C11 standard (in
+   * §7.21.1.5). Checks for wide character input and output functions, as well as the ungetwc()
+   * function, which is not included in the split up sets and checks for wide character input or
+   * output functions!
+   */
+  public static boolean isStandardWideCharInputOrOutputFunction(String functionName) {
+    return UNGETWC_FUNCTION.contains(functionName)
+        || isStandardWideCharInputFunction(functionName)
+        || isStandardWideCharOutputFunction(functionName);
+  }
+
+  /**
+   * True for built-in wide character input functions defined by the C11 standard (in §7.21.1.5).
+   */
+  public static boolean isStandardWideCharInputFunction(String functionName) {
+    return BUILTIN_STANDARD_WIDE_CHARACTER_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in wide character output functions defined by the C11 standard (in §7.21.1.5).
+   */
+  public static boolean isStandardWideCharOutputFunction(String functionName) {
+    return BUILTIN_STANDARD_WIDE_CHARACTER_OUTPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte input or output functions (in
+   * §7.21.1.5).
+   */
+  public static boolean isStandardByteInputOrOutputFunction(String functionName) {
+    return isStandardByteOutputFunction(functionName) || isStandardByteInputFunction(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte input functions (in §7.21.1.5).
+   */
+  public static boolean isStandardByteInputFunction(String functionName) {
+    return STANDARD_BYTE_INPUT_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True for built-in functions defined by the C11 standard as byte output functions (in
+   * §7.21.1.5).
+   */
+  public static boolean isStandardByteOutputFunction(String functionName) {
+    return STANDARD_BYTE_OUTPUT_FUNCTIONS.contains(functionName);
   }
 
   /**
