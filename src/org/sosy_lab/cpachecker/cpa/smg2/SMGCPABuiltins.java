@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -693,25 +694,50 @@ public class SMGCPABuiltins {
    * Checks validity of all input. Returns unknown. Overflows for all input parameters with type
    * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
    * is returned by the function, else the pointer of the buffer, with an exception if there are
-   * multiple possible buffers.
+   * multiple possible buffers. Also uses the size argument for the buffer for
+   * usesBufferSizeArgument true.
+   *
+   * @param returnBufferPointer if true: tries to return the buffer pointer on success.
+   * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
+   *     the size given here is read into the buffer (-1 for terminating null char).
    */
   private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsAndReturnUnknown(
       SMGState pState,
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String functionName,
-      boolean returnBufferPointer)
+      boolean returnBufferPointer,
+      boolean usesBufferSizeArgument)
       throws CPATransferException {
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     // TODO: add failing w option.
 
-    // TODO: If buffer or stream is 0, return 0.
+    SMGState currentState = pState;
+    Optional<Value> bufferWriteSizeArgument = Optional.empty();
+    if (usesBufferSizeArgument) {
+      for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
+        CExpression argument = cFCExpression.getParameterExpressions().get(arg);
+        CType argumentType =
+            SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
+        CType functionParameterType =
+            SMGCPAExpressionEvaluator.getCanonicalType(
+                cFCExpression.getDeclaration().getParameters().get(arg).getType());
+        if (functionParameterType instanceof CSimpleType simpleType
+            && simpleType.getType().equals(CBasicType.INT)) {
+          List<ValueAndSMGState> sizeArgAndState =
+              new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options)
+                  .evaluate(argument, argumentType);
 
-    // TODO: add optional buffer size argument to restrict the buffer overflows
-    //  (if it fits, no overflow) and its overapproximation.
+          checkState(sizeArgAndState.size() == 1);
+          checkState(bufferWriteSizeArgument.isEmpty());
+          currentState = sizeArgAndState.getFirst().getState();
+          bufferWriteSizeArgument = Optional.of(sizeArgAndState.getFirst().getValue());
+        }
+      }
+    }
 
     for (SMGState checkedState :
-        checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)) {
+        checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName)) {
       Value returnValue = UnknownValue.getInstance();
       SMGState finalState = checkedState;
 
@@ -722,6 +748,12 @@ public class SMGCPABuiltins {
         CType functionParameterType =
             SMGCPAExpressionEvaluator.getCanonicalType(
                 cFCExpression.getDeclaration().getParameters().get(arg).getType());
+
+        if (usesBufferSizeArgument
+            && functionParameterType instanceof CSimpleType simpleType
+            && simpleType.getType().equals(CBasicType.INT)) {
+          continue; // Skip size arg, we already processed it!
+        }
 
         if (!functionParameterType.isConst()
             && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
@@ -748,13 +780,51 @@ public class SMGCPABuiltins {
           }
           // TODO: add solver handling for checks
 
-          // Overflow
-          // TODO: don't overflow if the "n" chars read fit into here.
-          finalState = finalState.withInvalidWrite(overflowBufferAndState.getFirst().getValue());
+          if (!returnValue.isNumericValue()
+              && !returnValue.equals(UnknownValue.getInstance())
+              && usesBufferSizeArgument) {
+            // Overflow if size not fitting and remove buffer values (i.e. make them unknown)
+            checkArgument(bufferWriteSizeArgument.isPresent());
+            Value bufferWriteSizeArg = bufferWriteSizeArgument.orElseThrow();
+            if (bufferWriteSizeArg.isNumericValue()) {
+              BigInteger charSize = evaluator.getBitSizeof(finalState, CNumericTypes.CHAR);
+              BigInteger offset = BigInteger.ZERO;
+              int writeMax = bufferWriteSizeArg.asNumericValue().getIntegerValue().intValue();
+              // Value analysis
+              for (int i = 0; i < writeMax; i++) {
+                finalState =
+                    finalState
+                        .writeValueTo(
+                            returnValue,
+                            offset,
+                            new NumericValue(charSize),
+                            UnknownValue.getInstance(),
+                            CNumericTypes.CHAR,
+                            pCfaEdge)
+                        .getFirst();
+                offset = offset.add(charSize);
+              }
+              // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
+              // TODO: Symex
 
-          // Clean the buffer (i.e. delete all edges)
-          // TODO:
-          // TODO: delete only the "n-1" edges for buffers that are sized
+            } else if (!returnValue.equals(bufferWriteSizeArg)) {
+              // Overapproximate buffer overflow
+              finalState =
+                  finalState
+                      .withInvalidWrite(overflowBufferAndState.getFirst().getValue())
+                      .copyAndRemoveAllEdgesFrom(returnValue);
+            } else {
+              // Just make the region unknown, no buffer overflow
+              finalState = finalState.copyAndRemoveAllEdgesFrom(returnValue);
+            }
+          } else {
+            // Overapproximate buffer overflow and remove edges
+            checkArgument(bufferWriteSizeArgument.isEmpty());
+            finalState =
+                finalState
+                    .withInvalidWrite(overflowBufferAndState.getFirst().getValue())
+                    .copyAndRemoveAllEdgesFrom(returnValue);
+          }
 
         } else if (argumentType instanceof CPointerType) {
           // STREAM. If 0, return 0.
@@ -822,7 +892,7 @@ public class SMGCPABuiltins {
       //  <0: Read error encountered or end-of-file (EOF) reached before any assignment was made.
       case "scanf" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, false);
+              pState, pCfaEdge, functionCallExpr, functionName, false, false);
 
       // int fscanf(FILE * stream, const char * format, ...);
       // int sscanf(const char * stream, const char * format, ...);
@@ -834,7 +904,7 @@ public class SMGCPABuiltins {
       // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
       case "fscanf", "fwscanf_s", "fscanf_s", "sscanf" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, false);
+              pState, pCfaEdge, functionCallExpr, functionName, false, false);
 
       // fgetwc(FILE *stream) and fgetc(FILE *stream) -> check input, return unknown
       // getwc(FILE *stream) and getc(FILE *stream) behave the same
@@ -854,13 +924,13 @@ public class SMGCPABuiltins {
       // Buffer should be able to hold this number -> else overflow possible!
       case "fgets", "fgetws" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, true);
+              pState, pCfaEdge, functionCallExpr, functionName, true, true);
 
       // char * gets(char *buffer);  (deprecated in C11)
       // Returns either a valid address to the read string (i.e. buffer) on success, 0 otherwise.
       case "gets" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, true);
+              pState, pCfaEdge, functionCallExpr, functionName, true, false);
 
       default ->
           throw new UnsupportedOperationException(
