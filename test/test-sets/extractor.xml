@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" displayName="Extractor" timelimit="15 min" memlimit="15 GB" cpuCores="4">
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <resultfiles>**/test-suite</resultfiles>
+
+  <option name="--benchmark" />
+  <option name="--heap" />
+  <option name="10000M" />
+  <option name="--option" />
+  <option name="log.consoleLevel=SEVERE" />
+  <option name="--testCaseGeneration-valueAnalysis-NoCegar"/>
+
+  <rundefinition name="Test-Comp25_coverage-branches">
+    <propertyfile>../../../sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
+  </rundefinition>
+
+
+  <tasks name="ReachSafety-Arrays">
+    <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
+    array-examples/standard_compare_ground.c
+  </tasks>
+
+  <tasks name="ReachSafety-BitVectors">
+    <includesfile>../../../sv-benchmarks/c/BitVectors.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-ECA">
+    <includesfile>../../../sv-benchmarks/c/ECA.set</includesfile>
+    <excludesfile>excludes/ECA-excludes.set</excludesfile>
+  </tasks>
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../../../sv-benchmarks/c/Floats.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Fuzzle">
+    <includesfile>../../../sv-benchmarks/c/Fuzzle.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Hardness">
+    <includesfile>../../../sv-benchmarks/c/Hardness.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Heap">
+    <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
+    <includesfile>../../../sv-benchmarks/c/LinkedLists.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
+    <includesfile>../../../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-ProductLines">
+    <includesfile>../../../sv-benchmarks/c/ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Recursive">
+    <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
+    <includesfile>../../../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Sequentialized">
+    <includesfile>../../../sv-benchmarks/c/Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-XCSP">
+    <includesfile>../../../sv-benchmarks/c/XCSP.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Combinations">
+    <includesfile>../../../sv-benchmarks/c/Combinations.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Hardware">
+    <includesfile>../../../sv-benchmarks/c/Hardware.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-AWS-C-Common.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-OpenBSD-MemSafety">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <excludesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-SQLite-MemSafety">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-SQLite.set</includesfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash">
+    <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+  </tasks>
+  <tasks name="Termination-BitVectors">
+    <includesfile>../../../sv-benchmarks/c/BitVectors-Termination.set</includesfile>
+  </tasks>
+  <tasks name="Termination-MainControlFlow">
+    <includesfile>../../../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+  </tasks>
+  <tasks name="Termination-MainHeap">
+    <includesfile>../../../sv-benchmarks/c/Heap-Termination.set</includesfile>
+  </tasks>
+
+
+  <columns>
+
+    <!-- ValueAnalysisCPA statistics -->
+    <column title="Variables per state" >Number of variables per state</column>
+    <column title="Global Variables per state" >Number of global variables per state</column>        
+
+    <!-- CPA algorithm statistics -->
+    <column title="iterations" >Number of iterations</column>
+    <column title="total time CPAA">Total time for CPA algorithm</column>
+    
+    <!-- Counterexample-Check Algorithm statistics -->
+    <column title="Cex checks" >Number of counterexample checks</column>
+    <column title="Failed cex checks" >Number of infeasible paths</column>
+    <column title="Time for cex checks">Time for counterexample checks</column>
+
+    <!-- Testtargets statistics -->
+    <column title="Test target coverage">Test target coverage</column>        <column title="Test targets" >Number of total original test targets</column>
+    <column title="Covered targets" >Number of covered test targets</column>
+
+    <!-- Code Coverage -->
+    <column title="Visited lines" >Visited lines</column>    
+    <column title="Total lines" >Total lines</column>
+
+  
+    <!-- CPAchecker general statistics -->
+    <column title="Program locations" >Number of program locations</column>
+    <column title="CFA edges" >Number of CFA edges</column>
+    <column title="Functions" >Number of functions</column>
+    <column title="Loops" >Number of loops (and loop nodes)</column>
+    <column title="Size of reached" >Size of reached set</column>
+    <column title="Reached functions" >Number of reached functions</column>
+
+    
+    <column title="Time for Analysis">Time for Analysis</column>
+    <column title="CPU time for analysis">CPU time for analysis</column>
+    <column title="Total time cpachecker">Total time for CPAchecker</column>
+    <column title="Total CPU time for CPAchecker">Total CPU time for CPAchecker</column>    
+    <column title="Total process virtual memory" >Total process virtual memory</column>
+
+  </columns>  
+
+</benchmark>

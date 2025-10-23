@@ -413,7 +413,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private ValueAnalysisState initializeVAState(CounterexampleInfo cexInfo, ValueAnalysisState valueAnalysisState) {
     //todo leave main here as it is working just fine
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(valueAnalysisState, "main",
-        valueAnalysisState.getMachineModel(), new LogManagerWithoutDuplicates(logger));
+        cfa.getMachineModel(), new LogManagerWithoutDuplicates(logger));
     CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
