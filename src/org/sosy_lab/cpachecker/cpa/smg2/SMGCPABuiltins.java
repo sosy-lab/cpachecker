@@ -715,44 +715,52 @@ public class SMGCPABuiltins {
       Value returnValue = UnknownValue.getInstance();
       SMGState finalState = checkedState;
 
-      for (CExpression parameter : cFCExpression.getParameterExpressions()) {
-        CType typeOfParam =
-            SMGCPAExpressionEvaluator.getCanonicalType(parameter.getExpressionType());
+      for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
+        CExpression argument = cFCExpression.getParameterExpressions().get(arg);
+        CType argumentType =
+            SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
+        CType functionParameterType =
+            SMGCPAExpressionEvaluator.getCanonicalType(
+                cFCExpression.getDeclaration().getParameters().get(arg).getType());
 
-        if (!typeOfParam.isConst()
-            && typeOfParam.canBeAssignedFrom(CPointerType.POINTER_TO_CONST_CHAR)) {
+        if (!functionParameterType.isConst()
+            && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
+          // Buffers
           List<ValueAndSMGState> overflowBufferAndState =
               new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                  .evaluate(parameter, typeOfParam);
+                  .evaluate(argument, argumentType);
 
           checkState(overflowBufferAndState.size() == 1);
           finalState = overflowBufferAndState.getFirst().getState();
 
           if (!returnValue.equals(UnknownValue.getInstance())
-              && !returnValue.isNumericValue()
-              && !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+              && (!returnValue.isNumericValue()
+                  || !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))) {
             // Multiple "buffers" in this function, can't return one, return unknown
             returnBufferPointer = false;
             returnValue = UnknownValue.getInstance();
           } else if (returnBufferPointer
-              && !returnValue.isNumericValue()
-              && !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-            // remember buffer as return value
-            // if its 0, the return value is ALSO 0
+              && (!returnValue.isNumericValue()
+                  || !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))) {
+            // Remember buffer as return value (if that's 0, we also return 0),
+            //  except if its already 0, then keep the return value.
             returnValue = overflowBufferAndState.getFirst().getValue();
           }
+          // TODO: add solver handling for checks
 
           // Overflow
+          // TODO: don't overflow if the "n" chars read fit into here.
           finalState = finalState.withInvalidWrite(overflowBufferAndState.getFirst().getValue());
 
           // Clean the buffer (i.e. delete all edges)
           // TODO:
+          // TODO: delete only the "n-1" edges for buffers that are sized
 
-        } else if (typeOfParam instanceof CPointerType) {
+        } else if (argumentType instanceof CPointerType) {
           // STREAM. If 0, return 0.
           List<ValueAndSMGState> streamPtrAndState =
               new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                  .evaluate(parameter, typeOfParam);
+                  .evaluate(argument, argumentType);
 
           checkState(streamPtrAndState.size() == 1);
           Value streamPointer = streamPtrAndState.getFirst().getValue();
@@ -762,6 +770,13 @@ public class SMGCPABuiltins {
               && streamPointer.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
             returnValue = new NumericValue(0);
           }
+          // TODO: add solver handling for the same check
+
+        } else if (functionParameterType.isConst()
+            && functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
+          // format specifiers
+          // TODO:
+          System.out.println();
         }
       }
 
