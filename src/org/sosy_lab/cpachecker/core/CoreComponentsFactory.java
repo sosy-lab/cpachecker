@@ -404,9 +404,12 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.copyCFA",
       description =
-          "Copy to a new CFA because of the changes done to CFA in the algorithm."
-              + " If an algorithm modifies given CFA, it is not compatible with other algorithms"
-              + "in parallel. Hence, it needs its own copy of CFA.")
+          "Everything constructed in the CoreComponentsFactory is done on a copy of the original"
+              + " CFA, if the option is set to true. One of the possible use-cases are"
+              + " modifications of the CFA by the algorithm. For example, if we run algorithms in"
+              + " parallel or in sequence, they are expected to get the CFA corresponding to the"
+              + " original program. Hence, to prevent these modifications from influencing other"
+              + " algorithms, each algorithm can claim  a copy of the original CFA to modify.")
   private boolean copyCFA = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
