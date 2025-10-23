@@ -274,9 +274,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Copy to a new CFA because of the changes done to CFA in the algorithm.If an
-# algorithm modifies given CFA, it is not compatible with other algorithmsin
-# parallel. Hence, it needs its own copy of CFA.
+# Copy to a new CFA because of the changes done to CFA in the algorithm. If
+# an algorithm modifies given CFA, it is not compatible with other
+# algorithmsin parallel. Hence, it needs its own copy of CFA.
 analysis.algorithm.copyCFA = false
 
 # Use distributed summary synthesis. This decomposes the input program into

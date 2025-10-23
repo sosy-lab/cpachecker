@@ -765,7 +765,9 @@ public class CoreComponentsFactory {
   }
 
   /**
-   * Creates an instance of a {@link ReachedSet}.
+   * Creates an instance of a {@link ReachedSet}. The better way to construct reached set is to use
+   * createInitializedReachedSet ! If this method needs to be used, use initializeReachedSet
+   * afterward to initialize it.
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
@@ -795,7 +797,8 @@ public class CoreComponentsFactory {
   }
 
   /**
-   * Initializes the {@link ReachedSet} with the initial states from the current CFA.
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA. The better way
+   * to construct and initialize a reached set is to use createInitializedReachedSet !
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
@@ -804,6 +807,18 @@ public class CoreComponentsFactory {
     pReachedSet.add(
         cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
         cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+  }
+
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createInitializedReachedSet(ConfigurableProgramAnalysis cpa)
+      throws InterruptedException {
+    ReachedSet reachedSet = createReachedSet(cpa);
+    initializeReachedSet(reachedSet, cpa);
+    return reachedSet;
   }
 
   public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)
