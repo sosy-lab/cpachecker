@@ -35,24 +35,44 @@ public class SeqIfStatement implements SeqSingleControlStatement {
 
   private final Optional<ImmutableList<CStatement>> elseStatements;
 
+  /**
+   * Use this constructor for an {@code if (...) { ... }} statement without any {@code else} branch.
+   */
+  public SeqIfStatement(CExpression pIfExpression, ImmutableList<CStatement> pIfStatements) {
+    checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
+    ifExpression = pIfExpression;
+    ifStatements = pIfStatements;
+    elseIfExpression = Optional.empty();
+    elseStatements = Optional.empty();
+  }
+
+  /** Use this constructor for an {@code if (...) { ... } else { ... }} statement. */
   public SeqIfStatement(
       CExpression pIfExpression,
       ImmutableList<CStatement> pIfStatements,
-      Optional<CExpression> pElseIfExpression,
-      Optional<ImmutableList<CStatement>> pElseStatements) {
+      ImmutableList<CStatement> pElseStatements) {
 
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
-    checkArgument(
-        pElseIfExpression.isEmpty() || pElseStatements.isPresent(),
-        "if pElseIfExpression is present, then pElseStatements must be present");
-    checkArgument(
-        pElseIfExpression.isEmpty() || !pElseStatements.orElseThrow().isEmpty(),
-        "if pElseIfExpression is present, then pElseStatements needs at least on element");
-
+    checkArgument(!pElseStatements.isEmpty(), "pElseStatements needs at least one element");
     ifExpression = pIfExpression;
     ifStatements = pIfStatements;
-    elseIfExpression = pElseIfExpression;
-    elseStatements = pElseStatements;
+    elseIfExpression = Optional.empty();
+    elseStatements = Optional.of(pElseStatements);
+  }
+
+  /** Use this constructor for an {@code if (...) { ... } else if (...) { ... }} statement. */
+  public SeqIfStatement(
+      CExpression pIfExpression,
+      ImmutableList<CStatement> pIfStatements,
+      CExpression pElseIfExpression,
+      ImmutableList<CStatement> pElseStatements) {
+
+    checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
+    checkArgument(!pElseStatements.isEmpty(), "pElseStatements needs at least one element");
+    ifExpression = pIfExpression;
+    ifStatements = pIfStatements;
+    elseIfExpression = Optional.of(pElseIfExpression);
+    elseStatements = Optional.of(pElseStatements);
   }
 
   @Override

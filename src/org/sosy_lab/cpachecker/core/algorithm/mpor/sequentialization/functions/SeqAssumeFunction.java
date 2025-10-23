@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumeFunction extends SeqFunction {
 
@@ -39,9 +38,7 @@ public class SeqAssumeFunction extends SeqFunction {
 
   private final CBinaryExpression condEqualsZeroExpression;
 
-  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
-      throws UnrecognizedCodeException {
-
+  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression) {
     condEqualsZeroExpression = pCondEqualsZeroExpression;
   }
 

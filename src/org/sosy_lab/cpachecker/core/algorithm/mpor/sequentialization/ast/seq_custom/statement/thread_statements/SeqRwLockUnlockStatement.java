@@ -83,8 +83,7 @@ public class SeqRwLockUnlockStatement implements SeqThreadStatement {
         new SeqIfStatement(
             rwLockFlags.writerEqualsZero,
             ImmutableList.of(rwLockFlags.readersDecrement),
-            Optional.empty(),
-            Optional.of(ImmutableList.of(setNumWritersToZero)));
+            ImmutableList.of(setNumWritersToZero));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
