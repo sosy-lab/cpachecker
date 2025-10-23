@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.CharMatcher;
@@ -387,7 +388,7 @@ public class SMGState
         // Having heap objects is not an error on its own.
         // However, when combined with program exit, we can detect the property MemCleanup.
         PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
-        Preconditions.checkState(
+        checkState(
             !heapObs.isEmpty() && heapObs.contains(SMGObject.nullInstance()),
             "NULL must always be a heap object");
         heapObs = heapObs.removeAndCopy(SMGObject.nullInstance());
@@ -4753,6 +4754,26 @@ public class SMGState
     Preconditions.checkArgument(memoryModel.isObjectValid(object));
     return copyAndReplaceMemoryModel(
         memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite));
+  }
+
+  public SMGState copyAndRemoveAllEdgesFrom(SMGObject pObject) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveAllEdgesFrom(pObject));
+  }
+
+  public SMGState copyAndRemoveAllEdgesFrom(Value pointerToObjectToRemoveEdgesFrom)
+      throws SMGException {
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybeRegions =
+        dereferencePointer(pointerToObjectToRemoveEdgesFrom);
+    checkState(maybeRegions.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = maybeRegions.getFirst();
+    checkState(maybeRegion.hasSMGObjectAndOffset());
+    return maybeRegion
+        .getSMGState()
+        .copyAndReplaceMemoryModel(
+            maybeRegion
+                .getSMGState()
+                .memoryModel
+                .copyAndRemoveAllEdgesFrom(maybeRegion.getSMGObject()));
   }
 
   /**

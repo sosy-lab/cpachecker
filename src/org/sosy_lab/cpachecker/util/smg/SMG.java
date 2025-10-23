@@ -1233,6 +1233,10 @@ public class SMG {
     return SMGAndHasValueEdges.of(newSMG, newHVEdge);
   }
 
+  public SMG copyAndRemoveAllEdgesFrom(SMGObject object) {
+    return copyAndRemoveHVEdges(hasValueEdges.getOrDefault(object, PersistentSet.of()), object);
+  }
+
   /**
    * Returns an SMG with a write reinterpretation of the current SMG. Essentially just writes a
    * value to the given object and field. The reinterpretation removes other values from the field.

@@ -1783,6 +1783,10 @@ public class SymbolicProgramConfiguration {
     return copyAndReplaceSMG(smg.writeValue(pObject, pFieldOffset, pSizeofInBits, pValue));
   }
 
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(SMGObject pObject) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject));
+  }
+
   /**
    * This assumes that the entered {@link SMGObject} is part of the SPC!
    *
