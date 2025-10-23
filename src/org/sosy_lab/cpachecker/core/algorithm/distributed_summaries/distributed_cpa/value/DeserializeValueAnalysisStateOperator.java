@@ -14,7 +14,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -23,9 +26,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
@@ -39,10 +45,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
-  final Map<String, Type> accessedVariables;
+  static Map<String, Map<String, Type>> accessedVariables = new HashMap<>();
+  private final BlockNode blockNode;
+  static Optional<Map<String, Type>> globals = Optional.empty();
 
-  public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode) {
-    accessedVariables = getAccessedVariables(pBlockNode);
+  public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -54,7 +62,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     ValueAnalysisState state;
     try {
       state = DssSerializeObjectUtil.deserialize(serializedValue, ValueAnalysisState.class);
-      havocVariables(state, accessedVariables);
+      havocVariables(state, getAccessedVariables(blockNode));
       return state;
 
     } catch (ClassCastException e) {
@@ -76,8 +84,11 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
   }
 
-  public static Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
-    HashMap<String, Type> accessedVariables = new HashMap<>();
+  public Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
+    if (accessedVariables.containsKey(pBlockNode.getId()))
+      return accessedVariables.get(pBlockNode.getId());
+
+    HashMap<String, Type> accessed = new HashMap<>();
     ImmutableSet<CFAEdge> edges = pBlockNode.getEdges();
     List<CExpression> expressions = new ArrayList<>();
 
@@ -105,6 +116,28 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
           expressions.add(cExprAssignment.getRightHandSide());
         }
       }
+
+      if (edge instanceof CFunctionReturnEdge returnEdge
+          && returnEdge.getSummaryEdge().getExpression()
+              instanceof CFunctionCallAssignmentStatement cFunAssignment) {
+        expressions.add(cFunAssignment.getLeftHandSide());
+
+        final FunctionEntryNode functionEntryNode = returnEdge.getSummaryEdge().getFunctionEntry();
+        final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration =
+            functionEntryNode.getReturnVariable();
+
+        if (optionalReturnVarDeclaration.isPresent()) {
+          MemoryLocation functionReturnVar =
+              MemoryLocation.forDeclaration(optionalReturnVarDeclaration.get());
+          final Type functionReturnType =
+              functionEntryNode.getFunctionDefinition().getType().getReturnType();
+          accessed.put(functionReturnVar.getExtendedQualifiedName(), functionReturnType);
+        }
+      }
+
+      if (edge instanceof CReturnStatementEdge returnEdge)
+        if (returnEdge.getExpression().isPresent())
+          expressions.add(returnEdge.getExpression().get());
     }
 
     for (CExpression expr : expressions) {
@@ -114,8 +147,9 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
                   id -> id.getDeclaration().getQualifiedName(),
                   id -> id.getDeclaration().getType(),
                   (first, second) -> first))
-          .forEach(accessedVariables::putIfAbsent);
+          .forEach(accessed::putIfAbsent);
     }
-    return accessedVariables;
+    accessedVariables.put(pBlockNode.getId(), accessed);
+    return accessed;
   }
 }
