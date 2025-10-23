@@ -47,20 +47,16 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CFunctionCallAssignmentStatement roundMaxNondetAssignment =
-        NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
-            pOptions, SeqIdExpressions.ROUND_MAX);
-    CFunctionCallStatement roundMaxGreaterZeroAssumption =
-        SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero(pBinaryExpressionBuilder));
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
 
-    return buildThreadSimulations(
-        pOptions,
-        pFields,
-        roundMaxNondetAssignment,
-        roundMaxGreaterZeroAssumption,
-        roundReset,
-        pBinaryExpressionBuilder);
+    ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
+        buildInnerMultiControlStatements(pOptions, pFields, pBinaryExpressionBuilder);
+    SeqMultiControlStatement outerMultiControlStatement =
+        NondeterministicSimulationUtil.buildOuterMultiControlStatement(
+            pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
+    rLines.addAll(SeqStringUtil.splitOnNewline(outerMultiControlStatement.toASTString()));
+
+    return rLines.build();
   }
 
   static ImmutableList<String> buildSingleThreadSimulation(
@@ -71,60 +67,16 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CFunctionCallAssignmentStatement roundMaxNondetAssignment =
-        NondeterministicSimulationUtil.buildRoundMaxNondetAssignment(
-            pOptions, SeqIdExpressions.ROUND_MAX);
-    CFunctionCallStatement roundMaxGreaterZeroAssumption =
-        SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero(pBinaryExpressionBuilder));
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
-
     SeqMultiControlStatement multiControlStatement =
         buildSingleThreadMultiControlStatementWithoutCount(
-            pOptions,
-            pGhostElements,
-            pThread,
-            roundMaxNondetAssignment,
-            roundMaxGreaterZeroAssumption,
-            roundReset,
-            pClauses,
-            pBinaryExpressionBuilder);
+            pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
     return SeqStringUtil.splitOnNewline(multiControlStatement.toASTString());
-  }
-
-  private static ImmutableList<String> buildThreadSimulations(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      CFunctionCallAssignmentStatement pRoundMaxNondetAssignment,
-      CFunctionCallStatement pRoundMaxGreaterZeroAssumption,
-      CExpressionAssignmentStatement pRoundReset,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
-
-    ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
-        buildInnerMultiControlStatements(
-            pOptions,
-            pFields,
-            pRoundMaxNondetAssignment,
-            pRoundMaxGreaterZeroAssumption,
-            pRoundReset,
-            pBinaryExpressionBuilder);
-    SeqMultiControlStatement outerMultiControlStatement =
-        NondeterministicSimulationUtil.buildOuterMultiControlStatement(
-            pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    rLines.addAll(SeqStringUtil.splitOnNewline(outerMultiControlStatement.toASTString()));
-
-    return rLines.build();
   }
 
   private static ImmutableMap<CExpression, SeqMultiControlStatement>
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
           SequentializationFields pFields,
-          CFunctionCallAssignmentStatement pRoundMaxNondetAssignment,
-          CFunctionCallStatement pRoundMaxGreaterZeroAssumption,
-          CExpressionAssignmentStatement pRoundReset,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
@@ -139,14 +91,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
               thread.getId(),
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
-              pOptions,
-              pFields.ghostElements,
-              thread,
-              pRoundMaxNondetAssignment,
-              pRoundMaxGreaterZeroAssumption,
-              pRoundReset,
-              clauses,
-              pBinaryExpressionBuilder));
+              pOptions, pFields.ghostElements, thread, clauses, pBinaryExpressionBuilder));
     }
     return rStatements.buildOrThrow();
   }
@@ -155,13 +100,14 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
-      CFunctionCallAssignmentStatement pRoundMaxNondetAssignment,
-      CFunctionCallStatement pRoundMaxGreaterZeroAssumption,
-      CExpressionAssignmentStatement pRoundReset,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
+    ImmutableList<CStatement> precedingStatements =
+        buildPrecedingStatements(pOptions, pGhostElements, pThread, pBinaryExpressionBuilder);
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClausesWithoutCount(
             pOptions,
@@ -169,16 +115,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             pGhostElements.getThreadSyncFlags(),
             pClauses,
             pBinaryExpressionBuilder);
-
-    ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
-    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-        NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
-            pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
-    Optional<ImmutableList<CStatement>> nextThreadStatements =
-        NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
-            pOptions, pThread, pBinaryExpressionBuilder);
-
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             pOptions,
@@ -189,12 +125,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions.controlEncodingStatement,
         expression,
-        MultiControlStatementBuilder.buildPrecedingStatements(
-            pcUnequalExitAssumption,
-            nextThreadStatements,
-            Optional.of(pRoundMaxNondetAssignment),
-            Optional.of(pRoundMaxGreaterZeroAssumption),
-            Optional.of(pRoundReset)),
+        precedingStatements,
         expressionClauseMap,
         pBinaryExpressionBuilder);
   }
@@ -209,12 +140,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    CBinaryExpression roundSmallerMax =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.ROUND, SeqIdExpressions.ROUND_MAX, BinaryOperator.LESS_THAN);
-    CExpressionAssignmentStatement roundIncrement =
-        SeqStatementBuilder.buildIncrementStatement(
-            SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -222,7 +147,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         SeqThreadStatementBlock withRoundGoto =
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-                pOptions, block, roundSmallerMax, roundIncrement, labelClauseMap);
+                pOptions, block, labelClauseMap, pBinaryExpressionBuilder);
         SeqThreadStatementBlock withSyncUpdate =
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 pOptions,
@@ -246,5 +171,33 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         SeqIdExpressions.ROUND_MAX,
         SeqIntegerLiteralExpressions.INT_0,
         BinaryOperator.GREATER_THAN);
+  }
+
+  private static ImmutableList<CStatement> buildPrecedingStatements(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      MPORThread pThread,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
+        NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
+            pOptions, pGhostElements.getPcVariables(), pThread, pBinaryExpressionBuilder);
+    Optional<ImmutableList<CStatement>> nextThreadStatements =
+        NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
+            pOptions, pThread, pBinaryExpressionBuilder);
+
+    CFunctionCallAssignmentStatement roundMaxNondetAssignment =
+        SeqStatementBuilder.buildNondetIntegerAssignment(pOptions, SeqIdExpressions.ROUND_MAX);
+    CFunctionCallStatement roundMaxGreaterZeroAssumption =
+        SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero(pBinaryExpressionBuilder));
+    CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
+
+    return MultiControlStatementBuilder.buildPrecedingStatements(
+        pcUnequalExitAssumption,
+        nextThreadStatements,
+        Optional.of(roundMaxNondetAssignment),
+        Optional.of(roundMaxGreaterZeroAssumption),
+        Optional.of(roundReset));
   }
 }

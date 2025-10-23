@@ -16,7 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
@@ -78,10 +80,12 @@ public class SeqStatementBuilder {
    * Returns {@code next_thread = __VERIFIER_nondet_{u}int} with {@code uint} for unsigned, {@code
    * int} for signed.
    */
-  public static CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
+  public static CFunctionCallAssignmentStatement buildNondetIntegerAssignment(
+      MPOROptions pOptions, CIdExpression pIdExpression) {
+
     return buildFunctionCallAssignmentStatement(
-        SeqIdExpressions.NEXT_THREAD,
-        pIsSigned
+        pIdExpression,
+        pOptions.nondeterminismSigned
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
             : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
   }

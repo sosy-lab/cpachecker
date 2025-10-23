@@ -102,7 +102,7 @@ public class SeqMainFunction extends SeqFunction {
         }
         // next_thread = __VERIFIER_nondet_...()
         CFunctionCallAssignmentStatement nextThreadAssignment =
-            SeqStatementBuilder.buildNextThreadAssignment(options.nondeterminismSigned);
+            SeqStatementBuilder.buildNondetIntegerAssignment(options, SeqIdExpressions.NEXT_THREAD);
         loopBlock.add(nextThreadAssignment.toASTString());
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)

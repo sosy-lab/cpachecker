@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermi
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -104,7 +102,7 @@ public class NondeterministicSimulationUtil {
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
+    ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main function call
     CFunctionCallStatement mainThreadFunctionCallStatement =
         pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCallStatement();
@@ -137,7 +135,7 @@ public class NondeterministicSimulationUtil {
 
     // next_thread = __VERIFIER_nondet_...()
     CFunctionCallAssignmentStatement nextThreadAssignment =
-        SeqStatementBuilder.buildNextThreadAssignment(pOptions.nondeterminismSigned);
+        SeqStatementBuilder.buildNondetIntegerAssignment(pOptions, SeqIdExpressions.NEXT_THREAD);
     // assume(next_thread == {thread_id})
     CBinaryExpression nextThreadEqualsThreadId =
         pBinaryExpressionBuilder.buildBinaryExpression(
@@ -193,17 +191,6 @@ public class NondeterministicSimulationUtil {
 
   // round and round_max statements/expressions ====================================================
 
-  /** Returns the expression for {@code round_max = __VERIFIER_nondet_{int, uint}()} */
-  static CFunctionCallAssignmentStatement buildRoundMaxNondetAssignment(
-      MPOROptions pOptions, CIdExpression pRoundMaxVariable) {
-
-    return SeqStatementBuilder.buildFunctionCallAssignmentStatement(
-        pRoundMaxVariable,
-        pOptions.nondeterminismSigned
-            ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
-            : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
-  }
-
   /** Returns the expression for {@code round = 1;} */
   static CExpressionAssignmentStatement buildRoundReset() {
     // r is set to 1, because we increment after the r < K check succeeds
@@ -216,15 +203,15 @@ public class NondeterministicSimulationUtil {
   static SeqThreadStatementBlock injectRoundGotoIntoBlock(
       MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
-              pOptions, pRoundSmallerMax, pRoundIncrement, statement, pLabelClauseMap);
+              pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
       newStatements.add(withRoundGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -232,10 +219,10 @@ public class NondeterministicSimulationUtil {
 
   private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
       MPOROptions pOptions,
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
       SeqThreadStatement pStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     if (pStatement.getTargetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
@@ -245,14 +232,14 @@ public class NondeterministicSimulationUtil {
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
           return injectRoundGotoIntoStatementByTargetPc(
-              targetPc, pRoundSmallerMax, pRoundIncrement, pStatement, pLabelClauseMap);
+              targetPc, pStatement, pLabelClauseMap, pBinaryExpressionBuilder);
         }
       }
     }
     if (pStatement.getTargetGoto().isPresent()) {
       // target goto present -> use goto label for injection
       return injectRoundGotoIntoStatementByTargetGoto(
-          pStatement.getTargetGoto().orElseThrow(), pRoundSmallerMax, pRoundIncrement, pStatement);
+          pStatement.getTargetGoto().orElseThrow(), pStatement, pBinaryExpressionBuilder);
     }
     // no int target pc -> no replacement
     return pStatement;
@@ -260,28 +247,40 @@ public class NondeterministicSimulationUtil {
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetPc(
       int pTargetPc,
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
       SeqThreadStatement pStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
+    CBinaryExpression roundSmallerMax =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.ROUND, SeqIdExpressions.ROUND_MAX, BinaryOperator.LESS_THAN);
+    CExpressionAssignmentStatement roundIncrement =
+        SeqStatementBuilder.buildIncrementStatement(
+            SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(
-            pRoundSmallerMax,
-            pRoundIncrement,
+            roundSmallerMax,
+            roundIncrement,
             Objects.requireNonNull(target).getFirstBlock().getLabel());
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
       SeqBlockLabelStatement pTargetGoto,
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
-      SeqThreadStatement pStatement) {
+      SeqThreadStatement pStatement,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
+    CBinaryExpression roundSmallerMax =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.ROUND, SeqIdExpressions.ROUND_MAX, BinaryOperator.LESS_THAN);
+    CExpressionAssignmentStatement roundIncrement =
+        SeqStatementBuilder.buildIncrementStatement(
+            SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
     SeqRoundGotoStatement roundGoto =
-        new SeqRoundGotoStatement(pRoundSmallerMax, pRoundIncrement, pTargetGoto);
+        new SeqRoundGotoStatement(roundSmallerMax, roundIncrement, pTargetGoto);
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 
@@ -297,7 +296,7 @@ public class NondeterministicSimulationUtil {
     if (!pOptions.reduceIgnoreSleep) {
       return pBlock;
     }
-    Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withGoto =
           tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
