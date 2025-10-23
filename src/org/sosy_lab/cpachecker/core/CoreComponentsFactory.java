@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -432,13 +433,13 @@ public class CoreComponentsFactory {
     config = pConfig;
     logger = pLogger;
 
+    config.inject(this);
+
     if (copyCFA) {
       cfa = ImmutableCFA.copyOf(checkNotNull(pCFA), pConfig, logger);
     } else {
       cfa = checkNotNull(pCFA);
     }
-
-    config.inject(this);
 
     if (analysisNeedsShutdownManager()) {
       shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -791,6 +792,18 @@ public class CoreComponentsFactory {
     }
 
     return reached;
+  }
+
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public void initializeReachedSet(ReachedSet pReachedSet, ConfigurableProgramAnalysis cpa)
+      throws InterruptedException {
+    pReachedSet.add(
+        cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+        cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
   }
 
   public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)

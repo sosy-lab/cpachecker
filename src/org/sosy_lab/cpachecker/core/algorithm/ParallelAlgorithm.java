@@ -109,7 +109,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final ParallelAlgorithmStatistics stats;
 
   private ParallelAnalysisResult finalResult = null;
-  private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
@@ -147,7 +146,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ThreadFactory threadFactory =
@@ -296,10 +294,13 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final ConfigurableProgramAnalysis cpa;
     final Algorithm algorithm;
     final ReachedSet reached;
+    final CFANode mainEntryPoint;
     try {
       cpa = coreComponents.createCPA(specification);
       algorithm = coreComponents.createAlgorithm(cpa, specification);
       reached = coreComponents.createReachedSet(cpa);
+      coreComponents.initializeReachedSet(reached, cpa);
+      mainEntryPoint = AbstractStates.extractLocation(reached.getFirstState());
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
       return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
@@ -320,7 +321,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             coreComponents,
             singleAnalysisOverallLimit,
             terminated,
-            statisticsEntry);
+            statisticsEntry,
+            mainEntryPoint);
   }
 
   private ParallelAnalysisResult runParallelAnalysis(
@@ -334,7 +336,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final CoreComponentsFactory coreComponents,
       final ResourceLimitChecker singleAnalysisOverallLimit,
       final AtomicBoolean terminated,
-      final StatisticsEntry pStatisticsEntry)
+      final StatisticsEntry pStatisticsEntry,
+      final CFANode pMainEntryPoint)
       throws CPAException { // handleFutureResults needs to handle all the exceptions declared here
     try {
       if (algorithm
@@ -353,7 +356,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       try {
-        initializeReachedSet(cpa, mainEntryNode, reached);
+        initializeReachedSet(cpa, pMainEntryPoint, reached);
       } catch (InterruptedException e) {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
@@ -451,7 +454,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (!stopAnalysis) {
             currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
-            initializeReachedSet(cpa, mainEntryNode, currentReached);
+            initializeReachedSet(cpa, pMainEntryPoint, currentReached);
           }
         } while (!stopAnalysis);
       }

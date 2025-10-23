@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
@@ -236,11 +235,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
-    pReachedSet.clear();
-    pReachedSet.add(
-        safetyCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-        safetyCPA.getInitialPrecision(
-            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
