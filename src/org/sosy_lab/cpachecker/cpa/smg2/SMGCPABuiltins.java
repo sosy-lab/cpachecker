@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -146,13 +145,10 @@ public class SMGCPABuiltins {
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
 
   /**
-   * Returns true if the function is some function involving nondeterministic behaviour (i.e.
-   * returning a nondet int).
-   *
-   * @param pFunctionName name of the function to check.
-   * @return true for the specified names, false else.
+   * Returns true if the function is some function defined by SV-COMP to return a nondeterministic
+   * value, e.g. __VERIFIER_nondet_int().
    */
-  private boolean isNondetBuiltin(String pFunctionName) {
+  private boolean isCompetitionNondeterministicFunction(String pFunctionName) {
     return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
   }
 
@@ -210,6 +206,11 @@ public class SMGCPABuiltins {
       return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
 
+    if (isCompetitionNondeterministicFunction(functionName)) {
+      // TODO: unify with other usage
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+    }
+
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(funCallExpr, functionName, state, cfaEdge);
@@ -242,6 +243,10 @@ public class SMGCPABuiltins {
 
     if (isExternalAllocationFunction(functionName)) {
       return evaluateExternalAllocationFunction(funCallExpr, state, functionName);
+    }
+
+    if (isCompetitionNondeterministicFunction(functionName)) {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
     }
 
     if (isStandardByteInputFunction(functionName)
@@ -287,19 +292,9 @@ public class SMGCPABuiltins {
 
       case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(state);
 
-      default -> {
-        if (isNondetBuiltin(functionName)) {
-          yield Collections.singletonList(
-              ValueAndSMGState.ofUnknownValue(
-                  state,
-                  "Returned unknown value due to call to nondeterministic havoc function as defined"
-                      + " in SV-COMP ",
-                  cfaEdge));
-        } else {
+      default ->
           throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + functionName);
-        }
-      }
     };
   }
 
