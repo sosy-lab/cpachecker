@@ -294,7 +294,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     try {
       cpa = coreComponents.createCPA(specification);
       algorithm = coreComponents.createAlgorithm(cpa, specification);
-      reached = coreComponents.createInitializedReachedSet(cpa);
+      reached = coreComponents.createReachedSet(cpa);
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
       return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
@@ -444,7 +444,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           if (!stopAnalysis) {
-            currentReached = coreComponents.createReachedSet(cpa);
+            coreComponents.initializeReachedSet(currentReached, cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
             coreComponents.initializeReachedSet(reached, cpa);
           }
