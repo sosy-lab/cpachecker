@@ -9,8 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,7 +48,19 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     for (AbstractState state : compositeEntry.getWrappedStates()) {
       if (state instanceof ValueAnalysisState valueState) violationCondition = valueState;
     }
-
+    Set<String> declared = new HashSet<>();
+    for (CFAEdge edge : pARGPath.getFullPath()) {
+      if (edge instanceof ADeclarationEdge aDeclarationEdge) {
+        declared.add(aDeclarationEdge.getDeclaration().getQualifiedName());
+      }
+    }
+    ValueAnalysisState violationValue = getViolationValueState(states.getLast(), machineModel);
+    for (Map.Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
+      if (!violationCondition.contains(variable.getKey())
+          && !declared.contains(variable.getKey().getQualifiedName()))
+        violationCondition.assignConstant(
+            variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
+    }
     return Optional.of(violationCondition);
   }
 
