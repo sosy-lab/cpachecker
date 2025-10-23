@@ -10,21 +10,21 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqConflictOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqLastBitVectorUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqConflictOrderStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqLastBitVectorUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
@@ -51,7 +51,7 @@ class ReduceLastThreadOrderInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     SeqThreadStatement withConflictOrder =
@@ -63,7 +63,7 @@ class ReduceLastThreadOrderInjector {
             pLabelBlockMap,
             pBitVectorVariables,
             pMemoryModel,
-            pBinaryExpressionBuilder);
+            pUtils);
     return injectLastUpdatesIntoStatement(
         pOptions, pNumThreads, withConflictOrder, pActiveThread, pBitVectorVariables);
   }
@@ -78,7 +78,7 @@ class ReduceLastThreadOrderInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     if (pActiveThread.isMain()) {
@@ -94,15 +94,10 @@ class ReduceLastThreadOrderInjector {
         // build conflict order statement (with bit vector evaluations based on targetBlock)
         BitVectorEvaluationExpression lastBitVectorEvaluation =
             BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
-                pOptions,
-                pLabelBlockMap,
-                targetBlock,
-                pBitVectorVariables,
-                pMemoryModel,
-                pBinaryExpressionBuilder);
+                pOptions, pLabelBlockMap, targetBlock, pBitVectorVariables, pMemoryModel, pUtils);
         SeqConflictOrderStatement conflictOrderStatement =
             new SeqConflictOrderStatement(
-                pActiveThread, lastBitVectorEvaluation, pBinaryExpressionBuilder);
+                pActiveThread, lastBitVectorEvaluation, pUtils.getBinaryExpressionBuilder());
         return pStatement.cloneAppendingInjectedStatements(
             ImmutableList.of(conflictOrderStatement));
       }

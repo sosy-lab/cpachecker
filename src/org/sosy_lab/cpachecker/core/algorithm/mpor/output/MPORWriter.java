@@ -80,8 +80,8 @@ public class MPORWriter {
       String pOutputProgramName,
       String pOutputProgramPath,
       List<Path> pInputFilePaths,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) {
 
     try {
       String metadataPath = buildPath(pOptions, pOutputProgramName, FileExtension.YML);
@@ -97,7 +97,7 @@ public class MPORWriter {
         writer.write(pOutputProgram);
         // option: validate that CPAchecker can parse output
         if (pOptions.validateParse && !pOptions.inputTypeDeclarations) {
-          handleParsing(pOptions, pOutputProgramPath, metadataPath, pShutdownNotifier, pLogger);
+          handleParsing(pOptions, pOutputProgramPath, metadataPath, pLogger, pShutdownNotifier);
         }
         // option: create metadata file
         if (pOptions.outputMetadata) {
@@ -161,13 +161,13 @@ public class MPORWriter {
       MPOROptions pOptions,
       String pOutputProgramPath,
       String pMetadataPath,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws IOException {
 
     Path seqPath = Path.of(pOutputProgramPath);
     try {
-      SeqValidator.validateProgramParsing(seqPath, pOptions, pShutdownNotifier, pLogger);
+      SeqValidator.validateProgramParsing(seqPath, pOptions, pLogger, pShutdownNotifier);
       handleOutputMessage(
           Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
 

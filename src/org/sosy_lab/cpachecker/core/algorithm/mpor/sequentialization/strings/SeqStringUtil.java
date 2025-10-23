@@ -16,15 +16,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Optional;
-import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -113,26 +111,6 @@ public class SeqStringUtil {
       // it is best to always use break; for switch cases, tests showed it is more efficient
       case SWITCH_CASE -> SeqToken.BREAK_KEYWORD + SeqSyntax.SEMICOLON;
     };
-  }
-
-  // String from ASTNodes ==========================================================================
-
-  public static String buildStringFromSeqASTNodes(ImmutableList<SeqASTNode> pSeqASTNodes)
-      throws UnrecognizedCodeException {
-
-    StringJoiner rString = new StringJoiner(SeqSyntax.NEWLINE);
-    for (SeqASTNode seqASTNode : pSeqASTNodes) {
-      rString.add(seqASTNode.toASTString());
-    }
-    return rString.toString();
-  }
-
-  public static String buildStringFromCAstNodes(ImmutableList<CAstNode> pCASTNodes) {
-    StringJoiner rString = new StringJoiner(SeqSyntax.NEWLINE);
-    for (CAstNode cASTNode : pCASTNodes) {
-      rString.add(cASTNode.toASTString());
-    }
-    return rString.toString();
   }
 
   // Comments ======================================================================================

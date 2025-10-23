@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -26,7 +26,7 @@ public class SeqFunctionBuilder {
       MPOROptions pOptions,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     if (!pOptions.loopUnrolling) {
@@ -38,7 +38,7 @@ public class SeqFunctionBuilder {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableList<String> threadSimulation =
           NondeterministicSimulationUtil.buildSingleThreadSimulationByNondeterminismSource(
-              pOptions, pGhostElements, thread, otherThreads, clauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements, thread, otherThreads, clauses, pUtils);
       rFunctions.add(new SeqThreadSimulationFunction(threadSimulation, thread));
     }
     return rFunctions.build();

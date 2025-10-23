@@ -16,7 +16,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -55,16 +54,14 @@ public class Sequentialization {
       MPOROptions pOptions,
       CFA pCfa,
       String pInputFileName,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) {
 
     try {
-      CBinaryExpressionBuilder binaryExpressionBuilder =
-          new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
-      SequentializationFields fields =
-          new SequentializationFields(pOptions, pCfa, binaryExpressionBuilder, pLogger);
-      return buildProgramString(
-          pOptions, pInputFileName, fields, binaryExpressionBuilder, pShutdownNotifier, pLogger);
+      SequentializationUtils utils =
+          SequentializationUtils.of(pCfa.getMachineModel(), pLogger, pShutdownNotifier);
+      SequentializationFields fields = new SequentializationFields(pOptions, pCfa, utils);
+      return buildProgramString(pOptions, pInputFileName, fields, utils);
     } catch (UnrecognizedCodeException e) {
       // we convert to RuntimeExceptions for unit tests
       throw new RuntimeException(e);
@@ -75,17 +72,14 @@ public class Sequentialization {
       MPOROptions pOptions,
       String pInputFileName,
       SequentializationFields pFields,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     try {
-      ImmutableList<String> initProgram =
-          initProgram(pOptions, pFields, pBinaryExpressionBuilder, pLogger);
+      ImmutableList<String> initProgram = initProgram(pOptions, pFields, pUtils);
       ImmutableList<String> finalProgram = finalProgram(pOptions, pInputFileName, initProgram);
       String program = SeqStringUtil.joinWithNewlines(finalProgram);
       return pOptions.validateParse && pOptions.inputTypeDeclarations
-          ? SeqValidator.validateProgramParsing(program, pOptions, pShutdownNotifier, pLogger)
+          ? SeqValidator.validateProgramParsing(program, pOptions, pUtils)
           : program;
 
     } catch (UnrecognizedCodeException
@@ -93,17 +87,14 @@ public class Sequentialization {
         | ParserException
         | InterruptedException e) {
       // we convert to RuntimeExceptions for unit tests
-      pLogger.log(Level.SEVERE, e);
+      pUtils.getLogger().log(Level.SEVERE, e);
       throw new RuntimeException(e);
     }
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
   private static ImmutableList<String> initProgram(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<String> rProgram = ImmutableList.builder();
@@ -135,9 +126,7 @@ public class Sequentialization {
 
     // add custom function declarations and definitions
     rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(pOptions, pFields));
-    rProgram.addAll(
-        SequentializationBuilder.buildFunctionDefinitions(
-            pOptions, pFields, pBinaryExpressionBuilder, pLogger));
+    rProgram.addAll(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
 
     return rProgram.build();
   }

@@ -29,14 +29,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.single_control.SeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -51,20 +52,14 @@ public class SeqMainFunction extends SeqFunction {
 
   private final SequentializationFields fields;
 
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final LogManager logger;
+  private final SequentializationUtils utils;
 
   public SeqMainFunction(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils) {
 
     options = pOptions;
     fields = pFields;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    logger = pLogger;
+    utils = pUtils;
   }
 
   @Override
@@ -73,7 +68,8 @@ public class SeqMainFunction extends SeqFunction {
 
     // add main function argument non-deterministic assignments
     rBody.addAll(
-        buildMainFunctionArgNondetAssignments(fields.mainSubstitution, fields.clauses, logger));
+        buildMainFunctionArgNondetAssignments(
+            fields.mainSubstitution, fields.clauses, utils.getLogger()));
 
     if (options.loopUnrolling) {
       // when unrolling loops, add function calls to the respective thread simulation
@@ -108,7 +104,7 @@ public class SeqMainFunction extends SeqFunction {
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         ImmutableList<CFunctionCallStatement> nextThreadAssumption =
             SeqAssumptionBuilder.buildNextThreadAssumption(
-                options.nondeterminismSigned, fields, binaryExpressionBuilder);
+                options.nondeterminismSigned, fields, utils.getBinaryExpressionBuilder());
         nextThreadAssumption.forEach(assumption -> loopBlock.add(assumption.toASTString()));
 
         // for scalar pc, this is done separately at the start of the respective thread
@@ -118,7 +114,8 @@ public class SeqMainFunction extends SeqFunction {
             loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
           }
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumptionBuilder.buildNextThreadActiveAssumption(binaryExpressionBuilder);
+              SeqAssumptionBuilder.buildNextThreadActiveAssumption(
+                  utils.getBinaryExpressionBuilder());
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
@@ -129,7 +126,8 @@ public class SeqMainFunction extends SeqFunction {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
         CFunctionCallStatement countAssumption =
-            SeqAssumptionBuilder.buildCountGreaterZeroAssumption(binaryExpressionBuilder);
+            SeqAssumptionBuilder.buildCountGreaterZeroAssumption(
+                utils.getBinaryExpressionBuilder());
         loopBlock.add(countAssumption.toASTString());
       }
 
@@ -139,11 +137,11 @@ public class SeqMainFunction extends SeqFunction {
       }
       loopBlock.addAll(
           NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-              options, fields, binaryExpressionBuilder));
+              options, fields, utils));
 
       // build the loop depending on settings, and include all statements in it
       SeqLoopStatement loopStatement =
-          buildLoopStatement(options, loopBlock.build(), binaryExpressionBuilder);
+          buildLoopStatement(options, loopBlock.build(), utils.getBinaryExpressionBuilder());
       rBody.add(loopStatement.toASTString());
     }
     return rBody.build();

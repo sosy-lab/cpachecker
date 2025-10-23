@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -32,14 +33,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
 public class BitVectorEvaluationUtil {
-
-  static CIdExpression extractActiveVariable(
-      MPORThread pActiveThread, ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
-    assert pAllVariables.containsKey(pActiveThread) : "no variable found for active thread";
-    CIdExpression rActiveVariable = pAllVariables.get(pActiveThread);
-    assert rActiveVariable != null;
-    return rActiveVariable;
-  }
 
   static ImmutableList<CIdExpression> getOtherVariables(
       ImmutableSet<MPORThread> pOtherThreads,
@@ -64,13 +57,12 @@ public class BitVectorEvaluationUtil {
 
   /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
   static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<AExpression>> pTerms) {
+      ImmutableList<ExpressionTree<AExpression>> pTerms, SequentializationUtils pUtils) {
 
     if (pTerms.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
-    ExpressionTree<AExpression> logicalDisjunction = logicalDisjunction(pTerms);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
+    return new BitVectorEvaluationExpression(logicalDisjunction(pTerms), pUtils);
   }
 
   static <LeafType> Optional<ExpressionTree<LeafType>> tryLogicalDisjunction(

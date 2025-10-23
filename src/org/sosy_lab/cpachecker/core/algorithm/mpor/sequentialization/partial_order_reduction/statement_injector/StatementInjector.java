@@ -13,16 +13,15 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorEvaluationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -39,35 +38,23 @@ public class StatementInjector {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     // first check shortcuts: are injections necessary?
     if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
-      pLogger.log(
-          Level.INFO,
-          "bit vectors are enabled, but the program does not contain any global memory locations.");
+      pUtils
+          .getLogger()
+          .log(
+              Level.INFO,
+              "bit vectors are enabled, but the program does not contain any global memory"
+                  + " locations.");
       return pClauses; // no relevant memory locations -> no bit vectors needed
     }
     if (!pOptions.isAnyReductionEnabled()) {
       return pClauses;
     }
-    // otherwise inject statements into clauses
-    return injectStatements(
-        pOptions, pClauses, pBitVectorVariables, pMemoryModel, pBinaryExpressionBuilder);
-  }
-
-  // Private Methods ===============================================================================
-
-  private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectStatements(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
+    // otherwise inject into statements
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
         ImmutableListMultimap.builder();
     for (MPORThread activeThread : pClauses.keySet()) {
@@ -87,7 +74,7 @@ public class StatementInjector {
               labelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
-              pBinaryExpressionBuilder));
+              pUtils));
     }
     return rInjected.build();
   }
@@ -101,7 +88,7 @@ public class StatementInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
@@ -118,7 +105,7 @@ public class StatementInjector {
                 pLabelBlockMap,
                 pBitVectorVariables,
                 pMemoryModel,
-                pBinaryExpressionBuilder));
+                pUtils));
       }
       rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
     }
@@ -134,7 +121,7 @@ public class StatementInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
@@ -150,7 +137,7 @@ public class StatementInjector {
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
-              pBinaryExpressionBuilder));
+              pUtils));
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
@@ -164,7 +151,7 @@ public class StatementInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     if (pOptions.reduceUntilConflict) {
@@ -177,7 +164,7 @@ public class StatementInjector {
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
-              pBinaryExpressionBuilder);
+              pUtils);
     }
     if (pOptions.reduceLastThreadOrder) {
       pStatement =
@@ -190,7 +177,7 @@ public class StatementInjector {
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
-              pBinaryExpressionBuilder);
+              pUtils);
     }
     if (pOptions.reduceIgnoreSleep) {
       // this needs to be last, it collects the prior injections
@@ -203,7 +190,7 @@ public class StatementInjector {
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
-              pBinaryExpressionBuilder);
+              pUtils);
     }
     // always inject bit vector assignments after evaluations i.e. reductions
     pStatement =
@@ -227,7 +214,7 @@ public class StatementInjector {
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
@@ -237,7 +224,7 @@ public class StatementInjector {
         pTargetBlock,
         pBitVectorVariables,
         pMemoryModel,
-        pBinaryExpressionBuilder);
+        pUtils);
   }
 
   static SeqBitVectorEvaluationStatement buildBitVectorEvaluationStatement(
@@ -247,7 +234,7 @@ public class StatementInjector {
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     BitVectorEvaluationExpression evaluationExpression =
@@ -258,7 +245,7 @@ public class StatementInjector {
             pTargetBlock,
             pBitVectorVariables,
             pMemoryModel,
-            pBinaryExpressionBuilder);
+            pUtils);
     return new SeqBitVectorEvaluationStatement(
         pOptions, evaluationExpression, pTargetBlock.getLabel());
   }

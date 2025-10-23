@@ -29,10 +29,11 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -50,8 +51,8 @@ public class SeqValidator {
   public static void validateProgramParsing(
       Path pSequentializationPath,
       MPOROptions pOptions,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, ParserException, InterruptedException, IOException {
 
     checkArgument(
@@ -71,17 +72,15 @@ public class SeqValidator {
    * preprocessors on source code (i.e. {@code String}s) is not allowed.
    */
   public static String validateProgramParsing(
-      String pSequentialization,
-      MPOROptions pOptions,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      String pSequentialization, MPOROptions pOptions, SequentializationUtils pUtils)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     checkArgument(
         pOptions.inputTypeDeclarations,
         "can only validate source code if inputTypeDeclaration is enabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator =
+        MPORUtil.buildCfaCreator(pUtils.getLogger(), pUtils.getShutdownNotifier());
     Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
     return pSequentialization;
   }

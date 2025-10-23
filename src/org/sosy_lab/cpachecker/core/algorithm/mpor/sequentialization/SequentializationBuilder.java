@@ -12,11 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -294,10 +292,7 @@ public class SequentializationBuilder {
   }
 
   public static ImmutableList<String> buildFunctionDefinitions(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<String> rFunctionDefinitions = ImmutableList.builder();
@@ -309,8 +304,10 @@ public class SequentializationBuilder {
     rFunctionDefinitions.addAll(reachError.buildDefinition());
 
     CBinaryExpression condEqualsZeroExpression =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+        pUtils
+            .getBinaryExpressionBuilder()
+            .buildBinaryExpression(
+                SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rFunctionDefinitions.addAll(assume.buildDefinition());
     // create separate thread simulation functions, if enabled
@@ -320,8 +317,7 @@ public class SequentializationBuilder {
       }
     }
     // create clauses in main method
-    SeqMainFunction mainFunction =
-        new SeqMainFunction(pOptions, pFields, pBinaryExpressionBuilder, pLogger);
+    SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
   }

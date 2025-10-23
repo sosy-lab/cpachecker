@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -532,7 +532,7 @@ public class SequentializationParseTest {
 
     CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
     return Sequentialization.tryBuildProgramString(
-        pOptions, cfa, "test", pShutdownNotifier, pLogger);
+        pOptions, cfa, "test", pLogger, pShutdownNotifier);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {

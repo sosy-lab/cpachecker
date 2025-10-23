@@ -24,22 +24,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumptionBuilder {
 
   public static CFunctionCallStatement buildAssumption(CExpression pCondition) {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
-  }
-
-  public static String buildAssumption(SeqExpression pCondition) throws UnrecognizedCodeException {
-    return SeqFunctionDeclarations.ASSUME.getName()
-        + SeqSyntax.BRACKET_LEFT
-        + pCondition.toASTString()
-        + SeqSyntax.BRACKET_RIGHT
-        + SeqSyntax.SEMICOLON;
   }
 
   private static CFunctionCallExpression buildAssumptionExpression(CExpression pCondition) {

@@ -28,20 +28,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqRoundGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.thread_sync.SeqSyncUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.nondet_num_statements.SeqRoundGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.thread_sync.SeqSyncUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -53,21 +54,18 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class NondeterministicSimulationUtil {
 
   public static ImmutableList<String> buildThreadSimulationsByNondeterminismSource(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pBinaryExpressionBuilder);
+              pOptions, pFields, pUtils.getBinaryExpressionBuilder());
       case NUM_STATEMENTS ->
-          NumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pBinaryExpressionBuilder);
+          NumStatementsNondeterministicSimulation.buildThreadSimulations(pOptions, pFields, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pBinaryExpressionBuilder);
+              pOptions, pFields, pUtils.getBinaryExpressionBuilder());
     };
   }
 
@@ -77,7 +75,7 @@ public class NondeterministicSimulationUtil {
       MPORThread pThread,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableList<SeqThreadStatementClause> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource) {
@@ -87,13 +85,13 @@ public class NondeterministicSimulationUtil {
               pGhostElements.getPcVariables(),
               pThread,
               pClauses,
-              pBinaryExpressionBuilder);
+              pUtils.getBinaryExpressionBuilder());
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements, pThread, pClauses, pUtils.getBinaryExpressionBuilder());
     };
   }
 

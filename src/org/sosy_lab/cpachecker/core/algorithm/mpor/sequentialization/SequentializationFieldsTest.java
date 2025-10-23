@@ -20,7 +20,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -347,8 +346,8 @@ public class SequentializationFieldsTest {
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-    CBinaryExpressionBuilder binaryExpressionBuilder =
-        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
-    return new SequentializationFields(pOptions, inputCfa, binaryExpressionBuilder, logger);
+    SequentializationUtils utils =
+        SequentializationUtils.of(inputCfa.getMachineModel(), logger, shutdownNotifier);
+    return new SequentializationFields(pOptions, inputCfa, utils);
   }
 }

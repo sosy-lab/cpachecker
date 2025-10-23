@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -275,8 +275,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         outputFileName,
         outputFilePath,
         cfa.getFileNames(),
-        shutdownNotifier,
-        logger);
+        logger,
+        shutdownNotifier);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -286,7 +286,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String inputFileName = firstInputFilePath.toString();
     String program =
         Sequentialization.tryBuildProgramString(
-            options, cfa, inputFileName, shutdownNotifier, logger);
+            options, cfa, inputFileName, logger, shutdownNotifier);
     return options.clangFormatStyle.isEnabled()
         ? ClangFormatter.tryFormat(program, options.clangFormatStyle, logger)
         : program;

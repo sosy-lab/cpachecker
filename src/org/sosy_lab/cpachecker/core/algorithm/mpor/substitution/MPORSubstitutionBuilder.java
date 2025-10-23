@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -37,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -50,14 +49,12 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
     MPORThread mainThread = MPORThreadUtil.extractMainThread(pThreads);
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes =
-        buildGlobalVariableSubstitutes(
-            pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder, pLogger);
+        buildGlobalVariableSubstitutes(pOptions, mainThread, pGlobalVariableDeclarations, pUtils);
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
         getMainFunctionArgSubstitutes(pOptions, mainThread);
     // use same start_routine arg substitutes across threads, so that all threads can access them
@@ -82,8 +79,7 @@ public class MPORSubstitutionBuilder {
                   startRoutineArgSubstitutes,
                   thread.getId(),
                   thread.localVariables,
-                  pBinaryExpressionBuilder,
-                  pLogger);
+                  pUtils);
       rSubstitutions.add(
           new MPORSubstitution(
               false,
@@ -94,8 +90,7 @@ public class MPORSubstitutionBuilder {
               parameterSubstitutes,
               mainFunctionArgSubstitutes,
               startRoutineArgSubstitutes,
-              pBinaryExpressionBuilder,
-              pLogger));
+              pUtils));
     }
     return rSubstitutions.build();
   }
@@ -104,8 +99,7 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
@@ -125,8 +119,7 @@ public class MPORSubstitutionBuilder {
             ImmutableTable.of(),
             ImmutableMap.of(),
             ImmutableTable.of(),
-            pBinaryExpressionBuilder,
-            pLogger);
+            pUtils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
@@ -331,8 +324,7 @@ public class MPORSubstitutionBuilder {
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
               pLocalVariableDeclarations,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder,
-          LogManager pLogger) {
+          SequentializationUtils pUtils) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableTable<
@@ -351,8 +343,7 @@ public class MPORSubstitutionBuilder {
             pParameterSubstitutes,
             pMainFunctionArgSubstitutes,
             pStartRoutineArgSubstitutes,
-            pBinaryExpressionBuilder,
-            pLogger);
+            pUtils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableTable.Builder<
