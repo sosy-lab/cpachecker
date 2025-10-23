@@ -10,8 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardByteInputFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardInputOrOutputFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -61,8 +65,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -107,8 +113,7 @@ public class SMGCPABuiltins {
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
 
-  // TODO: Properly model printf (dereferences and stuff)
-  // TODO: General modelling system for functions which do not modify state?
+  @SuppressWarnings("unused")
   private static final ImmutableSet<String> BUILTINS =
       ImmutableSet.of(
           "__VERIFIER_BUILTIN_PLOT",
@@ -126,24 +131,18 @@ public class SMGCPABuiltins {
           "__builtin_va_copy",
           "atexit",
           "__CPACHECKER_atexit_next",
-          "fgets",
           "__builtin_popcount",
           "__builtin_popcountl",
           "__builtin_popcountll");
 
   /**
-   * Returns true if the functionName equals a built in function handleable by this class. This
-   * class mostly handles memory related stuff i.e. malloc/free.
+   * Returns true if the functionName equals a built-in function of C.
    *
    * @param functionName name of the function to check.
    * @return true for the specified names, false else.
    */
   boolean isABuiltIn(String functionName) {
-    return (BUILTINS.contains(functionName)
-        || isNondetBuiltin(functionName)
-        || isConfigurableAllocationFunction(functionName)
-        || isDeallocationFunction(functionName)
-        || isExternalAllocationFunction(functionName));
+    return StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -193,7 +192,7 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Routes to the correct function call. Only handles built in functions. If no such function is
+   * Routes to the correct function call. Only handles built-in functions. If no such function is
    * found this returns an unknown value.
    *
    * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
@@ -244,6 +243,15 @@ public class SMGCPABuiltins {
       return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
     }
 
+    if (isStandardByteInputFunction(calledFunctionName)
+        || isStandardWideCharInputFunction(calledFunctionName)) {
+      return handleInputFunctions(pState, cFCExpression, calledFunctionName, pCfaEdge);
+    }
+
+    if (isStandardInputOrOutputFunction(calledFunctionName)) {
+      return checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
+    }
+
     return switch (calledFunctionName) {
       case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
           handlePopcount(calledFunctionName, pState, cFCExpression, pCfaEdge);
@@ -263,7 +271,7 @@ public class SMGCPABuiltins {
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
       }
 
-      case "printf" -> {
+      case "printf" -> { // TODO: collect ALL output functions and handle as bundle
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
@@ -677,6 +685,183 @@ public class SMGCPABuiltins {
     return ImmutableList.of(currentState);
   }
 
+  private List<ValueAndSMGState> checkParamValidityAndReturnUnknown(
+      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, String functionName)
+      throws CPATransferException {
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    for (SMGState checkedState :
+        checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)) {
+      result.add(ValueAndSMGState.ofUnknownValue(checkedState));
+    }
+    return result.build();
+  }
+
+  /**
+   * Checks validity of all input. Returns unknown. Overflows for all input parameters with type
+   * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
+   * is returned by the function, else the pointer of the buffer, with an exception if there are
+   * multiple possible buffers.
+   */
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsAndReturnUnknown(
+      SMGState pState,
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String functionName,
+      boolean returnBufferPointer)
+      throws CPATransferException {
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    // TODO: add failing w option.
+
+    // TODO: If buffer or stream is 0, return 0.
+
+    // TODO: add optional buffer size argument to restrict the buffer overflows
+    //  (if it fits, no overflow) and its overapproximation.
+
+    for (SMGState checkedState :
+        checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)) {
+      Value returnValue = UnknownValue.getInstance();
+      SMGState finalState = checkedState;
+
+      for (CExpression parameter : cFCExpression.getParameterExpressions()) {
+        CType typeOfParam =
+            SMGCPAExpressionEvaluator.getCanonicalType(parameter.getExpressionType());
+
+        if (!typeOfParam.isConst()
+            && typeOfParam.canBeAssignedFrom(CPointerType.POINTER_TO_CONST_CHAR)) {
+          List<ValueAndSMGState> overflowBufferAndState =
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                  .evaluate(parameter, typeOfParam);
+
+          checkState(overflowBufferAndState.size() == 1);
+          finalState = overflowBufferAndState.getFirst().getState();
+
+          if (!returnValue.equals(UnknownValue.getInstance())
+              && !returnValue.isNumericValue()
+              && !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+            // Multiple "buffers" in this function, can't return one, return unknown
+            returnBufferPointer = false;
+            returnValue = UnknownValue.getInstance();
+          } else if (returnBufferPointer
+              && !returnValue.isNumericValue()
+              && !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+            // remember buffer as return value
+            // if its 0, the return value is ALSO 0
+            returnValue = overflowBufferAndState.getFirst().getValue();
+          }
+
+          // Overflow
+          finalState = finalState.withInvalidWrite(overflowBufferAndState.getFirst().getValue());
+
+          // Clean the buffer (i.e. delete all edges)
+          // TODO:
+
+        } else if (typeOfParam instanceof CPointerType) {
+          // STREAM. If 0, return 0.
+          List<ValueAndSMGState> streamPtrAndState =
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                  .evaluate(parameter, typeOfParam);
+
+          checkState(streamPtrAndState.size() == 1);
+          Value streamPointer = streamPtrAndState.getFirst().getValue();
+          finalState = streamPtrAndState.getFirst().getState();
+
+          if (streamPointer.isNumericValue()
+              && streamPointer.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+            returnValue = new NumericValue(0);
+          }
+        }
+      }
+
+      result.add(ValueAndSMGState.of(returnValue, finalState));
+    }
+    return result.build();
+  }
+
+  // TODO: output funs:
+  //  fputwc, fputws, putwc, putwchar, fwprintf, wprintf, vfwprintf, and vwprintf, fputc, fputs,
+  //  printf, vfprintf, vprintf, fprintf, puts, fwrite, putc, putchar
+
+  // TODO: int ungetc(int c, FILE *stream), wint_t ungetwc(wint_t c, FILE *stream):
+  //  Push a character back onto the stream. For success, returns c,
+  //  else ungetc returns EOF; ungetwc returns WEOF.
+
+  /**
+   * Handles input functions like scanf() or sscanf() by overapproximating their behavior.
+   * Parameters are checked for validity and 'char *' buffers cause a buffer-overflow.
+   */
+  private List<ValueAndSMGState> handleInputFunctions(
+      SMGState pState,
+      CFunctionCallExpression functionCallExpr,
+      String functionName,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    // TODO: implement format based checks
+    // For most buffer overflows, we actually only want to allow overflows for formats searching
+    //  for %s, which is a string. The others return their type only once, e.g. 1 number, 1 char.
+    return switch (functionName) {
+      // TODO: getwchar, fwscanf, wscanf, vfwscanf, and vwscanf, vscanf, vfscanf, fread,
+      // TODO: getchar() family
+      // TODO: getch() family
+
+      // TODO: massive overapproximations used here currently! Improve!
+
+      // int scanf(const char * format, ...);
+      // '* const char' format: format to read from file.
+      // ... : additional arguments, i.e. buffers used, may overflow for certain types.
+      // Returns:
+      //  >0: The number of values converted and assigned successfully.
+      //  0: No value was assigned.
+      //  <0: Read error encountered or end-of-file (EOF) reached before any assignment was made.
+      case "scanf" ->
+          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+              pState, pCfaEdge, functionCallExpr, functionName, false);
+
+      // int fscanf(FILE * stream, const char * format, ...);
+      // int sscanf(const char * stream, const char * format, ...);
+      // '* FILE' stream: pointer to file.
+      // '* const char' format: format to read from file.
+      // ... : additional arguments are used to save parsed data, aka the buffers (!overflow for
+      // certain types!)
+      // Alternatives: fscanf_s and fwscanf_s
+      // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
+      case "fscanf", "fwscanf_s", "fscanf_s", "sscanf" ->
+          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+              pState, pCfaEdge, functionCallExpr, functionName, false);
+
+      // fgetwc(FILE *stream) and fgetc(FILE *stream) -> check input, return unknown
+      // getwc(FILE *stream) and getc(FILE *stream) behave the same
+      // int getchar(void); reads a char and returns it.
+      case "fgetwc", "fgetc", "getwc", "getc", "getchar" ->
+          checkParamValidityAndReturnUnknown(pState, pCfaEdge, functionCallExpr, functionName);
+
+      // wchar_t *fgetws(wchar_t *buffer, int n, FILE *stream)
+      // char * fgets(char * buffer, int n, FILE *stream);
+      // modern version of gets() with max size buffer control (with n) etc.
+      // read n-1 chars from stream or until end-of-file or \n is encountered.
+      // Can't overflow it seems -> check validity of input, return buffer ptr and write n unknown
+      //  into buffer (nth is \0).
+      // If buffer or stream is 0, return 0.
+      // TODO: add option that allows this to fail (return 0)
+      // Buffer should be able to hold this number -> else overflow possible!
+      case "fgets", "fgetws" ->
+          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+              pState, pCfaEdge, functionCallExpr, functionName, true);
+
+      // char * gets(char *buffer);  (deprecated in C11)
+      // Returns either a valid address to the read string (i.e. buffer) on success, 0 otherwise.
+      case "gets" ->
+          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+              pState, pCfaEdge, functionCallExpr, functionName, true);
+
+      default ->
+          throw new UnsupportedOperationException(
+              "C function "
+                  + functionName
+                  + " can currently not be handled with this CPA. Origin: "
+                  + functionCallExpr);
+    };
+  }
+
   /**
    * @param pCfaEdge for logging/debugging.
    * @param cFCExpression the {@link CFunctionCallExpression} that lead to this function call.
@@ -702,8 +887,8 @@ public class SMGCPABuiltins {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
-                  "Unknown function '%s' may be unsafe. See the"
-                      + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
+                  "Unknown function '%s' may be unsafe and STRICT handling is enabled. See option"
+                      + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction for more details",
                   cFCExpression));
         }
         logger.log(
