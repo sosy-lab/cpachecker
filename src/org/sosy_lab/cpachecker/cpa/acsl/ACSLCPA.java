@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -79,9 +78,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
     for (CFAEdge edge : node.getEnteringEdges()) {
       Collection<ACSLAnnotation> annotationsForEdge =
-          cfa.getEdgesToAnnotations()
-              .orElse(ImmutableListMultimap.copyOf(LinkedHashMultimap.create()))
-              .get(edge);
+          cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(edge);
       if (usePureExpressionsOnly) {
         ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
         annotationsForEdge =

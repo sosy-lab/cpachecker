@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
@@ -54,9 +53,7 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
     Set<ACSLAnnotation> annotationsForEdge =
         ImmutableSet.copyOf(
-            cfa.getEdgesToAnnotations()
-                .orElse(ImmutableListMultimap.copyOf(LinkedHashMultimap.create()))
-                .get(cfaEdge));
+            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(cfaEdge));
     if (usePureExpressionsOnly) {
       ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
       Set<ACSLAnnotation> annotations =
