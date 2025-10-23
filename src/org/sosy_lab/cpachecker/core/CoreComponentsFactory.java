@@ -481,6 +481,16 @@ public class CoreComponentsFactory {
         && (useBMC || useIMC || useDAR);
   }
 
+  /**
+   * This method can be used in case the factory constructs a new copy of cfa on which it operates.
+   * This way, caller algorithms can get hold of this copy.
+   *
+   * @return cfa used in this instance of the factory
+   */
+  public CFA getCfa() {
+    return cfa;
+  }
+
   public Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {

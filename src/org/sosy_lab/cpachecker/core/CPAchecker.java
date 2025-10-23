@@ -377,7 +377,7 @@ public class CPAchecker {
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+        initializeReachedSet(reached, cpa, factory.getCfa().getMainFunction(), factory.getCfa());
       }
 
       printConfigurationWarnings();
