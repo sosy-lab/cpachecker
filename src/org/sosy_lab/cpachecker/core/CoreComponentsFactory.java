@@ -405,7 +405,7 @@ public class CoreComponentsFactory {
       name = "algorithm.copyCFA",
       description =
           "Copy to a new CFA because of the changes done to CFA in the algorithm."
-              + "If an algorithm modifies given CFA, it is not compatible with other algorithms"
+              + " If an algorithm modifies given CFA, it is not compatible with other algorithms"
               + "in parallel. Hence, it needs its own copy of CFA.")
   private boolean copyCFA = false;
 
