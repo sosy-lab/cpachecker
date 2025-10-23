@@ -32,7 +32,6 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -249,7 +248,8 @@ public class SMGCPABuiltins {
     }
 
     if (isStandardInputOrOutputFunction(calledFunctionName)) {
-      return checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
+      return checkAllParametersForValidityAndReturnUnknownValue(
+          pState, pCfaEdge, cFCExpression, calledFunctionName);
     }
 
     return switch (calledFunctionName) {
@@ -269,15 +269,6 @@ public class SMGCPABuiltins {
       case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, pState);
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      }
-
-      case "printf" -> { // TODO: collect ALL output functions and handle as bundle
-        List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
-        logger.log(
-            Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
-        yield Collections3.transformedImmutableListCopy(
-            checkedStates, ValueAndSMGState::ofUnknownValue);
       }
 
       case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
@@ -621,6 +612,25 @@ public class SMGCPABuiltins {
 
   /**
    * Checks all function parameters for invalid pointer based inputs. To be used in methods that we
+   * only simulate shallowly i.e. print() and returns an unknown value.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge the edge from which this function call originates.
+   * @param cFCExpression the function call expression.
+   * @return a list of states which may include error states.
+   * @throws CPATransferException in case of errors the SMGCPA can not solve.
+   */
+  private List<ValueAndSMGState> checkAllParametersForValidityAndReturnUnknownValue(
+      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, String functionName)
+      throws CPATransferException {
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)
+                .getFirst()));
+  }
+
+  /**
+   * Checks all function parameters for invalid pointer based inputs. To be used in methods that we
    * only simulate shallowly i.e. print().
    *
    * @param pState current {@link SMGState}.
@@ -683,17 +693,6 @@ public class SMGCPABuiltins {
       }
     }
     return ImmutableList.of(currentState);
-  }
-
-  private List<ValueAndSMGState> checkParamValidityAndReturnUnknown(
-      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, String functionName)
-      throws CPATransferException {
-    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
-    for (SMGState checkedState :
-        checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)) {
-      result.add(ValueAndSMGState.ofUnknownValue(checkedState));
-    }
-    return result.build();
   }
 
   /**
@@ -832,7 +831,8 @@ public class SMGCPABuiltins {
       // getwc(FILE *stream) and getc(FILE *stream) behave the same
       // int getchar(void); reads a char and returns it.
       case "fgetwc", "fgetc", "getwc", "getc", "getchar" ->
-          checkParamValidityAndReturnUnknown(pState, pCfaEdge, functionCallExpr, functionName);
+          checkAllParametersForValidityAndReturnUnknownValue(
+              pState, pCfaEdge, functionCallExpr, functionName);
 
       // wchar_t *fgetws(wchar_t *buffer, int n, FILE *stream)
       // char * fgets(char * buffer, int n, FILE *stream);
