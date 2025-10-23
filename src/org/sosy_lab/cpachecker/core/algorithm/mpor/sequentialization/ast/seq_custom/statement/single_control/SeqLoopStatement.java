@@ -13,9 +13,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -34,12 +34,12 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
 
   /**
    * The list of statements inside the loop block. Can be empty to model infinite loops that do
-   * nothing.
+   * nothing. We use {@code String}s so that comments are accepted too.
    */
-  private final ImmutableList<CStatement> statements;
+  private final ImmutableList<String> statements;
 
   /** Use this constructor for an {@code while (...) { ... }} statement. */
-  public SeqLoopStatement(CExpression pWhileExpression, ImmutableList<CStatement> pStatements) {
+  public SeqLoopStatement(CExpression pWhileExpression, ImmutableList<String> pStatements) {
     whileExpression = Optional.of(pWhileExpression);
     forCounterDeclaration = Optional.empty();
     forExpression = Optional.empty();
@@ -56,7 +56,7 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
       CVariableDeclaration pForCounterDeclaration,
       CExpression pForExpression,
       CExpressionAssignmentStatement pForIterationUpdate,
-      ImmutableList<CStatement> pStatements) {
+      ImmutableList<String> pStatements) {
 
     whileExpression = Optional.empty();
     forCounterDeclaration = Optional.of(pForCounterDeclaration);
@@ -81,7 +81,7 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     } else {
       joiner.add(buildForLoopControlFlowPrefix());
     }
-    statements.forEach(statement -> joiner.add(statement.toASTString()));
+    statements.forEach(statement -> joiner.add(statement));
     return joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT).toString();
   }
 
@@ -96,7 +96,8 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     StringJoiner innerJoiner = new StringJoiner(SeqSyntax.SEMICOLON + SeqSyntax.SPACE);
     innerJoiner.add(counterDeclaration.toASTString());
     innerJoiner.add(expression.toASTString());
-    innerJoiner.add(iterationUpdate.toASTString());
+    // exclude the semicolon in the assignment statement
+    innerJoiner.add(iterationUpdate.toASTStringWithoutSemicolon(AAstNodeRepresentation.DEFAULT));
 
     outerJoiner.add(SeqStringUtil.wrapInBrackets(innerJoiner.toString()));
     outerJoiner.add(SeqSyntax.CURLY_BRACKET_LEFT);

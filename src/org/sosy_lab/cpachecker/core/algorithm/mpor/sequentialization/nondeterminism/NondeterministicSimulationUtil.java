@@ -55,9 +55,6 @@ public class NondeterministicSimulationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.loopUnrolling) {
-      return buildThreadSimulationFunctionCalls(pOptions, pFields);
-    }
     return switch (pOptions.nondeterminismSource) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildThreadSimulations(
@@ -99,23 +96,23 @@ public class NondeterministicSimulationUtil {
 
   // Thread Simulation Function Calls ==============================================================
 
-  private static ImmutableList<String> buildThreadSimulationFunctionCalls(
+  public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    ImmutableList.Builder<String> rFunctionCalls = ImmutableList.builder();
+    ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main function call
-    String mainThreadFunctionCall =
-        pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCall();
-    rFunctionCalls.add(mainThreadFunctionCall);
+    CFunctionCallStatement mainThreadFunctionCallStatement =
+        pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCallStatement();
+    rFunctionCalls.add(mainThreadFunctionCallStatement);
     for (int i = 0; i < pOptions.loopIterations; i++) {
       for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
-          rFunctionCalls.add(function.getFunctionCall());
+          rFunctionCalls.add(function.getFunctionCallStatement());
         }
       }
       // end on main thread
-      rFunctionCalls.add(mainThreadFunctionCall);
+      rFunctionCalls.add(mainThreadFunctionCallStatement);
     }
     return rFunctionCalls.build();
   }

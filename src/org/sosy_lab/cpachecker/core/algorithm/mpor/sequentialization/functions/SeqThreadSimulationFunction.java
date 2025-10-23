@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -24,17 +25,17 @@ public class SeqThreadSimulationFunction extends SeqFunction {
 
   private final CIdExpression functionName;
 
-  private final String functionCall;
+  private final CFunctionCallStatement functionCallStatement;
 
   public SeqThreadSimulationFunction(ImmutableList<String> pFunctionBody, MPORThread pThread) {
     functionBody = pFunctionBody;
     functionName = SeqExpressionBuilder.buildThreadSimulationFunctionIdExpression(pThread.getId());
     thread = pThread;
-    functionCall = buildFunctionCallStatement(ImmutableList.of()).toASTString();
+    functionCallStatement = buildFunctionCallStatement(ImmutableList.of());
   }
 
-  public String getFunctionCall() {
-    return functionCall;
+  public CFunctionCallStatement getFunctionCallStatement() {
+    return functionCallStatement;
   }
 
   @Override
