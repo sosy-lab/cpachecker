@@ -1025,7 +1025,7 @@ public class SMGTransferRelation
         return builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
       } else {
         uselessValuesAndStates =
-            builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
+            builtins.handleBuiltinFunctionCall(cFCExpression, calledFunctionName, pState, pCfaEdge);
       }
     } else {
       // Check arguments for unknown functions without body

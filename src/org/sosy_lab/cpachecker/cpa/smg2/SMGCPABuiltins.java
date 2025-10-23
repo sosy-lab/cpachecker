@@ -193,118 +193,111 @@ public class SMGCPABuiltins {
    * Routes to the correct function call. Only handles built-in functions. If no such function is
    * found this returns an unknown value.
    *
-   * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
+   * @param funCallExpr {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
    *     true are left.
    * @param functionName Name of the function.
-   * @param pSmgState current {@link SMGState}.
-   * @param pCfaEdge for logging/debugging.
+   * @param state current {@link SMGState}.
+   * @param cfaEdge for logging/debugging.
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   public List<ValueAndSMGState> handleFunctionCall(
-      CFunctionCallExpression pFunctionCall,
-      String functionName,
-      SMGState pSmgState,
-      CFAEdge pCfaEdge)
+      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
 
     if (isSafeFunction(functionName)) {
-      return handleSafeFunction(functionName, pSmgState, pFunctionCall, pCfaEdge);
+      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
 
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
-        return evaluateConfigurableAllocationFunction(
-            pFunctionCall, functionName, pSmgState, pCfaEdge);
+        return evaluateConfigurableAllocationFunction(funCallExpr, functionName, state, cfaEdge);
       } else {
-        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState);
+        return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
       }
     }
 
-    return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
+    return handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
   }
 
   /**
    * Handle a function call to a builtin function like memcpy.
    *
-   * @param pCfaEdge for logging/debugging.
-   * @param cFCExpression {@link CFunctionCallExpression} that leads to a non memory allocating
+   * @param cfaEdge for logging/debugging.
+   * @param funCallExpr {@link CFunctionCallExpression} that leads to a non memory allocating
    *     builtin function.
-   * @param calledFunctionName The name of the function to be called.
-   * @param pState current {@link SMGState}.
+   * @param functionName The name of the function to be called.
+   * @param state current {@link SMGState}.
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   public List<ValueAndSMGState> handleBuiltinFunctionCall(
-      CFAEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
-      SMGState pState)
+      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    if (isSafeFunction(calledFunctionName)) {
-      return handleSafeFunction(calledFunctionName, pState, cFCExpression, pCfaEdge);
+    if (isSafeFunction(functionName)) {
+      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
 
-    if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
+    if (isExternalAllocationFunction(functionName)) {
+      return evaluateExternalAllocationFunction(funCallExpr, state, functionName);
     }
 
-    if (isStandardByteInputFunction(calledFunctionName)
-        || isStandardWideCharInputFunction(calledFunctionName)) {
-      return handleInputFunctions(pState, cFCExpression, calledFunctionName, pCfaEdge);
+    if (isStandardByteInputFunction(functionName)
+        || isStandardWideCharInputFunction(functionName)) {
+      return handleInputFunctions(state, funCallExpr, functionName, cfaEdge);
     }
 
-    if (isStandardInputOrOutputFunction(calledFunctionName)) {
+    if (isStandardInputOrOutputFunction(functionName)) {
       return checkAllParametersForValidityAndReturnUnknownValue(
-          pState, pCfaEdge, cFCExpression, calledFunctionName);
+          state, cfaEdge, funCallExpr, functionName);
     }
 
-    return switch (calledFunctionName) {
+    return switch (functionName) {
       case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
-          handlePopcount(calledFunctionName, pState, cFCExpression, pCfaEdge);
+          handlePopcount(functionName, state, funCallExpr, cfaEdge);
 
-      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
+      case "alloca", "__builtin_alloca" -> evaluateAlloca(funCallExpr, state, cfaEdge);
 
-      case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
+      case "memset" -> evaluateMemset(funCallExpr, state, cfaEdge);
 
-      case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
+      case "memcpy" -> evaluateMemcpy(funCallExpr, state, cfaEdge);
 
-      case "memcmp" -> evaluateMemcmp(cFCExpression, pState, pCfaEdge);
+      case "memcmp" -> evaluateMemcmp(funCallExpr, state, cfaEdge);
 
-      case "strcmp" -> evaluateStrcmp(cFCExpression, pState, pCfaEdge);
+      case "strcmp" -> evaluateStrcmp(funCallExpr, state, cfaEdge);
 
       case "__VERIFIER_BUILTIN_PLOT" -> {
-        evaluateVBPlot(cFCExpression, pState);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+        evaluateVBPlot(funCallExpr, state);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
 
-      case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
+      case "realloc" -> evaluateRealloc(funCallExpr, state, cfaEdge);
 
-      case "__builtin_va_start" -> evaluateVaStart(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_start" -> evaluateVaStart(funCallExpr, cfaEdge, state);
 
-      case "__builtin_va_arg" -> evaluateVaArg(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_arg" -> evaluateVaArg(funCallExpr, cfaEdge, state);
 
-      case "__builtin_va_copy" -> evaluateVaCopy(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_copy" -> evaluateVaCopy(funCallExpr, cfaEdge, state);
 
-      case "__builtin_va_end" -> evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_end" -> evaluateVaEnd(funCallExpr, cfaEdge, state);
 
-      case "atexit" -> evaluateAtExit(cFCExpression, pCfaEdge, pState);
+      case "atexit" -> evaluateAtExit(funCallExpr, cfaEdge, state);
 
-      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
+      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(state);
 
       default -> {
-        if (isNondetBuiltin(calledFunctionName)) {
+        if (isNondetBuiltin(functionName)) {
           yield Collections.singletonList(
               ValueAndSMGState.ofUnknownValue(
-                  pState,
+                  state,
                   "Returned unknown value due to call to nondeterministic havoc function as defined"
                       + " in SV-COMP ",
-                  pCfaEdge));
+                  cfaEdge));
         } else {
           throw new UnsupportedOperationException(
-              "Unexpected function handled as a builtin: " + calledFunctionName);
+              "Unexpected function handled as a builtin: " + functionName);
         }
       }
     };
