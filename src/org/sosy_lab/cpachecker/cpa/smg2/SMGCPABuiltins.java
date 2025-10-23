@@ -238,6 +238,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isSafeFunction(functionName)) {
+      // Move up to handleFunctionCall and unify
       return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
 
@@ -292,9 +293,7 @@ public class SMGCPABuiltins {
 
       case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(state);
 
-      default ->
-          throw new UnsupportedOperationException(
-              "Unexpected function handled as a builtin: " + functionName);
+      default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
   }
 
