@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
@@ -165,7 +164,7 @@ public class NumStatementsNondeterministicSimulation {
             pBinaryExpressionBuilder);
     // ensure that thread is not at a thread sync location: !sync && !conflict
     CIdExpression syncVariable = pGhostElements.getThreadSyncFlags().getSyncFlag(pActiveThread);
-    SeqLogicalNotExpression notSync = new SeqLogicalNotExpression(syncVariable);
+    CBinaryExpression notSync = pBinaryExpressionBuilder.negateExpressionAndSimplify(syncVariable);
     SeqLogicalAndExpression notSyncAndNotConflict =
         new SeqLogicalAndExpression(notSync, bitVectorEvaluationExpression.negate());
     // the usual bit vector expression is true if there is a conflict

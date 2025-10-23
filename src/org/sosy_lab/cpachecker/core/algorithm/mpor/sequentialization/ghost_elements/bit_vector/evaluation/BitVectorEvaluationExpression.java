@@ -9,19 +9,22 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class BitVectorEvaluationExpression implements SeqExpression {
 
   public final Optional<CBinaryExpression> binaryExpression;
-  // TODO use SeqLogicalExpression here
-  public final Optional<SeqExpression> logicalExpression;
+
+  public final Optional<ExpressionTree<AExpression>> logicalExpression;
 
   public BitVectorEvaluationExpression(
-      Optional<CBinaryExpression> pBinaryExpression, Optional<SeqExpression> pLogicalExpression) {
+      Optional<CBinaryExpression> pBinaryExpression,
+      Optional<ExpressionTree<AExpression>> pLogicalExpression) {
 
     binaryExpression = pBinaryExpression;
     logicalExpression = pLogicalExpression;
@@ -36,7 +39,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
     if (binaryExpression.isPresent()) {
       return binaryExpression.orElseThrow().toASTString();
     } else if (logicalExpression.isPresent()) {
-      return logicalExpression.orElseThrow().toASTString();
+      return logicalExpression.orElseThrow().toString();
     }
     throw new IllegalStateException("both binaryExpression and logicalExpression are empty");
   }
@@ -46,6 +49,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
    * evaluation expression evaluates to {@code true}, then there is no conflict.
    */
   public SeqLogicalNotExpression negate() {
+    // TODO use binaryExpressionBuilder to negate with expression == 0
     if (binaryExpression.isPresent()) {
       return new SeqLogicalNotExpression(binaryExpression.orElseThrow());
     }

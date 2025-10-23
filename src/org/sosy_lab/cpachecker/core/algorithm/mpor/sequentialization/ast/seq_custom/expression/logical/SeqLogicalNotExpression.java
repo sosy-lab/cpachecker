@@ -9,16 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class SeqLogicalNotExpression implements SeqLogicalExpression {
 
   private final Optional<CExpression> operand;
 
-  private final Optional<SeqExpression> logicalOperand;
+  private final Optional<ExpressionTree<AExpression>> logicalOperand;
 
   public SeqLogicalNotExpression(CExpression pOperand) {
     operand = Optional.of(pOperand);
@@ -26,7 +27,7 @@ public class SeqLogicalNotExpression implements SeqLogicalExpression {
   }
 
   /** Use this constructor if the expression is a logical AND, OR, NOT itself. */
-  public SeqLogicalNotExpression(SeqExpression pLogicalOperand) {
+  public SeqLogicalNotExpression(ExpressionTree<AExpression> pLogicalOperand) {
     operand = Optional.empty();
     logicalOperand = Optional.of(pLogicalOperand);
   }
@@ -37,7 +38,7 @@ public class SeqLogicalNotExpression implements SeqLogicalExpression {
     if (operand.isPresent()) {
       expression = operand.orElseThrow().toASTString();
     } else if (logicalOperand.isPresent()) {
-      expression = logicalOperand.orElseThrow().toASTString();
+      expression = logicalOperand.orElseThrow().toString();
     } else {
       throw new IllegalArgumentException(
           "either CExpression or SeqExpression operand must be present");

@@ -8,62 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+// TODO remove
 public class SeqLogicalAndExpression implements SeqLogicalExpression {
 
-  private final Optional<CExpression> operand1;
+  private final CExpression operand1;
 
-  private final Optional<CExpression> operand2;
-
-  private final Optional<SeqExpression> logicalOperand1;
-
-  private final Optional<SeqExpression> logicalOperand2;
-
-  public SeqLogicalAndExpression(CExpression pOperand1, CExpression pOperand2) {
-    operand1 = Optional.of(pOperand1);
-    operand2 = Optional.of(pOperand2);
-    logicalOperand1 = Optional.empty();
-    logicalOperand2 = Optional.empty();
-  }
+  private final SeqExpression operand2;
 
   /** Use this constructor if the expressions are logical AND, OR, NOT themselves. */
-  public SeqLogicalAndExpression(SeqExpression pLogicalOperand1, SeqExpression pLogicalOperand2) {
-    operand1 = Optional.empty();
-    operand2 = Optional.empty();
-    logicalOperand1 = Optional.of(pLogicalOperand1);
-    logicalOperand2 = Optional.of(pLogicalOperand2);
+  public SeqLogicalAndExpression(CExpression pOperand1, SeqExpression pOperand2) {
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String left;
-    String right;
-    if (operand1.isPresent() && operand2.isPresent()) {
-      left = operand1.orElseThrow().toASTString();
-      right = operand2.orElseThrow().toASTString();
-    } else if (logicalOperand1.isPresent() && logicalOperand2.isPresent()) {
-      left = logicalOperand1.orElseThrow().toASTString();
-      right = logicalOperand2.orElseThrow().toASTString();
-    } else {
-      throw new IllegalArgumentException(
-          "either both CExpression or SeqExpression operands must be present");
-    }
-    return SeqSyntax.BRACKET_LEFT
-        + SeqSyntax.BRACKET_LEFT
-        + left
-        + SeqSyntax.BRACKET_RIGHT
-        + SeqSyntax.SPACE
-        + getOperator()
-        + SeqSyntax.SPACE
-        + SeqSyntax.BRACKET_LEFT
-        + right
-        + SeqSyntax.BRACKET_RIGHT
-        + SeqSyntax.BRACKET_RIGHT;
+    return "(" + operand1.toASTString() + " && " + operand2.toASTString() + ")";
   }
 
   @Override
