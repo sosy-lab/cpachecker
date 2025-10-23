@@ -55,7 +55,6 @@ public class DistributedValueAnalysisCPA
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ValueStateCoverageOperator coverageOperator;
   private final FormulaManagerView formulaManager;
-  private final Solver solver;
   static Map<String, ValueAnalysisState> initialState = new HashMap<>();
   static Optional<Map<String, Type>> globals = Optional.empty();
 
@@ -69,7 +68,7 @@ public class DistributedValueAnalysisCPA
       throws InvalidConfigurationException {
     valueCPA = pValueCPA;
     cfa = pCFA;
-    solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
+    Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     serializeOperator = new SerializeValueAnalysisStateOperator();
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pCFA);
