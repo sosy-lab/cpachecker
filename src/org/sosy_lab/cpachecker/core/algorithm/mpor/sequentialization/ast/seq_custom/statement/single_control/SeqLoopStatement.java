@@ -93,9 +93,10 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     StringJoiner outerJoiner = new StringJoiner(SeqSyntax.SPACE);
     outerJoiner.add(SingleControlStatementType.FOR.getKeyword());
 
-    StringJoiner innerJoiner = new StringJoiner(SeqSyntax.SEMICOLON + SeqSyntax.SPACE);
+    StringJoiner innerJoiner = new StringJoiner(SeqSyntax.SPACE);
+    // build the variable declaration without semicolon, it is appended by
     innerJoiner.add(counterDeclaration.toASTString());
-    innerJoiner.add(expression.toASTString());
+    innerJoiner.add(expression.toASTString() + SeqSyntax.SEMICOLON);
     // exclude the semicolon in the assignment statement
     innerJoiner.add(iterationUpdate.toASTStringWithoutSemicolon(AAstNodeRepresentation.DEFAULT));
 

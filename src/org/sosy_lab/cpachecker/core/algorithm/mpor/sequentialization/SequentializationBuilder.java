@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -145,7 +146,9 @@ public class SequentializationBuilder {
       } else if (!MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
         // const CPAchecker_TMP variables are declared and initialized directly in the case.
         // everything else: add declaration without initializer (and assign later in cases)
-        return Optional.of(pLocalVariableDeclaration.toASTStringWithoutInitializer());
+        return Optional.of(
+            pLocalVariableDeclaration.toASTStringWithoutInitializer(AAstNodeRepresentation.DEFAULT)
+                + SeqSyntax.SEMICOLON);
       }
     }
     return Optional.empty();

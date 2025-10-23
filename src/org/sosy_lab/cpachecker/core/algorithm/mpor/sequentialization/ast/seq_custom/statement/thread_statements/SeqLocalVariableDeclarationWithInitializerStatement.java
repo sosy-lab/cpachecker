@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -92,7 +93,9 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return variableDeclaration.toASTStringWithOnlyNameAndInitializer() + SeqSyntax.SPACE + injected;
+    return variableDeclaration.toASTStringWithoutStorageClassAndType(AAstNodeRepresentation.DEFAULT)
+        + SeqSyntax.SPACE
+        + injected;
   }
 
   @Override

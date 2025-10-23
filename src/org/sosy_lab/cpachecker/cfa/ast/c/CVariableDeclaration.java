@@ -89,48 +89,51 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   /**
-   * Only call this method when there is a {@link CInitializer}.
-   *
-   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
-   * yields {@code int x;}.
+   * If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
+   * yields {@code int x}.
    */
-  public String toASTStringWithoutInitializer() {
-    checkArgument(getInitializer() != null, "this instance does not have an initializer");
-    return cStorageClass.toASTString() + getType().toASTString(getName()) + ";";
+  public String toASTStringWithoutInitializer(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return buildStorageClassNameAndTypeASTString(pAAstNodeRepresentation) + ";";
   }
 
   /**
-   * Only call this method when there is a {@link CInitializer}.
-   *
-   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
-   * method yields {@code x = 42;}.
+   * If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
+   * method yields {@code x = 42;}. Note that the initializer does not have to be present.
    */
-  public String toASTStringWithOnlyNameAndInitializer() {
-    // it only makes sense to call this method to extract the assignment without the storage class
-    checkArgument(getInitializer() != null, "this instance does not have an initializer");
-    return getName() + " = " + getInitializer().toASTString() + ";";
+  public String toASTStringWithoutStorageClassAndType(
+      AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    return buildNameASTString(pAAstNodeRepresentation)
+        + buildInitializerASTString(pAAstNodeRepresentation)
+        + ";";
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    StringBuilder lASTString = new StringBuilder();
+    return buildStorageClassNameAndTypeASTString(pAAstNodeRepresentation)
+        + buildInitializerASTString(pAAstNodeRepresentation)
+        + ";";
+  }
 
-    lASTString.append(cStorageClass.toASTString());
-    lASTString.append(
-        switch (pAAstNodeRepresentation) {
-          case DEFAULT -> getType().toASTString(getName());
-          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
-          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
-        });
+  private String buildStorageClassNameAndTypeASTString(
+      AAstNodeRepresentation pAAstNodeRepresentation) {
+    return cStorageClass.toASTString()
+        + getType().toASTString(buildNameASTString(pAAstNodeRepresentation));
+  }
 
+  private String buildNameASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (pAAstNodeRepresentation) {
+      case DEFAULT -> getName();
+      case QUALIFIED -> getQualifiedName().replace("::", "__");
+      case ORIGINAL_NAMES -> getOrigName();
+    };
+  }
+
+  private String buildInitializerASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     if (getInitializer() != null) {
-      lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
+      return " = " + getInitializer().toASTString(pAAstNodeRepresentation);
     }
-
-    lASTString.append(";");
-
-    return lASTString.toString();
+    return "";
   }
 
   @Override
