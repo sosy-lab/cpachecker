@@ -1390,12 +1390,13 @@ public class ExpressionToFormulaVisitor
       if (pointerType.getType().getCanonicalType() instanceof CCompositeType actualType) {
         return actualType.getKind() == ComplexTypeKind.STRUCT
             && actualType.getName().equals("_IO_FILE");
+      } else if (pointerType.getType().getCanonicalType()
+          instanceof CElaboratedType elaboratedType) {
+        // Handle extern declarations of the struct _IO_FILE
+        // For example: `extern struct _IO_FILE stdin;`
+        return elaboratedType.getKind() == ComplexTypeKind.STRUCT
+            && elaboratedType.getOrigName().equals("_IO_FILE");
       }
-    } else if (pType.getCanonicalType() instanceof CElaboratedType elaboratedType) {
-      // Handle extern declarations of the struct _IO_FILE
-      // For example: `extern struct _IO_FILE stdin;`
-      return elaboratedType.getKind() == ComplexTypeKind.STRUCT
-          && elaboratedType.getOrigName().equals("_IO_FILE");
     }
     return false;
   }
