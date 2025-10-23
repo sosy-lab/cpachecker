@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1385,10 +1386,16 @@ public class ExpressionToFormulaVisitor
 
   private boolean isFilePointer(CType pType) {
     if (pType instanceof CPointerType pointerType) {
+      // Handle full declarations of the struct _IO_FILE
       if (pointerType.getType().getCanonicalType() instanceof CCompositeType actualType) {
         return actualType.getKind() == ComplexTypeKind.STRUCT
             && actualType.getName().equals("_IO_FILE");
       }
+    } else if (pType.getCanonicalType() instanceof CElaboratedType elaboratedType) {
+      // Handle extern declarations of the struct _IO_FILE
+      // For example: `extern struct _IO_FILE stdin;`
+      return elaboratedType.getKind() == ComplexTypeKind.STRUCT
+          && elaboratedType.getOrigName().equals("_IO_FILE");
     }
     return false;
   }
