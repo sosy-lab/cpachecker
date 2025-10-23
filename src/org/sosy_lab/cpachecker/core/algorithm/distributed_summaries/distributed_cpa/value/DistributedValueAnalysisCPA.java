@@ -168,14 +168,10 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public ValueAnalysisState getInitialState(CFANode node, StateSpacePartition partition) {
-    if (initialState.containsKey(blockNode.getId())) return initialState.get(blockNode.getId());
     ValueAnalysisState init = new ValueAnalysisState(cfa.getMachineModel());
-    Map<String, Type> accessedVars =
-        DeserializeValueAnalysisStateOperator.getAccessedVariables(blockNode);
+    Map<String, Type> accessedVars = deserializeOperator.getAccessedVariables(blockNode);
     DeserializeValueAnalysisStateOperator.havocVariables(init, globals.get());
     DeserializeValueAnalysisStateOperator.havocVariables(init, accessedVars);
-
-    initialState.put(blockNode.getId(), init);
     return init;
   }
 }

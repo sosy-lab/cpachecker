@@ -45,11 +45,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
-  final Map<String, Type> accessedVariables;
+  static Map<String, Map<String, Type>> accessedVariables = new HashMap<>();
+  private final BlockNode blockNode;
   static Optional<Map<String, Type>> globals = Optional.empty();
 
   public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
-    accessedVariables = getAccessedVariables(pBlockNode);
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -61,7 +62,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     ValueAnalysisState state;
     try {
       state = DssSerializeObjectUtil.deserialize(serializedValue, ValueAnalysisState.class);
-      havocVariables(state, accessedVariables);
+      havocVariables(state, getAccessedVariables(blockNode));
       return state;
 
     } catch (ClassCastException e) {
@@ -83,8 +84,11 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
   }
 
-  public static Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
-    HashMap<String, Type> accessedVariables = new HashMap<>();
+  public Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
+    if (accessedVariables.containsKey(pBlockNode.getId()))
+      return accessedVariables.get(pBlockNode.getId());
+
+    HashMap<String, Type> accessed = new HashMap<>();
     ImmutableSet<CFAEdge> edges = pBlockNode.getEdges();
     List<CExpression> expressions = new ArrayList<>();
 
@@ -127,7 +131,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
               MemoryLocation.forDeclaration(optionalReturnVarDeclaration.get());
           final Type functionReturnType =
               functionEntryNode.getFunctionDefinition().getType().getReturnType();
-          accessedVariables.put(functionReturnVar.getExtendedQualifiedName(), functionReturnType);
+          accessed.put(functionReturnVar.getExtendedQualifiedName(), functionReturnType);
         }
       }
 
@@ -143,8 +147,9 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
                   id -> id.getDeclaration().getQualifiedName(),
                   id -> id.getDeclaration().getType(),
                   (first, second) -> first))
-          .forEach(accessedVariables::putIfAbsent);
+          .forEach(accessed::putIfAbsent);
     }
-    return accessedVariables;
+    accessedVariables.put(pBlockNode.getId(), accessed);
+    return accessed;
   }
 }
