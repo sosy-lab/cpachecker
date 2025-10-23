@@ -895,14 +895,19 @@ public class SMGCPABuiltins {
               pState, pCfaEdge, functionCallExpr, functionName, false, false);
 
       // int fscanf(FILE * stream, const char * format, ...);
-      // int sscanf(const char * stream, const char * format, ...);
       // '* FILE' stream: pointer to file.
       // '* const char' format: format to read from file.
       // ... : additional arguments are used to save parsed data, aka the buffers (!overflow for
       // certain types!)
       // Alternatives: fscanf_s and fwscanf_s
       // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
-      case "fscanf", "fwscanf_s", "fscanf_s", "sscanf" ->
+      case "fscanf", "fwscanf_s", "fscanf_s" ->
+          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+              pState, pCfaEdge, functionCallExpr, functionName, false, false);
+
+      // int sscanf(const char * stream, const char * format, ...);
+      // As fscanf() above, but with string as first arg
+      case "sscanf" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
               pState, pCfaEdge, functionCallExpr, functionName, false, false);
 
