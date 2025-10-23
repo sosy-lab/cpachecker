@@ -464,11 +464,16 @@ class ASTConverter {
       case IASTIdExpression iASTIdExpression -> {
         CExpression exp = convert(iASTIdExpression);
         CType type = exp.getExpressionType();
-        // this id expression is the name of a function. When there is no
-        // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
-        // around it, we create it.
+        // This id expression is the name of a function. If it's not part of a function call, it
+        // must be used as a function pointer, and we add an '&' in front of it (unless there
+        // already is one). Note that no '&' is added if the id is the operand of a sizeOf or
+        // alignOf operator
+        // See §6.3.2.1 (4) in the C11 standard for details
         if (type instanceof CFunctionType
-            && !(isFunctionCallNameExpression(e) || isAddressOfArgument(e))) {
+            && !(isFunctionCallNameExpression(e)
+                || isAddressOfArgument(e)
+                || isSizeOfArgument(e)
+                || isAlignOfArgument(e))) {
           exp =
               new CUnaryExpression(
                   exp.getFileLocation(),
@@ -529,6 +534,20 @@ class ASTConverter {
     return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
         && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
         && unaryOpParent.getOperator() == IASTUnaryExpression.op_amper;
+  }
+
+  private boolean isSizeOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_sizeof;
+  }
+
+  private boolean isAlignOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_alignOf;
   }
 
   enum Condition {
