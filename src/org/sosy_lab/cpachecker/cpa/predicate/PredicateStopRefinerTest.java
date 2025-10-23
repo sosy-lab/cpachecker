@@ -111,14 +111,14 @@ public class PredicateStopRefinerTest {
 
     // Refinement with StopRefiner - termination signal is switched
     boolean stopRefinerResult = delegatingRefiner.performRefinement(reachedSet);
-    assertThat(stopRefinerResult).isFalse();
+    assertThat(stopRefinerResult).isTrue();
     assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
 
     // Refinement with second DummyRefiner - termination signal persists - DummyRefiner is never
     // called
     boolean secondDummyRefinerResult = delegatingRefiner.performRefinement(reachedSet);
     DummyRefiner secondDummyRefiner = (DummyRefiner) refinerRecords.getLast().pRefiner();
-    assertThat(secondDummyRefinerResult).isFalse();
+    assertThat(secondDummyRefinerResult).isTrue();
     assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
     assertThat(secondDummyRefiner.callsToRefiner).isEqualTo(0);
   }
@@ -155,7 +155,7 @@ public class PredicateStopRefinerTest {
     // not called again
     boolean stopRefinerResult = delegatingRefiner.performRefinement(reachedSet);
     cegarAlgorithm.run(reachedSet);
-    assertThat(stopRefinerResult).isFalse();
+    assertThat(stopRefinerResult).isTrue();
     assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
   }
 
@@ -184,7 +184,7 @@ public class PredicateStopRefinerTest {
     // When StopRefiner is called as first refiner, the algorithm's run() method is never executed
     boolean stopRefinerResult = stopOnlyDelegatingRefiner.performRefinement(reachedSet);
     stopCegarAlgorithm.run(reachedSet);
-    assertThat(stopRefinerResult).isFalse();
+    assertThat(stopRefinerResult).isTrue();
     assertThat(stopOnlyDelegatingRefiner.shouldTerminateRefinement()).isTrue();
     assertThat(countCallsToAlgorithmInCEGAR.runCount).isEqualTo(0);
   }

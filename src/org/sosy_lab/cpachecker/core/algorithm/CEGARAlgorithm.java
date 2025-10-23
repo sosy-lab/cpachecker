@@ -99,6 +99,9 @@ public class CEGARAlgorithm
 
   private final CEGARStatistics stats = new CEGARStatistics();
 
+  // boolean flag used by PredicateDelegatingRefiner to stop refinement and return with result
+  // "Unknown"
+  private boolean terminationSignalReceived = false;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
@@ -248,6 +251,11 @@ public class CEGARAlgorithm
           break;
         }
 
+        if (terminationSignalReceived) {
+          status = status.withPrecise(false);
+          break;
+        }
+
         if (refinementNecessary(reached, previousLastState)) {
           // if there is any target state do refinement
           refinementSuccessful = refine(reached);
@@ -309,6 +317,7 @@ public class CEGARAlgorithm
       // PredicateDelegatingRefiner signals an early termination after all heuristics failed by
       // switching the value in shouldTerminateRefinement() from the default false to true
       if (mRefiner.shouldTerminateRefinement()) {
+        terminationSignalReceived = true;
         logger.logf(Level.INFO, "Terminating refinement due to signal from refiner");
       }
 

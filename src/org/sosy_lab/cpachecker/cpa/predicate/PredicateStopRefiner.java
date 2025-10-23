@@ -25,11 +25,11 @@ public class PredicateStopRefiner implements Refiner {
    * of Refiner interface.
    *
    * @param pReached the current reached set (unused)
-   * @return {@code false} as no refinement was performed
+   * @return {@code true} as no refinement was performed, but also no error was found
    */
   @Override
   public boolean performRefinement(ReachedSet pReached) {
-    return false;
+    return true;
   }
 
   /**
