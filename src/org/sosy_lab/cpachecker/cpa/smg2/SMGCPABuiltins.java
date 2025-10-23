@@ -30,7 +30,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -209,6 +208,11 @@ public class SMGCPABuiltins {
       SMGState pSmgState,
       CFAEdge pCfaEdge)
       throws CPATransferException {
+
+    if (isSafeFunction(functionName)) {
+      return handleSafeFunction(functionName, pSmgState, pFunctionCall, pCfaEdge);
+    }
+
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(
@@ -217,6 +221,7 @@ public class SMGCPABuiltins {
         return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState);
       }
     }
+
     return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
   }
 
@@ -237,6 +242,10 @@ public class SMGCPABuiltins {
       String calledFunctionName,
       SMGState pState)
       throws CPATransferException {
+
+    if (isSafeFunction(calledFunctionName)) {
+      return handleSafeFunction(calledFunctionName, pState, cFCExpression, pCfaEdge);
+    }
 
     if (isExternalAllocationFunction(calledFunctionName)) {
       return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
@@ -861,59 +870,54 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * @param pCfaEdge for logging/debugging.
-   * @param cFCExpression the {@link CFunctionCallExpression} that lead to this function call.
-   * @param calledFunctionName The name of the function to be called.
-   * @param pState current {@link SMGState}.
+   * @param cfaEdge for logging/debugging.
+   * @param funCallExpr the {@link CFunctionCallExpression} that lead to this function call.
+   * @param functionName The name of the function to be called.
+   * @param state current {@link SMGState}.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid {@link Value}s and {@link
    *     SMGState}s, or unknown Values and maybe error states. Depending on the safety of the
    *     function/config.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> handleUnknownFunction(
-      CFAEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
-      SMGState pState)
+      CFAEdge cfaEdge, CFunctionCallExpression funCallExpr, String functionName, SMGState state)
       throws CPATransferException {
+
+    if (isSafeFunction(functionName)) {
+      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
+    }
+
     // This mostly returns unknown if it does not find a function to handle
-    if (calledFunctionName.contains("pthread")) {
+    if (functionName.contains("pthread")) {
       throw new SMGException("Concurrency analysis not supported in this configuration.");
     }
+
     return switch (options.getHandleUnknownFunctions()) {
-      case STRICT -> {
-        if (!isSafeFunction(calledFunctionName)) {
+      case STRICT ->
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe and STRICT handling is enabled. See option"
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction for more details",
-                  cFCExpression));
-        }
-        logger.log(
-            Level.FINE,
-            "Returned unknown value for strict handling of unknown functions, but flagged as safe"
-                + " unknown function: "
-                + cFCExpression,
-            pCfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      }
+                  funCallExpr));
+
       case ASSUME_SAFE -> {
         logger.log(
             Level.FINE,
-            "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
-            pCfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+            "Returned unknown value for assumed to be safe unknown function " + funCallExpr,
+            cfaEdge);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
+
       case ASSUME_EXTERNAL_ALLOCATED -> {
         ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
+            checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
           logger.log(
               Level.FINE,
-              "Returned unknown value with allocated memory for unknown function " + cFCExpression,
-              pCfaEdge);
+              "Returned unknown value with allocated memory for unknown function " + funCallExpr,
+              cfaEdge);
           builder.addAll(
-              evaluateExternalAllocationFunction(cFCExpression, checkedState, calledFunctionName));
+              evaluateExternalAllocationFunction(funCallExpr, checkedState, functionName));
         }
         yield builder.build();
       }
@@ -1333,18 +1337,31 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks for known safe functions and returns true if the entered function name is one.
+   * Checks for known safe functions and returns true if the entered function is one. Functions that
+   * are always considered as safe are not evaluated, even if known to the analysis, nor are their
+   * inputs checked for validity. They always return a new, unknown value and therefore
+   * overapproximate if their signature does not return void.
    *
    * @param calledFunctionName name of the called function to be checked.
    * @return true is the function is safe, false else.
    */
   private boolean isSafeFunction(String calledFunctionName) {
-    for (String safeUnknownFunctionPattern : options.getSafeUnknownFunctions()) {
-      if (Pattern.compile(safeUnknownFunctionPattern).matcher(calledFunctionName).matches()) {
-        return true;
-      }
-    }
-    return false;
+    return options.getSafeUnknownFunctions().contains(calledFunctionName);
+  }
+
+  private List<ValueAndSMGState> handleSafeFunction(
+      String calledFunctionName,
+      SMGState pState,
+      CFunctionCallExpression cFCExpression,
+      CFAEdge pCfaEdge) {
+    logger.log(
+        Level.FINE,
+        "Returned unknown value for C function "
+            + calledFunctionName
+            + " flagged as safe, located at "
+            + cFCExpression,
+        pCfaEdge);
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
   }
 
   /**
