@@ -12,37 +12,36 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
 
-<benchmark tool="cpachecker"  hardtimelimit="10s" memlimit="12000 MB" limitcores="-1">
+<benchmark tool="cpachecker"  hardtimelimit="90s" memlimit="6000 MB" limitcores="2">
 
 
   <option name="--no-output-files"/>
   <option name="--heap">11000M</option>
   <option name="--testCaseGeneration-valueAnalysis-NoCegar"/> 
-  <option name="--preprocess"/>
   
   <!--
-  
   <propertyfile>../../config/properties/coverage-branches.prp</propertyfile>
   -->
   <rundefinition/>  
 
-  <tasks name="ECA">
-   <!--        
+
+  <tasks name="termination-numeric-e">
+    <includesfile>../../../sv-benchmarks/c/ControlFlow-Termination1.set</includesfile>
+  </tasks>    
+
+  <!--          
+   <tasks name="Bitvectors-Termination">
    <propertyfile>../programs/benchmarks/properties/coverage-branches.prp</propertyfile>
    <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>   	
    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
    <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>   
    <includesfile>../programs/benchmarks/ECA.set</includesfile>
    -->
-   
-   <propertyfile>../programs/benchmarks/properties/coverage-branches.prp</propertyfile>
-   <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
 
    <!--
-   <withoutfile>doc/examples/example-jens.c</withoutfile>    
+       <withoutfile>doc/examples/example-jens.c</withoutfile>
+  </tasks>       
    -->
-
-  </tasks>
 
   <columns>
 
@@ -52,14 +51,15 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- CPA algorithm statistics -->
     <column title="iterations" >Number of iterations</column>
-    <column title="total time CPAA" numberOfDigits="3">Total time for CPA algorithm</column>    
+    <column title="total time CPAA">Total time for CPA algorithm</column>
+    
     <!-- Counterexample-Check Algorithm statistics -->
     <column title="Cex checks" >Number of counterexample checks</column>
     <column title="Failed cex checks" >Number of infeasible paths</column>
-    <column title="Time for cex checks" numberOfDigits="3">Time for counterexample checks</column>
+    <column title="Time for cex checks">Time for counterexample checks</column>
 
     <!-- Testtargets statistics -->
-    <column title="Test target coverage" numberOfDigits="2">Test target coverage</column>        <column title="Test targets" >Number of total original test targets</column>
+    <column title="Test target coverage">Test target coverage</column>        <column title="Test targets" >Number of total original test targets</column>
     <column title="Covered targets" >Number of covered test targets</column>
 
     <!-- Code Coverage -->
@@ -74,17 +74,19 @@ SPDX-License-Identifier: Apache-2.0
     <column title="Loops" >Number of loops (and loop nodes)</column>
     <column title="Size of reached" >Size of reached set</column>
     <column title="Reached functions" >Number of reached functions</column>
-    <column title="Time for Analysis" numberOfDigits="3">Time for Analysis</column>
-    <column title="CPU time for analysis" numberOfDigits="3">CPU time for analysis</column>
-    <column title="Total time cpachecker" numberOfDigits="3">Total time for CPAchecker</column>
-    <column title="Total CPU time for CPAchecker" numberOfDigits="3">Total CPU time for CPAchecker</column>    
+
+    
+    <column title="Time for Analysis">Time for Analysis</column>
+    <column title="CPU time for analysis">CPU time for analysis</column>
+    <column title="Total time cpachecker">Total time for CPAchecker</column>
+    <column title="Total CPU time for CPAchecker">Total CPU time for CPAchecker</column>    
     <column title="Total process virtual memory" >Total process virtual memory</column>
 
     <!--
-    <column title="" numberOfDigits="3"></column>
+    <column title=""></column>
     <column title="" ></column>
     -->
     
-  </columns>
-  
+  </columns>  
+   
 </benchmark>
