@@ -12,6 +12,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,9 +41,21 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
+    Map<LocationState, Map<Integer, Set<Formula>>> newStoredValuesMap = new HashMap<>();
+    Map<LocationState, Map<Integer, Set<Formula>>> oldStoredValuesMap =
+        terminationState.getStoredValues();
+    for (LocationState locationState : oldStoredValuesMap.keySet()) {
+      newStoredValuesMap.put(locationState, new HashMap<>());
+      for (Entry<Integer, Set<Formula>> storedValues :
+          oldStoredValuesMap.get(locationState).entrySet()) {
+        newStoredValuesMap
+            .get(locationState)
+            .put(storedValues.getKey(), new HashSet<>(storedValues.getValue()));
+      }
+    }
     return Collections.singleton(
         new TerminationToReachState(
-            new HashMap<>(terminationState.getStoredValues()),
+            newStoredValuesMap,
             new HashMap<>(terminationState.getNumberOfIterationsMap()),
             new HashMap<>(terminationState.getPathFormulas())));
   }
