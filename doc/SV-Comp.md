@@ -20,6 +20,7 @@ Steps used to generate new SV-Comp configurations (might be incomplete, update a
 - check file differences to make sure no additional edits are done, e.g. using `diff -u2 -r --ignore-matching-lines=SPDX-FileCopyrightText` on all edited files
 - important: run the old, new, and unmaintained competition configuration on the entire set of SV-COMP XX and check that their results match
 - change the configuration names in all benchmark definitions in `test/test-sets` from svcompXX to svcompYY 
+- change the configuration ran in `scripts/smoketest.sh` to be executed with the latest svcomp config
 
 Example commands to copy, rename and sanity check from svcomp25 to svcomp26:
 (Add more folders with svcomp configurations when necessary!)

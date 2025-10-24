@@ -14,7 +14,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
@@ -286,5 +289,25 @@ public class BuiltinFunctions {
     }
     throw new IllegalArgumentException(
         "Builtin function '" + pFunctionName + "' is not a popcount function'");
+  }
+
+  /**
+   * Returns true for pointers towards FILE types, i.e. 'FILE *'. The FILE object type checked is
+   * according to the definition used by GNU (GCC) compiler, and is capable of recording all the
+   * information needed to control a stream, e.g. after opening a file. More information can be
+   * found in the C11 standard sections 7.21.1 and 7.21.3 and the GCC header stdio.h. This might not
+   * work for definitions of FILE that are distinct to the one used in GCC!
+   */
+  public static boolean isFilePointer(CType pType) {
+    if (pType instanceof CPointerType pointerType) {
+      if (pointerType.getType().getCanonicalType() instanceof CComplexType actualType) {
+        // We use CComplexType here instead of CStructType, because _IO_FILE may be defined
+        // externally i.e. `extern struct _IO_FILE *stdin;` or fully as a
+        // `struct _IO_FILE { ... }`.
+        return actualType.getKind() == ComplexTypeKind.STRUCT
+            && actualType.getName().equals("_IO_FILE");
+      }
+    }
+    return false;
   }
 }
