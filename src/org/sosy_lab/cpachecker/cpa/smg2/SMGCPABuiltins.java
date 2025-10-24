@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -699,7 +700,8 @@ public class SMGCPABuiltins {
    * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
    * is returned by the function, else the pointer of the buffer, with an exception if there are
    * multiple possible buffers. Also uses the size argument for the buffer for
-   * usesBufferSizeArgument true.
+   * usesBufferSizeArgument true. This method expects NO format specifier to be used in the calling
+   * method!
    *
    * @param returnBufferPointer if true: tries to return the buffer pointer on success.
    * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
@@ -712,6 +714,37 @@ public class SMGCPABuiltins {
       String functionName,
       boolean returnBufferPointer,
       boolean usesBufferSizeArgument)
+      throws CPATransferException {
+    return checkParamValidityWithBufferOverflowsAndReturnUnknown(
+        pState,
+        pCfaEdge,
+        cFCExpression,
+        functionName,
+        returnBufferPointer,
+        usesBufferSizeArgument,
+        Optional.empty());
+  }
+
+  /**
+   * Checks validity of all input. Returns unknown. Overflows for all input parameters with type
+   * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
+   * is returned by the function, else the pointer of the buffer, with an exception if there are
+   * multiple possible buffers. Also uses the size argument for the buffer for
+   * usesBufferSizeArgument true.
+   *
+   * @param returnBufferPointer if true: tries to return the buffer pointer on success.
+   * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
+   *     the size given here is read into the buffer (-1 for terminating null char).
+   * @param formatArgumentIndex if present, index of format specifier. Else no format spec expected!
+   */
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsAndReturnUnknown(
+      SMGState pState,
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String functionName,
+      boolean returnBufferPointer,
+      boolean usesBufferSizeArgument,
+      Optional<Integer> formatArgumentIndex)
       throws CPATransferException {
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     // TODO: add failing w option.
@@ -744,6 +777,12 @@ public class SMGCPABuiltins {
         checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName)) {
       Value returnValue = UnknownValue.getInstance();
       SMGState finalState = checkedState;
+
+      // Potentially the size of the input poured into any string buffer.
+      // The buffer size argument might cut this down! Or there might be no format.
+      Optional<Value> sizeFillingStringBuffersInBits = Optional.empty();
+      // stringFormatSpecifierUsed only makes sense if formatArgumentIndex is non-empty!
+      boolean stringFormatSpecifierUsed = false;
 
       for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
         CExpression argument = cFCExpression.getParameterExpressions().get(arg);
@@ -873,15 +912,79 @@ public class SMGCPABuiltins {
               && streamPointer.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
             returnValue = new NumericValue(0);
           }
-          // TODO: add solver handling for the same check
+          // TODO: add solver handling for the same check. This is unsound currently!
 
-        } else if (functionParameterType.isConst()
-            && functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
-          // format specifiers
-          // TODO:
-          System.out.println();
+        } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
+          // format specifiers OR input string!
+          if (formatArgumentIndex.isEmpty() || formatArgumentIndex.orElseThrow() != arg) {
+            // Input string that is read from. Remember the size we can read!
+            // (first argument only! Else this method is used or set-up wrongly!)
+            checkArgument(arg == 0);
+
+            List<ValueAndSMGState> inputStringBufferAndState =
+                new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                    .evaluate(argument, argumentType);
+
+            checkState(inputStringBufferAndState.size() == 1);
+            finalState = inputStringBufferAndState.getFirst().getState();
+
+            Value stringBufferValue = inputStringBufferAndState.getFirst().getValue();
+            Value stringBuffOffsetInBits = new NumericValue(0);
+            if (stringBufferValue instanceof AddressExpression stringBuffAddrExpr) {
+              stringBufferValue = stringBuffAddrExpr.getMemoryAddress();
+              stringBuffOffsetInBits = stringBuffAddrExpr.getOffset();
+            }
+
+            checkArgument(!returnBufferPointer); // If fails, check and add functionality
+            List<SMGStateAndOptionalSMGObjectAndOffset> maybeBufferObjects =
+                finalState.dereferencePointer(stringBufferValue);
+            checkState(maybeBufferObjects.size() == 1);
+            SMGStateAndOptionalSMGObjectAndOffset maybeStringObjAndInfo =
+                maybeBufferObjects.getFirst();
+            checkState(maybeStringObjAndInfo.hasSMGObjectAndOffset());
+            finalState = maybeStringObjAndInfo.getSMGState();
+            Value objOffsetInBits = maybeStringObjAndInfo.getOffsetForObject();
+            SMGObject stringBufferObj = maybeStringObjAndInfo.getSMGObject();
+            checkState(sizeFillingStringBuffersInBits.isEmpty());
+
+            sizeFillingStringBuffersInBits =
+                Optional.of(
+                    evaluator.subtractBitOffsetValues(
+                        stringBufferObj.getSize(),
+                        evaluator.addBitOffsetValues(
+                            evaluator.addBitOffsetValues(
+                                objOffsetInBits, stringBufferObj.getOffset()),
+                            stringBuffOffsetInBits)));
+
+          } else if (formatArgumentIndex.orElseThrow() == arg
+              && argument instanceof CStringLiteralExpression stringArg) {
+            // Format string, if there is an %s in there, we read a string. Remember where and use
+            // for buffer later on
+            if (stringArg.getContentWithoutNullTerminator().contains("%s")) {
+              // List<String> splitSpecifiers =
+              // Splitter.on('%').splitToList(stringArg.getContentWithoutNullTerminator());
+              // splitSpecifiers now consists of a specifier as first char, potentially followed by
+              // spaces. We might be able to make this method more precise for concrete input when
+              // taking this into account.
+              // for (int i = 0; i < splitSpecifiers.size(); i++) {
+              // ...
+              // }
+              stringFormatSpecifierUsed = true;
+            }
+
+          } else {
+            throw new SMGException(
+                "Unexpected unhandled type argument "
+                    + functionParameterType
+                    + "in C input function call "
+                    + functionName
+                    + "() in "
+                    + pCfaEdge);
+          }
+
         } else if (argumentType instanceof CPointerType) {
-          // Other buffers. Just empty them.
+          // Other buffers. Just empty them, except for char * and a previous %s specifier, those
+          // can overflow if smaller than input allows, but also need to be emptied
           List<ValueAndSMGState> bufferAndState =
               new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
                   .evaluate(argument, argumentType);
@@ -889,12 +992,23 @@ public class SMGCPABuiltins {
           checkState(bufferAndState.size() == 1);
           finalState = bufferAndState.getFirst().getState();
           Value bufferAddress = bufferAndState.getFirst().getValue();
-          if (bufferAddress instanceof AddressExpression addrExpr) {
-            bufferAddress = addrExpr.getMemoryAddress();
-            checkState(isNumericZero(addrExpr.getOffset()));
+          // Make buffer unknown
+          if (formatArgumentIndex.isPresent() && sizeFillingStringBuffersInBits.isPresent()) {
+            // If sizeFillingStringBuffersInBits is empty, means we don't know the size ->
+            // overapproximate
+            finalState =
+                finalState.copyAndRemoveAllEdgesFrom(
+                    bufferAddress, sizeFillingStringBuffersInBits.orElseThrow());
+          } else {
+            finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
           }
 
-          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
+          // Handle overflow for strings
+          if (formatArgumentIndex.isPresent() && stringFormatSpecifierUsed) {
+            // TODO: if buffersize < sizeFillingStringBuffersInBits -> overflow
+            // if (sizeFillingStringBuffersInBits.isPresent()) {
+            finalState = finalState.withInvalidWrite(bufferAddress);
+          }
         }
       }
 
@@ -940,7 +1054,7 @@ public class SMGCPABuiltins {
       //  <0: Read error encountered or end-of-file (EOF) reached before any assignment was made.
       case "scanf" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, false, false);
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(0));
 
       // int fscanf(FILE * stream, const char * format, ...);
       // '* FILE' stream: pointer to file.
@@ -951,13 +1065,13 @@ public class SMGCPABuiltins {
       // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
       case "fscanf", "fwscanf_s", "fscanf_s" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, false, false);
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
 
       // int sscanf(const char * stream, const char * format, ...);
       // As fscanf() above, but with string as first arg
       case "sscanf" ->
           checkParamValidityWithBufferOverflowsAndReturnUnknown(
-              pState, pCfaEdge, functionCallExpr, functionName, false, false);
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
 
       // fgetwc(FILE *stream) and fgetc(FILE *stream) -> check input, return unknown
       // getwc(FILE *stream) and getc(FILE *stream) behave the same
