@@ -262,7 +262,7 @@ public class NondeterministicSimulationUtil {
             roundSmallerMax,
             roundIncrement,
             Objects.requireNonNull(target).getFirstBlock().getLabel());
-    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
+    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
   }
 
   private static ASeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
@@ -279,7 +279,7 @@ public class NondeterministicSimulationUtil {
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(roundSmallerMax, roundIncrement, pTargetGoto);
-    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
+    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
   }
 
   // sync injections ===============================================================================
@@ -338,6 +338,6 @@ public class NondeterministicSimulationUtil {
     SeqSyncUpdateStatement syncUpdate =
         new SeqSyncUpdateStatement(
             SeqStatementBuilder.buildExpressionAssignmentStatement(pSyncVariable, value));
-    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(syncUpdate));
+    return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, syncUpdate);
   }
 }

@@ -87,7 +87,7 @@ public class SeqAtomicEndStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqAtomicEndStatement(
         options,
         pcLeftHandSide,
@@ -98,7 +98,7 @@ public class SeqAtomicEndStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAtomicEndStatement(
         options,
         pcLeftHandSide,
@@ -109,29 +109,11 @@ public class SeqAtomicEndStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicEndStatement(
-        options,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqAtomicEndStatement(
-        options,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        options, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

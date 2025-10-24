@@ -74,27 +74,19 @@ public class SeqBlankStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqBlankStatement withTargetPc(int pTargetPc) {
     return new SeqBlankStatement(
         options, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
-
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have injected statements");
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     throw new UnsupportedOperationException(
         this.getClass().getName() + " do not have injected statements");

@@ -109,7 +109,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
   }
 
   @Override
-  public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqLocalVariableDeclarationWithInitializerStatement withTargetPc(int pTargetPc) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         options,
         variableDeclaration,
@@ -121,7 +121,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         options,
         variableDeclaration,
@@ -133,8 +133,8 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         options,
@@ -143,21 +143,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqLocalVariableDeclarationWithInitializerStatement(
-        options,
-        variableDeclaration,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

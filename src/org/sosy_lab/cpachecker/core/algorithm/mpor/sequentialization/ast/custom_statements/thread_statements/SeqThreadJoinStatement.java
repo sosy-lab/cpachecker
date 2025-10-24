@@ -141,7 +141,7 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqThreadJoinStatement withTargetPc(int pTargetPc) {
     return new SeqThreadJoinStatement(
         options,
         joinedThreadExitVariable,
@@ -154,7 +154,7 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadJoinStatement(
         options,
         joinedThreadExitVariable,
@@ -167,8 +167,8 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
         options,
@@ -178,22 +178,7 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqThreadJoinStatement(
-        options,
-        joinedThreadExitVariable,
-        joinedThreadNotActive,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

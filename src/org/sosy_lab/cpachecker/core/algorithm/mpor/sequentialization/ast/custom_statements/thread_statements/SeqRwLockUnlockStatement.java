@@ -101,7 +101,7 @@ public class SeqRwLockUnlockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqRwLockUnlockStatement(
         options,
         rwLockFlags,
@@ -113,7 +113,7 @@ public class SeqRwLockUnlockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqRwLockUnlockStatement(
         options,
         rwLockFlags,
@@ -125,8 +125,8 @@ public class SeqRwLockUnlockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqRwLockUnlockStatement(
         options,
@@ -135,21 +135,7 @@ public class SeqRwLockUnlockStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements) {
-
-    return new SeqRwLockUnlockStatement(
-        options,
-        rwLockFlags,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendingInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

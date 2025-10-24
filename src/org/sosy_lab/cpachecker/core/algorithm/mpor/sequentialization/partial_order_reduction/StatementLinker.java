@@ -102,7 +102,7 @@ public class StatementLinker {
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(pOptions, pCurrentStatement, newTarget, pLabelBlockMap, pMemoryModel)) {
         pLinkedTargetIds.add(newTarget.id);
-        return pCurrentStatement.cloneWithTargetGoto(newTarget.getFirstBlock().getLabel());
+        return pCurrentStatement.withTargetGoto(newTarget.getFirstBlock().getLabel());
       }
     }
     return pCurrentStatement;

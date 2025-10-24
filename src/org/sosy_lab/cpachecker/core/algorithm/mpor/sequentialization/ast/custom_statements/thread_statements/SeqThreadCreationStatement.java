@@ -156,7 +156,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqThreadCreationStatement withTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
@@ -171,7 +171,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
@@ -186,8 +186,8 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadCreationStatement(
         options,
@@ -199,24 +199,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqThreadCreationStatement(
-        options,
-        startRoutineArgAssignment,
-        createdThread,
-        creatingThread,
-        bitVectorInitializations,
-        pcVariables,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

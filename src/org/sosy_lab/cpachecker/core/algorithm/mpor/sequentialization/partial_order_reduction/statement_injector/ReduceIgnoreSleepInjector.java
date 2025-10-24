@@ -67,7 +67,7 @@ class ReduceIgnoreSleepInjector {
                   evaluationExpression,
                   newTarget,
                   pUtils.getBinaryExpressionBuilder());
-          return pCurrentStatement.cloneReplacingInjectedStatements(
+          return pCurrentStatement.withInjectedStatements(
               replaceReductionAssumptions(
                   pCurrentStatement.getInjectedStatements(), ignoreSleepReductionStatement));
         }

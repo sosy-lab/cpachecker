@@ -212,7 +212,7 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqConstCpaCheckerTmpStatement withTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
@@ -226,7 +226,7 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
@@ -240,8 +240,8 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
         options,
@@ -252,23 +252,7 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqConstCpaCheckerTmpStatement(
-        options,
-        constCpaCheckerTmpDeclaration,
-        firstSuccessorEdge,
-        secondSuccessorEdge,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

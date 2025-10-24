@@ -349,13 +349,28 @@ public class SeqThreadStatementUtil {
 
   // Helper ========================================================================================
 
-  static ImmutableList<SeqInjectedStatement> appendInjectedStatements(
-      ASeqThreadStatement pStatement,
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+  public static ASeqThreadStatement appendedInjectedStatementsToStatement(
+      ASeqThreadStatement pStatement, ImmutableList<SeqInjectedStatement> pAppended) {
+
+    return pStatement.withInjectedStatements(
+        appendInjectedStatements(pStatement.getInjectedStatements(), pAppended));
+  }
+
+  public static ASeqThreadStatement appendedInjectedStatementsToStatement(
+      ASeqThreadStatement pStatement, SeqInjectedStatement... pAppended) {
+
+    return pStatement.withInjectedStatements(
+        appendInjectedStatements(
+            pStatement.getInjectedStatements(), ImmutableList.copyOf(pAppended)));
+  }
+
+  private static ImmutableList<SeqInjectedStatement> appendInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pExistingStatements,
+      ImmutableList<SeqInjectedStatement> pAppendedStatements) {
 
     return ImmutableList.<SeqInjectedStatement>builder()
-        .addAll(pStatement.getInjectedStatements())
-        .addAll(pAppendedInjectedStatements)
+        .addAll(pExistingStatements)
+        .addAll(pAppendedStatements)
         .build();
   }
 

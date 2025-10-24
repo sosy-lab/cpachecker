@@ -120,7 +120,7 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqCondWaitStatement(
         options,
         condSignaledFlag,
@@ -133,7 +133,7 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondWaitStatement(
         options,
         condSignaledFlag,
@@ -146,8 +146,8 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqCondWaitStatement(
         options,
@@ -157,22 +157,7 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements) {
-
-    return new SeqCondWaitStatement(
-        options,
-        condSignaledFlag,
-        mutexLockedFlag,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendingInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

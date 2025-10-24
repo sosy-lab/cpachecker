@@ -225,14 +225,14 @@ public class SeqThreadStatementClauseUtil {
           SeqThreadStatementClauseUtil.replaceTargetGotoLabel(
               pCurrentStatement.getInjectedStatements(), blockIndex);
       return pCurrentStatement
-          .cloneWithTargetPc(clauseIndex)
-          .cloneReplacingInjectedStatements(replacingInjectedStatements);
+          .withTargetPc(clauseIndex)
+          .withInjectedStatements(replacingInjectedStatements);
 
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
       int index = Objects.requireNonNull(pLabelBlockMap.get(label.getNumber()));
-      return pCurrentStatement.cloneWithTargetGoto(label.cloneWithLabelNumber(index));
+      return pCurrentStatement.withTargetGoto(label.cloneWithLabelNumber(index));
     }
     // no target pc or target goto -> no replacement
     return pCurrentStatement;

@@ -108,7 +108,7 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqMutexLockStatement withTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(
         options,
         mutexLockedFlag,
@@ -120,7 +120,7 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexLockStatement(
         options,
         mutexLockedFlag,
@@ -132,8 +132,8 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(
         options,
@@ -142,21 +142,7 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqMutexLockStatement(
-        options,
-        mutexLockedFlag,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
@@ -98,8 +99,8 @@ class ReduceLastThreadOrderInjector {
         SeqConflictOrderStatement conflictOrderStatement =
             new SeqConflictOrderStatement(
                 pActiveThread, lastBitVectorEvaluation, pUtils.getBinaryExpressionBuilder());
-        return pStatement.cloneAppendingInjectedStatements(
-            ImmutableList.of(conflictOrderStatement));
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, conflictOrderStatement);
       }
     }
     // no conflict order injected
@@ -125,7 +126,9 @@ class ReduceLastThreadOrderInjector {
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(lastThreadExit, ImmutableList.of());
-        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(lastUpdateStatement));
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, lastUpdateStatement);
+
       } else {
         // for all other target pc, set last_thread to current thread id and update last bitvectors
         CExpressionAssignmentStatement lastThreadUpdate =
@@ -137,7 +140,8 @@ class ReduceLastThreadOrderInjector {
                 lastThreadUpdate,
                 buildLastAccessBitVectorUpdatesByEncoding(
                     pOptions, pActiveThread, pBitVectorVariables));
-        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(lastUpdateStatement));
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, lastUpdateStatement);
       }
     } else {
       // no valid target pc -> no conflict order required

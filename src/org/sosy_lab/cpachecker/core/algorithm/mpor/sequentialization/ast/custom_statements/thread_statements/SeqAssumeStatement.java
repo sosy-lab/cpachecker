@@ -120,7 +120,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqAssumeStatement withTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
         options,
         branchType,
@@ -133,7 +133,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
         branchType,
@@ -146,8 +146,8 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAssumeStatement(
         options,
@@ -157,22 +157,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqAssumeStatement(
-        options,
-        branchType,
-        ifExpression,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override

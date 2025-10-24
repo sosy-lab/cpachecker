@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
@@ -55,7 +56,9 @@ public class BitVectorAssignmentInjector {
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets =
             buildBitVectorResets(pOptions, pActiveThread, pBitVectorVariables, pMemoryModel);
         newInjected.addAll(bitVectorResets);
-        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pCurrentStatement, newInjected.build());
+
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -70,7 +73,8 @@ public class BitVectorAssignmentInjector {
                 pBitVectorVariables,
                 pMemoryModel);
         newInjected.addAll(bitVectorAssignments);
-        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pCurrentStatement, newInjected.build());
       }
     }
     // no injection possible -> return statement as is

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -282,8 +283,9 @@ public class NumStatementsNondeterministicSimulation {
       CExpressionAssignmentStatement countIncrement =
           SeqStatementBuilder.buildIncrementStatement(
               SeqIdExpressions.CNT, pBinaryExpressionBuilder);
-      SeqCountUpdateStatement countUpdate = new SeqCountUpdateStatement(countIncrement);
-      return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(countUpdate));
+      SeqCountUpdateStatement countIncrementStatement = new SeqCountUpdateStatement(countIncrement);
+      return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+          pStatement, countIncrementStatement);
 
     } else if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
@@ -291,8 +293,10 @@ public class NumStatementsNondeterministicSimulation {
         CExpressionAssignmentStatement countDecrement =
             SeqStatementBuilder.buildDecrementStatement(
                 SeqIdExpressions.CNT, pBinaryExpressionBuilder);
-        SeqCountUpdateStatement countUpdate = new SeqCountUpdateStatement(countDecrement);
-        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(countUpdate));
+        SeqCountUpdateStatement countDecrementStatement =
+            new SeqCountUpdateStatement(countDecrement);
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, countDecrementStatement);
       }
     }
     return pStatement;

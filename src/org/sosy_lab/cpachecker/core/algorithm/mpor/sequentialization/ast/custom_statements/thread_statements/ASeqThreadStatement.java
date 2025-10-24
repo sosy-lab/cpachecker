@@ -18,10 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
-// TODO further divide this into thread, function, ... interfaces
-// TODO its probably better to use an abstract class here for default implementations and attributes
-//  (each statement has a target pc, expression, replacement, ...)
-// TODO also add CloneableStatement so that we dont always throw an Exception
 /**
  * Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder} and
  * constructors used for cloning are {@code private}.
@@ -60,26 +56,22 @@ public abstract class ASeqThreadStatement implements SeqStatement {
   public abstract Optional<SeqBlockLabelStatement> getTargetGoto();
 
   /**
-   * This function should only be called when finalizing (i.e. pruning) {@link
-   * SeqThreadStatementClause}s.
+   * Clones the statement with the given pc. This function should only be called when finalizing
+   * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public abstract ASeqThreadStatement cloneWithTargetPc(int pTargetPc);
-
-  public abstract ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel);
+  public abstract ASeqThreadStatement withTargetPc(int pTargetPc);
 
   /**
-   * Clones this statement and replaces all existing statements with {@code
-   * pReplacingInjectedStatements}.
+   * Clones the statement with the given label. This function should only be called when finalizing
+   * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public abstract ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements);
+  public abstract ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel);
 
   /**
-   * Clones this statement and adds the {@code pAppendingInjectedStatements} to the already existing
-   * injected statements as a suffix.
+   * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
    */
-  public abstract ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements);
+  public abstract ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements);
 
   /**
    * Whether this statement can be linked to its target statement. This is false e.g. for statements

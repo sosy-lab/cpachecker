@@ -85,7 +85,7 @@ public class SeqReachErrorStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqReachErrorStatement withTargetPc(int pTargetPc) {
     checkArgument(
         pTargetPc == Sequentialization.EXIT_PC,
         "reach_errors should only be cloned with exit pc %s",
@@ -94,29 +94,17 @@ public class SeqReachErrorStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        options, pcLeftHandSide, substituteEdges, targetPc, pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqReachErrorStatement(
-        options,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        options, pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
   }
 
   @Override

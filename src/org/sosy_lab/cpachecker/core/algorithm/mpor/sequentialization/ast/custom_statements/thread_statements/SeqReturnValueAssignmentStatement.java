@@ -94,7 +94,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -106,7 +106,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -118,8 +118,8 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement cloneReplacingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+  public ASeqThreadStatement withInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReturnValueAssignmentStatement(
         options,
@@ -128,21 +128,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pReplacingInjectedStatements);
-  }
-
-  @Override
-  public ASeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
-
-    return new SeqReturnValueAssignmentStatement(
-        options,
-        assignment,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        pInjectedStatements);
   }
 
   @Override
