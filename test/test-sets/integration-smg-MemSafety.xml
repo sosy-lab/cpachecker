@@ -22,7 +22,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="cpalien">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
     <option name="--preprocess" />
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
@@ -30,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
@@ -41,21 +41,21 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>

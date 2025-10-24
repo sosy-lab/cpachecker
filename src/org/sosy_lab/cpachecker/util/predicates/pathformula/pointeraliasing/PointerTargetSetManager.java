@@ -640,6 +640,10 @@ class PointerTargetSetManager {
             formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
       }
     }
+    // this should probably only be given if
+    //  cpa.predicate.addRangeConstraintsForNondet
+    // is 'true'. But this is no-op for most cases anyway.
+    pConstraints.addConstraint(formulaManager.makeDomainRangeConstraint(newBaseFormula, false));
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
@@ -677,12 +681,16 @@ class PointerTargetSetManager {
     // zero to prevent overflows with bitvector arithmetic.
 
     pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    pConstraints.addConstraint(
+        formulaManager.makeDomainRangeConstraint(newBasePlusTypeSize, false));
     PersistentList<Formula> highestAllocatedAddresses =
         PersistentLinkedList.of(newBasePlusTypeSize);
 
     if (pAllocationSize != null && !pAllocationSize.equals(typeSizeF)) {
       Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
       pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+      pConstraints.addConstraint(
+          formulaManager.makeDomainRangeConstraint(basePlusAllocationSize, false));
 
       highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
     }
