@@ -831,11 +831,7 @@ public class SMGCPABuiltins {
         }
 
       } else if (
-      /* && BuiltinFunctions.isFilePointer(argumentType) */ argumentType
-              instanceof CPointerType ptrType
-          && ptrType.getType().getCanonicalType() instanceof CComplexType complexType
-          && complexType.getKind() == ComplexTypeKind.STRUCT
-          && complexType.getName().equals("_IO_FILE")) {
+      BuiltinFunctions.isFilePointer(argumentType) ) {
         // TODO: replace with Marians check for this!
         // STREAM. If 0, return 0.
         List<ValueAndSMGState> streamPtrAndState =
