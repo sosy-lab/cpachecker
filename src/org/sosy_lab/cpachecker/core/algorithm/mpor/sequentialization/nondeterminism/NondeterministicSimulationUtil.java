@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.thread_sync.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
@@ -205,9 +205,9 @@ public class NondeterministicSimulationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withRoundGoto =
+    ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
+    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+      ASeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
               pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
       newStatements.add(withRoundGoto);
@@ -215,9 +215,9 @@ public class NondeterministicSimulationUtil {
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
-  private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
+  private static ASeqThreadStatement tryInjectRoundGotoIntoStatement(
       MPOROptions pOptions,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -243,9 +243,9 @@ public class NondeterministicSimulationUtil {
     return pStatement;
   }
 
-  private static SeqThreadStatement injectRoundGotoIntoStatementByTargetPc(
+  private static ASeqThreadStatement injectRoundGotoIntoStatementByTargetPc(
       int pTargetPc,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -265,9 +265,9 @@ public class NondeterministicSimulationUtil {
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 
-  private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
+  private static ASeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
       SeqBlockLabelStatement pTargetGoto,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -294,17 +294,17 @@ public class NondeterministicSimulationUtil {
     if (!pOptions.reduceIgnoreSleep) {
       return pBlock;
     }
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withGoto =
+    ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
+    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+      ASeqThreadStatement withGoto =
           tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
       newStatements.add(withGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
-  private static SeqThreadStatement tryInjectSyncUpdateIntoStatement(
-      SeqThreadStatement pStatement,
+  private static ASeqThreadStatement tryInjectSyncUpdateIntoStatement(
+      ASeqThreadStatement pStatement,
       CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -324,8 +324,8 @@ public class NondeterministicSimulationUtil {
     return pStatement;
   }
 
-  private static SeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
-      SeqThreadStatement pStatement,
+  private static ASeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
+      ASeqThreadStatement pStatement,
       Optional<SeqThreadStatementClause> pTargetClause,
       CIdExpression pSyncVariable) {
 

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAssignmentInjector {
 
-  static SeqThreadStatement injectBitVectorAssignmentsIntoStatement(
+  static ASeqThreadStatement injectBitVectorAssignmentsIntoStatement(
       MPOROptions pOptions,
       final MPORThread pActiveThread,
-      SeqThreadStatement pCurrentStatement,
+      ASeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       final BitVectorVariables pBitVectorVariables,

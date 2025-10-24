@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -265,17 +265,17 @@ public class NumStatementsNondeterministicSimulation {
     if (!pOptions.isThreadCountRequired()) {
       return pBlock;
     }
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withCountUpdates =
+    ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
+    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+      ASeqThreadStatement withCountUpdates =
           tryInjectCountUpdatesIntoStatement(statement, pBinaryExpressionBuilder);
       newStatements.add(withCountUpdates);
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
-  private static SeqThreadStatement tryInjectCountUpdatesIntoStatement(
-      SeqThreadStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+  private static ASeqThreadStatement tryInjectCountUpdatesIntoStatement(
+      ASeqThreadStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     if (pStatement instanceof SeqThreadCreationStatement) {

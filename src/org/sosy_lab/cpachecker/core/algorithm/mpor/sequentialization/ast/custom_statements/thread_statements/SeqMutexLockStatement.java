@@ -31,21 +31,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>{@code assume(!m_LOCKED);}
  */
-public class SeqMutexLockStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqMutexLockStatement extends ASeqThreadStatement {
 
   private final MutexLockedFlag mutexLockedFlag;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqMutexLockStatement(
       MPOROptions pOptions,
@@ -54,13 +48,11 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     mutexLockedFlag = pMutexLockedFlag;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqMutexLockStatement(
@@ -72,13 +64,11 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     mutexLockedFlag = pMutexLockedFlag;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -130,7 +120,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexLockStatement(
         options,
         mutexLockedFlag,
@@ -142,7 +132,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqMutexLockStatement(
@@ -156,7 +146,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqMutexLockStatement(

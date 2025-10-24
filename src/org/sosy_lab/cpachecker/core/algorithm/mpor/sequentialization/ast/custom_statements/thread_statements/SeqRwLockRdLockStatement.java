@@ -21,21 +21,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqRwLockRdLockStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
 
   private final RwLockNumReadersWritersFlag rwLockFlags;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqRwLockRdLockStatement(
       MPOROptions pOptions,
@@ -44,13 +38,11 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     rwLockFlags = pRwLockFlags;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqRwLockRdLockStatement(
@@ -62,13 +54,11 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     rwLockFlags = pRwLockFlags;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -102,7 +92,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqRwLockRdLockStatement(
         options,
         rwLockFlags,
@@ -114,7 +104,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqRwLockRdLockStatement(
         options,
         rwLockFlags,
@@ -126,7 +116,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
     return new SeqRwLockRdLockStatement(
         options,
@@ -139,7 +129,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements) {
     return new SeqRwLockRdLockStatement(
         options,

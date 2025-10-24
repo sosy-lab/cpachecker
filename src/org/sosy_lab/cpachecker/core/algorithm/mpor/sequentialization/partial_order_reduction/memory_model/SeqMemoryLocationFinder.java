@@ -18,7 +18,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -68,8 +68,8 @@ public class SeqMemoryLocationFinder {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      Set<SeqThreadStatement> found = new HashSet<>();
+    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+      Set<ASeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<SeqMemoryLocation> foundMemoryLocations =
@@ -91,8 +91,8 @@ public class SeqMemoryLocationFinder {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      Set<SeqThreadStatement> found = new HashSet<>();
+    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+      Set<ASeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetStatements(
           found, statement, pLabelClauseMap, pLabelBlockMap);
@@ -106,12 +106,12 @@ public class SeqMemoryLocationFinder {
   // Memory Location Extraction ====================================================================
 
   private static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByStatements(
-      ImmutableSet<SeqThreadStatement> pStatements,
+      ImmutableSet<ASeqThreadStatement> pStatements,
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
-    for (SeqThreadStatement statement : pStatements) {
+    for (ASeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         rMemLocations.addAll(
             findMemoryLocationsBySubstituteEdge(substituteEdge, pMemoryModel, pAccessType));

@@ -25,21 +25,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the default case block statement where the original {@link CFAEdge}s require no
  * specific handling and their (substituted) code is placed directly into the case block.
  */
-public class SeqDefaultStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqDefaultStatement extends ASeqThreadStatement {
 
   private final CStatementEdge edge;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqDefaultStatement(
       MPOROptions pOptions,
@@ -48,13 +42,11 @@ public class SeqDefaultStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqDefaultStatement(
@@ -66,13 +58,11 @@ public class SeqDefaultStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -116,7 +106,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqDefaultStatement(
         options,
         edge,
@@ -128,7 +118,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqDefaultStatement(
@@ -142,7 +132,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqDefaultStatement(

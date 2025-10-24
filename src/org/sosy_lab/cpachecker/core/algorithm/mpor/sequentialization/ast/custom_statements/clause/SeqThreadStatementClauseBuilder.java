@@ -25,9 +25,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqCondWaitStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqMutexUnlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
@@ -206,7 +206,7 @@ public class SeqThreadStatementClauseBuilder {
     }
 
     int labelPc = pThreadNode.pc;
-    ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
+    ImmutableList.Builder<ASeqThreadStatement> statements = ImmutableList.builder();
     CLeftHandSide pcLeftHandSide =
         pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
     CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
@@ -301,7 +301,7 @@ public class SeqThreadStatementClauseBuilder {
   /**
    * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_COND_WAIT}. This
    * function requires an interleaving between the locking of the mutex and the blocking on the cond
-   * variable, forcing us two create two {@link SeqThreadStatement} from a single {@link
+   * variable, forcing us two create two {@link ASeqThreadStatement} from a single {@link
    * CFAEdgeForThread}.
    */
   private static ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
@@ -356,7 +356,7 @@ public class SeqThreadStatementClauseBuilder {
       Optional<MPORThread> pNextThread,
       ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       int pLabelPc,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      ImmutableList<ASeqThreadStatement> pStatements) {
 
     SeqBlockLabelStatement blockLabelStatement =
         buildBlockLabelStatement(pOptions, pThread.getId(), pLabelPc);

@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -38,7 +38,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
    */
   private final SeqBlockLabelStatement label;
 
-  private final ImmutableList<SeqThreadStatement> statements;
+  private final ImmutableList<ASeqThreadStatement> statements;
 
   private final boolean isLoopStart;
 
@@ -47,7 +47,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
       Optional<MPORThread> pNextThread,
       ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       SeqBlockLabelStatement pLabel,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      ImmutableList<ASeqThreadStatement> pStatements) {
 
     options = pOptions;
     nextThread = pNextThread;
@@ -61,7 +61,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<String> lines = ImmutableList.builder();
     lines.add(label.toASTString() + SeqSyntax.SPACE);
-    for (SeqThreadStatement statement : statements) {
+    for (ASeqThreadStatement statement : statements) {
       lines.add(statement.toASTString() + SeqSyntax.SPACE);
     }
     Optional<String> suffix =
@@ -76,11 +76,11 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return label;
   }
 
-  public SeqThreadStatement getFirstStatement() {
+  public ASeqThreadStatement getFirstStatement() {
     return statements.getFirst();
   }
 
-  public ImmutableList<SeqThreadStatement> getStatements() {
+  public ImmutableList<ASeqThreadStatement> getStatements() {
     return statements;
   }
 
@@ -94,7 +94,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   public SeqThreadStatementBlock cloneWithStatements(
-      ImmutableList<SeqThreadStatement> pStatements) {
+      ImmutableList<ASeqThreadStatement> pStatements) {
 
     return new SeqThreadStatementBlock(options, nextThread, threadLabels, label, pStatements);
   }

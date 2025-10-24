@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqThreadStatementClauseUtil {
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
-  public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
+  public static ImmutableSet<Integer> collectAllIntegerTargetPc(ASeqThreadStatement pStatement) {
     ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
     if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
@@ -66,7 +66,7 @@ public class SeqThreadStatementClauseUtil {
     for (MPORThread thread : pClauses.keySet()) {
       for (SeqThreadStatementClause clause : pClauses.get(thread)) {
         for (SeqThreadStatementBlock block : clause.getBlocks()) {
-          for (SeqThreadStatement statement : block.getStatements()) {
+          for (ASeqThreadStatement statement : block.getStatements()) {
             rEdges.addAll(statement.getSubstituteEdges());
           }
         }
@@ -172,8 +172,8 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement mergedStatement : block.getStatements()) {
+        ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
+        for (ASeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
         int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().getNumber()));
@@ -210,8 +210,8 @@ public class SeqThreadStatementClauseUtil {
     return rLabelToIndex.buildOrThrow();
   }
 
-  private static SeqThreadStatement replaceTargetPc(
-      SeqThreadStatement pCurrentStatement,
+  private static ASeqThreadStatement replaceTargetPc(
+      ASeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, Integer> pLabelBlockMap,
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
@@ -294,7 +294,7 @@ public class SeqThreadStatementClauseUtil {
     if (pCurrent.equals(pTarget)) {
       return true;
     } else {
-      SeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
+      ASeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
       SeqThreadStatementClause next =
           pLabelClauseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";
@@ -356,7 +356,7 @@ public class SeqThreadStatementClauseUtil {
       Set<SeqThreadStatementBlock> pVisitedLoopStarts,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
+    for (ASeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {

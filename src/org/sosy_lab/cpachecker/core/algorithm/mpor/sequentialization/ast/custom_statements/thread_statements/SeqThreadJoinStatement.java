@@ -33,9 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
-public class SeqThreadJoinStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqThreadJoinStatement extends ASeqThreadStatement {
 
   private final Optional<CIdExpression> joinedThreadExitVariable;
 
@@ -43,13 +41,9 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqThreadJoinStatement(
       MPOROptions pOptions,
@@ -59,14 +53,12 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       CBinaryExpression pJoinedThreadNotActive,
       CLeftHandSide pPcLeftHandSide) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     joinedThreadNotActive = pJoinedThreadNotActive;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqThreadJoinStatement(
@@ -79,14 +71,12 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     joinedThreadExitVariable = pJoinedThreadExitVariable;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     joinedThreadNotActive = pJoinedThreadActive;
     pcLeftHandSide = pPcLeftHandSide;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -164,7 +154,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadJoinStatement(
         options,
         joinedThreadExitVariable,
@@ -177,7 +167,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqThreadJoinStatement(
@@ -192,7 +182,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqThreadJoinStatement(

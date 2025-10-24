@@ -29,21 +29,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * intermediate variable can then be accessed by threads calling {@code pthread_join} on this
  * exiting thread.
  */
-public class SeqThreadExitStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqThreadExitStatement extends ASeqThreadStatement {
 
   private final FunctionReturnValueAssignment returnValueAssignment;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqThreadExitStatement(
       MPOROptions pOptions,
@@ -52,13 +46,11 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     returnValueAssignment = pReturnValueAssignment;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqThreadExitStatement(
@@ -70,13 +62,11 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     returnValueAssignment = pReturnValueAssignment;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -125,13 +115,13 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqThreadExitStatement(
@@ -145,7 +135,7 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqThreadExitStatement(

@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqThreadStatementBuilder {
 
-  public static ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(
+  public static ImmutableList<ASeqThreadStatement> buildStatementsFromThreadNode(
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
@@ -67,7 +67,7 @@ public class SeqThreadStatementBuilder {
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
-    ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<ASeqThreadStatement> rStatements = ImmutableList.builder();
 
     ImmutableList<CFAEdgeForThread> leavingEdges = pThreadNode.leavingEdges();
     int numLeavingEdges = leavingEdges.size();
@@ -213,7 +213,7 @@ public class SeqThreadStatementBuilder {
 
   // Statement build methods =======================================================================
 
-  private static SeqThreadStatement buildStatementFromThreadEdge(
+  private static ASeqThreadStatement buildStatementFromThreadEdge(
       MPOROptions pOptions,
       final MPORThread pThread,
       final ImmutableList<MPORThread> pAllThreads,
@@ -317,7 +317,7 @@ public class SeqThreadStatementBuilder {
         pTargetPc);
   }
 
-  private static SeqThreadStatement buildFunctionCallStatement(
+  private static ASeqThreadStatement buildFunctionCallStatement(
       MPOROptions pOptions,
       MPORThread pThread,
       CFAEdgeForThread pThreadEdge,
@@ -348,7 +348,7 @@ public class SeqThreadStatementBuilder {
     }
   }
 
-  private static SeqThreadStatement buildReturnValueAssignmentStatement(
+  private static ASeqThreadStatement buildReturnValueAssignmentStatement(
       MPOROptions pOptions,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
@@ -372,7 +372,7 @@ public class SeqThreadStatementBuilder {
     }
   }
 
-  private static SeqThreadStatement buildStatementFromPthreadFunction(
+  private static ASeqThreadStatement buildStatementFromPthreadFunction(
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
@@ -591,7 +591,7 @@ public class SeqThreadStatementBuilder {
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
-  private static SeqThreadStatement buildRwLockStatement(
+  private static ASeqThreadStatement buildRwLockStatement(
       MPOROptions pOptions,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,

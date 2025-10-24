@@ -23,21 +23,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqCondSignalStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqCondSignalStatement extends ASeqThreadStatement {
 
   private final CondSignaledFlag condSignaledFlag;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqCondSignalStatement(
       MPOROptions pOptions,
@@ -46,13 +40,11 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     condSignaledFlag = pCondSignaledFlag;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqCondSignalStatement(
@@ -64,13 +56,11 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     condSignaledFlag = pCondSignaled;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -107,7 +97,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqCondSignalStatement(
         options,
         condSignaledFlag,
@@ -119,7 +109,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondSignalStatement(
         options,
         condSignaledFlag,
@@ -131,7 +121,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqCondSignalStatement(
@@ -145,7 +135,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements) {
 
     return new SeqCondSignalStatement(

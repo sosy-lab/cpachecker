@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqLastBitVectorUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
@@ -42,10 +42,10 @@ class ReduceLastThreadOrderInjector {
 
   // Public Interface ==============================================================================
 
-  static SeqThreadStatement injectLastThreadOrderReductionIntoStatement(
+  static ASeqThreadStatement injectLastThreadOrderReductionIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -54,7 +54,7 @@ class ReduceLastThreadOrderInjector {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    SeqThreadStatement withConflictOrder =
+    ASeqThreadStatement withConflictOrder =
         injectConflictOrderIntoStatement(
             pOptions,
             pStatement,
@@ -70,9 +70,9 @@ class ReduceLastThreadOrderInjector {
 
   // Private =======================================================================================
 
-  private static SeqThreadStatement injectConflictOrderIntoStatement(
+  private static ASeqThreadStatement injectConflictOrderIntoStatement(
       MPOROptions pOptions,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -108,10 +108,10 @@ class ReduceLastThreadOrderInjector {
 
   // Last Updates ==================================================================================
 
-  private static SeqThreadStatement injectLastUpdatesIntoStatement(
+  private static ASeqThreadStatement injectLastUpdatesIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
-      SeqThreadStatement pStatement,
+      ASeqThreadStatement pStatement,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables) {
 

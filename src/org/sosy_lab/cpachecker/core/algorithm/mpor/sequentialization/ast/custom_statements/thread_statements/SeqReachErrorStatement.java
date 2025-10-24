@@ -27,17 +27,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * {@code reach_error}s from the input program for the property {@code unreach-call.prp} instead of
  * inlining the function.
  */
-public class SeqReachErrorStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqReachErrorStatement extends ASeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final int targetPc;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqReachErrorStatement(
       MPOROptions pOptions,
@@ -45,11 +39,9 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqReachErrorStatement(
@@ -59,11 +51,9 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -104,13 +94,13 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqReachErrorStatement(
@@ -118,7 +108,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqReachErrorStatement(

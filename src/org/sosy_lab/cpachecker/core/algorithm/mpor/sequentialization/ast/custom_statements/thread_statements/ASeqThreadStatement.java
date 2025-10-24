@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
@@ -25,49 +26,73 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
  * Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder} and
  * constructors used for cloning are {@code private}.
  */
-public interface SeqThreadStatement extends SeqStatement {
+public abstract class ASeqThreadStatement implements SeqStatement {
+
+  final MPOROptions options;
+
+  final ImmutableSet<SubstituteEdge> substituteEdges;
+
+  final ImmutableList<SeqInjectedStatement> injectedStatements;
+
+  ASeqThreadStatement(
+      MPOROptions pOptions,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    options = pOptions;
+    substituteEdges = pSubstituteEdges;
+    injectedStatements = pInjectedStatements;
+  }
 
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */
-  ImmutableSet<SubstituteEdge> getSubstituteEdges();
-
-  /** After linking, a statement may not have a target {@code pc}, hence optional. */
-  Optional<Integer> getTargetPc();
-
-  Optional<SeqBlockLabelStatement> getTargetGoto();
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
+  }
 
   /** The list of statements injected to the {@code pc} write. */
-  ImmutableList<SeqInjectedStatement> getInjectedStatements();
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
+    return injectedStatements;
+  }
+
+  /** After linking, a statement may not have a target {@code pc}, hence optional. */
+  public abstract Optional<Integer> getTargetPc();
+
+  public abstract Optional<SeqBlockLabelStatement> getTargetGoto();
 
   /**
    * This function should only be called when finalizing (i.e. pruning) {@link
    * SeqThreadStatementClause}s.
    */
-  SeqThreadStatement cloneWithTargetPc(int pTargetPc);
+  public abstract ASeqThreadStatement cloneWithTargetPc(int pTargetPc);
 
-  SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel);
+  public abstract ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel);
 
   /**
    * Clones this statement and replaces all existing statements with {@code
    * pReplacingInjectedStatements}.
    */
-  SeqThreadStatement cloneReplacingInjectedStatements(
+  public abstract ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements);
 
   /**
    * Clones this statement and adds the {@code pAppendingInjectedStatements} to the already existing
    * injected statements as a suffix.
    */
-  SeqThreadStatement cloneAppendingInjectedStatements(
+  public abstract ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements);
 
-  boolean isLinkable();
+  /**
+   * Whether this statement can be linked to its target statement. This is false e.g. for statements
+   * that terminate a thread.
+   */
+  public abstract boolean isLinkable();
 
   /**
    * A statement may synchronize threads, e.g. with mutex locks, pthread_join, etc. via assumptions,
    * forcing us to e.g. not link the statements, otherwise a thread may terminate pre-emptively.
    */
-  boolean synchronizesThreads();
+  public abstract boolean synchronizesThreads();
 
   /** Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;} */
-  boolean onlyWritesPc();
+  public abstract boolean onlyWritesPc();
 }

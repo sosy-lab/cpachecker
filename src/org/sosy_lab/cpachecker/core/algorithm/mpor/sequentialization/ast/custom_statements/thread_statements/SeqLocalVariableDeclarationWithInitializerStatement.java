@@ -29,21 +29,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * declarations. Thus, only (local) variable declarations inside functions have to handled
  * explicitly for the sequentialization.
  */
-public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThreadStatement {
 
   private final CVariableDeclaration variableDeclaration;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   private void checkArguments(CVariableDeclaration pVariableDeclaration) {
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
@@ -59,14 +53,12 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     checkArguments(pVariableDeclaration);
-    options = pOptions;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
@@ -78,14 +70,12 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     checkArguments(pVariableDeclaration);
-    options = pOptions;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -131,7 +121,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         options,
         variableDeclaration,
@@ -143,7 +133,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
@@ -157,7 +147,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(

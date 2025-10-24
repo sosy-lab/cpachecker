@@ -15,13 +15,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.LoopType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqThreadStatementBlockUtil {
 
-  static boolean isLoopStart(ImmutableList<SeqThreadStatement> pStatements) {
-    for (SeqThreadStatement statement : pStatements) {
+  static boolean isLoopStart(ImmutableList<ASeqThreadStatement> pStatements) {
+    for (ASeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
         if (predecessor.isLoopStart()) {

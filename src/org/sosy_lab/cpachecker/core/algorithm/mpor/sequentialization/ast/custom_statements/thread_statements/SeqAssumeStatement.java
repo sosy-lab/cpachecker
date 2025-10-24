@@ -25,9 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
-public class SeqAssumeStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqAssumeStatement extends ASeqThreadStatement {
 
   public final BranchType branchType;
 
@@ -35,13 +33,9 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeStatement(
       MPOROptions pOptions,
@@ -51,6 +45,8 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
+
     checkArgument(
         pBranchType.equals(BranchType.IF) || pBranchType.equals(BranchType.ELSE),
         "pStatementType must be IF or ELSE");
@@ -58,14 +54,11 @@ public class SeqAssumeStatement implements SeqThreadStatement {
         !pBranchType.equals(BranchType.IF) || pIfExpression.isPresent(),
         "if pStatementType is IF, then pIfExpression must be present");
 
-    options = pOptions;
     branchType = pBranchType;
     ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqAssumeStatement(
@@ -78,14 +71,12 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     branchType = pBranchType;
     ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -142,7 +133,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
         branchType,
@@ -155,7 +146,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAssumeStatement(
@@ -170,7 +161,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqAssumeStatement(

@@ -32,9 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>{@code pc[i] = 0; pc[j] = n; } where thread {@code j} creates thread {@code i}.
  */
-public class SeqThreadCreationStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqThreadCreationStatement extends ASeqThreadStatement {
 
   /**
    * The assignment of the parameter given in the {@code pthread_create} call. This is present if
@@ -50,13 +48,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private final ProgramCounterVariables pcVariables;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqThreadCreationStatement(
       MPOROptions pOptions,
@@ -67,16 +61,14 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThread = pCreatedThread;
     creatingThread = pCreatingThread;
     bitVectorInitializations = Optional.empty();
     pcVariables = pPcVariables;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqThreadCreationStatement(
@@ -91,16 +83,14 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThread = pCreatedThread;
     creatingThread = pCreatingThread;
     bitVectorInitializations = pBitVectorInitializations;
     pcVariables = pPcVariables;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -181,7 +171,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
@@ -196,7 +186,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqThreadCreationStatement(
@@ -213,7 +203,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqThreadCreationStatement(

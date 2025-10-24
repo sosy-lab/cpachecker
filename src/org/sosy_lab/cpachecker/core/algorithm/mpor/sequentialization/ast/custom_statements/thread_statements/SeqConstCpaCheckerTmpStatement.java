@@ -46,9 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>Reasoning: given that we declare all variables outside the main function in the
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
  */
-public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
@@ -58,13 +56,9 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   private void checkArguments(
       CVariableDeclaration pVariableDeclaration,
@@ -147,39 +141,35 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     checkArguments(pDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
-    options = pOptions;
     firstSuccessorEdge = pFirstSuccessorEdge;
     secondSuccessorEdge = pSecondSuccessorEdge;
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       CVariableDeclaration pConstCpaCheckerTmpDeclaration,
-      SubstituteEdge pSubstituteEdgeA,
-      Optional<SubstituteEdge> pSubstituteEdgeB,
+      SubstituteEdge pFirstSuccessorEdge,
+      Optional<SubstituteEdge> pSecondSuccessorEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    checkArguments(pConstCpaCheckerTmpDeclaration, pSubstituteEdgeA, pSubstituteEdgeB);
-    options = pOptions;
-    firstSuccessorEdge = pSubstituteEdgeA;
-    secondSuccessorEdge = pSubstituteEdgeB;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    checkArguments(pConstCpaCheckerTmpDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
+    firstSuccessorEdge = pFirstSuccessorEdge;
+    secondSuccessorEdge = pSecondSuccessorEdge;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -236,7 +226,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
@@ -250,7 +240,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
@@ -266,7 +256,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(

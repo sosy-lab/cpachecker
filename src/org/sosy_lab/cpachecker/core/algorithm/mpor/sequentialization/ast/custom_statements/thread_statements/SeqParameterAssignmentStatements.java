@@ -25,21 +25,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the assignment of a parameter given to a function to an injected parameter variable in
  * the sequentialization.
  */
-public class SeqParameterAssignmentStatements implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqParameterAssignmentStatements extends ASeqThreadStatement {
 
   private final ImmutableList<FunctionParameterAssignment> assignments;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqParameterAssignmentStatements(
       MPOROptions pOptions,
@@ -48,13 +42,11 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqParameterAssignmentStatements(
@@ -66,13 +58,11 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -120,7 +110,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqParameterAssignmentStatements(
         options,
         assignments,
@@ -132,7 +122,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqParameterAssignmentStatements(
@@ -146,7 +136,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqParameterAssignmentStatements(

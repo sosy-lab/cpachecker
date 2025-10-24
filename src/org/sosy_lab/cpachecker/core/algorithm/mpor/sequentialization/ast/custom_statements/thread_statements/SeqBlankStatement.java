@@ -23,22 +23,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */
-public class SeqBlankStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqBlankStatement extends ASeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
 
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
-
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-    options = pOptions;
+    super(pOptions, ImmutableSet.of(), ImmutableList.of());
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqBlankStatement(
@@ -47,10 +42,9 @@ public class SeqBlankStatement implements SeqThreadStatement {
       Optional<Integer> pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, ImmutableSet.of(), pInjectedStatements);
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -86,12 +80,12 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     throw new UnsupportedOperationException(
@@ -99,7 +93,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     throw new UnsupportedOperationException(

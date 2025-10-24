@@ -25,21 +25,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * has a return statement {@code return fibNumber;} then we create a statement {@code x =
  * fibNumber;}.
  */
-public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
-
-  private final MPOROptions options;
+public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
 
   private final CExpressionAssignmentStatement assignment;
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
-
   private final Optional<Integer> targetPc;
 
   private final Optional<SeqBlockLabelStatement> targetGoto;
-
-  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqReturnValueAssignmentStatement(
       MPOROptions pOptions,
@@ -48,13 +42,11 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, ImmutableList.of());
     assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
-    injectedStatements = ImmutableList.of();
   }
 
   private SeqReturnValueAssignmentStatement(
@@ -66,13 +58,11 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    super(pOptions, pSubstituteEdges, pInjectedStatements);
     assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
-    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
-    injectedStatements = pInjectedStatements;
   }
 
   @Override
@@ -104,7 +94,7 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+  public ASeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -116,7 +106,7 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
+  public ASeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -128,7 +118,7 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneReplacingInjectedStatements(
+  public ASeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqReturnValueAssignmentStatement(
@@ -142,7 +132,7 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneAppendingInjectedStatements(
+  public ASeqThreadStatement cloneAppendingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqReturnValueAssignmentStatement(
