@@ -775,16 +775,20 @@ public class SMGCPABuiltins {
           checkState(overflowBufferAndState.size() == 1);
           finalState = overflowBufferAndState.getFirst().getState();
 
-          if (!returnValue.equals(UnknownValue.getInstance())
-              && !isNumericZero(returnValue)) {
+          Value bufferAddress = overflowBufferAndState.getFirst().getValue();
+          if (bufferAddress instanceof AddressExpression addrExpr) {
+            bufferAddress = addrExpr.getMemoryAddress();
+            checkState(isNumericZero(addrExpr.getOffset()));
+          }
+
+          if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
             // Multiple "buffers" in this function, can't return one, return unknown
             returnBufferPointer = false;
             returnValue = UnknownValue.getInstance();
-          } else if (returnBufferPointer
-              && !isNumericZero(returnValue)) {
+          } else if (returnBufferPointer && !isNumericZero(returnValue)) {
             // Remember buffer as return value (if that's 0, we also return 0),
             //  except if its already 0, then keep the return value.
-            returnValue = overflowBufferAndState.getFirst().getValue();
+            returnValue = bufferAddress;
           }
           // TODO: add solver handling for checks
 
@@ -818,9 +822,7 @@ public class SMGCPABuiltins {
             } else if (!returnValue.equals(bufferWriteSizeArg)) {
               // Overapproximate buffer overflow
               finalState =
-                  finalState
-                      .withInvalidWrite(overflowBufferAndState.getFirst().getValue())
-                      .copyAndRemoveAllEdgesFrom(returnValue);
+                  finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
             } else {
               // Just make the region unknown, no buffer overflow
               finalState = finalState.copyAndRemoveAllEdgesFrom(returnValue);
@@ -829,9 +831,7 @@ public class SMGCPABuiltins {
             // Overapproximate buffer overflow and remove edges
             checkArgument(bufferWriteSizeArgument.isEmpty());
             finalState =
-                finalState
-                    .withInvalidWrite(overflowBufferAndState.getFirst().getValue())
-                    .copyAndRemoveAllEdgesFrom(returnValue);
+                finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
           }
 
         } else if (argumentType instanceof CPointerType ptrType /* && ptrType.isFilePointer() */
@@ -867,7 +867,13 @@ public class SMGCPABuiltins {
 
           checkState(bufferAndState.size() == 1);
           finalState = bufferAndState.getFirst().getState();
-          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAndState.getFirst().getValue());
+          Value bufferAddress = bufferAndState.getFirst().getValue();
+          if (bufferAddress instanceof AddressExpression addrExpr) {
+            bufferAddress = addrExpr.getMemoryAddress();
+            checkState(isNumericZero(addrExpr.getOffset()));
+          }
+
+          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
         }
       }
 
