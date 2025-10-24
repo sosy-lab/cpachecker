@@ -776,9 +776,10 @@ public class SMGCPABuiltins {
           finalState = overflowBufferAndState.getFirst().getState();
 
           Value bufferAddress = overflowBufferAndState.getFirst().getValue();
+          Value targetBufferOffsetInBits = new NumericValue(BigInteger.ZERO);
           if (bufferAddress instanceof AddressExpression addrExpr) {
             bufferAddress = addrExpr.getMemoryAddress();
-            checkState(isNumericZero(addrExpr.getOffset()));
+            targetBufferOffsetInBits = addrExpr.getOffset();
           }
 
           if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
@@ -798,34 +799,52 @@ public class SMGCPABuiltins {
             // Overflow if size not fitting and remove buffer values (i.e. make them unknown)
             checkArgument(bufferWriteSizeArgument.isPresent());
             Value bufferWriteSizeArg = bufferWriteSizeArgument.orElseThrow();
-            if (bufferWriteSizeArg.isNumericValue()) {
-              BigInteger charSize = evaluator.getBitSizeof(finalState, CNumericTypes.CHAR);
-              BigInteger offset = BigInteger.ZERO;
-              int writeMax = bufferWriteSizeArg.asNumericValue().getIntegerValue().intValue();
-              // Value analysis
-              for (int i = 0; i < writeMax; i++) {
-                finalState =
-                    finalState
-                        .writeValueTo(
-                            returnValue,
-                            offset,
-                            new NumericValue(charSize),
-                            UnknownValue.getInstance(),
-                            CNumericTypes.CHAR,
-                            pCfaEdge)
-                        .getFirst();
-                offset = offset.add(charSize);
-              }
-              // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
-              // TODO: Symex
 
-            } else if (!returnValue.equals(bufferWriteSizeArg)) {
-              // Overapproximate buffer overflow
+            List<SMGStateAndOptionalSMGObjectAndOffset> maybeObjects =
+                finalState.dereferencePointer(returnValue);
+            checkState(maybeObjects.size() == 1);
+            SMGStateAndOptionalSMGObjectAndOffset maybeObjAndInfo = maybeObjects.getFirst();
+            checkState(maybeObjAndInfo.hasSMGObjectAndOffset());
+            finalState = maybeObjAndInfo.getSMGState();
+            Value objOffsetInBits = maybeObjAndInfo.getOffsetForObject();
+            SMGObject obj = maybeObjAndInfo.getSMGObject();
+
+            if (obj.getSize() instanceof NumericValue numericObjSize
+                && bufferWriteSizeArg instanceof NumericValue numericBufferWriteSizeArg
+                && targetBufferOffsetInBits instanceof NumericValue numericBufferOffsetInBits
+                && objOffsetInBits instanceof NumericValue numericObjOffsetInBits) {
+              // copyAndRemoveAllEdgesFrom ignores targetBufferOffsetInBits currently, so it has to
+              // be 0
+              checkState(
+                  numericBufferOffsetInBits.bigIntegerValue().compareTo(BigInteger.ZERO) == 0);
+              BigInteger bigIntBufferOffsetInBits =
+                  numericBufferOffsetInBits
+                      .bigIntegerValue()
+                      .add(numericObjOffsetInBits.bigIntegerValue());
+
+              BigInteger charBitSize =
+                  BigInteger.valueOf(machineModel.getSizeofInBits(CNumericTypes.CHAR));
+              BigInteger writeSizeInBits =
+                  numericBufferWriteSizeArg.bigIntegerValue().multiply(charBitSize);
+              finalState =
+                  finalState.copyAndRemoveAllEdgesFrom(
+                      returnValue, new NumericValue(writeSizeInBits));
+
+              if (numericObjSize
+                      .bigIntegerValue()
+                      .compareTo(bigIntBufferOffsetInBits.add(writeSizeInBits))
+                  < 0) {
+                // Overflow
+                finalState = finalState.withInvalidWrite(bufferAddress);
+              }
+
+            } else {
+              // Overaproximate overflow
               finalState =
                   finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
-            } else {
-              // Just make the region unknown, no buffer overflow
-              finalState = finalState.copyAndRemoveAllEdgesFrom(returnValue);
+              // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
+              // TODO: Symex. Currently we overapproximate for symbolic values of any kind.
+
             }
           } else {
             // Overapproximate buffer overflow and remove edges
@@ -834,7 +853,9 @@ public class SMGCPABuiltins {
                 finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
           }
 
-        } else if (argumentType instanceof CPointerType ptrType /* && ptrType.isFilePointer() */
+        } else if (
+        /* && BuiltinFunctions.isFilePointer(argumentType) */ argumentType
+                instanceof CPointerType ptrType
             && ptrType.getType().getCanonicalType() instanceof CComplexType complexType
             && complexType.getKind() == ComplexTypeKind.STRUCT
             && complexType.getName().equals("_IO_FILE")) {

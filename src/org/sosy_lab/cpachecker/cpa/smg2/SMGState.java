@@ -4760,19 +4760,64 @@ public class SMGState
 
   public SMGState copyAndRemoveAllEdgesFrom(Value pointerToObjectToRemoveEdgesFrom)
       throws SMGException {
-    checkArgument(!(pointerToObjectToRemoveEdgesFrom instanceof AddressExpression));
+    Value startOffset = new NumericValue(BigInteger.ZERO);
+    if (pointerToObjectToRemoveEdgesFrom instanceof AddressExpression addrExpr) {
+      pointerToObjectToRemoveEdgesFrom = addrExpr.getMemoryAddress();
+      startOffset = addrExpr.getOffset();
+    }
     List<SMGStateAndOptionalSMGObjectAndOffset> maybeRegions =
         dereferencePointer(pointerToObjectToRemoveEdgesFrom);
     checkState(maybeRegions.size() == 1);
-    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = maybeRegions.getFirst();
-    checkState(maybeRegion.hasSMGObjectAndOffset());
-    return maybeRegion
-        .getSMGState()
-        .copyAndReplaceMemoryModel(
-            maybeRegion
-                .getSMGState()
-                .memoryModel
-                .copyAndRemoveAllEdgesFrom(maybeRegion.getSMGObject()));
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegionAndInfo = maybeRegions.getFirst();
+    checkState(maybeRegionAndInfo.hasSMGObjectAndOffset());
+    SMGState state = maybeRegionAndInfo.getSMGState();
+    SMGObject obj = maybeRegionAndInfo.getSMGObject();
+    startOffset =
+        evaluator.addBitOffsetValues(startOffset, maybeRegionAndInfo.getOffsetForObject());
+    checkArgument(!obj.isZero());
+
+    if (!(startOffset instanceof NumericValue numericOffset)) {
+      // Overapproximate
+      return copyAndRemoveAllEdgesFrom(obj);
+    }
+
+    return state.copyAndReplaceMemoryModel(
+        state.memoryModel.copyAndRemoveAllEdgesFrom(obj, numericOffset.bigIntegerValue()));
+  }
+
+  /**
+   * Tries to remove all (overlapping) has-value-edges from the object pointed to by
+   * pointerToObjectToRemoveEdgesFrom, starting from the offset the pointer points to, to the given
+   * size. If either the offset from the pointer or the size given is not numeric, it will remove
+   * all values from the object.
+   */
+  public SMGState copyAndRemoveAllEdgesFrom(
+      Value pointerToObjectToRemoveEdgesFrom, Value sizeInBits) throws SMGException {
+    Value startOffset = new NumericValue(BigInteger.ZERO);
+    if (pointerToObjectToRemoveEdgesFrom instanceof AddressExpression addrExpr) {
+      pointerToObjectToRemoveEdgesFrom = addrExpr.getMemoryAddress();
+      startOffset = addrExpr.getOffset();
+    }
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybeRegions =
+        dereferencePointer(pointerToObjectToRemoveEdgesFrom);
+    checkState(maybeRegions.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegionAndInfo = maybeRegions.getFirst();
+    checkState(maybeRegionAndInfo.hasSMGObjectAndOffset());
+    SMGState state = maybeRegionAndInfo.getSMGState();
+    SMGObject obj = maybeRegionAndInfo.getSMGObject();
+    startOffset =
+        evaluator.addBitOffsetValues(startOffset, maybeRegionAndInfo.getOffsetForObject());
+    checkArgument(!obj.isZero());
+
+    if (!(startOffset instanceof NumericValue numericOffset)
+        || !(sizeInBits instanceof NumericValue numericSize)) {
+      // Overapproximate
+      return copyAndRemoveAllEdgesFrom(obj);
+    }
+
+    return state.copyAndReplaceMemoryModel(
+        state.memoryModel.copyAndRemoveAllEdgesFrom(
+            obj, numericOffset.bigIntegerValue(), numericSize.bigIntegerValue()));
   }
 
   /**
