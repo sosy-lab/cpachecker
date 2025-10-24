@@ -853,14 +853,17 @@ public class SMGCPABuiltins {
           checkState(!finalState.getMemoryModel().pointsToZeroPlus(streamPointer));
           returnValue = new NumericValue(0);
         } else if (!finalState.isPointer(streamPointer)) {
-          // Unknown -> overapproximate
-          throw new SMGException(
-              "Error when handling C input function "
-                  + functionName
-                  + "(), can't handle unknown argument #"
-                  + arg
-                  + " of type "
-                  + functionParameterType);
+          // Ignore known and allowed file pointers that are not 0
+          if (!(argument instanceof CIdExpression idExpr && idExpr.getName().equals("stdin"))) {
+            // Unknown -> fail. TODO: overapproximate?
+            throw new SMGException(
+                "Error when handling C input function "
+                    + functionName
+                    + "(), can't handle unknown argument #"
+                    + arg
+                    + " of type "
+                    + functionParameterType);
+          }
         }
 
       } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
