@@ -506,6 +506,7 @@ public class SeqThreadStatementBuilder {
     checkArgument(
         cfaEdge instanceof CFunctionCallEdge || cfaEdge instanceof CStatementEdge,
         "cfaEdge must be CFunctionCallEdge or CStatementEdge");
+
     CExpression pthreadTObject =
         PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =

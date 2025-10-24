@@ -21,13 +21,13 @@ public class SeqThreadSimulationFunction extends SeqFunction {
 
   public final MPORThread thread;
 
-  private final ImmutableList<String> functionBody;
+  private final String functionBody;
 
   private final CIdExpression functionName;
 
   private final CFunctionCallStatement functionCallStatement;
 
-  public SeqThreadSimulationFunction(ImmutableList<String> pFunctionBody, MPORThread pThread) {
+  public SeqThreadSimulationFunction(String pFunctionBody, MPORThread pThread) {
     functionBody = pFunctionBody;
     functionName = SeqExpressionBuilder.buildThreadSimulationFunctionIdExpression(pThread.getId());
     thread = pThread;
@@ -39,7 +39,7 @@ public class SeqThreadSimulationFunction extends SeqFunction {
   }
 
   @Override
-  ImmutableList<String> buildBody() {
+  String buildBody() {
     return functionBody;
   }
 

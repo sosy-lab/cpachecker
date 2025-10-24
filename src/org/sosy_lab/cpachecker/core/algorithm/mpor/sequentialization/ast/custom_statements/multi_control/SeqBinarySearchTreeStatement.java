@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -23,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -52,12 +52,12 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> tree = ImmutableList.builder();
-    tree.addAll(SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
+    StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
+    precedingStatements.forEach(statement -> tree.add(statement.toASTString()));
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
-    return SeqStringUtil.joinWithNewlines(tree.build());
+    return tree.toString();
   }
 
   @Override
@@ -74,7 +74,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
       final ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> pAllStatements,
       List<Map.Entry<CExpression, ? extends SeqStatement>> pCurrentStatements,
       CLeftHandSide pPc,
-      ImmutableList.Builder<String> pTree)
+      StringJoiner pTree)
       throws UnrecognizedCodeException {
 
     int size = pCurrentStatements.size();

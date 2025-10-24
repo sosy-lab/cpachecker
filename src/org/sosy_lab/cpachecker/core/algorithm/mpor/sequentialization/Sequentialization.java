@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import java.time.Year;
 import java.time.ZoneId;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -75,12 +76,11 @@ public class Sequentialization {
       SequentializationUtils pUtils) {
 
     try {
-      ImmutableList<String> initProgram = initProgram(pOptions, pFields, pUtils);
-      ImmutableList<String> finalProgram = finalProgram(pOptions, pInputFileName, initProgram);
-      String program = SeqStringUtil.joinWithNewlines(finalProgram);
+      String initProgram = initProgram(pOptions, pFields, pUtils);
+      String finalProgram = finalProgram(pOptions, pInputFileName, initProgram);
       return pOptions.validateParse && pOptions.inputTypeDeclarations
-          ? SeqValidator.validateProgramParsing(program, pOptions, pUtils)
-          : program;
+          ? SeqValidator.validateProgramParsing(finalProgram, pOptions, pUtils)
+          : finalProgram;
 
     } catch (UnrecognizedCodeException
         | InvalidConfigurationException
@@ -93,69 +93,70 @@ public class Sequentialization {
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
-  private static ImmutableList<String> initProgram(
+  private static String initProgram(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<String> rProgram = ImmutableList.builder();
+    StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.addAll(SequentializationBuilder.buildOriginalDeclarations(pOptions, pFields.threads));
-    rProgram.addAll(SequentializationBuilder.buildBitVectorTypeDeclarations());
+    rProgram.add(SequentializationBuilder.buildOriginalDeclarations(pOptions, pFields.threads));
+    rProgram.add(SequentializationBuilder.buildBitVectorTypeDeclarations());
     // add struct and variable declarations
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildInputGlobalVariableDeclarations(
             pOptions, pFields.mainSubstitution));
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildInputLocalVariableDeclarations(
             pOptions, pFields.substitutions));
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildInputParameterDeclarations(pOptions, pFields.substitutions));
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildMainFunctionArgDeclarations(
             pOptions, pFields.mainSubstitution));
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildStartRoutineArgDeclarations(
             pOptions, pFields.mainSubstitution));
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildStartRoutineExitDeclarations(pOptions, pFields.threads));
 
     // add thread simulation variables (i.e. ghost elements)
-    rProgram.addAll(
+    rProgram.add(
         SequentializationBuilder.buildThreadSimulationVariableDeclarations(pOptions, pFields));
 
     // add custom function declarations and definitions
-    rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(pOptions, pFields));
-    rProgram.addAll(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
+    rProgram.add(SequentializationBuilder.buildFunctionDeclarations(pOptions, pFields));
+    rProgram.add(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
 
-    return rProgram.build();
+    return rProgram.toString();
   }
 
   /**
    * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
    * file name and line in {@code reach_error();} dummies with the actual values.
    */
-  private static ImmutableList<String> finalProgram(
-      MPOROptions pOptions, String pInputFileName, ImmutableList<String> pInitProgram) {
+  private static String finalProgram(
+      MPOROptions pOptions, String pInputFileName, String pInitProgram) {
+
+    StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
 
     // consider license and seq comment header for line numbers
     ImmutableList<String> licenseHeader =
         buildLicenseHeader(Year.now(ZoneId.systemDefault()).getValue());
-    int currentLine =
-        pOptions.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
-    ImmutableList.Builder<String> rProgram = ImmutableList.builder();
     if (pOptions.license) {
-      rProgram.addAll(licenseHeader);
+      licenseHeader.forEach(line -> rProgram.add(line));
     }
     if (pOptions.comments) {
-      rProgram.addAll(mporHeader);
+      mporHeader.forEach(line -> rProgram.add(line));
     }
-    for (String lineOfCode : pInitProgram) {
+    int currentLine =
+        pOptions.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
+    for (String lineOfCode : SeqStringUtil.splitOnNewline(pInitProgram)) {
       // replace dummy line numbers (-1) with actual line numbers in the seq
       rProgram.add(replaceReachErrorDummies(pInputFileName, lineOfCode, currentLine));
       currentLine++;
     }
-    return rProgram.build();
+    return rProgram.toString();
   }
 
   private static ImmutableList<String> buildLicenseHeader(int pYear) {

@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Contains methods and fields used across multiple nondeterministic simulations. */
 public class NondeterministicSimulationUtil {
 
-  public static ImmutableList<String> buildThreadSimulationsByNondeterminismSource(
+  public static String buildThreadSimulationsByNondeterminismSource(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -69,7 +69,7 @@ public class NondeterministicSimulationUtil {
     };
   }
 
-  public static ImmutableList<String> buildSingleThreadSimulationByNondeterminismSource(
+  public static String buildSingleThreadSimulationByNondeterminismSource(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,

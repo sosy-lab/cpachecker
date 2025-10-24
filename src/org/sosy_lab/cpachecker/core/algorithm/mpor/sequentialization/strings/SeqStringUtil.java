@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqGotoStatement;
@@ -44,23 +43,6 @@ public class SeqStringUtil {
 
   public static ImmutableList<String> splitOnNewline(String pString) {
     return ImmutableList.copyOf(newlineSplitter.split(pString));
-  }
-
-  public static String joinWithNewlines(ImmutableList<String> pStrings) {
-    return String.join("\n", pStrings);
-  }
-
-  // From CAstNodes ================================================================================
-
-  /** Return the list of {@link String} for {@code pAstNodes}. */
-  public static ImmutableList<String> buildLinesOfCodeFromCAstNodes(
-      ImmutableList<? extends CAstNode> pAstNodes) {
-
-    ImmutableList.Builder<String> rStrings = ImmutableList.builder();
-    for (CAstNode astNode : pAstNodes) {
-      rStrings.add(astNode.toASTString());
-    }
-    return rStrings.build();
   }
 
   // Multi Control Statement Suffix ================================================================

@@ -36,7 +36,7 @@ public class SeqFunctionBuilder {
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
-      ImmutableList<String> threadSimulation =
+      String threadSimulation =
           NondeterministicSimulationUtil.buildSingleThreadSimulationByNondeterminismSource(
               pOptions, pGhostElements, thread, otherThreads, clauses, pUtils);
       rFunctions.add(new SeqThreadSimulationFunction(threadSimulation, thread));

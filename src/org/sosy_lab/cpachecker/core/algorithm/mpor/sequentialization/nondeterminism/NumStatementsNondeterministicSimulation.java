@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -57,15 +56,15 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 
 public class NumStatementsNondeterministicSimulation {
 
-  static ImmutableList<String> buildThreadSimulations(
+  static String buildThreadSimulations(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses = pFields.clauses;
 
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    StringBuilder rLines = new StringBuilder();
     for (MPORThread thread : clauses.keySet()) {
-      rLines.addAll(
+      rLines.append(
           buildSingleThreadSimulation(
               pOptions,
               pFields.ghostElements,
@@ -74,10 +73,10 @@ public class NumStatementsNondeterministicSimulation {
               clauses.get(thread),
               pUtils));
     }
-    return rLines.build();
+    return rLines.toString();
   }
 
-  static ImmutableList<String> buildSingleThreadSimulation(
+  static String buildSingleThreadSimulation(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pActiveThread,
@@ -86,11 +85,11 @@ public class NumStatementsNondeterministicSimulation {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    StringBuilder rLines = new StringBuilder();
 
     // create T{thread_id}: label
     if (pGhostElements.isThreadLabelPresent(pActiveThread)) {
-      rLines.add(pGhostElements.getThreadLabelByThread(pActiveThread).toASTString());
+      rLines.append(pGhostElements.getThreadLabelByThread(pActiveThread).toASTString());
     }
 
     // create "if (pc != 0 ...)" condition
@@ -116,7 +115,7 @@ public class NumStatementsNondeterministicSimulation {
     innerIfBlock.add(roundReset.toASTString());
 
     // add the thread simulation statements
-    innerIfBlock.addAll(
+    innerIfBlock.add(
         buildSingleThreadClausesWithCount(
             pOptions,
             pGhostElements,
@@ -129,7 +128,7 @@ public class NumStatementsNondeterministicSimulation {
     SeqBranchStatement ifStatement = new SeqBranchStatement(ifCondition, ifBlock.build());
 
     // add all and return
-    return rLines.add(ifStatement.toASTString()).build();
+    return rLines.append(ifStatement.toASTString()).toString();
   }
 
   private static CExpression buildRoundMaxGreaterZeroExpression(
@@ -173,7 +172,7 @@ public class NumStatementsNondeterministicSimulation {
             (Or<AExpression>) Or.of(LeafExpression.of(roundMaxGreaterZero), notSyncAndNotConflict));
   }
 
-  private static ImmutableList<String> buildSingleThreadClausesWithCount(
+  private static String buildSingleThreadClausesWithCount(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
@@ -181,7 +180,8 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    StringBuilder rLines = new StringBuilder();
+
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClauses(
             pOptions,
@@ -211,8 +211,7 @@ public class NumStatementsNondeterministicSimulation {
             expressionClauseMap,
             pBinaryExpressionBuilder);
 
-    rLines.addAll(SeqStringUtil.splitOnNewline(multiControlStatement.toASTString()));
-    return rLines.build();
+    return rLines.append(multiControlStatement.toASTString()).toString();
   }
 
   private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClauses(

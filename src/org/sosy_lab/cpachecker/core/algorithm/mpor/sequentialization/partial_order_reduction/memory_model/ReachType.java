@@ -16,7 +16,7 @@ public enum ReachType {
   /**
    * For all {@link SeqMemoryLocation}s that are reachable, relative to a given program location.
    */
-  REACHABLE(SeqToken.round, SeqToken.REACHABLE);
+  REACHABLE(SeqToken.r, SeqToken.REACHABLE);
 
   public final String shortName;
 

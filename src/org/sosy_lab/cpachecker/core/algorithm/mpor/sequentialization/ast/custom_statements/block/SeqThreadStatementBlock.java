@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
@@ -59,17 +60,17 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> lines = ImmutableList.builder();
-    lines.add(label.toASTString() + SeqSyntax.SPACE);
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
+    joiner.add(label.toASTString() + SeqSyntax.SPACE);
     for (ASeqThreadStatement statement : statements) {
-      lines.add(statement.toASTString() + SeqSyntax.SPACE);
+      joiner.add(statement.toASTString() + SeqSyntax.SPACE);
     }
     Optional<String> suffix =
         SeqStringUtil.tryBuildBlockSuffix(options, nextThread, threadLabels, statements);
     if (suffix.isPresent()) {
-      lines.add(suffix.orElseThrow());
+      joiner.add(suffix.orElseThrow());
     }
-    return SeqStringUtil.joinWithNewlines(lines.build());
+    return joiner.toString();
   }
 
   public SeqBlockLabelStatement getLabel() {

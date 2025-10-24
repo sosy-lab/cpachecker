@@ -53,8 +53,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements)
-        .forEach(statement -> joiner.add(statement));
+    precedingStatements.forEach(statement -> joiner.add(statement.toASTString()));
     joiner.add(
         Joiner.on(SeqSyntax.SPACE)
             .join(

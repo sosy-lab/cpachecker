@@ -35,31 +35,30 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class NextThreadAndNumStatementsNondeterministicSimulation {
 
-  static ImmutableList<String> buildThreadSimulations(
+  static String buildThreadSimulations(
       MPOROptions pOptions,
       SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    StringBuilder rLines = new StringBuilder();
 
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(pOptions, pFields, pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    rLines.addAll(SeqStringUtil.splitOnNewline(outerMultiControlStatement.toASTString()));
+    rLines.append(outerMultiControlStatement.toASTString());
 
-    return rLines.build();
+    return rLines.toString();
   }
 
-  static ImmutableList<String> buildSingleThreadSimulation(
+  static String buildSingleThreadSimulation(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
@@ -70,7 +69,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     SeqMultiControlStatement multiControlStatement =
         buildSingleThreadMultiControlStatementWithoutCount(
             pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
-    return SeqStringUtil.splitOnNewline(multiControlStatement.toASTString());
+    return multiControlStatement.toASTString();
   }
 
   private static ImmutableMap<CExpression, SeqMultiControlStatement>

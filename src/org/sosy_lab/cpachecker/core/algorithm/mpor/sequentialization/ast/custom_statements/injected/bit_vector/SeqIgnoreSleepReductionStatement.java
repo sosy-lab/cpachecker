@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorStatement {
@@ -66,8 +65,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
       // no reduction assumptions -> just return outer if statement
       SeqBranchStatement outerIfStatement =
           new SeqBranchStatement(
-              roundMaxEqualsZeroExpression,
-              SeqStringUtil.splitOnNewline(innerIfStatement.toASTString()));
+              roundMaxEqualsZeroExpression, ImmutableList.of(innerIfStatement.toASTString()));
       return outerIfStatement.toASTString();
     }
 
@@ -79,7 +77,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
     SeqBranchStatement outerIfStatement =
         new SeqBranchStatement(
             roundMaxEqualsZeroExpression,
-            SeqStringUtil.splitOnNewline(innerIfStatement.toASTString()),
+            ImmutableList.of(innerIfStatement.toASTString()),
             elseStatements.build());
     return outerIfStatement.toASTString();
   }

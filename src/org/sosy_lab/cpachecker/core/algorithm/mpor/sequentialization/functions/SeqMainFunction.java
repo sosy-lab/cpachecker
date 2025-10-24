@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
@@ -63,11 +65,11 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   @Override
-  public ImmutableList<String> buildBody() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rBody = ImmutableList.builder();
+  public String buildBody() throws UnrecognizedCodeException {
+    StringBuilder rBody = new StringBuilder();
 
     // add main function argument non-deterministic assignments
-    rBody.addAll(
+    rBody.append(
         buildMainFunctionArgNondetAssignments(
             fields.mainSubstitution, fields.clauses, utils.getLogger()));
 
@@ -76,7 +78,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
               options, fields);
-      functionCallStatements.forEach(statement -> rBody.add(statement.toASTString()));
+      functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
     } else {
       // otherwise include the thread simulations in the main function directly
@@ -135,16 +137,16 @@ public class SeqMainFunction extends SeqFunction {
       if (options.comments) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
-      loopBlock.addAll(
+      loopBlock.add(
           NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
               options, fields, utils));
 
       // build the loop depending on settings, and include all statements in it
       SeqLoopStatement loopStatement =
           buildLoopStatement(options, loopBlock.build(), utils.getBinaryExpressionBuilder());
-      rBody.add(loopStatement.toASTString());
+      rBody.append(loopStatement.toASTString());
     }
-    return rBody.build();
+    return rBody.toString();
   }
 
   @Override
@@ -166,7 +168,7 @@ public class SeqMainFunction extends SeqFunction {
    * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
    * = __VERIFIER_nondet_int;}
    */
-  private ImmutableList<String> buildMainFunctionArgNondetAssignments(
+  private String buildMainFunctionArgNondetAssignments(
       MPORSubstitution pMainSubstitution,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
@@ -178,7 +180,7 @@ public class SeqMainFunction extends SeqFunction {
         SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
 
     // then add main function arg nondet assignments, if necessary
-    ImmutableList.Builder<String> rMainArgAssignments = ImmutableList.builder();
+    StringJoiner rAssignments = new StringJoiner(SeqSyntax.NEWLINE);
     for (var entry : pMainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
       // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
       if (accessedMainFunctionArgs.contains(entry.getKey())) {
@@ -190,7 +192,7 @@ public class SeqMainFunction extends SeqFunction {
           CFunctionCallAssignmentStatement assignment =
               SeqStatementBuilder.buildFunctionCallAssignmentStatement(
                   mainArgSubstitute, verifierNondet.orElseThrow());
-          rMainArgAssignments.add(assignment.toASTString());
+          rAssignments.add(assignment.toASTString());
         } else {
           pLogger.log(
               Level.WARNING,
@@ -200,7 +202,7 @@ public class SeqMainFunction extends SeqFunction {
         }
       }
     }
-    return rMainArgAssignments.build();
+    return rAssignments.toString();
   }
 
   private static SeqLoopStatement buildLoopStatement(

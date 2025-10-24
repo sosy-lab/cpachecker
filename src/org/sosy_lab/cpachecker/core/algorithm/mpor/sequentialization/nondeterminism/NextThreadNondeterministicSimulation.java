@@ -26,14 +26,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class NextThreadNondeterministicSimulation {
 
   /** Creates the control flow statements for all threads based on {@code pClauses}. */
-  static ImmutableList<String> buildThreadSimulations(
+  static String buildThreadSimulations(
       MPOROptions pOptions,
       SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -48,7 +47,7 @@ public class NextThreadNondeterministicSimulation {
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    return SeqStringUtil.splitOnNewline(outerMultiControlStatement.toASTString());
+    return outerMultiControlStatement.toASTString();
   }
 
   private static ImmutableMap<CExpression, SeqMultiControlStatement>
@@ -112,7 +111,7 @@ public class NextThreadNondeterministicSimulation {
         pBinaryExpressionBuilder);
   }
 
-  static ImmutableList<String> buildSingleThreadSimulation(
+  static String buildSingleThreadSimulation(
       MPOROptions pOptions,
       ProgramCounterVariables pPcVariables,
       MPORThread pThread,
@@ -123,6 +122,6 @@ public class NextThreadNondeterministicSimulation {
     SeqMultiControlStatement multiControlStatement =
         buildMultiControlStatement(
             pOptions, pPcVariables, pThread, pClauses, pBinaryExpressionBuilder);
-    return SeqStringUtil.splitOnNewline(multiControlStatement.toASTString());
+    return multiControlStatement.toASTString();
   }
 }

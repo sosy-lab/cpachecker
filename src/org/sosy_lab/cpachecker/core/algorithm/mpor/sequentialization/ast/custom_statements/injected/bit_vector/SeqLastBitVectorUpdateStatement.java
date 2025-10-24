@@ -9,9 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
 
 import com.google.common.collect.ImmutableList;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqLastBitVectorUpdateStatement implements SeqInjectedStatement {
@@ -30,11 +31,11 @@ public class SeqLastBitVectorUpdateStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
-    rLines.add(lastThreadUpdate.toASTString());
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
+    joiner.add(lastThreadUpdate.toASTString());
     for (CExpressionAssignmentStatement lastBitVectorUpdate : lastBitVectorUpdates) {
-      rLines.add(lastBitVectorUpdate.toASTString());
+      joiner.add(lastBitVectorUpdate.toASTString());
     }
-    return SeqStringUtil.joinWithNewlines(rLines.build());
+    return joiner.toString();
   }
 }

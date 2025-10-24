@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumeFunction extends SeqFunction {
@@ -44,12 +43,10 @@ public class SeqAssumeFunction extends SeqFunction {
   }
 
   @Override
-  public ImmutableList<String> buildBody() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
-    ifBlock.add(abortFunctionCallStatement.toASTString());
-    SeqBranchStatement ifStatement =
-        new SeqBranchStatement(condEqualsZeroExpression, ifBlock.build());
-    return SeqStringUtil.splitOnNewline(ifStatement.toASTString());
+  public String buildBody() throws UnrecognizedCodeException {
+    ImmutableList<String> ifBlock = ImmutableList.of(abortFunctionCallStatement.toASTString());
+    SeqBranchStatement ifStatement = new SeqBranchStatement(condEqualsZeroExpression, ifBlock);
+    return ifStatement.toASTString();
   }
 
   @Override

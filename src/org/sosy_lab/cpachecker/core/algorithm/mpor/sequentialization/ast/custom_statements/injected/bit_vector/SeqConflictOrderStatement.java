@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -21,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -47,7 +48,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     // last_thread < n
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -67,7 +68,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     }
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(lastThreadLessThanThreadId, ifBlock.build());
-    rLines.add(ifStatement.toASTString());
-    return SeqStringUtil.joinWithNewlines(rLines.build());
+    joiner.add(ifStatement.toASTString());
+    return joiner.toString();
   }
 }
