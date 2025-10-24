@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -43,8 +41,6 @@ public class GhostElementBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CIdExpression numThreadsIdExpression =
-        SeqExpressionBuilder.buildNumThreadsIdExpression(pThreads.size());
     Optional<BitVectorVariables> bitVectorVariables =
         BitVectorBuilder.buildBitVectorVariables(
             pOptions, pThreads, pSubstituteEdges, pMemoryModel);
@@ -58,7 +54,6 @@ public class GhostElementBuilder {
         ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
 
     return new GhostElements(
-        numThreadsIdExpression,
         bitVectorVariables,
         functionStatements,
         programCounterVariables,

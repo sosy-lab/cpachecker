@@ -107,9 +107,6 @@ public class SeqToken {
 
   public static final String NUM = "NUM";
 
-  /** Constant, hence uppercase. */
-  public static final String NUM_THREADS = "NUM_THREADS";
-
   public static final String ONE_BIT = "1";
 
   public static final String P = "P";

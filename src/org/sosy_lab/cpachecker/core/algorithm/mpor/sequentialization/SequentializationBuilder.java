@@ -62,7 +62,7 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
-  public static String buildOriginalDeclarations(
+  public static String buildInputFunctionAndTypeDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
@@ -331,15 +331,12 @@ public class SequentializationBuilder {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
 
-    // NUM_THREADS
-    rDeclarations.add(pFields.ghostElements.numThreadsIdExpression.getDeclaration().toASTString());
-
     // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
     if (pOptions.reduceLastThreadOrder) {
-      CIntegerLiteralExpression numThreadsLiteral =
+      CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
       CInitializer lastThreadInitializer =
-          SeqInitializerBuilder.buildInitializerExpression(numThreadsLiteral);
+          SeqInitializerBuilder.buildInitializerExpression(numThreadsExpression);
       CVariableDeclaration lastThreadDeclaration =
           SeqDeclarationBuilder.buildLastThreadDeclaration(lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());

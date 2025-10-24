@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -79,11 +79,12 @@ public class SeqAssumptionBuilder {
               BinaryOperator.LESS_EQUAL);
       rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
-    CIdExpression numThreads = pFields.ghostElements.numThreadsIdExpression;
+    CIntegerLiteralExpression numThreadsExpression =
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
     // ensure that next_thread < NUM_THREADS
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
+            SeqIdExpressions.NEXT_THREAD, numThreadsExpression, BinaryOperator.LESS_THAN);
     rAssumptions.add(buildAssumption(nextThreadLessThanNumThreads));
     return rAssumptions.build();
   }

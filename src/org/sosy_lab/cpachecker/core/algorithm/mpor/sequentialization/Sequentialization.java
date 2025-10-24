@@ -116,7 +116,8 @@ public class Sequentialization {
     }
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.add(SequentializationBuilder.buildOriginalDeclarations(pOptions, pFields.threads));
+    rProgram.add(
+        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(pOptions, pFields.threads));
     rProgram.add(SequentializationBuilder.buildBitVectorTypeDeclarations());
     // add struct and variable declarations
     rProgram.add(
