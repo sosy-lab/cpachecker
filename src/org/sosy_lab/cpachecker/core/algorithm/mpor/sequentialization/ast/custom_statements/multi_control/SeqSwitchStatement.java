@@ -52,36 +52,30 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    precedingStatements.forEach(statement -> joiner.add(statement.toASTString()));
-    joiner.add(
+    StringJoiner switchCase = new StringJoiner(SeqSyntax.NEWLINE);
+    // first build preceding statements
+    precedingStatements.forEach(statement -> switchCase.add(statement.toASTString()));
+    // add switch (expression) ...
+    switchCase.add(
         Joiner.on(SeqSyntax.SPACE)
             .join(
                 SWITCH_KEYWORD,
                 SeqStringUtil.wrapInBrackets(switchExpression.toASTString()),
                 SeqSyntax.CURLY_BRACKET_LEFT));
-    buildCases(statements).forEach(caseString -> joiner.add(caseString));
-    joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return joiner.toString();
+    // add all cases
+    for (var entry : statements.entrySet()) {
+      SeqStatement statement = entry.getValue();
+      String casePrefix = buildCasePrefix(entry.getKey());
+      String breakSuffix = buildBreakSuffix(statement);
+      switchCase.add(casePrefix + statement.toASTString() + breakSuffix);
+    }
+    switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return switchCase.toString();
   }
 
   @Override
   public MultiControlStatementEncoding getEncoding() {
     return MultiControlStatementEncoding.SWITCH_CASE;
-  }
-
-  private static ImmutableList<String> buildCases(
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<String> rCases = ImmutableList.builder();
-    for (var entry : pStatements.entrySet()) {
-      SeqStatement statement = entry.getValue();
-      String casePrefix = buildCasePrefix(entry.getKey());
-      String breakSuffix = buildBreakSuffix(statement);
-      rCases.add(casePrefix + statement.toASTString() + breakSuffix);
-    }
-    return rCases.build();
   }
 
   private static String buildCasePrefix(CExpression pExpression) {

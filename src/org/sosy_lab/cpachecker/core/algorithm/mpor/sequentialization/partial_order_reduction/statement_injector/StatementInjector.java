@@ -188,9 +188,7 @@ public class StatementInjector {
               pOtherThreads,
               pStatement,
               pLabelClauseMap,
-              pLabelBlockMap,
               pBitVectorVariables,
-              pMemoryModel,
               pUtils);
     }
     // always inject bit vector assignments after evaluations i.e. reductions

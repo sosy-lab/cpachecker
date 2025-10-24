@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatStyle;
-import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
@@ -284,12 +283,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
-    String program =
-        Sequentialization.tryBuildProgramString(
-            options, cfa, inputFileName, logger, shutdownNotifier);
-    return options.clangFormatStyle.isEnabled()
-        ? ClangFormatter.tryFormat(program, options.clangFormatStyle, logger)
-        : program;
+    return Sequentialization.tryBuildProgramString(
+        options, cfa, inputFileName, logger, shutdownNotifier);
   }
 
   private final ConfigurableProgramAnalysis cpa;

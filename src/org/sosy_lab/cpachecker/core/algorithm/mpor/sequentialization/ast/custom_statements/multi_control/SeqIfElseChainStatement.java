@@ -35,18 +35,11 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner ifElseChain = new StringJoiner(SeqSyntax.NEWLINE);
+    // first add preceding statements
     precedingStatements.forEach(statement -> ifElseChain.add(statement.toASTString()));
-    buildIfElseChain(statements).forEach(statement -> ifElseChain.add(statement));
-    return ifElseChain.toString();
-  }
-
-  private static ImmutableList<String> buildIfElseChain(
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<String> ifElseChain = ImmutableList.builder();
+    // then add all statements via if ... else if ...
     boolean isFirst = true;
-    for (var statement : pStatements.entrySet()) {
+    for (var statement : statements.entrySet()) {
       // first statement: use "if", otherwise "else if"
       BranchType branchType = isFirst ? BranchType.IF : BranchType.ELSE_IF;
       ifElseChain.add(branchType.buildPrefix(statement.getKey()));
@@ -54,7 +47,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       isFirst = false;
     }
     ifElseChain.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return ifElseChain.build();
+    return ifElseChain.toString();
   }
 
   @Override

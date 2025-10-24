@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -77,7 +78,12 @@ public class Sequentialization {
 
     try {
       String initProgram = initProgram(pOptions, pFields, pUtils);
-      String finalProgram = finalProgram(pOptions, pInputFileName, initProgram);
+      String formattedProgram =
+          pOptions.clangFormatStyle.isEnabled()
+              ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle, pUtils.getLogger())
+              : initProgram;
+      // replace dummy reach_errors after formatting so that line numbers are exact
+      String finalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
       return pOptions.validateParse && pOptions.inputTypeDeclarations
           ? SeqValidator.validateProgramParsing(finalProgram, pOptions, pUtils)
           : finalProgram;
@@ -98,6 +104,16 @@ public class Sequentialization {
       throws UnrecognizedCodeException {
 
     StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
+
+    // if enabled, add a license header
+    ImmutableList<String> licenseHeader =
+        buildLicenseHeader(Year.now(ZoneId.systemDefault()).getValue());
+    if (pOptions.license) {
+      licenseHeader.forEach(line -> rProgram.add(line));
+    }
+    if (pOptions.comments) {
+      mporHeader.forEach(line -> rProgram.add(line));
+    }
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.add(SequentializationBuilder.buildOriginalDeclarations(pOptions, pFields.threads));
@@ -135,22 +151,9 @@ public class Sequentialization {
    * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
    * file name and line in {@code reach_error();} dummies with the actual values.
    */
-  private static String finalProgram(
-      MPOROptions pOptions, String pInputFileName, String pInitProgram) {
-
+  private static String replaceDummyReachErrors(String pInputFileName, String pInitProgram) {
     StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
-
-    // consider license and seq comment header for line numbers
-    ImmutableList<String> licenseHeader =
-        buildLicenseHeader(Year.now(ZoneId.systemDefault()).getValue());
-    if (pOptions.license) {
-      licenseHeader.forEach(line -> rProgram.add(line));
-    }
-    if (pOptions.comments) {
-      mporHeader.forEach(line -> rProgram.add(line));
-    }
-    int currentLine =
-        pOptions.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
+    int currentLine = FIRST_LINE;
     for (String lineOfCode : SeqStringUtil.splitOnNewline(pInitProgram)) {
       // replace dummy line numbers (-1) with actual line numbers in the seq
       rProgram.add(replaceReachErrorDummies(pInputFileName, lineOfCode, currentLine));
