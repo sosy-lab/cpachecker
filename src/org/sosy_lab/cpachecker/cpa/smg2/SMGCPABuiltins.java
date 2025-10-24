@@ -686,7 +686,6 @@ public class SMGCPABuiltins {
       boolean usesBufferSizeArgument,
       Optional<Integer> formatArgumentIndex)
       throws CPATransferException {
-    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     // TODO: add failing w option.
 
     SMGState currentState = pState;
@@ -713,267 +712,264 @@ public class SMGCPABuiltins {
       }
     }
 
-    for (SMGState checkedState :
-        checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName)) {
-      Value returnValue = UnknownValue.getInstance();
-      SMGState finalState = checkedState;
+    List<SMGState> checkedStates =
+        checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName);
+    checkState(checkedStates.size() == 1);
+    Value returnValue = UnknownValue.getInstance();
+    SMGState finalState = checkedStates.getFirst();
 
-      // Potentially the size of the input poured into any string buffer.
-      // The buffer size argument might cut this down! Or there might be no format.
-      Optional<Value> sizeFillingStringBuffersInBits = Optional.empty();
-      // stringFormatSpecifierUsed only makes sense if formatArgumentIndex is non-empty!
-      boolean stringFormatSpecifierUsed = false;
+    // Potentially the size of the input poured into any string buffer.
+    // The buffer size argument might cut this down! Or there might be no format.
+    Optional<Value> sizeFillingStringBuffersInBits = Optional.empty();
+    // stringFormatSpecifierUsed only makes sense if formatArgumentIndex is non-empty!
+    boolean stringFormatSpecifierUsed = false;
 
-      for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
-        CExpression argument = cFCExpression.getParameterExpressions().get(arg);
-        CType argumentType =
-            SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
-        CType functionParameterType;
-        if (arg < cFCExpression.getDeclaration().getParameters().size()) {
-          functionParameterType =
-              SMGCPAExpressionEvaluator.getCanonicalType(
-                  cFCExpression.getDeclaration().getParameters().get(arg).getType());
-        } else {
-          // Variable arguments used. Those are not declared. Usually just buffers.
-          functionParameterType = argumentType;
-        }
-
-        if (usesBufferSizeArgument
-            && functionParameterType instanceof CSimpleType simpleType
-            && simpleType.getType().equals(CBasicType.INT)) {
-          continue; // Skip size arg, we already processed it!
-        }
-
-        if (!functionParameterType.isConst()
-            && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
-          // String Buffers
-          List<ValueAndSMGState> overflowBufferAndState =
-              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                  .evaluate(argument, argumentType);
-
-          checkState(overflowBufferAndState.size() == 1);
-          finalState = overflowBufferAndState.getFirst().getState();
-
-          Value bufferAddress = overflowBufferAndState.getFirst().getValue();
-          Value targetBufferOffsetInBits = new NumericValue(BigInteger.ZERO);
-          if (bufferAddress instanceof AddressExpression addrExpr) {
-            bufferAddress = addrExpr.getMemoryAddress();
-            targetBufferOffsetInBits = addrExpr.getOffset();
-          }
-
-          if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
-            // Multiple "buffers" in this function, can't return one, return unknown
-            returnBufferPointer = false;
-            returnValue = UnknownValue.getInstance();
-          } else if (returnBufferPointer && !isNumericZero(returnValue)) {
-            // Remember buffer as return value (if that's 0, we also return 0),
-            //  except if its already 0, then keep the return value.
-            returnValue = bufferAddress;
-          }
-          // TODO: add solver handling for checks
-
-          if (!returnValue.isNumericValue()
-              && !returnValue.equals(UnknownValue.getInstance())
-              && usesBufferSizeArgument) {
-            // Overflow if size not fitting and remove buffer values (i.e. make them unknown)
-            checkArgument(bufferWriteSizeArgument.isPresent());
-            Value bufferWriteSizeArg = bufferWriteSizeArgument.orElseThrow();
-
-            List<SMGStateAndOptionalSMGObjectAndOffset> maybeObjects =
-                finalState.dereferencePointer(returnValue);
-            checkState(maybeObjects.size() == 1);
-            SMGStateAndOptionalSMGObjectAndOffset maybeObjAndInfo = maybeObjects.getFirst();
-            checkState(maybeObjAndInfo.hasSMGObjectAndOffset());
-            finalState = maybeObjAndInfo.getSMGState();
-            Value objOffsetInBits = maybeObjAndInfo.getOffsetForObject();
-            SMGObject obj = maybeObjAndInfo.getSMGObject();
-
-            if (obj.getSize() instanceof NumericValue numericObjSize
-                && bufferWriteSizeArg instanceof NumericValue numericBufferWriteSizeArg
-                && targetBufferOffsetInBits instanceof NumericValue numericBufferOffsetInBits
-                && objOffsetInBits instanceof NumericValue numericObjOffsetInBits) {
-              // copyAndRemoveAllEdgesFrom ignores targetBufferOffsetInBits currently, so it has to
-              // be 0
-              checkState(
-                  numericBufferOffsetInBits.bigIntegerValue().compareTo(BigInteger.ZERO) == 0);
-              BigInteger bigIntBufferOffsetInBits =
-                  numericBufferOffsetInBits
-                      .bigIntegerValue()
-                      .add(numericObjOffsetInBits.bigIntegerValue());
-
-              BigInteger charBitSize =
-                  BigInteger.valueOf(machineModel.getSizeofInBits(CNumericTypes.CHAR));
-              BigInteger writeSizeInBits =
-                  numericBufferWriteSizeArg.bigIntegerValue().multiply(charBitSize);
-              finalState =
-                  finalState.copyAndRemoveAllEdgesFrom(
-                      returnValue, new NumericValue(writeSizeInBits));
-
-              if (numericObjSize
-                      .bigIntegerValue()
-                      .compareTo(bigIntBufferOffsetInBits.add(writeSizeInBits))
-                  < 0) {
-                // Overflow
-                finalState = finalState.withInvalidWrite(bufferAddress);
-              }
-
-            } else {
-              // Overaproximate overflow
-              finalState =
-                  finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
-              // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
-              // TODO: Symex. Currently we overapproximate for symbolic values of any kind.
-
-            }
-          } else {
-            // Overapproximate buffer overflow and remove edges
-            checkArgument(bufferWriteSizeArgument.isEmpty());
-            finalState =
-                finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
-          }
-
-        } else if (
-        /* && BuiltinFunctions.isFilePointer(argumentType) */ argumentType
-                instanceof CPointerType ptrType
-            && ptrType.getType().getCanonicalType() instanceof CComplexType complexType
-            && complexType.getKind() == ComplexTypeKind.STRUCT
-            && complexType.getName().equals("_IO_FILE")) {
-          // TODO: replace with Marians check for this!
-          // STREAM. If 0, return 0.
-          List<ValueAndSMGState> streamPtrAndState =
-              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                  .evaluate(argument, argumentType);
-
-          checkState(streamPtrAndState.size() == 1);
-          Value streamPointer = streamPtrAndState.getFirst().getValue();
-          finalState = streamPtrAndState.getFirst().getState();
-
-          if (isNumericZero(streamPointer)
-              || (finalState.isPointer(streamPointer)
-                  && finalState.dereferencePointerWithoutMaterilization(streamPointer).isPresent()
-                  && finalState
-                      .dereferencePointerWithoutMaterilization(streamPointer)
-                      .orElseThrow()
-                      .hasSMGObjectAndOffset()
-                  && finalState
-                      .dereferencePointerWithoutMaterilization(streamPointer)
-                      .orElseThrow()
-                      .getSMGObject()
-                      .isZero())) {
-            checkState(!finalState.getMemoryModel().pointsToZeroPlus(streamPointer));
-            returnValue = new NumericValue(0);
-          } else if (!finalState.isPointer(streamPointer)) {
-            // Unknown -> overapproximate
-            throw new SMGException(
-                "Error when handling C input function "
-                    + functionName
-                    + "(), can't handle unknown argument #"
-                    + arg
-                    + " of type "
-                    + functionParameterType);
-          }
-
-        } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
-          // format specifiers OR input string!
-          if (formatArgumentIndex.isEmpty() || formatArgumentIndex.orElseThrow() != arg) {
-            // Input string that is read from. Remember the size we can read!
-            // (first argument only! Else this method is used or set-up wrongly!)
-            checkArgument(arg == 0);
-
-            List<ValueAndSMGState> inputStringBufferAndState =
-                new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                    .evaluate(argument, argumentType);
-
-            checkState(inputStringBufferAndState.size() == 1);
-            finalState = inputStringBufferAndState.getFirst().getState();
-
-            Value stringBufferValue = inputStringBufferAndState.getFirst().getValue();
-            Value stringBuffOffsetInBits = new NumericValue(0);
-            if (stringBufferValue instanceof AddressExpression stringBuffAddrExpr) {
-              stringBufferValue = stringBuffAddrExpr.getMemoryAddress();
-              stringBuffOffsetInBits = stringBuffAddrExpr.getOffset();
-            }
-
-            checkArgument(!returnBufferPointer); // If fails, check and add functionality
-            List<SMGStateAndOptionalSMGObjectAndOffset> maybeBufferObjects =
-                finalState.dereferencePointer(stringBufferValue);
-            checkState(maybeBufferObjects.size() == 1);
-            SMGStateAndOptionalSMGObjectAndOffset maybeStringObjAndInfo =
-                maybeBufferObjects.getFirst();
-            checkState(maybeStringObjAndInfo.hasSMGObjectAndOffset());
-            finalState = maybeStringObjAndInfo.getSMGState();
-            Value objOffsetInBits = maybeStringObjAndInfo.getOffsetForObject();
-            SMGObject stringBufferObj = maybeStringObjAndInfo.getSMGObject();
-            checkState(sizeFillingStringBuffersInBits.isEmpty());
-
-            sizeFillingStringBuffersInBits =
-                Optional.of(
-                    evaluator.subtractBitOffsetValues(
-                        stringBufferObj.getSize(),
-                        evaluator.addBitOffsetValues(
-                            evaluator.addBitOffsetValues(
-                                objOffsetInBits, stringBufferObj.getOffset()),
-                            stringBuffOffsetInBits)));
-
-          } else if (formatArgumentIndex.orElseThrow() == arg
-              && argument instanceof CStringLiteralExpression stringArg) {
-            // Format string, if there is an %s in there, we read a string. Remember where and use
-            // for buffer later on
-            if (stringArg.getContentWithoutNullTerminator().contains("%s")) {
-              // List<String> splitSpecifiers =
-              // Splitter.on('%').splitToList(stringArg.getContentWithoutNullTerminator());
-              // splitSpecifiers now consists of a specifier as first char, potentially followed by
-              // spaces. We might be able to make this method more precise for concrete input when
-              // taking this into account.
-              // for (int i = 0; i < splitSpecifiers.size(); i++) {
-              // ...
-              // }
-              stringFormatSpecifierUsed = true;
-            }
-
-          } else {
-            throw new SMGException(
-                "Unexpected unhandled type argument "
-                    + functionParameterType
-                    + "in C input function call "
-                    + functionName
-                    + "() in "
-                    + pCfaEdge);
-          }
-
-        } else if (argumentType instanceof CPointerType) {
-          // Other buffers. Just empty them, except for char * and a previous %s specifier, those
-          // can overflow if smaller than input allows, but also need to be emptied
-          List<ValueAndSMGState> bufferAndState =
-              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
-                  .evaluate(argument, argumentType);
-
-          checkState(bufferAndState.size() == 1);
-          finalState = bufferAndState.getFirst().getState();
-          Value bufferAddress = bufferAndState.getFirst().getValue();
-          // Make buffer unknown
-          if (formatArgumentIndex.isPresent() && sizeFillingStringBuffersInBits.isPresent()) {
-            // If sizeFillingStringBuffersInBits is empty, means we don't know the size ->
-            // overapproximate
-            finalState =
-                finalState.copyAndRemoveAllEdgesFrom(
-                    bufferAddress, sizeFillingStringBuffersInBits.orElseThrow());
-          } else {
-            finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
-          }
-
-          // Handle overflow for strings
-          if (formatArgumentIndex.isPresent() && stringFormatSpecifierUsed) {
-            // TODO: if buffersize < sizeFillingStringBuffersInBits -> overflow
-            // if (sizeFillingStringBuffersInBits.isPresent()) {
-            finalState = finalState.withInvalidWrite(bufferAddress);
-          }
-        }
+    for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
+      CExpression argument = cFCExpression.getParameterExpressions().get(arg);
+      CType argumentType = SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
+      CType functionParameterType;
+      if (arg < cFCExpression.getDeclaration().getParameters().size()) {
+        functionParameterType =
+            SMGCPAExpressionEvaluator.getCanonicalType(
+                cFCExpression.getDeclaration().getParameters().get(arg).getType());
+      } else {
+        // Variable arguments used. Those are not declared. Usually just buffers.
+        functionParameterType = argumentType;
       }
 
-      result.add(ValueAndSMGState.of(returnValue, finalState));
+      if (usesBufferSizeArgument
+          && functionParameterType instanceof CSimpleType simpleType
+          && simpleType.getType().equals(CBasicType.INT)) {
+        continue; // Skip size arg, we already processed it!
+      }
+
+      if (!functionParameterType.isConst()
+          && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
+        // String Buffers
+        List<ValueAndSMGState> overflowBufferAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(overflowBufferAndState.size() == 1);
+        finalState = overflowBufferAndState.getFirst().getState();
+
+        Value bufferAddress = overflowBufferAndState.getFirst().getValue();
+        Value targetBufferOffsetInBits = new NumericValue(BigInteger.ZERO);
+        if (bufferAddress instanceof AddressExpression addrExpr) {
+          bufferAddress = addrExpr.getMemoryAddress();
+          targetBufferOffsetInBits = addrExpr.getOffset();
+        }
+
+        if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
+          // Multiple "buffers" in this function, can't return one, return unknown
+          returnBufferPointer = false;
+          returnValue = UnknownValue.getInstance();
+        } else if (returnBufferPointer && !isNumericZero(returnValue)) {
+          // Remember buffer as return value (if that's 0, we also return 0),
+          //  except if its already 0, then keep the return value.
+          returnValue = bufferAddress;
+        }
+        // TODO: add solver handling for checks
+
+        if (!returnValue.isNumericValue()
+            && !returnValue.equals(UnknownValue.getInstance())
+            && usesBufferSizeArgument) {
+          // Overflow if size not fitting and remove buffer values (i.e. make them unknown)
+          checkArgument(bufferWriteSizeArgument.isPresent());
+          Value bufferWriteSizeArg = bufferWriteSizeArgument.orElseThrow();
+
+          List<SMGStateAndOptionalSMGObjectAndOffset> maybeObjects =
+              finalState.dereferencePointer(returnValue);
+          checkState(maybeObjects.size() == 1);
+          SMGStateAndOptionalSMGObjectAndOffset maybeObjAndInfo = maybeObjects.getFirst();
+          checkState(maybeObjAndInfo.hasSMGObjectAndOffset());
+          finalState = maybeObjAndInfo.getSMGState();
+          Value objOffsetInBits = maybeObjAndInfo.getOffsetForObject();
+          SMGObject obj = maybeObjAndInfo.getSMGObject();
+
+          if (obj.getSize() instanceof NumericValue numericObjSize
+              && bufferWriteSizeArg instanceof NumericValue numericBufferWriteSizeArg
+              && targetBufferOffsetInBits instanceof NumericValue numericBufferOffsetInBits
+              && objOffsetInBits instanceof NumericValue numericObjOffsetInBits) {
+            // copyAndRemoveAllEdgesFrom ignores targetBufferOffsetInBits currently, so it has to
+            // be 0
+            checkState(numericBufferOffsetInBits.bigIntegerValue().compareTo(BigInteger.ZERO) == 0);
+            BigInteger bigIntBufferOffsetInBits =
+                numericBufferOffsetInBits
+                    .bigIntegerValue()
+                    .add(numericObjOffsetInBits.bigIntegerValue());
+
+            BigInteger charBitSize =
+                BigInteger.valueOf(machineModel.getSizeofInBits(CNumericTypes.CHAR));
+            BigInteger writeSizeInBits =
+                numericBufferWriteSizeArg.bigIntegerValue().multiply(charBitSize);
+            finalState =
+                finalState.copyAndRemoveAllEdgesFrom(
+                    returnValue, new NumericValue(writeSizeInBits));
+
+            if (numericObjSize
+                    .bigIntegerValue()
+                    .compareTo(bigIntBufferOffsetInBits.add(writeSizeInBits))
+                < 0) {
+              // Overflow
+              finalState = finalState.withInvalidWrite(bufferAddress);
+            }
+
+          } else {
+            // Overaproximate overflow
+            finalState =
+                finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
+            // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
+            // TODO: Symex. Currently we overapproximate for symbolic values of any kind.
+
+          }
+        } else {
+          // Overapproximate buffer overflow and remove edges
+          checkArgument(bufferWriteSizeArgument.isEmpty());
+          finalState =
+              finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
+        }
+
+      } else if (
+      /* && BuiltinFunctions.isFilePointer(argumentType) */ argumentType
+              instanceof CPointerType ptrType
+          && ptrType.getType().getCanonicalType() instanceof CComplexType complexType
+          && complexType.getKind() == ComplexTypeKind.STRUCT
+          && complexType.getName().equals("_IO_FILE")) {
+        // TODO: replace with Marians check for this!
+        // STREAM. If 0, return 0.
+        List<ValueAndSMGState> streamPtrAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(streamPtrAndState.size() == 1);
+        Value streamPointer = streamPtrAndState.getFirst().getValue();
+        finalState = streamPtrAndState.getFirst().getState();
+
+        if (isNumericZero(streamPointer)
+            || (finalState.isPointer(streamPointer)
+                && finalState.dereferencePointerWithoutMaterilization(streamPointer).isPresent()
+                && finalState
+                    .dereferencePointerWithoutMaterilization(streamPointer)
+                    .orElseThrow()
+                    .hasSMGObjectAndOffset()
+                && finalState
+                    .dereferencePointerWithoutMaterilization(streamPointer)
+                    .orElseThrow()
+                    .getSMGObject()
+                    .isZero())) {
+          checkState(!finalState.getMemoryModel().pointsToZeroPlus(streamPointer));
+          returnValue = new NumericValue(0);
+        } else if (!finalState.isPointer(streamPointer)) {
+          // Unknown -> overapproximate
+          throw new SMGException(
+              "Error when handling C input function "
+                  + functionName
+                  + "(), can't handle unknown argument #"
+                  + arg
+                  + " of type "
+                  + functionParameterType);
+        }
+
+      } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
+        // format specifiers OR input string!
+        if (formatArgumentIndex.isEmpty() || formatArgumentIndex.orElseThrow() != arg) {
+          // Input string that is read from. Remember the size we can read!
+          // (first argument only! Else this method is used or set-up wrongly!)
+          checkArgument(arg == 0);
+
+          List<ValueAndSMGState> inputStringBufferAndState =
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                  .evaluate(argument, argumentType);
+
+          checkState(inputStringBufferAndState.size() == 1);
+          finalState = inputStringBufferAndState.getFirst().getState();
+
+          Value stringBufferValue = inputStringBufferAndState.getFirst().getValue();
+          Value stringBuffOffsetInBits = new NumericValue(0);
+          if (stringBufferValue instanceof AddressExpression stringBuffAddrExpr) {
+            stringBufferValue = stringBuffAddrExpr.getMemoryAddress();
+            stringBuffOffsetInBits = stringBuffAddrExpr.getOffset();
+          }
+
+          checkArgument(!returnBufferPointer); // If fails, check and add functionality
+          List<SMGStateAndOptionalSMGObjectAndOffset> maybeBufferObjects =
+              finalState.dereferencePointer(stringBufferValue);
+          checkState(maybeBufferObjects.size() == 1);
+          SMGStateAndOptionalSMGObjectAndOffset maybeStringObjAndInfo =
+              maybeBufferObjects.getFirst();
+          checkState(maybeStringObjAndInfo.hasSMGObjectAndOffset());
+          finalState = maybeStringObjAndInfo.getSMGState();
+          Value objOffsetInBits = maybeStringObjAndInfo.getOffsetForObject();
+          SMGObject stringBufferObj = maybeStringObjAndInfo.getSMGObject();
+          checkState(sizeFillingStringBuffersInBits.isEmpty());
+
+          sizeFillingStringBuffersInBits =
+              Optional.of(
+                  evaluator.subtractBitOffsetValues(
+                      stringBufferObj.getSize(),
+                      evaluator.addBitOffsetValues(
+                          evaluator.addBitOffsetValues(
+                              objOffsetInBits, stringBufferObj.getOffset()),
+                          stringBuffOffsetInBits)));
+
+        } else if (formatArgumentIndex.orElseThrow() == arg
+            && argument instanceof CStringLiteralExpression stringArg) {
+          // Format string, if there is an %s in there, we read a string. Remember where and use
+          // for buffer later on
+          if (stringArg.getContentWithoutNullTerminator().contains("%s")) {
+            // List<String> splitSpecifiers =
+            // Splitter.on('%').splitToList(stringArg.getContentWithoutNullTerminator());
+            // splitSpecifiers now consists of a specifier as first char, potentially followed by
+            // spaces. We might be able to make this method more precise for concrete input when
+            // taking this into account.
+            // for (int i = 0; i < splitSpecifiers.size(); i++) {
+            // ...
+            // }
+            stringFormatSpecifierUsed = true;
+          }
+
+        } else {
+          throw new SMGException(
+              "Unexpected unhandled type argument "
+                  + functionParameterType
+                  + "in C input function call "
+                  + functionName
+                  + "() in "
+                  + pCfaEdge);
+        }
+
+      } else if (argumentType instanceof CPointerType) {
+        // Other buffers. Just empty them, except for char * and a previous %s specifier, those
+        // can overflow if smaller than input allows, but also need to be emptied
+        List<ValueAndSMGState> bufferAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(bufferAndState.size() == 1);
+        finalState = bufferAndState.getFirst().getState();
+        Value bufferAddress = bufferAndState.getFirst().getValue();
+        // Make buffer unknown
+        if (formatArgumentIndex.isPresent() && sizeFillingStringBuffersInBits.isPresent()) {
+          // If sizeFillingStringBuffersInBits is empty, means we don't know the size ->
+          // overapproximate
+          finalState =
+              finalState.copyAndRemoveAllEdgesFrom(
+                  bufferAddress, sizeFillingStringBuffersInBits.orElseThrow());
+        } else {
+          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
+        }
+
+        // Handle overflow for strings
+        if (formatArgumentIndex.isPresent() && stringFormatSpecifierUsed) {
+          // TODO: if buffersize < sizeFillingStringBuffersInBits -> overflow
+          // if (sizeFillingStringBuffersInBits.isPresent()) {
+          finalState = finalState.withInvalidWrite(bufferAddress);
+        }
+      }
     }
-    return result.build();
+
+    return ImmutableList.of(ValueAndSMGState.of(returnValue, finalState));
   }
 
   // TODO: output funs:
