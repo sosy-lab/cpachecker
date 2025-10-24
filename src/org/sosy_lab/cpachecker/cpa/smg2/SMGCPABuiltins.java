@@ -647,7 +647,7 @@ public class SMGCPABuiltins {
    * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
    *     the size given here is read into the buffer (-1 for terminating null char).
    */
-  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsAndReturnUnknown(
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsWithReturn(
       SMGState pState,
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
@@ -655,7 +655,7 @@ public class SMGCPABuiltins {
       boolean returnBufferPointer,
       boolean usesBufferSizeArgument)
       throws CPATransferException {
-    return checkParamValidityWithBufferOverflowsAndReturnUnknown(
+    return checkParamValidityWithBufferOverflowsWithReturn(
         pState,
         pCfaEdge,
         cFCExpression,
@@ -677,7 +677,7 @@ public class SMGCPABuiltins {
    *     the size given here is read into the buffer (-1 for terminating null char).
    * @param formatArgumentIndex if present, index of format specifier. Else no format spec expected!
    */
-  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsAndReturnUnknown(
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsWithReturn(
       SMGState pState,
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
@@ -1008,7 +1008,7 @@ public class SMGCPABuiltins {
       //  0: No value was assigned.
       //  <0: Read error encountered or end-of-file (EOF) reached before any assignment was made.
       case "scanf" ->
-          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+          checkParamValidityWithBufferOverflowsWithReturn(
               pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(0));
 
       // int fscanf(FILE * stream, const char * format, ...);
@@ -1019,13 +1019,13 @@ public class SMGCPABuiltins {
       // Alternatives: fscanf_s and fwscanf_s
       // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
       case "fscanf", "fwscanf_s", "fscanf_s" ->
-          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+          checkParamValidityWithBufferOverflowsWithReturn(
               pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
 
       // int sscanf(const char * stream, const char * format, ...);
       // As fscanf() above, but with string as first arg
       case "sscanf" ->
-          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+          checkParamValidityWithBufferOverflowsWithReturn(
               pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
 
       // fgetwc(FILE *stream) and fgetc(FILE *stream) -> check input, return unknown
@@ -1045,13 +1045,13 @@ public class SMGCPABuiltins {
       // TODO: add option that allows this to fail (return 0)
       // Buffer should be able to hold this number -> else overflow possible!
       case "fgets", "fgetws" ->
-          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+          checkParamValidityWithBufferOverflowsWithReturn(
               pState, pCfaEdge, functionCallExpr, functionName, true, true);
 
       // char * gets(char *buffer);  (deprecated in C11)
       // Returns either a valid address to the read string (i.e. buffer) on success, 0 otherwise.
       case "gets" ->
-          checkParamValidityWithBufferOverflowsAndReturnUnknown(
+          checkParamValidityWithBufferOverflowsWithReturn(
               pState, pCfaEdge, functionCallExpr, functionName, true, false);
 
       default ->
