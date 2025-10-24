@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -70,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -144,7 +146,8 @@ public class SMGCPABuiltins {
    * @return true for the specified names, false else.
    */
   boolean isABuiltIn(String functionName) {
-    return StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
+    return BuiltinFunctions.isBuiltinFunction(functionName)
+        || StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -1308,8 +1311,18 @@ public class SMGCPABuiltins {
       int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    CType parameterTypeInFun =
-        functionCall.getDeclaration().getParameters().get(pParameterNumber).getType();
+    CFunctionDeclaration decl = functionCall.getDeclaration();
+    CType parameterTypeInFun;
+    if (decl != null) {
+      parameterTypeInFun = decl.getParameters().get(pParameterNumber).getType().getCanonicalType();
+    } else {
+      parameterTypeInFun =
+          functionCall
+              .getParameterExpressions()
+              .get(pParameterNumber)
+              .getExpressionType()
+              .getCanonicalType();
+    }
     checkNotNull(
         parameterTypeInFun,
         "Function call parameter type null. This can happen, the type needs to be added by hand!");
