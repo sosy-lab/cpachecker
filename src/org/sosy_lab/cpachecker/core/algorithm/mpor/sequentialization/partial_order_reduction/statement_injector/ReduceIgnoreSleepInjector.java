@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -36,6 +37,7 @@ class ReduceIgnoreSleepInjector {
 
   static ASeqThreadStatement injectIgnoreSleepReductionIntoStatement(
       MPOROptions pOptions,
+      MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       ASeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -53,14 +55,8 @@ class ReduceIgnoreSleepInjector {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         if (StatementInjector.isReductionAllowed(pOptions, newTarget)) {
           BitVectorEvaluationExpression evaluationExpression =
-              StatementInjector.buildBitVectorEvaluationExpression(
-                  pOptions,
-                  pOtherThreads,
-                  pLabelBlockMap,
-                  newTarget.getFirstBlock(),
-                  pBitVectorVariables,
-                  pMemoryModel,
-                  pUtils);
+              BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
+                  pOptions, pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
                   pCurrentStatement,

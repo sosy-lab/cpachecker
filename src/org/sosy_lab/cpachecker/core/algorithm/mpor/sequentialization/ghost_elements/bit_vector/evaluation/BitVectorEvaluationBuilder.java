@@ -40,10 +40,6 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    checkArgument(
-        pOptions.reduceLastThreadOrder || pOptions.reduceUntilConflict,
-        "either reduceLastThreadOrder or reduceUntilConflict must be enabled");
-
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
