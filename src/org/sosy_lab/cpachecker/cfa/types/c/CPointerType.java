@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 public final class CPointerType implements CType {
 
@@ -116,21 +115,5 @@ public final class CPointerType implements CType {
       return this;
     }
     return new CPointerType(pNewQualifiers, getType());
-  }
-
-  /**
-   * Returns true for pointers towards FILE types, i.e. 'FILE *'. The FILE object type is capable of
-   * recording all the information needed to control a stream, e.g. after opening a file. More
-   * information can be found in the C11 standard sections 7.21.1 and 7.21.3.
-   */
-  public boolean isFilePointer() {
-    if (getType().getCanonicalType() instanceof CComplexType actualType) {
-      // We use CComplexType here instead of CStructType, because _IO_FILE may be defined
-      // externally i.e. `extern struct _IO_FILE *stdin;` or fully as a
-      // `struct _IO_FILE { ... }`.
-      return actualType.getKind() == ComplexTypeKind.STRUCT
-          && actualType.getName().equals("_IO_FILE");
-    }
-    return false;
   }
 }
