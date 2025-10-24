@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.StringJoiner;
@@ -15,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SingleControlStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
  */
 public class SeqSwitchStatement implements SeqMultiControlStatement {
+
+  private static final String SWITCH_KEYWORD = "switch";
 
   private final CExpression switchExpression;
 
@@ -53,7 +55,12 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements)
         .forEach(statement -> joiner.add(statement));
-    joiner.add(SingleControlStatementType.SWITCH.buildControlFlowPrefix(switchExpression));
+    joiner.add(
+        Joiner.on(SeqSyntax.SPACE)
+            .join(
+                SWITCH_KEYWORD,
+                SeqStringUtil.wrapInBrackets(switchExpression.toASTString()),
+                SeqSyntax.CURLY_BRACKET_LEFT));
     buildCases(statements).forEach(caseString -> joiner.add(caseString));
     joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return joiner.toString();

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -76,7 +77,11 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     if (whileExpression.isPresent()) {
       joiner.add(
-          SingleControlStatementType.WHILE.buildControlFlowPrefix(whileExpression.orElseThrow()));
+          Joiner.on(SeqSyntax.SPACE)
+              .join(
+                  LoopType.WHILE.getKeyword(),
+                  SeqStringUtil.wrapInBrackets(whileExpression.orElseThrow().toASTString()),
+                  SeqSyntax.CURLY_BRACKET_LEFT));
     } else {
       joiner.add(buildForLoopControlFlowPrefix());
     }
@@ -90,7 +95,7 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     CExpressionAssignmentStatement iterationUpdate = forIterationUpdate.orElseThrow();
 
     StringJoiner outerJoiner = new StringJoiner(SeqSyntax.SPACE);
-    outerJoiner.add(SingleControlStatementType.FOR.getKeyword());
+    outerJoiner.add(LoopType.FOR.getKeyword());
 
     StringJoiner innerJoiner = new StringJoiner(SeqSyntax.SPACE);
     // build the variable declaration without semicolon, it is appended by
