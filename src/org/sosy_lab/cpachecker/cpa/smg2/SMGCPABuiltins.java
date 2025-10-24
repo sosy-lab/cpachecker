@@ -15,6 +15,7 @@ import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardByteInputFunction;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardInputOrOutputFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardStringInputFunction;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.base.Preconditions;
@@ -46,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -252,7 +255,8 @@ public class SMGCPABuiltins {
     }
 
     if (isStandardByteInputFunction(functionName)
-        || isStandardWideCharInputFunction(functionName)) {
+        || isStandardWideCharInputFunction(functionName)
+        || isStandardStringInputFunction(functionName)) {
       return handleInputFunctions(state, funCallExpr, functionName, cfaEdge);
     }
 
@@ -745,9 +749,15 @@ public class SMGCPABuiltins {
         CExpression argument = cFCExpression.getParameterExpressions().get(arg);
         CType argumentType =
             SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
-        CType functionParameterType =
-            SMGCPAExpressionEvaluator.getCanonicalType(
-                cFCExpression.getDeclaration().getParameters().get(arg).getType());
+        CType functionParameterType;
+        if (arg < cFCExpression.getDeclaration().getParameters().size()) {
+          functionParameterType =
+              SMGCPAExpressionEvaluator.getCanonicalType(
+                  cFCExpression.getDeclaration().getParameters().get(arg).getType());
+        } else {
+          // Variable arguments used. Those are not declared. Usually just buffers.
+          functionParameterType = argumentType;
+        }
 
         if (usesBufferSizeArgument
             && functionParameterType instanceof CSimpleType simpleType
@@ -757,7 +767,7 @@ public class SMGCPABuiltins {
 
         if (!functionParameterType.isConst()
             && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
-          // Buffers
+          // String Buffers
           List<ValueAndSMGState> overflowBufferAndState =
               new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
                   .evaluate(argument, argumentType);
@@ -766,14 +776,12 @@ public class SMGCPABuiltins {
           finalState = overflowBufferAndState.getFirst().getState();
 
           if (!returnValue.equals(UnknownValue.getInstance())
-              && (!returnValue.isNumericValue()
-                  || !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))) {
+              && !isNumericZero(returnValue)) {
             // Multiple "buffers" in this function, can't return one, return unknown
             returnBufferPointer = false;
             returnValue = UnknownValue.getInstance();
           } else if (returnBufferPointer
-              && (!returnValue.isNumericValue()
-                  || !returnValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))) {
+              && !isNumericZero(returnValue)) {
             // Remember buffer as return value (if that's 0, we also return 0),
             //  except if its already 0, then keep the return value.
             returnValue = overflowBufferAndState.getFirst().getValue();
@@ -826,7 +834,11 @@ public class SMGCPABuiltins {
                     .copyAndRemoveAllEdgesFrom(returnValue);
           }
 
-        } else if (argumentType instanceof CPointerType) {
+        } else if (argumentType instanceof CPointerType ptrType /* && ptrType.isFilePointer() */
+            && ptrType.getType().getCanonicalType() instanceof CComplexType complexType
+            && complexType.getKind() == ComplexTypeKind.STRUCT
+            && complexType.getName().equals("_IO_FILE")) {
+          // TODO: replace with Marians check for this!
           // STREAM. If 0, return 0.
           List<ValueAndSMGState> streamPtrAndState =
               new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
@@ -847,6 +859,15 @@ public class SMGCPABuiltins {
           // format specifiers
           // TODO:
           System.out.println();
+        } else if (argumentType instanceof CPointerType) {
+          // Other buffers. Just empty them.
+          List<ValueAndSMGState> bufferAndState =
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                  .evaluate(argument, argumentType);
+
+          checkState(bufferAndState.size() == 1);
+          finalState = bufferAndState.getFirst().getState();
+          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAndState.getFirst().getValue());
         }
       }
 
@@ -1595,8 +1616,7 @@ public class SMGCPABuiltins {
     // This precondition has to hold for the get(0) getters
     Preconditions.checkArgument(
         !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
-    if (charValue.isNumericValue()
-        && charValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+    if (isNumericZero(charValue)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
           currentState
@@ -2888,8 +2908,7 @@ public class SMGCPABuiltins {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     // Handle (realloc(0, size) -> just malloc
-    if (pPtrValue.isNumericValue()
-        && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+    if (isNumericZero(pPtrValue)) {
       return handleConfigurableMemoryAllocation(
           functionCall, currentState, sizeInBits, sizeType, pCfaEdge);
     } else if (options.trackPredicates()) {
@@ -3036,5 +3055,10 @@ public class SMGCPABuiltins {
     }
 
     return result.build();
+  }
+
+  private static boolean isNumericZero(Value value) {
+    return value.isNumericValue()
+        && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
   }
 }
