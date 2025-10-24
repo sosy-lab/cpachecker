@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
@@ -50,8 +51,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -1382,19 +1381,6 @@ public class ExpressionToFormulaVisitor
                         "Format string of fscanf is not supported", edge, e));
 
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
-  }
-
-  private boolean isFilePointer(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
-      if (pointerType.getType().getCanonicalType() instanceof CComplexType actualType) {
-        // We use CComplexType here instead of CStructType, because _IO_FILE may be defined
-        // externally i.e. `extern struct _IO_FILE *stdin;` or fully as a
-        // `struct _IO_FILE { ... }`.
-        return actualType.getKind() == ComplexTypeKind.STRUCT
-            && actualType.getName().equals("_IO_FILE");
-      }
-    }
-    return false;
   }
 
   private Optional<String> checkFscanfFormatString(CExpression pFormat) {
