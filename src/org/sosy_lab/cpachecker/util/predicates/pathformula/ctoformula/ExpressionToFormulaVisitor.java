@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
@@ -50,16 +51,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -1385,19 +1383,6 @@ public class ExpressionToFormulaVisitor
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
   }
 
-  private boolean isFilePointer(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CType realType = typedefType.getRealType();
-        if (realType instanceof CElaboratedType elaboratedType) {
-          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
-              && elaboratedType.getName().equals("_IO_FILE");
-        }
-      }
-    }
-    return false;
-  }
-
   private Optional<String> checkFscanfFormatString(CExpression pFormat) {
     ImmutableSet<String> allowlistedFormatStrings =
         BuiltinFunctions.getAllowedScanfFormatSpecifiers();
@@ -1555,9 +1540,9 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits of an int, long or long long. Test c programs available:
-   * test/programs/simple/builtin_popcount32_x.c and test/programs/simple/builtin_popcount64_x.c
+   * Handle calls to __builtin_popcount(), __builtin_popcountl(), and __builtin_popcountll().
+   * Popcount sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int
+   * number given. Test C programs available at test/programs/simple/builtin_popcount*.c
    */
   private Formula handlePopCount(
       String pFunctionName,
