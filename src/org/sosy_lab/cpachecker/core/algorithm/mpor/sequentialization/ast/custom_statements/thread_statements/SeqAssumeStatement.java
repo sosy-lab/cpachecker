@@ -19,8 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SingleControlStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -30,7 +29,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  public final SingleControlStatementType statementType;
+  public final BranchType branchType;
 
   private final Optional<CExpression> ifExpression;
 
@@ -46,22 +45,21 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   SeqAssumeStatement(
       MPOROptions pOptions,
-      SingleControlStatementType pStatementType,
+      BranchType pBranchType,
       Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     checkArgument(
-        pStatementType.equals(SingleControlStatementType.IF)
-            || pStatementType.equals(SingleControlStatementType.ELSE),
+        pBranchType.equals(BranchType.IF) || pBranchType.equals(BranchType.ELSE),
         "pStatementType must be IF or ELSE");
     checkArgument(
-        !pStatementType.equals(SingleControlStatementType.IF) || pIfExpression.isPresent(),
+        !pBranchType.equals(BranchType.IF) || pIfExpression.isPresent(),
         "if pStatementType is IF, then pIfExpression must be present");
 
     options = pOptions;
-    statementType = pStatementType;
+    branchType = pBranchType;
     ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -72,7 +70,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private SeqAssumeStatement(
       MPOROptions pOptions,
-      SingleControlStatementType pStatementType,
+      BranchType pBranchType,
       Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -81,7 +79,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    statementType = pStatementType;
+    branchType = pBranchType;
     ifExpression = pIfExpression;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -93,17 +91,21 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String controlFlowPrefix;
-    if (statementType.equals(SingleControlStatementType.IF)) {
-      controlFlowPrefix = statementType.buildControlFlowPrefix(ifExpression.orElseThrow());
+    if (branchType.equals(BranchType.IF)) {
+      controlFlowPrefix = branchType.buildPrefix(ifExpression.orElseThrow());
     } else {
-      controlFlowPrefix =
-          SeqStringUtil.appendCurlyBracketLeft(SingleControlStatementType.ELSE.getKeyword());
+      controlFlowPrefix = branchType.buildPrefix();
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return Joiner.on(SeqSyntax.NEWLINE)
-        .join(controlFlowPrefix, injected, SeqSyntax.CURLY_BRACKET_RIGHT);
+    if (branchType.equals(BranchType.IF)) {
+      return Joiner.on(SeqSyntax.NEWLINE).join(controlFlowPrefix, injected);
+    } else {
+      // need additional closing bracket for the "else" statement
+      return Joiner.on(SeqSyntax.NEWLINE)
+          .join(controlFlowPrefix, injected, SeqSyntax.CURLY_BRACKET_RIGHT);
+    }
   }
 
   @Override
@@ -130,7 +132,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
         options,
-        statementType,
+        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -143,7 +145,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
-        statementType,
+        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -158,7 +160,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
     return new SeqAssumeStatement(
         options,
-        statementType,
+        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -173,7 +175,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
     return new SeqAssumeStatement(
         options,
-        statementType,
+        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,

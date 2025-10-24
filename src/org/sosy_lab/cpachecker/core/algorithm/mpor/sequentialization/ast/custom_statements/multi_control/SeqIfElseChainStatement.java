@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SingleControlStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -48,9 +48,8 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     boolean isFirst = true;
     for (var statement : pStatements.entrySet()) {
       // first statement: use "if", otherwise "else if"
-      SingleControlStatementType statementType =
-          isFirst ? SingleControlStatementType.IF : SingleControlStatementType.ELSE_IF;
-      ifElseChain.add(statementType.buildControlFlowPrefix(statement.getKey()));
+      BranchType branchType = isFirst ? BranchType.IF : BranchType.ELSE_IF;
+      ifElseChain.add(branchType.buildPrefix(statement.getKey()));
       ifElseChain.add(statement.getValue().toASTString());
       isFirst = false;
     }

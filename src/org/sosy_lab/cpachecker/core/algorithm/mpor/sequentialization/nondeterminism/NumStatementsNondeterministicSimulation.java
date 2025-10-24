@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.nondet_num_statements.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqIfStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -122,9 +122,10 @@ public class NumStatementsNondeterministicSimulation {
             pActiveThread,
             pClauses,
             pUtils.getBinaryExpressionBuilder()));
-    SeqIfStatement innerIfStatement = new SeqIfStatement(innerIfCondition, innerIfBlock.build());
+    SeqBranchStatement innerIfStatement =
+        new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());
-    SeqIfStatement ifStatement = new SeqIfStatement(ifCondition, ifBlock.build());
+    SeqBranchStatement ifStatement = new SeqBranchStatement(ifCondition, ifBlock.build());
 
     // add all and return
     return rLines.add(ifStatement.toASTString()).build();

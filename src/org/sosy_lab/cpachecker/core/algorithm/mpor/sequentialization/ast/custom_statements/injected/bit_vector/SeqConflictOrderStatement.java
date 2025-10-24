@@ -18,11 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SingleControlStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -48,7 +47,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> lines = ImmutableList.builder();
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
     // last_thread < n
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -56,17 +55,19 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.getId()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
-    lines.add(SingleControlStatementType.IF.buildControlFlowPrefix(lastThreadLessThanThreadId));
+    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
-      lines.add(SeqFunctionCallExpressions.ABORT.toASTString());
+      ifBlock.add(SeqFunctionCallExpressions.ABORT.toASTString());
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-      lines.add(
+      ifBlock.add(
           SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toCExpression())
               .toASTString());
     }
-    lines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return SeqStringUtil.joinWithNewlines(lines.build());
+    SeqBranchStatement ifStatement =
+        new SeqBranchStatement(lastThreadLessThanThreadId, ifBlock.build());
+    rLines.add(ifStatement.toASTString());
+    return SeqStringUtil.joinWithNewlines(rLines.build());
   }
 }

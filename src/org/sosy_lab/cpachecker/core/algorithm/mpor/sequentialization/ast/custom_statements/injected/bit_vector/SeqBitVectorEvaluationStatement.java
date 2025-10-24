@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqIfStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
@@ -53,8 +53,8 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       CExpression ifExpression = evaluationExpression.negate();
       SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-      SeqIfStatement ifStatement =
-          new SeqIfStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
+      SeqBranchStatement ifStatement =
+          new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
       return ifStatement.toASTString();
 
     } else {

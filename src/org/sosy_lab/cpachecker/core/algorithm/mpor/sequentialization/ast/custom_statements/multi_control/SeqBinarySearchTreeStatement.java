@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -22,7 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SingleControlStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -113,26 +113,23 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
             pPc,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
             BinaryOperator.LESS_THAN);
-    return SingleControlStatementType.IF.buildControlFlowPrefix(ifExpression);
+    return BranchType.IF.buildPrefix(ifExpression);
   }
 
   private String buildElseSubtree() {
-    return SeqStringUtil.wrapInCurlyBracketsOutwards(SingleControlStatementType.ELSE.getKeyword());
+    return BranchType.ELSE.buildPrefix();
   }
 
   private String buildLeaf(
       CExpression pIfExpression, SeqStatement pIfBranchStatement, SeqStatement pElseIfStatement)
       throws UnrecognizedCodeException {
 
-    // TODO use a SeqIfStatement here with an else branch
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(SingleControlStatementType.IF.buildControlFlowPrefix(pIfExpression));
-    joiner.add(pIfBranchStatement.toASTString());
-    joiner.add(
-        SeqStringUtil.wrapInCurlyBracketsOutwards(SingleControlStatementType.ELSE.getKeyword()));
-    joiner.add(pElseIfStatement.toASTString());
-    joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return joiner.toString();
+    SeqBranchStatement ifElseLeaf =
+        new SeqBranchStatement(
+            pIfExpression,
+            ImmutableList.of(pIfBranchStatement.toASTString()),
+            ImmutableList.of(pElseIfStatement.toASTString()));
+    return ifElseLeaf.toASTString();
   }
 
   // Helpers =======================================================================================

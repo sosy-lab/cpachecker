@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * An {@code if (*expression*) { *statements* }} statement with an optional {@code else if
  * (*expression*) { *statements* }} branch.
  */
-public class SeqIfStatement implements SeqSingleControlStatement {
+public class SeqBranchStatement implements SeqSingleControlStatement {
 
   private final CExpression ifExpression;
 
@@ -36,7 +35,7 @@ public class SeqIfStatement implements SeqSingleControlStatement {
   /**
    * Use this constructor for an {@code if (...) { ... }} statement without any {@code else} branch.
    */
-  public SeqIfStatement(CExpression pIfExpression, ImmutableList<String> pIfStatements) {
+  public SeqBranchStatement(CExpression pIfExpression, ImmutableList<String> pIfStatements) {
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
     ifExpression = pIfExpression;
     ifStatements = pIfStatements;
@@ -45,7 +44,7 @@ public class SeqIfStatement implements SeqSingleControlStatement {
   }
 
   /** Use this constructor for an {@code if (...) { ... } else { ... }} statement. */
-  public SeqIfStatement(
+  public SeqBranchStatement(
       CExpression pIfExpression,
       ImmutableList<String> pIfStatements,
       ImmutableList<String> pElseStatements) {
@@ -59,7 +58,7 @@ public class SeqIfStatement implements SeqSingleControlStatement {
   }
 
   /** Use this constructor for an {@code if (...) { ... } else if (...) { ... }} statement. */
-  public SeqIfStatement(
+  public SeqBranchStatement(
       CExpression pIfExpression,
       ImmutableList<String> pIfStatements,
       CExpression pElseIfExpression,
@@ -76,25 +75,19 @@ public class SeqIfStatement implements SeqSingleControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(SingleControlStatementType.IF.buildControlFlowPrefix(ifExpression));
+    joiner.add(BranchType.IF.buildPrefix(ifExpression));
     ifStatements.forEach(ifStatement -> joiner.add(ifStatement));
 
     if (elseStatements.isEmpty()) {
       // if (...) { ... }
       joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-
     } else {
       if (elseIfExpression.isEmpty()) {
         // if (...) { ... } else { ... }
-        joiner.add(
-            SeqStringUtil.wrapInCurlyBracketsOutwards(
-                SingleControlStatementType.ELSE.getKeyword()));
-
+        joiner.add(BranchType.ELSE.buildPrefix());
       } else {
         // if (...) { ... } else if (...) { ... }
-        joiner.add(
-            SingleControlStatementType.ELSE_IF.buildControlFlowPrefix(
-                elseIfExpression.orElseThrow()));
+        joiner.add(BranchType.ELSE_IF.buildPrefix(elseIfExpression.orElseThrow()));
       }
       elseStatements.orElseThrow().forEach(elseStatement -> joiner.add(elseStatement));
       joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);

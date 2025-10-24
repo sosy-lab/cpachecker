@@ -14,10 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public enum SingleControlStatementType {
-  ELSE("else"),
-  ELSE_IF("else if"),
   FOR("for"),
-  IF("if"),
   SWITCH("switch"),
   WHILE("while");
 
@@ -33,18 +30,10 @@ public enum SingleControlStatementType {
 
   public String buildControlFlowPrefix(CExpression pExpression) {
     return switch (this) {
-      case ELSE, FOR ->
+      case FOR ->
           throw new UnsupportedOperationException(
               String.format("cannot build prefix for encoding %s", this));
-      case ELSE_IF ->
-          // "} else if (...) {" needs additional "}" prefix
-          Joiner.on(SeqSyntax.SPACE)
-              .join(
-                  SeqSyntax.CURLY_BRACKET_RIGHT,
-                  getKeyword(),
-                  SeqStringUtil.wrapInBrackets(pExpression.toASTString()),
-                  SeqSyntax.CURLY_BRACKET_LEFT);
-      case IF, SWITCH, WHILE ->
+      case SWITCH, WHILE ->
           Joiner.on(SeqSyntax.SPACE)
               .join(
                   getKeyword(),

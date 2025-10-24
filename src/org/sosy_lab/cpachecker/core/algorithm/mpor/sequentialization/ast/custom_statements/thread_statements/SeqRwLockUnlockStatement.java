@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqIfStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -79,8 +79,8 @@ public class SeqRwLockUnlockStatement implements SeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             rwLockFlags.writersIdExpression, SeqIntegerLiteralExpressions.INT_0);
 
-    SeqIfStatement ifStatement =
-        new SeqIfStatement(
+    SeqBranchStatement ifStatement =
+        new SeqBranchStatement(
             rwLockFlags.writerEqualsZero,
             ImmutableList.of(rwLockFlags.readersDecrement.toASTString()),
             ImmutableList.of(setNumWritersToZero.toASTString()));
