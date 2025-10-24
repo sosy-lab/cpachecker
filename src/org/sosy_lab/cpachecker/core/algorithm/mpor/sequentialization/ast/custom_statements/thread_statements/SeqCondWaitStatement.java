@@ -33,12 +33,6 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
 
   private final MutexLockedFlag mutexLockedFlag;
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final Optional<Integer> targetPc;
-
-  private final Optional<SeqBlockLabelStatement> targetGoto;
-
   SeqCondWaitStatement(
       MPOROptions pOptions,
       CondSignaledFlag pCondSignaledFlag,
@@ -47,12 +41,15 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
     condSignaledFlag = pCondSignaledFlag;
     mutexLockedFlag = pMutexLockedFlag;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
-    targetGoto = Optional.empty();
   }
 
   private SeqCondWaitStatement(
@@ -65,12 +62,9 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     condSignaledFlag = pCondSignaledFlag;
     mutexLockedFlag = pMutexLockedFlag;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
-    targetGoto = pTargetGoto;
   }
 
   @Override
@@ -97,26 +91,6 @@ public class SeqCondWaitStatement extends ASeqThreadStatement {
             setSignaledFalse.toASTString(),
             setMutexLockedTrue.toASTString(),
             injected);
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return targetGoto;
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override

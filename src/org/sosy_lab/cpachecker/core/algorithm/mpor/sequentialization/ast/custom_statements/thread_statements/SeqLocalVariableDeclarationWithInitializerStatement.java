@@ -33,12 +33,6 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
 
   private final CVariableDeclaration variableDeclaration;
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final Optional<Integer> targetPc;
-
-  private final Optional<SeqBlockLabelStatement> targetGoto;
-
   private void checkArguments(CVariableDeclaration pVariableDeclaration) {
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
     checkArgument(
@@ -53,12 +47,15 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
     checkArguments(pVariableDeclaration);
     variableDeclaration = pVariableDeclaration;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
-    targetGoto = Optional.empty();
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
@@ -70,12 +67,9 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     checkArguments(pVariableDeclaration);
     variableDeclaration = pVariableDeclaration;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
-    targetGoto = pTargetGoto;
   }
 
   @Override
@@ -86,26 +80,6 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
     return variableDeclaration.toASTStringWithoutStorageClassAndType(AAstNodeRepresentation.DEFAULT)
         + SeqSyntax.SPACE
         + injected;
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return targetGoto;
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override

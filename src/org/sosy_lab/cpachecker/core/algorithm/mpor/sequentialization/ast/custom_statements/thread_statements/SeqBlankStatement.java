@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -25,15 +24,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqBlankStatement extends ASeqThreadStatement {
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final Optional<Integer> targetPc;
-
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-    super(pOptions, ImmutableSet.of(), ImmutableList.of());
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
+    super(
+        pOptions,
+        ImmutableSet.of(),
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
   }
 
   private SeqBlankStatement(
@@ -42,35 +41,19 @@ public class SeqBlankStatement extends ASeqThreadStatement {
       Optional<Integer> pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, ImmutableSet.of(), pInjectedStatements);
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    super(
+        pOptions,
+        ImmutableSet.of(),
+        pPcLeftHandSide,
+        pTargetPc,
+        Optional.empty(),
+        pInjectedStatements);
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     return SeqThreadStatementUtil.buildInjectedStatementsString(
         options, pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return ImmutableSet.of();
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return Optional.empty();
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override

@@ -29,19 +29,19 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqReachErrorStatement extends ASeqThreadStatement {
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final int targetPc;
-
   SeqReachErrorStatement(
       MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
   }
 
   private SeqReachErrorStatement(
@@ -51,37 +51,21 @@ public class SeqReachErrorStatement extends ASeqThreadStatement {
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        pInjectedStatements);
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, Optional.of(targetPc), Optional.empty(), injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + injected;
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return Optional.empty();
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override
@@ -104,7 +88,7 @@ public class SeqReachErrorStatement extends ASeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        options, pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
+        options, pcLeftHandSide, substituteEdges, targetPc.orElseThrow(), pInjectedStatements);
   }
 
   @Override

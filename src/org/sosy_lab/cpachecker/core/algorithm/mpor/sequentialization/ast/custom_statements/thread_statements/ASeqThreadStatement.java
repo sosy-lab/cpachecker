@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
@@ -28,15 +29,31 @@ public abstract class ASeqThreadStatement implements SeqStatement {
 
   final ImmutableSet<SubstituteEdge> substituteEdges;
 
+  /**
+   * The {@link CLeftHandSide} that is written to when updating the pc, e.g. {@code pc0 = 42;} for
+   * thread 0.
+   */
+  final CLeftHandSide pcLeftHandSide;
+
+  final Optional<Integer> targetPc;
+
+  final Optional<SeqBlockLabelStatement> targetGoto;
+
   final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   ASeqThreadStatement(
       MPOROptions pOptions,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
     substituteEdges = pSubstituteEdges;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
   }
 
@@ -45,15 +62,26 @@ public abstract class ASeqThreadStatement implements SeqStatement {
     return substituteEdges;
   }
 
+  /**
+   * The value that is written to the pc, e.g. {@code pc = 42}. After linking, a statement may not
+   * have a target {@code pc}, hence optional.
+   */
+  public Optional<Integer> getTargetPc() {
+    return targetPc;
+  }
+
+  /**
+   * The label of the goto, e.g. {@code goto label;}. This may only present after linking or merging
+   * atomic blocks.
+   */
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
+    return targetGoto;
+  }
+
   /** The list of statements injected to the {@code pc} write. */
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
-
-  /** After linking, a statement may not have a target {@code pc}, hence optional. */
-  public abstract Optional<Integer> getTargetPc();
-
-  public abstract Optional<SeqBlockLabelStatement> getTargetGoto();
 
   /**
    * Clones the statement with the given pc. This function should only be called when finalizing

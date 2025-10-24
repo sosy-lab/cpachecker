@@ -25,12 +25,6 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
 
   private final RwLockNumReadersWritersFlag rwLockFlags;
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final Optional<Integer> targetPc;
-
-  private final Optional<SeqBlockLabelStatement> targetGoto;
-
   SeqRwLockRdLockStatement(
       MPOROptions pOptions,
       RwLockNumReadersWritersFlag pRwLockFlags,
@@ -38,11 +32,14 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
     rwLockFlags = pRwLockFlags;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
-    targetGoto = Optional.empty();
   }
 
   private SeqRwLockRdLockStatement(
@@ -54,11 +51,8 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     rwLockFlags = pRwLockFlags;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
-    targetGoto = pTargetGoto;
   }
 
   @Override
@@ -69,26 +63,6 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return assumption.toASTString() + rwLockFlags.readersIncrement.toASTString() + injected;
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return targetGoto;
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override

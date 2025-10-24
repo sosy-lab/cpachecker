@@ -515,9 +515,8 @@ public class SeqThreadStatementBuilder {
     return new SeqThreadCreationStatement(
         pOptions,
         startRoutineArgAssignment,
-        createdThread,
-        pThread,
-        pPcVariables,
+        pPcVariables.getPcLeftHandSide(pThread.getId()),
+        pPcVariables.getPcLeftHandSide(createdThread.getId()),
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
   }

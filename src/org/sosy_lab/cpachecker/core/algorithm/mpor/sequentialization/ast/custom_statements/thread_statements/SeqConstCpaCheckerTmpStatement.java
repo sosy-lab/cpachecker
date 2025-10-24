@@ -54,12 +54,6 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
 
   private final Optional<SubstituteEdge> secondSuccessorEdge;
 
-  private final CLeftHandSide pcLeftHandSide;
-
-  private final Optional<Integer> targetPc;
-
-  private final Optional<SeqBlockLabelStatement> targetGoto;
-
   private void checkArguments(
       CVariableDeclaration pVariableDeclaration,
       SubstituteEdge pFirstSuccessorEdge,
@@ -141,14 +135,17 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
     checkArguments(pDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
     firstSuccessorEdge = pFirstSuccessorEdge;
     secondSuccessorEdge = pSecondSuccessorEdge;
     constCpaCheckerTmpDeclaration = pDeclaration;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
-    targetGoto = Optional.empty();
   }
 
   private SeqConstCpaCheckerTmpStatement(
@@ -162,14 +159,11 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     checkArguments(pConstCpaCheckerTmpDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
     firstSuccessorEdge = pFirstSuccessorEdge;
     secondSuccessorEdge = pSecondSuccessorEdge;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
-    targetGoto = pTargetGoto;
   }
 
   @Override
@@ -189,26 +183,6 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
             firstSuccessorEdge.cfaEdge.getCode(),
             substituteEdgeBString,
             targetStatements);
-  }
-
-  @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return targetGoto;
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
   }
 
   @Override

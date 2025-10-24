@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -21,10 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -40,64 +39,51 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
    */
   private final Optional<FunctionParameterAssignment> startRoutineArgAssignment;
 
-  public final MPORThread createdThread;
-
-  private final MPORThread creatingThread;
+  private final CLeftHandSide createdThreadPc;
 
   private final Optional<ImmutableList<SeqBitVectorAssignmentStatement>> bitVectorInitializations;
-
-  private final ProgramCounterVariables pcVariables;
-
-  private final Optional<Integer> targetPc;
-
-  private final Optional<SeqBlockLabelStatement> targetGoto;
 
   SeqThreadCreationStatement(
       MPOROptions pOptions,
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
-      MPORThread pCreatedThread,
-      MPORThread pCreatingThread,
-      ProgramCounterVariables pPcVariables,
+      CLeftHandSide pPcLeftHandSide,
+      CLeftHandSide pCreatedThreadPc,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, ImmutableList.of());
+    super(
+        pOptions,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        ImmutableList.of());
     startRoutineArgAssignment = pStartRoutineArgAssignment;
-    createdThread = pCreatedThread;
-    creatingThread = pCreatingThread;
+    createdThreadPc = pCreatedThreadPc;
     bitVectorInitializations = Optional.empty();
-    pcVariables = pPcVariables;
-    targetPc = Optional.of(pTargetPc);
-    targetGoto = Optional.empty();
   }
 
   private SeqThreadCreationStatement(
       MPOROptions pOptions,
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
-      MPORThread pCreatedThread,
-      MPORThread pCreatingThread,
+      CLeftHandSide pPcLeftHandSide,
+      CLeftHandSide pCreatedThreadPc,
       Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
-      ProgramCounterVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pInjectedStatements);
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     startRoutineArgAssignment = pStartRoutineArgAssignment;
-    createdThread = pCreatedThread;
-    creatingThread = pCreatingThread;
+    createdThreadPc = pCreatedThreadPc;
     bitVectorInitializations = pBitVectorInitializations;
-    pcVariables = pPcVariables;
-    targetPc = pTargetPc;
-    targetGoto = pTargetGoto;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement createdPcWrite =
-        SeqStatementBuilder.buildPcWrite(
-            pcVariables.getPcLeftHandSide(createdThread.getId()), Sequentialization.INIT_PC);
+        SeqStatementBuilder.buildPcWrite(createdThreadPc, Sequentialization.INIT_PC);
     StringJoiner bitVectorInitializationString = new StringJoiner(SeqSyntax.SPACE);
     if (bitVectorInitializations.isPresent()) {
       for (SeqBitVectorAssignmentStatement initialization :
@@ -107,11 +93,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
     }
     String injectedStatementsString =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options,
-            pcVariables.getPcLeftHandSide(creatingThread.getId()),
-            targetPc,
-            targetGoto,
-            injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     String startRoutineArgAssignmentString =
         buildStartRoutineArgAssignmentString(startRoutineArgAssignment)
             .orElse(SeqSyntax.EMPTY_STRING);
@@ -136,34 +118,13 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
-    return substituteEdges;
-  }
-
-  @Override
-  public Optional<Integer> getTargetPc() {
-    return targetPc;
-  }
-
-  @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return targetGoto;
-  }
-
-  @Override
-  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    return injectedStatements;
-  }
-
-  @Override
   public SeqThreadCreationStatement withTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
-        createdThread,
-        creatingThread,
+        pcLeftHandSide,
+        createdThreadPc,
         bitVectorInitializations,
-        pcVariables,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
@@ -175,10 +136,9 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
-        createdThread,
-        creatingThread,
+        pcLeftHandSide,
+        createdThreadPc,
         bitVectorInitializations,
-        pcVariables,
         substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
@@ -192,10 +152,9 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
-        createdThread,
-        creatingThread,
+        pcLeftHandSide,
+        createdThreadPc,
         bitVectorInitializations,
-        pcVariables,
         substituteEdges,
         targetPc,
         targetGoto,
