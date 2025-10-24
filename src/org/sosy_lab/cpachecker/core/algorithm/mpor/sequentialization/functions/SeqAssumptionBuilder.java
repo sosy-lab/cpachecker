@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -24,12 +25,32 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class SeqAssumptionBuilder {
 
+  public static String buildAssumption(BitVectorEvaluationExpression pCondition) {
+    if (pCondition.binaryExpression.isPresent()) {
+      return buildAssumption(pCondition.binaryExpression.orElseThrow()).toASTString();
+    }
+    if (pCondition.logicalExpression.isPresent()) {
+      return buildAssumption(pCondition.logicalExpression.orElseThrow());
+    }
+    throw new IllegalArgumentException("both binaryExpression and logicalExpression are empty");
+  }
+
   public static CFunctionCallStatement buildAssumption(CExpression pCondition) {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
+  }
+
+  public static String buildAssumption(ExpressionTree<AExpression> pCondition) {
+    return SeqIdExpressions.ASSUME
+        + SeqStringUtil.wrapInBrackets(pCondition.toString())
+        + SeqSyntax.SEMICOLON;
   }
 
   private static CFunctionCallExpression buildAssumptionExpression(CExpression pCondition) {

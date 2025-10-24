@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -57,12 +56,12 @@ public class BitVectorEvaluationUtil {
 
   /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
   static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<AExpression>> pTerms, SequentializationUtils pUtils) {
+      ImmutableList<ExpressionTree<AExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
-    return new BitVectorEvaluationExpression(logicalDisjunction(pTerms), pUtils);
+    return new BitVectorEvaluationExpression(logicalDisjunction(pTerms));
   }
 
   static <LeafType> Optional<ExpressionTree<LeafType>> tryLogicalDisjunction(

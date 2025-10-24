@@ -77,7 +77,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String controlFlowPrefix;
     if (branchType.equals(BranchType.IF)) {
-      controlFlowPrefix = branchType.buildPrefix(ifExpression.orElseThrow());
+      controlFlowPrefix = branchType.buildPrefix(ifExpression.orElseThrow().toASTString());
     } else {
       controlFlowPrefix = branchType.buildPrefix();
     }

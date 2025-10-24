@@ -52,8 +52,7 @@ class BitVectorAccessEvaluationBuilder {
           buildFullDenseVariableOnlyEvaluation(
               pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
       case SPARSE ->
-          buildFullSparseVariableOnlyEvaluation(
-              pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
+          buildFullSparseVariableOnlyEvaluation(pActiveThread, pOtherThreads, pBitVectorVariables);
     };
   }
 
@@ -78,15 +77,14 @@ class BitVectorAccessEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableListMultimap<SeqMemoryLocation, AExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
-      SequentializationUtils pUtils) {
+      BitVectorVariables pBitVectorVariables) {
 
     if (pOptions.pruneBitVectorEvaluations) {
       return buildPrunedSparseEvaluation(
-          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables, pUtils);
+          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
     } else {
       return buildFullSparseEvaluation(
-          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables, pUtils);
+          pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
     }
   }
 
@@ -147,7 +145,7 @@ class BitVectorAccessEvaluationBuilder {
     CBinaryExpression binaryExpression =
         binaryExpressionBuilder.buildBinaryExpression(
             pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
-    return new BitVectorEvaluationExpression(binaryExpression, pUtils);
+    return new BitVectorEvaluationExpression(binaryExpression);
   }
 
   // Sparse Access Bit Vectors =====================================================================
@@ -155,8 +153,7 @@ class BitVectorAccessEvaluationBuilder {
   private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, AExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
-      SequentializationUtils pUtils) {
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
@@ -177,14 +174,13 @@ class BitVectorAccessEvaluationBuilder {
         }
       }
     }
-    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build(), pUtils);
+    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   private static BitVectorEvaluationExpression buildFullSparseEvaluation(
       ImmutableListMultimap<SeqMemoryLocation, AExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
-      SequentializationUtils pUtils) {
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
@@ -204,14 +200,13 @@ class BitVectorAccessEvaluationBuilder {
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
     ExpressionTree<AExpression> logicalDisjunction =
         BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
-    return new BitVectorEvaluationExpression(logicalDisjunction, pUtils);
+    return new BitVectorEvaluationExpression(logicalDisjunction);
   }
 
   private static BitVectorEvaluationExpression buildFullSparseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
-      SequentializationUtils pUtils) {
+      BitVectorVariables pBitVectorVariables) {
 
     ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
@@ -231,7 +226,7 @@ class BitVectorAccessEvaluationBuilder {
     if (logicalDisjunction.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     } else {
-      return new BitVectorEvaluationExpression(logicalDisjunction.orElseThrow(), pUtils);
+      return new BitVectorEvaluationExpression(logicalDisjunction.orElseThrow());
     }
   }
 

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
@@ -56,7 +55,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
             roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
     // negate the evaluation expression
-    CExpression ifExpression = bitVectorEvaluationExpression.negate();
+    String ifExpression = bitVectorEvaluationExpression.negate();
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));
@@ -65,7 +64,8 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
       // no reduction assumptions -> just return outer if statement
       SeqBranchStatement outerIfStatement =
           new SeqBranchStatement(
-              roundMaxEqualsZeroExpression, ImmutableList.of(innerIfStatement.toASTString()));
+              roundMaxEqualsZeroExpression.toASTString(),
+              ImmutableList.of(innerIfStatement.toASTString()));
       return outerIfStatement.toASTString();
     }
 
@@ -76,7 +76,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
     }
     SeqBranchStatement outerIfStatement =
         new SeqBranchStatement(
-            roundMaxEqualsZeroExpression,
+            roundMaxEqualsZeroExpression.toASTString(),
             ImmutableList.of(innerIfStatement.toASTString()),
             elseStatements.build());
     return outerIfStatement.toASTString();

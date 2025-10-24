@@ -65,7 +65,7 @@ public class SeqRwLockUnlockStatement extends ASeqThreadStatement {
 
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(
-            rwLockFlags.writerEqualsZero,
+            rwLockFlags.writerEqualsZero.toASTString(),
             ImmutableList.of(rwLockFlags.readersDecrement.toASTString()),
             ImmutableList.of(setNumWritersToZero.toASTString()));
     String injected =

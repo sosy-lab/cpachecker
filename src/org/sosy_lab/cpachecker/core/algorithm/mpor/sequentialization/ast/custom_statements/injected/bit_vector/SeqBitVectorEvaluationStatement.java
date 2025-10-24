@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqGotoStatement;
@@ -51,15 +50,14 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
 
     } else if (options.nondeterminismSource.equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
-      CExpression ifExpression = evaluationExpression.negate();
+      String ifExpression = evaluationExpression.negate();
       SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
       SeqBranchStatement ifStatement =
           new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
       return ifStatement.toASTString();
 
     } else {
-      return SeqAssumptionBuilder.buildAssumption(evaluationExpression.toCExpression())
-          .toASTString();
+      return SeqAssumptionBuilder.buildAssumption(evaluationExpression);
     }
   }
 

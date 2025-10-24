@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -23,19 +22,19 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqBranchStatement implements SeqSingleControlStatement {
 
-  private final CExpression ifExpression;
+  private final String ifExpression;
 
   private final ImmutableList<String> ifStatements;
 
   /** The optional {@code else if (*expression*))} */
-  private final Optional<CExpression> elseIfExpression;
+  private final Optional<String> elseIfExpression;
 
   private final Optional<ImmutableList<String>> elseStatements;
 
   /**
    * Use this constructor for an {@code if (...) { ... }} statement without any {@code else} branch.
    */
-  public SeqBranchStatement(CExpression pIfExpression, ImmutableList<String> pIfStatements) {
+  public SeqBranchStatement(String pIfExpression, ImmutableList<String> pIfStatements) {
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
     ifExpression = pIfExpression;
     ifStatements = pIfStatements;
@@ -45,7 +44,7 @@ public class SeqBranchStatement implements SeqSingleControlStatement {
 
   /** Use this constructor for an {@code if (...) { ... } else { ... }} statement. */
   public SeqBranchStatement(
-      CExpression pIfExpression,
+      String pIfExpression,
       ImmutableList<String> pIfStatements,
       ImmutableList<String> pElseStatements) {
 
@@ -59,9 +58,9 @@ public class SeqBranchStatement implements SeqSingleControlStatement {
 
   /** Use this constructor for an {@code if (...) { ... } else if (...) { ... }} statement. */
   public SeqBranchStatement(
-      CExpression pIfExpression,
+      String pIfExpression,
       ImmutableList<String> pIfStatements,
-      CExpression pElseIfExpression,
+      String pElseIfExpression,
       ImmutableList<String> pElseStatements) {
 
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");

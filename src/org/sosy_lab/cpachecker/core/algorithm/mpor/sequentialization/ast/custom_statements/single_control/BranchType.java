@@ -31,13 +31,13 @@ public enum BranchType {
     return keyword;
   }
 
-  private String buildPrefix(Optional<CExpression> pExpression) {
+  private String buildPrefix(Optional<String> pExpression) {
     return switch (this) {
       case IF ->
           Joiner.on(SeqSyntax.SPACE)
               .join(
                   getKeyword(),
-                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow().toASTString()),
+                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow()),
                   SeqSyntax.CURLY_BRACKET_LEFT);
       case ELSE ->
           Joiner.on(SeqSyntax.SPACE)
@@ -47,7 +47,7 @@ public enum BranchType {
               .join(
                   SeqSyntax.CURLY_BRACKET_RIGHT,
                   getKeyword(),
-                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow().toASTString()),
+                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow()),
                   SeqSyntax.CURLY_BRACKET_LEFT);
     };
   }
@@ -62,7 +62,7 @@ public enum BranchType {
    * Use only for {@link BranchType#IF} or {@link BranchType#ELSE_IF}, since they require a {@link
    * CExpression}.
    */
-  public String buildPrefix(CExpression pExpression) {
+  public String buildPrefix(String pExpression) {
     checkArgument(
         this.equals(BranchType.IF) || this.equals(BranchType.ELSE_IF),
         "BranchType must be IF or ELSE_IF");

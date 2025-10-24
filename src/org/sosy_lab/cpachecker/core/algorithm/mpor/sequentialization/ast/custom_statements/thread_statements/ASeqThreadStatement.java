@@ -97,6 +97,8 @@ public abstract class ASeqThreadStatement implements SeqStatement {
 
   /**
    * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
+   * This is necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced,
+   * e.g. when consecutive labels are enabled.
    */
   public abstract ASeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements);

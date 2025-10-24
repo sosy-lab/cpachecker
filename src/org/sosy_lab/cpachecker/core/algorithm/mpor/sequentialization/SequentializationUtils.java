@@ -12,13 +12,10 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class SequentializationUtils {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final ToCExpressionVisitor toCExpressionVisitor;
 
   private final LogManager logger;
 
@@ -26,12 +23,10 @@ public class SequentializationUtils {
 
   private SequentializationUtils(
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      ToCExpressionVisitor pToCExpressionVisitor,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
 
     binaryExpressionBuilder = pBinaryExpressionBuilder;
-    toCExpressionVisitor = pToCExpressionVisitor;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
   }
@@ -40,18 +35,11 @@ public class SequentializationUtils {
       MachineModel pMachineModel, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     return new SequentializationUtils(
-        new CBinaryExpressionBuilder(pMachineModel, pLogger),
-        new ToCExpressionVisitor(pMachineModel, pLogger),
-        pLogger,
-        pShutdownNotifier);
+        new CBinaryExpressionBuilder(pMachineModel, pLogger), pLogger, pShutdownNotifier);
   }
 
   public CBinaryExpressionBuilder getBinaryExpressionBuilder() {
     return binaryExpressionBuilder;
-  }
-
-  public ToCExpressionVisitor getToCExpressionVisitor() {
-    return toCExpressionVisitor;
   }
 
   public LogManager getLogger() {

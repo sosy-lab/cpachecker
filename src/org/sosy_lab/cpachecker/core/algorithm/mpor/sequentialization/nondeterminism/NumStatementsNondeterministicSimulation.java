@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -105,7 +104,7 @@ public class NumStatementsNondeterministicSimulation {
             .toASTString());
 
     // if (round_max > 0) ...
-    CExpression innerIfCondition =
+    String innerIfCondition =
         buildRoundMaxGreaterZeroExpression(
             pOptions, pActiveThread, pOtherThreads, pGhostElements, pUtils);
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
@@ -125,13 +124,14 @@ public class NumStatementsNondeterministicSimulation {
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());
-    SeqBranchStatement ifStatement = new SeqBranchStatement(ifCondition, ifBlock.build());
+    SeqBranchStatement ifStatement =
+        new SeqBranchStatement(ifCondition.toASTString(), ifBlock.build());
 
     // add all and return
     return rLines.append(ifStatement.toASTString()).toString();
   }
 
-  private static CExpression buildRoundMaxGreaterZeroExpression(
+  private static String buildRoundMaxGreaterZeroExpression(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -148,7 +148,7 @@ public class NumStatementsNondeterministicSimulation {
             BinaryOperator.GREATER_THAN);
 
     if (!pOptions.reduceIgnoreSleep) {
-      return roundMaxGreaterZero;
+      return roundMaxGreaterZero.toASTString();
     }
     // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
     BitVectorEvaluationExpression bitVectorEvaluationExpression =
@@ -161,15 +161,14 @@ public class NumStatementsNondeterministicSimulation {
     // ensure that thread is not at a thread sync location: !sync && !conflict
     CIdExpression syncFlag = pGhostElements.getThreadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync = binaryExpressionBuilder.negateExpressionAndSimplify(syncFlag);
-    ExpressionTree<AExpression> notSyncAndNotConflict =
+    ExpressionTree<String> notSyncAndNotConflict =
         And.of(
-            ExpressionTreeUtil.toExpressionTree(notSync, bitVectorEvaluationExpression.negate()));
+            ExpressionTreeUtil.toExpressionTree(
+                notSync.toASTString(), bitVectorEvaluationExpression.negate()));
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
-    return pUtils
-        .getToCExpressionVisitor()
-        .visit(
-            (Or<AExpression>) Or.of(LeafExpression.of(roundMaxGreaterZero), notSyncAndNotConflict));
+    return Or.of(LeafExpression.of(roundMaxGreaterZero.toASTString()), notSyncAndNotConflict)
+        .toString();
   }
 
   private static String buildSingleThreadClausesWithCount(

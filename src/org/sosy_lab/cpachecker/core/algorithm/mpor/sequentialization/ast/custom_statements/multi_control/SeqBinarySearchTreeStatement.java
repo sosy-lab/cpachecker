@@ -113,7 +113,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
             pPc,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
             BinaryOperator.LESS_THAN);
-    return BranchType.IF.buildPrefix(ifExpression);
+    return BranchType.IF.buildPrefix(ifExpression.toASTString());
   }
 
   private String buildElseSubtree() {
@@ -126,7 +126,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
     SeqBranchStatement ifElseLeaf =
         new SeqBranchStatement(
-            pIfExpression,
+            pIfExpression.toASTString(),
             ImmutableList.of(pIfBranchStatement.toASTString()),
             ImmutableList.of(pElseIfStatement.toASTString()));
     return ifElseLeaf.toASTString();

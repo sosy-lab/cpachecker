@@ -122,7 +122,7 @@ public class BitVectorEvaluationBuilder {
             mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables, pUtils);
+            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
       }
     };
   }
@@ -167,8 +167,7 @@ public class BitVectorEvaluationBuilder {
             sparseAccessMap,
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
-            pBitVectorVariables,
-            pUtils);
+            pBitVectorVariables);
       }
     };
   }
@@ -304,7 +303,7 @@ public class BitVectorEvaluationBuilder {
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables, pUtils);
+            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
       }
     };
   }
@@ -352,8 +351,7 @@ public class BitVectorEvaluationBuilder {
             sparseAccessMap,
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
-            pBitVectorVariables,
-            pUtils);
+            pBitVectorVariables);
       }
     };
   }

@@ -62,12 +62,10 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
       ifBlock.add(SeqFunctionCallExpressions.ABORT.toASTString());
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-      ifBlock.add(
-          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toCExpression())
-              .toASTString());
+      ifBlock.add(SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation));
     }
     SeqBranchStatement ifStatement =
-        new SeqBranchStatement(lastThreadLessThanThreadId, ifBlock.build());
+        new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ifBlock.build());
     joiner.add(ifStatement.toASTString());
     return joiner.toString();
   }

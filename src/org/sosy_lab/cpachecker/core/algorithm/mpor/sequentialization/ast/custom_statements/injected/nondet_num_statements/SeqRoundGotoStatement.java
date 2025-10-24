@@ -40,7 +40,7 @@ public class SeqRoundGotoStatement implements SeqInjectedStatement {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(
-            roundSmallerMax,
+            roundSmallerMax.toASTString(),
             ImmutableList.of(roundIncrement.toASTString(), gotoStatement.toASTString()));
     return ifStatement.toASTString();
   }

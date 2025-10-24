@@ -42,7 +42,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     for (var statement : statements.entrySet()) {
       // first statement: use "if", otherwise "else if"
       BranchType branchType = isFirst ? BranchType.IF : BranchType.ELSE_IF;
-      ifElseChain.add(branchType.buildPrefix(statement.getKey()));
+      ifElseChain.add(branchType.buildPrefix(statement.getKey().toASTString()));
       ifElseChain.add(statement.getValue().toASTString());
       isFirst = false;
     }

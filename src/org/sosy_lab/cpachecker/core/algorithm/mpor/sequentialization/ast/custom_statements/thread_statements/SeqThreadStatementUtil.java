@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -368,10 +369,7 @@ public class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> pExistingStatements,
       ImmutableList<SeqInjectedStatement> pAppendedStatements) {
 
-    return ImmutableList.<SeqInjectedStatement>builder()
-        .addAll(pExistingStatements)
-        .addAll(pAppendedStatements)
-        .build();
+    return FluentIterable.concat(pExistingStatements, pAppendedStatements).toList();
   }
 
   public static Optional<Integer> tryGetTargetPcOrGotoNumber(ASeqThreadStatement pStatement) {

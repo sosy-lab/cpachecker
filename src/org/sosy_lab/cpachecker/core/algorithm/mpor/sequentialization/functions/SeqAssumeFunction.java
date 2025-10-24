@@ -45,7 +45,8 @@ public class SeqAssumeFunction extends SeqFunction {
   @Override
   public String buildBody() throws UnrecognizedCodeException {
     ImmutableList<String> ifBlock = ImmutableList.of(abortFunctionCallStatement.toASTString());
-    SeqBranchStatement ifStatement = new SeqBranchStatement(condEqualsZeroExpression, ifBlock);
+    SeqBranchStatement ifStatement =
+        new SeqBranchStatement(condEqualsZeroExpression.toASTString(), ifBlock);
     return ifStatement.toASTString();
   }
 
