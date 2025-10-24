@@ -7098,6 +7098,10 @@ public class SMGState
     return getMemoryModel().getSmg().getNumberOfAbstractedLists() * 100000 + getSize();
   }
 
+  public boolean isPointer(Value value) {
+    return memoryModel.isPointer(value);
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {

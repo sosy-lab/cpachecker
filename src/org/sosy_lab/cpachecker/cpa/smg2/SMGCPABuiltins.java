@@ -908,11 +908,30 @@ public class SMGCPABuiltins {
           Value streamPointer = streamPtrAndState.getFirst().getValue();
           finalState = streamPtrAndState.getFirst().getState();
 
-          if (streamPointer.isNumericValue()
-              && streamPointer.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          if (isNumericZero(streamPointer)
+              || (finalState.isPointer(streamPointer)
+                  && finalState.dereferencePointerWithoutMaterilization(streamPointer).isPresent()
+                  && finalState
+                      .dereferencePointerWithoutMaterilization(streamPointer)
+                      .orElseThrow()
+                      .hasSMGObjectAndOffset()
+                  && finalState
+                      .dereferencePointerWithoutMaterilization(streamPointer)
+                      .orElseThrow()
+                      .getSMGObject()
+                      .isZero())) {
+            checkState(!finalState.getMemoryModel().pointsToZeroPlus(streamPointer));
             returnValue = new NumericValue(0);
+          } else if (!finalState.isPointer(streamPointer)) {
+            // Unknown -> overapproximate
+            throw new SMGException(
+                "Error when handling C input function "
+                    + functionName
+                    + "(), can't handle unknown argument #"
+                    + arg
+                    + " of type "
+                    + functionParameterType);
           }
-          // TODO: add solver handling for the same check. This is unsound currently!
 
         } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
           // format specifiers OR input string!
