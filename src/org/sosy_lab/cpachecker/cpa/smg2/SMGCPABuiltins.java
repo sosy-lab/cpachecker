@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -830,9 +828,7 @@ public class SMGCPABuiltins {
               finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
         }
 
-      } else if (
-      BuiltinFunctions.isFilePointer(argumentType) ) {
-        // TODO: replace with Marians check for this!
+      } else if (BuiltinFunctions.isFilePointer(argumentType)) {
         // STREAM. If 0, return 0.
         List<ValueAndSMGState> streamPtrAndState =
             new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
