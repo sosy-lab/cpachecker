@@ -13,10 +13,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardByteInputFunction;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardInputOrOutputFunction;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardStringInputFunction;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isStandardWideCharInputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardByteInputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOutputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
