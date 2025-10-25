@@ -138,13 +138,17 @@ public class SMGCPABuiltins {
           "__builtin_popcountll");
 
   /**
-   * Returns true if the functionName equals a built-in function of C.
-   *
-   * @param functionName name of the function to check.
-   * @return true for the specified names, false else.
+   * Returns true if the functionName equals a C builtin function OR our internal handling for
+   * atexit (__CPACHECKER_atexit_next).
    */
   boolean isABuiltIn(String functionName) {
+    // __CPACHECKER_atexit_next is not a constant function, but returns a different function
+    // pointer from the atexit stack every time it is being called. We model this by returning a
+    // fresh variable that may point to any function in the program. The function pointer CPA,
+    // which will be run in parallel, tracks the actual target of the pointer and makes sure
+    // that the right function is always called.
     return BuiltinFunctions.isBuiltinFunction(functionName)
+        || functionName.equals("__CPACHECKER_atexit_next")
         || StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
