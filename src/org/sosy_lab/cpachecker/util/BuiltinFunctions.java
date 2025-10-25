@@ -24,7 +24,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin one. The
- * builtin functions of gcc are used as a reference for the provided function names.
+ * builtin functions of gcc are used as a reference for the provided function names. A more complete
+ * list of all builtin functions can be found in {@link StandardFunctions}.
  *
  * <p>Float-specific builtin functions are implemented in {@link BuiltinFloatFunctions}.
  */
