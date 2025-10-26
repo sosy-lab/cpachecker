@@ -433,14 +433,6 @@ public class ConfigurationFileChecks {
         "cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA")) {
       assertThat(spec)
           .isAnyOf("specification/multiPropertyCex.spc", "../specification/default.spc");
-    } else if (cpas.contains("cpa.smg.SMGCPA")) {
-      if (isSvcompConfig) {
-        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
-      } else {
-        if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
-          assertThat(spec).contains("specification/memorysafety.spc");
-        }
-      }
     } else if (cpas.contains("cpa.smg2.SMGCPA")
         || Ascii.toLowerCase(basePath.toString()).contains("memorysafety")
         || Ascii.toLowerCase(basePath.toString()).contains("memorycleanup")) {
