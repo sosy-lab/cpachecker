@@ -91,7 +91,7 @@ public class SequentializationBuilder {
       rGlobalDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS);
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
-        pMainThreadSubstitution.getGlobalDeclarations();
+        pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
       if (!PthreadUtil.isPthreadObjectType(globalDeclaration.getType())) {
         rGlobalDeclarations.add(globalDeclaration.toASTString());
@@ -108,7 +108,8 @@ public class SequentializationBuilder {
       rLocalDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
+      ImmutableList<CVariableDeclaration> localDeclarations =
+          substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
         Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
         if (line.isPresent()) {
@@ -182,7 +183,7 @@ public class SequentializationBuilder {
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CParameterDeclaration> parameterDeclarations =
-          substitution.getSubstituteParameterDeclarations();
+          substitution.getParameterDeclarationSubstitutes();
       for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
@@ -218,7 +219,7 @@ public class SequentializationBuilder {
       rStartRoutineArgDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
     }
     ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
-        pMainThreadSubstitution.getSubstituteStartRoutineArgDeclarations();
+        pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
     for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {

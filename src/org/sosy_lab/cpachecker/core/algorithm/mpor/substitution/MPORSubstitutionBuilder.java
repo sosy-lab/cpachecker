@@ -187,8 +187,8 @@ public class MPORSubstitutionBuilder {
   // Parameter =====================================================================================
 
   /**
-   * For each {@link CFunctionCallEdge} (i.e. calling context), we map the parameter declaration to
-   * the created parameter variable.
+   * For each {@link CFunctionCallEdge} (i.e. calling context), we map the {@link
+   * CParameterDeclaration} of the functions to the created parameter variable.
    */
   private static ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       buildParameterSubstitutes(MPOROptions pOptions, MPORThread pThread) {
@@ -198,13 +198,11 @@ public class MPORSubstitutionBuilder {
     Map<CFunctionDeclaration, Integer> callCounts = new HashMap<>();
 
     for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionCallEdge pFunctionCallEdge) {
+      if (threadEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
         CFunctionDeclaration functionDeclaration =
-            pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-        if (!callCounts.containsKey(functionDeclaration)) {
-          callCounts.put(functionDeclaration, 0);
-        }
-        callCounts.put(functionDeclaration, callCounts.get(functionDeclaration) + 1);
+            functionCallEdge.getFunctionCallExpression().getDeclaration();
+        // put functionDeclaration if not present, and increase by 1 for each call
+        callCounts.merge(functionDeclaration, 1, Integer::sum);
         int callNumber = callCounts.get(functionDeclaration);
         rParameterSubstitutes.putAll(
             buildParameterSubstitutes(
@@ -222,25 +220,27 @@ public class MPORSubstitutionBuilder {
           CFunctionDeclaration pFunctionDeclaration,
           int pCallNumber) {
 
-    ImmutableTable.Builder<CFAEdgeForThread, CParameterDeclaration, CIdExpression> substitutes =
+    ImmutableTable.Builder<CFAEdgeForThread, CParameterDeclaration, CIdExpression> rSubstitutes =
         ImmutableTable.builder();
-    for (CParameterDeclaration parameterDeclaration : pFunctionDeclaration.getParameters()) {
-      String varName =
+    for (int i = 0; i < pFunctionDeclaration.getParameters().size(); i++) {
+      CParameterDeclaration parameterDeclaration = pFunctionDeclaration.getParameters().get(i);
+      String substituteName =
           SeqNameUtil.buildParameterName(
               pOptions,
-              parameterDeclaration,
-              pThread.getId(),
               pFunctionDeclaration.getOrigName(),
-              pCallNumber);
+              pThread.getId(),
+              pCallNumber,
+              parameterDeclaration,
+              i);
       // we use variable declarations for parameters in the sequentialization
       CParameterDeclaration substituteParameterDeclaration =
-          substituteParameterDeclaration(parameterDeclaration, varName);
-      substitutes.put(
+          substituteParameterDeclaration(parameterDeclaration, substituteName);
+      rSubstitutes.put(
           pCallContext,
           parameterDeclaration,
           SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration));
     }
-    return substitutes.buildOrThrow();
+    return rSubstitutes.buildOrThrow();
   }
 
   // Main Function Args ============================================================================

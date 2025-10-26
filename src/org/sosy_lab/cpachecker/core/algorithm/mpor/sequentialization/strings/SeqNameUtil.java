@@ -76,10 +76,11 @@ public class SeqNameUtil {
 
   public static String buildParameterName(
       MPOROptions pOptions,
-      CParameterDeclaration pParameterDeclaration,
-      int pThreadId,
       String pFunctionName,
-      int pCallNumber) {
+      int pThreadId,
+      int pCallNumber,
+      CParameterDeclaration pParameterDeclaration,
+      int pArgumentIndex) {
 
     return Joiner.on(SeqSyntax.UNDERSCORE)
         .join(
@@ -87,7 +88,8 @@ public class SeqNameUtil {
             pFunctionName,
             buildThreadPrefix(pOptions, pThreadId),
             (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL) + pCallNumber,
-            pParameterDeclaration.getName());
+            pParameterDeclaration.getName(),
+            (pOptions.shortVariableNames ? SeqToken.A : SeqToken.ARG) + pArgumentIndex);
   }
 
   public static String buildParameterNameForEmptyFunctionDefinition(

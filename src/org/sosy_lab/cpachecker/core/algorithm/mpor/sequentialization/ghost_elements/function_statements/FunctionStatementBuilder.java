@@ -84,36 +84,46 @@ public class FunctionStatementBuilder {
 
     ImmutableListMultimap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
-
     // for each function call edge (= calling context)
     for (CFAEdgeForThread callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
-      assert callContext.cfaEdge instanceof CFunctionCallEdge;
+      assert callContext.cfaEdge instanceof CFunctionCallEdge
+          : "callContext cfaEdge must be CFunctionCallEdge";
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
-      List<CParameterDeclaration> parameterDeclarations =
-          functionCallEdge.getSuccessor().getFunctionDefinition().getParameters();
+      rAssignments.putAll(
+          callContext,
+          buildFunctionParameterAssignments(functionCallEdge, callContext, pSubstitution));
+    }
+    return rAssignments.build();
+  }
 
-      // for each parameter, assign the param substitute to the param expression in funcCall
-      for (int i = 0; i < parameterDeclarations.size(); i++) {
-        CParameterDeclaration parameterDeclaration = parameterDeclarations.get(i);
-        CExpression rightHandSide =
-            functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
-        CIdExpression parameterSubstitute =
-            pSubstitution.getSubstituteParameterDeclarationByCallContext(
-                callContext, parameterDeclaration);
-        FunctionParameterAssignment parameterAssignment =
-            new FunctionParameterAssignment(
-                callContext,
-                parameterSubstitute,
-                pSubstitution.substitute(
-                    rightHandSide,
-                    callContext.callContext,
-                    false,
-                    false,
-                    false,
-                    false,
-                    Optional.empty()));
-        rAssignments.put(callContext, parameterAssignment);
-      }
+  private static ImmutableList<FunctionParameterAssignment> buildFunctionParameterAssignments(
+      CFunctionCallEdge pFunctionCallEdge,
+      CFAEdgeForThread pCallContext,
+      MPORSubstitution pSubstitution) {
+
+    ImmutableList.Builder<FunctionParameterAssignment> rAssignments = ImmutableList.builder();
+    List<CParameterDeclaration> parameterDeclarations =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
+    // for each parameter, assign the param substitute to the param expression in funcCall
+    for (int i = 0; i < parameterDeclarations.size(); i++) {
+      CParameterDeclaration parameterDeclaration = parameterDeclarations.get(i);
+      CExpression rightHandSide =
+          pFunctionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
+      CIdExpression parameterSubstitute =
+          pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
+      FunctionParameterAssignment parameterAssignment =
+          new FunctionParameterAssignment(
+              pCallContext,
+              parameterSubstitute,
+              pSubstitution.substitute(
+                  rightHandSide,
+                  pCallContext.callContext,
+                  false,
+                  false,
+                  false,
+                  false,
+                  Optional.empty()));
+      rAssignments.add(parameterAssignment);
     }
     return rAssignments.build();
   }

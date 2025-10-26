@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
@@ -76,8 +74,10 @@ public class MPORSubstitution {
   public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       parameterSubstitutes;
 
+  /** Note that main functions cannot take variadic arguments. */
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
+  /** Note that main functions cannot take variadic arguments. */
   public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
@@ -85,7 +85,7 @@ public class MPORSubstitution {
 
   private final LogManager logger;
 
-  public MPORSubstitution(
+  MPORSubstitution(
       boolean pIsDummy,
       MPOROptions pOptions,
       MPORThread pThread,
@@ -150,7 +150,7 @@ public class MPORSubstitution {
               pIsFieldReference,
               pTracker,
               logger);
-          return getVariableSubstitute(
+          return getSimpleDeclarationSubstitute(
               idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
         }
       }
@@ -392,8 +392,11 @@ public class MPORSubstitution {
     }
   }
 
-  /** Returns the global, local or param {@link CIdExpression} substitute of pSimpleDeclaration. */
-  private CIdExpression getVariableSubstitute(
+  /**
+   * Returns the global, local or parameter {@link CIdExpression} substitute for {@code
+   * pSimpleDeclaration}.
+   */
+  private CIdExpression getSimpleDeclarationSubstitute(
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
@@ -407,10 +410,6 @@ public class MPORSubstitution {
             pIsDeclaration, localSubstitute, pTracker);
         return localSubstitute.expression;
       } else {
-        checkArgument(
-            globalVariableSubstitutes.containsKey(variableDeclaration),
-            "no substitute found for %s",
-            variableDeclaration.toASTString());
         return Objects.requireNonNull(globalVariableSubstitutes.get(variableDeclaration));
       }
 
@@ -423,7 +422,7 @@ public class MPORSubstitution {
       // normal function called within thread, including start_routines, always have call context
       CFAEdgeForThread callContext = pCallContext.orElseThrow();
       if (parameterSubstitutes.containsRow(callContext)) {
-        return getSubstituteParameterDeclarationByCallContext(callContext, parameterDeclaration);
+        return getParameterDeclarationSubstitute(callContext, parameterDeclaration);
 
       } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
         return startRoutineArgSubstitutes.get(callContext, parameterDeclaration);
@@ -434,7 +433,21 @@ public class MPORSubstitution {
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
 
-  public CIdExpression getSubstituteParameterDeclarationByCallContext(
+  public CVariableDeclaration getVariableDeclarationSubstitute(
+      CVariableDeclaration pVariableDeclaration,
+      Optional<CFAEdgeForThread> pCallContext,
+      Optional<MPORSubstitutionTracker> pTracker) {
+
+    MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
+        pVariableDeclaration, pTracker);
+    CIdExpression idExpression =
+        getSimpleDeclarationSubstitute(pVariableDeclaration, true, pCallContext, pTracker);
+    return (CVariableDeclaration) idExpression.getDeclaration();
+  }
+
+  // CParameterDeclaration substitutes =============================================================
+
+  public CIdExpression getParameterDeclarationSubstitute(
       CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
@@ -443,8 +456,6 @@ public class MPORSubstitution {
       // no substitute found -> function declaration contains only parameter types, not names
       // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
       // -> void assume_abort_if_not(int);
-      assert pCallContext.cfaEdge instanceof CFunctionCallEdge
-          : "call context of parameter declaration must be CFunctionCallEdge";
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
       List<CParameterDeclaration> parameterDeclarations =
           functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
@@ -459,30 +470,9 @@ public class MPORSubstitution {
         "parameter declaration could not be found for given call context");
   }
 
-  public CVariableDeclaration getVariableDeclarationSubstitute(
-      CVariableDeclaration pVariableDeclaration,
-      Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        pVariableDeclaration, pTracker);
-    CIdExpression idExpression =
-        getVariableSubstitute(pVariableDeclaration, true, pCallContext, pTracker);
-    return (CVariableDeclaration) idExpression.getDeclaration();
-  }
-
-  public <T extends CSimpleDeclaration> T castTo(
-      CSimpleDeclaration pSimpleDeclaration, Class<T> pClass) {
-    checkArgument(
-        pClass.isInstance(pSimpleDeclaration),
-        "pSimpleDeclaration must be an instance of %s",
-        pClass.getSimpleName());
-    return pClass.cast(pSimpleDeclaration);
-  }
-
   // Declaration Extraction ========================================================================
 
-  public ImmutableList<CVariableDeclaration> getGlobalDeclarations() {
+  public ImmutableList<CVariableDeclaration> getGlobalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
     for (CIdExpression globalVariable : globalVariableSubstitutes.values()) {
       rGlobalDeclarations.add((CVariableDeclaration) globalVariable.getDeclaration());
@@ -490,7 +480,7 @@ public class MPORSubstitution {
     return rGlobalDeclarations.build();
   }
 
-  public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
+  public ImmutableList<CVariableDeclaration> getLocalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
     for (LocalVariableDeclarationSubstitute localSubstitute : localVariableSubstitutes.values()) {
       rLocalDeclarations.add(localSubstitute.getSubstituteVariableDeclaration());
@@ -502,7 +492,7 @@ public class MPORSubstitution {
    * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
    * they are treated as variables in the sequentialization (cf. inlining functions).
    */
-  public ImmutableList<CParameterDeclaration> getSubstituteParameterDeclarations() {
+  public ImmutableList<CParameterDeclaration> getParameterDeclarationSubstitutes() {
     ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (var cell : parameterSubstitutes.cellSet()) {
       rParameterDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
@@ -510,7 +500,7 @@ public class MPORSubstitution {
     return rParameterDeclarations.build();
   }
 
-  public ImmutableList<CParameterDeclaration> getSubstituteStartRoutineArgDeclarations() {
+  public ImmutableList<CParameterDeclaration> getStartRoutineArgDeclarationSubstitutes() {
     ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
     for (var cell : startRoutineArgSubstitutes.cellSet()) {

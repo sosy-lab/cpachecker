@@ -17,9 +17,15 @@ public class SeqToken {
   /** a for access */
   public static final String a = "a";
 
+  /** A for argument */
+  public static final String A = "A";
+
   public static final String abort = "abort";
 
   public static final String ACCESS = "ACCESS";
+
+  /** ARG for argument */
+  public static final String ARG = "ARG";
 
   public static final String ASSERT_FAIL_KEYWORD = "__assert_fail";
 

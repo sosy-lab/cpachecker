@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -116,6 +117,30 @@ public final class MPORUtil {
       }
     }
     return foundPath;
+  }
+
+  // Functions =====================================================================================
+
+  public static boolean isVariadicFunction(CFunctionDeclaration pFunctionDeclaration) {
+    return pFunctionDeclaration.getType().takesVarArgs();
+  }
+
+  /**
+   * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
+   * CParameterDeclaration} if it is out of bounds. This is useful vor variadic functions, where the
+   * last declaration is always the variadic one.
+   */
+  public static CParameterDeclaration getParameterDeclarationByIndex(
+      int pIndex, CFunctionDeclaration pFunctionDeclaration) {
+
+    List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
+    if (pIndex < parameterDeclarations.size()) {
+      return parameterDeclarations.get(pIndex);
+    } else {
+      // handle variadic function (more arguments than parameter declarations)
+      assert isVariadicFunction(pFunctionDeclaration) : "function must take variable arguments";
+      return parameterDeclarations.getLast();
+    }
   }
 
   // reach_error calls =============================================================================
