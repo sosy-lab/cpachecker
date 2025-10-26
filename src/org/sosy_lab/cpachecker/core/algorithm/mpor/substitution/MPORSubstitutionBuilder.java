@@ -139,18 +139,12 @@ public class MPORSubstitutionBuilder {
       CInitializer initializer = variableDeclaration.getInitializer();
       // TODO handle CInitializerList
       if (initializer instanceof CInitializerExpression initializerExpression) {
+        // no call context is used for global variables
+        CExpression substituteExpression =
+            dummySubstitution.substitute(
+                initializerExpression.getExpression(), false, false, false, false);
         CInitializerExpression substituteInitializerExpression =
-            substituteInitializerExpression(
-                initializerExpression,
-                dummySubstitution.substitute(
-                    // no call context for global variables
-                    initializerExpression.getExpression(),
-                    Optional.empty(),
-                    false,
-                    false,
-                    false,
-                    false,
-                    Optional.empty()));
+            substituteInitializerExpression(initializerExpression, substituteExpression);
         CVariableDeclaration newSubstituteDeclaration =
             substituteVariableDeclaration(
                 (CVariableDeclaration) idExpression.getDeclaration(),
@@ -370,14 +364,8 @@ public class MPORSubstitutionBuilder {
         CInitializerExpression initializerSubstitute =
             substituteInitializerExpression(
                 initializerExpression,
-                dummySubstitution.substitute(
-                    initializerExpression.getExpression(),
-                    callContext,
-                    true,
-                    false,
-                    false,
-                    false,
-                    Optional.of(tracker)));
+                dummySubstitution.substituteWithCallContext(
+                    initializerExpression.getExpression(), callContext, true, false, false, false));
         CVariableDeclaration newDeclarationSubstitute =
             substituteVariableDeclaration(
                 substituteDeclaration.getSubstituteVariableDeclaration(), initializerSubstitute);

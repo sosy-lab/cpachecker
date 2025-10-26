@@ -114,14 +114,69 @@ public class MPORSubstitution {
 
   // Substitute Functions ==========================================================================
 
+  public CExpression substitute(
+      CExpression pExpression,
+      boolean pIsDeclaration,
+      boolean pIsWrite,
+      boolean pIsPointerDereference,
+      boolean pIsFieldReference) {
+
+    return substitute(
+        pExpression,
+        Optional.empty(),
+        pIsDeclaration,
+        pIsWrite,
+        pIsPointerDereference,
+        pIsFieldReference,
+        Optional.empty());
+  }
+
+  public CExpression substituteWithCallContext(
+      CExpression pExpression,
+      // the call context is still optional, e.g. for expression directly inside main()
+      Optional<CFAEdgeForThread> pCallContext,
+      boolean pIsDeclaration,
+      boolean pIsWrite,
+      boolean pIsPointerDereference,
+      boolean pIsFieldReference) {
+
+    return substitute(
+        pExpression,
+        pCallContext,
+        pIsDeclaration,
+        pIsWrite,
+        pIsPointerDereference,
+        pIsFieldReference,
+        Optional.empty());
+  }
+
+  public CExpression substituteWithTracker(
+      CExpression pExpression,
+      Optional<CFAEdgeForThread> pCallContext,
+      boolean pIsDeclaration,
+      boolean pIsWrite,
+      boolean pIsPointerDereference,
+      boolean pIsFieldReference,
+      MPORSubstitutionTracker pTracker) {
+
+    return substitute(
+        pExpression,
+        pCallContext,
+        pIsDeclaration,
+        pIsWrite,
+        pIsPointerDereference,
+        pIsFieldReference,
+        Optional.of(pTracker));
+  }
+
   /**
    * Substitutes the given expression, and tracks if any global variable was substituted alongside
    * in {@code pAccessedGlobalVariables}. {@code pIsWrite} is used to determine whether the
    * expression to substitute * is written, i.e. a LHS in an assignment.
    */
-  public CExpression substitute(
-      final CExpression pExpression,
-      final Optional<CFAEdgeForThread> pCallContext,
+  private CExpression substitute(
+      CExpression pExpression,
+      Optional<CFAEdgeForThread> pCallContext,
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -281,37 +336,20 @@ public class MPORSubstitution {
       Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
-    FileLocation fileLocation = pStatement.getFileLocation();
-
-    // e.g. n = fib(42); or arr[n] = fib(42);
     switch (pStatement) {
+
+      // e.g. n = fib(42); or arr[n] = fib(42);
       case CFunctionCallAssignmentStatement functionCallAssignment -> {
         CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
-        CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
-        // TODO need CFieldReference, CPointerExpression, ... here too
-        if (leftHandSide instanceof CIdExpression idExpression) {
-          CExpression substitute =
-              substitute(idExpression, pCallContext, false, true, false, false, pTracker);
-          if (substitute instanceof CIdExpression idExpressionSubstitute) {
-            return new CFunctionCallAssignmentStatement(
-                fileLocation,
-                idExpressionSubstitute,
-                substitute(rightHandSide, pCallContext, pTracker));
-          }
-        } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
-          CExpression substitute =
-              substitute(
-                  arraySubscriptExpression, pCallContext, false, true, false, false, pTracker);
-          if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
-            return new CFunctionCallAssignmentStatement(
-                fileLocation,
-                arraySubscriptExpressionSubstitute,
-                substitute(rightHandSide, pCallContext, pTracker));
-          }
-        }
-
-        // e.g. fib(42);
+        CExpression leftHandSideSubstitute =
+            substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
+        return new CFunctionCallAssignmentStatement(
+            pStatement.getFileLocation(),
+            (CLeftHandSide) leftHandSideSubstitute,
+            substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
       }
+
+      // e.g. fib(42);
       case CFunctionCallStatement functionCall -> {
         return new CFunctionCallStatement(
             functionCall.getFileLocation(),
@@ -323,19 +361,18 @@ public class MPORSubstitution {
         MPORSubstitutionTrackerUtil.trackPointerAssignment(assignment, pTracker);
         CLeftHandSide leftHandSide = assignment.getLeftHandSide();
         CExpression rightHandSide = assignment.getRightHandSide();
-        CExpression substitute =
+        CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
-        if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
-          return new CExpressionAssignmentStatement(
-              fileLocation,
-              leftHandSideSubstitute,
-              // for the RHS, it's not a left hand side of an assignment
-              substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
-        }
+        return new CExpressionAssignmentStatement(
+            pStatement.getFileLocation(),
+            (CLeftHandSide) leftHandSideSubstitute,
+            // for the RHS, it's not a left hand side of an assignment
+            substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
       }
+
       case CExpressionStatement expression -> {
         return new CExpressionStatement(
-            fileLocation,
+            pStatement.getFileLocation(),
             substitute(
                 expression.getExpression(), pCallContext, false, false, false, false, pTracker));
       }

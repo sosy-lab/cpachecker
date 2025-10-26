@@ -96,14 +96,8 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CAssumeEdge assume) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CExpression substituteAssumption =
-          pSubstitution.substitute(
-              assume.getExpression(),
-              callContext,
-              false,
-              false,
-              false,
-              false,
-              Optional.of(tracker));
+          pSubstitution.substituteWithTracker(
+              assume.getExpression(), callContext, false, false, false, false, tracker);
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
       return Optional.of(SubstituteEdge.of(pOptions, substituteAssumeEdge, pThreadEdge, tracker));
 

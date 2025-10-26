@@ -115,14 +115,8 @@ public class FunctionStatementBuilder {
           new FunctionParameterAssignment(
               pCallContext,
               parameterSubstitute,
-              pSubstitution.substitute(
-                  rightHandSide,
-                  pCallContext.callContext,
-                  false,
-                  false,
-                  false,
-                  false,
-                  Optional.empty()));
+              pSubstitution.substituteWithCallContext(
+                  rightHandSide, pCallContext.callContext, false, false, false, false));
       rAssignments.add(parameterAssignment);
     }
     return rAssignments.build();
@@ -146,15 +140,9 @@ public class FunctionStatementBuilder {
               new FunctionParameterAssignment(
                   callContext,
                   leftHandSide,
-                  pSubstitution.substitute(
+                  pSubstitution.substituteWithCallContext(
                       // the inner call context is the context in which pthread_create is called
-                      rightHandSide,
-                      callContext.callContext,
-                      false,
-                      false,
-                      false,
-                      false,
-                      Optional.empty()));
+                      rightHandSide, callContext.callContext, false, false, false, false));
           rAssignments.put(callContext, startRoutineArgAssignment);
         }
       }
