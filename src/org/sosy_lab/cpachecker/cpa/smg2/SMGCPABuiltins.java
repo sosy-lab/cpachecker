@@ -189,58 +189,54 @@ public class SMGCPABuiltins {
     return functionName.contains(VERIFIER_NONDET_PREFIX);
   }
 
+  /**
+   * Handles all functions generating nondeterministic values defined by the Competition on Software
+   * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
+   */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
       String pFunctionName, SMGState pState, CFAEdge pCfaEdge) {
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
 
-    // TODO:
-    // __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory block
-    // with arbitrary values. The first argument must be a valid pointer to the start of a memory
-    // block of the given size. The second argument specifies the size of the memory to initialize
-    // and must match the size of the memory block that the first argument points to. The
+    // TODO: __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory
+    // block with arbitrary values. The first argument must be a valid pointer to the start of a
+    // memory block of the given size. The second argument specifies the size of the memory to
+    // initializeand must match the size of the memory block that the first argument points to. The
     // dereference of any pointer value set through this method results in undefined behavior. This
     // means that pointer values must be explicitly set through different means before they can be
     // dereferenced.
 
     // TODO: consider casting directly to desired type?
-    // castCValue(uncastedValueAndState.getValue(), pTargetType);
-    ValueAndSMGState nondet =
-        switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
-          case "bool",
-              "char",
-              "int",
-              "int128",
-              "float",
-              "double",
-              "long",
-              "longlong",
-              "pchar",
-              "short",
-              "size_t",
-              "u32",
-              "uchar",
-              "uint",
-              "uint128",
-              "ulong",
-              "ulonglong",
-              "unsigned",
-              "ushort" ->
-              ValueAndSMGState.ofUnknownValue(pState);
-          case "loff_t", "pthread_t", "sector_t" ->
-              throw new UnsupportedOperationException(
-                  "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
-          default ->
-              throw new UnsupportedOperationException(
-                  "Unknown and unhandled "
-                      + VERIFIER_NONDET_PREFIX
-                      + "X() function: "
-                      + pFunctionName
-                      + " at "
-                      + pCfaEdge);
-        };
-    return ImmutableList.of(nondet);
+    //  castCValue(uncastedValueAndState.getValue(), pTargetType);
+    return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
+      case "bool",
+          "char",
+          "int",
+          "int128",
+          "float",
+          "double",
+          "long",
+          "longlong",
+          "pchar",
+          "short",
+          "size_t",
+          "u32",
+          "uchar",
+          "uint",
+          "uint128",
+          "ulong",
+          "ulonglong",
+          "unsigned",
+          "ushort" ->
+          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      case "loff_t", "pthread_t", "sector_t" ->
+          throw new UnsupportedOperationException(
+              "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
+      default ->
+          throw new UnsupportedOperationException(
+              "Unknown and unhandled function: " + pFunctionName + " at " + pCfaEdge);
+    };
   }
 
   /**
