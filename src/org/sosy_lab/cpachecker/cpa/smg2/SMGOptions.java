@@ -18,7 +18,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
@@ -373,12 +372,6 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "runtimeCheck",
-      description = "Sets the level of runtime checking: NONE, HALF, FULL")
-  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
-
-  @Option(
-      secure = true,
       name = "exportSMG.file",
       description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
@@ -621,10 +614,6 @@ public class SMGOptions {
 
   public boolean unknownOnUndefined() {
     return unknownOnUndefined;
-  }
-
-  public SMGRuntimeCheck getRuntimeCheck() {
-    return runtimeCheck;
   }
 
   public PathTemplate getExportSMGFilePattern() {
