@@ -11,7 +11,10 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 
-/** Intermediate enum for {@link AdditionalInfoConverter} used at {@link SMGCPA} */
+/**
+ * Intermediate enum for {@link AdditionalInfoConverter} used at {@link
+ * org.sosy_lab.cpachecker.cpa.smg2.SMGCPA}
+ */
 public enum SMGConvertingTags implements ConvertingTags {
   NOTE
 }
