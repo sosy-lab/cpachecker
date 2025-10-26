@@ -2508,7 +2508,8 @@ public class SMGState
   }
 
   /**
-   * Copy the state with a memory leak error set. Sanity checks that the pointer points to VALID heap memory.
+   * Copy the state with a memory leak error set. Sanity checks that the pointer points to VALID
+   * heap memory.
    *
    * @param errorMsg custom error message specific to the error reason.
    * @return a copy of the current state with the error info added.
