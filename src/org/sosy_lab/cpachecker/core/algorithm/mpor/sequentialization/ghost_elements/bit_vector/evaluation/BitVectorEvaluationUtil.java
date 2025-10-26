@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -56,7 +55,7 @@ public class BitVectorEvaluationUtil {
 
   /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
   static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
-      ImmutableList<ExpressionTree<AExpression>> pTerms) {
+      ImmutableList<ExpressionTree<CExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
@@ -89,13 +88,13 @@ public class BitVectorEvaluationUtil {
 
   // Nest Expressions ==============================================================================
 
-  static ImmutableListMultimap<SeqMemoryLocation, AExpression>
+  static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
           BitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
-    ImmutableListMultimap.Builder<SeqMemoryLocation, AExpression> rMap =
+    ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();

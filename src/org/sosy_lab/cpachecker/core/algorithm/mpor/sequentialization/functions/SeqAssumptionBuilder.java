@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -47,7 +46,7 @@ public class SeqAssumptionBuilder {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
   }
 
-  public static String buildAssumption(ExpressionTree<AExpression> pCondition) {
+  public static String buildAssumption(ExpressionTree<CExpression> pCondition) {
     return SeqIdExpressions.ASSUME
         + SeqStringUtil.wrapInBrackets(pCondition.toString())
         + SeqSyntax.SEMICOLON;

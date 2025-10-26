@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.base.Joiner;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqAstNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -23,14 +23,14 @@ public class BitVectorEvaluationExpression implements SeqAstNode {
 
   public final Optional<CBinaryExpression> binaryExpression;
 
-  public final Optional<ExpressionTree<AExpression>> logicalExpression;
+  public final Optional<ExpressionTree<CExpression>> logicalExpression;
 
   public BitVectorEvaluationExpression(CBinaryExpression pBinaryExpression) {
     binaryExpression = Optional.of(pBinaryExpression);
     logicalExpression = Optional.empty();
   }
 
-  public BitVectorEvaluationExpression(ExpressionTree<AExpression> pLogicalExpression) {
+  public BitVectorEvaluationExpression(ExpressionTree<CExpression> pLogicalExpression) {
     binaryExpression = Optional.empty();
     logicalExpression = Optional.of(pLogicalExpression);
   }

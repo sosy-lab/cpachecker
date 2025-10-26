@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -118,7 +117,7 @@ public class BitVectorEvaluationBuilder {
             pOptions, otherAccessBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils);
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
@@ -155,10 +154,10 @@ public class BitVectorEvaluationBuilder {
             pUtils);
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseWriteMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =
             mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.WRITE);
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
@@ -172,11 +171,11 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
-  private static ImmutableListMultimap<SeqMemoryLocation, AExpression>
+  private static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToLastSparseBitVectorsByAccessType(
           BitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
 
-    ImmutableListMultimap.Builder<SeqMemoryLocation, AExpression> rMap =
+    ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
     ImmutableMap<SeqMemoryLocation, LastSparseBitVector> lastSparseBitVectors =
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
@@ -299,7 +298,7 @@ public class BitVectorEvaluationBuilder {
             pOptions, otherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils);
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
@@ -339,10 +338,10 @@ public class BitVectorEvaluationBuilder {
             pUtils);
       }
       case SPARSE -> {
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseWriteMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseWriteMap =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.WRITE);
-        ImmutableListMultimap<SeqMemoryLocation, AExpression> sparseAccessMap =
+        ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseAccessMap =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
