@@ -327,6 +327,7 @@ public class SMGCPABuiltins {
         (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
     SMGState currentState =
         pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
+
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
@@ -3049,7 +3050,7 @@ public class SMGCPABuiltins {
       // Size symbolic
       if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
         throw new SMGException(
-            "Can't handle symbolic paramter in C function realloc() with option"
+            "Can't handle symbolic parameter in C function realloc() with option"
                 + " UnknownFunctionHandling.STRICT set. Location in program "
                 + pCfaEdge);
       } else if (options.trackPredicates()) {
@@ -3226,5 +3227,19 @@ public class SMGCPABuiltins {
   private static boolean isNumericZero(Value value) {
     return value.isNumericValue()
         && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleDisallowedOverapproximationIfNeeded(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge) throws SMGException {
+    if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+      throw new SMGException(
+          "Can't handle C function "
+              + cFCExpression.getFunctionNameExpression().toASTString()
+              + "() with option "
+              + options.getHandleUnknownFunctions()
+              + " set, as this would lead to overapproximated handling. Location in program "
+              + pCfaEdge);
+    }
   }
 }
