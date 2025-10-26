@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryReallocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardByteInputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOutputFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
@@ -21,7 +24,6 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharI
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -119,32 +121,10 @@ public class SMGCPABuiltins {
 
   private static final String VERIFIER_NONDET_PREFIX = "__VERIFIER_nondet_";
 
-  // TODO: Properly model printf (dereferences and stuff)
-  // TODO: General modelling system for functions which do not modify state?
-  private static final ImmutableSet<String> BUILTINS =
-      ImmutableSet.of(
-          "__VERIFIER_BUILTIN_PLOT",
-          "memcpy",
-          "memcmp",
-          "memset",
-          "__builtin_alloca",
-          "alloca",
-          "printf",
-          "strcmp",
-          "realloc",
-          "__builtin_va_start",
-          "__builtin_va_arg",
-          "__builtin_va_end",
-          "__builtin_va_copy",
-          "atexit",
-          "__CPACHECKER_atexit_next",
-          "__builtin_popcount",
-          "__builtin_popcountl",
-          "__builtin_popcountll");
-
   /**
-   * Returns true if the functionName equals a C builtin function OR our internal handling for
-   * atexit (__CPACHECKER_atexit_next).
+   * Returns true if the functionName equals a known C builtin function (either defined by the C
+   * standard or extensions like GNU (GCC)) OR our internal handling for atexit
+   * (__CPACHECKER_atexit_next).
    */
   boolean isABuiltIn(String functionName) {
     // __CPACHECKER_atexit_next is not a constant function, but returns a different function
@@ -158,26 +138,6 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks if the input is one of the following memory allocation methods: "malloc", "__kmalloc",
-   * "kmalloc" and "calloc", maybe more if they are added, and returns true if it is one of those.
-   * false else.
-   */
-  public boolean isConfigurableAllocationFunctionWithManualMemoryCleanup(String functionName) {
-    return options.getMemoryAllocationFunctions().contains(functionName)
-        || options.getArrayAllocationFunctions().contains(functionName);
-  }
-
-  /**
-   * True for deallocation methods supported (i.e. "free").
-   *
-   * @param functionName name of the function to check.
-   * @return true for the specified names, false else.
-   */
-  public boolean isDeallocationFunction(String functionName) {
-    return options.getDeallocationFunctions().contains(functionName);
-  }
-
-  /**
    * True for external allocation functions, i.e. "ext_allocation", that are supported.
    *
    * @param functionName name of the function to check.
@@ -188,16 +148,18 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Routes to the correct function call. Only handles built-in functions. If no such function is
-   * found this returns an unknown value.
+   * Handles functions without body like built-in C functions (either from the standard or
+   * extensions like GNU (GCC)), externally allocated functions, except math functions, which should
+   * be handled by the ValueVisitor. If no such function is found, handling is decided by the option
+   * for unknown functions. Functions without return value return a bundled UNKNOWN value that can
+   * be ignored.
    *
    * @param funCallExpr {@link CFunctionCallExpression} that has been checked for all other known
-   *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
-   *     true are left.
+   *     functions (math functions etc.).
    * @param functionName Name of the function.
    * @param state current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @return the result of the function call and the state for it. May be an error state!
+   * @return the result of the function call and the state for it, which may be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
   public List<ValueAndSMGState> handleFunctionCallWithoutBody(
@@ -209,20 +171,14 @@ public class SMGCPABuiltins {
     }
 
     if (isCompetitionNondeterministicFunction(functionName)) {
-      // TODO: unify with other usage
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+      return handleVerifierNondetGeneratorFunction(functionName, state, cfaEdge);
     }
 
-    if (isABuiltIn(functionName)) {
-      if (isConfigurableAllocationFunctionWithManualMemoryCleanup(functionName)) {
-        return evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
-            funCallExpr, functionName, state, cfaEdge);
-      } else {
-        return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
-      }
+    if (isExternalAllocationFunction(functionName)) {
+      return evaluateExternalAllocationFunction(funCallExpr, state, functionName);
     }
 
-    return handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
+    return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
   }
 
   /**
@@ -288,40 +244,42 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handle a function call to a builtin function like memcpy.
+   * Handle a function call to a builtin function like malloc(), memcpy(), atexit() etc. Will
+   * delegate to the unknown function handler if no function handling is defined.
    *
    * @param cfaEdge for logging/debugging.
    * @param funCallExpr {@link CFunctionCallExpression} that leads to a non memory allocating
    *     builtin function.
    * @param functionName The name of the function to be called.
    * @param state current {@link SMGState}.
-   * @return the result of the function call and the state for it. May be an error state!
+   * @return the result of the function call and the state for it, which may be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleBuiltinFunctionCall(
+  private List<ValueAndSMGState> handleBuiltinFunctionCall(
       CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    if (isSafeFunction(functionName)) {
-      // Move up to handleFunctionCall and unify
-      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
-    }
-
-    if (isExternalAllocationFunction(functionName)) {
-      return evaluateExternalAllocationFunction(funCallExpr, state, functionName);
-    }
-
-    if (isCompetitionNondeterministicFunction(functionName)) {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+    if (isMemoryAllocatingFunction(functionName)) {
+      // malloc(), calloc() etc.
+      return evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
+          funCallExpr, functionName, state, cfaEdge);
+    } else if (isMemoryDeallocatingFunction(functionName)) {
+      // free()
+      return evaluateFree(funCallExpr, state, cfaEdge);
+    } else if (isMemoryReallocatingFunction(functionName)) {
+      // realloc()
+      return evaluateRealloc(funCallExpr, state, cfaEdge);
     }
 
     if (isStandardByteInputFunction(functionName)
         || isStandardWideCharInputFunction(functionName)
         || isStandardStringInputFunction(functionName)) {
+      // fgets(), sscanf() etc.
       return handleInputFunctions(state, funCallExpr, functionName, cfaEdge);
     }
 
     if (isStandardInputOrOutputFunction(functionName)) {
+      // Only output functions as input are already handled above
       return checkAllParametersForValidityAndReturnUnknownValue(
           state, cfaEdge, funCallExpr, functionName);
     }
@@ -344,8 +302,6 @@ public class SMGCPABuiltins {
         evaluateVBPlot(funCallExpr, state);
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
-
-      case "realloc" -> evaluateRealloc(funCallExpr, state, cfaEdge);
 
       case "__builtin_va_start" -> evaluateVaStart(funCallExpr, cfaEdge, state);
 
@@ -1473,14 +1429,6 @@ public class SMGCPABuiltins {
     return resultBuilder.build();
   }
 
-  /**
-   * Checks if the called function is alloca(), which allocates memory that is automatically freed
-   * with signature: void *alloca(size_t size);
-   */
-  private boolean isMemoryAllocationFunctionWithAutomaticMemoryCleanup(String pFunctionName) {
-    return pFunctionName.equals("alloca") || pFunctionName.equals("__builtin_alloca");
-  }
-
   // malloc(size) w size in bits
   private ImmutableList<ValueAndSMGState> handleConfigurableMemoryAllocation(
       CFunctionCallExpression functionCall,
@@ -1963,10 +1911,11 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link SMGState}s for the results of the free() invokation. These might
-   *     include error states!
+   *     include error states! The {@link Value}s returned are UNKNOWN. As the function does not
+   *     return a value, this is not a problem, and they are ignored.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
-  public final ImmutableList<SMGState> evaluateFree(
+  private ImmutableList<ValueAndSMGState> evaluateFree(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -1975,16 +1924,19 @@ public class SMGCPABuiltins {
           "The function free() needs exactly 1 paramter", cfaEdge, pFunctionCall);
     }
 
-    ImmutableList.Builder<SMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState addressAndState :
         getFunctionParameterValue(0, pFunctionCall, pState, cfaEdge)) {
       Value maybeAddressValue = addressAndState.getValue();
       SMGState currentState = addressAndState.getState();
 
       if (currentState.hasMemoryErrors() && options.isMemoryErrorTarget()) {
-        resultBuilder.add(currentState);
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
       } else {
-        resultBuilder.addAll(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
+        resultBuilder.addAll(
+            transformedImmutableListCopy(
+                currentState.free(maybeAddressValue, pFunctionCall, cfaEdge),
+                ValueAndSMGState::ofUnknownValue));
       }
     }
 
@@ -2808,13 +2760,8 @@ public class SMGCPABuiltins {
       // If there is nothing left, they are equal.
       return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
     }
-    // Equally sized blocks not possible, use read, as read can break down parts of edges correctly.
-    // TODO: implement me
 
-    if (hvesObj1InSizeOrdered.isEmpty() && hvesObj2InSizeOrdered.isEmpty()) {
-      // If there is nothing left, they are equal.
-      return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
-    }
+    // Equally sized blocks not possible, use read, as read can break down parts of edges correctly.
     // TODO: At this point we would need a solver, if we ever need it implement this case.
     //  or return UNKNOWN.
     throw new SMGException("Could not compare the memory regions given in memcmp in " + pCFAEdge);
