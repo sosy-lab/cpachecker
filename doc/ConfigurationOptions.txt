@@ -3443,10 +3443,6 @@ cpa.smg2.refinement.restart = PIVOT
 # Resolve definite assignments
 cpa.smg2.resolveDefinites = true
 
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.smg2.runtimeCheck = NONE
-  enum:     [FORCED, NONE, HALF, FULL]
-
 # List of functions that are always considered as safe, i.e. they are not
 # evaluated, even if known to the analysis, nor are their inputs checked for
 # validity. They always return a new, unknown value and therefore
