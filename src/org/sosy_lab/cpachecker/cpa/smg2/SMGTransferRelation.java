@@ -855,8 +855,10 @@ public class SMGTransferRelation
     truthValue = simplifiedExpression.getSecond();
 
     if (expression instanceof CBinaryExpression binEx
-        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
+        && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // TODO: add option and extract to method
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
         if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
                 <= loopBound.getValue().intValueExact()

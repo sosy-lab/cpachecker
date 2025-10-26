@@ -171,7 +171,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (access.mightAccessSameLocationAs(newAccess)
               && (access.isWrite() || newAccess.isWrite())
               && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
-              && !access.happensBefore(newAccess, threadSynchronizations)) {
+              && !access.happensBefore(newAccess, threadSynchronizations)
+              && !(newAccess.memoryLocationIsAtomic() && access.memoryLocationIsAtomic())) {
             // Two accesses are conflicting if:
             //   - They access the same memory location
             //   - They were made by two different threads
