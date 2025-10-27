@@ -194,7 +194,7 @@ public class SMGCPABuiltins {
    * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
    */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
-      String pFunctionName, SMGState pState, CFAEdge pCfaEdge) {
+      String pFunctionName, SMGState pState, CFAEdge pCfaEdge) throws SMGException {
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
@@ -231,10 +231,10 @@ public class SMGCPABuiltins {
           "ushort" ->
           ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
       case "loff_t", "pthread_t", "sector_t" ->
-          throw new UnsupportedOperationException(
+          throw new SMGException(
               "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
       default ->
-          throw new UnsupportedOperationException(
+          throw new SMGException(
               "Unknown and unhandled function: " + pFunctionName + " at " + pCfaEdge);
     };
   }
@@ -1062,7 +1062,7 @@ public class SMGCPABuiltins {
               pState, pCfaEdge, functionCallExpr, functionName, true, false);
 
       default ->
-          throw new UnsupportedOperationException(
+          throw new SMGException(
               "C function "
                   + functionName
                   + " can currently not be handled with this CPA. Origin: "
@@ -1165,10 +1165,10 @@ public class SMGCPABuiltins {
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
             infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
-            throw new UnsupportedOperationException(infoMsg);
+            throw new SMGException(infoMsg);
           } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
             infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
-            throw new UnsupportedOperationException(infoMsg);
+            throw new SMGException(infoMsg);
           } else {
             logger.log(Level.FINE, infoMsg + ", in " + cfaEdge);
           }
@@ -1371,10 +1371,10 @@ public class SMGCPABuiltins {
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
           infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
-          throw new UnsupportedOperationException(infoMsg);
+          throw new SMGException(infoMsg);
         } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
           infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
-          throw new UnsupportedOperationException(infoMsg);
+          throw new SMGException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -1854,10 +1854,10 @@ public class SMGCPABuiltins {
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
           infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
-          throw new UnsupportedOperationException(infoMsg);
+          throw new SMGException(infoMsg);
         } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
           infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
-          throw new UnsupportedOperationException(infoMsg);
+          throw new SMGException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -2983,10 +2983,10 @@ public class SMGCPABuiltins {
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
             infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
-            throw new UnsupportedOperationException(infoMsg);
+            throw new SMGException(infoMsg);
           } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
             infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
-            throw new UnsupportedOperationException(infoMsg);
+            throw new SMGException(infoMsg);
           } else {
             logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
           }
