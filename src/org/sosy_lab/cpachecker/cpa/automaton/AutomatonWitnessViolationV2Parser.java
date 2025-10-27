@@ -362,7 +362,6 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
       throws InvalidYAMLWitnessException {
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
-        ;
         return Optional.of(violationEntry);
       }
       throw new InvalidYAMLWitnessException(
