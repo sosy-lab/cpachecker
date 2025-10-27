@@ -19,6 +19,6 @@ int main() {
 
     if (a > 0) {
 ERROR:
-        __VERIFIER_error();
+        __VERIFIER_error();  // Not reachable
     }
 }
