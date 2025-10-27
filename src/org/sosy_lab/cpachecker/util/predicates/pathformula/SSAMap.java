@@ -316,31 +316,31 @@ public final class SSAMap implements Serializable {
   private final int varsHashCode;
 
   private SSAMap(
-      PersistentSortedMap<String, Integer> vars,
-      FreshValueProvider freshValueProvider,
-      int varsHashCode,
-      PersistentSortedMap<String, Type> varTypes,
+      PersistentSortedMap<String, Integer> pVars,
+      FreshValueProvider pFreshValueProvider,
+      int pVarsHashCode,
+      PersistentSortedMap<String, Type> pVarTypes,
       int defaultSSAIdx) {
-    this.vars = vars;
-    this.freshValueProvider = freshValueProvider;
-    this.varTypes = varTypes;
+    this.vars = pVars;
+    this.freshValueProvider = pFreshValueProvider;
+    this.varTypes = pVarTypes;
 
-    if (varsHashCode == 0) {
-      this.varsHashCode = vars.hashCode();
+    if (pVarsHashCode == 0) {
+      this.varsHashCode = pVars.hashCode();
     } else {
-      this.varsHashCode = varsHashCode;
-      assert varsHashCode == vars.hashCode();
+      this.varsHashCode = pVarsHashCode;
+      assert pVarsHashCode == pVars.hashCode();
     }
 
     defaultValue = defaultSSAIdx;
   }
 
   private SSAMap(
-      PersistentSortedMap<String, Integer> vars,
-      FreshValueProvider freshValueProvider,
-      int varsHashCode,
-      PersistentSortedMap<String, Type> varTypes) {
-    this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
+      PersistentSortedMap<String, Integer> pVars,
+      FreshValueProvider pFreshValueProvider,
+      int pVarsHashCode,
+      PersistentSortedMap<String, Type> pVarTypes) {
+    this(pVars, pFreshValueProvider, pVarsHashCode, pVarTypes, DEFAULT_DEFAULT_IDX);
   }
 
   /** Returns an SSAMapBuilder that is initialized with the current SSAMap. */
