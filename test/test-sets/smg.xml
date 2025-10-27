@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- 
 This run-collection defines run-definitions for all important CPAchecker SMG based configurations
-on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup. 
+on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
