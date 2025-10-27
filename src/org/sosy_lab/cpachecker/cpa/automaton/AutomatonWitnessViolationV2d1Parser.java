@@ -64,11 +64,6 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Par
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
-    // TODO: It may be worthwhile to refactor this into the CFA
-    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
-        FluentIterable.from(cfa.edges())
-            .index(edge -> edge.getFileLocation().getStartingLineNumber());
-
     int stateCounter = 0;
     final String initState = getStateName(stateCounter++);
 
