@@ -821,47 +821,47 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
     <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <tasks name="C.no-overflow.Main">
-      <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
-      <includesfile>../sv-benchmarks/c/BitVectors.set</includesfile>
-      <includesfile>../sv-benchmarks/c/BitVectors-Termination.set</includesfile>
-      <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
-      <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
-      <includesfile>../sv-benchmarks/c/ECA.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Floats.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
-      <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
-      <includesfile>../sv-benchmarks/c/Sequentialized.set</includesfile>
-      <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
-      <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
-      <includesfile>../sv-benchmarks/c/XCSP.set</includesfile>
-      <includesfile>../sv-benchmarks/c/SoftwareSystems-AWS-C-Common.set</includesfile>
-      <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/ECA.set</includesfile>
+      <includesfile>../programs/benchmarks/Floats.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap.set</includesfile>
+      <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+      <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+      <includesfile>../programs/benchmarks/XCSP.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
     <tasks name="C.no-overflow.Juliet">
-      <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
 
     <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
-      <includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
     <tasks name="C.no-overflow.SoftwareSystems-coreutils">
-      <includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
     <tasks name="C.no-overflow.SoftwareSystems-uthash">
-      <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
 
     <tasks name="C.no-overflow.Concurrency">
-      <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-      <propertyfile>../sv-benchmarks/c/properties/no-overflow.prp</propertyfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
   </rundefinition>
 
