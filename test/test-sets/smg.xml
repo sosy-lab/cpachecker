@@ -817,7 +817,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <!-- #################### No-Overflow #################### -->
 
-  <rundefinition name="SV-COMP26_no-overflow">
+  <rundefinition name="SV-COMP26_no-overflow_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <tasks name="C.no-overflow.Main">
