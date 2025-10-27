@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="CPAchecker-IDE" basedir="..">
+
+  <import file="../build.xml"/>
+
+  <property name="ide.out.dir" value="${basedir}/build/ide"/>
+
+  <target name="export-classpath" description="Export compile classpath for IDEs">
+    <mkdir dir="${ide.out.dir}"/>
+
+    <path id="cp.full">
+      <pathelement location="${basedir}/build/classes"/>
+      <pathelement location="${basedir}/build/test-classes"/>
+      <fileset dir="${basedir}/lib" includes="**/*.jar"/>
+      <fileset dir="${basedir}/lib/java/runtime" includes="*.jar" erroronmissingdir="false"/>
+    </path>
+
+    <pathconvert refid="cp.full" property="cp.list" pathsep="${line.separator}">
+      <map from="${basedir}/" to=""/>
+    </pathconvert>
+
+    <echo file="${ide.out.dir}/classpath.txt">${cp.list}</echo>
+    <echo message="Wrote ${ide.out.dir}/classpath.txt"/>
+  </target>
+
+</project>

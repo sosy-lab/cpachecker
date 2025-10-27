@@ -5,7 +5,7 @@ This file is part of SoSy-Lab Java-Project Template,
 a collection of common files and build definitions for Java projects:
 https://gitlab.com/sosy-lab/software/java-project-template
 
-SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -54,6 +54,15 @@ SPDX-License-Identifier: Apache-2.0
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
         <version>3.1.0</version>
+
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.ivy</groupId>
+            <artifactId>ivy</artifactId>
+            <version>2.5.3</version>
+          </dependency>
+        </dependencies>
+
         <executions>
 
           <execution>
@@ -125,6 +134,21 @@ SPDX-License-Identifier: Apache-2.0
                   <property name="ivy.repo.url" value="${ivy.repo.url}"/>
                   <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
                   <property name="ant.extra.args" value="${ant.extra.args}"/>
+                </ant>
+              </target>
+            </configuration>
+            <goals><goal>run</goal></goals>
+          </execution>
+
+          <!-- Export classpath for IDEs -->
+          <execution>
+            <id>ant-export-classpath</id>
+            <phase>generate-resources</phase>
+            <configuration>
+              <target>
+                <ant antfile="build/build-ide.xml" target="export-classpath" inheritAll="true">
+                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
+                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
                 </ant>
               </target>
             </configuration>
