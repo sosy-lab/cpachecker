@@ -138,29 +138,25 @@ public class AutomatonWitnessParserUtils {
     return getWitnessTypeIfYAML(entries);
   }
 
-  static Optional<YAMLWitnessVersion> getWitnessVersion(List<AbstractEntry> entries) {
+  public static Optional<YAMLWitnessVersion> getWitnessVersion(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
       return Optional.empty();
-    } else if (FluentIterable.from(entries)
-        .allMatch(
-            e ->
-                (e instanceof ViolationSequenceEntry
-                    && ((ViolationSequenceEntry) e)
-                        .getMetadata()
-                        .getFormatVersion()
-                        .equals("2.0")))) {
+    } else if (allEntriesHaveVersion(YAMLWitnessVersion.V2, entries)) {
       return Optional.of(YAMLWitnessVersion.V2);
-    } else if (FluentIterable.from(entries)
-        .allMatch(
-            e ->
-                (e instanceof ViolationSequenceEntry
-                    && ((ViolationSequenceEntry) e)
-                        .getMetadata()
-                        .getFormatVersion()
-                        .equals("2.1")))) {
+    } else if (allEntriesHaveVersion(YAMLWitnessVersion.V2d1, entries)) {
       return Optional.of(YAMLWitnessVersion.V2d1);
     }
     return Optional.empty();
+  }
+
+  private static boolean allEntriesHaveVersion(
+      YAMLWitnessVersion pVersion, List<AbstractEntry> entries) {
+    return FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry pEntry
+                    && YAMLWitnessVersion.valueOf(pEntry.getMetadata().getFormatVersion())
+                        .equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
