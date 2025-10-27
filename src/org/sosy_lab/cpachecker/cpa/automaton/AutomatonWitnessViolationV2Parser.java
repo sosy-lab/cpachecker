@@ -378,11 +378,6 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
 
-    // TODO: It may be worthwhile to refactor this into the CFA
-    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
-        FluentIterable.from(cfa.edges())
-            .index(edge -> edge.getFileLocation().getStartingLineNumber());
-
     int stateCounter = 0;
     final String initState = getStateName(stateCounter++);
 
@@ -395,76 +390,19 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       WaypointRecord follow = entry.follow();
-      List<WaypointRecord> avoids = entry.avoids();
-      if (!avoids.isEmpty()) {
-        logger.log(
-            Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
-      }
       String nextStateId = getStateName(stateCounter++);
-      int followLine = follow.getLocation().getLine();
-      int followColumn = follow.getLocation().getColumn();
+
+      handleWaypoints(
+          entry, follow, transitions, automatonStates, distance, nextStateId, currentStateId);
 
       if (follow.getType().equals(WaypointType.TARGET)) {
-        nextStateId = "X";
-        transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
         if (stateCounter != segments.size() + 1) {
           logger.log(
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
         }
-        // Add the state directly, since we are exiting the loop afterward
-        automatonStates.add(
-            new AutomatonInternalState(
-                currentStateId,
-                transitions.build(),
-                /* pIsTarget= */ false,
-                /* pAllTransitions= */ false,
-                /* pIsCycleStart= */ false));
-        currentStateId = nextStateId;
+        currentStateId = "X";
         break;
-      } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
-        ASTElement element =
-            cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
-        transitions.add(
-            handleAssumption(
-                nextStateId,
-                element,
-                followLine,
-                follow.getLocation().getFunction(),
-                distance,
-                follow.getConstraint().getValue()));
-      } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-        AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
-        Verify.verifyNotNull(astCFARelation);
-
-        Optional<List<AutomatonTransition>> ifStatementTransitions =
-            handleFollowWaypointAtStatement(
-                astCFARelation,
-                nextStateId,
-                followColumn,
-                followLine,
-                distance,
-                Boolean.parseBoolean(follow.getConstraint().getValue()));
-
-        if (ifStatementTransitions.isEmpty()) {
-          logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
-          continue;
-        }
-
-        transitions.addAll(ifStatementTransitions.orElseThrow());
-      } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
-        transitions.add(
-            handleFunctionReturn(
-                nextStateId,
-                followLine,
-                followColumn,
-                distance,
-                follow.getConstraint().getValue(),
-                startLineToCFAEdge));
-
-      } else {
-        logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
-        continue;
       }
 
       automatonStates.add(
@@ -514,5 +452,82 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
     dumpAutomatonIfRequested(automaton);
 
     return automaton;
+  }
+
+  protected void handleWaypoints(
+      PartitionedWaypoints pEntry,
+      WaypointRecord follow,
+      ImmutableList.Builder<AutomatonTransition> transitions,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates,
+      int distance,
+      String nextStateId,
+      String currentStateId)
+      throws InterruptedException, WitnessParseException {
+    List<WaypointRecord> avoids = pEntry.avoids();
+    if (!avoids.isEmpty()) {
+      logger.log(Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
+    }
+
+    // TODO: It may be worthwhile to refactor this into the CFA
+    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
+        FluentIterable.from(cfa.edges())
+            .index(edge -> edge.getFileLocation().getStartingLineNumber());
+
+    int followLine = follow.getLocation().getLine();
+    int followColumn = follow.getLocation().getColumn();
+
+    if (follow.getType().equals(WaypointType.TARGET)) {
+      nextStateId = "X";
+      transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
+      // Add the state directly, since we are exiting the loop afterward
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              transitions.build(),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+      ASTElement element =
+          cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
+      transitions.add(
+          handleAssumption(
+              nextStateId,
+              element,
+              followLine,
+              follow.getLocation().getFunction(),
+              distance,
+              follow.getConstraint().getValue()));
+    } else if (follow.getType().equals(WaypointType.BRANCHING)) {
+      AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
+      Verify.verifyNotNull(astCFARelation);
+
+      Optional<List<AutomatonTransition>> ifStatementTransitions =
+          handleFollowWaypointAtStatement(
+              astCFARelation,
+              nextStateId,
+              followColumn,
+              followLine,
+              distance,
+              Boolean.parseBoolean(follow.getConstraint().getValue()));
+
+      if (ifStatementTransitions.isEmpty()) {
+        logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
+      }
+
+      transitions.addAll(ifStatementTransitions.orElseThrow());
+    } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
+      transitions.add(
+          handleFunctionReturn(
+              nextStateId,
+              followLine,
+              followColumn,
+              distance,
+              follow.getConstraint().getValue(),
+              startLineToCFAEdge));
+
+    } else {
+      logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
+    }
   }
 }

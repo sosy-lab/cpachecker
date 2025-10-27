@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -25,8 +24,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
-import org.sosy_lab.cpachecker.util.ast.ASTElement;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
@@ -86,76 +83,19 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Par
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
       WaypointRecord flowWaypoint = entry.follow() != null ? entry.follow() : entry.cycle();
-      List<WaypointRecord> avoids = entry.avoids();
-      if (!avoids.isEmpty()) {
-        logger.log(
-            Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
-      }
       String nextStateId = getStateName(stateCounter++);
-      int followLine = flowWaypoint.getLocation().getLine();
-      int followColumn = flowWaypoint.getLocation().getColumn();
+
+      handleWaypoints(
+          entry, flowWaypoint, transitions, automatonStates, distance, nextStateId, currentStateId);
 
       if (flowWaypoint.getType().equals(WaypointType.TARGET)) {
-        nextStateId = "X";
-        transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
         if (stateCounter != segments.size() + 1) {
           logger.log(
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
         }
-        // Add the state directly, since we are exiting the loop afterwards
-        automatonStates.add(
-            new AutomatonInternalState(
-                currentStateId,
-                transitions.build(),
-                /* pIsTarget= */ false,
-                /* pAllTransitions= */ false,
-                /* pIsCycleStart= */ false));
-        currentStateId = nextStateId;
+        currentStateId = "X";
         break;
-      } else if (flowWaypoint.getType().equals(WaypointType.ASSUMPTION)) {
-        ASTElement element =
-            cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
-        transitions.add(
-            handleAssumption(
-                nextStateId,
-                element,
-                followLine,
-                flowWaypoint.getLocation().getFunction(),
-                distance,
-                flowWaypoint.getConstraint().getValue()));
-      } else if (flowWaypoint.getType().equals(WaypointType.BRANCHING)) {
-        AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
-        Verify.verifyNotNull(astCFARelation);
-
-        Optional<List<AutomatonTransition>> ifStatementTransitions =
-            handleFollowWaypointAtStatement(
-                astCFARelation,
-                nextStateId,
-                followColumn,
-                followLine,
-                distance,
-                Boolean.parseBoolean(flowWaypoint.getConstraint().getValue()));
-
-        if (ifStatementTransitions.isEmpty()) {
-          logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
-          continue;
-        }
-
-        transitions.addAll(ifStatementTransitions.orElseThrow());
-      } else if (flowWaypoint.getType().equals(WaypointType.FUNCTION_RETURN)) {
-        transitions.add(
-            handleFunctionReturn(
-                nextStateId,
-                followLine,
-                followColumn,
-                distance,
-                flowWaypoint.getConstraint().getValue(),
-                startLineToCFAEdge));
-
-      } else {
-        logger.log(Level.WARNING, "Unknown waypoint type: " + flowWaypoint.getType());
-        continue;
       }
 
       if (flowWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
