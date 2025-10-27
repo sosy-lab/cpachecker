@@ -14,22 +14,16 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
-public final class K3ProcedureType implements K3Type, AFunctionType {
+public final class K3FunctionType implements K3Type, AFunctionType {
+  @Serial private static final long serialVersionUID = -6676402211597555266L;
 
-  @Serial private static final long serialVersionUID = 5728816904538462642L;
   private final FileLocation fileLocation;
   private final List<K3Type> inputType;
-  private final List<K3Type> localVariableTypes;
-  private final List<K3Type> outputType;
+  private final K3Type outputType;
 
-  public K3ProcedureType(
-      FileLocation pFileLocation,
-      List<K3Type> pInputType,
-      List<K3Type> pLocalVariableTypes,
-      List<K3Type> pOutputType) {
+  public K3FunctionType(FileLocation pFileLocation, List<K3Type> pInputType, K3Type pOutputType) {
     fileLocation = pFileLocation;
     inputType = pInputType;
-    localVariableTypes = pLocalVariableTypes;
     outputType = pOutputType;
   }
 
@@ -41,10 +35,6 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
     return inputType;
   }
 
-  public List<K3Type> getLocalVariableTypes() {
-    return localVariableTypes;
-  }
-
   @Override
   public String toASTString(String declarator) {
     return declarator
@@ -52,15 +42,7 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
         + String.join(
             "", FluentIterable.from(getInputType()).transform(x -> "(" + x.toASTString("") + ")"))
         + ") ("
-        + String.join(
-            ", ",
-            FluentIterable.from(getLocalVariableTypes())
-                .transform(x -> "(" + x.toASTString("") + ")"))
-        + ") ("
-        + String.join(
-            ", ",
-            FluentIterable.from(getReturnType().getElementTypes())
-                .transform(x -> "(" + x.toASTString("") + ")"))
+        + getReturnType()
         + ")";
   }
 
@@ -70,9 +52,8 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
       return true;
     }
 
-    return obj instanceof K3ProcedureType other
+    return obj instanceof K3FunctionType other
         && inputType.equals(other.inputType)
-        && localVariableTypes.equals(other.localVariableTypes)
         && outputType.equals(other.outputType);
   }
 
@@ -81,14 +62,13 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
     int prime = 31;
     int result = 1;
     result = prime * result + inputType.hashCode();
-    result = prime * result + localVariableTypes.hashCode();
     result = prime * result + outputType.hashCode();
     return result;
   }
 
   @Override
-  public K3ProductType getReturnType() {
-    return new K3ProductType(outputType);
+  public K3Type getReturnType() {
+    return outputType;
   }
 
   @Override

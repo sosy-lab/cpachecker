@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssertCommandContext;
@@ -52,18 +53,22 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   private final TagToAstConverter tagToAstConverter;
 
+  private final K3UninterpretedScope uninterpretedScope;
+
   public CommandToAstConverter(K3Scope pScope, Path pFilePath) {
     super(pScope, pFilePath);
+    uninterpretedScope = new K3UninterpretedScope();
     statementConverter = new StatementToAstConverter(pScope, pFilePath);
     termConverter = new TermToAstConverter(pScope, pFilePath);
-    tagToAstConverter = new TagToAstConverter(new K3UninterpretedScope(), pFilePath);
+    tagToAstConverter = new TagToAstConverter(uninterpretedScope, pFilePath);
   }
 
   public CommandToAstConverter(K3Scope pScope) {
     super(pScope);
+    uninterpretedScope = new K3UninterpretedScope();
     statementConverter = new StatementToAstConverter(pScope);
     termConverter = new TermToAstConverter(pScope);
-    tagToAstConverter = new TagToAstConverter(new K3UninterpretedScope());
+    tagToAstConverter = new TagToAstConverter(uninterpretedScope);
   }
 
   @Override
@@ -103,7 +108,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   }
 
   private List<K3ParameterDeclaration> createParameterDeclarations(
-      ProcDeclarationArgumentsContext pContext) {
+      ProcDeclarationArgumentsContext pContext, String pProcedureName) {
     ImmutableList.Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
     for (int i = 0; i < pContext.symbol().size(); i++) {
 
@@ -113,7 +118,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
           new K3ParameterDeclaration(
               fileLocationFromContext(parameter, sort),
               K3Type.getTypeForString(sort.getText()),
-              parameter.getText()));
+              parameter.getText(),
+              pProcedureName));
     }
 
     return parameters.build();
@@ -123,11 +129,11 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   public K3Command visitDefineProc(DefineProcContext ctx) {
     String procedureName = ctx.symbol().getText();
     List<K3ParameterDeclaration> inputParameter =
-        createParameterDeclarations(ctx.procDeclarationArguments(0));
+        createParameterDeclarations(ctx.procDeclarationArguments(0), procedureName);
     List<K3ParameterDeclaration> localVariables =
-        createParameterDeclarations(ctx.procDeclarationArguments(1));
+        createParameterDeclarations(ctx.procDeclarationArguments(1), procedureName);
     List<K3ParameterDeclaration> outputParameter =
-        createParameterDeclarations(ctx.procDeclarationArguments(2));
+        createParameterDeclarations(ctx.procDeclarationArguments(2), procedureName);
     K3ProcedureDeclaration procedureDeclaration =
         new K3ProcedureDeclaration(
             fileLocationFromContext(ctx),
@@ -182,8 +188,12 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   @Override
   public K3Command visitSetLogicCommand(SetLogicCommandContext pContext) {
-    return new K3SetLogicCommand(
-        pContext.cmd_setLogic().symbol().getText(), fileLocationFromContext(pContext));
+    SmtLibLogic logic = SmtLibLogic.fromString(pContext.cmd_setLogic().symbol().getText());
+    // We need to make all scopes aware of the selected logic.
+    // Such that symbols can be resolved correctly.
+    scope.addLogic(logic);
+    uninterpretedScope.addLogic(logic);
+    return new K3SetLogicCommand(logic, fileLocationFromContext(pContext));
   }
 
   @Override

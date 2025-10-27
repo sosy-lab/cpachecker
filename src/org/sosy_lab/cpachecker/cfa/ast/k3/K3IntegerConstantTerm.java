@@ -11,15 +11,14 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import java.io.Serial;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class K3NumeralConstantTerm implements K3ConstantTerm {
+public final class K3IntegerConstantTerm implements K3ConstantTerm {
 
   @Serial private static final long serialVersionUID = 7803396078401840337L;
   private final BigInteger value;
   private final FileLocation fileLocation;
 
-  public K3NumeralConstantTerm(BigInteger pValue, FileLocation pFileLocation) {
+  public K3IntegerConstantTerm(BigInteger pValue, FileLocation pFileLocation) {
     value = pValue;
     fileLocation = pFileLocation;
   }
@@ -30,8 +29,8 @@ public final class K3NumeralConstantTerm implements K3ConstantTerm {
   }
 
   @Override
-  public Type getExpressionType() {
-    return K3ConstantType.NUMERAL_CONSTANT;
+  public K3Type getExpressionType() {
+    return K3SmtLibType.INT;
   }
 
   @Override
@@ -70,6 +69,6 @@ public final class K3NumeralConstantTerm implements K3ConstantTerm {
       return true;
     }
 
-    return pO instanceof K3NumeralConstantTerm other && value.equals(other.value);
+    return pO instanceof K3IntegerConstantTerm other && value.equals(other.value);
   }
 }

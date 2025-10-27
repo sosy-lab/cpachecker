@@ -12,13 +12,18 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3NumeralConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ApplicationTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.QualIdentifierTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.Qual_identiferContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SpecConstantTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.Spec_constantContext;
 
@@ -40,7 +45,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
   public K3Term visitSpecConstantTerm(SpecConstantTermContext ctx) {
     Spec_constantContext specConstantContext = ctx.spec_constant();
     if (specConstantContext.numeral() != null) {
-      return new K3NumeralConstantTerm(
+      return new K3IntegerConstantTerm(
           new BigInteger(specConstantContext.numeral().getText()), fileLocationFromContext(ctx));
     } else {
       throw new IllegalArgumentException(
@@ -48,12 +53,52 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
     }
   }
 
+  private K3VariableDeclaration getVariableDeclarationForSymbol(
+      String pSymbol, Set<SmtLibLogic> pLogics, List<K3Term> pArguments) {
+
+    if (pLogics.contains(SmtLibLogic.LIA)) {
+      switch (pSymbol) {
+        case "=" -> {
+          return SmtLibTheoryDeclarations.INT_EQUALITY;
+        }
+        case "<" -> {
+          return SmtLibTheoryDeclarations.INT_LESS_THAN;
+        }
+        case "<=" -> {
+          return SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN;
+        }
+        case "-" -> {
+          return SmtLibTheoryDeclarations.INT_MINUS;
+        }
+        case "+" -> {
+          return SmtLibTheoryDeclarations.intAddition(pArguments.size());
+        }
+      }
+    }
+
+    // Match the core logic of SMT-LIB
+    switch (pSymbol) {
+      case "not" -> {
+        return SmtLibTheoryDeclarations.BOOL_NEGATION;
+      }
+    }
+
+    throw new IllegalArgumentException(
+        "Unsupported logic for the resolution of symbol: " + pSymbol);
+  }
+
   @Override
   public K3Term visitApplicationTerm(ApplicationTermContext ctx) {
-    return new K3SymbolApplicationTerm(
-        ctx.getChild(1).getText(),
+    Qual_identiferContext functionSymbolContext = ctx.qual_identifer();
+    List<K3Term> arguments =
         transformedImmutableListCopy(
-            ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this)),
+            ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this));
+    return new K3SymbolApplicationTerm(
+        new K3IdTerm(
+            getVariableDeclarationForSymbol(
+                functionSymbolContext.getText(), scope.getLogics(), arguments),
+            fileLocationFromContext(functionSymbolContext)),
+        arguments,
         fileLocationFromContext(ctx));
   }
 }

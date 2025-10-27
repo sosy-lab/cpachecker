@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Ascii;
 
-public enum K3ConstantType implements K3Type {
-  NUMERAL_CONSTANT,
-  STRING_CONSTANT,
-  BOOLEAN_CONSTANT,
-  DECIMAL_CONSTANT;
+public enum K3SmtLibType implements K3Type {
+  INT,
+  BOOL,
+  STRING,
+  REAL;
 
   @Override
   public String toASTString(String declarator) {

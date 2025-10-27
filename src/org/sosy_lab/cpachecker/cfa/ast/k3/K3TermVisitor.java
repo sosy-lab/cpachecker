@@ -16,5 +16,5 @@ public interface K3TermVisitor<R, X extends Exception> {
 
   R accept(K3IdTerm pK3IdTerm) throws X;
 
-  R accept(K3NumeralConstantTerm pK3NumeralConstantTerm) throws X;
+  R accept(K3IntegerConstantTerm pK3IntegerConstantTerm) throws X;
 }

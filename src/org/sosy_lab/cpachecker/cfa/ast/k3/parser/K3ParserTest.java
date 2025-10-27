@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3NumeralConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3ToAstParser.K3AstParseException;
 
@@ -64,9 +65,9 @@ public class K3ParserTest {
   @Test
   public void parseSimpleCorrectProgram() throws K3AstParseException {
     K3ParameterDeclaration x =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x", "f1");
     K3ParameterDeclaration y =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y", "f1");
     K3ProcedureDeclaration procedureDeclaration =
         new K3ProcedureDeclaration(
             FileLocation.DUMMY,
@@ -84,7 +85,7 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
-                new K3SetLogicCommand("LIA", FileLocation.DUMMY),
+                new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
@@ -95,7 +96,8 @@ public class K3ParserTest {
                             new K3AssumeStatement(
                                 FileLocation.DUMMY,
                                 new K3SymbolApplicationTerm(
-                                    "=",
+                                    new K3IdTerm(
+                                        SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
                                         new K3IdTerm(x, FileLocation.DUMMY),
                                         new K3IdTerm(y, FileLocation.DUMMY)),
@@ -105,7 +107,8 @@ public class K3ParserTest {
                             new K3AssumeStatement(
                                 FileLocation.DUMMY,
                                 new K3SymbolApplicationTerm(
-                                    "=",
+                                    new K3IdTerm(
+                                        SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
                                         new K3IdTerm(x, FileLocation.DUMMY),
                                         new K3IdTerm(y, FileLocation.DUMMY)),
@@ -113,7 +116,9 @@ public class K3ParserTest {
                                 ImmutableList.of(
                                     new K3AssertTag(
                                         new K3SymbolApplicationTerm(
-                                            "=",
+                                            new K3IdTerm(
+                                                SmtLibTheoryDeclarations.INT_EQUALITY,
+                                                FileLocation.DUMMY),
                                             ImmutableList.of(
                                                 new K3IdTerm(x, FileLocation.DUMMY),
                                                 new K3IdTerm(y, FileLocation.DUMMY)),
@@ -136,9 +141,9 @@ public class K3ParserTest {
   @Test
   public void parseSimpleIncorrectProgram() throws K3AstParseException {
     K3ParameterDeclaration x =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x", "f1");
     K3ParameterDeclaration y =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y", "f1");
     K3ProcedureDeclaration procedureDeclaration =
         new K3ProcedureDeclaration(
             FileLocation.DUMMY,
@@ -156,7 +161,7 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
-                new K3SetLogicCommand("LIA", FileLocation.DUMMY),
+                new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
@@ -167,7 +172,8 @@ public class K3ParserTest {
                             new K3AssumeStatement(
                                 FileLocation.DUMMY,
                                 new K3SymbolApplicationTerm(
-                                    "=",
+                                    new K3IdTerm(
+                                        SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
                                         new K3IdTerm(x, FileLocation.DUMMY),
                                         new K3IdTerm(y, FileLocation.DUMMY)),
@@ -177,7 +183,8 @@ public class K3ParserTest {
                             new K3AssumeStatement(
                                 FileLocation.DUMMY,
                                 new K3SymbolApplicationTerm(
-                                    "=",
+                                    new K3IdTerm(
+                                        SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
                                         new K3IdTerm(x, FileLocation.DUMMY),
                                         new K3IdTerm(y, FileLocation.DUMMY)),
@@ -185,10 +192,14 @@ public class K3ParserTest {
                                 ImmutableList.of(
                                     new K3AssertTag(
                                         new K3SymbolApplicationTerm(
-                                            "not",
+                                            new K3IdTerm(
+                                                SmtLibTheoryDeclarations.BOOL_NEGATION,
+                                                FileLocation.DUMMY),
                                             ImmutableList.of(
                                                 new K3SymbolApplicationTerm(
-                                                    "=",
+                                                    new K3IdTerm(
+                                                        SmtLibTheoryDeclarations.INT_EQUALITY,
+                                                        FileLocation.DUMMY),
                                                     ImmutableList.of(
                                                         new K3IdTerm(x, FileLocation.DUMMY),
                                                         new K3IdTerm(y, FileLocation.DUMMY)),
@@ -213,9 +224,9 @@ public class K3ParserTest {
   public void parseLoopAdd() throws K3AstParseException {
 
     K3ParameterDeclaration x0 =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x0");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x0", "add");
     K3ParameterDeclaration y0 =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y0");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y0", "add");
     K3VariableDeclaration w0Const =
         new K3VariableDeclaration(
             FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "w0", "w0", "w0");
@@ -223,9 +234,9 @@ public class K3ParserTest {
         new K3VariableDeclaration(
             FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "z0", "z0", "z0");
     K3ParameterDeclaration x =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x", "add");
     K3ParameterDeclaration y =
-        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y");
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y", "add");
     K3ProcedureDeclaration procedureDeclaration =
         new K3ProcedureDeclaration(
             FileLocation.DUMMY,
@@ -237,7 +248,7 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
-                new K3SetLogicCommand("LIA", FileLocation.DUMMY),
+                new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
                     FileLocation.DUMMY,
                     procedureDeclaration,
@@ -254,9 +265,10 @@ public class K3ParserTest {
                                 ImmutableList.of()),
                             new K3WhileStatement(
                                 new K3SymbolApplicationTerm(
-                                    "<",
+                                    new K3IdTerm(
+                                        SmtLibTheoryDeclarations.INT_LESS_THAN, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new K3NumeralConstantTerm(
+                                        new K3IntegerConstantTerm(
                                             BigInteger.ZERO, FileLocation.DUMMY),
                                         new K3IdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
@@ -264,18 +276,22 @@ public class K3ParserTest {
                                     ImmutableMap.of(
                                         x,
                                         new K3SymbolApplicationTerm(
-                                            "+",
+                                            new K3IdTerm(
+                                                SmtLibTheoryDeclarations.intAddition(2),
+                                                FileLocation.DUMMY),
                                             ImmutableList.of(
                                                 new K3IdTerm(x, FileLocation.DUMMY),
-                                                new K3NumeralConstantTerm(
+                                                new K3IntegerConstantTerm(
                                                     BigInteger.ONE, FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         y,
                                         new K3SymbolApplicationTerm(
-                                            "-",
+                                            new K3IdTerm(
+                                                SmtLibTheoryDeclarations.INT_MINUS,
+                                                FileLocation.DUMMY),
                                             ImmutableList.of(
                                                 new K3IdTerm(y, FileLocation.DUMMY),
-                                                new K3NumeralConstantTerm(
+                                                new K3IntegerConstantTerm(
                                                     BigInteger.ONE, FileLocation.DUMMY)),
                                             FileLocation.DUMMY)),
                                     FileLocation.DUMMY,
@@ -299,9 +315,11 @@ public class K3ParserTest {
                     ImmutableList.of(
                         new K3RequiresTag(
                             new K3SymbolApplicationTerm(
-                                "<=",
+                                new K3IdTerm(
+                                    SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN,
+                                    FileLocation.DUMMY),
                                 ImmutableList.of(
-                                    new K3NumeralConstantTerm(BigInteger.ZERO, FileLocation.DUMMY),
+                                    new K3IntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY),
                                     new K3IdTerm(
                                         K3VariableDeclaration.dummyVariableForName("y0"),
                                         FileLocation.DUMMY)),
@@ -309,13 +327,16 @@ public class K3ParserTest {
                             FileLocation.DUMMY),
                         new K3EnsuresTag(
                             new K3SymbolApplicationTerm(
-                                "=",
+                                new K3IdTerm(
+                                    SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new K3IdTerm(
                                         K3VariableDeclaration.dummyVariableForName("x"),
                                         FileLocation.DUMMY),
                                     new K3SymbolApplicationTerm(
-                                        "+",
+                                        new K3IdTerm(
+                                            SmtLibTheoryDeclarations.intAddition(2),
+                                            FileLocation.DUMMY),
                                         ImmutableList.of(
                                             new K3IdTerm(
                                                 K3VariableDeclaration.dummyVariableForName("x0"),
@@ -331,9 +352,10 @@ public class K3ParserTest {
                 new K3DeclareConstCommand(z0Const, FileLocation.DUMMY),
                 new K3AssertCommand(
                     new K3SymbolApplicationTerm(
-                        "<=",
+                        new K3IdTerm(
+                            SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY),
                         ImmutableList.of(
-                            new K3NumeralConstantTerm(BigInteger.ZERO, FileLocation.DUMMY),
+                            new K3IntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY),
                             new K3IdTerm(w0Const, FileLocation.DUMMY)),
                         FileLocation.DUMMY),
                     FileLocation.DUMMY),

@@ -14,10 +14,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class K3SetLogicCommand implements K3Command, SMTLibCommand {
 
   @Serial private static final long serialVersionUID = -4993252812017741400L;
-  private final String logic;
+  private final SmtLibLogic logic;
   private final FileLocation fileLocation;
 
-  public K3SetLogicCommand(String pLogic, FileLocation pFileLocation) {
+  public K3SetLogicCommand(SmtLibLogic pLogic, FileLocation pFileLocation) {
     logic = pLogic;
     fileLocation = pFileLocation;
   }
@@ -26,7 +26,7 @@ public final class K3SetLogicCommand implements K3Command, SMTLibCommand {
     return fileLocation;
   }
 
-  public String getLogic() {
+  public SmtLibLogic getLogic() {
     return logic;
   }
 

@@ -8,13 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 
 /**
  * This scope represents an uninterpreted scope in K3, which is used for building tags, for which we
@@ -23,6 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 public class K3UninterpretedScope implements K3Scope {
 
   private PersistentMap<String, K3ProcedureDeclaration> procedureDeclarations;
+
+  private Set<SmtLibLogic> logics = new HashSet<>();
 
   public K3UninterpretedScope() {
     procedureDeclarations = PathCopyingPersistentTreeMap.of();
@@ -66,5 +71,15 @@ public class K3UninterpretedScope implements K3Scope {
   @Override
   public K3ProcedureDeclaration getProcedureDeclaration(String pName) {
     return procedureDeclarations.get(pName);
+  }
+
+  @Override
+  public void addLogic(SmtLibLogic pLogic) {
+    logics.add(pLogic);
+  }
+
+  @Override
+  public Set<SmtLibLogic> getLogics() {
+    return logics;
   }
 }

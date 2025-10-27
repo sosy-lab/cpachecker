@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class K3OldTerm implements K3RelationalTerm {
 
@@ -24,7 +23,7 @@ public final class K3OldTerm implements K3RelationalTerm {
   }
 
   @Override
-  public Type getExpressionType() {
+  public K3Type getExpressionType() {
     return term.getExpressionType();
   }
 

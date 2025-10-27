@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 
 public interface K3Scope {
 
@@ -29,4 +31,8 @@ public interface K3Scope {
   void addProcedureDeclaration(K3ProcedureDeclaration pDeclaration);
 
   K3ProcedureDeclaration getProcedureDeclaration(String pName);
+
+  void addLogic(SmtLibLogic pLogic);
+
+  Set<SmtLibLogic> getLogics();
 }

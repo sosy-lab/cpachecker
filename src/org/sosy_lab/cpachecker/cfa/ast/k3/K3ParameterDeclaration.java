@@ -15,9 +15,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class K3ParameterDeclaration extends AParameterDeclaration
     implements K3SimpleDeclaration {
   @Serial private static final long serialVersionUID = -720428046149807846L;
+  private final String parameterName;
 
-  public K3ParameterDeclaration(FileLocation pFileLocation, K3Type pType, String pName) {
+  public K3ParameterDeclaration(
+      FileLocation pFileLocation, K3Type pType, String pName, String pParameterName) {
     super(pFileLocation, pType, pName);
+    parameterName = pParameterName;
   }
 
   @Override
@@ -27,7 +30,7 @@ public final class K3ParameterDeclaration extends AParameterDeclaration
 
   @Override
   public String getQualifiedName() {
-    return getName();
+    return parameterName + "::" + getName();
   }
 
   @Override
