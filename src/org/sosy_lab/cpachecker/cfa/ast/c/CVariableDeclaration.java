@@ -95,7 +95,6 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
    * yields {@code int x;}.
    */
   public String toASTStringWithoutInitializer() {
-    checkArgument(getInitializer() != null, "this instance does not have an initializer");
     return cStorageClass.toASTString() + getType().toASTString(getName()) + ";";
   }
 

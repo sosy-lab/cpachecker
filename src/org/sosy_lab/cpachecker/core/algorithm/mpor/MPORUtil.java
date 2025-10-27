@@ -195,13 +195,15 @@ public final class MPORUtil {
    * Extracts e.g. {@code id1} from {@code &id1}, throws a {@link IllegalArgumentException} if the
    * extraction not possible.
    */
-  public static CExpression getOperandFromUnaryExpression(CExpression pAddress) {
-    if (pAddress instanceof CUnaryExpression unaryExpression) {
+  public static CExpression getOperandFromUnaryExpression(CExpression pExpression) {
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getExpressionType() instanceof CPointerType) {
         return unaryExpression.getOperand();
       }
     }
-    throw new IllegalArgumentException("cannot extract value from pAddress");
+    throw new IllegalArgumentException(
+        String.format(
+            "could not extract operand from pointer expression: %s", pExpression.toASTString()));
   }
 
   public static boolean isFunctionPointer(CInitializer pInitializer) {

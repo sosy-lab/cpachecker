@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -36,11 +37,19 @@ public class SeqMemoryLocation {
 
   public final Optional<CCompositeTypeMemberDeclaration> fieldMember;
 
+  /**
+   * The optional arg index, if this memory location is a parameter. A single {@link
+   * CParameterDeclaration} may link to multiple memory locations in the same call context (cf.
+   * variadic functinos).
+   */
+  private final Optional<Integer> argumentIndex;
+
   private SeqMemoryLocation(
       MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pDeclaration,
-      Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember,
+      Optional<Integer> pArgumentIndex) {
 
     options = pOptions;
     callContext = pCallContext;
@@ -50,6 +59,7 @@ public class SeqMemoryLocation {
     isParameter = pDeclaration instanceof CParameterDeclaration;
     declaration = pDeclaration;
     fieldMember = pFieldMember;
+    argumentIndex = pArgumentIndex;
   }
 
   public static SeqMemoryLocation of(
@@ -57,7 +67,22 @@ public class SeqMemoryLocation {
       Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pDeclaration) {
 
-    return new SeqMemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
+    return new SeqMemoryLocation(
+        pOptions, pCallContext, pDeclaration, Optional.empty(), Optional.empty());
+  }
+
+  public static SeqMemoryLocation of(
+      MPOROptions pOptions,
+      CFAEdgeForThread pCallContext,
+      CParameterDeclaration pDeclaration,
+      int pArgumentIndex) {
+
+    return new SeqMemoryLocation(
+        pOptions,
+        Optional.of(pCallContext),
+        pDeclaration,
+        Optional.empty(),
+        Optional.of(pArgumentIndex));
   }
 
   public static SeqMemoryLocation of(
@@ -66,7 +91,8 @@ public class SeqMemoryLocation {
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
-    return new SeqMemoryLocation(pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember));
+    return new SeqMemoryLocation(
+        pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember), Optional.empty());
   }
 
   public String getName() {
@@ -135,7 +161,8 @@ public class SeqMemoryLocation {
         isExplicitGlobal,
         isParameter,
         declaration,
-        fieldMember);
+        fieldMember,
+        argumentIndex);
   }
 
   @Override
@@ -149,7 +176,8 @@ public class SeqMemoryLocation {
         && isExplicitGlobal == other.isExplicitGlobal
         && isParameter == other.isParameter
         && declaration.equals(other.declaration)
-        && fieldMember.equals(other.fieldMember);
+        && fieldMember.equals(other.fieldMember)
+        && argumentIndex.equals(other.argumentIndex);
   }
 
   @Override

@@ -443,19 +443,18 @@ public class MemoryModelBuilder {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
+    CFunctionDeclaration functionDeclaration =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
-    List<CParameterDeclaration> parameterDeclarations =
-        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
-    assert arguments.size() == parameterDeclarations.size()
-        : "function argument number should be same as parameter declaration number";
     for (int i = 0; i < arguments.size(); i++) {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
-      CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
+      CParameterDeclaration leftHandSide =
+          MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
       Optional<SeqMemoryLocation> rhsMemoryLocation =
           extractMemoryLocation(pOptions, pCallContext, arguments.get(i), pInitialMemoryLocations);
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqMemoryLocation.of(pOptions, Optional.of(pCallContext), leftHandSide),
+            SeqMemoryLocation.of(pOptions, pCallContext, leftHandSide, i),
             rhsMemoryLocation.orElseThrow());
       }
     }

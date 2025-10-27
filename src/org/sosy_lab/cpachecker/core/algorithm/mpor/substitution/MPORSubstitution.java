@@ -56,6 +56,8 @@ public class MPORSubstitution {
 
   public final MPORThread thread;
 
+  // TODO these data structures are bloating up a bit, we should use custom classes.
+
   /**
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
@@ -71,7 +73,7 @@ public class MPORSubstitution {
    * The map of parameter to variable declaration substitutes. The {@link CFAEdgeForThread}s allow
    * call-context sensitive parameter substitutes.
    */
-  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
       parameterSubstitutes;
 
   /** Note that main functions cannot take variadic arguments. */
@@ -93,7 +95,8 @@ public class MPORSubstitution {
       ImmutableTable<
               Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
-      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
+      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+          pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
           pStartRoutineArgSubstitutes,
@@ -143,6 +146,25 @@ public class MPORSubstitution {
     return substitute(
         pExpression,
         pCallContext,
+        pIsDeclaration,
+        pIsWrite,
+        pIsPointerDereference,
+        pIsFieldReference,
+        Optional.empty());
+  }
+
+  public CExpression substituteWithCallContext(
+      CExpression pExpression,
+      // when the call context is guaranteed / known
+      CFAEdgeForThread pCallContext,
+      boolean pIsDeclaration,
+      boolean pIsWrite,
+      boolean pIsPointerDereference,
+      boolean pIsFieldReference) {
+
+    return substitute(
+        pExpression,
+        Optional.of(pCallContext),
         pIsDeclaration,
         pIsWrite,
         pIsPointerDereference,
@@ -459,7 +481,14 @@ public class MPORSubstitution {
       // normal function called within thread, including start_routines, always have call context
       CFAEdgeForThread callContext = pCallContext.orElseThrow();
       if (parameterSubstitutes.containsRow(callContext)) {
-        return getParameterDeclarationSubstitute(callContext, parameterDeclaration);
+        ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
+            getParameterDeclarationSubstitute(callContext, parameterDeclaration);
+        // this means we only support substituting parameters that are not variadic.
+        // i.e. a variadic function can be called, but its body not handled (at the moment)
+        if (parameterDeclarationSubstitutes == null) {
+          System.out.println("noo");
+        }
+        return parameterDeclarationSubstitutes.getFirst();
 
       } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
         return startRoutineArgSubstitutes.get(callContext, parameterDeclaration);
@@ -484,7 +513,7 @@ public class MPORSubstitution {
 
   // CParameterDeclaration substitutes =============================================================
 
-  public CIdExpression getParameterDeclarationSubstitute(
+  public ImmutableList<CIdExpression> getParameterDeclarationSubstitute(
       CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
@@ -526,22 +555,24 @@ public class MPORSubstitution {
   }
 
   /**
-   * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
-   * they are treated as variables in the sequentialization (cf. inlining functions).
+   * Note that these are not {@link CParameterDeclaration} but {@link CSimpleDeclaration} because
+   * they are treated as variables in the sequentialization (inlining functions).
    */
-  public ImmutableList<CParameterDeclaration> getParameterDeclarationSubstitutes() {
-    ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
+  public ImmutableList<CVariableDeclaration> getParameterDeclarationSubstitutes() {
+    ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (var cell : parameterSubstitutes.cellSet()) {
-      rParameterDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
+      for (CIdExpression idExpression : cell.getValue()) {
+        rParameterDeclarations.add((CVariableDeclaration) idExpression.getDeclaration());
+      }
     }
     return rParameterDeclarations.build();
   }
 
-  public ImmutableList<CParameterDeclaration> getStartRoutineArgDeclarationSubstitutes() {
-    ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
+  public ImmutableList<CVariableDeclaration> getStartRoutineArgDeclarationSubstitutes() {
+    ImmutableList.Builder<CVariableDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
     for (var cell : startRoutineArgSubstitutes.cellSet()) {
-      rStartRoutineArgDeclarations.add((CParameterDeclaration) cell.getValue().getDeclaration());
+      rStartRoutineArgDeclarations.add((CVariableDeclaration) cell.getValue().getDeclaration());
     }
     return rStartRoutineArgDeclarations.build();
   }

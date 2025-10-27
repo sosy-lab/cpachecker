@@ -74,7 +74,7 @@ public class SeqNameUtil {
             (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL) + pCallNumber);
   }
 
-  public static String buildParameterName(
+  public static String buildSubstituteParameterDeclarationName(
       MPOROptions pOptions,
       String pFunctionName,
       int pThreadId,

@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
@@ -182,12 +180,13 @@ public class SequentializationBuilder {
       rParameterDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CParameterDeclaration> parameterDeclarations =
+      ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
-      for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
+      for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+        // exclude all pthread objects such as pthread_mutex_t, they are not required in the output
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
-          rParameterDeclarations.add(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON);
+          rParameterDeclarations.add(parameterDeclaration.toASTStringWithoutInitializer());
         }
       }
     }
@@ -218,14 +217,14 @@ public class SequentializationBuilder {
     if (pOptions.comments) {
       rStartRoutineArgDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
     }
-    ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
+    ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
-    for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+    for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
         // add trailing ; as CParameterDeclaration is without semicolons
         rStartRoutineArgDeclarations.add(
-            startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
+            startRoutineArgDeclaration.toASTStringWithoutInitializer());
       }
     }
     return rStartRoutineArgDeclarations.build();

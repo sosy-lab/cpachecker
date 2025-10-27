@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -21,7 +20,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -102,22 +104,24 @@ public class FunctionStatementBuilder {
       MPORSubstitution pSubstitution) {
 
     ImmutableList.Builder<FunctionParameterAssignment> rAssignments = ImmutableList.builder();
-    List<CParameterDeclaration> parameterDeclarations =
-        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
+    CFunctionDeclaration functionDeclaration =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     // for each parameter, assign the param substitute to the param expression in funcCall
-    for (int i = 0; i < parameterDeclarations.size(); i++) {
-      CParameterDeclaration parameterDeclaration = parameterDeclarations.get(i);
-      CExpression rightHandSide =
-          pFunctionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
-      CIdExpression parameterSubstitute =
+    for (CParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
+      ImmutableList<CIdExpression> parameterSubstitutes =
           pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
-      FunctionParameterAssignment parameterAssignment =
-          new FunctionParameterAssignment(
-              pCallContext,
-              parameterSubstitute,
-              pSubstitution.substituteWithCallContext(
-                  rightHandSide, pCallContext.callContext, false, false, false, false));
-      rAssignments.add(parameterAssignment);
+      for (int i = 0; i < parameterSubstitutes.size(); i++) {
+        CIdExpression parameterSubstitute = parameterSubstitutes.get(i);
+        CExpression argument = pFunctionCallEdge.getArguments().get(i);
+        // use "outer" call context
+        // (the function call itself is substituted, not inside the called function)
+        CExpression argumentSubstitute =
+            pSubstitution.substituteWithCallContext(
+                argument, pCallContext.callContext, false, false, false, false);
+        FunctionParameterAssignment parameterAssignment =
+            new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute);
+        rAssignments.add(parameterAssignment);
+      }
     }
     return rAssignments.build();
   }
@@ -274,5 +278,20 @@ public class FunctionStatementBuilder {
       }
     }
     return rStartRoutineExitAssignments.buildOrThrow();
+  }
+
+  // helper ========================================================================================
+
+  private static CInitializerExpression getInitializerExpression(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      if (variableDeclaration.getInitializer()
+          instanceof CInitializerExpression initializerExpression) {
+        return initializerExpression;
+      }
+      throw new IllegalArgumentException("CInitializer must be CInitializerExpression");
+    }
+    throw new IllegalArgumentException("pSimpleDeclaration must be CVariableDeclaration");
   }
 }
