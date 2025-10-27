@@ -153,25 +153,6 @@ public class MPORSubstitution {
         Optional.empty());
   }
 
-  public CExpression substituteWithCallContext(
-      CExpression pExpression,
-      // when the call context is guaranteed / known
-      CFAEdgeForThread pCallContext,
-      boolean pIsDeclaration,
-      boolean pIsWrite,
-      boolean pIsPointerDereference,
-      boolean pIsFieldReference) {
-
-    return substitute(
-        pExpression,
-        Optional.of(pCallContext),
-        pIsDeclaration,
-        pIsWrite,
-        pIsPointerDereference,
-        pIsFieldReference,
-        Optional.empty());
-  }
-
   public CExpression substituteWithTracker(
       CExpression pExpression,
       Optional<CFAEdgeForThread> pCallContext,
@@ -218,7 +199,7 @@ public class MPORSubstitution {
       }
       case CIdExpression idExpression -> {
         CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (SubstituteUtil.isSubstitutable(declaration)) {
+        if (MPORSubstitutionUtil.isSubstitutable(declaration)) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
               options,
               idExpression,
@@ -403,7 +384,7 @@ public class MPORSubstitution {
     return pStatement;
   }
 
-  CFunctionCallExpression substitute(
+  private CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
@@ -467,7 +448,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
         MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
             pIsDeclaration, localSubstitute, pTracker);
-        return localSubstitute.expression;
+        return localSubstitute.getIdExpression();
       } else {
         return Objects.requireNonNull(globalVariableSubstitutes.get(variableDeclaration));
       }
@@ -485,10 +466,7 @@ public class MPORSubstitution {
             getParameterDeclarationSubstitute(callContext, parameterDeclaration);
         // this means we only support substituting parameters that are not variadic.
         // i.e. a variadic function can be called, but its body not handled (at the moment)
-        if (parameterDeclarationSubstitutes == null) {
-          System.out.println("noo");
-        }
-        return parameterDeclarationSubstitutes.getFirst();
+        return Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
 
       } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
         return startRoutineArgSubstitutes.get(callContext, parameterDeclaration);
@@ -499,7 +477,7 @@ public class MPORSubstitution {
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
 
-  public CVariableDeclaration getVariableDeclarationSubstitute(
+  CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {

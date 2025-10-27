@@ -17,7 +17,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -139,11 +139,11 @@ public class MemoryModel {
   public boolean isMemoryLocationReachableByThread(
       SeqMemoryLocation pMemoryLocation,
       MPORThread pThread,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges,
       MemoryAccessType pAccessType) {
 
     for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
-      SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+      CFAEdgeSubstitute substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
       ImmutableSet<SeqMemoryLocation> memoryLocations =
           SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(
               substituteEdge, this, pAccessType);

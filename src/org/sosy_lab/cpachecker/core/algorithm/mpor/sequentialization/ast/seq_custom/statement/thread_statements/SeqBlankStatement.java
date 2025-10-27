@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -60,7 +60,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
     return ImmutableSet.of();
   }
 

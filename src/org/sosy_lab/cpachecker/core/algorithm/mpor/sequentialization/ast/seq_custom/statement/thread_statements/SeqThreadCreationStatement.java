@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -50,7 +50,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private final ProgramCounterVariables pcVariables;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
+  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -64,7 +64,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
       ProgramCounterVariables pPcVariables,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -86,7 +86,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       MPORThread pCreatingThread,
       Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
       ProgramCounterVariables pPcVariables,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -146,7 +146,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
     return substituteEdges;
   }
 

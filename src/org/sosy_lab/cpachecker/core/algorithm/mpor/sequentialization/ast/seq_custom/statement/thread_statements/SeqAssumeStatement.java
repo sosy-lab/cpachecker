@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
@@ -30,7 +30,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
+  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -42,7 +42,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -58,7 +58,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -83,7 +83,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
     return substituteEdges;
   }
 

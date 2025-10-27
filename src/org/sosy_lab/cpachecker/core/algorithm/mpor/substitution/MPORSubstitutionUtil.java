@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class SubstituteUtil {
+public class MPORSubstitutionUtil {
 
-  public static SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
+  public static CFAEdgeSubstitute getSubstituteEdgeByCfaEdgeAndCallContext(
       CFAEdge pCfaEdge,
       Optional<CFAEdgeForThread> pCallContext,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges) {
 
     for (CFAEdgeForThread threadEdge : pSubstituteEdges.keySet()) {
       if (threadEdge.cfaEdge.equals(pCfaEdge)) {
@@ -57,7 +57,7 @@ public class SubstituteUtil {
    * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
    * substituted.
    */
-  public static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
+  static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
   }
@@ -77,7 +77,7 @@ public class SubstituteUtil {
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
-  public static boolean isExcludedDeclarationEdge(
+  static boolean isExcludedDeclarationEdge(
       MPOROptions pOptions, CDeclarationEdge pDeclarationEdge) {
 
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
@@ -103,10 +103,10 @@ public class SubstituteUtil {
    * parameter assignments.
    */
   public static ImmutableList<SeqMemoryLocation> getInitialMemoryLocations(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
 
     List<SeqMemoryLocation> rMemoryLocations = new ArrayList<>();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
       rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
       rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
@@ -165,7 +165,7 @@ public class SubstituteUtil {
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
+  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
       MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
       MPORSubstitutionTracker pTracker) {
@@ -191,10 +191,10 @@ public class SubstituteUtil {
   // Main Function Arg =============================================================================
 
   public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
 
     ImmutableSet.Builder<CParameterDeclaration> rArgs = ImmutableSet.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
       rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
     }
     return rArgs.build();

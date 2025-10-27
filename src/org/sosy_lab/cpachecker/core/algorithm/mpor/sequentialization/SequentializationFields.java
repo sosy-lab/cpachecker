@@ -24,11 +24,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -52,7 +52,7 @@ public class SequentializationFields {
   /** The {@link MPORSubstitution} of the main thread, containing global variable substitutes. */
   public final MPORSubstitution mainSubstitution;
 
-  public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
+  public final ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> substituteEdges;
 
   public final Optional<MemoryModel> memoryModel;
 
@@ -82,12 +82,12 @@ public class SequentializationFields {
             threads,
             pBinaryExpressionBuilder,
             pLogger);
-    mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
-    substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
+    mainSubstitution = MPORSubstitutionUtil.extractMainThreadSubstitution(substitutions);
+    substituteEdges = CFAEdgeSubstituteBuilder.substituteEdges(pOptions, substitutions);
     memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
             pOptions,
-            SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
+            MPORSubstitutionUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values());
     ghostElements =
         GhostElementBuilder.buildGhostElements(

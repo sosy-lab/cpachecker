@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqRwLockRdLockStatement implements SeqThreadStatement {
@@ -29,7 +29,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
+  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -41,7 +41,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -57,7 +57,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -82,7 +82,7 @@ public class SeqRwLockRdLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
     return substituteEdges;
   }
 

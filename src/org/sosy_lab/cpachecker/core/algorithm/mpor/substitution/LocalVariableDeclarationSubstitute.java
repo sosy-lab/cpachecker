@@ -15,34 +15,36 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 public class LocalVariableDeclarationSubstitute {
 
-  public final CIdExpression expression;
+  private final CIdExpression idExpression;
 
   private final Optional<MPORSubstitutionTracker> tracker;
 
-  public LocalVariableDeclarationSubstitute(
-      CIdExpression pExpression, Optional<MPORSubstitutionTracker> pTracker) {
+  LocalVariableDeclarationSubstitute(
+      CIdExpression pIdExpression, Optional<MPORSubstitutionTracker> pTracker) {
 
-    expression = pExpression;
+    idExpression = pIdExpression;
     tracker = pTracker;
   }
 
-  public boolean isTrackerPresent() {
+  CIdExpression getIdExpression() {
+    return idExpression;
+  }
+
+  CVariableDeclaration getSubstituteVariableDeclaration() {
+    return (CVariableDeclaration) idExpression.getDeclaration();
+  }
+
+  boolean isTrackerPresent() {
     return tracker.isPresent();
   }
 
-  public CVariableDeclaration getSubstituteVariableDeclaration() {
-    assert expression.getDeclaration() instanceof CVariableDeclaration;
-    return (CVariableDeclaration) expression.getDeclaration();
-  }
-
-  public MPORSubstitutionTracker getTracker() {
-    assert tracker.isPresent() : "cannot get tracker, tracker is not present";
+  MPORSubstitutionTracker getTracker() {
     return tracker.orElseThrow();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression, tracker);
+    return Objects.hash(idExpression, tracker);
   }
 
   @Override
@@ -51,7 +53,7 @@ public class LocalVariableDeclarationSubstitute {
       return true;
     }
     return pOther instanceof LocalVariableDeclarationSubstitute other
-        && expression.equals(other.expression)
+        && idExpression.equals(other.idExpression)
         && tracker.equals(other.tracker);
   }
 }

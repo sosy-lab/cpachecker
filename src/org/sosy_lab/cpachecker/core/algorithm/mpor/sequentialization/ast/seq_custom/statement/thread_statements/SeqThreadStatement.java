@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 
 // TODO further divide this into thread, function, ... interfaces
 // TODO its probably better to use an abstract class here for default implementations and attributes
@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
  */
 public interface SeqThreadStatement extends SeqStatement {
 
-  /** The set of underlying {@link SubstituteEdge}s used to create this statement. */
-  ImmutableSet<SubstituteEdge> getSubstituteEdges();
+  /** The set of underlying {@link CFAEdgeSubstitute}s used to create this statement. */
+  ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges();
 
   /** After linking, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();

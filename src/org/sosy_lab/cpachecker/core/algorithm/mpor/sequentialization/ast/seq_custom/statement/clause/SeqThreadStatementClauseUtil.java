@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -59,10 +59,10 @@ public class SeqThreadStatementClauseUtil {
     return rAllTargetPc.build();
   }
 
-  public static ImmutableSet<SubstituteEdge> collectAllSubstituteEdges(
+  public static ImmutableSet<CFAEdgeSubstitute> collectAllSubstituteEdges(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableSet.Builder<SubstituteEdge> rEdges = ImmutableSet.builder();
+    ImmutableSet.Builder<CFAEdgeSubstitute> rEdges = ImmutableSet.builder();
     for (MPORThread thread : pClauses.keySet()) {
       for (SeqThreadStatementClause clause : pClauses.get(thread)) {
         for (SeqThreadStatementBlock block : clause.getBlocks()) {

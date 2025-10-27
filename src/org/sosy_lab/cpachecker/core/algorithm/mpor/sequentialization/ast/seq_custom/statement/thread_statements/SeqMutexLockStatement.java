@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -39,7 +39,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<SubstituteEdge> substituteEdges;
+  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -51,7 +51,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -67,7 +67,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -98,7 +98,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
     return substituteEdges;
   }
 

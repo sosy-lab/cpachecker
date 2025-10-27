@@ -200,7 +200,7 @@ public class MPORSubstitutionTrackerUtil {
             MPORUtil.tryGetPointerDeclaration(initializerExpression.getExpression());
         if (initializerDeclaration.isPresent()) {
           CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
-          if (SubstituteUtil.isSubstitutable(pointerDeclaration)) {
+          if (MPORSubstitutionUtil.isSubstitutable(pointerDeclaration)) {
             pTracker.orElseThrow().addPointerAssignment(pVariableDeclaration, pointerDeclaration);
           }
         }
@@ -218,7 +218,7 @@ public class MPORSubstitutionTrackerUtil {
     }
     if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
       // do not consider CFunctionDeclarations
-      if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
+      if (MPORSubstitutionUtil.isSubstitutable(idExpression.getDeclaration())) {
         if (pIsWrite) {
           pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
         }
@@ -241,7 +241,7 @@ public class MPORSubstitutionTrackerUtil {
     if (arrayExpression instanceof CIdExpression idExpression) {
       if (idExpression.getExpressionType() instanceof CPointerType) {
         // do not consider CFunctionDeclarations
-        if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
+        if (MPORSubstitutionUtil.isSubstitutable(idExpression.getDeclaration())) {
           if (pIsWrite) {
             pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
           }

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
-public class SubstituteEdge {
+public class CFAEdgeSubstitute {
 
   /** The substituted {@link CFAEdge}. */
   public final CFAEdge cfaEdge;
@@ -55,7 +55,7 @@ public class SubstituteEdge {
 
   public final ImmutableSet<SeqMemoryLocation> writtenMemoryLocations;
 
-  private SubstituteEdge(
+  private CFAEdgeSubstitute(
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
@@ -91,8 +91,8 @@ public class SubstituteEdge {
         Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
   }
 
-  public static SubstituteEdge of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
-    return new SubstituteEdge(
+  public static CFAEdgeSubstitute of(CFAEdge pCfaEdge, CFAEdgeForThread pThreadEdge) {
+    return new CFAEdgeSubstitute(
         pCfaEdge,
         pThreadEdge,
         ImmutableSet.of(),
@@ -104,27 +104,27 @@ public class SubstituteEdge {
   }
 
   /**
-   * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} in {@code
+   * Creates a {@link CFAEdgeSubstitute} based on the {@link MPORSubstitutionTracker} in {@code
    * pTracker}.
    */
-  public static SubstituteEdge of(
+  public static CFAEdgeSubstitute of(
       MPOROptions pOptions,
       CFAEdge pCfaEdge,
       CFAEdgeForThread pThreadEdge,
       MPORSubstitutionTracker pTracker) {
 
-    return new SubstituteEdge(
+    return new CFAEdgeSubstitute(
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        SubstituteUtil.mapPointerAssignments(pOptions, pThreadEdge.callContext, pTracker),
-        SubstituteUtil.getPointerDereferencesByAccessType(
+        MPORSubstitutionUtil.mapPointerAssignments(pOptions, pThreadEdge.callContext, pTracker),
+        MPORSubstitutionUtil.getPointerDereferencesByAccessType(
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
-        SubstituteUtil.getPointerDereferencesByAccessType(
+        MPORSubstitutionUtil.getPointerDereferencesByAccessType(
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
-        SubstituteUtil.getMemoryLocationsByAccessType(
+        MPORSubstitutionUtil.getMemoryLocationsByAccessType(
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
-        SubstituteUtil.getMemoryLocationsByAccessType(
+        MPORSubstitutionUtil.getMemoryLocationsByAccessType(
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
   }
 
