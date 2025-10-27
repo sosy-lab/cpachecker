@@ -11,14 +11,14 @@ int main() {
   struct s {
     int i;
     char a1[size];
-    char a2[];
+    char a2[];  // flexible array member; aka a variable length array. This does NOT have any memory associated!
   } s;
 
-  char *p = (char*)&(s.a2[0]);
+  char *p = (char*)&(s.a2[0]); // The & and [0] erase each other, so this is essentially just the address of s + the offset. (memsafety not violated)
   char *q = (char*)&s;
   if (p != q + size + sizeof(int)) {
-    return 0;
+    return 0; // Always reached!
   }
 ERROR:
-  return 1;
+  return 1; // Unreachable!
 }
