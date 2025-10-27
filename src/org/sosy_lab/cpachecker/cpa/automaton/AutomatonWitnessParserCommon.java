@@ -224,10 +224,10 @@ class AutomatonWitnessParserCommon {
       throws InvalidYAMLWitnessException {
     if (numTargetWaypoints > 0 && numCycleWaypoints > 0) {
       throw new InvalidYAMLWitnessException(
-          "Target and cycle waypoints are combined in witness V2!");
+          "Target and cycle waypoints are combined in witness version 2.1!");
     } else if (numCycleWaypoints == -1) {
       throw new InvalidYAMLWitnessException(
-          "Cycle waypoints are interrupted with follow waypoints in witness V2!");
+          "Cycle waypoints are interrupted with follow waypoints in witness version 2.1!");
     } else if (numCycleWaypoints == 0) {
       throw new InvalidYAMLWitnessException("No target or cycle waypoint in witness V2!");
     }
