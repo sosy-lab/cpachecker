@@ -6,7 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/** Converting K3 code to formulas. */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.cfa.ast.k3;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;

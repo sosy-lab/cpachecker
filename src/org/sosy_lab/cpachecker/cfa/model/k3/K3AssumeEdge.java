@@ -34,4 +34,9 @@ public class K3AssumeEdge extends AssumeEdge implements K3CfaEdge {
         pSwapped,
         pArtificialIntermediate);
   }
+
+  @Override
+  public K3Term getExpression() {
+    return (K3Term) super.getExpression();
+  }
 }

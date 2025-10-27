@@ -23,6 +23,9 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface LanguageToSmtConverter {
 
+  // Name prefix for variables that represent function parameters.
+  public static final String PARAM_VARIABLE_NAME = "__param__";
+
   // Index that is used to read from variables that were not assigned yet
   int VARIABLE_UNINITIALIZED = 1;
 

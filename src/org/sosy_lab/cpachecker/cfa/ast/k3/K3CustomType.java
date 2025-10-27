@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class K3CustomType implements K3Type {
 
@@ -33,6 +34,11 @@ public final class K3CustomType implements K3Type {
     }
 
     return pO instanceof K3CustomType other && Objects.equals(type, other.type);
+  }
+
+  @Override
+  public FormulaType<?> toFormulaType() {
+    throw new UnsupportedOperationException("JavaSMT does not support custom types");
   }
 
   @Override

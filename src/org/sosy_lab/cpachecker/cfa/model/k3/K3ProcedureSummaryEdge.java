@@ -23,4 +23,9 @@ public class K3ProcedureSummaryEdge extends FunctionSummaryEdge implements K3Cfa
       K3ProcedureEntryNode pFunctionEntry) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pFunctionEntry);
   }
+
+  @Override
+  public K3ProcedureCallStatement getExpression() {
+    return (K3ProcedureCallStatement) super.getExpression();
+  }
 }

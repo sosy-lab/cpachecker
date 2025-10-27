@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.model.k3;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -25,8 +25,12 @@ public class K3ProcedureEntryNode extends FunctionEntryNode {
     super(pFileLocation, pExitNode, pFunctionDefinition, Optional.empty());
   }
 
+  public K3ProcedureDeclaration getFunctionDefinition() {
+    return (K3ProcedureDeclaration) super.getFunctionDefinition();
+  }
+
   @Override
-  public List<? extends AParameterDeclaration> getFunctionParameters() {
+  public List<K3ParameterDeclaration> getFunctionParameters() {
     return getFunctionDefinition().getParameters();
   }
 }

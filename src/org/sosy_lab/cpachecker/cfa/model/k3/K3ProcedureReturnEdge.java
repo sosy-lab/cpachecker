@@ -21,4 +21,9 @@ public class K3ProcedureReturnEdge extends FunctionReturnEdge implements K3CfaEd
       K3ProcedureSummaryEdge pSummaryEdge) {
     super(pFileLocation, pPredecessor, pSuccessor, pSummaryEdge);
   }
+
+  @Override
+  public K3ProcedureSummaryEdge getSummaryEdge() {
+    return (K3ProcedureSummaryEdge) super.getSummaryEdge();
+  }
 }

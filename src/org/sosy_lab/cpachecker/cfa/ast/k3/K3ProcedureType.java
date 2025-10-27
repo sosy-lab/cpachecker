@@ -13,6 +13,7 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class K3ProcedureType implements K3Type, AFunctionType {
 
@@ -43,6 +44,11 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
 
   public List<K3Type> getLocalVariableTypes() {
     return localVariableTypes;
+  }
+
+  @Override
+  public FormulaType<?> toFormulaType() {
+    throw new UnsupportedOperationException("JavaSMT does not support custom types");
   }
 
   @Override

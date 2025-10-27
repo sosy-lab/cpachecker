@@ -24,4 +24,15 @@ public class K3ProcedureCallEdge extends FunctionCallEdge implements K3CfaEdge {
       FunctionSummaryEdge pSummaryEdge) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
   }
+
+  @Override
+  public K3ProcedureCallStatement getFunctionCall() {
+    return (K3ProcedureCallStatement) super.getFunctionCall();
+  }
+
+  @Override
+  public K3ProcedureEntryNode getSuccessor() {
+    // the constructor enforces that the successor is always a K3ProcedureEntryNode
+    return (K3ProcedureEntryNode) super.getSuccessor();
+  }
 }

@@ -161,8 +161,6 @@ public class CtoFormulaConverter implements LanguageToSmtConverter {
   private static final String RETURN_VARIABLE_NAME =
       VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
 
-  public static final String PARAM_VARIABLE_NAME = "__param__";
-
   private static final ImmutableSet<String> SAFE_VAR_ARG_FUNCTIONS =
       ImmutableSet.of("printf", "printk");
 

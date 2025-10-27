@@ -9,12 +9,23 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Ascii;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public enum K3SmtLibType implements K3Type {
   INT,
   BOOL,
   STRING,
   REAL;
+
+  @Override
+  public FormulaType<?> toFormulaType() {
+    return switch (this) {
+      case INT -> FormulaType.IntegerType;
+      case BOOL -> FormulaType.BooleanType;
+      case STRING -> FormulaType.BooleanType;
+      case REAL -> FormulaType.RationalType;
+    };
+  }
 
   @Override
   public String toASTString(String declarator) {

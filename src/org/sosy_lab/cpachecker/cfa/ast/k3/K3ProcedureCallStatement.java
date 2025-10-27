@@ -36,6 +36,10 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
     returnVariables = pReturnVariables;
   }
 
+  public K3ProcedureDeclaration getProcedureDeclaration() {
+    return procedureDeclaration;
+  }
+
   @Override
   <R, X extends Exception> R accept(K3CfaEdgeStatementVisitor<R, X> v) throws X {
     return v.visit(this);

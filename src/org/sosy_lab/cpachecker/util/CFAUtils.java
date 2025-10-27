@@ -113,9 +113,9 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3NumeralConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
@@ -1209,7 +1209,7 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3NumeralConstantTerm pK3NumeralConstantTerm)
+    public Iterable<? extends AAstNode> accept(K3IntegerConstantTerm pK3IntegerConstantTerm)
         throws NoException {
       return ImmutableList.of();
     }

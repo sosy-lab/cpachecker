@@ -46,6 +46,7 @@ public class CPAcheckerTest {
   private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
 
   private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.smt2";
+  private static final String UNSAFE_PROGRAM_K3 = "test/programs/k3/simple-incorrect.smt2";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -76,7 +77,6 @@ public class CPAcheckerTest {
   }
 
   @Test
-  @Ignore
   public void testRunForSafeK3Program() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_K3);
@@ -84,6 +84,16 @@ public class CPAcheckerTest {
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
+  }
+
+  @Test
+  public void testRunForUnsafeK3Program() throws Exception {
+    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
+    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_K3);
+    result.getCheckerResult().printStatistics(statisticsStream);
+    result.getCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
   }
 
   @Test
