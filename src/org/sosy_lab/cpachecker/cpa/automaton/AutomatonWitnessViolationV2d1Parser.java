@@ -50,13 +50,11 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Par
   @Override
   protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    for (AbstractEntry entry : pEntries) {
-      if (entry instanceof ViolationSequenceEntry violationEntry) {
-        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-        checkCycleOrTargetAtEnd(violationEntry);
-        return segmentizedEntries;
-      }
-      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    Optional<ViolationSequenceEntry> violationEntry = getViolationSequence(pEntries);
+    if (violationEntry.isPresent()) {
+      ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry.get());
+      checkTarget(violationEntry.get());
+      return segmentizedEntries;
     }
     return ImmutableList.of();
   }

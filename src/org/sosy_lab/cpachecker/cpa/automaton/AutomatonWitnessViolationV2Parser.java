@@ -349,15 +349,26 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
    */
   protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    for (AbstractEntry entry : pEntries) {
-      if (entry instanceof ViolationSequenceEntry violationEntry) {
-        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-        checkTarget(violationEntry);
-        return segmentizedEntries;
-      }
-      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    Optional<ViolationSequenceEntry> violationEntry = getViolationSequence(pEntries);
+    if (violationEntry.isPresent()) {
+      ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry.get());
+      checkTarget(violationEntry.get());
+      return segmentizedEntries;
     }
     return ImmutableList.of();
+  }
+
+  protected Optional<ViolationSequenceEntry> getViolationSequence(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ;
+        return Optional.of(violationEntry);
+      }
+      throw new InvalidYAMLWitnessException(
+          "A witness in YAML format can have only one violation sequence !");
+    }
+    return Optional.empty();
   }
 
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
