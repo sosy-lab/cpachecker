@@ -1233,6 +1233,34 @@ public class SMG {
     return SMGAndHasValueEdges.of(newSMG, newHVEdge);
   }
 
+  public SMG copyAndRemoveAllEdgesFrom(SMGObject object) {
+    return copyAndRemoveHVEdges(hasValueEdges.getOrDefault(object, PersistentSet.of()), object);
+  }
+
+  public SMG copyAndRemoveAllEdgesFrom(SMGObject object, BigInteger startingFromOffsetInBits) {
+    return copyAndRemoveHVEdges(
+        hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
+            .filter(
+                hve ->
+                    hve.getSizeInBits().add(hve.getOffset()).compareTo(startingFromOffsetInBits)
+                        > 0)
+            .collect(ImmutableList.toImmutableList()),
+        object);
+  }
+
+  public SMG copyAndRemoveAllEdgesFrom(
+      SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits) {
+    BigInteger sizePlusOffsetInBits = offsetInBits.add(sizeInBits);
+    return copyAndRemoveHVEdges(
+        hasValueEdges.getOrDefault(object, PersistentSet.of()).stream()
+            .filter(
+                hve ->
+                    !(sizePlusOffsetInBits.compareTo(hve.getOffset()) < 0
+                        || hve.getSizeInBits().add(hve.getOffset()).compareTo(offsetInBits) < 0))
+            .collect(ImmutableList.toImmutableList()),
+        object);
+  }
+
   /**
    * Returns an SMG with a write reinterpretation of the current SMG. Essentially just writes a
    * value to the given object and field. The reinterpretation removes other values from the field.
@@ -1538,8 +1566,9 @@ public class SMG {
     }
     Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
     return maybePTEdge.isPresent()
-        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment
-        && ((SMGSinglyLinkedListSegment) maybePTEdge.orElseThrow().pointsTo()).getMinLength() == 0;
+        && maybePTEdge.orElseThrow().pointsTo()
+            instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
+        && sMGSinglyLinkedListSegment.getMinLength() == 0;
   }
 
   /**
@@ -1987,8 +2016,8 @@ public class SMG {
       SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
 
     int minListLen = 0;
-    if (newTarget instanceof SMGSinglyLinkedListSegment) {
-      minListLen = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
+    if (newTarget instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      minListLen = sMGSinglyLinkedListSegment.getMinLength();
     }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {

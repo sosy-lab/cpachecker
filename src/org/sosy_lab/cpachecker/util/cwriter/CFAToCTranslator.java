@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.EmptyStatement;
@@ -63,16 +62,16 @@ public class CFAToCTranslator {
     private final CFANode node;
     private final CompoundStatement currentBlock;
 
-    public NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
+    NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
       node = pNode;
       currentBlock = pCurrentBlock;
     }
 
-    public CFANode getNode() {
+    CFANode getNode() {
       return node;
     }
 
-    public CompoundStatement getCurrentBlock() {
+    CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
   }
@@ -182,7 +181,7 @@ public class CFAToCTranslator {
       final CompoundStatement pCurrentBlock,
       final Collection<NodeAndBlock> pEnteringBlocks) {
 
-    if (CFAUtils.enteringEdges(pCurrentNode).size() <= 1
+    if (pCurrentNode.getNumEnteringEdges() <= 1
         || pEnteringBlocks == null
         || pEnteringBlocks.size() <= 1) {
       return pCurrentBlock;
@@ -236,7 +235,7 @@ public class CFAToCTranslator {
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
-    String go = "goto " + createdStatements.get(pTarget).get(0).getLabel() + ";";
+    String go = "goto " + createdStatements.get(pTarget).getFirst().getLabel() + ";";
     return createSimpleStatement(pCurrentNode, go);
   }
 
@@ -249,8 +248,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CFALabelNode) {
-      pBlock.addStatement(createLabel((CFALabelNode) pNode));
+    if (pNode instanceof CFALabelNode cFALabelNode) {
+      pBlock.addStatement(createLabel(cFALabelNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -303,13 +302,15 @@ public class CFAToCTranslator {
   }
 
   private FluentIterable<CFAEdge> getRelevantLeavingEdges(CFANode pNode) {
-    return CFAUtils.leavingEdges(pNode)
+    return pNode
+        .getLeavingEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
 
   private FluentIterable<CFAEdge> getRelevantEnteringEdges(CFANode pNode) {
-    return CFAUtils.enteringEdges(pNode)
+    return pNode
+        .getEnteringEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
@@ -339,7 +340,7 @@ public class CFAToCTranslator {
       ImmutableList.Builder<Pair<CFAEdge, CompoundStatement>> branches = ImmutableList.builder();
 
       List<CFAEdge> ifAndElseEdge = new ArrayList<>(outgoingEdges);
-      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.get(0))) {
+      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.getFirst())) {
         // swap elements so that if-branch comes before else-branch in list
         ifAndElseEdge = swapElements(ifAndElseEdge);
       }
@@ -351,7 +352,7 @@ public class CFAToCTranslator {
         String cond;
         if (truthAssumption) {
           // must be if-branch, first in list
-          assert ifAndElseEdge.get(0) == currentEdge;
+          assert ifAndElseEdge.getFirst() == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
             cond =
                 "if ("
@@ -384,7 +385,7 @@ public class CFAToCTranslator {
 
     List<CFAEdge> swapped = new ArrayList<>(2);
     swapped.add(pListWithTwoElements.get(1));
-    swapped.add(pListWithTwoElements.get(0));
+    swapped.add(pListWithTwoElements.getFirst());
     return swapped;
   }
 
@@ -484,8 +485,8 @@ public class CFAToCTranslator {
           declaration =
               lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
 
-          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration varDecl = (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+
             if (varDecl.getType() instanceof CArrayType
                 && varDecl.getInitializer() instanceof CInitializerExpression) {
               int assignAfterPos = declaration.indexOf("=") + 1;
@@ -498,7 +499,7 @@ public class CFAToCTranslator {
           }
 
           if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+            for (CFAEdge predEdge : pCFAEdge.getPredecessor().getEnteringEdges()) {
               if (predEdge
                   .getRawStatement()
                   .equals(lDeclarationEdge.getDeclaration().toASTString())) {

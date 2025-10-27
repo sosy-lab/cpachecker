@@ -150,8 +150,8 @@ public class ConstraintFactory {
 
     if (symbolicExpression == null) {
       return null;
-    } else if (symbolicExpression instanceof Constraint) {
-      return (Constraint) symbolicExpression;
+    } else if (symbolicExpression instanceof Constraint constraint) {
+      return constraint;
 
     } else {
       return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
@@ -187,10 +187,10 @@ public class ConstraintFactory {
   }
 
   private boolean isNumeric(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        switch (((CSimpleType) canonicalType).getType()) {
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        switch (cSimpleType.getType()) {
           case FLOAT, INT -> {
             return true;
           }
@@ -201,8 +201,8 @@ public class ConstraintFactory {
       }
 
       return false;
-    } else if (pType instanceof JSimpleType) {
-      switch ((JSimpleType) pType) {
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      switch (jSimpleType) {
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> {
           return true;
         }
@@ -218,11 +218,11 @@ public class ConstraintFactory {
   }
 
   private boolean isBoolean(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
 
-      return canonicalType instanceof CSimpleType
-          && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
+      return canonicalType instanceof CSimpleType cSimpleType
+          && cSimpleType.getType() == CBasicType.BOOL;
     }
 
     if (pType instanceof JSimpleType) {

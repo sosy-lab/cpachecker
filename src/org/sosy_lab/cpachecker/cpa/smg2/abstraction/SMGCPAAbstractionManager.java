@@ -269,7 +269,7 @@ public class SMGCPAAbstractionManager {
           // will be found via the prev object
           continue;
         }
-        SMGValue nextPointerValue = readNfoEdges.get(0).hasValue();
+        SMGValue nextPointerValue = readNfoEdges.getFirst().hasValue();
         if (!smg.isPointer(nextPointerValue)
             || !smg.getPTEdge(nextPointerValue).orElseThrow().getOffset().isNumericValue()
             || !smg.getPTEdge(nextPointerValue)
@@ -533,7 +533,7 @@ public class SMGCPAAbstractionManager {
     SMGHasValueEdge nextPtrOfLeftmost =
         smg.readValue(leftMostObj, suspectedNfo, state.getMemoryModel().getSizeOfPointer(), false)
             .getHvEdges()
-            .get(0);
+            .getFirst();
     Preconditions.checkArgument(smg.isPointer(nextPtrOfLeftmost.hasValue()));
     SMGObject nextOfLeftmost = smg.getPTEdge(nextPtrOfLeftmost.hasValue()).orElseThrow().pointsTo();
     // TODO: use read instead of looping through the offsets in both lookThroughs
@@ -654,7 +654,7 @@ public class SMGCPAAbstractionManager {
                       smg.getSizeOfPointer(),
                       false)
                   .getHvEdges()
-                  .get(0);
+                  .getFirst();
           if (smg.isPointer(maybeRealNext.hasValue())
               && smg.getPTEdge(maybeRealNext.hasValue()).orElseThrow().pointsTo().equals(prevObj)) {
             return ListType.NONE;
@@ -783,7 +783,7 @@ public class SMGCPAAbstractionManager {
                   false)
               .getHvEdges();
       Preconditions.checkArgument(maybeReadBackPtrs.size() == 1);
-      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.get(0);
+      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.getFirst();
       if (smg.isPointer(maybeReadBackPtr.hasValue())) {
         // possible back-pointer
         SMGPointsToEdge maybeBackPointerEdge =
@@ -1073,8 +1073,8 @@ public class SMGCPAAbstractionManager {
     }
 
     int addSize = 1;
-    if (root instanceof SMGSinglyLinkedListSegment) {
-      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    if (root instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      addSize = sMGSinglyLinkedListSegment.getMinLength();
     }
 
     for (SMGHasValueEdge hve : smg.getEdges(root)) {

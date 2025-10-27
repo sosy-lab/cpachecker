@@ -223,7 +223,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
             "Error state not known to analysis with enabler CPA. Cannot continue analysis.");
       }
       Precision precision =
-          pReachedSet.getPrecision(((ARGState) e.getFailureCause()).getParents().iterator().next());
+          pReachedSet.getPrecision(((ARGState) e.getFailureCause()).getParents().getFirst());
       if (e.getFailureCause() != null
           && !pReachedSet.contains(e.getFailureCause())
           && !((ARGState) e.getFailureCause()).getParents().isEmpty()) {
@@ -388,7 +388,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
         PredicateAbstractState prevErrorState =
             AbstractStates.extractStateByType(
-                pPredecessor.getParents().iterator().next(), PredicateAbstractState.class);
+                pPredecessor.getParents().getFirst(), PredicateAbstractState.class);
 
         PredicateAbstractState errorEnablerStateReplace =
             PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
@@ -410,7 +410,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         assert (pPredecessor.getParents().size() == 1);
         assert pPredecessor.getCoveredByThis().isEmpty();
 
-        ARGState newPred = new ARGState(newComp, pPredecessor.getParents().iterator().next());
+        ARGState newPred = new ARGState(newComp, pPredecessor.getParents().getFirst());
         pPredecessor.removeFromARG();
         pReachedSet.add(newPred, pReachedSet.getPrecision(pPredecessor));
         pReachedSet.remove(pPredecessor);
@@ -695,8 +695,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

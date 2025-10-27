@@ -208,13 +208,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     // Create a formula representing the edge expression
 
     BooleanFormula<CompoundInterval> assumption = null;
-    if (expression instanceof CExpression) {
+    if (expression instanceof CExpression cExpression) {
       NumeralFormula<CompoundInterval> expressionFormula =
-          ((CExpression) expression).accept(pExpressionToFormulaVisitor);
+          cExpression.accept(pExpressionToFormulaVisitor);
       assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
-    } else if (expression instanceof JExpression) {
+    } else if (expression instanceof JExpression jExpression) {
       NumeralFormula<CompoundInterval> expressionFormula =
-          ((JExpression) expression).accept(pExpressionToFormulaVisitor);
+          jExpression.accept(pExpressionToFormulaVisitor);
       assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
     } else {
       return pState;
@@ -238,11 +238,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge)
       throws UnrecognizedCodeException {
-    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       return pElement;
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
     if (decl.getType().isIncomplete()) {
       // Variables of such types cannot store values, only their address can be taken.
       // We can ignore them.
@@ -257,8 +256,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     MemoryLocation varName = MemoryLocation.forDeclaration(decl);
 
     NumeralFormula<CompoundInterval> value;
-    if (decl.getInitializer() instanceof CInitializerExpression) {
-      CExpression init = ((CInitializerExpression) decl.getInitializer()).getExpression();
+    if (decl.getInitializer() instanceof CInitializerExpression cInitializerExpression) {
+      CExpression init = cInitializerExpression.getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
@@ -292,7 +291,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
       NumeralFormula<CompoundInterval> assumptionExpression =
-          actualParams.get(0).accept(actualParamExpressionToFormulaVisitor);
+          actualParams.getFirst().accept(actualParamExpressionToFormulaVisitor);
       BooleanFormula<CompoundInterval> assumption =
           compoundIntervalFormulaManager.fromNumeral(assumptionExpression);
       return handleAssumption(pElement, assumption);
@@ -344,13 +343,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCodeException {
 
-    if (pEdge.getStatement() instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) pEdge.getStatement())
-              .getFunctionCallExpression()
-              .getFunctionNameExpression();
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+    if (pEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
+      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
@@ -553,23 +549,23 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       AFunctionDeclaration function = pCfaEdge.getSuccessor().getFunction();
       for (AExpression assumption : assumptionState.getAssumptions()) {
         AssumeEdge fakeEdge;
-        if (assumption instanceof CExpression) {
+        if (assumption instanceof CExpression cExpression) {
           fakeEdge =
               new CAssumeEdge(
                   assumption.toASTString(),
                   FileLocation.DUMMY,
                   new CFANode(function),
                   new CFANode(function),
-                  (CExpression) assumption,
+                  cExpression,
                   true);
-        } else if (assumption instanceof JExpression) {
+        } else if (assumption instanceof JExpression jExpression) {
           fakeEdge =
               new JAssumeEdge(
                   assumption.toASTString(),
                   FileLocation.DUMMY,
                   new CFANode(function),
                   new CFANode(function),
-                  (JExpression) assumption,
+                  jExpression,
                   true);
         } else {
           throw new AssertionError("unexpected expression type " + assumption);
@@ -596,8 +592,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     CFAEdge edge = pCfaEdge;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression
-        || (leftHandSide instanceof CFieldReference
-            && ((CFieldReference) leftHandSide).isPointerDereference())) {
+        || (leftHandSide instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference())) {
       FluentIterable<PointerState> pointerStates =
           FluentIterable.from(pOtherElements).filter(PointerState.class);
       if (pointerStates.isEmpty()) {

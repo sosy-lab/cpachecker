@@ -145,10 +145,10 @@ public final class JInterfaceType extends JClassOrInterfaceType {
 
   void registerSubType(JClassOrInterfaceType subType) {
 
-    if (subType instanceof JInterfaceType) {
+    if (subType instanceof JInterfaceType jInterfaceType) {
 
       checkArgument(!directSubInterfaces.contains(subType));
-      directSubInterfaces.add((JInterfaceType) subType);
+      directSubInterfaces.add(jInterfaceType);
     } else {
 
       checkArgument(!interfaceImplementingClasses.contains(subType));

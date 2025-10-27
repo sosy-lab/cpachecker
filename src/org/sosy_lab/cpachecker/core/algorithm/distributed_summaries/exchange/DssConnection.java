@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 import java.io.Closeable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 
+/** Communication infrastructure for {@link DssMessage} exchange between DSS workers. */
 public interface DssConnection extends Closeable {
 
   /**

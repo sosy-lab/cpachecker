@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,10 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -89,12 +85,6 @@ public record ParseResult(
 
   public boolean isEmpty() {
     return functions.isEmpty();
-  }
-
-  public ImmutableSet<CFAEdge> getCFAEdges() {
-    return FluentIterable.from(cfaNodes.values())
-        .transformAndConcat(CFAUtils::allLeavingEdges)
-        .toSet();
   }
 
   public ParseResult withASTStructure(AstCfaRelation pAstCfaRelation) {

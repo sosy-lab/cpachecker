@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -312,7 +313,7 @@ public class WitnessInvariantsExtractor {
       return potentialCandidatesYAMLWitness.orElseThrow();
     }
 
-    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    SequencedSet<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
@@ -407,7 +408,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

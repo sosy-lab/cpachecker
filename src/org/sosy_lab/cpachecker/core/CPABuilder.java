@@ -230,7 +230,7 @@ public class CPABuilder {
     }
 
     List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue);
-    String cpaNameFromOption = optionParts.get(0);
+    String cpaNameFromOption = optionParts.getFirst();
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
     Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
 
@@ -321,7 +321,7 @@ public class CPABuilder {
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
         if (cpas.size() == 1) {
-          return cpas.get(0);
+          return cpas.getFirst();
         } else {
           String count = cpas.isEmpty() ? "none" : Integer.toString(cpas.size());
           throw new InvalidConfigurationException(
@@ -456,12 +456,12 @@ public class CPABuilder {
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
-    if (!(factoryObj instanceof CPAFactory)) {
+    if (!(factoryObj instanceof CPAFactory cPAFactory)) {
       throw new InvalidComponentException(
           cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
-    return (CPAFactory) factoryObj;
+    return cPAFactory;
   }
 
   private void createAndSetChildrenCPAs(

@@ -7,8 +7,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Distributed analyses take known CPAs {@link
- * org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis} and distribute them to many
- * workers. These workers execute the CPA on a subgraph of the CFA.
+ * Distributed Summary Synthesis (DSS) partitions the Control Flow Automaton into blocks and
+ * distributes verification across multiple workers that communicate via message passing. Each block
+ * computes postconditions (forward propagation) and violation conditions (backward propagation)
+ * that are exchanged until a fixpoint is reached.
+ *
+ * @see org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;

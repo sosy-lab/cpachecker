@@ -243,7 +243,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     }
     if (!inserted) {
       if (pOther.touches(lastInterval)) {
-        resultIntervals.remove(resultIntervals.size() - 1);
+        resultIntervals.removeLast();
         lastInterval = union(pOther, lastInterval);
         resultIntervals.add(lastInterval);
       } else {
@@ -625,8 +625,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof CompoundMathematicalInterval
-        && Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
+    return pOther instanceof CompoundMathematicalInterval other
+        && Arrays.equals(intervals, other.intervals);
   }
 
   @Override

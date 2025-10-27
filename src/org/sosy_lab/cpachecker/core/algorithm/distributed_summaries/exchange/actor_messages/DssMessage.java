@@ -270,7 +270,7 @@ public abstract class DssMessage implements Comparable<DssMessage> {
 
     @Serial private static final long serialVersionUID = 196344175L;
 
-    public MessageDeserializer(Class<DssMessage> vc) {
+    MessageDeserializer(Class<DssMessage> vc) {
       super(vc);
     }
 

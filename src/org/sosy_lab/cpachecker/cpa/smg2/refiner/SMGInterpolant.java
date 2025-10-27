@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -278,7 +277,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(nonHeapAssignments.keySet());
+    return isFalse() ? ImmutableSet.of() : nonHeapAssignments.keySet();
   }
 
   /**

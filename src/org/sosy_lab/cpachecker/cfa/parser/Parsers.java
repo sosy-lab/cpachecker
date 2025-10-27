@@ -105,6 +105,8 @@ public class Parsers {
       "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
   private static final String LLVM_PARSER_CLASS =
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
+  private static final String LLVM_CLANG_PARSER_CLASS =
+      "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParserWithClang";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
@@ -113,6 +115,8 @@ public class Parsers {
   private static WeakReference<Constructor<? extends Parser>> loadedJavaParser =
       new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser =
+      new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedLlvmClangParser =
       new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
@@ -198,8 +202,8 @@ public class Parsers {
       try {
         return parserConstructor.newInstance(logger, config, entryMethod);
       } catch (InvocationTargetException e) {
-        if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
         }
         throw e;
       }
@@ -226,6 +230,37 @@ public class Parsers {
 
       try {
         return parserConstructor.newInstance(pLogger, pMachineModel);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
+        }
+        throw e;
+      }
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
+    }
+  }
+
+  public static Parser getLlvmClangParser(
+      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedLlvmClangParser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(pLogger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends Parser> parserClass =
+            (Class<? extends Parser>) classLoader.loadClass(LLVM_CLANG_PARSER_CLASS);
+        parserConstructor =
+            parserClass.getConstructor(Configuration.class, LogManager.class, MachineModel.class);
+        parserConstructor.setAccessible(true);
+        loadedLlvmParser = new WeakReference<>(parserConstructor);
+      }
+
+      try {
+        return parserConstructor.newInstance(pConfig, pLogger, pMachineModel);
       } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
           throw (InvalidConfigurationException) e.getCause();

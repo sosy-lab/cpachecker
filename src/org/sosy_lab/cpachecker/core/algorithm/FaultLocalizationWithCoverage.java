@@ -178,8 +178,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
   }
 

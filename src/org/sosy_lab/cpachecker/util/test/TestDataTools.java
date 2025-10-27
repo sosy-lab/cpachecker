@@ -115,14 +115,14 @@ public class TestDataTools {
       Preconditions.checkState(!node.isLoopStart(), "Can only work on loop-free fragments");
       PathFormula path = mapping.get(node);
 
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge e : node.getLeavingEdges()) {
         CFANode toNode = e.getSuccessor();
         PathFormula old = mapping.get(toNode);
 
         PathFormula n;
         if (ignoreDeclarations
-            && e instanceof CDeclarationEdge
-            && ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
+            && e instanceof CDeclarationEdge cDeclarationEdge
+            && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
 
           // Skip variable declaration edges.
           n = path;
