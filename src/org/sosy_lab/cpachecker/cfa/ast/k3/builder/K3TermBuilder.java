@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.SmtLibTheoryDeclarations;
 
