@@ -2496,13 +2496,35 @@ public class SMGState
    * @param pUnreachableObjects the object at fault.
    * @return a copy of the current state with the error info added.
    */
-  public SMGState withMemoryLeak(String errorMsg, Collection<Object> pUnreachableObjects) {
-    // TODO: replace Object; currently it is only used by Value (address to SMGObject)
+  public SMGState withMemoryLeak(String errorMsg, Collection<SMGObject> pUnreachableObjects) {
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_HEAP)
             .withErrorMessage(errorMsg)
             .withInvalidObjects(pUnreachableObjects);
+    // Log the error in the logger
+    logMemoryError(errorMsg, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
+   * Copy the state with a memory leak error set. Sanity checks that the pointer points to VALID
+   * heap memory.
+   *
+   * @param errorMsg custom error message specific to the error reason.
+   * @return a copy of the current state with the error info added.
+   */
+  public SMGState withMemoryLeak(String errorMsg, Value pointerToUnreachable) {
+    SMGValue smgValue = memoryModel.getSMGValueFromValue(pointerToUnreachable).orElseThrow();
+    SMGObject leakedObject = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow().pointsTo();
+    checkState(memoryModel.getSmg().isValid(leakedObject));
+    checkState(memoryModel.isHeapObject(leakedObject));
+
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_HEAP)
+            .withErrorMessage(errorMsg)
+            .withInvalidObjects(ImmutableList.of(leakedObject));
     // Log the error in the logger
     logMemoryError(errorMsg, true);
     return copyWithNewErrorInfo(newErrorInfo);
