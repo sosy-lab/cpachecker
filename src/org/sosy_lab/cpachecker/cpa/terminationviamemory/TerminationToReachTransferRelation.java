@@ -47,11 +47,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         new HashMap<>();
     Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> oldStoredValuesMap =
         terminationState.getStoredValues();
-    for (Pair<LocationState, CallstackState> keyPair : oldStoredValuesMap.keySet()) {
-      newStoredValuesMap.put(keyPair, new HashMap<>());
-      for (Entry<Integer, Set<Formula>> storedValues : oldStoredValuesMap.get(keyPair).entrySet()) {
+    for (Entry<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> keyPair :
+        oldStoredValuesMap.entrySet()) {
+      newStoredValuesMap.put(keyPair.getKey(), new HashMap<>());
+      for (Entry<Integer, Set<Formula>> storedValues :
+          oldStoredValuesMap.get(keyPair.getKey()).entrySet()) {
         newStoredValuesMap
-            .get(keyPair)
+            .get(keyPair.getKey())
             .put(storedValues.getKey(), new HashSet<>(storedValues.getValue()));
       }
     }
