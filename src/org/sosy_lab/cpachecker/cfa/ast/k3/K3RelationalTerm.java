@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 public sealed interface K3RelationalTerm extends AExpression, K3AstNode
     permits K3GeneralSymbolApplicationTerm, K3OldTerm, K3SymbolApplicationRelationalTerm, K3Term {
 
+  @Override
   K3Type getExpressionType();
 
   <R, X extends Exception> R accept(K3TermVisitor<R, X> v) throws X;

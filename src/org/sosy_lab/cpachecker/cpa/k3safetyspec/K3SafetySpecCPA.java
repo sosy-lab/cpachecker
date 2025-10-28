@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.k3safetyspec;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,8 +29,7 @@ public class K3SafetySpecCPA extends AbstractCPA implements ConfigurableProgramA
     return AutomaticCPAFactory.forType(K3SafetySpecCPA.class);
   }
 
-  private K3SafetySpecCPA(CFA pCfa, LogManager pLogger, Configuration pConfiguration)
-      throws InvalidConfigurationException {
+  private K3SafetySpecCPA(CFA pCfa, LogManager pLogger) {
     super("sep", "sep", null);
     cfa = pCfa;
     logger = pLogger;
@@ -40,7 +37,7 @@ public class K3SafetySpecCPA extends AbstractCPA implements ConfigurableProgramA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new K3SafetySpecTransferRelation(cfa);
+    return new K3SafetySpecTransferRelation(cfa, logger);
   }
 
   @Override

@@ -9,10 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.k3safetyspec;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
@@ -29,9 +30,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class K3SafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
+  private final LogManager logger;
 
-  public K3SafetySpecTransferRelation(CFA pCfa) {
+  public K3SafetySpecTransferRelation(CFA pCfa, LogManager pLogger) {
     cfa = pCfa;
+    logger = pLogger;
   }
 
   @Override
@@ -44,10 +47,11 @@ public class K3SafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
     if (state.hasPropertyViolation()) {
       // Once we have a property violation there is no need to continue.
+      logger.log(Level.FINE, "Attempting to transfer from a property-violating state.");
       return ImmutableList.of();
     }
 
-    Builder<K3SafetySpecState> outStates = ImmutableList.builder();
+    ImmutableList.Builder<K3SafetySpecState> outStates = ImmutableList.builder();
 
     Set<K3TagProperty> propertiesToProof =
         cfa.getMetadata()

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
@@ -79,30 +81,29 @@ public class K3TermToFormulaConverter {
       FormulaManagerView fmgr) {
     String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
     List<IntegerFormula> args =
-        FluentIterable.from(pK3ApplicationTerm.getTerms())
-            .transform(term -> (IntegerFormula) convertTerm(term, ssa, fmgr))
-            .toList();
+        transformedImmutableListCopy(
+            pK3ApplicationTerm.getTerms(), term -> (IntegerFormula) convertTerm(term, ssa, fmgr));
     IntegerFormulaManagerView imgr = fmgr.getIntegerFormulaManager();
     return switch (functionName) {
       case "+" -> {
         Verify.verify(args.size() == 2);
-        yield imgr.add(args.get(0), args.get(1));
+        yield imgr.add(args.getFirst(), args.get(1));
       }
       case "-" -> {
         Verify.verify(args.size() == 2);
-        yield imgr.subtract(args.get(0), args.get(1));
+        yield imgr.subtract(args.getFirst(), args.get(1));
       }
       case "=" -> {
         Verify.verify(args.size() == 2);
-        yield imgr.equal(args.get(0), args.get(1));
+        yield imgr.equal(args.getFirst(), args.get(1));
       }
       case "<" -> {
         Verify.verify(args.size() == 2);
-        yield imgr.lessThan(args.get(0), args.get(1));
+        yield imgr.lessThan(args.getFirst(), args.get(1));
       }
       case "<=" -> {
         Verify.verify(args.size() == 2);
-        yield imgr.lessOrEquals(args.get(0), args.get(1));
+        yield imgr.lessOrEquals(args.getFirst(), args.get(1));
       }
       default ->
           throw new IllegalStateException(
@@ -118,14 +119,13 @@ public class K3TermToFormulaConverter {
       FormulaManagerView fmgr) {
     String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
     List<BooleanFormula> args =
-        FluentIterable.from(pK3ApplicationTerm.getTerms())
-            .transform(term -> (BooleanFormula) convertTerm(term, ssa, fmgr))
-            .toList();
+        transformedImmutableListCopy(
+            pK3ApplicationTerm.getTerms(), term -> (BooleanFormula) convertTerm(term, ssa, fmgr));
     BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
     switch (functionName) {
       case "not" -> {
         Verify.verify(args.size() == 1);
-        return bmgr.not(args.get(0));
+        return bmgr.not(args.getFirst());
       }
       default ->
           throw new IllegalStateException(

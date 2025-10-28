@@ -25,6 +25,7 @@ public class K3ProcedureEntryNode extends FunctionEntryNode {
     super(pFileLocation, pExitNode, pFunctionDefinition, Optional.empty());
   }
 
+  @Override
   public K3ProcedureDeclaration getFunctionDefinition() {
     return (K3ProcedureDeclaration) super.getFunctionDefinition();
   }

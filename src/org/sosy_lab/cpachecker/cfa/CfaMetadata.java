@@ -300,7 +300,7 @@ public final class CfaMetadata {
   /**
    * Returns a copy of this metadata instance, but with the specified K3CfaMetadata.
    *
-   * @param K3CfaMetadata the K3CfaMetadata to store in the returned metadata instance (use {@code
+   * @param pK3CfaMetadata the K3CfaMetadata to store in the returned metadata instance (use {@code
    *     null} to create an instance without K3CfaMetadata)
    * @return a copy of this metadata instance, but with the specified AST structure
    */

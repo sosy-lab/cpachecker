@@ -38,6 +38,11 @@ public final class K3SymbolApplicationRelationalTerm extends K3GeneralSymbolAppl
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
