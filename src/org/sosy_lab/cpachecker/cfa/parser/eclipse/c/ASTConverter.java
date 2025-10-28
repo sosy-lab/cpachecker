@@ -2755,8 +2755,6 @@ class ASTConverter {
 
     List<CDesignator> designators = new ArrayList<>(desInit.length);
 
-    CType currentContainerType = type.getCanonicalType();
-
     // convert all designators
     for (ICASTDesignator designator : desInit) {
       if (designator instanceof ICASTFieldDesignator iCASTFieldDesignator) {
