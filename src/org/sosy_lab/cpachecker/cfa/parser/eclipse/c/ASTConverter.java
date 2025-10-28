@@ -2759,52 +2759,55 @@ class ASTConverter {
 
     // convert all designators
     for (ICASTDesignator designator : desInit) {
-      CDesignator r =
-          switch (designator) {
-            case ICASTFieldDesignator iCASTFieldDesignator -> {
-              final String requestedFieldName = convert(iCASTFieldDesignator.getName());
-              if (currentContainerType instanceof CCompositeType ownerType) {
-                // Try to find a path through anonymous members.
-                List<Pair<String, CType>> path =
-                    getWayToInnerField(ownerType, requestedFieldName, fileLoc, new ArrayList<>());
-                if (!path.isEmpty()) {
-                  // Emit all designators along the path.
-                  for (Pair<String, CType> step : path) {
-                    designators.add(new CFieldDesignator(fileLoc, step.getFirst()));
-                  }
-                  currentContainerType = path.getLast().getSecond().getCanonicalType();
-                  yield null; // Already added inside.
-                } else {
-                  currentContainerType =
-                      findDirectMemberType(ownerType, requestedFieldName)
-                          .orElse(currentContainerType);
-                  yield new CFieldDesignator(fileLoc, requestedFieldName);
-                }
-              } else {
-                yield new CFieldDesignator(fileLoc, requestedFieldName);
-              }
-            }
+      if (designator instanceof ICASTFieldDesignator iCASTFieldDesignator) {
+        // Special case: One field designator in the C code may be
+        // resolved to multiple designators internally, because CPAchecker represents anonymous
+        // types explicitly by name (.a may become .some_anon_name1.some_anon_name_n.a)
+        List<? extends CDesignator> resolvedDesignators =
+            resolveFieldDesignator(
+                fileLoc, type.getCanonicalType(), convert(iCASTFieldDesignator.getName()));
+        designators.addAll(resolvedDesignators);
 
-            case ICASTArrayDesignator iCASTArrayDesignator ->
-                new CArrayDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iCASTArrayDesignator.getSubscriptExpression()));
-            case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator ->
-                new CArrayRangeDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeFloor()),
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeCeiling()));
-            default -> throw parseContext.parseError("Unsupported Designator", designator);
-          };
-      if (r != null) {
-        designators.add(r);
+      } else {
+        CDesignator resolvedDesignator =
+            switch (designator) {
+              case ICASTArrayDesignator iCASTArrayDesignator ->
+                  new CArrayDesignator(
+                      fileLoc,
+                      convertExpressionWithoutSideEffects(
+                          iCASTArrayDesignator.getSubscriptExpression()));
+              case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator ->
+                  new CArrayRangeDesignator(
+                      fileLoc,
+                      convertExpressionWithoutSideEffects(
+                          iGCCASTArrayRangeDesignator.getRangeFloor()),
+                      convertExpressionWithoutSideEffects(
+                          iGCCASTArrayRangeDesignator.getRangeCeiling()));
+              default -> throw parseContext.parseError("Unsupported Designator", designator);
+            };
+        designators.add(resolvedDesignator);
       }
     }
 
     return new CDesignatedInitializer(fileLoc, designators, cInit);
+  }
+
+  private List<CFieldDesignator> resolveFieldDesignator(
+      FileLocation fileLoc, CType ownerType, String fieldName) {
+
+    if (ownerType instanceof CCompositeType compositeType) {
+      List<Pair<String, CType>> wayToField =
+          getWayToInnerField(compositeType, fieldName, fileLoc, new ArrayList<>());
+      Preconditions.checkState(!wayToField.isEmpty());
+
+      return wayToField.stream()
+          .map(pairOfNameAndType -> pairOfNameAndType.getFirst())
+          .map(name -> new CFieldDesignator(fileLoc, name))
+          .toList();
+
+    } else {
+      return List.of(new CFieldDesignator(fileLoc, fieldName));
+    }
   }
 
   /** Find the direct member type for a field of a composite type (no anonymous traversal). */
