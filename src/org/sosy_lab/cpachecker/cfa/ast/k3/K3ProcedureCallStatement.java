@@ -105,7 +105,8 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
   public String toASTString() {
     return procedureDeclaration.getName()
         + "("
-        + Joiner.on(" ").join(getParameterExpressions())
+        + Joiner.on(", ")
+            .join(getParameterExpressions().stream().map(arg -> arg.toASTString()).toList())
         + ")";
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import java.io.Serial;
 import java.util.List;
@@ -55,12 +56,20 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "";
+    return "("
+        + symbol.toASTString(pAAstNodeRepresentation)
+        + " "
+        + Joiner.on(" ").join(terms.stream().map(K3RelationalTerm::toASTString).toList())
+        + ")";
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "";
+    return "("
+        + symbol.toASTString(pAAstNodeRepresentation)
+        + " "
+        + Joiner.on(" ").join(terms.stream().map(K3RelationalTerm::toASTString).toList())
+        + ")";
   }
 
   @Override
