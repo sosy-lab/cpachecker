@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
@@ -72,7 +73,9 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -420,6 +423,7 @@ public class CoreComponentsFactory {
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
@@ -437,6 +441,7 @@ public class CoreComponentsFactory {
     logger = pLogger;
 
     config.inject(this);
+    oldCfa = checkNotNull(pCFA);
 
     if (copyCFA) {
       cfa = ImmutableCFA.copyOf(checkNotNull(pCFA), pConfig, logger);
@@ -815,11 +820,22 @@ public class CoreComponentsFactory {
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
-  public void initializeReachedSet(ReachedSet pReachedSet, ConfigurableProgramAnalysis cpa)
-      throws InterruptedException {
-    pReachedSet.add(
-        cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-        cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+  public void initializeReachedSet(
+      ReachedSet pReachedSet, CFANode pInitialNode, ConfigurableProgramAnalysis cpa)
+      throws InterruptedException, CPAException {
+    if (copyCFA) {
+      if (!oldCfa.getMainFunction().equals(pInitialNode)) {
+        throw new CPAException(
+            "If the copying of CFA is set, the analysis can only start from the initial state of"
+                + " the CFA");
+      }
+      pInitialNode = cfa.getMainFunction();
+    }
+    AbstractState initialState =
+        cpa.getInitialState(pInitialNode, StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision =
+        cpa.getInitialPrecision(pInitialNode, StateSpacePartition.getDefaultPartition());
+    pReachedSet.add(initialState, initialPrecision);
   }
 
   /**
@@ -827,10 +843,11 @@ public class CoreComponentsFactory {
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
-  public ReachedSet createInitializedReachedSet(ConfigurableProgramAnalysis cpa)
-      throws InterruptedException {
+  public ReachedSet createInitializedReachedSet(
+      ConfigurableProgramAnalysis cpa, CFANode pInitialNode)
+      throws InterruptedException, CPAException {
     ReachedSet reachedSet = createReachedSet(cpa);
-    initializeReachedSet(reachedSet, cpa);
+    initializeReachedSet(reachedSet, pInitialNode, cpa);
     return reachedSet;
   }
 

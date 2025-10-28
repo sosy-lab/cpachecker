@@ -54,6 +54,7 @@ import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -106,6 +107,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final ParallelAlgorithmStatistics stats;
 
   private ParallelAnalysisResult finalResult = null;
+  private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
@@ -143,6 +145,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    mainEntryNode = AbstractStates.extractLocation(pReachedSet.getFirstState());
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ThreadFactory threadFactory =
@@ -348,7 +351,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       try {
-        coreComponents.initializeReachedSet(reached, cpa);
+        coreComponents.initializeReachedSet(reached, mainEntryNode, cpa);
       } catch (InterruptedException e) {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
@@ -446,7 +449,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (!stopAnalysis) {
             currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
-            coreComponents.initializeReachedSet(reached, cpa);
+            coreComponents.initializeReachedSet(reached, mainEntryNode, cpa);
           }
         } while (!stopAnalysis);
       }
