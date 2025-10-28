@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationToSafetyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -233,6 +234,15 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.terminationToSafety",
+      description =
+          "Use termination-to-safety algorithm to prove (non-)termination. This needs the"
+              + " TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the"
+              + " CompositeCPA.")
+  private boolean useTerminationToSafetyAlgorithm = false;
 
   @Option(
       secure = true,
@@ -516,6 +526,11 @@ public class CoreComponentsFactory {
       algorithm =
           new ParallelAlgorithm(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
+
+    } else if (useTerminationToSafetyAlgorithm) {
+      algorithm =
+          new TerminationToSafetyAlgorithm(
+              config, logger, shutdownNotifier, aggregatedReachedSets, specification, cfa, cpa);
 
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);

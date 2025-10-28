@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import java.util.Collection;
 import java.util.HashMap;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -36,41 +34,30 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * visiting state.
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
-  private final Solver solver;
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-  private final PrecisionAdjustment precisionAdjustment;
+  private Solver solver;
+  private FormulaManagerView fmgr;
+  private BooleanFormulaManagerView bfmgr;
+  private PrecisionAdjustment precisionAdjustment;
+  private final CFA cfa;
   private final TerminationToReachStatistics statistics;
 
-  public TerminationToReachCPA(
-      LogManager pLogger,
-      Configuration pConfiguration,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCFA)
+  public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
-    try {
-      if (SerializationInfoStorage.isSet()) {
-        solver = SerializationInfoStorage.getInstance().getPredicateSolver();
-      } else {
-        // This should never be triggered because TerminationCPA can only run with predicateCPA
-        // and cpa.predicate.enableSharedInformation set to true.
-        solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
-      }
-      fmgr = solver.getFormulaManager();
-      bfmgr = fmgr.getBooleanFormulaManager();
-      precisionAdjustment =
-          new TerminationToReachPrecisionAdjustment(solver, statistics, pCFA, bfmgr, fmgr);
-    } finally {
-      if (SerializationInfoStorage.isSet()) {
-        SerializationInfoStorage.clear();
-      }
-    }
+    cfa = pCFA;
   }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
+  }
+
+  public void setSolver(Solver pSolver) {
+    solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    precisionAdjustment =
+        new TerminationToReachPrecisionAdjustment(solver, statistics, cfa, bfmgr, fmgr);
   }
 
   @Override
