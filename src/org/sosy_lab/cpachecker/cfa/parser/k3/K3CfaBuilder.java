@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.k3;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -51,7 +52,8 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
@@ -61,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3StatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -84,6 +87,9 @@ class K3CfaBuilder {
   private Optional<CFANode> outermostLoopHead = Optional.empty();
 
   private Map<CFANode, String> gotoNodesToLabel = new HashMap<>();
+
+  private final ImmutableSetMultimap.Builder<CFANode, K3TagProperty> nodeToTagAnnotations =
+      new ImmutableSetMultimap.Builder<>();
 
   public K3CfaBuilder(
       LogManager pLogger,
@@ -127,11 +133,25 @@ class K3CfaBuilder {
     return Pair.of(functionEntryNode, functionExitNode);
   }
 
+  private void trackTagPropertiesForStatementStartingWithNode(
+      K3Statement pStatement,
+      CFANode pStartNode,
+      ImmutableSetMultimap<String, K3TagProperty> pTagAnnotations) {
+    nodeToTagAnnotations.putAll(pStartNode, pStatement.getTagAttributes());
+    nodeToTagAnnotations.putAll(
+        pStartNode,
+        FluentIterable.from(pStatement.getTagReferences())
+            .transform(K3TagReference::getTagName)
+            .transformAndConcat(pTagAnnotations::get)
+            .toSet());
+  }
+
   private Pair<CFANode, List<CFANode>> buildCfaForStatement(
       K3Statement pStatement,
       CFANode pCurrentNode,
       K3ProcedureDeclaration pProcedure,
-      FunctionExitNode pFunctionExitNode)
+      FunctionExitNode pFunctionExitNode,
+      ImmutableSetMultimap<String, K3TagProperty> pTagAnnotations)
       throws K3ParserException, InterruptedException {
     ImmutableList.Builder<CFANode> builder = ImmutableList.builder();
     CFANode predecessorNode = pCurrentNode;
@@ -168,7 +188,8 @@ class K3CfaBuilder {
         // Handle sequence statements.
         for (K3Statement subStatement : sequenceStatement.getStatements()) {
           Pair<CFANode, List<CFANode>> lastNodeWithAllNodes =
-              buildCfaForStatement(subStatement, predecessorNode, pProcedure, pFunctionExitNode);
+              buildCfaForStatement(
+                  subStatement, predecessorNode, pProcedure, pFunctionExitNode, pTagAnnotations);
           builder.addAll(lastNodeWithAllNodes.getSecondNotNull());
           predecessorNode = lastNodeWithAllNodes.getFirstNotNull();
         }
@@ -263,7 +284,11 @@ class K3CfaBuilder {
         // Handle the then branch
         Pair<CFANode, List<CFANode>> thenBranchNodes =
             buildCfaForStatement(
-                pK3IfStatement.getThenBranch(), trueConditionNode, pProcedure, pFunctionExitNode);
+                pK3IfStatement.getThenBranch(),
+                trueConditionNode,
+                pProcedure,
+                pFunctionExitNode,
+                pTagAnnotations);
         builder.addAll(thenBranchNodes.getSecondNotNull());
         final CFANode thenBranchEndNode = thenBranchNodes.getFirstNotNull();
 
@@ -275,7 +300,8 @@ class K3CfaBuilder {
                   pK3IfStatement.getElseBranch().orElseThrow(),
                   falseConditionNode,
                   pProcedure,
-                  pFunctionExitNode);
+                  pFunctionExitNode,
+                  pTagAnnotations);
           builder.addAll(elseBranchNodes.getSecondNotNull());
           elseBranchEndNode = elseBranchNodes.getFirstNotNull();
         } else {
@@ -361,7 +387,11 @@ class K3CfaBuilder {
         // Handle the body of the while loop
         Pair<CFANode, List<CFANode>> bodyNodes =
             buildCfaForStatement(
-                pK3WhileStatement.getBody(), trueConditionNode, pProcedure, pFunctionExitNode);
+                pK3WhileStatement.getBody(),
+                trueConditionNode,
+                pProcedure,
+                pFunctionExitNode,
+                pTagAnnotations);
         builder.addAll(bodyNodes.getSecondNotNull());
         CFANode bodyEndNode = bodyNodes.getFirstNotNull();
 
@@ -379,7 +409,9 @@ class K3CfaBuilder {
   }
 
   private Pair<FunctionEntryNode, List<CFANode>> parseProcedureDefinition(
-      K3ProcedureDefinitionCommand pCommand) throws K3ParserException, InterruptedException {
+      K3ProcedureDefinitionCommand pCommand,
+      ImmutableSetMultimap<String, K3TagProperty> pTagAttributes)
+      throws K3ParserException, InterruptedException {
     K3ProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
     ImmutableList.Builder<CFANode> nodesBuilder = ImmutableList.builder();
 
@@ -393,7 +425,11 @@ class K3CfaBuilder {
 
     Pair<CFANode, List<CFANode>> bodyNodes =
         buildCfaForStatement(
-            pCommand.getBody(), functionEntryNode, procedureDeclaration, functionExitNode);
+            pCommand.getBody(),
+            functionEntryNode,
+            procedureDeclaration,
+            functionExitNode,
+            pTagAttributes);
     CFACreationUtils.addEdgeToCFA(
         new BlankEdge("", FileLocation.DUMMY, bodyNodes.getFirstNotNull(), functionExitNode, ""),
         logger);
@@ -440,10 +476,14 @@ class K3CfaBuilder {
             "Start of Global Declarations"),
         logger);
 
+    // Keep track of the metadata for the CFA, like the specification, and the SMT-LIB commands.
+    ImmutableList.Builder<K3SetLogicCommand> smtLibSetLogicCommandsBuilder =
+        ImmutableList.builder();
+
     // Go through all the commands in the script and parse them.
     List<K3Command> commands = script.getCommands();
     int indexOfFirstVerifyCall = -1;
-    ImmutableSetMultimap.Builder<String, K3TagAttribute> tagAnnotations =
+    ImmutableSetMultimap.Builder<String, K3TagProperty> tagAnnotations =
         ImmutableSetMultimap.builder();
 
     for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
@@ -458,7 +498,7 @@ class K3CfaBuilder {
               procedureDefinitionCommand.getProcedureDeclaration();
 
           Pair<FunctionEntryNode, List<CFANode>> functionParseResult =
-              parseProcedureDefinition(procedureDefinitionCommand);
+              parseProcedureDefinition(procedureDefinitionCommand, tagAnnotations.build());
 
           String functionName = procedureDeclaration.getOrigName();
           functions.put(functionName, functionParseResult.getFirstNotNull());
@@ -513,8 +553,12 @@ class K3CfaBuilder {
               Level.WARNING,
               "Ignoring get-proof command, since there was no verify call command before.");
         }
+        case K3SetLogicCommand pK3SetLogicCommand -> {
+          // We add all set logic commands to the CFA metadata,
+          // since we need it later when creating the SMT-Solver instance.
+          smtLibSetLogicCommandsBuilder.add(pK3SetLogicCommand);
+        }
         // TODO: handle these commands properly
-        case K3SetLogicCommand pK3SetLogicCommand -> {}
         case K3AssertCommand pK3AssertCommand -> {}
         case K3DeclareConstCommand pK3DeclareConstCommand -> {}
       }
@@ -561,6 +605,11 @@ class K3CfaBuilder {
         logger);
 
     return new ParseResult(
-        functions, cfaNodes, globalDeclarations, fileNames, tagAnnotations.build(), exportWitness);
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        fileNames,
+        new K3CfaMetadata(
+            smtLibSetLogicCommandsBuilder.build(), nodeToTagAnnotations.build(), exportWitness));
   }
 }

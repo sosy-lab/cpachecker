@@ -16,11 +16,11 @@ public final class K3AnnotateTagCommand implements K3Command {
   @Serial private static final long serialVersionUID = 5333102692293273124L;
 
   private final String tagName;
-  private final List<K3TagAttribute> tags;
+  private final List<K3TagProperty> tags;
   private final FileLocation fileLocation;
 
   public K3AnnotateTagCommand(
-      String pTagName, List<K3TagAttribute> pTags, FileLocation pFileLocation) {
+      String pTagName, List<K3TagProperty> pTags, FileLocation pFileLocation) {
     tagName = pTagName;
     tags = pTags;
     fileLocation = pFileLocation;
@@ -30,7 +30,7 @@ public final class K3AnnotateTagCommand implements K3Command {
     return tagName;
   }
 
-  public List<K3TagAttribute> getTags() {
+  public List<K3TagProperty> getTags() {
     return tags;
   }
 

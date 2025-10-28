@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3Statement implements K3AstNode
@@ -29,11 +30,11 @@ public abstract sealed class K3Statement implements K3AstNode
     tagReferences = pTagReferences;
   }
 
-  List<K3TagProperty> getTagAttributes() {
+  public List<K3TagProperty> getTagAttributes() {
     return tagAttributes;
   }
 
-  List<K3TagReference> getTagReferences() {
+  public @NonNull List<@NonNull K3TagReference> getTagReferences() {
     return tagReferences;
   }
 

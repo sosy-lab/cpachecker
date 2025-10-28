@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-public class K3ProcedureSummaryEdge extends FunctionSummaryEdge implements K3CfaEdge {
+public final class K3ProcedureSummaryEdge extends FunctionSummaryEdge implements K3CfaEdge {
   public K3ProcedureSummaryEdge(
       String pRawStatement,
       FileLocation pFileLocation,

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 
@@ -44,7 +45,7 @@ public final class K3TagReference implements K3TagAttribute {
     return ":tag " + tagName;
   }
 
-  public String getTagName() {
+  public @NonNull String getTagName() {
     return tagName;
   }
 

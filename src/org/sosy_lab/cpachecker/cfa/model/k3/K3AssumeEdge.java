@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class K3AssumeEdge extends AssumeEdge implements K3CfaEdge {
+public final class K3AssumeEdge extends AssumeEdge implements K3CfaEdge {
 
   public K3AssumeEdge(
       String pRawStatement,

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -45,6 +47,7 @@ public final class CfaMetadata {
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
+  private final @Nullable K3CfaMetadata k3CfaMetadata;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -57,7 +60,8 @@ public final class CfaMetadata {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
-      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
+      @Nullable K3CfaMetadata pK3CfaMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -70,6 +74,7 @@ public final class CfaMetadata {
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
+    k3CfaMetadata = pK3CfaMetadata;
   }
 
   /**
@@ -106,6 +111,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -138,7 +144,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -198,7 +205,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -229,7 +237,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -273,7 +282,44 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
+  }
+
+  /**
+   * Returns the K3-specific CFA metadata, if it's stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the K3-specific CFA metadata, an optional containing
+   *     the K3-specific CFA metadata is returned. Otherwise, if this metadata instance doesn't
+   *     contain the K3-specific CFA metadata, an empty optional is returned.
+   */
+  public Optional<K3CfaMetadata> getK3CfaMetadata() {
+    return Optional.ofNullable(k3CfaMetadata);
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified K3CfaMetadata.
+   *
+   * @param K3CfaMetadata the K3CfaMetadata to store in the returned metadata instance (use {@code
+   *     null} to create an instance without K3CfaMetadata)
+   * @return a copy of this metadata instance, but with the specified AST structure
+   */
+  public CfaMetadata withK3CfaMetadata(@Nullable K3CfaMetadata pK3CfaMetadata) {
+    Preconditions.checkArgument(
+        inputLanguage == Language.K3 ? pK3CfaMetadata != null : pK3CfaMetadata == null);
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        pK3CfaMetadata);
   }
 
   /**
@@ -295,7 +341,8 @@ public final class CfaMetadata {
         pLoopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -329,7 +376,8 @@ public final class CfaMetadata {
         loopStructure,
         pVariableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -362,7 +410,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         pLiveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        k3CfaMetadata);
   }
 
   /**
@@ -399,7 +448,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        pedgesToAnnotations);
+        pedgesToAnnotations,
+        k3CfaMetadata);
   }
 
   @Override
@@ -414,7 +464,9 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        astCFARelation,
+        k3CfaMetadata);
   }
 
   @Override
@@ -432,7 +484,9 @@ public final class CfaMetadata {
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
         && Objects.equals(liveVariables, other.liveVariables)
-        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations);
+        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
+        && Objects.equals(astCFARelation, other.astCFARelation)
+        && Objects.equals(k3CfaMetadata, other.k3CfaMetadata);
   }
 
   @Override

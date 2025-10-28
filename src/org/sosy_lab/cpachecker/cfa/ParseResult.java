@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,9 +21,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -49,8 +48,7 @@ public record ParseResult(
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
     // Only relevant for K3 scripts
-    Optional<ImmutableSetMultimap<String, K3TagAttribute>> tagAnnotations,
-    Optional<Boolean> exportWitness) {
+    Optional<K3CfaMetadata> k3CfaMetadata) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -62,7 +60,6 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
-        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -88,7 +85,6 @@ public record ParseResult(
         Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
         Optional.empty());
   }
 
@@ -97,8 +93,7 @@ public record ParseResult(
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
-      ImmutableSetMultimap<String, K3TagAttribute> pTagAnnotations,
-      boolean pExportWitness) {
+      K3CfaMetadata pK3CfaMetadata) {
     this(
         pFunctions,
         pCfaNodes,
@@ -109,8 +104,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(pTagAnnotations),
-        Optional.of(pExportWitness));
+        Optional.of(pK3CfaMetadata));
   }
 
   public boolean isEmpty() {
@@ -129,8 +123,7 @@ public record ParseResult(
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        Optional.empty(),
-        Optional.empty());
+        k3CfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
@@ -148,8 +141,7 @@ public record ParseResult(
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
-        Optional.empty(),
-        Optional.empty());
+        k3CfaMetadata);
   }
 
   public ParseResult withFileNames(List<Path> pFileNames) {
@@ -163,7 +155,6 @@ public record ParseResult(
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        Optional.empty(),
-        Optional.empty());
+        k3CfaMetadata);
   }
 }

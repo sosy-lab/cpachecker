@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3CfaEdgeStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class K3StatementEdge extends AStatementEdge implements K3CfaEdge {
+public final class K3StatementEdge extends AStatementEdge implements K3CfaEdge {
   public K3StatementEdge(
       String pRawStatement,
       K3CfaEdgeStatement pStatement,
@@ -21,5 +21,10 @@ public class K3StatementEdge extends AStatementEdge implements K3CfaEdge {
       CFANode pPredecessor,
       CFANode pSuccessor) {
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
+  }
+
+  @Override
+  public K3CfaEdgeStatement getStatement() {
+    return (K3CfaEdgeStatement) super.getStatement();
   }
 }

@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class K3ProcedureReturnEdge extends FunctionReturnEdge implements K3CfaEdge {
+public final class K3ProcedureReturnEdge extends FunctionReturnEdge implements K3CfaEdge {
   public K3ProcedureReturnEdge(
       FileLocation pFileLocation,
       FunctionExitNode pPredecessor,

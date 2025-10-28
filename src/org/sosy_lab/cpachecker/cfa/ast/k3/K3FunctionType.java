@@ -78,7 +78,7 @@ public final class K3FunctionType implements K3Type, AFunctionType {
   }
 
   @Override
-  public List<? extends K3Type> getParameters() {
+  public List<K3Type> getParameters() {
     return getInputType();
   }
 

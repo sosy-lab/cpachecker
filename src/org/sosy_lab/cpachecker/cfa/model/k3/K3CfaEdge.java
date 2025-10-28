@@ -8,4 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.model.k3;
 
-public interface K3CfaEdge {}
+public sealed interface K3CfaEdge
+    permits K3AssumeEdge,
+        K3ProcedureCallEdge,
+        K3ProcedureReturnEdge,
+        K3ProcedureSummaryEdge,
+        K3StatementEdge {}

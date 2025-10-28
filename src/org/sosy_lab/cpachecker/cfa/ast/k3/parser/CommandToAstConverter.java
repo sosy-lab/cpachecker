@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
@@ -169,9 +169,11 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   @Override
   public K3Command visitAnnotateTag(AnnotateTagContext pContext) {
-    List<K3TagAttribute> tags =
-        transformedImmutableListCopy(
-            pContext.attribute(), attribute -> tagToAstConverter.visit(attribute));
+    List<K3TagProperty> tags =
+        FluentIterable.from(pContext.attribute())
+            .transform(attribute -> tagToAstConverter.visit(attribute))
+            .filter(K3TagProperty.class)
+            .toList();
     String tagName = pContext.symbol().getText();
     return new K3AnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
   }

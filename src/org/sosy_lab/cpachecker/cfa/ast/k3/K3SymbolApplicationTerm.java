@@ -21,7 +21,7 @@ public final class K3SymbolApplicationTerm implements K3Term {
 
   private static boolean wellFormedTerms(K3IdTerm pSymbol, List<K3Term> pTerms) {
     if (pSymbol.getExpressionType() instanceof K3FunctionType functionType) {
-      List<K3Type> parameterTypes = (List<K3Type>) functionType.getParameters();
+      List<K3Type> parameterTypes = functionType.getParameters();
       if (parameterTypes.size() != pTerms.size()) {
         return false;
       }
