@@ -76,24 +76,31 @@ public class SMGOptions {
       toUppercase = true,
       name = "handleUnknownFunctions",
       description =
-          "Sets how unknown functions are handled. Strict: Unknown functions cause a stop in the"
-              + " analysis except for known and handled functions or functions defined in option"
-              + " safeUnknownFunctions, which are handled as SAFE. ASSUME_SAFE: unknown functions"
-              + " are assumed to be safe. No input into the function is checked for validity and"
-              + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
-              + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
-              + " may cause memory based errors. Returned values are unknown, but in a valid new"
-              + " memory section that can be freed normally. Functions allocating external memory"
-              + " and returning their address can be defined with option"
-              + " externalAllocationFunction. externalAllocationSize.")
-  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+          "Sets how unknown functions are handled.\n"
+              + "STRICT: Unknown functions cause a stop in the analysis, i.e. known and handled"
+              + " functions are evaluated normally. \n"
+              + "ASSUME_SAFE: unknown functions are assumed to be safe. No input into the function"
+              + " is checked for validity and the result is a UNKNOWN value (which may itself"
+              + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
+              + " effects, the unknown return value etc.!\n"
+              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and may"
+              + " cause memory based errors. Returned values are unknown, but in a valid new memory"
+              + " section that can be freed normally. Functions allocating external memory and"
+              + " returning their address can be defined with option externalAllocationFunction and"
+              + " externalAllocationSize.\n"
+              + "Functions defined in option \"safeUnknownFunctions\" are handled equally to"
+              + " ASSUME_SAFE in all cases.")
+  private UnknownFunctionHandling handleUnknownFunctions =
+      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
 
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "List of functions that are always considered as safe, i.e. they are not evaluated, even"
+              + " if known to the analysis, nor are their inputs checked for validity. They always"
+              + " return a new, unknown value and therefore overapproximate if their signature does"
+              + " not return void. Using this option might be unsound, depending on the function.")
+  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("");
 
   @Option(
       secure = true,
@@ -266,7 +273,7 @@ public class SMGOptions {
       secure = true,
       name = "trackPredicates",
       description = "Enable track predicates on SMG state")
-  private boolean trackPredicates = false;
+  private boolean trackPredicates = true;
 
   private enum CheckStrategy {
     AT_ASSUME,
@@ -328,7 +335,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryErrors",
       description = "Determines if memory errors are target states")
-  private boolean memoryErrors = true;
+  private boolean memoryErrors = false;
 
   @Option(
       secure = true,

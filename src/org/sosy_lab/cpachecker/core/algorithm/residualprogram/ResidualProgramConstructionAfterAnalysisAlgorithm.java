@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ResidualProgramConstructionAfterAnalysisAlgorithm
@@ -247,7 +246,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       shutdown.shutdownIfNecessary();
       current = toProcess.pop();
 
-      for (CFAEdge leaving : CFAUtils.leavingEdges(current)) {
+      for (CFAEdge leaving : current.getLeavingEdges()) {
         if (seen.add(leaving.getSuccessor())) {
           toProcess.push(leaving.getSuccessor());
         }
@@ -296,7 +295,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       shutdown.shutdownIfNecessary();
       Pair<CFANode, CallstackState> current = toProcess.pop();
 
-      for (CFAEdge leaving : CFAUtils.leavingEdges(current.getFirst())) {
+      for (CFAEdge leaving : current.getFirst().getLeavingEdges()) {
         Collection<? extends AbstractState> csSucc =
             csTr.getAbstractSuccessorsForEdge(
                 current.getSecond(), SingletonPrecision.getInstance(), leaving);
@@ -333,7 +332,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty(), cfa);
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
@@ -346,7 +345,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
                 logger,
                 shutdown);
       }
-      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
+      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(spec);
 
       ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(

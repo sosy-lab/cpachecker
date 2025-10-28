@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.STBridges.BridgeComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BridgeDecomposition implements DssBlockDecomposition {
 
@@ -74,7 +73,7 @@ public class BridgeDecomposition implements DssBlockDecomposition {
     CFANode startNode = blockNode.getInitialLocation();
     CFANode endNode = blockNode.getFinalLocation();
 
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(startNode)) {
+    for (CFAEdge leavingEdge : startNode.getLeavingEdges()) {
       Set<CFANode> allNodesOfNewBlockNode = new HashSet<>();
       Set<CFAEdge> allEdgesOfNewBlockNode = new HashSet<>();
       allNodesOfNewBlockNode.add(startNode);
@@ -136,7 +135,7 @@ public class BridgeDecomposition implements DssBlockDecomposition {
 
   private boolean onlyOneLeavingEdgeIsPartOfBlockNode(BlockNodeWithoutGraphInformation blockNode) {
     int counter = 0;
-    for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(blockNode.getInitialLocation())) {
+    for (CFAEdge leavingEdge : blockNode.getInitialLocation().getAllLeavingEdges()) {
       if (blockNode.getEdges().contains(leavingEdge)) {
         counter++;
       }

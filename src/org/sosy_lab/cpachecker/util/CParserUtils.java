@@ -457,7 +457,7 @@ public class CParserUtils {
       ExpressionTree<AExpression> currentTree = memo.get(current);
 
       // Compute successor trees
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+      for (CFAEdge leavingEdge : current.getLeavingEdges()) {
 
         CFANode succ = leavingEdge.getSuccessor();
 
@@ -492,7 +492,7 @@ public class CParserUtils {
           AExpression expression = assumeEdge.getExpression();
 
           if (expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+            for (CFAEdge enteringEdge : current.getEnteringEdges()) {
               Map<AExpression, AExpression> tmpVariableValues =
                   collectCPAcheckerTMPValues(enteringEdge);
               if (!tmpVariableValues.isEmpty()) {

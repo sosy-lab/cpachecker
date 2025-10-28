@@ -478,7 +478,7 @@ public class FaultLocalizationByImport implements Algorithm {
   private static List<List<CFAEdge>> findAllPaths(CFANode pStart, CFANode pEnd) {
     List<List<CFAEdge>> waitlist = new ArrayList<>();
     List<List<CFAEdge>> finished = new ArrayList<>();
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pStart)) {
+    for (CFAEdge leavingEdge : pStart.getLeavingEdges()) {
       waitlist.add(new ArrayList<>(ImmutableList.of(leavingEdge)));
     }
     while (!waitlist.isEmpty()) {
@@ -489,7 +489,7 @@ public class FaultLocalizationByImport implements Algorithm {
       if (currentTail.equals(pEnd)) {
         finished.add(path);
       }
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentTail)) {
+      for (CFAEdge leavingEdge : currentTail.getLeavingEdges()) {
         if (covered.contains(leavingEdge)) {
           continue;
         }

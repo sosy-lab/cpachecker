@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -555,7 +554,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
-      for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
+      for (CFAEdge leave : loc.getLeavingEdges()) {
         if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
           ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
@@ -589,7 +588,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
-            for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
+            for (CFAEdge leaveFun : context.getFirst().getLeavingEdges()) {
               Pair<CFANode, CallstackState> newContext =
                   Pair.of(leaveFun.getSuccessor(), context.getSecond());
 

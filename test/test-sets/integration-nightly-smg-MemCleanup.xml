@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
 
   <rundefinition>
-    <option name="--smg"/>
+    <option name="--smgSymbolicExecution"/>
   </rundefinition>
 
   <resultfiles>**.graphml*</resultfiles>

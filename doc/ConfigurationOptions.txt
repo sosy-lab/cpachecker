@@ -58,6 +58,7 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -128,18 +129,26 @@ solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
 # Algorithm for boolean interpolation
-solver.opensmt.algBool = 0
+solver.opensmt.algBool = MCMILLAN
+  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
+             PROOF_SENSITIVE_STRONG]
 
 # Algorithm for LRA interpolation
-solver.opensmt.algLra = 0
+solver.opensmt.algLra = STRONG
+  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
 # Algorithm for UF interpolation
-solver.opensmt.algUf = 0
+solver.opensmt.algUf = STRONG
+  enum:     [STRONG, WEAK, RANDOM]
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
+
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
+solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
 # debugging. This option can cause a performance overhead.
@@ -323,6 +332,12 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# Generate samples using the provided algorithm. Currently this only works
+# using the configuration 'config/valueAnalysis-NoCegar.properties' as an
+# algorithm.Ideally never use this option directly, but only through a
+# configuration
+analysis.algorithm.useSamplingAlgorithm = false
+
 # If not already done by the analysis, store a found counterexample in the
 # ARG for later re-use. Does nothing if no ARGCPA is used
 analysis.alwaysStoreCounterexamples = false
@@ -484,7 +499,7 @@ analysis.traversal.order = DFS
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
 # to be a double in the range [0, INF)
-analysis.traversal.random.exponent = 1
+analysis.traversal.random.exponent = 8
 
 # Seed for random values.
 analysis.traversal.random.seed = 0
@@ -1067,10 +1082,13 @@ counterexample.checker = CBMC
 counterexample.checker.changeCEXInfo = false
 
 # counterexample check checks MemSafety sub-properties (valid-deref,
-# valid-free, valid-memtrack) additionally to the path.
+# valid-free, valid-memtrack) additionally to the path. This is generally
+# only needed if there are multiple sub-properties.
 counterexample.checker.checkMemorySafetySubproperty = false
 
-# configuration file for counterexample checks with CPAchecker
+# configuration file for counterexample checks with CPAchecker. The config is
+# only loaded once a CEX-check is performed and is not influenced by settings
+# of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
 # counterexample check should fully replace existing counterexamples with own
@@ -2333,6 +2351,11 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
+# When using the NLA encoding, approximate unsupported operations (e.g.,
+# bitwise shift) with an uninterpreted function (UF). If false, the operation
+# fails early by throwing UnsupportedOperationByDesignException.
+cpa.predicate.approximateBitwiseWithUFs = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -3014,6 +3037,12 @@ cpa.predicate.useMemoryRegions = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# When using encodeBitvectorAs=INTEGER, this will modify the bitvector
+# replacement behavior such that unbounded integer arithmetic (NLA) (and
+# additional
+#  constraints) is used to model wrap-around and boundedness.
+cpa.predicate.useNonlinearArithmeticForIntAsBv = false
+
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
 cpa.predicate.useParameterVariables = false
@@ -3426,18 +3455,21 @@ cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
 # predicate, depends on trackPredicates
 cpa.smg2.handleUnknownDereferenceAsSafe = false
 
-# Sets how unknown functions are handled. Strict: Unknown functions cause a
-# stop in the analysis except for known and handled functions or functions
-# defined in option safeUnknownFunctions, which are handled as SAFE.
+# Sets how unknown functions are handled.
+# STRICT: Unknown functions cause a stop in the analysis, i.e. known and
+# handled functions are evaluated normally. 
 # ASSUME_SAFE: unknown functions are assumed to be safe. No input into the
 # function is checked for validity and the result is a UNKNOWN value (which
-# may itself violate memorysafety etc.). ASSUME_EXTERNAL_ALLOCATED: Input
-# into the function is checked for validity and may cause memory based
-# errors. Returned values are unknown, but in a valid new memory section that
-# can be freed normally. Functions allocating external memory and returning
-# their address can be defined with option externalAllocationFunction.
-# externalAllocationSize.
-cpa.smg2.handleUnknownFunctions = STRICT
+# may itself violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound
+# due to side effects, the unknown return value etc.!
+# ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity
+# and may cause memory based errors. Returned values are unknown, but in a
+# valid new memory section that can be freed normally. Functions allocating
+# external memory and returning their address can be defined with option
+# externalAllocationFunction and externalAllocationSize.
+# Functions defined in option "safeUnknownFunctions" are handled equally to
+# ASSUME_SAFE in all cases.
+cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNAL_ALLOCATED
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
@@ -3478,7 +3510,7 @@ cpa.smg2.memoryArrayAllocationFunctionsElemSizeParameter = 1
 cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
-cpa.smg2.memoryErrors = true
+cpa.smg2.memoryErrors = false
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
@@ -3542,9 +3574,12 @@ cpa.smg2.resolveDefinites = true
 cpa.smg2.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
-# Which unknown function are always considered as safe functions, i.e., free
-# of memory-related side effects?
-cpa.smg2.safeUnknownFunctions = {"abort"}
+# List of functions that are always considered as safe, i.e. they are not
+# evaluated, even if known to the analysis, nor are their inputs checked for
+# validity. They always return a new, unknown value and therefore
+# overapproximate if their signature does not return void. Using this option
+# might be unsound, depending on the function.
+cpa.smg2.safeUnknownFunctions = {""}
 
 # When to check the satisfiability of constraints
 cpa.smg2.satCheckStrategy = AT_ASSUME
@@ -3558,7 +3593,7 @@ cpa.smg2.stop = "SEP"
 cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
-cpa.smg2.trackPredicates = false
+cpa.smg2.trackPredicates = true
 
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.treatSymbolicValuesAsUnknown = false
@@ -3917,6 +3952,15 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# random seed for sampling function return values. If not set, a seed of '0'
+# is taken. This options only has an effect if the option
+# 'randomlySampleFunctionReturnValues' is used.
+cpa.value.randomSamplingSeed = 0
+
+# if set to true this option will generate random test values for function
+# calls to VERIFIER_nondet_*.
+cpa.value.randomlySampleFunctionReturnValues = false
+
 # whether to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
@@ -4115,7 +4159,9 @@ dar.removeUnreachableStopStates = false
 dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 datarace.config = no default value
 
 # Whether to consider pointees. Only if this option is set to true, a pointer
@@ -4538,11 +4584,15 @@ locmapper.dumpTokenizedProgramToFile = no default value
 log.usedOptions.export = false
 
 # When checking for memory cleanup properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorycleanup.config = no default value
 
 # When checking for memory safety properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorysafety.config = no default value
 
 # which merge operator to use for LiveVariablesCPA
@@ -4620,7 +4670,9 @@ mpv.propertySeparator = FILE
 overflow.checkUnsigned = false
 
 # When checking for the overflow property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 overflow.config = no default value
 
 # Simplify overflow assumptions.
@@ -5053,6 +5105,23 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# File name for analysis report in case a counterexample was found.
+sampling.random.counterexampleExport = "Counterexample.trace.%d.txt"
+
+# Whether the random sampling algorithm exports traces.
+sampling.random.exportTraces = false
+
+# File name for analysis report in case no counterexample was found.
+sampling.random.safeExport = "Safe.trace.%d.txt"
+
+# Amount of samples to be generated. Generate an infinite amount of samples
+# with a value less than 0.
+sampling.random.samplesToBeGenerated = 10
+
+# Stop after finding the first counterexample. This is useful when using this
+# as an actual analysis.
+sampling.random.stopAfterFirstCounterexample = false
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -5178,7 +5247,9 @@ stop = "SEP"
 termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
