@@ -529,6 +529,21 @@ public class ConfigurationFileChecks {
       return;
     }
 
+    // exclude files not meant to be run
+    if (configFile instanceof Path) {
+      assume()
+          .that((Iterable<?>) configFile)
+          .containsNoneOf(
+              // Configs containing this name randomly sample paths from the program
+              // by default they do not terminate, which makes this test fail due to
+              // a timeout. If the analysis is improved such that already
+              // seen paths are not considered twice, this test can be re-enabled.
+              Path.of("describerr-portfolio.properties"),
+              Path.of("parallel-randomSampling.properties"),
+              Path.of("randomSampling.properties"),
+              Path.of("randomTesting.properties"));
+    }
+
     CPAcheckerResult result;
     try {
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));

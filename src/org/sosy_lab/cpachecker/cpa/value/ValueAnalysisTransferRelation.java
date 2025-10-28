@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -180,6 +182,22 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
+            "if set to true this option will generate random test values for function calls to"
+                + " VERIFIER_nondet_*.")
+    private boolean randomlySampleFunctionReturnValues = false;
+
+    @Option(
+        secure = true,
+        description =
+            "random seed for sampling function return values. "
+                + "If not set, a seed of '0' is taken. "
+                + "This options only has an effect if the "
+                + "option 'randomlySampleFunctionReturnValues' is used.")
+    private long randomSamplingSeed = 0;
+
+    @Option(
+        secure = true,
+        description =
             "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
                 + " ignoreFunctionValueExceptRandom is enabled ")
     @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -229,6 +247,14 @@ public class ValueAnalysisTransferRelation
     boolean isAllowedUnsupportedOption(String func) {
       return allowedUnsupportedFunctions.contains(func);
     }
+
+    public boolean randomlySampleFunctionReturnValues() {
+      return randomlySampleFunctionReturnValues;
+    }
+
+    public long randomSamplingSeed() {
+      return randomSamplingSeed;
+    }
   }
 
   private final ValueTransferOptions options;
@@ -270,6 +296,7 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
   private Map<Integer, String> valuesFromFile;
+  @LazyInit private Random randomSampler = null;
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -1742,7 +1769,19 @@ public class ValueAnalysisTransferRelation
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValueExceptRandom()
+    if (options.randomlySampleFunctionReturnValues()) {
+      if (randomSampler == null) {
+        // We cache the visitor such that the visitor can update itself to get a new random value
+        // Be aware that a fresh transfer relation is created each time
+        // `ValueAnalysisCPA.getTransferRelation()` is called, this will reset the seed being used.
+        // For more details see:
+        // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/345#note_2829900573
+        randomSampler = new Random(options.randomSamplingSeed());
+      }
+
+      return new ExpressionValueVisitorWithRandomSampling(
+          pState, pFunctionName, machineModel, logger, randomSampler);
+    } else if (options.isIgnoreFunctionValueExceptRandom()
         && options.isIgnoreFunctionValue()
         && options.getFunctionValuesForRandom() != null) {
       return new ExpressionValueVisitorWithPredefinedValues(
