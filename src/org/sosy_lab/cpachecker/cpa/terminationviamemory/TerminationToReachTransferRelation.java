@@ -20,10 +20,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -41,15 +43,15 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    Map<LocationState, Map<Integer, Set<Formula>>> newStoredValuesMap = new HashMap<>();
-    Map<LocationState, Map<Integer, Set<Formula>>> oldStoredValuesMap =
+    Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> newStoredValuesMap =
+        new HashMap<>();
+    Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> oldStoredValuesMap =
         terminationState.getStoredValues();
-    for (LocationState locationState : oldStoredValuesMap.keySet()) {
-      newStoredValuesMap.put(locationState, new HashMap<>());
-      for (Entry<Integer, Set<Formula>> storedValues :
-          oldStoredValuesMap.get(locationState).entrySet()) {
+    for (Pair<LocationState, CallstackState> keyPair : oldStoredValuesMap.keySet()) {
+      newStoredValuesMap.put(keyPair, new HashMap<>());
+      for (Entry<Integer, Set<Formula>> storedValues : oldStoredValuesMap.get(keyPair).entrySet()) {
         newStoredValuesMap
-            .get(locationState)
+            .get(keyPair)
             .put(storedValues.getKey(), new HashSet<>(storedValues.getValue()));
       }
     }
@@ -68,6 +70,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       Precision precision)
       throws CPATransferException, InterruptedException {
     LocationState locationState = getLocationState(pOtherStates);
+    CallstackState callstackState = getCallStackState(pOtherStates);
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
     TerminationToReachState terminationState = (TerminationToReachState) pState;
@@ -76,18 +79,22 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
     if (location.isLoopStart()) {
-      terminationState.putNewPathFormula(
-          locationState, predicateState.getPathFormula().getFormula());
-      if (terminationState.getStoredValues().containsKey(locationState)) {
+      Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
+      terminationState.putNewPathFormula(pairKey, predicateState.getPathFormula());
+      if (terminationState.getStoredValues().containsKey(pairKey)) {
         terminationState.setNewStoredValues(
             locationState,
+            callstackState,
             extractLoopHeadVariables(predicateState.getPathFormula()),
-            terminationState.getNumberOfIterationsAtLoopHead(locationState));
-        terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
+            terminationState.getNumberOfIterationsAtLoopHead(pairKey));
+        terminationState.increaseNumberOfIterationsAtLoopHead(pairKey);
       } else {
         terminationState.setNewStoredValues(
-            locationState, extractLoopHeadVariables(predicateState.getPathFormula()), 0);
-        terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
+            locationState,
+            callstackState,
+            extractLoopHeadVariables(predicateState.getPathFormula()),
+            0);
+        terminationState.increaseNumberOfIterationsAtLoopHead(pairKey);
       }
     }
     return Collections.singleton(pState);
@@ -114,6 +121,15 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       }
     }
     throw new UnsupportedOperationException("TransferRelation requires location information.");
+  }
+
+  private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
+    for (AbstractState state : otherStates) {
+      if (state instanceof CallstackState pCallstackState) {
+        return pCallstackState;
+      }
+    }
+    throw new UnsupportedOperationException("TransferRelation requires call-stack information.");
   }
 
   private PredicateAbstractState getPredicateState(Iterable<AbstractState> otherStates) {

@@ -21,10 +21,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -63,22 +64,23 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       throws CPAException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
     LocationState locationState = AbstractStates.extractStateByType(fullState, LocationState.class);
+    CallstackState callstackState =
+        AbstractStates.extractStateByType(fullState, CallstackState.class);
     CFANode location = AbstractStates.extractLocation(locationState);
-    PredicateAbstractState predicateState =
-        AbstractStates.extractStateByType(fullState, PredicateAbstractState.class);
 
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
+    Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      if (terminationState.getNumberOfIterationsAtLoopHead(locationState) > 1) {
+    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(keyPair)) {
+      if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isTargetStateReachable;
         BooleanFormula targetFormula =
             buildCycleFormula(
-                terminationState.getPathFormulas().get(locationState),
-                terminationState.getStoredValues().get(locationState),
-                predicateState.getPathFormula().getSsa(),
-                terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1);
+                terminationState.getPathFormulas().get(keyPair).getFormula(),
+                terminationState.getStoredValues().get(keyPair),
+                terminationState.getPathFormulas().get(keyPair).getSsa(),
+                terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
