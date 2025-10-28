@@ -87,6 +87,8 @@ public class RCNFManager implements StatisticsProvider {
     DROP
   }
 
+  private record BodyAndBoundVariables(BooleanFormula body, List<Formula> boundVariables) {}
+
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
   private final RCNFConversionStatistics statistics;
@@ -104,7 +106,7 @@ public class RCNFManager implements StatisticsProvider {
    * @return Set of lemmas, only have variables with latest SSA index.
    */
   public Set<BooleanFormula> toLemmasInstantiated(PathFormula pf, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     BooleanFormula transition = pf.getFormula();
     SSAMap ssa = pf.getSsa();
     transition = pFmgr.filterLiterals(transition, input -> !hasDeadUf(input, ssa, pFmgr));
@@ -122,7 +124,7 @@ public class RCNFManager implements StatisticsProvider {
    * @param pFmgr Formula manager which performs the conversion.
    */
   public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -172,9 +174,12 @@ public class RCNFManager implements StatisticsProvider {
    */
   private BooleanFormula dropBoundVariables(BooleanFormula input) throws InterruptedException {
 
-    Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
-    if (body.isPresent()) {
-      return fmgr.filterLiterals(body.orElseThrow(), input1 -> !hasBoundVariables(input1));
+    Optional<BodyAndBoundVariables> bodyAndBoundVars = fmgr.visit(input, quantifiedBodyExtractor);
+    if (bodyAndBoundVars.isPresent()) {
+      BooleanFormula body = bodyAndBoundVars.orElseThrow().body();
+      Set<Formula> boundVariables =
+          ImmutableSet.copyOf(bodyAndBoundVars.orElseThrow().boundVariables());
+      return fmgr.filterLiterals(body, input1 -> !hasBoundVariables(input1, boundVariables));
     } else {
 
       // Does not have quantified variables.
@@ -306,39 +311,42 @@ public class RCNFManager implements StatisticsProvider {
         });
   }
 
-  private boolean hasBoundVariables(BooleanFormula input) {
+  private boolean hasBoundVariables(BooleanFormula input, Set<Formula> boundVariables) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);
     fmgr.visitRecursively(
         input,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula f) {
             return TraversalProcess.CONTINUE;
           }
 
           @Override
-          public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-            hasBound.set(true);
-            return TraversalProcess.ABORT;
+          public TraversalProcess visitFreeVariable(Formula f, String name) {
+            if (boundVariables.contains(f)) {
+              hasBound.set(true);
+              return TraversalProcess.ABORT;
+            }
+            return TraversalProcess.CONTINUE;
           }
         });
     return hasBound.get();
   }
 
-  private final DefaultFormulaVisitor<Optional<BooleanFormula>> quantifiedBodyExtractor =
+  private final DefaultFormulaVisitor<Optional<BodyAndBoundVariables>> quantifiedBodyExtractor =
       new DefaultFormulaVisitor<>() {
         @Override
-        protected Optional<BooleanFormula> visitDefault(Formula f) {
+        protected Optional<BodyAndBoundVariables> visitDefault(Formula f) {
           return Optional.empty();
         }
 
         @Override
-        public Optional<BooleanFormula> visitQuantifier(
+        public Optional<BodyAndBoundVariables> visitQuantifier(
             BooleanFormula f,
             Quantifier quantifier,
             List<Formula> boundVariables,
             BooleanFormula body) {
-          return Optional.of(body);
+          return Optional.of(new BodyAndBoundVariables(body, boundVariables));
         }
       };
 

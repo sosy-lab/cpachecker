@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.EmptyStatement;
@@ -182,7 +181,7 @@ public class CFAToCTranslator {
       final CompoundStatement pCurrentBlock,
       final Collection<NodeAndBlock> pEnteringBlocks) {
 
-    if (CFAUtils.enteringEdges(pCurrentNode).size() <= 1
+    if (pCurrentNode.getNumEnteringEdges() <= 1
         || pEnteringBlocks == null
         || pEnteringBlocks.size() <= 1) {
       return pCurrentBlock;
@@ -303,13 +302,15 @@ public class CFAToCTranslator {
   }
 
   private FluentIterable<CFAEdge> getRelevantLeavingEdges(CFANode pNode) {
-    return CFAUtils.leavingEdges(pNode)
+    return pNode
+        .getLeavingEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
 
   private FluentIterable<CFAEdge> getRelevantEnteringEdges(CFANode pNode) {
-    return CFAUtils.enteringEdges(pNode)
+    return pNode
+        .getEnteringEdges()
         .filter(e -> !(e instanceof FunctionReturnEdge))
         .filter(e -> !(e instanceof CFunctionSummaryStatementEdge));
   }
@@ -498,7 +499,7 @@ public class CFAToCTranslator {
           }
 
           if (declaration.contains(",")) {
-            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+            for (CFAEdge predEdge : pCFAEdge.getPredecessor().getEnteringEdges()) {
               if (predEdge
                   .getRawStatement()
                   .equals(lDeclarationEdge.getDeclaration().toASTString())) {

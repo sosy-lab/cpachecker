@@ -20,7 +20,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -763,13 +762,18 @@ public class PolicyIterationManager {
     }
   }
 
-  private Set<BooleanFormula> toLemmas(BooleanFormula formula) throws InterruptedException {
-    return switch (toLemmasAlgorithm) {
-      case "CNF" -> bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
-      case "RCNF" -> rcnfManager.toLemmas(formula, fmgr);
-      case "NONE" -> ImmutableSet.of(formula);
-      default -> throw new UnsupportedOperationException("Unexpected state");
-    };
+  private Set<BooleanFormula> toLemmas(BooleanFormula formula)
+      throws InterruptedException, CPATransferException {
+    try {
+      return switch (toLemmasAlgorithm) {
+        case "CNF" -> bfmgr.toConjunctionArgs(fmgr.applyTactic(formula, Tactic.TSEITIN_CNF), true);
+        case "RCNF" -> rcnfManager.toLemmas(formula, fmgr);
+        case "NONE" -> ImmutableSet.of(formula);
+        default -> throw new UnsupportedOperationException("Unexpected state");
+      };
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed with exception", e);
+    }
   }
 
   private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();
@@ -789,9 +793,6 @@ public class PolicyIterationManager {
    * @param generatorState State to abstract
    * @return Abstracted state if the state is reachable, empty optional otherwise.
    */
-  @SuppressFBWarnings(
-      value = "SF_SWITCH_NO_DEFAULT",
-      justification = "false alarm, maybe https://github.com/spotbugs/spotbugs/issues/3617")
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState generatorState,
       int locationID,
