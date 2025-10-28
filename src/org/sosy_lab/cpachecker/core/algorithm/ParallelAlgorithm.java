@@ -449,7 +449,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           if (!stopAnalysis) {
             currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
-            coreComponents.initializeReachedSet(reached, mainEntryNode, cpa);
+            coreComponents.initializeReachedSet(currentReached, mainEntryNode, cpa);
           }
         } while (!stopAnalysis);
       }
