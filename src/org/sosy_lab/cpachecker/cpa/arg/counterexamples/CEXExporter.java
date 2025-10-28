@@ -249,13 +249,15 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
-        pathProgram =
-            switch (codeStyle) {
-              case CONCRETE_EXECUTION ->
-                  PathToConcreteProgramTranslator.translateSinglePath(
-                      targetPath, counterexample.getCFAPathWithAssignments());
-              case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
-            };
+        if (cfa.getLanguage() == Language.C) {
+          pathProgram =
+              switch (codeStyle) {
+                case CONCRETE_EXECUTION ->
+                    PathToConcreteProgramTranslator.translateSinglePath(
+                        targetPath, counterexample.getCFAPathWithAssignments());
+                case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
+              };
+        }
       }
 
     } else {
@@ -313,42 +315,44 @@ public class CEXExporter {
       }
     }
 
-    if (options.getWitnessFile() != null
-        || options.getWitnessDotFile() != null
-        || options.getYamlWitnessPathTemplate() != null) {
-      try {
-        final Witness witness =
-            witnessExporter.generateErrorWitness(
-                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    if (cfa.getLanguage() != Language.K3) {
+      if (options.getWitnessFile() != null
+          || options.getWitnessDotFile() != null
+          || options.getYamlWitnessPathTemplate() != null) {
+        try {
+          final Witness witness =
+              witnessExporter.generateErrorWitness(
+                  rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-        writeErrorPathFile(
-            options.getWitnessFile(),
-            uniqueId,
-            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-            compressWitness);
+          writeErrorPathFile(
+              options.getWitnessFile(),
+              uniqueId,
+              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+              compressWitness);
 
-        writeErrorPathFile(
-            options.getWitnessDotFile(),
-            uniqueId,
-            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-            compressWitness);
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-            try {
-              cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-            } catch (IOException e) {
-              logger.logUserException(
-                  Level.WARNING, e, "Could not generate YAML violation witness.");
+          writeErrorPathFile(
+              options.getWitnessDotFile(),
+              uniqueId,
+              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+              compressWitness);
+          if (cfa.getMetadata().getInputLanguage() == Language.C) {
+            if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+              try {
+                cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+              } catch (IOException e) {
+                logger.logUserException(
+                    Level.WARNING, e, "Could not generate YAML violation witness.");
+              }
             }
+          } else {
+            logger.log(
+                Level.WARNING,
+                "Cannot export violation witness to YAML format for languages other than C.");
           }
-        } else {
-          logger.log(
-              Level.WARNING,
-              "Cannot export violation witness to YAML format for languages other than C.");
-        }
 
-      } catch (InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        } catch (InterruptedException e) {
+          logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        }
       }
     }
 

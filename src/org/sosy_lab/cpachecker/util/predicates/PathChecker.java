@@ -34,6 +34,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -355,8 +356,14 @@ public class PathChecker {
           assumptionState = ((OverflowState) assumptionState).getParent();
         }
         for (AExpression expr : assumptionState.getAssumptions()) {
-          assert expr instanceof CExpression : "Expected a CExpression as assumption!";
-          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+          if (expr instanceof CExpression pCExpression) {
+            pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
+          } else if (expr instanceof K3RelationalTerm pTerm) {
+            pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else {
+            throw new CPATransferException(
+                "Expected a CExpression or a K3RelationalTerm as assumption!");
+          }
         }
       }
     }

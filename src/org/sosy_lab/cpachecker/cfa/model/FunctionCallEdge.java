@@ -51,7 +51,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   public List<? extends AExpression> getArguments() {
-    return getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCall().getParameterExpressions();
   }
 
   @Override

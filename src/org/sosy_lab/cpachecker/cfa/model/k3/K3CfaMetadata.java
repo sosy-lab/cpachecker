@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.model.k3;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
@@ -17,4 +19,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public record K3CfaMetadata(
     List<K3SetLogicCommand> setLogicCommands,
     ImmutableSetMultimap<CFANode, K3TagProperty> tagAnnotations,
-    boolean exportWitness) {}
+    boolean exportWitness) {
+
+  public K3CfaMetadata {
+    checkNotNull(setLogicCommands);
+    checkNotNull(tagAnnotations);
+  }
+}

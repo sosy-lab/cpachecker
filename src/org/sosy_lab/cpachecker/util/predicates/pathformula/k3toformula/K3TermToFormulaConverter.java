@@ -13,26 +13,30 @@ import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GeneralSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class K3TermToFormulaConverter {
 
   public static @NonNull Formula convertTerm(
-      K3Term pK3Term, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      K3RelationalTerm pK3Term, SSAMapBuilder ssa, FormulaManagerView fmgr) {
     return switch (pK3Term) {
-      case K3SymbolApplicationTerm pK3ApplicationTerm ->
+      case K3GeneralSymbolApplicationTerm pK3ApplicationTerm ->
           convertApplication(pK3ApplicationTerm, ssa, fmgr);
       case K3ConstantTerm pK3ConstantTerm -> convertConstant(pK3ConstantTerm, fmgr);
       case K3IdTerm pK3IdTerm -> convertVariable(pK3IdTerm, ssa, fmgr);
+      case K3OldTerm pK3OldTerm -> throw new UnsupportedOperationException("Not yet implemented");
     };
   }
 
@@ -52,11 +56,17 @@ public class K3TermToFormulaConverter {
   }
 
   private static @NonNull Formula convertApplication(
-      K3SymbolApplicationTerm pK3ApplicationTerm, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      K3GeneralSymbolApplicationTerm pK3ApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr) {
     if (FluentIterable.from(pK3ApplicationTerm.getTerms())
-        .transform(K3Term::getExpressionType)
+        .transform(K3RelationalTerm::getExpressionType)
         .allMatch(type -> type.equals(K3SmtLibType.INT))) {
       return convertIntegerApplication(pK3ApplicationTerm, ssa, fmgr);
+    } else if (FluentIterable.from(pK3ApplicationTerm.getTerms())
+        .transform(K3RelationalTerm::getExpressionType)
+        .allMatch(type -> type.equals(K3SmtLibType.BOOL))) {
+      return convertBooleanApplication(pK3ApplicationTerm, ssa, fmgr);
     }
 
     throw new UnsupportedOperationException(
@@ -64,7 +74,9 @@ public class K3TermToFormulaConverter {
   }
 
   private static @NonNull Formula convertIntegerApplication(
-      K3SymbolApplicationTerm pK3ApplicationTerm, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      K3GeneralSymbolApplicationTerm pK3ApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr) {
     String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
     List<IntegerFormula> args =
         FluentIterable.from(pK3ApplicationTerm.getTerms())
@@ -92,7 +104,34 @@ public class K3TermToFormulaConverter {
         Verify.verify(args.size() == 2);
         yield imgr.lessOrEquals(args.get(0), args.get(1));
       }
-      default -> throw new IllegalStateException("Unexpected value: " + functionName);
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from an integer term into a formula.");
     };
+  }
+
+  private static @NonNull Formula convertBooleanApplication(
+      K3GeneralSymbolApplicationTerm pK3ApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr) {
+    String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
+    List<BooleanFormula> args =
+        FluentIterable.from(pK3ApplicationTerm.getTerms())
+            .transform(term -> (BooleanFormula) convertTerm(term, ssa, fmgr))
+            .toList();
+    BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
+    switch (functionName) {
+      case "not" -> {
+        Verify.verify(args.size() == 1);
+        return bmgr.not(args.get(0));
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from a boolean term into a formula.");
+    }
   }
 }

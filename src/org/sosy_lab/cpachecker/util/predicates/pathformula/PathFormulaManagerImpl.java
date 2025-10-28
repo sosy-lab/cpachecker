@@ -32,9 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -319,6 +321,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             CFANode.newDummyCFANode(),
             pAssumption,
             true);
+    return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, K3RelationalTerm pAssumption)
+      throws CPATransferException, InterruptedException {
+    K3AssumeEdge fakeEdge =
+        new K3AssumeEdge(
+            pAssumption.toASTString(),
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            pAssumption,
+            true,
+            false,
+            false);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
   }
 

@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Declaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class K3DeclarationEdge extends ADeclarationEdge {
+public final class K3DeclarationEdge extends ADeclarationEdge implements K3CfaEdge {
   public K3DeclarationEdge(
       String pRawSignature,
       FileLocation pFileLocation,

@@ -92,8 +92,10 @@ step
     ;
 
 relationalTerm
-    : term
-    | ParOpen 'old' symbol ParClose
+    : term                                                            # NormalRelationalTerm
+    | ParOpen 'old' term ParClose                                     # OldRelationalTerm
+    | ParOpen qual_identifer term+ ParClose                           # ApplicationRelationalTerm
+    // TODO: We need to handle the other constructors of terms here as well
     ;
 
 procDeclarationArguments

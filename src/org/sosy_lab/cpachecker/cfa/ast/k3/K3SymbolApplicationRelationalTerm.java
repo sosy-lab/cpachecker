@@ -12,19 +12,19 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3SymbolApplicationTerm extends K3GeneralSymbolApplicationTerm
-    implements K3Term {
+public final class K3SymbolApplicationRelationalTerm extends K3GeneralSymbolApplicationTerm
+    implements K3RelationalTerm {
   @Serial private static final long serialVersionUID = 492023370394214710L;
 
-  public K3SymbolApplicationTerm(
-      K3IdTerm pSymbol, List<K3Term> pTerms, FileLocation pFileLocation) {
+  public K3SymbolApplicationRelationalTerm(
+      K3IdTerm pSymbol, List<K3RelationalTerm> pTerms, FileLocation pFileLocation) {
     super(pSymbol, pTerms, pFileLocation);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<K3Term> getTerms() {
-    return (List<K3Term>) super.getTerms();
+  public List<K3RelationalTerm> getTerms() {
+    return (List<K3RelationalTerm>) super.getTerms();
   }
 
   @Override
@@ -43,6 +43,6 @@ public final class K3SymbolApplicationTerm extends K3GeneralSymbolApplicationTer
       return true;
     }
 
-    return obj instanceof K3SymbolApplicationTerm other && super.equals(other);
+    return obj instanceof K3SymbolApplicationRelationalTerm other && super.equals(other);
   }
 }

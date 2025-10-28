@@ -157,6 +157,9 @@ class K3CfaBuilder {
     CFANode predecessorNode = pCurrentNode;
     CFANode currentSuccessorNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
 
+    // Keep track of all the tag properties for the starting node of this statement
+    trackTagPropertiesForStatementStartingWithNode(pStatement, pCurrentNode, pTagAnnotations);
+
     switch (pStatement) {
       case K3AssignmentStatement assignmentStatement -> {
         // Handle assignment statements.

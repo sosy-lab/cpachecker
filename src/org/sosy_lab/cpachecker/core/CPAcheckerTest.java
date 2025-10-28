@@ -38,6 +38,9 @@ public class CPAcheckerTest {
       "config/valueAnalysis-java-NoCegar.properties";
 
   private static final String SPECIFICATION_C = "config/specification/default.spc";
+  // This is a dummy specification for K3 programs, since the actual specification is inside
+  // the program itself, as annotations.
+  private static final String SPECIFICATION_K3 = "config/specification/k3.spc";
   // labels are removed in LLVM IR and assert_fail is renamed, so we need a different specification
   private static final String SPECIFICATION_LLVM = "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
@@ -78,7 +81,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
+    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_K3);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -88,7 +91,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
+    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_K3);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
