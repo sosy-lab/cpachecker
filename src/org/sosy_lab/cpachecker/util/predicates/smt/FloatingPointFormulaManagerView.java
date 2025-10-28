@@ -50,7 +50,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointFormula pNumber, boolean pSigned, FormulaType<T> pTargetType) {
     // This method needs to unwrap/wrap or cast pTargetType and the return value,
     // in case they are replaced with other formula types.
-    if (useIntForBitvectors() && pTargetType.isBitvectorType()) {
+    if (useIntForBitvectors() && pTargetType.isBitvectorType() && bitvectorFormulaManager != null) {
       // to use a non-approximate solution, we first convert to bitvector, then cast to int.
       final BitvectorFormula bv = (BitvectorFormula) manager.castTo(pNumber, pSigned, pTargetType);
       return wrap(pTargetType, bitvectorFormulaManager.toIntegerFormula(bv, true));
@@ -65,7 +65,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       boolean pSigned,
       FormulaType<T> pTargetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    if (useIntForBitvectors() && pTargetType.isBitvectorType()) {
+    if (useIntForBitvectors() && pTargetType.isBitvectorType() && bitvectorFormulaManager != null) {
       // to use a non-approximate solution, we first convert to bitvector, then cast to int.
       final BitvectorFormula bv =
           (BitvectorFormula)
@@ -103,6 +103,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    */
   private Formula computeSourceFormula(Formula pNumber) {
     if (useIntForBitvectors()
+        && bitvectorFormulaManager != null
         && pNumber instanceof WrappingFormula.WrappingBitvectorFormula<?> pBitvectorFormula
         && unwrap(pNumber) instanceof IntegerFormula pIntegerFormula) {
       // We don't actually want to just unwrap it, as int<->float conversion is
