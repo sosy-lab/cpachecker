@@ -45,12 +45,18 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     bitvectorFormulaManager = pBitvectorFormulaManager;
   }
 
+  private boolean isBitvectorIntermediateNecessary(FormulaType<?> pTargetType) {
+    return bitvectorFormulaManager != null
+        && pTargetType.isBitvectorType()
+        && unwrapType(pTargetType).isIntegerType();
+  }
+
   @Override
   public <T extends Formula> T castTo(
       FloatingPointFormula pNumber, boolean pSigned, FormulaType<T> pTargetType) {
     // This method needs to unwrap/wrap or cast pTargetType and the return value,
     // in case they are replaced with other formula types.
-    if (useIntForBitvectors() && pTargetType.isBitvectorType() && bitvectorFormulaManager != null) {
+    if (isBitvectorIntermediateNecessary(pTargetType)) {
       // to use a non-approximate solution, we first convert to bitvector, then cast to int.
       final BitvectorFormula bv = (BitvectorFormula) manager.castTo(pNumber, pSigned, pTargetType);
       return wrap(pTargetType, bitvectorFormulaManager.toIntegerFormula(bv, true));
@@ -65,7 +71,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       boolean pSigned,
       FormulaType<T> pTargetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    if (useIntForBitvectors() && pTargetType.isBitvectorType() && bitvectorFormulaManager != null) {
+    if (isBitvectorIntermediateNecessary(pTargetType)) {
       // to use a non-approximate solution, we first convert to bitvector, then cast to int.
       final BitvectorFormula bv =
           (BitvectorFormula)
@@ -81,7 +87,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   @Override
   public FloatingPointFormula castFrom(
       Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    final Formula from = computeSourceFormula(pNumber);
+    final Formula from = interpretSourceFormula(pNumber);
     return manager.castFrom(from, pSigned, pTargetType);
   }
 
@@ -91,7 +97,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       boolean pSigned,
       FloatingPointType pTargetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    final Formula from = computeSourceFormula(pNumber);
+    final Formula from = interpretSourceFormula(pNumber);
     return manager.castFrom(from, pSigned, pTargetType, pFloatingPointRoundingMode);
   }
 
@@ -101,9 +107,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    * formula represents a bitvector backed by an integer, it re-wraps the integer into a bitvector
    * instead of merely unwrapping it.
    */
-  private Formula computeSourceFormula(Formula pNumber) {
-    if (useIntForBitvectors()
-        && bitvectorFormulaManager != null
+  private Formula interpretSourceFormula(Formula pNumber) {
+    if (bitvectorFormulaManager != null
         && pNumber instanceof WrappingFormula.WrappingBitvectorFormula<?> pBitvectorFormula
         && unwrap(pNumber) instanceof IntegerFormula pIntegerFormula) {
       // We don't actually want to just unwrap it, as int<->float conversion is
