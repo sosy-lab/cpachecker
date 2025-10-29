@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
@@ -200,9 +201,9 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
         new K3AssignmentStatement(
             zipToMap(
                 procedureCall.getReturnVariables(),
-                FluentIterable.from(procedureCall.getProcedureDeclaration().getReturnValues())
-                    .transform(var -> new K3IdTerm(var, FileLocation.DUMMY))
-                    .toList()),
+                transformedImmutableListCopy(
+                    procedureCall.getProcedureDeclaration().getReturnValues(),
+                    var -> new K3IdTerm(var, FileLocation.DUMMY))),
             FileLocation.DUMMY,
             ImmutableList.of(),
             ImmutableList.of()),
