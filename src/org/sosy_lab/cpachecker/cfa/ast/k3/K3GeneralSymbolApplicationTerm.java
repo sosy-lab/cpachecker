@@ -45,7 +45,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
     return type;
   }
 
-  public @NonNull List<@NonNull ? extends K3RelationalTerm> getTerms() {
+  public @NonNull List<? extends K3RelationalTerm> getTerms() {
     return terms;
   }
 
@@ -74,7 +74,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + symbol.hashCode();
+    return 31 * symbol.hashCode() + terms.hashCode();
   }
 
   @Override
