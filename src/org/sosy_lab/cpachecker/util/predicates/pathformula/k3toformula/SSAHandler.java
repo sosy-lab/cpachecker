@@ -19,7 +19,7 @@ public class SSAHandler {
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
   public static int makeFreshIndex(String name, K3Type type, SSAMapBuilder ssa) {
-    int idx = getFreshIndex(name, type, ssa);
+    int idx = getFreshIndex(name, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
   }
@@ -44,7 +44,7 @@ public class SSAHandler {
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
    */
-  public static int getFreshIndex(String name, K3Type type, SSAMapBuilder ssa) {
+  public static int getFreshIndex(String name, SSAMapBuilder ssa) {
     // TODO: Check that the variable for its type has been declared before?
     // checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ssa.getFreshIndex(name);

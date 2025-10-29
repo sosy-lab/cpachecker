@@ -13,5 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 public sealed interface K3SimpleDeclaration extends ASimpleDeclaration, K3AstNode
     permits K3Declaration, K3ParameterDeclaration {
 
+  @Override
   K3Type getType();
 }
