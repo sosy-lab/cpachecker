@@ -68,6 +68,6 @@ public final class K3IdTerm implements K3Term {
 
   @Override
   public K3Type getExpressionType() {
-    return (K3Type) variable.getType();
+    return variable.getType();
   }
 }
