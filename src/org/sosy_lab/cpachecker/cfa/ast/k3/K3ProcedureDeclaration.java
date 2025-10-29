@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -60,6 +61,11 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
   }
 
   @Override
+  public K3ProcedureType getType() {
+    return (K3ProcedureType) super.getType();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
@@ -78,7 +84,7 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
     return localVariables;
   }
 
-  public List<K3ParameterDeclaration> getReturnValues() {
+  public @NonNull List<@NonNull K3ParameterDeclaration> getReturnValues() {
     return returnValues;
   }
 

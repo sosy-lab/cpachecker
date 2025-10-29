@@ -79,6 +79,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
         new K3VariableDeclaration(
             fileLocationFromContext(ctx),
             true,
+            false,
             variableType,
             variableName,
             variableName,
@@ -96,6 +97,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     K3VariableDeclaration variableDeclaration =
         new K3VariableDeclaration(
             fileLocationFromContext(ctx),
+            true,
             true,
             variableType,
             variableName,

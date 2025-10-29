@@ -15,10 +15,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class K3VariableDeclaration extends AVariableDeclaration implements K3Declaration {
   @Serial private static final long serialVersionUID = 3038552857008234831L;
   private final boolean isDummyVariable;
+  private final boolean isConstant;
 
   public K3VariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
+      boolean pIsConstant,
       K3Type pType,
       String pName,
       String pOrigName,
@@ -31,12 +33,14 @@ public final class K3VariableDeclaration extends AVariableDeclaration implements
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in K3 */);
+    isConstant = pIsConstant;
     isDummyVariable = false;
   }
 
   private K3VariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
+      boolean pIsConstant,
       K3Type pType,
       String pName,
       String pOrigName,
@@ -50,13 +54,13 @@ public final class K3VariableDeclaration extends AVariableDeclaration implements
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in K3 */);
-
+    isConstant = pIsConstant;
     isDummyVariable = pIsDummyVariable;
   }
 
   public static K3VariableDeclaration dummyVariableForName(String pName) {
     return new K3VariableDeclaration(
-        FileLocation.DUMMY, false, K3CustomType.InternalAnyType, pName, pName, pName, true);
+        FileLocation.DUMMY, false, false, K3CustomType.InternalAnyType, pName, pName, pName, true);
   }
 
   @Override
@@ -71,5 +75,9 @@ public final class K3VariableDeclaration extends AVariableDeclaration implements
   @Override
   public K3Type getType() {
     return (K3Type) super.getType();
+  }
+
+  public boolean isConstant() {
+    return isConstant;
   }
 }

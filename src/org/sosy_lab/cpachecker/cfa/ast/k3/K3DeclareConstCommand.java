@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import com.google.common.base.Preconditions;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -18,6 +19,8 @@ public final class K3DeclareConstCommand implements K3Command, SMTLibCommand {
   private final FileLocation fileLocation;
 
   public K3DeclareConstCommand(K3VariableDeclaration pVariable, FileLocation pFileLocation) {
+    Preconditions.checkArgument(pVariable.isConstant());
+    Preconditions.checkArgument(pVariable.isGlobal());
     variable = pVariable;
     fileLocation = pFileLocation;
   }

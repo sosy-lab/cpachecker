@@ -35,12 +35,12 @@ public final class K3IdTerm implements K3Term {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return variable.toASTString(pAAstNodeRepresentation);
+    return variable.getName();
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return variable.toParenthesizedASTString(pAAstNodeRepresentation);
+    return variable.getName();
   }
 
   public K3SimpleDeclaration getVariable() {

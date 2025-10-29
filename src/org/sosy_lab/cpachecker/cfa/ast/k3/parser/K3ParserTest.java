@@ -77,10 +77,10 @@ public class K3ParserTest {
             ImmutableList.of());
     K3VariableDeclaration w =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "w", "w", "w");
+            FileLocation.DUMMY, true, false, K3Type.getTypeForString("Int"), "w", "w", "w");
     K3VariableDeclaration z =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "z", "z", "z");
+            FileLocation.DUMMY, true, false, K3Type.getTypeForString("Int"), "z", "z", "z");
 
     K3Script output =
         new K3Script(
@@ -153,10 +153,10 @@ public class K3ParserTest {
             ImmutableList.of());
     K3VariableDeclaration w =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "w", "w", "w");
+            FileLocation.DUMMY, true, false, K3Type.getTypeForString("Int"), "w", "w", "w");
     K3VariableDeclaration z =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "z", "z", "z");
+            FileLocation.DUMMY, true, false, K3Type.getTypeForString("Int"), "z", "z", "z");
 
     K3Script output =
         new K3Script(
@@ -229,10 +229,10 @@ public class K3ParserTest {
         new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y0", "add");
     K3VariableDeclaration w0Const =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "w0", "w0", "w0");
+            FileLocation.DUMMY, true, true, K3Type.getTypeForString("Int"), "w0", "w0", "w0");
     K3VariableDeclaration z0Const =
         new K3VariableDeclaration(
-            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "z0", "z0", "z0");
+            FileLocation.DUMMY, true, true, K3Type.getTypeForString("Int"), "z0", "z0", "z0");
     K3ParameterDeclaration x =
         new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x", "add");
     K3ParameterDeclaration y =

@@ -8,22 +8,26 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3StatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -96,30 +101,6 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
     }
   }
 
-  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  private int makeFreshIndex(String name, K3Type type, SSAMapBuilder ssa) {
-    int idx = getFreshIndex(name, type, ssa);
-    ssa.setIndex(name, type, idx);
-    return idx;
-  }
-
-  /**
-   * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, K3Type, SSAMapBuilder)} instead, because using
-   * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
-   * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
-   * correctly.
-   */
-  protected int getFreshIndex(String name, K3Type type, SSAMapBuilder ssa) {
-    // TODO: Check that the variable for its type has been declared before?
-    // checkSsaSavedType(name, type, ssa.getType(name));
-    int idx = ssa.getFreshIndex(name);
-    if (idx <= 0) {
-      idx = VARIABLE_FIRST_ASSIGNMENT;
-    }
-    return idx;
-  }
-
   private boolean isRelevantVariable(K3VariableDeclaration pDecl) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return variableClassification
@@ -157,6 +138,9 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
           case K3ProcedureReturnEdge returnEdge ->
               makeExitProcedure(
                   returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
+          case K3StatementEdge statementEdge ->
+              K3StatementToFormulaConverter.convertStatement(
+                  statementEdge.getStatement(), ssa, fmgr);
 
           default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
         };
@@ -208,34 +192,22 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
       final String calledFunction,
       final SSAMapBuilder ssa,
       final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      final ErrorConditions errorConditions) {
 
     K3ProcedureCallStatement procedureCall = pEdge.getExpression();
 
-    // Assign to each of the named function return variables
-    // the corresponding return value from the function declaration.
-    ImmutableList.Builder<BooleanFormula> assignments = ImmutableList.builder();
-    for (int i = 0; i < procedureCall.getReturnVariables().size(); i++) {
-      K3IdTerm returnVariableForCall =
-          new K3IdTerm(procedureCall.getReturnVariables().get(i), FileLocation.DUMMY);
-      K3IdTerm returnVariableFromDeclaration =
-          new K3IdTerm(
-              procedureCall.getProcedureDeclaration().getReturnValues().get(i), FileLocation.DUMMY);
-
-      assignments.add(
-          makeAssignment(
-              returnVariableForCall,
-              returnVariableForCall,
-              returnVariableFromDeclaration,
-              pEdge,
-              calledFunction,
-              ssa,
-              constraints,
-              errorConditions));
-    }
-
-    return bfmgr.and(assignments.build());
+    return K3StatementToFormulaConverter.convertStatement(
+        new K3AssignmentStatement(
+            zipToMap(
+                procedureCall.getReturnVariables(),
+                FluentIterable.from(procedureCall.getProcedureDeclaration().getReturnValues())
+                    .transform(var -> new K3IdTerm(var, FileLocation.DUMMY))
+                    .toList()),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of()),
+        ssa,
+        fmgr);
   }
 
   private BooleanFormula makeDeclaration(
@@ -243,8 +215,7 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
       final String function,
       final SSAMapBuilder ssa,
       final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      final ErrorConditions errorConditions) {
 
     if (!(edge.getDeclaration() instanceof K3VariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
@@ -263,7 +234,7 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
       return bfmgr.makeTrue();
     }
 
-    makeFreshIndex(varName, decl.getType(), ssa);
+    SSAHandler.makeFreshIndex(varName, decl.getType(), ssa);
 
     BooleanFormula result = bfmgr.makeTrue();
 
@@ -272,13 +243,19 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
     return result;
   }
 
+  public static <K, V> Map<K, V> zipToMap(List<? extends K> keys, List<? extends V> values) {
+    return IntStream.range(0, keys.size())
+        .boxed()
+        .collect(Collectors.toMap(keys::get, values::get));
+  }
+
   protected BooleanFormula makeFunctionCall(
       final K3ProcedureCallEdge edge,
       final String callerFunction,
       final SSAMapBuilder ssa,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      throws UnrecognizedCodeException {
 
     List<K3Term> actualParams = edge.getFunctionCall().getParameterExpressions();
 
@@ -290,90 +267,19 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
           "Number of parameters on function call does not match function definition", edge);
     }
 
-    int i = 0;
-    BooleanFormula result = bfmgr.makeTrue();
-    for (K3ParameterDeclaration formalParam : formalParams) {
-      K3Term paramExpression = actualParams.get(i++);
-      K3IdTerm lhs = new K3IdTerm(formalParam, formalParam.getFileLocation());
-      final K3IdTerm paramLHS;
-      if (options.useParameterVariables()) {
-        // make assignments: tmp_param1==arg1, tmp_param2==arg2, ...
-        K3ParameterDeclaration tmpParameter =
-            new K3ParameterDeclaration(
-                formalParam.getFileLocation(),
-                formalParam.getType(),
-                formalParam.getName(),
-                fn.getFunctionName());
-        paramLHS = new K3IdTerm(tmpParameter, paramExpression.getFileLocation());
-      } else {
-        paramLHS = lhs;
-      }
-
-      BooleanFormula eq =
-          makeAssignment(
-              paramLHS,
-              lhs,
-              paramExpression,
-              edge,
-              callerFunction,
-              ssa,
-              constraints,
-              errorConditions);
-      result = bfmgr.and(result, eq);
-    }
-
-    return result;
+    return K3StatementToFormulaConverter.convertStatement(
+        new K3AssignmentStatement(
+            zipToMap(formalParams, actualParams),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of()),
+        ssa,
+        fmgr);
   }
 
   protected boolean isRelevantLeftHandSide(final K3IdTerm lhs, final Optional<K3Term> rhs) {
     // TODO: Add for optimizing, based on the one for CtoFormulaConverter
     return true;
-  }
-
-  /**
-   * Creates formula for the given assignment.
-   *
-   * @param lhs the left-hand-side of the assignment
-   * @param lhsForChecking a left-hand-side of the assignment (for most cases: lhs ==
-   *     lhsForChecking), that is used to check, if the assignment is important. If the assignment
-   *     is not important, we return TRUE.
-   * @param rhs the right-hand-side of the assignment
-   * @return the assignment formula
-   * @throws InterruptedException may be thrown in subclasses
-   */
-  protected BooleanFormula makeAssignment(
-      final K3IdTerm lhs,
-      final K3IdTerm lhsForChecking,
-      K3Term rhs,
-      final CFAEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs))) {
-      // Optimization for unused variables and fields
-      return bfmgr.makeTrue();
-    }
-
-    Formula rightHandSideTerm = K3TermToFormulaConverter.convertTerm(rhs, ssa, fmgr);
-    Formula assignedVariable =
-        makeFreshVariable(lhs.getVariable().getQualifiedName(), lhs.getExpressionType(), ssa);
-
-    return fmgr.assignment(assignedVariable, rightHandSideTerm);
-  }
-
-  /**
-   * Create a formula for a given variable with a fresh index for the left-hand side of an
-   * assignment. This method does not handle scoping and the NON_DET_VARIABLE!
-   */
-  protected Formula makeFreshVariable(String name, K3Type type, SSAMapBuilder ssa) {
-    int useIndex = makeFreshIndex(name, type, ssa);
-
-    Formula result = fmgr.makeVariable(type.toFormulaType(), name, useIndex);
-
-    return result;
   }
 
   @Override

@@ -23,6 +23,7 @@ public class SmtLibTheoryDeclarations {
       new K3VariableDeclaration(
           FileLocation.DUMMY,
           true,
+          true,
           new K3FunctionType(
               FileLocation.DUMMY,
               ImmutableList.of(K3SmtLibType.INT, K3SmtLibType.INT),
@@ -34,6 +35,7 @@ public class SmtLibTheoryDeclarations {
   public static K3VariableDeclaration INT_LESS_THAN =
       new K3VariableDeclaration(
           FileLocation.DUMMY,
+          true,
           true,
           new K3FunctionType(
               FileLocation.DUMMY,
@@ -47,6 +49,7 @@ public class SmtLibTheoryDeclarations {
       new K3VariableDeclaration(
           FileLocation.DUMMY,
           true,
+          true,
           new K3FunctionType(
               FileLocation.DUMMY,
               ImmutableList.of(K3SmtLibType.INT, K3SmtLibType.INT),
@@ -58,6 +61,7 @@ public class SmtLibTheoryDeclarations {
   public static K3VariableDeclaration INT_MINUS =
       new K3VariableDeclaration(
           FileLocation.DUMMY,
+          true,
           true,
           new K3FunctionType(
               FileLocation.DUMMY,
@@ -71,13 +75,14 @@ public class SmtLibTheoryDeclarations {
     return new K3VariableDeclaration(
         FileLocation.DUMMY,
         true,
+        true,
         new K3FunctionType(
             FileLocation.DUMMY,
             ImmutableList.copyOf(Collections.nCopies(amountArguments, K3SmtLibType.INT)),
             K3SmtLibType.INT),
-        "=",
-        "=",
-        "=");
+        "+",
+        "+",
+        "+");
   }
 
   /* Boolean stuff */
@@ -85,6 +90,7 @@ public class SmtLibTheoryDeclarations {
   public static K3VariableDeclaration BOOL_NEGATION =
       new K3VariableDeclaration(
           FileLocation.DUMMY,
+          true,
           true,
           new K3FunctionType(
               FileLocation.DUMMY, ImmutableList.of(K3SmtLibType.BOOL), K3SmtLibType.BOOL),

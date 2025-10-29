@@ -55,6 +55,10 @@ public final class SSAMap implements Serializable {
         @Override
         public Type resolveConflict(String name, Type type1, Type type2) {
           if (type1 instanceof K3Type && type2 instanceof K3Type) {
+            if (type1.equals(type2)) {
+              return type1;
+            }
+
             return (Type)
                 PersistentSortedMaps.getExceptionMergeConflictHandler()
                     .resolveConflict(name, type1, type2);

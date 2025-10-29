@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
@@ -105,6 +106,10 @@ class K3CfaBuilder {
   private Pair<ADeclaration, String> parseGlobalVariable(K3VariableDeclarationCommand pCommand) {
     return Pair.of(
         pCommand.getVariableDeclaration(), pCommand.getVariableDeclaration().toASTString());
+  }
+
+  private Pair<ADeclaration, String> parseGlobalConstant(K3DeclareConstCommand pCommand) {
+    return Pair.of(pCommand.getVariable(), pCommand.getVariable().toASTString());
   }
 
   private CFANode newNodeAddedToBuilder(
@@ -561,9 +566,35 @@ class K3CfaBuilder {
           // since we need it later when creating the SMT-Solver instance.
           smtLibSetLogicCommandsBuilder.add(pK3SetLogicCommand);
         }
-        // TODO: handle these commands properly
-        case K3AssertCommand pK3AssertCommand -> {}
-        case K3DeclareConstCommand pK3DeclareConstCommand -> {}
+        case K3DeclareConstCommand pK3DeclareConstCommand -> {
+          globalDeclarations.add(parseGlobalConstant(pK3DeclareConstCommand));
+        }
+        case K3AssertCommand pK3AssertCommand -> {
+          // Technically these are global assumptions, but we
+          // keep them inside of the main function for simplicity.
+          K3Term term = pK3AssertCommand.getTerm();
+
+          CFANode successorNode =
+              newNodeAddedToBuilder(
+                  mainFunctionDeclaration, node -> cfaNodes.put(mainFunctionName, node));
+
+          // We simply assume the term to be true here.
+          CFAEdge trueEdge =
+              new K3AssumeEdge(
+                  term.toASTString(),
+                  term.getFileLocation(),
+                  currentMainFunctionNode,
+                  successorNode,
+                  term,
+                  true,
+                  false,
+                  false);
+
+          CFACreationUtils.addEdgeToCFA(trueEdge, logger);
+
+          // Update the nodes for the next command
+          currentMainFunctionNode = successorNode;
+        }
       }
     }
 
