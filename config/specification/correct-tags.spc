@@ -7,11 +7,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // all tags in a K3 program are valid
-CONTROL AUTOMATON ValidTags
+CONTROL AUTOMATON CorrectTags
 
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("valid-tags") -> ERROR("specification violation of program in $location");
+  CHECK("correct-tags") -> ERROR("specification violation of program in $location");
 
 END AUTOMATON

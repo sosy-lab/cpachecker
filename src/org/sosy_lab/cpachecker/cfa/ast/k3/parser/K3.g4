@@ -40,7 +40,7 @@ statement
     | ParOpen 'assign'
             (ParOpen symbol term ParClose)+
       ParClose                                                        # AssignStatement
-    | ParOpen 'sequence' statement+ ParClose                          # SequenceStatement
+    | ParOpen 'sequence' statement* ParClose                          # SequenceStatement
     | ParOpen GRW_Exclamation statement attribute+ ParClose           # AnnotatedStatement
     | ParOpen 'call'
             symbol

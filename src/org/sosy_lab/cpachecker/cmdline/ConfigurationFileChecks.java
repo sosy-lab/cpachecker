@@ -220,6 +220,7 @@ public class ConfigurationFileChecks {
   }
 
   private static final String SPECIFICATION_OPTION = "specification";
+  private static final String LANGUAGE_OPTION = "language";
   private static final Path CONFIG_DIR = Path.of("config");
   private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
   private static final Path OUTPUT_DIR = Path.of("output");
@@ -379,6 +380,10 @@ public class ConfigurationFileChecks {
         tempFolder.newFolder(OUTPUT_DIR.toString()).toPath().resolve("AssumptionAutomaton.txt"));
   }
 
+  private static boolean isK3Config(String configFilePath) {
+    return configFilePath.contains("k3");
+  }
+
   @Test
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
@@ -398,14 +403,13 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
-    final boolean isK3Config = basePath.toString().contains("k3");
     final boolean isTestGenerationConfig =
         basePath.toString().contains("testCaseGeneration")
             || basePath.toString().contains("testcomp");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (isK3Config) {
+    if (isK3Config(basePath.toString())) {
       // For K3 Programs the specification is inside the program itself, so we do not need to check
       // anything
       assertThat(spec).isEqualTo("specification/correct-tags.spc");
@@ -501,7 +505,6 @@ public class ConfigurationFileChecks {
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
     Configuration config = createConfigurationForTestInstantiation();
-    config.inject(options);
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
       configBuilder.setOption("limits.time.cpu", options.cpuTimeRequired.toString());
@@ -519,6 +522,16 @@ public class ConfigurationFileChecks {
       configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
       config = configBuilder.build();
     }
+    if (isK3Config(configFile.toString())) {
+      // For K3 Programs we need to set the language to K3
+      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+      configBuilder.setOption(LANGUAGE_OPTION, "K3");
+      configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/correct-tags.spc");
+      config = configBuilder.build();
+    }
+    // We need to change the current options, only after all the changes to the configuration are
+    // done
+    config.inject(options);
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
