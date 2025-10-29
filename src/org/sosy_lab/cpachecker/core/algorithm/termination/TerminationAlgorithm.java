@@ -285,7 +285,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAException, InterruptedException {
 
-    logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
+    logger.logf(Level.FINE, "Proving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
@@ -293,6 +293,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
+
+    // LassoRanker handles unsigned types incorrectly as it does not account for overflows
+    for (CVariableDeclaration variable : relevantVariables) {
+      logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
+      if (variable.getType().toString().contains("unsigned")) {
+        return Result.UNKNOWN;
+      }
+    }
 
     if (considerRecursion) {
       setExplicitAbstractionNodes(pLoop);
