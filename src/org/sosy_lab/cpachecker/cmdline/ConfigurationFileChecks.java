@@ -408,7 +408,7 @@ public class ConfigurationFileChecks {
     if (isK3Config) {
       // For K3 Programs the specification is inside the program itself, so we do not need to check
       // anything
-      assertThat(spec).isEqualTo("");
+      assertThat(spec).isEqualTo("specification/correct-tags.spc");
     } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
