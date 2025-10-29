@@ -505,6 +505,7 @@ public class ConfigurationFileChecks {
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
     Configuration config = createConfigurationForTestInstantiation();
+    config.inject(options);
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
       configBuilder.setOption("limits.time.cpu", options.cpuTimeRequired.toString());
@@ -526,12 +527,11 @@ public class ConfigurationFileChecks {
       // For K3 Programs we need to set the language to K3
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
       configBuilder.setOption(LANGUAGE_OPTION, "K3");
-      configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/correct-tags.spc");
       config = configBuilder.build();
+      // We need to change the current language options, but only after we created the config
+      // object above
+      config.inject(options);
     }
-    // We need to change the current options, only after all the changes to the configuration are
-    // done
-    config.inject(options);
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
