@@ -47,6 +47,9 @@ public final class ResourceLimitChecker {
   // Limits must be used in a single-threaded manner, we basically only call them from our thread
   private final List<ResourceLimit> limits;
 
+  private static final TimeSpan TIME_LIMIT_INFINITE = TimeSpan.ofNanos(-1);
+  private static TimeSpan globalCPAcheckerCPUTimeLimit = TIME_LIMIT_INFINITE;
+
   /**
    * Create a new instance with a list of limits to check and a {@link ShutdownNotifier} that gets
    * notified when a limit is exceeded. It is safe (but useless) to call this constructor with an
@@ -116,25 +119,10 @@ public final class ResourceLimitChecker {
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
       limits.add(WalltimeLimit.create(options.walltime));
     }
-    boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
-    if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
-      if (!options.cpuTimeRequired.equals(options.cpuTime)) {
-        if (!cpuTimeLimitSet) {
-          throw new InvalidConfigurationException(
-              "CPU time limit was not specified but is required to be explicitly set to "
-                  + options.cpuTimeRequired
-                  + " in this configuration.");
-        } else {
-          throw new InvalidConfigurationException(
-              "CPU time limit was set to "
-                  + options.cpuTime
-                  + "  but is required to be explicitly set to "
-                  + options.cpuTimeRequired
-                  + " in this configuration.");
-        }
-      }
-    }
-    if (cpuTimeLimitSet) {
+
+    checkAndEnforceGlobalTimeLimit(options);
+
+    if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
       try {
         limits.add(ProcessCpuTimeLimit.create(options.cpuTime));
       } catch (JMException e) {
@@ -155,6 +143,48 @@ public final class ResourceLimitChecker {
           Joiner.on(", ").join(Lists.transform(limitsList, ResourceLimit::getName)));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
+  }
+
+  /**
+   * Enforce the option "limits.time.cpu" for this CPAchecker instance statically. Needed for
+   * property based strategy selection that "loses" options set before switching to the new
+   * configurations.
+   */
+  private static void checkAndEnforceGlobalTimeLimit(ResourceLimitOptions options)
+      throws InvalidConfigurationException {
+    boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
+
+    if (cpuTimeLimitSet && globalCPAcheckerCPUTimeLimit.equals(TIME_LIMIT_INFINITE)) {
+      // Safe first encountered CPU time-limit statically
+      globalCPAcheckerCPUTimeLimit = options.cpuTime;
+    } else if (globalCPAcheckerCPUTimeLimit.compareTo(TimeSpan.empty()) > 0
+        && !globalCPAcheckerCPUTimeLimit.equals(options.cpuTime)) {
+      // If a global CPU time-limit has been set, all following it must be equal to it!
+      throw new InvalidConfigurationException(
+          "CPU time limit is already set to be "
+              + globalCPAcheckerCPUTimeLimit
+              + ", and it is disallowed to set the CPU time limit to a distinct value, but this"
+              + " configuration sets it to "
+              + options.cpuTime);
+    }
+
+    if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
+      if (!options.cpuTimeRequired.equals(options.cpuTime)) {
+        if (!cpuTimeLimitSet) {
+          throw new InvalidConfigurationException(
+              "CPU time limit was not specified but is required to be explicitly set to "
+                  + options.cpuTimeRequired
+                  + " in this configuration.");
+        } else {
+          throw new InvalidConfigurationException(
+              "CPU time limit was set to "
+                  + options.cpuTime
+                  + "  but is required to be explicitly set to "
+                  + options.cpuTimeRequired
+                  + " in this configuration.");
+        }
+      }
+    }
   }
 
   /**
@@ -240,19 +270,19 @@ public final class ResourceLimitChecker {
         secure = true,
         name = "time.wall",
         description =
-            "Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for"
-                + " infinite)")
+            "Limit for wall time used by CPAchecker (use seconds or specify a unit;"
+                + " TIME_LIMIT_INFINITE for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan walltime = TimeSpan.ofNanos(-1);
+    private TimeSpan walltime = TIME_LIMIT_INFINITE;
 
     @Option(
         secure = true,
         name = "time.cpu",
         description =
-            "Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for"
-                + " infinite)")
+            "Limit for cpu time used by CPAchecker (use seconds or specify a unit;"
+                + " TIME_LIMIT_INFINITE for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+    private TimeSpan cpuTime = TIME_LIMIT_INFINITE;
 
     @Option(
         secure = true,
@@ -260,7 +290,7 @@ public final class ResourceLimitChecker {
         description =
             "Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
+    private TimeSpan cpuTimeRequired = TIME_LIMIT_INFINITE;
 
     @Option(
         secure = true,
@@ -268,9 +298,9 @@ public final class ResourceLimitChecker {
         description =
             "Limit for thread cpu time used by CPAchecker. This option will in general not work"
                 + " when multi-threading is used in more than one place, use only with great"
-                + " caution! (use seconds or specify a unit; -1 for infinite)")
+                + " caution! (use seconds or specify a unit; TIME_LIMIT_INFINITE for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-    private TimeSpan threadTime = TimeSpan.ofNanos(-1);
+    private TimeSpan threadTime = TIME_LIMIT_INFINITE;
 
     @Option(
         secure = true,
