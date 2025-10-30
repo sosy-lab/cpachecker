@@ -1933,7 +1933,7 @@ public class SMGCPAValueVisitor
       }
       // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-      return smgBuiltins.handleFunctionCall(
+      return smgBuiltins.handleFunctionCallWithoutBody(
           pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
     return ImmutableList.of(

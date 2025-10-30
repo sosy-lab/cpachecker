@@ -8,24 +8,33 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryReallocatingFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardByteInputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardInputOrOutputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInputFunction;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -33,9 +42,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -54,11 +66,15 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -103,76 +119,22 @@ public class SMGCPABuiltins {
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
 
-  // TODO: Properly model printf (dereferences and stuff)
-  // TODO: General modelling system for functions which do not modify state?
-  private static final ImmutableSet<String> BUILTINS =
-      ImmutableSet.of(
-          "__VERIFIER_BUILTIN_PLOT",
-          "memcpy",
-          "memcmp",
-          "memset",
-          "__builtin_alloca",
-          "alloca",
-          "printf",
-          "strcmp",
-          "realloc",
-          "__builtin_va_start",
-          "__builtin_va_arg",
-          "__builtin_va_end",
-          "__builtin_va_copy",
-          "atexit",
-          "__CPACHECKER_atexit_next",
-          "fgets");
+  private static final String VERIFIER_NONDET_PREFIX = "__VERIFIER_nondet_";
 
   /**
-   * Returns true if the functionName equals a built in function handleable by this class. This
-   * class mostly handles memory related stuff i.e. malloc/free.
-   *
-   * @param functionName name of the function to check.
-   * @return true for the specified names, false else.
+   * Returns true if the functionName equals a known C builtin function (either defined by the C
+   * standard or extensions like GNU (GCC)) OR our internal handling for atexit
+   * (__CPACHECKER_atexit_next).
    */
   boolean isABuiltIn(String functionName) {
-    return (BUILTINS.contains(functionName)
-        || isNondetBuiltin(functionName)
-        || isConfigurableAllocationFunction(functionName)
-        || isDeallocationFunction(functionName)
-        || isExternalAllocationFunction(functionName));
-  }
-
-  private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
-
-  /**
-   * Returns true if the function is some function involving nondeterministic behaviour (i.e.
-   * returning a nondet int).
-   *
-   * @param pFunctionName name of the function to check.
-   * @return true for the specified names, false else.
-   */
-  private boolean isNondetBuiltin(String pFunctionName) {
-    return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
-  }
-
-  /**
-   * Checks if the input is one of the following memory allocation methods: "malloc", "__kmalloc",
-   * "kmalloc" and "calloc", maybe more if they are added, and returns true if it is one of those.
-   * false else.
-   *
-   * @param functionName name of the function to check.
-   * @return true for the specified names, false else.
-   */
-  public boolean isConfigurableAllocationFunction(String functionName) {
-    return options.getMemoryAllocationFunctions().contains(functionName)
-        || options.getArrayAllocationFunctions().contains(functionName);
-  }
-
-  /**
-   * True for deallocation methods supported (i.e. "free").
-   *
-   * @param functionName name of the function to check.
-   * @return true for the specified names, false else.
-   */
-  public boolean isDeallocationFunction(String functionName) {
-    return options.getDeallocationFunctions().contains(functionName);
+    // __CPACHECKER_atexit_next is not a constant function, but returns a different function
+    // pointer from the atexit stack every time it is being called. We model this by returning a
+    // fresh variable that may point to any function in the program. The function pointer CPA,
+    // which will be run in parallel, tracks the actual target of the pointer and makes sure
+    // that the right function is always called.
+    return BuiltinFunctions.isBuiltinFunction(functionName)
+        || functionName.equals("__CPACHECKER_atexit_next")
+        || StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
   /**
@@ -186,175 +148,171 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Routes to the correct function call. Only handles built in functions. If no such function is
-   * found this returns an unknown value.
+   * Handles functions without body like built-in C functions (either from the standard or
+   * extensions like GNU (GCC)), externally allocated functions, except math functions, which should
+   * be handled by the ValueVisitor. If no such function is found, handling is decided by the option
+   * for unknown functions. Functions without return value return a bundled UNKNOWN value that can
+   * be ignored.
    *
-   * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
-   *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
-   *     true are left.
+   * @param funCallExpr {@link CFunctionCallExpression} that has been checked for all other known
+   *     functions (math functions etc.).
    * @param functionName Name of the function.
-   * @param pSmgState current {@link SMGState}.
-   * @param pCfaEdge for logging/debugging.
-   * @return the result of the function call and the state for it. May be an error state!
+   * @param state current {@link SMGState}.
+   * @param cfaEdge for logging/debugging.
+   * @return the result of the function call and the state for it, which may be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleFunctionCall(
-      CFunctionCallExpression pFunctionCall,
-      String functionName,
-      SMGState pSmgState,
-      CFAEdge pCfaEdge)
+  public List<ValueAndSMGState> handleFunctionCallWithoutBody(
+      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
-    if (isABuiltIn(functionName)) {
-      if (isConfigurableAllocationFunction(functionName)) {
-        return evaluateConfigurableAllocationFunction(
-            pFunctionCall, functionName, pSmgState, pCfaEdge);
-      } else {
-        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState);
-      }
+
+    if (isSafeFunction(functionName)) {
+      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
-    return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
+
+    if (isCompetitionNondeterministicFunction(functionName)) {
+      return handleVerifierNondetGeneratorFunction(functionName, state, cfaEdge);
+    }
+
+    if (isExternalAllocationFunction(functionName)) {
+      return evaluateExternalAllocationFunction(funCallExpr, state, functionName);
+    }
+
+    return handleBuiltinFunctionCall(funCallExpr, functionName, state, cfaEdge);
   }
 
   /**
-   * Handle a function call to a builtin function like memcpy.
-   *
-   * @param pCfaEdge for logging/debugging.
-   * @param cFCExpression {@link CFunctionCallExpression} that leads to a non memory allocating
-   *     builtin function.
-   * @param calledFunctionName The name of the function to be called.
-   * @param pState current {@link SMGState}.
-   * @return the result of the function call and the state for it. May be an error state!
-   * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
+   * True for functions generating nondeterministic values defined by the Competition on Software
+   * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
    */
-  public List<ValueAndSMGState> handleBuiltinFunctionCall(
-      CFAEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
-      SMGState pState)
-      throws CPATransferException {
+  public static boolean isCompetitionNondeterministicFunction(String functionName) {
+    return functionName.contains(VERIFIER_NONDET_PREFIX);
+  }
 
-    if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
-    }
+  /**
+   * Handles all functions generating nondeterministic values defined by the Competition on Software
+   * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
+   */
+  private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
+      String pFunctionName, SMGState pState, CFAEdge pCfaEdge) throws SMGException {
+    // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
+    // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
+    // ushort} (no side effects, pointer for void *, etc.).
 
-    return switch (calledFunctionName) {
-      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
+    // TODO: __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory
+    // block with arbitrary values. The first argument must be a valid pointer to the start of a
+    // memory block of the given size. The second argument specifies the size of the memory to
+    // initializeand must match the size of the memory block that the first argument points to. The
+    // dereference of any pointer value set through this method results in undefined behavior. This
+    // means that pointer values must be explicitly set through different means before they can be
+    // dereferenced.
 
-      case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
-
-      case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
-
-      case "memcmp" -> evaluateMemcmp(cFCExpression, pState, pCfaEdge);
-
-      case "strcmp" -> evaluateStrcmp(cFCExpression, pState, pCfaEdge);
-
-      case "__VERIFIER_BUILTIN_PLOT" -> {
-        evaluateVBPlot(cFCExpression, pState);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      }
-
-      case "printf" -> {
-        List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
-        logger.log(
-            Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
-        yield Collections3.transformedImmutableListCopy(
-            checkedStates, ValueAndSMGState::ofUnknownValue);
-      }
-
-      case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
-
-      case "__builtin_va_start" -> evaluateVaStart(cFCExpression, pCfaEdge, pState);
-
-      case "__builtin_va_arg" -> evaluateVaArg(cFCExpression, pCfaEdge, pState);
-
-      case "__builtin_va_copy" -> evaluateVaCopy(cFCExpression, pCfaEdge, pState);
-
-      case "__builtin_va_end" -> evaluateVaEnd(cFCExpression, pCfaEdge, pState);
-
-      case "atexit" -> evaluateAtExit(cFCExpression, pCfaEdge, pState);
-
-      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
-
-      case "fgets" -> evaluateFGets(cFCExpression, pCfaEdge, pState, calledFunctionName);
-
-      default -> {
-        if (isNondetBuiltin(calledFunctionName)) {
-          yield Collections.singletonList(
-              ValueAndSMGState.ofUnknownValue(
-                  pState,
-                  "Returned unknown value due to call to nondeterministic havoc function as defined"
-                      + " in SV-COMP ",
-                  pCfaEdge));
-        } else {
-          throw new UnsupportedOperationException(
-              "Unexpected function handled as a builtin: " + calledFunctionName);
-        }
-      }
+    // TODO: consider casting directly to desired type?
+    //  castCValue(uncastedValueAndState.getValue(), pTargetType);
+    return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
+      case "bool",
+          "char",
+          "int",
+          "int128",
+          "float",
+          "double",
+          "long",
+          "longlong",
+          "pchar",
+          "short",
+          "size_t",
+          "u32",
+          "uchar",
+          "uint",
+          "uint128",
+          "ulong",
+          "ulonglong",
+          "unsigned",
+          "ushort" ->
+          ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      case "loff_t", "pthread_t", "sector_t" ->
+          throw new SMGException(
+              "Function: " + pFunctionName + " is currently unsupported in all SMG analyses");
+      default ->
+          throw new SMGException(
+              "Unknown and unhandled function: " + pFunctionName + " at " + pCfaEdge);
     };
   }
 
-  private List<ValueAndSMGState> evaluateFGets(
-      CFunctionCallExpression pCFCExpression,
-      CFAEdge pCfaEdge,
-      SMGState pState,
-      String calledFunctionName)
+  /**
+   * Handle a function call to a builtin function like malloc(), memcpy(), atexit() etc. Will
+   * delegate to the unknown function handler if no function handling is defined.
+   *
+   * @param cfaEdge for logging/debugging.
+   * @param funCallExpr {@link CFunctionCallExpression} that leads to a non memory allocating
+   *     builtin function.
+   * @param functionName The name of the function to be called.
+   * @param state current {@link SMGState}.
+   * @return the result of the function call and the state for it, which may be an error state!
+   * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
+   */
+  private List<ValueAndSMGState> handleBuiltinFunctionCall(
+      CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    if (pCFCExpression.getParameterExpressions().size() != 3) {
-      throw new UnrecognizedCodeException(
-          pCFCExpression.getFunctionNameExpression().toASTString() + " needs 3 argument.",
-          pCfaEdge,
-          pCFCExpression);
+    if (isMemoryAllocatingFunction(functionName)) {
+      // malloc(), calloc() etc.
+      return evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
+          funCallExpr, functionName, state, cfaEdge);
+    } else if (isMemoryDeallocatingFunction(functionName)) {
+      // free()
+      return evaluateFree(funCallExpr, state, cfaEdge);
+    } else if (isMemoryReallocatingFunction(functionName)) {
+      // realloc()
+      return evaluateRealloc(funCallExpr, state, cfaEdge);
     }
 
-    /*
-     * C def:
-     * char *fgets(char *str, int n, FILE *stream);
-     * char *str: A pointer to an array of characters where the read string will be stored.
-     *   This array should be large enough to hold the string, including the terminating null
-     *   character.
-     * int n: The maximum number of characters to read, including the terminating null character.
-     *   fgets will read up to n-1 characters, leaving room for the null character.
-     * FILE *stream: A pointer to a FILE object that specifies the input stream to read from.
-     *   This can be a file pointer obtained from functions like fopen, or it can be stdin for
-     *   standard input.
-     * return: fgets returns the same pointer str that was passed in, which now contains the string
-     *   that was read. If an error occurs, or if end-of-file is reached and no characters were
-     *   read, fgets returns NULL.
-     */
+    if (isStandardByteInputFunction(functionName)
+        || isStandardWideCharInputFunction(functionName)
+        || isStandardStringInputFunction(functionName)) {
+      // fgets(), sscanf() etc.
+      return handleInputFunctions(state, funCallExpr, functionName, cfaEdge);
+    }
 
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    // Check valid inputs
-    for (SMGState checkedState :
-        checkAllParametersForValidity(pState, pCfaEdge, pCFCExpression, calledFunctionName)) {
+    if (isStandardInputOrOutputFunction(functionName)) {
+      // Only output functions as input are already handled above
+      return checkAllParametersForValidityAndReturnUnknownValue(
+          state, cfaEdge, funCallExpr, functionName);
+    }
 
-      // Copy is not possible of course, so we simply set the memory region to unknown (no edge)
-      for (ValueAndSMGState argumentStrAndState :
-          pCFCExpression
-              .getParameterExpressions()
-              .getFirst()
-              .accept(new SMGCPAValueVisitor(evaluator, checkedState, pCfaEdge, logger, options))) {
-        Value argStr = argumentStrAndState.getValue();
-        // TODO: Model errors etc.
-        resultBuilder.add(ValueAndSMGState.of(argStr, argumentStrAndState.getState()));
-        /*
-        for (ValueAndSMGState argumentNAndState :
-            pCFCExpression.getParameterExpressions().get(1).accept(new SMGCPAValueVisitor(evaluator, argumentStrAndState.getState(), pCfaEdge, logger, options))) {
-          Value argN = argumentNAndState.getValue();
+    return switch (functionName) {
+      case "__builtin_popcount", "__builtin_popcountl", "__builtin_popcountll" ->
+          handlePopcount(functionName, state, funCallExpr, cfaEdge);
 
-          for (ValueAndSMGState argumentStreamAndState :
-              pCFCExpression.getParameterExpressions().get(2).accept(new SMGCPAValueVisitor(evaluator, argumentNAndState.getState(), pCfaEdge, logger, options))) {
+      case "alloca", "__builtin_alloca" -> evaluateAlloca(funCallExpr, state, cfaEdge);
 
-            SMGState state = argumentStreamAndState.getState();
-            Value argStream = argumentStreamAndState.getValue();
+      case "memset" -> evaluateMemset(funCallExpr, state, cfaEdge);
 
-            // TODO:
-            resultBuilder.add();
-          }}*/
+      case "memcpy" -> evaluateMemcpy(funCallExpr, state, cfaEdge);
+
+      case "memcmp" -> evaluateMemcmp(funCallExpr, state, cfaEdge);
+
+      case "strcmp" -> evaluateStrcmp(funCallExpr, state, cfaEdge);
+
+      case "__VERIFIER_BUILTIN_PLOT" -> {
+        evaluateVBPlot(funCallExpr, state);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
-    }
-    return resultBuilder.build();
+
+      case "__builtin_va_start" -> evaluateVaStart(funCallExpr, cfaEdge, state);
+
+      case "__builtin_va_arg" -> evaluateVaArg(funCallExpr, cfaEdge, state);
+
+      case "__builtin_va_copy" -> evaluateVaCopy(funCallExpr, cfaEdge, state);
+
+      case "__builtin_va_end" -> evaluateVaEnd(funCallExpr, cfaEdge, state);
+
+      case "atexit" -> evaluateAtExit(funCallExpr, cfaEdge, state);
+
+      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(state);
+
+      default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
+    };
   }
 
   /*
@@ -369,6 +327,7 @@ public class SMGCPABuiltins {
         (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
     SMGState currentState =
         pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
+
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
@@ -607,6 +566,25 @@ public class SMGCPABuiltins {
 
   /**
    * Checks all function parameters for invalid pointer based inputs. To be used in methods that we
+   * only simulate shallowly i.e. print() and returns an unknown value.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge the edge from which this function call originates.
+   * @param cFCExpression the function call expression.
+   * @return a list of states which may include error states.
+   * @throws CPATransferException in case of errors the SMGCPA can not solve.
+   */
+  private List<ValueAndSMGState> checkAllParametersForValidityAndReturnUnknownValue(
+      SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression, String functionName)
+      throws CPATransferException {
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, functionName)
+                .getFirst()));
+  }
+
+  /**
+   * Checks all function parameters for invalid pointer based inputs. To be used in methods that we
    * only simulate shallowly i.e. print().
    *
    * @param pState current {@link SMGState}.
@@ -672,59 +650,479 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * @param pCfaEdge for logging/debugging.
-   * @param cFCExpression the {@link CFunctionCallExpression} that lead to this function call.
-   * @param calledFunctionName The name of the function to be called.
-   * @param pState current {@link SMGState}.
+   * Checks validity of all input. Returns unknown. Overflows for all input parameters with type
+   * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
+   * is returned by the function, else the pointer of the buffer, with an exception if there are
+   * multiple possible buffers. Also uses the size argument for the buffer for
+   * usesBufferSizeArgument true. This method expects NO format specifier to be used in the calling
+   * method!
+   *
+   * @param returnBufferPointer if true: tries to return the buffer pointer on success.
+   * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
+   *     the size given here is read into the buffer (-1 for terminating null char).
+   */
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsWithReturn(
+      SMGState pState,
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String functionName,
+      boolean returnBufferPointer,
+      boolean usesBufferSizeArgument)
+      throws CPATransferException {
+    return checkParamValidityWithBufferOverflowsWithReturn(
+        pState,
+        pCfaEdge,
+        cFCExpression,
+        functionName,
+        returnBufferPointer,
+        usesBufferSizeArgument,
+        Optional.empty());
+  }
+
+  /**
+   * Checks validity of all input. Returns unknown. Overflows for all input parameters with type
+   * char *, but ignores const char * (e.g. format inputs). If returnBufferPointer is false, UNKNOWN
+   * is returned by the function, else the pointer of the buffer, with an exception if there are
+   * multiple possible buffers. Also uses the size argument for the buffer for
+   * usesBufferSizeArgument true.
+   *
+   * @param returnBufferPointer if true: tries to return the buffer pointer on success.
+   * @param usesBufferSizeArgument if true: searches for ONE int argument first, and assumes that
+   *     the size given here is read into the buffer (-1 for terminating null char).
+   * @param formatArgumentIndex if present, index of format specifier. Else no format spec expected!
+   */
+  private List<ValueAndSMGState> checkParamValidityWithBufferOverflowsWithReturn(
+      SMGState pState,
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String functionName,
+      boolean returnBufferPointer,
+      boolean usesBufferSizeArgument,
+      Optional<Integer> formatArgumentIndex)
+      throws CPATransferException {
+    // TODO: add failing w option.
+
+    SMGState currentState = pState;
+    Optional<Value> bufferWriteSizeArgument = Optional.empty();
+    if (usesBufferSizeArgument) {
+      for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
+        CExpression argument = cFCExpression.getParameterExpressions().get(arg);
+        CType argumentType =
+            SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
+        CType functionParameterType =
+            SMGCPAExpressionEvaluator.getCanonicalType(
+                cFCExpression.getDeclaration().getParameters().get(arg).getType());
+        if (functionParameterType instanceof CSimpleType simpleType
+            && simpleType.getType().equals(CBasicType.INT)) {
+          List<ValueAndSMGState> sizeArgAndState =
+              new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options)
+                  .evaluate(argument, argumentType);
+
+          checkState(sizeArgAndState.size() == 1);
+          checkState(bufferWriteSizeArgument.isEmpty());
+          currentState = sizeArgAndState.getFirst().getState();
+          bufferWriteSizeArgument = Optional.of(sizeArgAndState.getFirst().getValue());
+        }
+      }
+    }
+
+    List<SMGState> checkedStates =
+        checkAllParametersForValidity(currentState, pCfaEdge, cFCExpression, functionName);
+    checkState(checkedStates.size() == 1);
+    Value returnValue = UnknownValue.getInstance();
+    SMGState finalState = checkedStates.getFirst();
+
+    // Potentially the size of the input poured into any string buffer.
+    // The buffer size argument might cut this down! Or there might be no format.
+    Optional<Value> sizeFillingStringBuffersInBits = Optional.empty();
+    // stringFormatSpecifierUsed only makes sense if formatArgumentIndex is non-empty!
+    boolean stringFormatSpecifierUsed = false;
+
+    for (int arg = 0; arg < cFCExpression.getParameterExpressions().size(); arg++) {
+      CExpression argument = cFCExpression.getParameterExpressions().get(arg);
+      CType argumentType = SMGCPAExpressionEvaluator.getCanonicalType(argument.getExpressionType());
+      CType functionParameterType;
+      if (arg < cFCExpression.getDeclaration().getParameters().size()) {
+        functionParameterType =
+            SMGCPAExpressionEvaluator.getCanonicalType(
+                cFCExpression.getDeclaration().getParameters().get(arg).getType());
+      } else {
+        // Variable arguments used. Those are not declared. Usually just buffers.
+        functionParameterType = argumentType;
+      }
+
+      if (usesBufferSizeArgument
+          && functionParameterType instanceof CSimpleType simpleType
+          && simpleType.getType().equals(CBasicType.INT)) {
+        continue; // Skip size arg, we already processed it!
+      }
+
+      if (!functionParameterType.isConst()
+          && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
+        // String Buffers
+        List<ValueAndSMGState> overflowBufferAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(overflowBufferAndState.size() == 1);
+        finalState = overflowBufferAndState.getFirst().getState();
+
+        Value bufferAddress = overflowBufferAndState.getFirst().getValue();
+        Value targetBufferOffsetInBits = new NumericValue(BigInteger.ZERO);
+        if (bufferAddress instanceof AddressExpression addrExpr) {
+          bufferAddress = addrExpr.getMemoryAddress();
+          targetBufferOffsetInBits = addrExpr.getOffset();
+        }
+
+        if (!returnValue.equals(UnknownValue.getInstance()) && !isNumericZero(returnValue)) {
+          // Multiple "buffers" in this function, can't return one, return unknown
+          returnBufferPointer = false;
+          returnValue = UnknownValue.getInstance();
+        } else if (returnBufferPointer && !isNumericZero(returnValue)) {
+          // Remember buffer as return value (if that's 0, we also return 0),
+          //  except if its already 0, then keep the return value.
+          returnValue = bufferAddress;
+        }
+        // TODO: add solver handling for checks
+
+        if (!returnValue.isNumericValue()
+            && !returnValue.equals(UnknownValue.getInstance())
+            && usesBufferSizeArgument) {
+          // Overflow if size not fitting and remove buffer values (i.e. make them unknown)
+          checkArgument(bufferWriteSizeArgument.isPresent());
+          Value bufferWriteSizeArg = bufferWriteSizeArgument.orElseThrow();
+
+          List<SMGStateAndOptionalSMGObjectAndOffset> maybeObjects =
+              finalState.dereferencePointer(returnValue);
+          checkState(maybeObjects.size() == 1);
+          SMGStateAndOptionalSMGObjectAndOffset maybeObjAndInfo = maybeObjects.getFirst();
+          checkState(maybeObjAndInfo.hasSMGObjectAndOffset());
+          finalState = maybeObjAndInfo.getSMGState();
+          Value objOffsetInBits = maybeObjAndInfo.getOffsetForObject();
+          SMGObject obj = maybeObjAndInfo.getSMGObject();
+
+          if (obj.getSize() instanceof NumericValue numericObjSize
+              && bufferWriteSizeArg instanceof NumericValue numericBufferWriteSizeArg
+              && targetBufferOffsetInBits instanceof NumericValue numericBufferOffsetInBits
+              && objOffsetInBits instanceof NumericValue numericObjOffsetInBits) {
+            // copyAndRemoveAllEdgesFrom ignores targetBufferOffsetInBits currently, so it has to
+            // be 0
+            checkState(numericBufferOffsetInBits.bigIntegerValue().compareTo(BigInteger.ZERO) == 0);
+            BigInteger bigIntBufferOffsetInBits =
+                numericBufferOffsetInBits
+                    .bigIntegerValue()
+                    .add(numericObjOffsetInBits.bigIntegerValue());
+
+            BigInteger charBitSize =
+                BigInteger.valueOf(machineModel.getSizeofInBits(CNumericTypes.CHAR));
+            BigInteger writeSizeInBits =
+                numericBufferWriteSizeArg.bigIntegerValue().multiply(charBitSize);
+            finalState =
+                finalState.copyAndRemoveAllEdgesFrom(
+                    returnValue, new NumericValue(writeSizeInBits));
+
+            if (numericObjSize
+                    .bigIntegerValue()
+                    .compareTo(bigIntBufferOffsetInBits.add(writeSizeInBits))
+                < 0) {
+              // Overflow
+              finalState = finalState.withInvalidWrite(bufferAddress);
+            }
+
+          } else {
+            // Overaproximate overflow
+            finalState =
+                finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
+            // } else if (options.trackPredicates() && options.trackErrorPredicates()) {
+            // TODO: Symex. Currently we overapproximate for symbolic values of any kind.
+
+          }
+        } else {
+          // Overapproximate buffer overflow and remove edges
+          checkArgument(bufferWriteSizeArgument.isEmpty());
+          finalState =
+              finalState.withInvalidWrite(bufferAddress).copyAndRemoveAllEdgesFrom(returnValue);
+        }
+
+      } else if (BuiltinFunctions.isFilePointer(argumentType)) {
+        // STREAM. If 0, return 0.
+        List<ValueAndSMGState> streamPtrAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(streamPtrAndState.size() == 1);
+        Value streamPointer = streamPtrAndState.getFirst().getValue();
+        finalState = streamPtrAndState.getFirst().getState();
+
+        if (isNumericZero(streamPointer)
+            || (finalState.isPointer(streamPointer)
+                && finalState.dereferencePointerWithoutMaterilization(streamPointer).isPresent()
+                && finalState
+                    .dereferencePointerWithoutMaterilization(streamPointer)
+                    .orElseThrow()
+                    .hasSMGObjectAndOffset()
+                && finalState
+                    .dereferencePointerWithoutMaterilization(streamPointer)
+                    .orElseThrow()
+                    .getSMGObject()
+                    .isZero())) {
+          checkState(!finalState.getMemoryModel().pointsToZeroPlus(streamPointer));
+          returnValue = new NumericValue(0);
+        } else if (!finalState.isPointer(streamPointer)) {
+          // Ignore known and allowed file pointers that are not 0
+          if (!(argument instanceof CIdExpression idExpr && idExpr.getName().equals("stdin"))) {
+            // Unknown -> fail. TODO: overapproximate?
+            throw new SMGException(
+                "Error when handling C input function "
+                    + functionName
+                    + "(), can't handle unknown argument #"
+                    + arg
+                    + " of type "
+                    + functionParameterType);
+          }
+        }
+
+      } else if (functionParameterType.equals(CPointerType.POINTER_TO_CONST_CHAR)) {
+        // format specifiers OR input string!
+        if (formatArgumentIndex.isEmpty() || formatArgumentIndex.orElseThrow() != arg) {
+          // Input string that is read from. Remember the size we can read!
+          // (first argument only! Else this method is used or set-up wrongly!)
+          checkArgument(arg == 0);
+
+          List<ValueAndSMGState> inputStringBufferAndState =
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                  .evaluate(argument, argumentType);
+
+          checkState(inputStringBufferAndState.size() == 1);
+          finalState = inputStringBufferAndState.getFirst().getState();
+
+          Value stringBufferValue = inputStringBufferAndState.getFirst().getValue();
+          Value stringBuffOffsetInBits = new NumericValue(0);
+          if (stringBufferValue instanceof AddressExpression stringBuffAddrExpr) {
+            stringBufferValue = stringBuffAddrExpr.getMemoryAddress();
+            stringBuffOffsetInBits = stringBuffAddrExpr.getOffset();
+          }
+
+          checkArgument(!returnBufferPointer); // If fails, check and add functionality
+          List<SMGStateAndOptionalSMGObjectAndOffset> maybeBufferObjects =
+              finalState.dereferencePointer(stringBufferValue);
+          checkState(maybeBufferObjects.size() == 1);
+          SMGStateAndOptionalSMGObjectAndOffset maybeStringObjAndInfo =
+              maybeBufferObjects.getFirst();
+          checkState(maybeStringObjAndInfo.hasSMGObjectAndOffset());
+          finalState = maybeStringObjAndInfo.getSMGState();
+          Value objOffsetInBits = maybeStringObjAndInfo.getOffsetForObject();
+          SMGObject stringBufferObj = maybeStringObjAndInfo.getSMGObject();
+          checkState(sizeFillingStringBuffersInBits.isEmpty());
+
+          sizeFillingStringBuffersInBits =
+              Optional.of(
+                  evaluator.subtractBitOffsetValues(
+                      stringBufferObj.getSize(),
+                      evaluator.addBitOffsetValues(
+                          evaluator.addBitOffsetValues(
+                              objOffsetInBits, stringBufferObj.getOffset()),
+                          stringBuffOffsetInBits)));
+
+        } else if (formatArgumentIndex.orElseThrow() == arg
+            && argument instanceof CStringLiteralExpression stringArg) {
+          // Format string, if there is an %s in there, we read a string. Remember where and use
+          // for buffer later on
+          if (stringArg.getContentWithoutNullTerminator().contains("%s")) {
+            // List<String> splitSpecifiers =
+            // Splitter.on('%').splitToList(stringArg.getContentWithoutNullTerminator());
+            // splitSpecifiers now consists of a specifier as first char, potentially followed by
+            // spaces. We might be able to make this method more precise for concrete input when
+            // taking this into account.
+            // for (int i = 0; i < splitSpecifiers.size(); i++) {
+            // ...
+            // }
+            stringFormatSpecifierUsed = true;
+          }
+
+        } else {
+          throw new SMGException(
+              "Unexpected unhandled type argument "
+                  + functionParameterType
+                  + "in C input function call "
+                  + functionName
+                  + "() in "
+                  + pCfaEdge);
+        }
+
+      } else if (argumentType instanceof CPointerType) {
+        // Other buffers. Just empty them, except for char * and a previous %s specifier, those
+        // can overflow if smaller than input allows, but also need to be emptied
+        List<ValueAndSMGState> bufferAndState =
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+                .evaluate(argument, argumentType);
+
+        checkState(bufferAndState.size() == 1);
+        finalState = bufferAndState.getFirst().getState();
+        Value bufferAddress = bufferAndState.getFirst().getValue();
+        // Make buffer unknown
+        if (formatArgumentIndex.isPresent() && sizeFillingStringBuffersInBits.isPresent()) {
+          // If sizeFillingStringBuffersInBits is empty, means we don't know the size ->
+          // overapproximate
+          finalState =
+              finalState.copyAndRemoveAllEdgesFrom(
+                  bufferAddress, sizeFillingStringBuffersInBits.orElseThrow());
+        } else {
+          finalState = finalState.copyAndRemoveAllEdgesFrom(bufferAddress);
+        }
+
+        // Handle overflow for strings
+        if (formatArgumentIndex.isPresent() && stringFormatSpecifierUsed) {
+          // TODO: if buffersize < sizeFillingStringBuffersInBits -> overflow
+          // if (sizeFillingStringBuffersInBits.isPresent()) {
+          finalState = finalState.withInvalidWrite(bufferAddress);
+        }
+      }
+    }
+
+    return ImmutableList.of(ValueAndSMGState.of(returnValue, finalState));
+  }
+
+  // TODO: output funs:
+  //  fputwc, fputws, putwc, putwchar, fwprintf, wprintf, vfwprintf, and vwprintf, fputc, fputs,
+  //  printf, vfprintf, vprintf, fprintf, puts, fwrite, putc, putchar
+
+  // TODO: int ungetc(int c, FILE *stream), wint_t ungetwc(wint_t c, FILE *stream):
+  //  Push a character back onto the stream. For success, returns c,
+  //  else ungetc returns EOF; ungetwc returns WEOF.
+
+  /**
+   * Handles input functions like scanf() or sscanf() by overapproximating their behavior.
+   * Parameters are checked for validity and 'char *' buffers cause a buffer-overflow.
+   */
+  private List<ValueAndSMGState> handleInputFunctions(
+      SMGState pState,
+      CFunctionCallExpression functionCallExpr,
+      String functionName,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    // TODO: implement format based checks
+    // For most buffer overflows, we actually only want to allow overflows for formats searching
+    //  for %s, which is a string. The others return their type only once, e.g. 1 number, 1 char.
+    return switch (functionName) {
+      // TODO: getwchar, fwscanf, wscanf, vfwscanf, and vwscanf, vscanf, vfscanf, fread,
+      // TODO: getchar() family
+      // TODO: getch() family
+
+      // TODO: massive overapproximations used here currently! Improve!
+
+      // int scanf(const char * format, ...);
+      // '* const char' format: format to read from file.
+      // ... : additional arguments, i.e. buffers used, may overflow for certain types.
+      // Returns:
+      //  >0: The number of values converted and assigned successfully.
+      //  0: No value was assigned.
+      //  <0: Read error encountered or end-of-file (EOF) reached before any assignment was made.
+      case "scanf" ->
+          checkParamValidityWithBufferOverflowsWithReturn(
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(0));
+
+      // int fscanf(FILE * stream, const char * format, ...);
+      // '* FILE' stream: pointer to file.
+      // '* const char' format: format to read from file.
+      // ... : additional arguments are used to save parsed data, aka the buffers (!overflow for
+      // certain types!)
+      // Alternatives: fscanf_s and fwscanf_s
+      // Alternatives with locale as 3rd argument: _fscanf_s_l and _fwscanf_s_l
+      case "fscanf", "fwscanf_s", "fscanf_s" ->
+          checkParamValidityWithBufferOverflowsWithReturn(
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
+
+      // int sscanf(const char * stream, const char * format, ...);
+      // As fscanf() above, but with string as first arg
+      case "sscanf" ->
+          checkParamValidityWithBufferOverflowsWithReturn(
+              pState, pCfaEdge, functionCallExpr, functionName, false, false, Optional.of(1));
+
+      // fgetwc(FILE *stream) and fgetc(FILE *stream) -> check input, return unknown
+      // getwc(FILE *stream) and getc(FILE *stream) behave the same
+      // int getchar(void); reads a char and returns it.
+      case "fgetwc", "fgetc", "getwc", "getc", "getchar" ->
+          checkAllParametersForValidityAndReturnUnknownValue(
+              pState, pCfaEdge, functionCallExpr, functionName);
+
+      // wchar_t *fgetws(wchar_t *buffer, int n, FILE *stream)
+      // char * fgets(char * buffer, int n, FILE *stream);
+      // modern version of gets() with max size buffer control (with n) etc.
+      // read n-1 chars from stream or until end-of-file or \n is encountered.
+      // Can't overflow it seems -> check validity of input, return buffer ptr and write n unknown
+      //  into buffer (nth is \0).
+      // If buffer or stream is 0, return 0.
+      // TODO: add option that allows this to fail (return 0)
+      // Buffer should be able to hold this number -> else overflow possible!
+      case "fgets", "fgetws" ->
+          checkParamValidityWithBufferOverflowsWithReturn(
+              pState, pCfaEdge, functionCallExpr, functionName, true, true);
+
+      // char * gets(char *buffer);  (deprecated in C11)
+      // Returns either a valid address to the read string (i.e. buffer) on success, 0 otherwise.
+      case "gets" ->
+          checkParamValidityWithBufferOverflowsWithReturn(
+              pState, pCfaEdge, functionCallExpr, functionName, true, false);
+
+      default ->
+          throw new SMGException(
+              "C function "
+                  + functionName
+                  + " can currently not be handled with this CPA. Origin: "
+                  + functionCallExpr);
+    };
+  }
+
+  /**
+   * @param cfaEdge for logging/debugging.
+   * @param funCallExpr the {@link CFunctionCallExpression} that lead to this function call.
+   * @param functionName The name of the function to be called.
+   * @param state current {@link SMGState}.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid {@link Value}s and {@link
    *     SMGState}s, or unknown Values and maybe error states. Depending on the safety of the
    *     function/config.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> handleUnknownFunction(
-      CFAEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
-      String calledFunctionName,
-      SMGState pState)
+      CFAEdge cfaEdge, CFunctionCallExpression funCallExpr, String functionName, SMGState state)
       throws CPATransferException {
+
+    if (isSafeFunction(functionName)) {
+      return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
+    }
+
     // This mostly returns unknown if it does not find a function to handle
-    if (calledFunctionName.contains("pthread")) {
+    if (functionName.contains("pthread")) {
       throw new SMGException("Concurrency analysis not supported in this configuration.");
     }
+
     return switch (options.getHandleUnknownFunctions()) {
-      case STRICT -> {
-        if (!isSafeFunction(calledFunctionName)) {
+      case STRICT ->
           throw new CPATransferException(
               String.format(
-                  "Unknown function '%s' may be unsafe. See the"
-                      + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
-                  cFCExpression));
-        }
-        logger.log(
-            Level.FINE,
-            "Returned unknown value for strict handling of unknown functions, but flagged as safe"
-                + " unknown function: "
-                + cFCExpression,
-            pCfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      }
+                  "Unknown function '%s' may be unsafe and STRICT handling is enabled. See option"
+                      + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction for more details",
+                  funCallExpr));
+
       case ASSUME_SAFE -> {
         logger.log(
             Level.FINE,
-            "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
-            pCfaEdge);
-        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+            "Returned unknown value for assumed to be safe unknown function " + funCallExpr,
+            cfaEdge);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
+
       case ASSUME_EXTERNAL_ALLOCATED -> {
         ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
+            checkAllParametersForValidity(state, cfaEdge, funCallExpr, functionName)) {
           logger.log(
               Level.FINE,
-              "Returned unknown value with allocated memory for unknown function " + cFCExpression,
-              pCfaEdge);
+              "Returned unknown value with allocated memory for unknown function " + funCallExpr,
+              cfaEdge);
           builder.addAll(
-              evaluateExternalAllocationFunction(cFCExpression, checkedState, calledFunctionName));
+              evaluateExternalAllocationFunction(funCallExpr, checkedState, functionName));
         }
         yield builder.build();
       }
@@ -770,7 +1168,11 @@ public class SMGCPABuiltins {
                   + " function: "
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
-            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+            infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+            throw new SMGException(infoMsg);
+          } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+            throw new SMGException(infoMsg);
           } else {
             logger.log(Level.FINE, infoMsg + ", in " + cfaEdge);
           }
@@ -869,23 +1271,28 @@ public class SMGCPABuiltins {
    * means this returns a Value and not a memory location! Always check the amount of parameters
    * before using this!
    *
-   * @param pParameterNumber the number of the paramter for the function. I.e. foo (x); x would be
-   *     paramter 0.
+   * @param pParameterNumber the number of the parameter for the function. I.e. foo (x); x would be
+   *     parameter 0.
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
+   * @param parameterTypeInFun {@link CType} of the parameter.
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @return {@link List} of {@link ValueAndSMGState}s each representing the paramteter requested.
-   *     Each should be treated as a valid paramter.
+   * @return {@link List} of {@link ValueAndSMGState}s each representing the parameter requested.
+   *     Each should be treated as a valid parameter.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> getFunctionParameterValue(
-      int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      int pParameterNumber,
+      CFunctionCallExpression functionCall,
+      CType parameterTypeInFun,
+      SMGState pState,
+      CFAEdge cfaEdge)
       throws CPATransferException {
 
-    CExpression expr;
+    CExpression paramExpr;
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     try {
-      expr = functionCall.getParameterExpressions().get(pParameterNumber);
+      paramExpr = functionCall.getParameterExpressions().get(pParameterNumber);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException(
@@ -893,13 +1300,52 @@ public class SMGCPABuiltins {
     }
 
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
-    return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
+    return vv.evaluate(
+        paramExpr, SMGCPAExpressionEvaluator.getCanonicalType(checkNotNull(parameterTypeInFun)));
   }
 
   /**
-   * Handles all allocation methods i.e. malloc Returns the pointer Value to the new memory region
-   * (that may be written to 0 for the correct function i.e. calloc). This also returns a state for
-   * the failure of the allocation function if the option is enabled.
+   * Gets parameter pParameterNumber and checks that it exists. If not it throws an exception. This
+   * means this returns a Value and not a memory location! Always check the amount of parameters
+   * before using this!
+   *
+   * @param pParameterNumber the number of the parameter for the function. I.e. foo (x); x would be
+   *     parameter 0.
+   * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
+   * @param pState current {@link SMGState}.
+   * @param cfaEdge for logging/debugging.
+   * @return {@link List} of {@link ValueAndSMGState}s each representing the parameter requested.
+   *     Each should be treated as a valid parameter.
+   * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
+   */
+  private List<ValueAndSMGState> getFunctionParameterValue(
+      int pParameterNumber, CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    CFunctionDeclaration decl = functionCall.getDeclaration();
+    CType parameterTypeInFun;
+    if (decl != null) {
+      parameterTypeInFun = decl.getParameters().get(pParameterNumber).getType().getCanonicalType();
+    } else {
+      parameterTypeInFun =
+          functionCall
+              .getParameterExpressions()
+              .get(pParameterNumber)
+              .getExpressionType()
+              .getCanonicalType();
+    }
+    checkNotNull(
+        parameterTypeInFun,
+        "Function call parameter type null. This can happen, the type needs to be added by hand!");
+    return getFunctionParameterValue(
+        pParameterNumber, functionCall, parameterTypeInFun, pState, cfaEdge);
+  }
+
+  /**
+   * Handles all allocation methods that need a call to free() to clean up, e.g. malloc() and
+   * calloc(). Returns the pointer Value to the new memory region (that may be written to 0 for the
+   * correct function i.e. calloc). This also returns a state for the failure of the allocation
+   * function if the option is enabled.
    *
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
@@ -911,7 +1357,7 @@ public class SMGCPABuiltins {
    *     type in case of errors an error state is set.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
-  List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
+  List<ValueAndSMGState> evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
       CFunctionCallExpression functionCall, String functionName, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -928,6 +1374,10 @@ public class SMGCPABuiltins {
                 + ": "
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
+          infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+          throw new SMGException(infoMsg);
+        } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+          infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
           throw new SMGException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
@@ -1022,7 +1472,15 @@ public class SMGCPABuiltins {
     } else {
       if (!options.trackPredicates()) {
         // Symbolic size
-        throw new SMGException(functionCall + " Tried to allocate symbolic memory.");
+        throw new SMGException(
+            functionCall
+                + " tried to allocate symbolic memory, which is not supported without predicate"
+                + " tracking.");
+      } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+        throw new SMGException(
+            functionCall
+                + " tried to allocate symbolic memory, which is not supported for"
+                + " UnknownFunctionHandling.STRICT");
       }
       // Symbolic size allowed
       // sizeInBits is a symbolic expr with a multiplication times 8 inside
@@ -1123,18 +1581,31 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks for known safe functions and returns true if the entered function name is one.
+   * Checks for known safe functions and returns true if the entered function is one. Functions that
+   * are always considered as safe are not evaluated, even if known to the analysis, nor are their
+   * inputs checked for validity. They always return a new, unknown value and therefore
+   * overapproximate if their signature does not return void.
    *
    * @param calledFunctionName name of the called function to be checked.
    * @return true is the function is safe, false else.
    */
   private boolean isSafeFunction(String calledFunctionName) {
-    for (String safeUnknownFunctionPattern : options.getSafeUnknownFunctions()) {
-      if (Pattern.compile(safeUnknownFunctionPattern).matcher(calledFunctionName).matches()) {
-        return true;
-      }
-    }
-    return false;
+    return options.getSafeUnknownFunctions().contains(calledFunctionName);
+  }
+
+  private List<ValueAndSMGState> handleSafeFunction(
+      String calledFunctionName,
+      SMGState pState,
+      CFunctionCallExpression cFCExpression,
+      CFAEdge pCfaEdge) {
+    logger.log(
+        Level.FINE,
+        "Returned unknown value for C function "
+            + calledFunctionName
+            + " flagged as safe, located at "
+            + cFCExpression,
+        pCfaEdge);
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
   }
 
   /**
@@ -1291,8 +1762,7 @@ public class SMGCPABuiltins {
     // This precondition has to hold for the get(0) getters
     Preconditions.checkArgument(
         !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
-    if (charValue.isNumericValue()
-        && charValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+    if (isNumericZero(charValue)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
           currentState
@@ -1400,7 +1870,11 @@ public class SMGCPABuiltins {
             "Could not determine a concrete size for a memory allocation function: "
                 + functionCall.getFunctionNameExpression();
         if (options.isAbortOnNonConcreteMemorySize()) {
-          throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+          infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+          throw new SMGException(infoMsg);
+        } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+          infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+          throw new SMGException(infoMsg);
         } else {
           logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
         }
@@ -1454,10 +1928,11 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link SMGState}s for the results of the free() invokation. These might
-   *     include error states!
+   *     include error states! The {@link Value}s returned are UNKNOWN. As the function does not
+   *     return a value, this is not a problem, and they are ignored.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
-  public final List<SMGState> evaluateFree(
+  private ImmutableList<ValueAndSMGState> evaluateFree(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
@@ -1466,16 +1941,19 @@ public class SMGCPABuiltins {
           "The function free() needs exactly 1 paramter", cfaEdge, pFunctionCall);
     }
 
-    ImmutableList.Builder<SMGState> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState addressAndState :
         getFunctionParameterValue(0, pFunctionCall, pState, cfaEdge)) {
       Value maybeAddressValue = addressAndState.getValue();
       SMGState currentState = addressAndState.getState();
 
       if (currentState.hasMemoryErrors() && options.isMemoryErrorTarget()) {
-        resultBuilder.add(currentState);
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
       } else {
-        resultBuilder.addAll(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
+        resultBuilder.addAll(
+            transformedImmutableListCopy(
+                currentState.free(maybeAddressValue, pFunctionCall, cfaEdge),
+                ValueAndSMGState::ofUnknownValue));
       }
     }
 
@@ -2299,13 +2777,8 @@ public class SMGCPABuiltins {
       // If there is nothing left, they are equal.
       return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
     }
-    // Equally sized blocks not possible, use read, as read can break down parts of edges correctly.
-    // TODO: implement me
 
-    if (hvesObj1InSizeOrdered.isEmpty() && hvesObj2InSizeOrdered.isEmpty()) {
-      // If there is nothing left, they are equal.
-      return ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), pCurrentState);
-    }
+    // Equally sized blocks not possible, use read, as read can break down parts of edges correctly.
     // TODO: At this point we would need a solver, if we ever need it implement this case.
     //  or return UNKNOWN.
     throw new SMGException("Could not compare the memory regions given in memcmp in " + pCFAEdge);
@@ -2406,26 +2879,34 @@ public class SMGCPABuiltins {
     for (ValueAndSMGState firstValueAndSMGState :
         getFunctionParameterValue(STRCMP_FIRST_PARAMETER, pFunctionCall, pState, pCfaEdge)) {
 
-      Value firstAddress = firstValueAndSMGState.getValue();
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!(firstAddress instanceof AddressExpression firstAddressExpr)) {
+      Value firstAddress = firstValueAndSMGState.getValue();
+      Value firstAddressOffset = new NumericValue(0);
+      if (firstAddress instanceof AddressExpression firstAddressExpr) {
+        if (!firstAddressExpr.getOffset().isNumericValue()) {
+          // Write the target region to unknown
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  firstValueAndSMGState.getState(),
+                  "Returned unknown for unknown offset in first address in function strcmp in ",
+                  pCfaEdge));
+          continue;
+        }
+        firstAddressOffset = firstAddressExpr.getOffset();
+        if (!firstAddressOffset.isNumericValue()) {
+          throw new SMGException(
+              "Function strcmp() with symbolic offsets is not supported currently");
+        }
+        firstAddress = firstAddressExpr.getMemoryAddress();
+
+      } else if (!pState.getMemoryModel().isPointer(firstAddress)) {
         // The value can be unknown
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 firstValueAndSMGState.getState(),
                 "Returned unknown for unknown address in first address in function strcmp in ",
-                pCfaEdge));
-        continue;
-      }
-
-      if (!firstAddressExpr.getOffset().isNumericValue()) {
-        // Write the target region to unknown
-        resultBuilder.add(
-            ValueAndSMGState.ofUnknownValue(
-                firstValueAndSMGState.getState(),
-                "Returned unknown for unknown offset in first address in function strcmp in ",
                 pCfaEdge));
         continue;
       }
@@ -2438,6 +2919,11 @@ public class SMGCPABuiltins {
         // The buffer is type * and has to be an AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
+          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            throw new SMGException(
+                "Function strcmp() with symbolic handling not supported with option"
+                    + " UnknownFunctionHandling.STRICT enabled");
+          }
           // Unknown addresses happen only of we don't have a memory associated
           // TODO: decide what to do here and when this happens
           resultBuilder.add(
@@ -2448,6 +2934,11 @@ public class SMGCPABuiltins {
                   pCfaEdge));
           continue;
         } else if (!(secondAddress instanceof AddressExpression)) {
+          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            throw new SMGException(
+                "Function strcmp() with symbolic handling not supported with option"
+                    + " UnknownFunctionHandling.STRICT enabled");
+          }
           // The value can be unknown
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2458,6 +2949,11 @@ public class SMGCPABuiltins {
         }
         AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
         if (!secondAddressExpr.getOffset().isNumericValue()) {
+          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            throw new SMGException(
+                "Function strcmp() with symbolic handling not supported with option"
+                    + " UnknownFunctionHandling.STRICT enabled");
+          }
           // Write the target region to unknown
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2471,8 +2967,8 @@ public class SMGCPABuiltins {
         // const char *secondStringPointer)' (c99 * 7.21.4.2)
         resultBuilder.add(
             evaluator.stringCompare(
-                firstAddressExpr.getMemoryAddress(),
-                firstAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                firstAddress,
+                firstAddressOffset.asNumericValue().bigIntegerValue(),
                 secondAddressExpr.getMemoryAddress(),
                 secondAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
                 secondValueAndSMGState.getState()));
@@ -2509,7 +3005,11 @@ public class SMGCPABuiltins {
               "Could not determine a concrete size for a memory allocation function: "
                   + functionCall.getFunctionNameExpression();
           if (options.isAbortOnNonConcreteMemorySize()) {
-            throw new UnrecognizedCodeException(infoMsg, cfaEdge);
+            infoMsg += ", due to option abortOnNonConcreteMemorySize. At " + cfaEdge;
+            throw new SMGException(infoMsg);
+          } else if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+            infoMsg += ", due to option UnknownFunctionHandling.STRICT. At " + cfaEdge;
+            throw new SMGException(infoMsg);
           } else {
             logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
           }
@@ -2562,28 +3062,32 @@ public class SMGCPABuiltins {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
     }
+
     CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
     if (pSizeValue.isNumericValue()) {
       sizeInBits =
           new NumericValue(
               pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
+
     } else {
-      if (options.trackPredicates()) {
-        if (!pSizeValue.isNumericValue()) {
-          sizeType =
-              SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  functionCall.getParameterExpressions().getFirst().getExpressionType(),
-                  machineModel);
-        }
+      // Size symbolic
+      if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+        throw new SMGException(
+            "Can't handle symbolic parameter in C function realloc() with option"
+                + " UnknownFunctionHandling.STRICT set. Location in program "
+                + pCfaEdge);
+      } else if (options.trackPredicates()) {
+        sizeType =
+            SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
+                functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                machineModel);
         sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
+
       } else {
-        logger.logf(
-            Level.INFO,
-            "Realloc called in line %s with symbolic size for new memory but no symbolic handling"
-                + " is enabled. Overapproximated. %s",
-            pCfaEdge.getFileLocation().getStartingLineInOrigin(),
-            pCfaEdge);
-        return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+        throw new SMGException(
+            "Can't handle symbolic paramters in C function realloc() without tracking predicates at"
+                + " "
+                + pCfaEdge);
       }
     }
 
@@ -2591,13 +3095,14 @@ public class SMGCPABuiltins {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     // Handle (realloc(0, size) -> just malloc
-    if (pPtrValue.isNumericValue()
-        && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+    if (isNumericZero(pPtrValue)) {
       return handleConfigurableMemoryAllocation(
-          functionCall, currentState, sizeInBits, sizeType, CPointerType.POINTER_TO_VOID, pCfaEdge);
-    } else if (options.trackPredicates()) {
-      // Check with solver
-      throw new SMGException("Can't handle symbolic realloc parameters.");
+          functionCall,
+          currentState,
+          sizeInBits,
+          sizeType,
+          functionCall.getExpressionType(),
+          pCfaEdge);
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
@@ -2613,6 +3118,19 @@ public class SMGCPABuiltins {
     for (SMGStateAndOptionalSMGObjectAndOffset oldObj :
         currentState.dereferencePointer(pPtrValue)) {
       currentState = oldObj.getSMGState();
+
+      // The copy is always the lesser size of the 2
+      Value oldSize =
+          evaluator.subtractBitOffsetValues(
+              oldObj.getSMGObject().getSize(), oldObj.getOffsetForObject());
+
+      if (!oldSize.isNumericValue() || !sizeInBits.isNumericValue()) {
+        throw new SMGException("Symbolic memory size in realloc() currently not supported.");
+        // TODO: add STRICT function handling check once allowed!
+      }
+      // TODO: check that right is always larger than left, then just copy all edges into the new
+      // memory
+
       // Malloc new memory
       ValueAndSMGState addressAndState =
           evaluator.createHeapMemoryAndPointer(
@@ -2625,14 +3143,7 @@ public class SMGCPABuiltins {
               .dereferencePointerWithoutMaterilization(addressToNewRegion)
               .orElseThrow()
               .getSMGObject();
-      // The copy is always the lesser size of the 2
-      Value oldSize =
-          evaluator.subtractBitOffsetValues(
-              oldObj.getSMGObject().getSize(), oldObj.getOffsetForObject());
 
-      if (!oldSize.isNumericValue()) {
-        throw new SMGException("Symbolic memory size in realloc() currently not supported.");
-      }
       BigInteger copySizeInBits = sizeInBits.asNumericValue().bigIntegerValue();
       if (oldSize.asNumericValue().bigIntegerValue().compareTo(copySizeInBits) < 0) {
         copySizeInBits = oldSize.asNumericValue().bigIntegerValue();
@@ -2653,4 +3164,111 @@ public class SMGCPABuiltins {
   }
 
   // TODO: strlen
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
+   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
+   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
+   */
+  private List<ValueAndSMGState> handlePopcount(
+      String pFunctionName, SMGState pState, CFunctionCallExpression functionCall, CFAEdge edge)
+      throws CPATransferException {
+
+    if (functionCall.getParameterExpressions().size() != 1) {
+      throw new UnrecognizedCodeException(
+          "Function "
+              + pFunctionName
+              + " received "
+              + functionCall.getParameterExpressions().size()
+              + " parameters"
+              + " instead of the expected "
+              + 1,
+          functionCall);
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    CSimpleType paramType = getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+    assert functionCall.getExpressionType() instanceof CSimpleType simpleType
+        && simpleType.getCanonicalType().getType().isIntegerType()
+        && simpleType.getCanonicalType().hasSignedSpecifier();
+    assert paramType.hasUnsignedSpecifier();
+
+    // Cast to unsigned target type
+    for (ValueAndSMGState evaluatedParamAndState :
+        getFunctionParameterValue(0, functionCall, paramType, pState, edge)) {
+      Value castParamValue = evaluatedParamAndState.getValue();
+      SMGState currentState = evaluatedParamAndState.getState();
+
+      if (castParamValue.isNumericValue()) {
+        BigInteger numericParam = castParamValue.asNumericValue().bigIntegerValue();
+
+        // Check that the cast function parameter is really unsigned, as defined by the function and
+        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
+        // results
+        verify(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
+
+        result.add(ValueAndSMGState.of(new NumericValue(numericParam.bitCount()), currentState));
+
+      } else if (options.trackPredicates() && !castParamValue.isUnknown()) {
+
+        checkArgument(castParamValue instanceof SymbolicExpression);
+
+        SymbolicExpression symbolicParam = (SymbolicExpression) castParamValue;
+        int parameterBitSize = machineModel.getSizeofInBits(paramType);
+
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression constraint =
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, paramType);
+
+        // Add up the bits one by one
+        // (castParamValue >> 0) & 1 + (castParamValue >> 1) & 1 + ...
+        for (int i = 1; i < parameterBitSize; i++) {
+          SymbolicExpression countOfBitAtIndex =
+              factory.binaryAnd(
+                  factory.shiftRightUnsigned(
+                      symbolicParam,
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      paramType,
+                      paramType),
+                  one,
+                  CNumericTypes.INT,
+                  paramType);
+          constraint =
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+        }
+
+        result.add(ValueAndSMGState.of(constraint, currentState));
+      } else {
+
+        // TODO: we could associate a symbolic output with the input used to assure ==
+        result.add(ValueAndSMGState.of(Value.UnknownValue.getInstance(), currentState));
+      }
+    }
+
+    return result.build();
+  }
+
+  private static boolean isNumericZero(Value value) {
+    return value.isNumericValue()
+        && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
+  }
+
+  @SuppressWarnings("unused")
+  private void handleDisallowedOverapproximationIfNeeded(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge) throws SMGException {
+    if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+      throw new SMGException(
+          "Can't handle C function "
+              + cFCExpression.getFunctionNameExpression().toASTString()
+              + "() with option "
+              + options.getHandleUnknownFunctions()
+              + " set, as this would lead to overapproximated handling. Location in program "
+              + pCfaEdge);
+    }
+  }
 }

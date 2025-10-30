@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -86,7 +85,7 @@ public abstract class ConditionFolder {
           l = loopStack.getLast();
         }
 
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        for (CFAEdge edge : node.getAllLeavingEdges()) {
           if (loopMapResult.containsKey(edge.getSuccessor())) {
             continue;
           }

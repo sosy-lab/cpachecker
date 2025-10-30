@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptAllVariabl
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
@@ -349,7 +348,7 @@ public class InvariantsCPA
         shutdownNotifier.shutdownIfNecessary();
 
         location = nodes.poll();
-        for (CFAEdge edge : CFAUtils.enteringEdges(location)) {
+        for (CFAEdge edge : location.getEnteringEdges()) {
           if (relevantEdges.add(edge)) {
             nodes.offer(edge.getPredecessor());
           }
@@ -531,7 +530,7 @@ public class InvariantsCPA
         Pair<CFANode, List<CFAEdge>> currentPair = waitlist.poll();
         CFANode currentNode = currentPair.getFirst();
         List<CFAEdge> currentPath = currentPair.getSecond();
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
+        for (CFAEdge enteringEdge : currentNode.getEnteringEdges()) {
           if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
             assumeEdgesAndPaths.add(Pair.of((AssumeEdge) enteringEdge, currentPath));
           } else if (pVisitedNodes.add(enteringEdge.getPredecessor())) {
@@ -548,7 +547,7 @@ public class InvariantsCPA
         CFANode predecessor = assumeEdge.getPredecessor();
         if (pVisitedNodes.add(predecessor)) {
           addTransitivelyRelevantInvolvedVariables(pRelevantVariables, assumeEdge, pLimit);
-          for (CFAEdge sisterEdge : CFAUtils.leavingEdges(predecessor)) {
+          for (CFAEdge sisterEdge : predecessor.getLeavingEdges()) {
             if (!assumeEdge.equals(sisterEdge)) {
               CFANode brotherNode = sisterEdge.getSuccessor();
               if (!mustReach(brotherNode, currentRelevantLocation, assumeEdge)
@@ -584,7 +583,7 @@ public class InvariantsCPA
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (!current.equals(pTarget)) {
-        FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(current);
+        FluentIterable<CFAEdge> leavingEdges = current.getLeavingEdges();
         boolean continued = false;
         for (CFAEdge leavingEdge : leavingEdges) {
           if (!leavingEdge.equals(pForbiddenEdge)) {

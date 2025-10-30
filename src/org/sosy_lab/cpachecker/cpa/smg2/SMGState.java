@@ -1039,16 +1039,42 @@ public class SMGState
    * @return Newly created object + state with it.
    */
   public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy, int newNestingLevel) {
-    SMGObject newObject = objectToCopy.freshCopy().copyWithNewNestingLevel(newNestingLevel);
-    checkState(newObject.getClass() == objectToCopy.getClass());
-    if (!memoryModel.isObjectValid(objectToCopy)) {
-      return SMGObjectAndSMGState.of(
-          newObject,
-          copyAndReplaceMemoryModel(
-              memoryModel.copyAndAddHeapObject(newObject).invalidateSMGObject(newObject, false)));
+    SMGObject newObject;
+    if (objectToCopy instanceof SMGSinglyLinkedListSegment sllToCopy) {
+      if (objectToCopy instanceof SMGDoublyLinkedListSegment dllToCopy) {
+        // DLL
+        newObject =
+            SMGDoublyLinkedListSegment.of(dllToCopy).copyWithNewNestingLevel(newNestingLevel);
+      } else {
+        // SLL
+        checkArgument(sllToCopy.isSLL());
+        newObject =
+            SMGSinglyLinkedListSegment.of(sllToCopy).copyWithNewNestingLevel(newNestingLevel);
+      }
+    } else {
+      checkArgument(!(objectToCopy instanceof SMGSinglyLinkedListSegment));
+      newObject = SMGObject.of(newNestingLevel, objectToCopy.getSize(), objectToCopy.getOffset());
+      if (!memoryModel.isObjectValid(objectToCopy)) {
+        return SMGObjectAndSMGState.of(
+            newObject,
+            copyAndReplaceMemoryModel(
+                memoryModel.copyAndAddHeapObject(newObject).invalidateSMGObject(newObject, false)));
+      }
     }
     return SMGObjectAndSMGState.of(
         newObject, copyAndReplaceMemoryModel(memoryModel.copyAndAddHeapObject(newObject)));
+  }
+
+  /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size and type of the given. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param objectToCopy The object copied. Size, type, nfo, pfo, nesting-level etc. are all copied.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddNewHeapObject(SMGObject objectToCopy) {
+    return copyAndAddNewHeapObject(objectToCopy, objectToCopy.getNestingLevel());
   }
 
   /* Only used by abstraction materialization */
@@ -2460,6 +2486,49 @@ public class SMGState
             allowAbstractedSelfPointers,
             trueEqualityCheck);
       }
+    } else {
+      // We could end up here because of abstraction with one abstracted element and a
+      // concrete element and both have a self pointer and next/prev pointers blocked
+      List<BigInteger> exemptOffsetsThis = exemptOffsetsPerObject.get(thisSLL);
+      List<BigInteger> exemptOffsetsOther = exemptOffsetsPerObject.get(otherSLL);
+      BigInteger neededNext;
+      BigInteger neededPrev = null;
+      if (exemptOffsetsOther == null
+          || exemptOffsetsThis == null
+          || exemptOffsetsThis.isEmpty()
+          || exemptOffsetsOther.isEmpty()) {
+        return false;
+      }
+
+      neededNext = otherSLL.getNextOffset();
+      if (otherSLL instanceof SMGDoublyLinkedListSegment otherDLL) {
+        neededPrev = otherDLL.getPrevOffset();
+      }
+
+      neededNext = thisSLL.getNextOffset();
+      if (thisSLL instanceof SMGDoublyLinkedListSegment thisDLL) {
+        neededPrev = thisDLL.getPrevOffset();
+      }
+
+      if (exemptOffsetsOther.contains(neededNext) && exemptOffsetsThis.contains(neededNext)) {
+        if (neededPrev != null) {
+          if (!exemptOffsetsOther.contains(neededPrev) || !exemptOffsetsThis.contains(neededPrev)) {
+            return false;
+          }
+        }
+        return checkEqualValuesForTwoStatesWithExemptions(
+            thisSLL,
+            otherSLL,
+            exemptOffsetsPerObject,
+            thisState,
+            otherState,
+            equalityCache,
+            objectCache,
+            thisPointerValueAlreadyVisited,
+            treatSymbolicsAsEqualWEqualConstrains,
+            allowAbstractedSelfPointers,
+            trueEqualityCheck);
+      }
     }
     return false;
   }
@@ -3041,13 +3110,35 @@ public class SMGState
    * @param pUnreachableObjects the object at fault.
    * @return a copy of the current state with the error info added.
    */
-  public SMGState withMemoryLeak(String errorMsg, Collection<Object> pUnreachableObjects) {
-    // TODO: replace Object; currently it is only used by Value (address to SMGObject)
+  public SMGState withMemoryLeak(String errorMsg, Collection<SMGObject> pUnreachableObjects) {
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_HEAP)
             .withErrorMessage(errorMsg)
             .withInvalidObjects(pUnreachableObjects);
+    // Log the error in the logger
+    logMemoryError(errorMsg, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
+   * Copy the state with a memory leak error set. Sanity checks that the pointer points to VALID
+   * heap memory.
+   *
+   * @param errorMsg custom error message specific to the error reason.
+   * @return a copy of the current state with the error info added.
+   */
+  public SMGState withMemoryLeak(String errorMsg, Value pointerToUnreachable) {
+    SMGValue smgValue = memoryModel.getSMGValueFromValue(pointerToUnreachable).orElseThrow();
+    SMGObject leakedObject = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow().pointsTo();
+    checkState(memoryModel.getSmg().isValid(leakedObject));
+    checkState(memoryModel.isHeapObject(leakedObject));
+
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_HEAP)
+            .withErrorMessage(errorMsg)
+            .withInvalidObjects(ImmutableList.of(leakedObject));
     // Log the error in the logger
     logMemoryError(errorMsg, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -3847,6 +3938,7 @@ public class SMGState
             newState
                 .getSMGState()
                 .readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
+
         if (readAfterMat.size() != 1) {
           // 0+ followed by 0+, e.g. 0+ -> 0+, can lead to eradication of the first and then mat of
           // second. Assert that this only occurs in the case that removed the 0+, and not the
@@ -5333,6 +5425,72 @@ public class SMGState
     checkArgument(memoryModel.isObjectValid(object));
     return copyAndReplaceMemoryModel(
         memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite));
+  }
+
+  public SMGState copyAndRemoveAllEdgesFrom(SMGObject pObject) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveAllEdgesFrom(pObject));
+  }
+
+  public SMGState copyAndRemoveAllEdgesFrom(Value pointerToObjectToRemoveEdgesFrom)
+      throws SMGException {
+    Value startOffset = new NumericValue(BigInteger.ZERO);
+    if (pointerToObjectToRemoveEdgesFrom instanceof AddressExpression addrExpr) {
+      pointerToObjectToRemoveEdgesFrom = addrExpr.getMemoryAddress();
+      startOffset = addrExpr.getOffset();
+    }
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybeRegions =
+        dereferencePointer(pointerToObjectToRemoveEdgesFrom);
+    checkState(maybeRegions.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegionAndInfo = maybeRegions.getFirst();
+    checkState(maybeRegionAndInfo.hasSMGObjectAndOffset());
+    SMGState state = maybeRegionAndInfo.getSMGState();
+    SMGObject obj = maybeRegionAndInfo.getSMGObject();
+    startOffset =
+        evaluator.addBitOffsetValues(startOffset, maybeRegionAndInfo.getOffsetForObject());
+    checkArgument(!obj.isZero());
+
+    if (!(startOffset instanceof NumericValue numericOffset)) {
+      // Overapproximate
+      return copyAndRemoveAllEdgesFrom(obj);
+    }
+
+    return state.copyAndReplaceMemoryModel(
+        state.memoryModel.copyAndRemoveAllEdgesFrom(obj, numericOffset.bigIntegerValue()));
+  }
+
+  /**
+   * Tries to remove all (overlapping) has-value-edges from the object pointed to by
+   * pointerToObjectToRemoveEdgesFrom, starting from the offset the pointer points to, to the given
+   * size. If either the offset from the pointer or the size given is not numeric, it will remove
+   * all values from the object.
+   */
+  public SMGState copyAndRemoveAllEdgesFrom(
+      Value pointerToObjectToRemoveEdgesFrom, Value sizeInBits) throws SMGException {
+    Value startOffset = new NumericValue(BigInteger.ZERO);
+    if (pointerToObjectToRemoveEdgesFrom instanceof AddressExpression addrExpr) {
+      pointerToObjectToRemoveEdgesFrom = addrExpr.getMemoryAddress();
+      startOffset = addrExpr.getOffset();
+    }
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybeRegions =
+        dereferencePointer(pointerToObjectToRemoveEdgesFrom);
+    checkState(maybeRegions.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegionAndInfo = maybeRegions.getFirst();
+    checkState(maybeRegionAndInfo.hasSMGObjectAndOffset());
+    SMGState state = maybeRegionAndInfo.getSMGState();
+    SMGObject obj = maybeRegionAndInfo.getSMGObject();
+    startOffset =
+        evaluator.addBitOffsetValues(startOffset, maybeRegionAndInfo.getOffsetForObject());
+    checkArgument(!obj.isZero());
+
+    if (!(startOffset instanceof NumericValue numericOffset)
+        || !(sizeInBits instanceof NumericValue numericSize)) {
+      // Overapproximate
+      return copyAndRemoveAllEdgesFrom(obj);
+    }
+
+    return state.copyAndReplaceMemoryModel(
+        state.memoryModel.copyAndRemoveAllEdgesFrom(
+            obj, numericOffset.bigIntegerValue(), numericSize.bigIntegerValue()));
   }
 
   /**
@@ -6878,10 +7036,7 @@ public class SMGState
       }
     }
 
-    assert currentState.getMemoryModel().checkSMGSanity();
-    assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
-    assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
-        == 0);
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
 
     return currentState.abstractIntoDLL(
         newDLL,
@@ -7058,6 +7213,8 @@ public class SMGState
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(nextObj).getSPC());
 
+    // TODO: write a test that checks that we remove all unnecessary pointers/values etc.
+    assert currentState.getMemoryModel().getSmg().checkSMGSanity();
     assert currentState.getMemoryModel().checkSMGSanity();
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(root) == 0);
     assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
@@ -7792,6 +7949,10 @@ public class SMGState
         statistics,
         blockEnd,
         Optional.empty());
+  }
+
+  public boolean isPointer(Value value) {
+    return memoryModel.isPointer(value);
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find

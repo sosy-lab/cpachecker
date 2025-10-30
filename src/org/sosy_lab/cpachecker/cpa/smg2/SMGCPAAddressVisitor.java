@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
