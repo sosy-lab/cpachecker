@@ -171,6 +171,10 @@ public final class ResourceLimitChecker {
     return true;
   }
 
+  private static String processCpuTimeLimitToString(TimeSpan timeSpanToPrint) {
+    return timeSpanToPrint.equals(TIME_LIMIT_INFINITE) ? "INFINITE" : timeSpanToPrint.toString();
+  }
+
   /**
    * Enforce the option "limits.time.cpu" for this CPAchecker instance statically. Needed for
    * property based strategy selection that "loses" options set before switching to the new
@@ -187,11 +191,11 @@ public final class ResourceLimitChecker {
         && !globalCPAcheckerCPUTimeLimit.equals(options.cpuTime)) {
       // If a global CPU time-limit has been set, all following it must be equal to it!
       throw new InvalidConfigurationException(
-          "CPU time limit is already set to be "
-              + globalCPAcheckerCPUTimeLimit
-              + ", and it is disallowed to set the CPU time limit to a distinct value, but this"
-              + " configuration sets it to "
-              + options.cpuTime);
+          "Process CPU time-limit already set to "
+              + processCpuTimeLimitToString(globalCPAcheckerCPUTimeLimit)
+              + ", but this configuration uses "
+              + processCpuTimeLimitToString(options.cpuTime)
+              + ", which is disallowed, as it has to be consistent in all nested configurations");
     }
 
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
