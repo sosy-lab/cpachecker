@@ -40,8 +40,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
    * @return the segmentized entries
    * @throws InvalidYAMLWitnessException if the YAML witness is not valid
    */
-  @Override
-  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2d1(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     Optional<ViolationSequenceEntry> violationEntry = getViolationSequence(pEntries);
     if (violationEntry.isPresent()) {
@@ -56,7 +55,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
   @Override
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheckV2d1(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
