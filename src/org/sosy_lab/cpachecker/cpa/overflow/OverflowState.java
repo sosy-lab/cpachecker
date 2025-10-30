@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public final class OverflowState
     implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
-  private final ImmutableSet<? extends AExpression> assumptions;
+  private final ImmutableSet<AExpression> assumptions;
   private final OverflowState parent;
   private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
@@ -52,7 +52,7 @@ public final class OverflowState
   }
 
   @Override
-  public List<? extends AExpression> getAssumptionsImpl() {
+  public ImmutableList<AExpression> getAssumptionsImpl() {
     return assumptions.asList();
   }
 

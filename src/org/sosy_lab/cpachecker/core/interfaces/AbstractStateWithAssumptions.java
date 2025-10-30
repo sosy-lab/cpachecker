@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
@@ -35,11 +35,11 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    *
    * @return A (possibly empty list) of expressions.
    */
-  default List<? extends AExpression> getAssumptions() {
-    List<? extends AExpression> assumptions = getAssumptionsImpl();
+  default ImmutableList<AExpression> getAssumptions() {
+    ImmutableList<AExpression> assumptions = getAssumptionsImpl();
     assumptions.forEach(a -> checkState(a instanceof ABinaryExpression binExpr && binExpr.getOperator().isLogicalOperator()));
     return assumptions;
   }
 
-  List<? extends AExpression> getAssumptionsImpl();
+  ImmutableList<AExpression> getAssumptionsImpl();
 }
