@@ -87,7 +87,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <target name="clean">
         <delete includeEmptyDirs="true">
-            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.* build/ide/**"/>
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
         </delete>
 
         <!-- Clean subprojects -->
