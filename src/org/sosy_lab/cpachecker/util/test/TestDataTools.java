@@ -189,7 +189,7 @@ public class TestDataTools {
       }
       case K3 -> {
         tempFile = getTempFile(pTempFolder, "program.k3");
-        fileContent = "(define-proc f1 () () () (assume true))\n" + "(verify-call f1 ())";
+        fileContent = "(define-proc f1 () () () (sequence))\n" + "(verify-call f1 ())";
         program = tempFile.toString();
       }
       default -> throw new AssertionError("Unhandled language: " + pLanguage);
