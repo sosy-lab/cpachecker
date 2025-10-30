@@ -26,13 +26,7 @@ public class SeqSyntax {
 
   public static final String EQUALS = "=";
 
-  public static final String LOGICAL_AND = "&&";
-
-  public static final String LOGICAL_NOT = "!";
-
-  public static final String LOGICAL_OR = "||";
-
-  public static final String NEWLINE = "\n";
+  public static final String NEWLINE = System.lineSeparator();
 
   public static final String QUOTATION_MARK = "\"";
 

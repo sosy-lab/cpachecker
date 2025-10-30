@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */
-public class SeqBlankStatement extends ASeqThreadStatement {
+public class SeqBlankStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -63,12 +63,12 @@ public class SeqBlankStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     throw new UnsupportedOperationException(

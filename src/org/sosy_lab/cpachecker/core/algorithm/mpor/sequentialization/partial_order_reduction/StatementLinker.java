@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -67,8 +67,8 @@ public class StatementLinker {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
-        for (ASeqThreadStatement statement : block.getStatements()) {
+        ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+        for (CSeqThreadStatement statement : block.getStatements()) {
           newStatements.add(
               linkStatements(
                   pOptions,
@@ -89,9 +89,9 @@ public class StatementLinker {
    * Links the target statements of {@code pCurrentStatement}, if applicable i.e. if the target
    * statement is guaranteed to commute.
    */
-  private static ASeqThreadStatement linkStatements(
+  private static CSeqThreadStatement linkStatements(
       MPOROptions pOptions,
-      ASeqThreadStatement pCurrentStatement,
+      CSeqThreadStatement pCurrentStatement,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -113,7 +113,7 @@ public class StatementLinker {
   /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
   private static boolean isValidLink(
       MPOROptions pOptions,
-      ASeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       MemoryModel pMemoryModel) {

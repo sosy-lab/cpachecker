@@ -14,7 +14,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -102,7 +101,8 @@ public class SeqLoopStatement implements SeqSingleControlStatement {
     innerJoiner.add(counterDeclaration.toASTString());
     innerJoiner.add(expression.toASTString() + SeqSyntax.SEMICOLON);
     // exclude the semicolon in the assignment statement
-    innerJoiner.add(iterationUpdate.toASTStringWithoutSemicolon(AAstNodeRepresentation.DEFAULT));
+    innerJoiner.add(
+        iterationUpdate.toASTString().replace(SeqSyntax.SEMICOLON, SeqSyntax.EMPTY_STRING));
 
     outerJoiner.add(SeqStringUtil.wrapInBrackets(innerJoiner.toString()));
     outerJoiner.add(SeqSyntax.CURLY_BRACKET_LEFT);

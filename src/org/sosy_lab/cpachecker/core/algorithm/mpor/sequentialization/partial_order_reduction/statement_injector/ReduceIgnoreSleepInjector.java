@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqIgnoreSleepReductionStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -33,11 +33,11 @@ class ReduceIgnoreSleepInjector {
 
   // Public Interface ==============================================================================
 
-  static ASeqThreadStatement injectIgnoreSleepReductionIntoStatement(
+  static CSeqThreadStatement injectIgnoreSleepReductionIntoStatement(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      ASeqThreadStatement pCurrentStatement,
+      CSeqThreadStatement pCurrentStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       BitVectorVariables pBitVectorVariables,
       SequentializationUtils pUtils)
@@ -70,7 +70,7 @@ class ReduceIgnoreSleepInjector {
   }
 
   private static SeqIgnoreSleepReductionStatement buildIgnoreSleepReductionStatement(
-      ASeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {

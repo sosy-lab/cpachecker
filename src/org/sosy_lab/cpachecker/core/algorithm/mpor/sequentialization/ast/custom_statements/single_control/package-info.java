@@ -6,8 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes representing case blocks in the sequentialization. */
+/**
+ * Classes to represent and export (as String) control flow statements such as if, else, else if,
+ * while, for. *
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control;

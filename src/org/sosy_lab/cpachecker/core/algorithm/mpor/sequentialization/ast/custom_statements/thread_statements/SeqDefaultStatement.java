@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the default case block statement where the original {@link CFAEdge}s require no
  * specific handling and their (substituted) code is placed directly into the case block.
  */
-public class SeqDefaultStatement extends ASeqThreadStatement {
+public class SeqDefaultStatement extends CSeqThreadStatement {
 
   private final CStatementEdge edge;
 
@@ -80,7 +80,7 @@ public class SeqDefaultStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqDefaultStatement(
         options,
         edge,
@@ -92,7 +92,7 @@ public class SeqDefaultStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqDefaultStatement(

@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
@@ -39,7 +39,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
    */
   private final SeqBlockLabelStatement label;
 
-  private final ImmutableList<ASeqThreadStatement> statements;
+  private final ImmutableList<CSeqThreadStatement> statements;
 
   private final boolean isLoopStart;
 
@@ -48,7 +48,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
       Optional<MPORThread> pNextThread,
       ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
       SeqBlockLabelStatement pLabel,
-      ImmutableList<ASeqThreadStatement> pStatements) {
+      ImmutableList<CSeqThreadStatement> pStatements) {
 
     options = pOptions;
     nextThread = pNextThread;
@@ -62,7 +62,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     joiner.add(label.toASTString() + SeqSyntax.SPACE);
-    for (ASeqThreadStatement statement : statements) {
+    for (CSeqThreadStatement statement : statements) {
       joiner.add(statement.toASTString() + SeqSyntax.SPACE);
     }
     Optional<String> suffix =
@@ -77,11 +77,11 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return label;
   }
 
-  public ASeqThreadStatement getFirstStatement() {
+  public CSeqThreadStatement getFirstStatement() {
     return statements.getFirst();
   }
 
-  public ImmutableList<ASeqThreadStatement> getStatements() {
+  public ImmutableList<CSeqThreadStatement> getStatements() {
     return statements;
   }
 
@@ -95,7 +95,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   public SeqThreadStatementBlock cloneWithStatements(
-      ImmutableList<ASeqThreadStatement> pStatements) {
+      ImmutableList<CSeqThreadStatement> pStatements) {
 
     return new SeqThreadStatementBlock(options, nextThread, threadLabels, label, pStatements);
   }

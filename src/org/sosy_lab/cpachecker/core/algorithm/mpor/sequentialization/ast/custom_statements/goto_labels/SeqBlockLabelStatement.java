@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-/** The label of a block of {@link ASeqThreadStatement}s. */
+/** The label of a block of {@link CSeqThreadStatement}s. */
 public class SeqBlockLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;

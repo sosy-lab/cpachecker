@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>Reasoning: given that we declare all variables outside the main function in the
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
  */
-public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
+public class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
@@ -200,7 +200,7 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
@@ -214,7 +214,7 @@ public class SeqConstCpaCheckerTmpStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(

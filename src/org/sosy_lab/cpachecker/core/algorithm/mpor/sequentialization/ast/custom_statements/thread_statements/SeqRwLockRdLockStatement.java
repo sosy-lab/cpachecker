@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
+public class SeqRwLockRdLockStatement extends CSeqThreadStatement {
 
   private final RwLockNumReadersWritersFlag rwLockFlags;
 
@@ -66,7 +66,7 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetPc(int pTargetPc) {
+  public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqRwLockRdLockStatement(
         options,
         rwLockFlags,
@@ -78,7 +78,7 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqRwLockRdLockStatement(
         options,
         rwLockFlags,
@@ -90,7 +90,7 @@ public class SeqRwLockRdLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqRwLockRdLockStatement(
         options,

@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * intermediate variable can then be accessed by threads calling {@code pthread_join} on this
  * exiting thread.
  */
-public class SeqThreadExitStatement extends ASeqThreadStatement {
+public class SeqThreadExitStatement extends CSeqThreadStatement {
 
   private final FunctionReturnValueAssignment returnValueAssignment;
 
@@ -89,13 +89,13 @@ public class SeqThreadExitStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadExitStatement(

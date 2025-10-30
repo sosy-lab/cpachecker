@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqThreadLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -51,7 +51,7 @@ public class SeqStringUtil {
       MPOROptions pOptions,
       Optional<MPORThread> pNextThread,
       ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
-      ImmutableList<ASeqThreadStatement> pStatements)
+      ImmutableList<CSeqThreadStatement> pStatements)
       throws UnrecognizedCodeException {
 
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {

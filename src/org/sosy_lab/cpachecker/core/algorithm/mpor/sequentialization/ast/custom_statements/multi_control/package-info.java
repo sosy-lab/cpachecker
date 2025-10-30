@@ -6,4 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * Classes to represent and export (as String) control flow statement combinations of if, else, else
+ * if and switch cases.
+ */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control;

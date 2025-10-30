@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
@@ -124,8 +124,8 @@ public class StatementInjector {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
-    for (ASeqThreadStatement statement : pBlock.getStatements()) {
+    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+    for (CSeqThreadStatement statement : pBlock.getStatements()) {
 
       newStatements.add(
           injectStatementsIntoStatement(
@@ -142,11 +142,11 @@ public class StatementInjector {
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
-  private static ASeqThreadStatement injectStatementsIntoStatement(
+  private static CSeqThreadStatement injectStatementsIntoStatement(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      ASeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,

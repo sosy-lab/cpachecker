@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the assignment of a parameter given to a function to an injected parameter variable in
  * the sequentialization.
  */
-public class SeqParameterAssignmentStatements extends ASeqThreadStatement {
+public class SeqParameterAssignmentStatements extends CSeqThreadStatement {
 
   private final ImmutableList<FunctionParameterAssignment> assignments;
 
@@ -84,7 +84,7 @@ public class SeqParameterAssignmentStatements extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqParameterAssignmentStatements(
         options,
         assignments,
@@ -96,7 +96,7 @@ public class SeqParameterAssignmentStatements extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqParameterAssignmentStatements(

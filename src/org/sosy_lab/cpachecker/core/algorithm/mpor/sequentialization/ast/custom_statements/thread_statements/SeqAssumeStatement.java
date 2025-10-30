@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
-public class SeqAssumeStatement extends ASeqThreadStatement {
+public class SeqAssumeStatement extends CSeqThreadStatement {
 
   public final BranchType branchType;
 
@@ -107,7 +107,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
         branchType,
@@ -120,7 +120,7 @@ public class SeqAssumeStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAssumeStatement(

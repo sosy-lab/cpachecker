@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -40,7 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -50,7 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqThreadStatementClauseUtil {
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
-  public static ImmutableSet<Integer> collectAllIntegerTargetPc(ASeqThreadStatement pStatement) {
+  public static ImmutableSet<Integer> collectAllIntegerTargetPc(CSeqThreadStatement pStatement) {
     ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
     if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
@@ -62,17 +64,11 @@ public class SeqThreadStatementClauseUtil {
   public static ImmutableSet<SubstituteEdge> collectAllSubstituteEdges(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableSet.Builder<SubstituteEdge> rEdges = ImmutableSet.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
-        for (SeqThreadStatementBlock block : clause.getBlocks()) {
-          for (ASeqThreadStatement statement : block.getStatements()) {
-            rEdges.addAll(statement.getSubstituteEdges());
-          }
-        }
-      }
-    }
-    return rEdges.build();
+    return FluentIterable.from(Iterables.concat(pClauses.values()))
+        .transformAndConcat(clause -> clause.getBlocks())
+        .transformAndConcat(block -> Objects.requireNonNull(block).getStatements())
+        .transformAndConcat(statement -> Objects.requireNonNull(statement).getSubstituteEdges())
+        .toSet();
   }
 
   public static CExpression getStatementExpressionByEncoding(
@@ -172,8 +168,8 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
-        for (ASeqThreadStatement mergedStatement : block.getStatements()) {
+        ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+        for (CSeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
         int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().getNumber()));
@@ -210,8 +206,8 @@ public class SeqThreadStatementClauseUtil {
     return rLabelToIndex.buildOrThrow();
   }
 
-  private static ASeqThreadStatement replaceTargetPc(
-      ASeqThreadStatement pCurrentStatement,
+  private static CSeqThreadStatement replaceTargetPc(
+      CSeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, Integer> pLabelBlockMap,
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
@@ -294,7 +290,7 @@ public class SeqThreadStatementClauseUtil {
     if (pCurrent.equals(pTarget)) {
       return true;
     } else {
-      ASeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
+      CSeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
       SeqThreadStatementClause next =
           pLabelClauseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";
@@ -340,11 +336,7 @@ public class SeqThreadStatementClauseUtil {
     // create graph used for dependency checking
     ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> blockGraph =
         ArrayListMultimap.create();
-    Set<SeqThreadStatementBlock> visitedLoopStarts = new HashSet<>();
-    if (pFirstBlock.isLoopStart()) {
-      visitedLoopStarts.add(pFirstBlock);
-    }
-    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, visitedLoopStarts, pLabelBlockMap);
+    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, pLabelBlockMap);
     recursivelyReorderBlocks(blockGraph, foundOrder);
     assert !foundOrder.isEmpty() : "could not find any order";
     return ImmutableList.copyOf(foundOrder);
@@ -353,10 +345,9 @@ public class SeqThreadStatementClauseUtil {
   private static void recursivelyBuildBlockGraph(
       SeqThreadStatementBlock pCurrentBlock,
       ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pGraph,
-      Set<SeqThreadStatementBlock> pVisitedLoopStarts,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    for (ASeqThreadStatement statement : pCurrentBlock.getStatements()) {
+    for (CSeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
@@ -367,7 +358,7 @@ public class SeqThreadStatementClauseUtil {
             // prevent duplicates
             if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
               pGraph.get(pCurrentBlock).add(targetBlock);
-              recursivelyBuildBlockGraph(targetBlock, pGraph, pVisitedLoopStarts, pLabelBlockMap);
+              recursivelyBuildBlockGraph(targetBlock, pGraph, pLabelBlockMap);
             }
           }
         }
@@ -420,6 +411,7 @@ public class SeqThreadStatementClauseUtil {
       tryAddToFoundOrder(block, pFoundOrder);
       // add all targets of block that are independent, i.e. not origins or targets (except block)
       for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
+        assert target != null : "target cannot be null";
         if (isTargetIndependent(pBlockGraph, block, target)) {
           tryAddToFoundOrder(target, pFoundOrder);
         }

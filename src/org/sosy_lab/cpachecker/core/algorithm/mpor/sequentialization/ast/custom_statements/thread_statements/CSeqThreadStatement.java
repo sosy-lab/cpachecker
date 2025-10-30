@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
@@ -20,10 +21,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
- * Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder} and
+ * Statements that convert {@link CFAEdge}s to {@link String}s for the output program, {@code
+ * abstract} so that it centralizes fields and methods for all these statements.
+ *
+ * <p>Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder} and
  * constructors used for cloning are {@code private}.
  */
-public abstract class ASeqThreadStatement implements SeqStatement {
+public abstract class CSeqThreadStatement implements SeqStatement {
 
   final MPOROptions options;
 
@@ -41,7 +45,7 @@ public abstract class ASeqThreadStatement implements SeqStatement {
 
   final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  ASeqThreadStatement(
+  CSeqThreadStatement(
       MPOROptions pOptions,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       CLeftHandSide pPcLeftHandSide,
@@ -87,20 +91,20 @@ public abstract class ASeqThreadStatement implements SeqStatement {
    * Clones the statement with the given pc. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public abstract ASeqThreadStatement withTargetPc(int pTargetPc);
+  public abstract CSeqThreadStatement withTargetPc(int pTargetPc);
 
   /**
    * Clones the statement with the given label. This function should only be called when finalizing
    * (i.e. pruning) {@link SeqThreadStatementClause}s.
    */
-  public abstract ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel);
+  public abstract CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel);
 
   /**
    * Clones this statement and replaces all existing statements with {@code pInjectedStatements}.
    * This is necessary when a {@link SeqInjectedStatement} contains a goto or pc that is replaced,
    * e.g. when consecutive labels are enabled.
    */
-  public abstract ASeqThreadStatement withInjectedStatements(
+  public abstract CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements);
 
   /**

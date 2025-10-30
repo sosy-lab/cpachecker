@@ -35,12 +35,6 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement
         + ";";
   }
 
-  public String toASTStringWithoutSemicolon(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return leftHandSide.toASTString(pAAstNodeRepresentation)
-        + " = "
-        + rightHandSide.toASTString(pAAstNodeRepresentation);
-  }
-
   @Override
   public ALeftHandSide getLeftHandSide() {
     return leftHandSide;

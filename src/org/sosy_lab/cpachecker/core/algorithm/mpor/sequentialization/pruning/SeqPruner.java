@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqBlankStatement;
@@ -95,7 +95,7 @@ public class SeqPruner {
     ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       if (!clause.isBlank()) {
-        for (ASeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
+        for (CSeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
             Optional<Integer> postPrunePc = findTargetPc(clause, statement, pLabelClauseMap);
@@ -123,8 +123,8 @@ public class SeqPruner {
         continue;
       }
       if (!clause.isBlank() && !isEmptyAtomicBlock(clause, pLabelClauseMap)) {
-        ImmutableList.Builder<ASeqThreadStatement> newStatements = ImmutableList.builder();
-        for (ASeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
+        ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+        for (CSeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
             if (pPcUpdates.containsKey(targetPc)) {
@@ -147,7 +147,7 @@ public class SeqPruner {
 
   private static Optional<Integer> findTargetPc(
       SeqThreadStatementClause pClause,
-      ASeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
       throws UnrecognizedCodeException {
 
@@ -170,7 +170,7 @@ public class SeqPruner {
   private static int extractTargetPc(SeqThreadStatementClause pNonBlank)
       throws UnrecognizedCodeException {
 
-    ASeqThreadStatement nonBlankSingleStatement = pNonBlank.getFirstBlock().getFirstStatement();
+    CSeqThreadStatement nonBlankSingleStatement = pNonBlank.getFirstBlock().getFirstStatement();
     if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
       // the blank could have injected statements -> treat it as non-blank
       if (blankStatement.onlyWritesPc()) {
@@ -189,7 +189,7 @@ public class SeqPruner {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     for (SeqThreadStatementClause clause : pClauses) {
-      for (ASeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
+      for (CSeqThreadStatement statement : clause.getFirstBlock().getStatements()) {
         if (statement.getTargetPc().orElseThrow() == Sequentialization.EXIT_PC) {
           return clause;
         }
@@ -212,7 +212,7 @@ public class SeqPruner {
     checkArgument(
         pInitial.isEmpty() || !pInitial.orElseThrow().isBlank(), "pInitial must not be prunable");
     if (pCurrent.isBlank()) {
-      ASeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
+      CSeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
       Verify.verify(validPrunableClause(pCurrent));
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
@@ -221,11 +221,11 @@ public class SeqPruner {
       }
     }
     if (isEmptyAtomicBlock(pCurrent, pLabelClauseMap)) {
-      ASeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
+      CSeqThreadStatement singleStatement = pCurrent.getFirstBlock().getFirstStatement();
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       assert targetPc != Sequentialization.EXIT_PC : "atomic begin should not exit thread";
       SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
-      ASeqThreadStatement nextSingleStatement = nextClause.getFirstBlock().getFirstStatement();
+      CSeqThreadStatement nextSingleStatement = nextClause.getFirstBlock().getFirstStatement();
       int nextTargetPc = nextSingleStatement.getTargetPc().orElseThrow();
       if (nextTargetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause nextNextClause = requireNonNull(pLabelClauseMap.get(nextTargetPc));
@@ -246,7 +246,7 @@ public class SeqPruner {
         pClause.getFirstBlock().getStatements().size() == 1,
         "prunable case clauses must contain exactly 1 statement: %s",
         pClause.toASTString());
-    ASeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
+    CSeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
     checkArgument(
         statement.onlyWritesPc(),
         "prunable statement must only write pc: %s",
@@ -290,7 +290,7 @@ public class SeqPruner {
       SeqThreadStatementClause pClause,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    ASeqThreadStatement singleStatement = pClause.getFirstBlock().getFirstStatement();
+    CSeqThreadStatement singleStatement = pClause.getFirstBlock().getFirstStatement();
     if (singleStatement instanceof SeqAtomicBeginStatement) {
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {

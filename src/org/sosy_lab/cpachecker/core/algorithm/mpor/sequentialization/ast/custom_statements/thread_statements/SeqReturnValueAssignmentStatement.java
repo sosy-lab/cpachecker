@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * has a return statement {@code return fibNumber;} then we create a statement {@code x =
  * fibNumber;}.
  */
-public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
+public class SeqReturnValueAssignmentStatement extends CSeqThreadStatement {
 
   private final CExpressionAssignmentStatement assignment;
 
@@ -68,7 +68,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetPc(int pTargetPc) {
+  public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -80,7 +80,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqReturnValueAssignmentStatement(
         options,
         assignment,
@@ -92,7 +92,7 @@ public class SeqReturnValueAssignmentStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReturnValueAssignmentStatement(

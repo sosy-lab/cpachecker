@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * declarations. Thus, only (local) variable declarations inside functions have to handled
  * explicitly for the sequentialization.
  */
-public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThreadStatement {
+public class SeqLocalVariableDeclarationWithInitializerStatement extends CSeqThreadStatement {
 
   private final CVariableDeclaration variableDeclaration;
 
@@ -95,7 +95,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         options,
         variableDeclaration,
@@ -107,7 +107,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement extends ASeqThr
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(

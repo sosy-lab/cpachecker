@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>{@code assume(!m_LOCKED);}
  */
-public class SeqMutexLockStatement extends ASeqThreadStatement {
+public class SeqMutexLockStatement extends CSeqThreadStatement {
 
   private final MutexLockedFlag mutexLockedFlag;
 
@@ -94,7 +94,7 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexLockStatement(
         options,
         mutexLockedFlag,
@@ -106,7 +106,7 @@ public class SeqMutexLockStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(

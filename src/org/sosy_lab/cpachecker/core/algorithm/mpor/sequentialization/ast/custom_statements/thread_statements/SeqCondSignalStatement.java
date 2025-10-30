@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqCondSignalStatement extends ASeqThreadStatement {
+public class SeqCondSignalStatement extends CSeqThreadStatement {
 
   private final CondSignaledFlag condSignaledFlag;
 
@@ -71,7 +71,7 @@ public class SeqCondSignalStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetPc(int pTargetPc) {
+  public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqCondSignalStatement(
         options,
         condSignaledFlag,
@@ -83,7 +83,7 @@ public class SeqCondSignalStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondSignalStatement(
         options,
         condSignaledFlag,
@@ -95,7 +95,7 @@ public class SeqCondSignalStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqCondSignalStatement(

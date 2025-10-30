@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
-public class SeqThreadJoinStatement extends ASeqThreadStatement {
+public class SeqThreadJoinStatement extends CSeqThreadStatement {
 
   private final Optional<CIdExpression> joinedThreadExitVariable;
 
@@ -128,7 +128,7 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadJoinStatement(
         options,
         joinedThreadExitVariable,
@@ -141,7 +141,7 @@ public class SeqThreadJoinStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(

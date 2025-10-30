@@ -30,7 +30,7 @@ public class SeqVariableDeclarations {
       buildVariableDeclaration(
           true,
           CNumericTypes.UNSIGNED_INT,
-          SeqToken.LAST_KEYWORD + SeqSyntax.SPACE + SeqToken.THREAD,
+          SeqToken.LAST_KEYWORD + SeqSyntax.UNDERSCORE + SeqToken.THREAD,
           SeqInitializers.INT_0);
 
   // next_thread

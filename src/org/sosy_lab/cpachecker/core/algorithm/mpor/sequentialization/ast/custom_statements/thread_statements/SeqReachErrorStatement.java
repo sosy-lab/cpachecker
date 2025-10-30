@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * {@code reach_error}s from the input program for the property {@code unreach-call.prp} instead of
  * inlining the function.
  */
-public class SeqReachErrorStatement extends ASeqThreadStatement {
+public class SeqReachErrorStatement extends CSeqThreadStatement {
 
   SeqReachErrorStatement(
       MPOROptions pOptions,
@@ -78,13 +78,13 @@ public class SeqReachErrorStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReachErrorStatement(

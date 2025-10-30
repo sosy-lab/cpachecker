@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.ASeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -87,8 +87,8 @@ public class SeqThreadStatementClause implements SeqStatement {
     return blocks;
   }
 
-  public ImmutableList<ASeqThreadStatement> getAllStatements() {
-    ImmutableList.Builder<ASeqThreadStatement> rAll = ImmutableList.builder();
+  public ImmutableList<CSeqThreadStatement> getAllStatements() {
+    ImmutableList.Builder<CSeqThreadStatement> rAll = ImmutableList.builder();
     for (SeqThreadStatementBlock block : blocks) {
       rAll.addAll(block.getStatements());
     }
@@ -118,7 +118,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   /** Returns true if all statements in all blocks are blank. */
   public boolean isBlank() {
     for (SeqThreadStatementBlock block : blocks) {
-      for (ASeqThreadStatement statement : block.getStatements()) {
+      for (CSeqThreadStatement statement : block.getStatements()) {
         if (!statement.onlyWritesPc()) {
           return false;
         }

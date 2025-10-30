@@ -11,4 +11,7 @@
  * org.sosy_lab.cpachecker.cfa.ast.c.CAstNode}s but also custom AST nodes to present code in the
  * output program.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;

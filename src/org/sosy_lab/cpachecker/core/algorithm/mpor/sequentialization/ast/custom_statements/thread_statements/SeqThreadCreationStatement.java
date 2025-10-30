@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>{@code pc[i] = 0; pc[j] = n; } where thread {@code j} creates thread {@code i}.
  */
-public class SeqThreadCreationStatement extends ASeqThreadStatement {
+public class SeqThreadCreationStatement extends CSeqThreadStatement {
 
   /**
    * The assignment of the parameter given in the {@code pthread_create} call. This is present if
@@ -132,7 +132,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
+  public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
         options,
         startRoutineArgAssignment,
@@ -146,7 +146,7 @@ public class SeqThreadCreationStatement extends ASeqThreadStatement {
   }
 
   @Override
-  public ASeqThreadStatement withInjectedStatements(
+  public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadCreationStatement(
