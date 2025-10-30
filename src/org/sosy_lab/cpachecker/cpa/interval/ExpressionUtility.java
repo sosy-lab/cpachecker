@@ -32,7 +32,16 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ExpressionUtility {
 
   private static final CType CONCRETE_INDEX_TYPE =
-      new CSimpleType(CTypeQualifiers.create(false, false, false), CBasicType.INT, false, false, true, false, false, false, false);
+      new CSimpleType(
+          CTypeQualifiers.create(false, false, false),
+          CBasicType.INT,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false);
 
   private ExpressionUtility() {}
 
