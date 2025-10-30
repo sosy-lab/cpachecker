@@ -106,7 +106,7 @@ class AutomatonWitnessV2ParserCommon {
       Optional<WaypointRecord> follow,
       Optional<WaypointRecord> cycle,
       ImmutableList<WaypointRecord> avoids) {
-    // Canonical constructor ensures non-null Optionals and avoids
+    // Canonical constructor ensures non-null cycle, follow and avoids
     public PartitionedWaypoints {
       follow = Optional.ofNullable(follow).orElse(Optional.empty());
       cycle = Optional.ofNullable(cycle).orElse(Optional.empty());
