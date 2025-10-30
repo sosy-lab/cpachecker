@@ -412,7 +412,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       WaypointRecord follow = entry.follow().orElseThrow();
       String nextStateId = getStateName(stateCounter++);
 
-      handleWaypoints(
+      handleWaypointsV2d0(
           entry, follow, transitions, automatonStates, distance, nextStateId, currentStateId);
 
       if (follow.getType().equals(WaypointType.TARGET)) {
@@ -474,7 +474,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     return automaton;
   }
 
-  protected void handleWaypoints(
+  protected void handleWaypointsV2d0(
       PartitionedWaypoints pEntry,
       WaypointRecord follow,
       ImmutableList.Builder<AutomatonTransition> transitions,

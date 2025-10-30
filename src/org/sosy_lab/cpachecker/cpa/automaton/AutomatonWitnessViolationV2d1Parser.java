@@ -77,7 +77,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
           entry.follow().isPresent() ? entry.follow().orElseThrow() : entry.cycle().orElseThrow();
       String nextStateId = getStateName(stateCounter++);
 
-      handleWaypoints(
+      handleWaypointsV2d0(
           entry, flowWaypoint, transitions, automatonStates, distance, nextStateId, currentStateId);
 
       if (flowWaypoint.getType().equals(WaypointType.TARGET)) {
