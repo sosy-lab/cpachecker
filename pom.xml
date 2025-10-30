@@ -26,8 +26,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
 
     <ivy.repo.url>https://www.sosy-lab.org/ivy</ivy.repo.url>
     <ivy.cache.dir>${project.build.directory}/ivy-cache</ivy.cache.dir>
@@ -64,7 +64,6 @@ SPDX-License-Identifier: Apache-2.0
         </dependencies>
 
         <executions>
-
           <execution>
             <id>ant-clean</id>
             <phase>clean</phase>
@@ -94,97 +93,6 @@ SPDX-License-Identifier: Apache-2.0
             </configuration>
             <goals><goal>run</goal></goals>
           </execution>
-
-          <execution>
-            <id>ant-unit-tests</id>
-            <phase>test</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="${ant.test.target}" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                  <property name="ant.extra.args" value="${ant.extra.args}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <execution>
-            <id>ant-jar</id>
-            <phase>package</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="${ant.package.target}" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                  <property name="ant.extra.args" value="${ant.extra.args}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <execution>
-            <id>ant-tests</id>
-            <phase>verify</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="${ant.verify.target}" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                  <property name="ant.extra.args" value="${ant.extra.args}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <!-- Export classpath for IDEs -->
-          <execution>
-            <id>ant-export-classpath</id>
-            <phase>generate-resources</phase>
-            <configuration>
-              <target>
-                <ant antfile="build/build-ide.xml" target="export-classpath" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <execution>
-            <id>ant-install</id>
-            <phase>install</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="${ant.install.target}" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                  <property name="ant.extra.args" value="${ant.extra.args}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <execution>
-            <id>ant-deploy</id>
-            <phase>deploy</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="${ant.deploy.target}" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                  <property name="ant.extra.args" value="${ant.extra.args}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
         </executions>
       </plugin>
 
