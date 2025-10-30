@@ -125,6 +125,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctionsHandling;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -881,7 +882,8 @@ public class ValueAnalysisTransferRelation
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         } else if (BuiltinFunctions.matchesFscanf(func)) {
           return handleFunctionAssignment(
-              BuiltinFunctions.createNondetCallForScanfOverapproximation(functionCallExp, cfaEdge));
+              BuiltinFunctionsHandling.createNondetCallForScanfOverapproximation(
+                  functionCallExp, cfaEdge));
         }
       }
     }
