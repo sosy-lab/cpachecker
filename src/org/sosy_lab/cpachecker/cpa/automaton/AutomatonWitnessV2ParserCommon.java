@@ -143,7 +143,8 @@ class AutomatonWitnessV2ParserCommon {
         } else {
           if (containsFollowOrCycle) {
             throw new InvalidYAMLWitnessException(
-                "Witnesses in version 2.1 can contain at most one follow or cycle waypoint per segment!");
+                "Witnesses in version 2.1 can contain at most one follow or cycle waypoint per"
+                    + " segment!");
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
