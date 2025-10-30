@@ -101,7 +101,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
    * @param pDistanceToViolation the distance to the violation
-   * @return an automaton transition encoding the reaching of the target
    */
   protected void handleTarget(
       String nextStateId,
@@ -155,7 +154,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param function the function in which the waypoint is valid
    * @param pDistanceToViolation the distance to the violation
    * @param constraint the constraint
-   * @return automata transitions matching the assumption waypoint
    * @throws InterruptedException if the function call is interrupted
    * @throws WitnessParseException if the constraint cannot be parsed
    */
@@ -195,8 +193,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param followColumn the column at which the target is
    * @param pDistanceToViolation the distance to the violation
    * @param pBranchToFollow which branch to follow, if true the if branch is followed
-   * @return a list of transitions matching the branching waypoint, empty if they could not be
-   *     created
    */
   protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
@@ -272,10 +268,10 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
     newTransitions = Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
-    if (newTransitions.get().isEmpty()) {
+    if (newTransitions.orElseThrow().isEmpty()) {
       logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
     }
-    transitions.addAll(newTransitions.get());
+    transitions.addAll(newTransitions.orElseThrow());
   }
 
   /**
@@ -288,7 +284,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param constraint the constraint on the return value of the function. It can be null, which
    *     means that returning from the function is the relevant aspect
    * @param startLineToCFAEdge a mapping from the start line to the CFA edge
-   * @return an automaton transition encoding the constraint on the returned value of a function
    * @throws InterruptedException if the function call is interrupted
    */
   protected void handleFunctionReturn(
@@ -414,7 +409,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-      WaypointRecord follow = entry.follow().get();
+      WaypointRecord follow = entry.follow().orElseThrow();
       String nextStateId = getStateName(stateCounter++);
 
       handleWaypoints(
