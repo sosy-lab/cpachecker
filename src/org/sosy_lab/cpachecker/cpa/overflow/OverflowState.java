@@ -52,7 +52,7 @@ public final class OverflowState
   }
 
   @Override
-  public List<? extends AExpression> getAssumptions() {
+  public List<? extends AExpression> getAssumptionsImpl() {
     return assumptions.asList();
   }
 

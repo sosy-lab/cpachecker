@@ -243,7 +243,7 @@ public class AutomatonState
   }
 
   @Override
-  public ImmutableList<AExpression> getAssumptions() {
+  public ImmutableList<AExpression> getAssumptionsImpl() {
     return assumptions;
   }
 
