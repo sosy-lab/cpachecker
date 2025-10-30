@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
@@ -105,13 +106,7 @@ public class SeqThreadStatementClauseBuilder {
       Set<CFANodeForThread> coveredNodes = new HashSet<>();
       clauses.addAll(
           initClauses(
-              pOptions,
-              thread,
-              tryGetNextThread(thread, allThreads),
-              allThreads,
-              coveredNodes,
-              pSubstituteEdges,
-              pGhostElements));
+              pOptions, thread, allThreads, coveredNodes, pSubstituteEdges, pGhostElements));
       rClauses.putAll(thread, clauses.build());
     }
     // only check pc validation, since clauses are not reordered at this point
@@ -157,21 +152,18 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableList<SeqThreadStatementClause> initClauses(
       MPOROptions pOptions,
       MPORThread pThread,
-      Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
       Set<CFANodeForThread> pCoveredNodes,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
-
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pCoveredNodes.add(threadNode)) {
         rClauses.addAll(
             buildClausesFromThreadNode(
                 pOptions,
                 pThread,
-                pNextThread,
                 pAllThreads,
                 pCoveredNodes,
                 threadNode,
@@ -190,7 +182,6 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
       MPOROptions pOptions,
       MPORThread pThread,
-      Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
       Set<CFANodeForThread> pCoveredNodes,
       CFANodeForThread pThreadNode,
@@ -205,18 +196,18 @@ public class SeqThreadStatementClauseBuilder {
       return ImmutableList.of();
     }
 
-    int labelPc = pThreadNode.pc;
-    ImmutableList.Builder<CSeqThreadStatement> statements = ImmutableList.builder();
-    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id());
+    Optional<SeqThreadLabelStatement> nextThreadLabel =
+        tryGetNextThreadLabel(pThread, pAllThreads, pGhostElements);
     CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
+    int labelPc = pThreadNode.pc;
     int targetPc = firstThreadEdge.getSuccessor().pc;
     ImmutableList<SeqThreadStatementClause> multiClauseEdge =
         handleMultipleClauseEdge(
             pOptions,
             pThread,
-            pNextThread,
+            nextThreadLabel,
             firstThreadEdge,
-            pSubstituteEdges.get(firstThreadEdge),
+            Objects.requireNonNull(pSubstituteEdges.get(firstThreadEdge)),
             labelPc,
             targetPc,
             pGhostElements);
@@ -226,36 +217,44 @@ public class SeqThreadStatementClauseBuilder {
       assert multiClauseEdge.size() > 1 : "multi clause list must have at least 2 elements";
       return multiClauseEdge;
 
-    } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      statements.add(
-          SeqThreadStatementBuilder.buildBlankStatement(pOptions, pcLeftHandSide, targetPc));
-
     } else {
-      statements.addAll(
-          SeqThreadStatementBuilder.buildStatementsFromThreadNode(
-              pOptions,
-              pThread,
-              pAllThreads,
-              pThreadNode,
-              pcLeftHandSide,
-              pCoveredNodes,
-              pSubstituteEdges,
-              pGhostElements));
+      CLeftHandSide pcLeftHandSide =
+          pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id());
+      ImmutableList.Builder<CSeqThreadStatement> statements = ImmutableList.builder();
+      if (pThreadNode.cfaNode instanceof FunctionExitNode) {
+        statements.add(
+            SeqThreadStatementBuilder.buildBlankStatement(pOptions, pcLeftHandSide, targetPc));
+
+      } else {
+        statements.addAll(
+            SeqThreadStatementBuilder.buildStatementsFromThreadNode(
+                pOptions,
+                pThread,
+                pAllThreads,
+                pThreadNode,
+                pcLeftHandSide,
+                pCoveredNodes,
+                pSubstituteEdges,
+                pGhostElements));
+      }
+      SeqThreadStatementClause clause =
+          buildClause(pOptions, pThread, nextThreadLabel, labelPc, statements.build());
+      return ImmutableList.of(clause);
     }
-    SeqThreadStatementClause clause =
-        buildClause(
-            pOptions,
-            pThread,
-            pNextThread,
-            pGhostElements.threadLabels(),
-            labelPc,
-            statements.build());
-    return ImmutableList.of(clause);
   }
 
   // Helpers =====================================================================================
 
-  public static SeqBlockLabelStatement buildBlockLabelStatement(
+  private static Optional<SeqThreadLabelStatement> tryGetNextThreadLabel(
+      MPORThread pThread, ImmutableList<MPORThread> pAllThreads, GhostElements pGhostElements) {
+
+    Optional<MPORThread> nextThread = tryGetNextThread(pThread, pAllThreads);
+    return nextThread.isPresent()
+        ? Optional.ofNullable(pGhostElements.threadLabels().get(nextThread.orElseThrow()))
+        : Optional.empty();
+  }
+
+  private static SeqBlockLabelStatement buildBlockLabelStatement(
       MPOROptions pOptions, int pThreadId, int pLabelNumber) {
 
     String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
@@ -274,7 +273,7 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableList<SeqThreadStatementClause> handleMultipleClauseEdge(
       MPOROptions pOptions,
       MPORThread pThread,
-      Optional<MPORThread> pNextThread,
+      Optional<SeqThreadLabelStatement> pNextThreadLabel,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
@@ -287,7 +286,7 @@ public class SeqThreadStatementClauseBuilder {
       return buildCondWaitClauses(
           pOptions,
           pThread,
-          pNextThread,
+          pNextThreadLabel,
           pThreadEdge,
           pSubstituteEdge,
           pLabelPc,
@@ -306,7 +305,7 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
       MPOROptions pOptions,
       MPORThread pThread,
-      Optional<MPORThread> pNextThread,
+      Optional<SeqThreadLabelStatement> pNextThreadLabel,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
@@ -325,12 +324,7 @@ public class SeqThreadStatementClauseBuilder {
             pOptions, pSubstituteEdge, nextFreePc, pcLeftHandSide, threadSyncFlags);
     rClauses.add(
         buildClause(
-            pOptions,
-            pThread,
-            pNextThread,
-            pGhostElements.threadLabels(),
-            pLabelPc,
-            ImmutableList.of(mutexUnlockStatement)));
+            pOptions, pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
     // step 2: build pthread_cond_t handling statement
     SeqCondWaitStatement condWaitStatement =
@@ -338,12 +332,7 @@ public class SeqThreadStatementClauseBuilder {
             pOptions, pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, threadSyncFlags);
     rClauses.add(
         buildClause(
-            pOptions,
-            pThread,
-            pNextThread,
-            pGhostElements.threadLabels(),
-            nextFreePc,
-            ImmutableList.of(condWaitStatement)));
+            pOptions, pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));
 
     return rClauses.build();
   }
@@ -351,16 +340,14 @@ public class SeqThreadStatementClauseBuilder {
   private static SeqThreadStatementClause buildClause(
       MPOROptions pOptions,
       MPORThread pThread,
-      Optional<MPORThread> pNextThread,
-      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
+      Optional<SeqThreadLabelStatement> pNextThreadLabel,
       int pLabelPc,
       ImmutableList<CSeqThreadStatement> pStatements) {
 
     SeqBlockLabelStatement blockLabelStatement =
         buildBlockLabelStatement(pOptions, pThread.id(), pLabelPc);
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(
-            pOptions, pNextThread, pThreadLabels, blockLabelStatement, pStatements);
+        new SeqThreadStatementBlock(pOptions, pNextThreadLabel, blockLabelStatement, pStatements);
     return new SeqThreadStatementClause(block);
   }
 }

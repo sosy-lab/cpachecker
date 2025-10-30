@@ -13,7 +13,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -49,8 +47,7 @@ public class SeqStringUtil {
 
   public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
-      Optional<MPORThread> pNextThread,
-      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
+      Optional<SeqThreadLabelStatement> pNextThreadLabel,
       ImmutableList<CSeqThreadStatement> pStatements)
       throws UnrecognizedCodeException {
 
@@ -60,14 +57,11 @@ public class SeqStringUtil {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(
-        buildBlockSuffixByControlStatementEncoding(pOptions, pNextThread, pThreadLabels));
+    return Optional.of(buildBlockSuffixByControlStatementEncoding(pOptions, pNextThreadLabel));
   }
 
   private static String buildBlockSuffixByControlStatementEncoding(
-      MPOROptions pOptions,
-      Optional<MPORThread> pNextThread,
-      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels)
+      MPOROptions pOptions, Optional<SeqThreadLabelStatement> pNextThreadLabel)
       throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
@@ -82,9 +76,8 @@ public class SeqStringUtil {
         }
         if (pOptions.isThreadLabelRequired()) {
           // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
-          if (pNextThread.isPresent()) {
-            SeqThreadLabelStatement nextLabel = pThreadLabels.get(pNextThread.orElseThrow());
-            SeqGotoStatement gotoStatement = new SeqGotoStatement(nextLabel);
+          if (pNextThreadLabel.isPresent()) {
+            SeqGotoStatement gotoStatement = new SeqGotoStatement(pNextThreadLabel.orElseThrow());
             yield gotoStatement.toASTString();
           }
         }

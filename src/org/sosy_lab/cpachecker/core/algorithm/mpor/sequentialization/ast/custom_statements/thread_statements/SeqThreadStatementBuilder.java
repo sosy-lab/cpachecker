@@ -534,7 +534,7 @@ public class SeqThreadStatementBuilder {
 
     return new SeqThreadExitStatement(
         pOptions,
-        pFunctionStatements.startRoutineExitAssignments().get(pThreadEdge),
+        Objects.requireNonNull(pFunctionStatements.startRoutineExitAssignments().get(pThreadEdge)),
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
