@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -94,16 +93,17 @@ public final class PredicateCPARefinerFactory {
   @Option(
       secure = true,
       description =
-          "Number of times the PredicateCPARefiner should run to collect data for subsequent"
-              + " PredicateDelegatingRefiner heuristics ")
-  private int defaultFixedRuns = 13;
+          "Ratio of the size of the reached set to the number of refinements. Decides how many"
+              + " times the PredicateCPARefiner should run before diagnostic heuristics should be"
+              + " applied")
+  private int defaultReachedSetRefinementRatioExceeded = 30;
 
   @Option(
       secure = true,
       description =
           "Acceptable number of interpolants generated per refinement for"
               + " PredicateDelegatingRefiner heuristic")
-  private double defaultInterpolantRate = 7.0;
+  private double defaultInterpolantRate = 8.0;
 
   @Option(
       secure = true,
@@ -117,9 +117,6 @@ public final class PredicateCPARefinerFactory {
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
   private ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = null;
-
-  private final TrackingPredicateCPARefinementContext refinementContext =
-      new TrackingPredicateCPARefinementContext();
 
   private ConfigurableProgramAnalysis cpa;
 
@@ -243,8 +240,7 @@ public final class PredicateCPARefinerFactory {
             prefixProvider,
             prefixSelector,
             invariantsManager,
-            pRefinementStrategy,
-            refinementContext);
+            pRefinementStrategy);
 
     ARGBasedRefiner staticRefiner = defaultRefiner;
     if (performInitialStaticRefinement) {
@@ -344,10 +340,13 @@ public final class PredicateCPARefinerFactory {
       DelegatingRefinerHeuristic pHeuristic =
           switch (pHeuristicName) {
             case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
-            case DEFAULT_N_TIMES -> new DelegatingRefinerHeuristicRunNTimes(defaultFixedRuns);
+            case DEFAULT_N_TIMES ->
+                new DelegatingRefinerHeuristicRunNTimes(defaultReachedSetRefinementRatioExceeded);
             case INTERPOLATION_RATE ->
                 new DelegatingRefinerHeuristicInterpolationRate(
-                    refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
+                    predicateCpa.getSolver().getFormulaManager(),
+                    predicateCpa.getLogger(),
+                    defaultInterpolantRate);
             case REDUNDANT_PREDICATES ->
                 new DelegatingRefinerHeuristicRedundantPredicates(
                     predicateCpa.getConfiguration(),

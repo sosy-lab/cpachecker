@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -90,15 +90,15 @@ public class PredicateStopRefinerTest {
    */
   @Test
   public void checkTerminationSignalReceivedInDelegatingRefiner()
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
         ImmutableList.of(
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunNTimes(1), new DummyRefiner()),
+                new DelegatingRefinerHeuristicStaticRefinement(), new DummyRefiner()),
             new HeuristicDelegatingRefinerRecord(
                 (pReached, pDeltas) -> true, new PredicateStopRefiner()),
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunNTimes(1), new DummyRefiner()));
+                new DelegatingRefinerHeuristicStaticRefinement(), new DummyRefiner()));
     PredicateDelegatingRefiner delegatingRefiner =
         new PredicateDelegatingRefiner(logger, refinerRecords);
 
@@ -133,7 +133,7 @@ public class PredicateStopRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
         ImmutableList.of(
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunNTimes(1), new DummyRefiner()),
+                new DelegatingRefinerHeuristicStaticRefinement(), new DummyRefiner()),
             new HeuristicDelegatingRefinerRecord(
                 (pReached, pDeltas) -> true, new PredicateStopRefiner()));
     PredicateDelegatingRefiner delegatingRefiner =

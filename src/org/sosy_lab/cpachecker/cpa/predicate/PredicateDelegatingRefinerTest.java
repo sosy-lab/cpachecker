@@ -95,15 +95,15 @@ public class PredicateDelegatingRefinerTest {
   }
 
   /**
-   * This test checks if DelegatingRefiner parses the command-line input for a custom number of runs
-   * for the run default refiner n-times heuristic correctly.
+   * This test checks if DelegatingRefiner parses the command-line input for a custom reached
+   * set/refinement number ratio for the DelegatingRefinerHeuristicRunNTimes correctly.
    */
   @Test
   public void setUpDefaultRefinementIndividualRuns() throws Exception {
     Configuration pDefaultIndividualRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultFixedRuns", "5")
+            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "500")
             .build();
     PredicateCPARefinerFactory pDefaultIndividualRunsRefinerFactory =
         setUpRefinerFactory(pDefaultIndividualRunsConfig);
@@ -114,8 +114,8 @@ public class PredicateDelegatingRefinerTest {
 
     assertThat(
             ((DelegatingRefinerHeuristicRunNTimes) pRefinerRecords.getFirst().pHeuristic())
-                .getFixedRuns())
-        .isEqualTo(5);
+                .getReachedSetRefinementRatio())
+        .isEqualTo(500);
   }
 
   /**
@@ -248,21 +248,6 @@ public class PredicateDelegatingRefinerTest {
   }
 
   /**
-   * This test checks that the run default refiner n-times heuristic runs exactly the number of
-   * times in pDefaultFixedRuns.
-   */
-  @Test
-  public void checkDefaultNTimesRunNumbers() throws InvalidConfigurationException {
-    DelegatingRefinerHeuristicRunNTimes runDefaultNTimes =
-        new DelegatingRefinerHeuristicRunNTimes(3);
-
-    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
-    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
-    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
-    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isFalse();
-  }
-
-  /**
    * This test checks if DelegatingRefiner throws an exception for an invalid pair format, e.g. a
    * different separator from a comma, in the command-line input.
    */
@@ -385,15 +370,15 @@ public class PredicateDelegatingRefinerTest {
   }
 
   /**
-   * This test checks if DelegatingRefiner throws an exception for a negative number of fixedRuns
-   * for the run default refiner n-times heuristic in the command-line input.
+   * This test checks if DelegatingRefiner throws an exception for a negative number of the reached
+   * set/refinement number ratio for the run n-times heuristic in the command-line input.
    */
   @Test
   public void checkNegativeFixedRuns() throws Exception {
     Configuration pNegativeFixedRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultFixedRuns", "-5")
+            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "-10")
             .build();
     PredicateCPARefinerFactory pNegativeFixedRunsFactory =
         setUpRefinerFactory(pNegativeFixedRunsConfig);
@@ -407,14 +392,14 @@ public class PredicateDelegatingRefinerTest {
 
   /**
    * This test checks if DelegatingRefiner throws an exception for non integer command-line input
-   * for fixedRuns for the run default refiner n-times heuristic.
+   * for the reached set/refinement number ratio for the run n-times heuristic.
    */
   @Test
   public void checkDoubleFixedRuns() throws Exception {
     Configuration pDoubleFixedRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultFixedRuns", "5.0")
+            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "100.0")
             .build();
     assertThrows(
         InvalidConfigurationException.class, () -> setUpRefinerFactory(pDoubleFixedRunsConfig));

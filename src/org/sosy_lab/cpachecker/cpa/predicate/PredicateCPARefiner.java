@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -168,7 +167,6 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   private final RefinementStrategy strategy;
   private final Optional<NewtonRefinementManager> newtonManager;
   private final Optional<UCBRefinementManager> ucbManager;
-  private final TrackingPredicateCPARefinementContext refinementContext;
 
   PredicateCPARefiner(
       final Configuration pConfig,
@@ -182,8 +180,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final PredicateCPAInvariantsManager pInvariantsManager,
-      final RefinementStrategy pStrategy,
-      final TrackingPredicateCPARefinementContext pRefinementContext)
+      final RefinementStrategy pStrategy)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
     logger = pLogger;
@@ -198,8 +195,6 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     prefixProvider = pPrefixProvider;
     prefixSelector = pPrefixSelector;
     invariantsManager = pInvariantsManager;
-
-    refinementContext = pRefinementContext;
 
     if (pLoopStructure.isPresent()) {
       loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.orElseThrow(), pConfig);
@@ -296,10 +291,6 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
                 abstractionStatesTrace,
                 counterexample.getInterpolants(),
                 repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
-        // Used to collect data for DelegatingRefinerHeuristicInterpolationRate for
-        // PredicateDelegatingRefiner
-        refinementContext.storeInterpolants(counterexample.getInterpolants());
-        refinementContext.storeNumberOfRefinements(totalRefinement.getUpdateCount());
 
         if (!trackFurtherCEX) {
           // when trackFurtherCEX is false, we only track 'one' CEX, otherwise we track all of them.

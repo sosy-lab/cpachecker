@@ -14,51 +14,67 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 
 /**
- * A heuristic which lets a refiner do a fixed number of iterations so that enough data is collected
- * in order to judge refinement progress with other heuristics.
+ * A heuristic which lets a refiner do several number of iterations without assessing the refinement
+ * progress. It is used so that easier to verify programs can be verified without the overhead of
+ * diagnostic heuristics and, at the same time, data can be collected in order to evaluate
+ * refinement progress with subsequent diagnostic heuristics.
  */
 public class DelegatingRefinerHeuristicRunNTimes implements DelegatingRefinerHeuristic {
 
-  private final int fixedRuns;
-  private int currentRuns = 0;
+  // in converging runs, the ratio of reached set to number of refinement doesn't typically exceed
+  // 20 - if it does, this heuristic should stop in favour of diagnostic heuristics
+  private final int defaultReachedSetRefinementRatioExceeded;
+  private static final int REFINEMENT_NUMBERS_HIGH = 40;
+  private static final int REACHED_SET_SIZE_HIGH = 1000;
 
   /**
-   * Construct a fixed-run heuristic.
+   * Constructs a heuristic that runs as long as the ratio of the size of the reached set with
+   * respect to the number of refinements does not exceed a configured threshold. If this limit is
+   * reached, the heuristic returns {@code false} in favour of diagnostic heuristics.
    *
-   * @param pFixedRuns number of refinement iterations to allow for collecting data
-   * @throws InvalidConfigurationException if the provided number of runs is negative
+   * @param pDefaultReachedSetRefinementRatioExceeded ratio of the size of reached set with respect
+   *     to number of refinement iterations that decides how long the refiner should run
+   * @throws InvalidConfigurationException if the provided ratio is negative
    */
-  public DelegatingRefinerHeuristicRunNTimes(int pFixedRuns) throws InvalidConfigurationException {
-    if (pFixedRuns < 0) {
+  public DelegatingRefinerHeuristicRunNTimes(int pDefaultReachedSetRefinementRatioExceeded)
+      throws InvalidConfigurationException {
+    if (pDefaultReachedSetRefinementRatioExceeded < 0) {
       throw new InvalidConfigurationException(
-          "Number of runs for the refiner must not be negative.");
+          "the ratio of reached set size to refinement iterations must not be negative");
     }
-    this.fixedRuns = pFixedRuns;
+    this.defaultReachedSetRefinementRatioExceeded = pDefaultReachedSetRefinementRatioExceeded;
   }
 
   /**
-   * Evaluates whether enough refinement runs have been done to collect data, based on an internal
-   * counter and a configured run count.
+   * Evaluates whether enough refinement runs have been done to collect data, based on ratio of the
+   * size of the reached set with respect to the number of refinements already executed.
    *
-   * @param pReached the current ReachedSet (not used directly)
-   * @param pDeltas the list of changes in the ReachedSet (not used directly)
-   * @return {@code true}, if the run count has not been reached, {@code false} otherwise
+   * @param pReached the current ReachedSet, used to compute the current ratio of reached set size
+   *     to refinement iterations
+   * @param pDeltas the list of changes in the ReachedSet, its size represents the number of
+   *     refinements
+   * @return {@code true} as long as the current ratio stays below the configured threshold, {@code
+   *     false} otherwise
    */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
-    if (currentRuns < fixedRuns) {
-      currentRuns++;
-      return true;
+
+    if (pReached.size() > REACHED_SET_SIZE_HIGH && pDeltas.size() > REFINEMENT_NUMBERS_HIGH) {
+      int currentReachedSetRefinementRatio = pReached.size() / pDeltas.size();
+
+      return currentReachedSetRefinementRatio < defaultReachedSetRefinementRatioExceeded;
     }
-    return false;
+
+    return true;
   }
 
   /**
-   * Returns the number of refinement iterations to allow. Used for testing.
+   * Size of the configured ratio of reached set size to the number of refinements. Used for
+   * testing.
    *
-   * @return the number of refinement iterations configured
+   * @return the reached set size to the number of refinements configured
    */
-  public int getFixedRuns() {
-    return fixedRuns;
+  public int getReachedSetRefinementRatio() {
+    return defaultReachedSetRefinementRatioExceeded;
   }
 }

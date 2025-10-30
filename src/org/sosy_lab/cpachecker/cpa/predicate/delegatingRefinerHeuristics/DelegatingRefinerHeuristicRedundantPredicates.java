@@ -118,13 +118,15 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     ImmutableList<DelegatingRefinerPatternRule> allPatternRules;
     try {
       if (dslRulePath != null && Files.exists(dslRulePath)) {
-        logger.logf(Level.INFO, "Loading redundancy rules from file: %s ", dslRulePath);
+        logger.logf(Level.FINEST, "Loading redundancy rules from file: %s ", dslRulePath);
         try (Reader reader = Files.newBufferedReader(dslRulePath)) {
           allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
         }
       } else {
         logger.logf(
-            Level.INFO, "Loading redundancy rules from class path resource: %s", DSL_RESOURCE_NAME);
+            Level.FINEST,
+            "Loading redundancy rules from class path resource: %s",
+            DSL_RESOURCE_NAME);
         try (BufferedReader reader =
             Resources.asCharSource(
                     Resources.getResource(
@@ -211,13 +213,13 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
     Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
     if (dominantCategory != null) {
-      logger.logf(Level.INFO, "Dominant category is %s.", dominantCategory);
+      logger.logf(Level.FINER, "Dominant category is %s.", dominantCategory);
     }
 
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.INFO, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
+          Level.FINER, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
     }
   }
 
@@ -290,7 +292,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         && isDominantPatternGrowing
         && plateauSteps > MAX_PLATEAU_STEPS) {
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
               + " pattern %s is growing, total pattern size is at %d",
           pCurrentDominantPattern,
@@ -308,7 +310,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     if (pPatternSize > patternSizeTrigger && isOneCategoryDominant) {
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Stop condition isCategoryDominant: Category %s is dominant at %.2f",
           currentDominantCategory,
           maxRedundancyDetectedCategories);
@@ -322,7 +324,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
     if (isPatternRedundancyAboveThreshold) {
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           " Stop condition isPatternRedundancyAboveThreshold: Redundancy in patterns too high: %.2f"
               + " for threshold %.2f.",
           maxRedundancyDetectedPatterns,

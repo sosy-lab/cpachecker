@@ -33,14 +33,16 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * early.
  */
 public class PredicateDelegatingRefiner implements Refiner {
-
-  private final ImmutableList<HeuristicDelegatingRefinerRecord> refiners;
+  private final ImmutableList<HeuristicDelegatingRefinerRecord> heuristicRefinerRecords;
   private final LogManager logger;
   private boolean shouldTerminateRefinement = false;
+  private final ImmutableList.Builder<ReachedSetDelta> deltaSequenceBuilder =
+      ImmutableList.builder();
 
   public PredicateDelegatingRefiner(
-      LogManager pLogger, ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners) {
-    this.refiners = ImmutableList.copyOf(pRefiners);
+      LogManager pLogger,
+      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
+    this.heuristicRefinerRecords = ImmutableList.copyOf(pHeuristicRefinerRecords);
     this.logger = pLogger;
   }
 
@@ -77,9 +79,10 @@ public class PredicateDelegatingRefiner implements Refiner {
     // not needed for DelegatingRefiner functionality
     factory.create(strategy);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = factory.getRefinerRecords();
+    ImmutableList<HeuristicDelegatingRefinerRecord> availableHeuristicRefinerRecords =
+        factory.getRefinerRecords();
 
-    return new PredicateDelegatingRefiner(argcpa.getLogger(), refinerRecords);
+    return new PredicateDelegatingRefiner(argcpa.getLogger(), availableHeuristicRefinerRecords);
   }
 
   /**
@@ -102,17 +105,18 @@ public class PredicateDelegatingRefiner implements Refiner {
               + " 'analysis.reachedSet.withTracking=true'");
     }
 
-    ImmutableList<ReachedSetDelta> deltaSequence =
-        ImmutableList.of(trackingForwardingReachedSet.getDelta());
+    deltaSequenceBuilder.add(trackingForwardingReachedSet.getDelta());
+    trackingForwardingReachedSet.resetTracking();
+    ImmutableList<ReachedSetDelta> deltaSequence = deltaSequenceBuilder.build();
 
-    for (HeuristicDelegatingRefinerRecord pRecord : refiners) {
+    for (HeuristicDelegatingRefinerRecord pRecord : heuristicRefinerRecords) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
-      logger.logf(
-          Level.FINE,
-          "Heuristic %s matched for %s",
-          pHeuristic.getClass().getSimpleName(),
-          pRecord.pRefiner().getClass().getSimpleName());
       if (pHeuristic.fulfilled(trackingForwardingReachedSet.getDelegate(), deltaSequence)) {
+        logger.logf(
+            Level.FINER,
+            "Heuristic %s matched for %s",
+            pHeuristic.getClass().getSimpleName(),
+            pRecord.pRefiner().getClass().getSimpleName());
         Refiner refiner = pRecord.pRefiner();
         shouldTerminateRefinement = refiner.shouldTerminateRefinement();
         return refiner.performRefinement(trackingForwardingReachedSet);

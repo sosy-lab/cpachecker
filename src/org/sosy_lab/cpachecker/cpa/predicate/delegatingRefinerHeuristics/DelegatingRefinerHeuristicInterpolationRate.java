@@ -8,25 +8,29 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * This class implements a DelegatingRefinerHeuristic. A heuristic that monitors the rate
  * interpolant generation in predicate abstraction. All information necessary for monitoring is
- * retrieved from the {@link TrackingPredicateCPARefinementContext}, which stores a history of the
- * number refinements and the generated interpolants. It checks if the number of interpolants
- * produced per refinement remains below the configured threshold. If the interpolant rate exceeds
- * the threshold, the heuristic returns {@code false}.
+ * retrieved from the predicates stored in the {@link ReachedSetDelta} sequence. It checks if the
+ * number of interpolants/predicates produced per refinement remains below the configured threshold.
+ * If the interpolant rate exceeds the threshold, the heuristic returns {@code false}.
  */
 public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
-  private final TrackingPredicateCPARefinementContext refinementContext;
+  private final FormulaManagerView formulaManager;
   private final LogManager logger;
   private final double acceptableInterpolantRate;
   private double currentTotalInterpolantRate;
@@ -34,18 +38,16 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   /**
    * Constructs the heuristic monitoring interpolation rate.
    *
-   * @param pRefinementContext provides information about refinement count and interpolants across
-   *     iterations
    * @param pLogger logger for diagnostic output
+   * @param pFormulaManager FormulaManager needed to filter out trivial predicate, such as {@code
+   *     true}
    * @param pInterpolantRate maximum allowed rate of interpolants generated per refinement
    * @throws InvalidConfigurationException if the rate provided is negative
    */
   public DelegatingRefinerHeuristicInterpolationRate(
-      TrackingPredicateCPARefinementContext pRefinementContext,
-      final LogManager pLogger,
-      double pInterpolantRate)
+      FormulaManagerView pFormulaManager, final LogManager pLogger, double pInterpolantRate)
       throws InvalidConfigurationException {
-    this.refinementContext = pRefinementContext;
+    this.formulaManager = pFormulaManager;
     this.acceptableInterpolantRate = pInterpolantRate;
     this.logger = pLogger;
     if (pInterpolantRate < 0.0) {
@@ -59,33 +61,59 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
    * Evaluates if the current interpolant rate is below the acceptable threshold. It computes the
    * average number of interpolants generated per refinement and compares it to the provided limit.
    *
-   * @param pReached the current ReachedSet: unused in this heuristic as the ReachedSet does not
-   *     provide information about the refinement iterations
-   * @param pDeltas the list of changes in the ReachedSet: unused in this heuristic as the
-   *     ReachedSet does not provide information about the refinement iterations
+   * @param pReached the current ReachedSet: unused in this heuristic
+   * @param pDeltas the list of changes in the ReachedSet, used to compute the number of refinements
+   *     and the number of predicates/interpolants generated so far
    * @return {@code true} if the current interpolant rate is below the acceptable threshold, {@code
    *     false} otherwise
    */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
-    ImmutableList<BooleanFormula> totalInterpolants = refinementContext.getAllInterpolants();
-    int totalInterpolantNumber = totalInterpolants.size();
-    int numberOfRefinements = refinementContext.getNumberOfRefinements();
+
+    int numberOfRefinements = pDeltas.size();
+    ImmutableList.Builder<BooleanFormula> interpolantsBuilder = ImmutableList.builder();
+    ImmutableList<BooleanFormula> numberInterpolants;
 
     if (numberOfRefinements > 0) {
-      currentTotalInterpolantRate = (double) totalInterpolantNumber / (double) numberOfRefinements;
 
-      logger.logf(
-          Level.INFO,
-          "Checking current rate of interpolants generated per refinement: %.2f.",
-          currentTotalInterpolantRate);
+      for (ReachedSetDelta delta : pDeltas) {
+        for (AbstractState pState : delta.addedStates()) {
+          PredicateAbstractState predState =
+              checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+
+          if (predState.isAbstractionState()) {
+            if ((!formulaManager
+                    .getBooleanFormulaManager()
+                    .isTrue(predState.getAbstractionFormula().asFormula())
+                && !formulaManager
+                    .getBooleanFormulaManager()
+                    .isFalse(predState.getAbstractionFormula().asFormula()))) {
+              interpolantsBuilder.add(predState.getAbstractionFormula().asFormula());
+            }
+          }
+        }
+      }
+
+      numberInterpolants = interpolantsBuilder.build();
+
+      currentTotalInterpolantRate =
+          (double) numberInterpolants.size() / (double) numberOfRefinements;
+
+      if (currentTotalInterpolantRate < acceptableInterpolantRate) {
+        logger.logf(
+            Level.FINER,
+            "Checking current rate of interpolants generated per refinement: %.2f.",
+            currentTotalInterpolantRate);
+      } else {
+        logger.logf(
+            Level.FINE,
+            "Number of interpolants per refinement is too high:  %.2f. Heuristic %s is no longer"
+                + " applicable.",
+            currentTotalInterpolantRate,
+            this.getClass().getSimpleName());
+      }
     }
 
-    logger.logf(
-        Level.INFO,
-        "Number of interpolants per refinement is too high:  %.2f. Heuristic INTERPOLATION_RATE is"
-            + " no longer applicable.",
-        currentTotalInterpolantRate);
-    return currentTotalInterpolantRate <= acceptableInterpolantRate;
+    return currentTotalInterpolantRate < acceptableInterpolantRate;
   }
 }
