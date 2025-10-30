@@ -38,8 +38,6 @@ public class SeqReachErrorFunction extends SeqFunction {
   private static final CFunctionCallStatement assertFailFunctionCallStatement =
       new CFunctionCallStatement(FileLocation.DUMMY, assertFailFunctionCallExpression);
 
-  public SeqReachErrorFunction() {}
-
   @Override
   public String buildBody() {
     return assertFailFunctionCallStatement.toASTString();

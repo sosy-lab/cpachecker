@@ -38,7 +38,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -140,7 +142,7 @@ public class SeqMainFunction extends SeqFunction {
               options, fields, utils));
 
       // build the loop depending on settings, and include all statements in it
-      SeqLoopStatement loopStatement =
+      CSeqLoopStatement loopStatement =
           buildLoopStatement(options, loopBlock.build(), utils.binaryExpressionBuilder());
       rBody.append(loopStatement.toASTString());
     }
@@ -203,7 +205,7 @@ public class SeqMainFunction extends SeqFunction {
     return rAssignments.toString();
   }
 
-  private static SeqLoopStatement buildLoopStatement(
+  private static CSeqLoopStatement buildLoopStatement(
       MPOROptions pOptions,
       ImmutableList<String> pLoopBody,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -213,7 +215,7 @@ public class SeqMainFunction extends SeqFunction {
 
     if (pOptions.loopIterations() == 0) {
       // infinite while (1) loop
-      return new SeqLoopStatement(SeqIntegerLiteralExpressions.INT_1, pLoopBody);
+      return new SeqWhileLoopStatement(SeqIntegerLiteralExpressions.INT_1, pLoopBody);
 
     } else {
       // bounded for (...) loop
@@ -225,7 +227,7 @@ public class SeqMainFunction extends SeqFunction {
       CExpressionAssignmentStatement forIterationUpdate =
           SeqStatementBuilder.buildIncrementStatement(
               SeqIdExpressions.ITERATION, pBinaryExpressionBuilder);
-      return new SeqLoopStatement(
+      return new SeqForLoopStatement(
           SeqVariableDeclarations.ITERATION, forExpression, forIterationUpdate, pLoopBody);
     }
   }
