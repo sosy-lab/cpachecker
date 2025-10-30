@@ -103,8 +103,14 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param pDistanceToViolation the distance to the violation
    * @return an automaton transition encoding the reaching of the target
    */
-  protected AutomatonTransition handleTarget(
-      String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
+  protected void handleTarget(
+      String nextStateId,
+      Integer followLine,
+      Integer followColumn,
+      Integer pDistanceToViolation,
+      String currentStateId,
+      ImmutableList.Builder<AutomatonTransition> transitions,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates) {
     // For the reachability specification the target waypoint should exactly point to where the
     // violation occurs. For no-overflow, instead it should point to the beginning of the full
     // expression causing the overflow.
@@ -125,8 +131,18 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     // We need to copy the target information such that CPAchecker returns the correct information
     // for the violated property. If this is not set it will return "WitnessAutomaton"
-    return new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
-        transitionBuilder);
+    AutomatonTransition transition =
+        new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(transitionBuilder);
+
+    transitions.add(transition);
+    // Add the state directly, since we are exiting the loop afterward
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            transitions.build(),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
   }
 
   /**
@@ -143,13 +159,14 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @throws InterruptedException if the function call is interrupted
    * @throws WitnessParseException if the constraint cannot be parsed
    */
-  protected AutomatonTransition handleAssumption(
+  protected void handleAssumption(
       String nextStateId,
       ASTElement enterElement,
       int followLine,
       String function,
       Integer pDistanceToViolation,
-      String constraint)
+      String constraint,
+      ImmutableList.Builder<AutomatonTransition> transitions)
       throws InterruptedException, WitnessParseException {
 
     // The semantics of the witnesses V2 imply that every assumption waypoint should be
@@ -165,7 +182,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
 
-    return transitionBuilder.build();
+    transitions.add(transitionBuilder.build());
   }
 
   /**
@@ -181,21 +198,24 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @return a list of transitions matching the branching waypoint, empty if they could not be
    *     created
    */
-  protected Optional<List<AutomatonTransition>> handleFollowWaypointAtStatement(
+  protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
       Integer followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
-      Boolean pBranchToFollow) {
+      Boolean pBranchToFollow,
+      ImmutableList.Builder<AutomatonTransition> transitions) {
+    Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
         pAstCfaRelation.getIfStructureStartingAtColumn(followColumn, followLine);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
+    Optional<List<AutomatonTransition>> newTransitions = Optional.empty();
     if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
       logger.log(
           Level.FINE, "Could not find an element corresponding to the waypoint, skipping it");
-      return Optional.empty();
+      return;
     }
 
     Set<CFANode> nodesCondition;
@@ -210,7 +230,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
       } catch (BoundaryNodesComputationFailed e) {
         logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
-        return Optional.empty();
+        return;
       }
 
     } else if (optionalIterationStructure.isPresent()) {
@@ -221,7 +241,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
       } catch (BoundaryNodesComputationFailed e) {
         logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
-        return Optional.empty();
+        return;
       }
     } else {
       throw new AssertionError("This should never happen");
@@ -251,7 +271,11 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
-    return Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
+    newTransitions = Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
+    if (newTransitions.get().isEmpty()) {
+      logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
+    }
+    transitions.addAll(newTransitions.get());
   }
 
   /**
@@ -267,13 +291,14 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @return an automaton transition encoding the constraint on the returned value of a function
    * @throws InterruptedException if the function call is interrupted
    */
-  protected AutomatonTransition handleFunctionReturn(
+  protected void handleFunctionReturn(
       String nextStateId,
       Integer followLine,
       Integer followColumn,
       Integer pDistanceToViolation,
       @Nullable String constraint,
-      Multimap<Integer, CFAEdge> startLineToCFAEdge)
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      ImmutableList.Builder<AutomatonTransition> transitions)
       throws InterruptedException {
 
     AutomatonBoolExpr expr =
@@ -337,7 +362,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       }
     }
 
-    return transitionBuilder.build();
+    transitions.add(transitionBuilder.build());
   }
 
   /**
@@ -476,58 +501,44 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     int followLine = follow.getLocation().getLine();
     int followColumn = follow.getLocation().getColumn();
 
-    if (follow.getType().equals(WaypointType.TARGET)) {
-      nextStateId = "X";
-      transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
-      // Add the state directly, since we are exiting the loop afterward
-      automatonStates.add(
-          new AutomatonInternalState(
+    switch (follow.getType()) {
+      case WaypointType.TARGET ->
+          handleTarget(
+              "X",
+              followLine,
+              followColumn,
+              distance,
               currentStateId,
-              transitions.build(),
-              /* pIsTarget= */ false,
-              /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ false));
-    } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
-      ASTElement element =
-          cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
-      transitions.add(
+              transitions,
+              automatonStates);
+      case WaypointType.ASSUMPTION ->
           handleAssumption(
               nextStateId,
-              element,
+              cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn),
               followLine,
               follow.getLocation().getFunction(),
               distance,
-              follow.getConstraint().getValue()));
-    } else if (follow.getType().equals(WaypointType.BRANCHING)) {
-      AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
-      Verify.verifyNotNull(astCFARelation);
-
-      Optional<List<AutomatonTransition>> ifStatementTransitions =
+              follow.getConstraint().getValue(),
+              transitions);
+      case WaypointType.BRANCHING ->
           handleFollowWaypointAtStatement(
-              astCFARelation,
+              cfa.getAstCfaRelation(),
               nextStateId,
               followColumn,
               followLine,
               distance,
-              Boolean.parseBoolean(follow.getConstraint().getValue()));
-
-      if (ifStatementTransitions.isEmpty()) {
-        logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
-      }
-
-      transitions.addAll(ifStatementTransitions.orElseThrow());
-    } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
-      transitions.add(
+              Boolean.parseBoolean(follow.getConstraint().getValue()),
+              transitions);
+      case WaypointType.FUNCTION_ENTER ->
           handleFunctionReturn(
               nextStateId,
               followLine,
               followColumn,
               distance,
               follow.getConstraint().getValue(),
-              startLineToCFAEdge));
-
-    } else {
-      logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
+              startLineToCFAEdge,
+              transitions);
+      default -> logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
     }
   }
 }
