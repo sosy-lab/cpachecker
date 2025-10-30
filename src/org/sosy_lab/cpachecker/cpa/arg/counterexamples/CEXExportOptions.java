@@ -85,9 +85,9 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
-      name = "exportWitnessYML",
+      name = "exportWitnessV2",
       description = "export counterexample as witness/YML file")
-  private boolean exportWitnessYML = true;
+  private boolean exportWitnessV2 = true;
 
   @Option(
       secure = true,
@@ -236,7 +236,7 @@ public final class CEXExportOptions {
     if (!exportErrorPath) {
       return null;
     }
-    return exportWitnessYML ? yamlWitnessOutputFileTemplate : null;
+    return exportWitnessV2 ? yamlWitnessOutputFileTemplate : null;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {
