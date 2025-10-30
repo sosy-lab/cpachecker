@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor.ValidatedFScanFParameter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 /**
  * This class provides methods for checking whether a function is a specific builtin one. The
@@ -231,7 +230,7 @@ public class BuiltinFunctions {
             new CFunctionDeclaration(
                 pEdge.getFileLocation(),
                 CFunctionType.functionTypeWithReturnType(variableType),
-                INTERNAL_NONDET_FUNCTION_NAME,
+                FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME,
                 ImmutableList.of(),
                 ImmutableSet.of());
         CIdExpression nondetFunctionName =
