@@ -101,6 +101,8 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
    * @param pDistanceToViolation the distance to the violation
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   * @param automatonStates that we extended by the target state
    */
   protected void handleTarget(
       String nextStateId,
@@ -154,6 +156,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param function the function in which the waypoint is valid
    * @param pDistanceToViolation the distance to the violation
    * @param constraint the constraint
+   * @param transitions of the automaton that we extended by transition for given waypoint
    * @throws InterruptedException if the function call is interrupted
    * @throws WitnessParseException if the constraint cannot be parsed
    */
@@ -193,6 +196,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param followColumn the column at which the target is
    * @param pDistanceToViolation the distance to the violation
    * @param pBranchToFollow which branch to follow, if true the if branch is followed
+   * @param transitions of the automaton that we extended by transition for given waypoint
    */
   protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
