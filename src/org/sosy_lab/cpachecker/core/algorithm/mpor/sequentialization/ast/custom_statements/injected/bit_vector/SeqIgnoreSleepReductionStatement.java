@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -38,7 +37,7 @@ public record SeqIgnoreSleepReductionStatement(
             roundMaxVariable, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
 
     // negate the evaluation expression
-    String ifExpression = bitVectorEvaluationExpression.negate();
+    String ifExpression = bitVectorEvaluationExpression.toNegatedASTString();
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));
@@ -53,7 +52,7 @@ public record SeqIgnoreSleepReductionStatement(
     }
 
     // reduction assumptions are present -> build else branch with assumptions
-    Builder<String> elseStatements = ImmutableList.builder();
+    ImmutableList.Builder<String> elseStatements = ImmutableList.builder();
     for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
       elseStatements.add(reductionAssumption.toASTString());
     }
@@ -84,6 +83,4 @@ public record SeqIgnoreSleepReductionStatement(
         pReductionAssumptions,
         binaryExpressionBuilder);
   }
-
-  // Getters =======================================================================================
 }

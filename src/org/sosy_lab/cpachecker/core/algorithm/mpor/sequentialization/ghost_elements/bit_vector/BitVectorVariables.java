@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -45,7 +44,7 @@ public record BitVectorVariables(
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
       MemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
-    Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
     for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(denseBitVector.thread())) {
         rDenseBitVectors.add(denseBitVector.getVariableByReachType(ReachType.REACHABLE));

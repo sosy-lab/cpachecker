@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -93,7 +94,7 @@ class ReduceLastThreadOrderInjector {
       if (StatementInjector.isReductionAllowed(pOptions, targetClause)) {
         SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
         // build conflict order statement (with bit vector evaluations based on targetBlock)
-        BitVectorEvaluationExpression lastBitVectorEvaluation =
+        Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
             BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
                 pOptions, pLabelBlockMap, targetBlock, pBitVectorVariables, pMemoryModel, pUtils);
         SeqConflictOrderStatement conflictOrderStatement =

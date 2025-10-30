@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeUtil;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
@@ -147,7 +147,7 @@ public class NumStatementsNondeterministicSimulation {
       return roundMaxGreaterZero.toASTString();
     }
     // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
-    BitVectorEvaluationExpression bitVectorEvaluationExpression =
+    Optional<BitVectorEvaluationExpression> bitVectorEvaluationExpression =
         BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
             pOptions,
             pActiveThread,
@@ -159,8 +159,9 @@ public class NumStatementsNondeterministicSimulation {
     CBinaryExpression notSync = binaryExpressionBuilder.negateExpressionAndSimplify(syncFlag);
     ExpressionTree<String> notSyncAndNotConflict =
         And.of(
-            ExpressionTreeUtil.toExpressionTree(
-                notSync.toASTString(), bitVectorEvaluationExpression.negate()));
+            ExpressionTrees.toExpressionTree(
+                notSync.toASTString(),
+                bitVectorEvaluationExpression.orElseThrow().toNegatedASTString()));
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
     return Or.of(LeafExpression.of(roundMaxGreaterZero.toASTString()), notSyncAndNotConflict)

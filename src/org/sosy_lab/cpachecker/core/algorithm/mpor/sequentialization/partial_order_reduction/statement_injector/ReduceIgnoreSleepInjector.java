@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -50,13 +51,13 @@ class ReduceIgnoreSleepInjector {
       if (targetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         if (StatementInjector.isReductionAllowed(pOptions, newTarget)) {
-          BitVectorEvaluationExpression evaluationExpression =
+          Optional<BitVectorEvaluationExpression> evaluationExpression =
               BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
                   pOptions, pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
           SeqIgnoreSleepReductionStatement ignoreSleepReductionStatement =
               buildIgnoreSleepReductionStatement(
                   pCurrentStatement,
-                  evaluationExpression,
+                  evaluationExpression.orElseThrow(),
                   newTarget,
                   pUtils.binaryExpressionBuilder());
           return pCurrentStatement.withInjectedStatements(

@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqAstNode;
@@ -19,55 +17,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
-public class BitVectorEvaluationExpression implements SeqAstNode {
-
-  public final Optional<CBinaryExpression> binaryExpression;
-
-  public final Optional<ExpressionTree<CExpression>> logicalExpression;
-
-  public BitVectorEvaluationExpression(CBinaryExpression pBinaryExpression) {
-    binaryExpression = Optional.of(pBinaryExpression);
-    logicalExpression = Optional.empty();
-  }
-
-  public BitVectorEvaluationExpression(ExpressionTree<CExpression> pLogicalExpression) {
-    binaryExpression = Optional.empty();
-    logicalExpression = Optional.of(pLogicalExpression);
-  }
-
-  private BitVectorEvaluationExpression() {
-    binaryExpression = Optional.empty();
-    logicalExpression = Optional.empty();
-  }
-
-  public static BitVectorEvaluationExpression empty() {
-    return new BitVectorEvaluationExpression();
-  }
+public record BitVectorEvaluationExpression(ExpressionTree<CExpression> expression)
+    implements SeqAstNode {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    if (binaryExpression.isPresent()) {
-      return binaryExpression.orElseThrow().toASTString();
-    }
-    if (logicalExpression.isPresent()) {
-      return logicalExpression.orElseThrow().toString();
-    }
-    throw new IllegalStateException("both binaryExpression and logicalExpression are empty");
+    return expression.toString();
   }
 
   /**
    * Negates the evaluation expression via {@code 0 == expression}. Note that if a negated
    * evaluation expression evaluates to {@code true}, then there is no conflict.
    */
-  public String negate() throws UnrecognizedCodeException {
+  public String toNegatedASTString() throws UnrecognizedCodeException {
     return Joiner.on(SeqSyntax.SPACE)
         .join(
             SeqIntegerLiteralExpressions.INT_0.toASTString(),
             BinaryOperator.EQUALS.getOperator(),
             toASTString());
-  }
-
-  public boolean isEmpty() {
-    return binaryExpression.isEmpty() && logicalExpression.isEmpty();
   }
 }

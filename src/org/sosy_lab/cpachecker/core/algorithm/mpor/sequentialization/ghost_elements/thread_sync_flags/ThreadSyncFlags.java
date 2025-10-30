@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -40,7 +39,7 @@ public record ThreadSyncFlags(
 
   /** Returns all declarations of the thread synchronization variables. */
   public ImmutableList<CSimpleDeclaration> getDeclarations(MPOROptions pOptions) {
-    Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
     for (CondSignaledFlag condSignaledFlag : condSignaledFlags.values()) {
       rDeclarations.add(condSignaledFlag.idExpression().getDeclaration());
     }

@@ -54,13 +54,13 @@ public class BitVectorEvaluationUtil {
   // Conjunction and Disjunction ===================================================================
 
   /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
-  static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
+  static Optional<BitVectorEvaluationExpression> buildSparseLogicalDisjunction(
       ImmutableList<ExpressionTree<CExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
-      return BitVectorEvaluationExpression.empty();
+      return Optional.empty();
     }
-    return new BitVectorEvaluationExpression(logicalDisjunction(pTerms));
+    return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction(pTerms)));
   }
 
   static <LeafType> Optional<ExpressionTree<LeafType>> tryLogicalDisjunction(

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableListMultimap;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -37,6 +38,18 @@ public record MPORThread(
 
   public boolean isMain() {
     return threadObject.isEmpty();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        id,
+        threadObject,
+        startRoutine,
+        startRoutineCall,
+        startRoutineExitVariable,
+        localVariables,
+        cfa);
   }
 
   @Override

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -29,12 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqConflictOrderStatement(
     MPORThread activeThread,
-    BitVectorEvaluationExpression lastBitVectorEvaluation,
+    Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation,
     CBinaryExpressionBuilder binaryExpressionBuilder)
     implements SeqInjectedStatement {
 
   public SeqConflictOrderStatement {
-
     checkArgument(!activeThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
   }
 
@@ -48,13 +47,14 @@ public record SeqConflictOrderStatement(
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
-    Builder<String> ifBlock = ImmutableList.builder();
+    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
       ifBlock.add(SeqFunctionCallExpressions.ABORT.toASTString());
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-      ifBlock.add(SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation));
+      ifBlock.add(
+          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.orElseThrow().expression()));
     }
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ifBlock.build());

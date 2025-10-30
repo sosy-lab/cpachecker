@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -206,26 +207,6 @@ public class StatementInjector {
 
   // Bit Vector Evaluations =======================================================================
 
-  static BitVectorEvaluationExpression buildBitVectorEvaluationExpression(
-      MPOROptions pOptions,
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      SequentializationUtils pUtils)
-      throws UnrecognizedCodeException {
-
-    return BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
-        pOptions,
-        pOtherThreads,
-        pLabelBlockMap,
-        pTargetBlock,
-        pBitVectorVariables,
-        pMemoryModel,
-        pUtils);
-  }
-
   static SeqBitVectorEvaluationStatement buildBitVectorEvaluationStatement(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -236,8 +217,8 @@ public class StatementInjector {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    BitVectorEvaluationExpression evaluationExpression =
-        buildBitVectorEvaluationExpression(
+    Optional<BitVectorEvaluationExpression> evaluationExpression =
+        BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
             pOptions,
             pOtherThreads,
             pLabelBlockMap,
