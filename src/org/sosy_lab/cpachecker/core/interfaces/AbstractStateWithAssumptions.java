@@ -37,11 +37,17 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    */
   default ImmutableList<AExpression> getAssumptions() {
     ImmutableList<AExpression> assumptions = getAssumptionsImpl();
+    // TODO: make this check complete. Suggestion: add a isLogicalExpression() check to all
+    // expressions.
     assumptions.forEach(
         a ->
             checkState(
-                a instanceof ABinaryExpression binExpr
-                    && binExpr.getOperator().isLogicalOperator()));
+                !(a instanceof ABinaryExpression binExpr)
+                    || binExpr.getOperator().isLogicalOperator(),
+                "AExpression "
+                    + a
+                    + " is exported as assumption, but is non-logical due to operator "
+                    + ((ABinaryExpression) a).getOperator()));
     return assumptions;
   }
 
