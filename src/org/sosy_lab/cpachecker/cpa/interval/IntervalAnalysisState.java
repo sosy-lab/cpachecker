@@ -15,8 +15,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
-import java.io.Serial;
-import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,14 +44,12 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
 public final class IntervalAnalysisState
-    implements Serializable,
+    implements
         LatticeAbstractState<IntervalAnalysisState>,
         AbstractQueryableState,
         Graphable,
         FormulaReportingState,
         PseudoPartitionable {
-
-  @Serial private static final long serialVersionUID = -2030700797958100666L;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
   private final PersistentMap<String, Interval> intervals;

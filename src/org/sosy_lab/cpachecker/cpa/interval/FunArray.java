@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -192,7 +193,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       return this;
     }
     var trailingIndeces =
-        indeces.stream().map(e -> e.add(1L)).collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(indeces, e->e.add(1L));
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
