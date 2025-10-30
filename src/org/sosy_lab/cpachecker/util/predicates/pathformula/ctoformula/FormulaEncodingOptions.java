@@ -15,13 +15,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.BuiltinFunctionsHandling;
 
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
 public class FormulaEncodingOptions {
-  // This function name is used in internal applications, e.g., when modeling side effects for
-  // function calls like fscanf.
-  public static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
 
   @Option(
       secure = true,
@@ -156,7 +154,7 @@ public class FormulaEncodingOptions {
   }
 
   public boolean isNondetFunction(String function) {
-    return function.equals(INTERNAL_NONDET_FUNCTION_NAME)
+    return function.equals(BuiltinFunctionsHandling.INTERNAL_NONDET_FUNCTION_NAME)
         || nondetFunctions.contains(function)
         || nondetFunctionsRegexp.matcher(function).matches();
   }

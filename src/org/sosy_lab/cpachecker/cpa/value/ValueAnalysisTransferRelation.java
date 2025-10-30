@@ -882,8 +882,7 @@ public class ValueAnalysisTransferRelation
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         } else if (BuiltinFunctions.matchesFscanf(func)) {
           return handleFunctionAssignment(
-              BuiltinFunctionsHandling.createNondetCallForScanfOverapproximation(
-                  functionCallExp, cfaEdge));
+              BuiltinFunctionsHandling.createNondetCallModellingScanf(functionCallExp, cfaEdge));
         }
       }
     }

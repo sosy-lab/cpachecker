@@ -8,14 +8,18 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -23,21 +27,107 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor.ValidatedFScanFParameter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
 /**
  * This function contains utility methods for handling built-in functions in CPAchecker. It provides
  * some methods to identify, process, and manage built-in functions.
  */
 public class BuiltinFunctionsHandling {
-  public static CFunctionCallAssignmentStatement createNondetCallForScanfOverapproximation(
+
+  // This function name is used in internal applications, e.g., when modeling side effects for
+  // function calls like fscanf.
+  public static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
+
+  public record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
+  /**
+   * Checks whether the format specifier in the second argument of fscanf agrees with the type of
+   * the parameter it writes to. Paragraph § 7.21.6.2 (10) of the C Standard says, that input item
+   * read form the stream is converted to the `appropriate` type according to the conversion
+   * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
+   * for each argument, corresponding to a conversion specifier and length modifier .The exact
+   * mapping brought forward by the standard is reflected in {@link
+   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
+   *
+   * @param formatString the scanf format string
+   * @param pVariableType the type of the receiving variable
+   * @return whether the scanf-format-specifier agrees with the type it writes to
+   * @throws UnsupportedCodeException if the format specifier is not supported
+   */
+  private static boolean isCompatibleWithScanfFormatString(
+      String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
+    CType expectedType =
+        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
+            .orElseThrow(
+                () ->
+                    new UnsupportedCodeException(
+                        "format specifier " + formatString + " not supported.", pEdge));
+
+    return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
+  }
+
+  private static ValidatedFScanFParameter validateFscanfParameters(
+      List<CExpression> pParameters, CFunctionCallExpression e, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    if (pParameters.size() < 2) {
+      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", pEdge, e);
+    }
+
+    if (pParameters.size() > 3) {
+      throw new UnsupportedCodeException(
+          "fscanf() with more than 3 parameters is not supported", pEdge, e);
+    }
+
+    CExpression file = pParameters.getFirst();
+
+    if (file instanceof CIdExpression idExpression) {
+      if (!isFilePointer(idExpression.getExpressionType())) {
+        throw new UnrecognizedCodeException(
+            "First parameter of fscanf() must be a FILE*", pEdge, e);
+      }
+    }
+
+    CExpression format = pParameters.get(1);
+    String formatString =
+        checkFscanfFormatString(format)
+            .orElseThrow(
+                () ->
+                    new UnsupportedCodeException(
+                        "Format string of fscanf is not supported", pEdge, e));
+
+    return new ValidatedFScanFParameter(formatString, pParameters.get(2));
+  }
+
+  private static Optional<String> checkFscanfFormatString(CExpression pFormat) {
+    ImmutableSet<String> allowlistedFormatStrings =
+        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
+    if (pFormat instanceof CStringLiteralExpression stringLiteral) {
+      String content = stringLiteral.getContentWithoutNullTerminator();
+      if (allowlistedFormatStrings.contains(content)) {
+        return Optional.of(content);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * Creates a nondet assignment statement to overapproximate the effect of a fscanf call. The
+   * created statement assigns a nondet value to the variable passed as receiving parameter to
+   * fscanf.
+   *
+   * @param e the function call expression representing the fscanf call
+   * @param pEdge the CFA edge where the fscanf call occurs, required for proper exception handling
+   * @return a nondet assignment statement assigning a nondet value to the receiving parameter of
+   *     fscanf, whenever possible
+   * @throws UnrecognizedCodeException in case is not precise to create such an assignment
+   */
+  public static CFunctionCallAssignmentStatement createNondetCallModellingScanf(
       CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
 
     ValidatedFScanFParameter receivingParameter =
-        ExpressionToFormulaVisitor.validateFscanfParameters(parameters, e, pEdge);
+        BuiltinFunctionsHandling.validateFscanfParameters(parameters, e, pEdge);
 
     if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
       UnaryOperator operator = unaryParameter.getOperator();
@@ -46,7 +136,7 @@ public class BuiltinFunctionsHandling {
         // For simplicity, we start with the case where only parameters of the form "&id" occur
         CType variableType = idExpression.getExpressionType();
 
-        if (!ExpressionToFormulaVisitor.isCompatibleWithScanfFormatString(
+        if (!BuiltinFunctionsHandling.isCompatibleWithScanfFormatString(
             receivingParameter.format(), variableType, pEdge)) {
           throw new UnsupportedCodeException(
               "fscanf with receiving type <-> format specifier mismatch is not supported.",
@@ -58,7 +148,7 @@ public class BuiltinFunctionsHandling {
             new CFunctionDeclaration(
                 pEdge.getFileLocation(),
                 CFunctionType.functionTypeWithReturnType(variableType),
-                FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME,
+                INTERNAL_NONDET_FUNCTION_NAME,
                 ImmutableList.of(),
                 ImmutableSet.of());
         CIdExpression nondetFunctionName =

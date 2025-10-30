@@ -10,17 +10,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
-import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -650,7 +647,7 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.matchesFscanf(functionName)) {
         CFunctionCallAssignmentStatement nondetCallForScanfCall =
-            BuiltinFunctionsHandling.createNondetCallForScanfOverapproximation(e, edge);
+            BuiltinFunctionsHandling.createNondetCallModellingScanf(e, edge);
 
         try {
           BooleanFormula assignment =
@@ -1277,79 +1274,6 @@ public class ExpressionToFormulaVisitor
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
-  }
-
-  public record ValidatedFScanFParameter(String format, CExpression receiver) {}
-
-  /**
-   * Checks whether the format specifier in the second argument of fscanf agrees with the type of
-   * the parameter it writes to. Paragraph § 7.21.6.2 (10) of the C Standard says, that input item
-   * read form the stream is converted to the `appropriate` type according to the conversion
-   * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
-   * for each argument, corresponding to a conversion specifier and length modifier .The exact
-   * mapping brought forward by the standard is reflected in {@link
-   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
-   *
-   * @param formatString the scanf format string
-   * @param pVariableType the type of the receiving variable
-   * @return whether the scanf-format-specifier agrees with the type it writes to
-   * @throws UnsupportedCodeException if the format specifier is not supported
-   */
-  public static boolean isCompatibleWithScanfFormatString(
-      String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
-    CType expectedType =
-        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "format specifier " + formatString + " not supported.", pEdge));
-
-    return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
-  }
-
-  public static ValidatedFScanFParameter validateFscanfParameters(
-      List<CExpression> pParameters, CFunctionCallExpression e, CFAEdge pEdge)
-      throws UnrecognizedCodeException {
-    if (pParameters.size() < 2) {
-      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", pEdge, e);
-    }
-
-    if (pParameters.size() > 3) {
-      throw new UnsupportedCodeException(
-          "fscanf() with more than 3 parameters is not supported", pEdge, e);
-    }
-
-    CExpression file = pParameters.getFirst();
-
-    if (file instanceof CIdExpression idExpression) {
-      if (!isFilePointer(idExpression.getExpressionType())) {
-        throw new UnrecognizedCodeException(
-            "First parameter of fscanf() must be a FILE*", pEdge, e);
-      }
-    }
-
-    CExpression format = pParameters.get(1);
-    String formatString =
-        checkFscanfFormatString(format)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "Format string of fscanf is not supported", pEdge, e));
-
-    return new ValidatedFScanFParameter(formatString, pParameters.get(2));
-  }
-
-  private static Optional<String> checkFscanfFormatString(CExpression pFormat) {
-    ImmutableSet<String> allowlistedFormatStrings =
-        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
-    if (pFormat instanceof CStringLiteralExpression stringLiteral) {
-      String content = stringLiteral.getContentWithoutNullTerminator();
-      if (allowlistedFormatStrings.contains(content)) {
-        return Optional.of(content);
-      }
-    }
-
-    return Optional.empty();
   }
 
   private @Nullable Formula roundNearestTiesAway(
