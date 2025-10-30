@@ -68,7 +68,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
     String currentStateId = initState;
 
     int distance = segments.size() - 1;
-    String cycleHeadName = "";
+    Optional<String> cycleHeadName = Optional.empty();
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
@@ -91,7 +91,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
       }
 
       if (flowWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
-        cycleHeadName = currentStateId;
+        cycleHeadName = Optional.of(currentStateId);
       }
 
       automatonStates.add(
@@ -100,7 +100,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
               transitions.build(),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ currentStateId.equals(cycleHeadName)));
+              /* pIsCycleStart= */ currentStateId.equals(cycleHeadName.isPresent() ? cycleHeadName.get() : "")));
 
       distance--;
       currentStateId = nextStateId;
@@ -125,7 +125,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
           new AutomatonInternalState(
               currentStateId,
               ImmutableList.of(
-                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName).build()),
+                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName.get()).build()),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
