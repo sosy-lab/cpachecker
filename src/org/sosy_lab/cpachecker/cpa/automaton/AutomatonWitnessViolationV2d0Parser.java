@@ -211,7 +211,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         pAstCfaRelation.getIfStructureStartingAtColumn(followColumn, followLine);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
-    Optional<List<AutomatonTransition>> newTransitions = Optional.empty();
+    Optional<List<AutomatonTransition>> newTransitions;
     if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
       logger.log(
           Level.FINE, "Could not find an element corresponding to the waypoint, skipping it");
