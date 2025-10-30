@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -28,33 +28,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a binary search tree with {@code if-else} branches. */
-public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
-
-  private final CLeftHandSide expression;
-
-  private final ImmutableList<CStatement> precedingStatements;
-
-  private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  SeqBinarySearchTreeStatement(
-      CLeftHandSide pExpression,
-      ImmutableList<CStatement> pPrecedingStatements,
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-
-    expression = pExpression;
-    precedingStatements = pPrecedingStatements;
-    statements = pStatements;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-  }
+public record SeqBinarySearchTreeStatement(
+    CLeftHandSide expression,
+    ImmutableList<CStatement> precedingStatements,
+    ImmutableMap<CExpression, ? extends SeqStatement> statements,
+    CBinaryExpressionBuilder binaryExpressionBuilder)
+    implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
     precedingStatements.forEach(statement -> tree.add(statement.toASTString()));
-    ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
+    ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
     return tree.toString();
@@ -71,8 +56,8 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
    * {@code 0, 1, 2} or {@code 1, 2, 3} or {@code 0, 2, 3} are all allowed.
    */
   private void recursivelyBuildTree(
-      final ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> pAllStatements,
-      List<Map.Entry<CExpression, ? extends SeqStatement>> pCurrentStatements,
+      final ImmutableList<Entry<CExpression, ? extends SeqStatement>> pAllStatements,
+      List<Entry<CExpression, ? extends SeqStatement>> pCurrentStatements,
       CLeftHandSide pPc,
       StringJoiner pTree)
       throws UnrecognizedCodeException {
@@ -85,14 +70,14 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
     } else if (size == 2) {
       // only two elements -> create if and else leafs with ==
-      Map.Entry<CExpression, ? extends SeqStatement> ifStatement = pCurrentStatements.getFirst();
+      Entry<CExpression, ? extends SeqStatement> ifStatement = pCurrentStatements.getFirst();
       SeqStatement elseStatement = pCurrentStatements.get(1).getValue();
       pTree.add(buildLeaf(ifStatement.getKey(), ifStatement.getValue(), elseStatement));
 
     } else {
       // more than two elements -> create if and else subtrees with <
       int mid = size / 2;
-      Map.Entry<CExpression, ? extends SeqStatement> midEntry = pCurrentStatements.get(mid);
+      Entry<CExpression, ? extends SeqStatement> midEntry = pCurrentStatements.get(mid);
       SeqStatement midStatement = midEntry.getValue();
       // if statement is a clause, use its label number for the < check
       int midIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midEntry)) - 1;

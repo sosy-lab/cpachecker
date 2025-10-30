@@ -71,9 +71,9 @@ public class SeqMainFunction extends SeqFunction {
     // add main function argument non-deterministic assignments
     rBody.append(
         buildMainFunctionArgNondetAssignments(
-            fields.mainSubstitution, fields.clauses, utils.getLogger()));
+            fields.mainSubstitution, fields.clauses, utils.logger()));
 
-    if (options.loopUnrolling) {
+    if (options.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
@@ -84,9 +84,9 @@ public class SeqMainFunction extends SeqFunction {
       // otherwise include the thread simulations in the main function directly
       ImmutableList.Builder<String> loopBlock = ImmutableList.builder();
 
-      if (options.reduceLastThreadOrder) {
+      if (options.reduceLastThreadOrder()) {
         // add last_thread = next_thread assignment (before setting next_thread)
-        if (options.nondeterminismSource.isNextThreadNondeterministic()) {
+        if (options.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =
               SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpressions.NEXT_THREAD);
           loopBlock.add(assignment.toASTString());
@@ -94,8 +94,8 @@ public class SeqMainFunction extends SeqFunction {
       }
 
       // add if next_thread is a non-determinism source
-      if (options.nondeterminismSource.isNextThreadNondeterministic()) {
-        if (options.comments) {
+      if (options.nondeterminismSource().isNextThreadNondeterministic()) {
+        if (options.comments()) {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
         // next_thread = __VERIFIER_nondet_...()
@@ -106,35 +106,33 @@ public class SeqMainFunction extends SeqFunction {
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         ImmutableList<CFunctionCallStatement> nextThreadAssumption =
             SeqAssumptionBuilder.buildNextThreadAssumption(
-                options.nondeterminismSigned, fields, utils.getBinaryExpressionBuilder());
+                options.nondeterminismSigned(), fields, utils.binaryExpressionBuilder());
         nextThreadAssumption.forEach(assumption -> loopBlock.add(assumption.toASTString()));
 
         // for scalar pc, this is done separately at the start of the respective thread
-        if (!options.scalarPc) {
+        if (!options.scalarPc()) {
           // assumptions over next_thread being active: pc[next_thread] != 0
-          if (options.comments) {
+          if (options.comments()) {
             loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
           }
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumptionBuilder.buildNextThreadActiveAssumption(
-                  utils.getBinaryExpressionBuilder());
+              SeqAssumptionBuilder.buildNextThreadActiveAssumption(utils.binaryExpressionBuilder());
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
 
       if (options.isThreadCountRequired()) {
         // assumptions that at least one thread is still active: assume(cnt > 0)
-        if (options.comments) {
+        if (options.comments()) {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
         CFunctionCallStatement countAssumption =
-            SeqAssumptionBuilder.buildCountGreaterZeroAssumption(
-                utils.getBinaryExpressionBuilder());
+            SeqAssumptionBuilder.buildCountGreaterZeroAssumption(utils.binaryExpressionBuilder());
         loopBlock.add(countAssumption.toASTString());
       }
 
       // add all thread simulation control flow statements
-      if (options.comments) {
+      if (options.comments()) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
@@ -143,7 +141,7 @@ public class SeqMainFunction extends SeqFunction {
 
       // build the loop depending on settings, and include all statements in it
       SeqLoopStatement loopStatement =
-          buildLoopStatement(options, loopBlock.build(), utils.getBinaryExpressionBuilder());
+          buildLoopStatement(options, loopBlock.build(), utils.binaryExpressionBuilder());
       rBody.append(loopStatement.toASTString());
     }
     return rBody.toString();
@@ -211,9 +209,9 @@ public class SeqMainFunction extends SeqFunction {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    checkArgument(!pOptions.loopUnrolling, "cannot build loop head, loopUnrolling is enabled");
+    checkArgument(!pOptions.loopUnrolling(), "cannot build loop head, loopUnrolling is enabled");
 
-    if (pOptions.loopIterations == 0) {
+    if (pOptions.loopIterations() == 0) {
       // infinite while (1) loop
       return new SeqLoopStatement(SeqIntegerLiteralExpressions.INT_1, pLoopBody);
 
@@ -222,7 +220,7 @@ public class SeqMainFunction extends SeqFunction {
       CBinaryExpression forExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
               SeqIdExpressions.ITERATION,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations),
+              SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations()),
               BinaryOperator.LESS_THAN);
       CExpressionAssignmentStatement forIterationUpdate =
           SeqStatementBuilder.buildIncrementStatement(

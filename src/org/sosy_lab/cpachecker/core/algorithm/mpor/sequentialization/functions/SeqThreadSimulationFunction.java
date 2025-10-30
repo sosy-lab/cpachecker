@@ -29,7 +29,7 @@ public class SeqThreadSimulationFunction extends SeqFunction {
 
   public SeqThreadSimulationFunction(String pFunctionBody, MPORThread pThread) {
     functionBody = pFunctionBody;
-    functionName = SeqExpressionBuilder.buildThreadSimulationFunctionIdExpression(pThread.getId());
+    functionName = SeqExpressionBuilder.buildThreadSimulationFunctionIdExpression(pThread.id());
     thread = pThread;
     functionCallStatement = buildFunctionCallStatement(ImmutableList.of());
   }

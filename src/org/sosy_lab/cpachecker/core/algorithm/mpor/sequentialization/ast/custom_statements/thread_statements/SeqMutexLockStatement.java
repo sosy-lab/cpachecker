@@ -68,10 +68,10 @@ public class SeqMutexLockStatement extends CSeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumeCall =
-        SeqAssumptionBuilder.buildAssumption(mutexLockedFlag.notLockedExpression);
+        SeqAssumptionBuilder.buildAssumption(mutexLockedFlag.notLockedExpression());
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression, SeqIntegerLiteralExpressions.INT_1);
+            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

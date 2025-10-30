@@ -61,7 +61,7 @@ public class SeqCondSignalStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setCondSignaledTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression, SeqIntegerLiteralExpressions.INT_1);
+            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

@@ -98,7 +98,7 @@ class ReduceLastThreadOrderInjector {
                 pOptions, pLabelBlockMap, targetBlock, pBitVectorVariables, pMemoryModel, pUtils);
         SeqConflictOrderStatement conflictOrderStatement =
             new SeqConflictOrderStatement(
-                pActiveThread, lastBitVectorEvaluation, pUtils.getBinaryExpressionBuilder());
+                pActiveThread, lastBitVectorEvaluation, pUtils.binaryExpressionBuilder());
         return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
             pStatement, conflictOrderStatement);
       }
@@ -134,7 +134,7 @@ class ReduceLastThreadOrderInjector {
         CExpressionAssignmentStatement lastThreadUpdate =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpressions.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.getId()));
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.id()));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(
                 lastThreadUpdate,
@@ -155,11 +155,11 @@ class ReduceLastThreadOrderInjector {
       buildLastAccessBitVectorUpdatesByEncoding(
           MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build updates for bitVectorEncoding %s", pOptions.bitVectorEncoding));
+                  "cannot build updates for bitVectorEncoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
       case SPARSE -> buildSparseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
@@ -169,10 +169,10 @@ class ReduceLastThreadOrderInjector {
   private static ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdates(
       MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           buildDenseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
@@ -191,10 +191,10 @@ class ReduceLastThreadOrderInjector {
   private static ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdates(
       MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           buildSparseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
@@ -222,7 +222,7 @@ class ReduceLastThreadOrderInjector {
         pBitVectorVariables.getDenseBitVector(pActiveThread, pAccessType, ReachType.REACHABLE);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            lastDenseBitVector.reachableVariable, rightHandSide);
+            lastDenseBitVector.reachableVariable(), rightHandSide);
     return ImmutableList.of(update);
   }
 
@@ -248,7 +248,7 @@ class ReduceLastThreadOrderInjector {
           CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  lastSparseBitVector.reachableVariable, rightHandSide);
+                  lastSparseBitVector.reachableVariable(), rightHandSide);
           rUpdates.add(update);
         }
       }

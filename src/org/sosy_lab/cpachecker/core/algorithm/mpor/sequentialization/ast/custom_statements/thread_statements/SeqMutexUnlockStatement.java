@@ -66,7 +66,7 @@ public class SeqMutexUnlockStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement lockedFalseAssignment =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression, SeqIntegerLiteralExpressions.INT_0);
+            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);

@@ -90,7 +90,7 @@ public class BitVectorAssignmentInjector {
       MemoryModel pMemoryModel) {
 
     checkArgument(
-        !pOptions.reductionMode.equals(ReductionMode.NONE),
+        !pOptions.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
@@ -125,7 +125,7 @@ public class BitVectorAssignmentInjector {
           MemoryModel pMemoryModel) {
 
     checkArgument(
-        !pOptions.reductionMode.equals(ReductionMode.NONE),
+        !pOptions.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
@@ -164,7 +164,7 @@ public class BitVectorAssignmentInjector {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector assignments for encoding NONE");
@@ -239,7 +239,7 @@ public class BitVectorAssignmentInjector {
       return Optional.empty();
     }
     // if enabled, consider only 0 writes (the memory location is not reachable anymore)
-    if (pOptions.pruneSparseBitVectorWrites && pMemoryLocations.contains(pMemoryLocation)) {
+    if (pOptions.pruneSparseBitVectorWrites() && pMemoryLocations.contains(pMemoryLocation)) {
       return Optional.empty();
     }
     boolean value = pMemoryLocations.contains(pMemoryLocation);

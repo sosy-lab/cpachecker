@@ -25,30 +25,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the entirety of a switch statement.
  *
  * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
+ *
+ * @param statements No restriction to literal expressions as keys because e.g. {@code case 1 + 2:}
+ *     i.e. a {@link CBinaryExpression} is allowed in C.
  */
-public class SeqSwitchStatement implements SeqMultiControlStatement {
+public record SeqSwitchStatement(
+    CExpression switchExpression,
+    ImmutableList<CStatement> precedingStatements,
+    ImmutableMap<CExpression, ? extends SeqStatement> statements)
+    implements SeqMultiControlStatement {
 
   private static final String SWITCH_KEYWORD = "switch";
-
-  private final CExpression switchExpression;
-
-  private final ImmutableList<CStatement> precedingStatements;
-
-  /**
-   * No restriction to literal expressions as keys because e.g. {@code case 1 + 2:} i.e. a {@link
-   * CBinaryExpression} is allowed in C.
-   */
-  private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
-
-  SeqSwitchStatement(
-      CExpression pSwitchExpression,
-      ImmutableList<CStatement> pPrecedingStatements,
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
-
-    switchExpression = pSwitchExpression;
-    precedingStatements = pPrecedingStatements;
-    statements = pStatements;
-  }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

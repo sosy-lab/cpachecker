@@ -77,8 +77,8 @@ public class MPORSubstitutionBuilder {
                   parameterSubstitutes,
                   mainFunctionArgSubstitutes,
                   startRoutineArgSubstitutes,
-                  thread.getId(),
-                  thread.localVariables,
+                  thread.id(),
+                  thread.localVariables(),
                   pUtils);
       rSubstitutions.add(
           new MPORSubstitution(
@@ -166,7 +166,7 @@ public class MPORSubstitutionBuilder {
     for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
       CStorageClass storageClass = variableDeclaration.getCStorageClass();
       // if type declarations are not included, the storage class cannot be extern
-      if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+      if (pOptions.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
         String substituteName = SeqNameUtil.buildGlobalVariableName(pOptions, variableDeclaration);
         CVariableDeclaration substitute =
             substituteVariableDeclaration(variableDeclaration, substituteName);
@@ -190,7 +190,7 @@ public class MPORSubstitutionBuilder {
         rParameterSubstitutes = ImmutableTable.builder();
     Map<CFunctionDeclaration, Integer> callCounts = new HashMap<>();
 
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionCallEdge pFunctionCallEdge) {
         CFunctionDeclaration functionDeclaration =
             pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
@@ -222,7 +222,7 @@ public class MPORSubstitutionBuilder {
           SeqNameUtil.buildParameterName(
               pOptions,
               parameterDeclaration,
-              pThread.getId(),
+              pThread.id(),
               pFunctionDeclaration.getOrigName(),
               pCallNumber);
       // we use variable declarations for parameters in the sequentialization
@@ -242,7 +242,7 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions, MPORThread pMainThread) {
 
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rArgs = ImmutableMap.builder();
-    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine.getParameters()) {
+    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine().getParameters()) {
       String varName = SeqNameUtil.buildMainFunctionArgName(pOptions, parameterDeclaration);
       // we use variable declarations for main function args in the sequentialization
       CVariableDeclaration variableDeclaration =
@@ -262,7 +262,7 @@ public class MPORSubstitutionBuilder {
         ImmutableTable.builder();
 
     for (MPORThread thread : pAllThreads) {
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
           // TODO if we support pthread return values, this may not hold
@@ -272,10 +272,10 @@ public class MPORSubstitutionBuilder {
           MPORThread createdThread =
               MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
           // pthread_t matches
-          if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
+          if (pthreadT.equals(createdThread.threadObject().orElseThrow())) {
             CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(cfaEdge);
             CFunctionDeclaration startRoutineDeclaration =
-                (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
+                (CFunctionDeclaration) createdThread.cfa().entryNode.getFunction();
             // start_routine matches
             if (startRoutineDeclaration.getType().equals(startRoutineType)) {
               if (!startRoutineDeclaration.getParameters().isEmpty()) {
@@ -287,7 +287,7 @@ public class MPORSubstitutionBuilder {
                     SeqNameUtil.buildStartRoutineArgName(
                         pOptions,
                         parameterDeclaration,
-                        createdThread.getId(),
+                        createdThread.id(),
                         startRoutineDeclaration.getOrigName());
                 CParameterDeclaration substituteParameterDeclaration =
                     substituteParameterDeclaration(parameterDeclaration, varName);
@@ -404,7 +404,7 @@ public class MPORSubstitutionBuilder {
           CStorageClass storageClass = variableDeclaration.getCStorageClass();
 
           // if type declarations are not included, the storage class cannot be extern
-          if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+          if (pOptions.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
             Optional<String> functionName = getFunctionNameByCallContext(callContext);
             String substituteName =
                 SeqNameUtil.buildLocalVariableName(

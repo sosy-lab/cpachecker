@@ -85,9 +85,9 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       ImmutableList<SeqThreadStatementClause> clauses = pFields.clauses.get(thread);
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingThread,
+              pOptions.controlEncodingThread(),
               SeqIdExpressions.NEXT_THREAD,
-              thread.getId(),
+              thread.id(),
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
               pOptions, pFields.ghostElements, thread, clauses, pBinaryExpressionBuilder));
@@ -104,25 +104,25 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
     ImmutableList<CStatement> precedingStatements =
         buildPrecedingStatements(pOptions, pGhostElements, pThread, pBinaryExpressionBuilder);
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClausesWithoutCount(
             pOptions,
             pThread,
-            pGhostElements.getThreadSyncFlags(),
+            pGhostElements.threadSyncFlags(),
             pClauses,
             pBinaryExpressionBuilder);
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             pOptions,
-            pcVariables.getPcLeftHandSide(pThread.getId()),
+            pcVariables.getPcLeftHandSide(pThread.id()),
             clauses,
             pBinaryExpressionBuilder);
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions.controlEncodingStatement,
+        pOptions.controlEncodingStatement(),
         expression,
         precedingStatements,
         expressionClauseMap,

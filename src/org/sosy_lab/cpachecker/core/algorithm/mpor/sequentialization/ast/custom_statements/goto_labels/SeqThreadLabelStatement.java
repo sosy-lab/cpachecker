@@ -11,13 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqThreadLabelStatement implements SeqLabelStatement {
-
-  private final String name;
-
-  public SeqThreadLabelStatement(String pName) {
-    name = pName;
-  }
+public record SeqThreadLabelStatement(String name) implements SeqLabelStatement {
 
   @Override
   public String toASTStringWithoutColon() {

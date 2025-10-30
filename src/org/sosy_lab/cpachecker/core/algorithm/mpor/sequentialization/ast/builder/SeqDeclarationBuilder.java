@@ -49,7 +49,7 @@ public class SeqDeclarationBuilder {
   public static CVariableDeclaration buildNextThreadDeclaration(MPOROptions pOptions) {
     return buildVariableDeclaration(
         true,
-        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
         SeqIdExpressions.NEXT_THREAD.getName(),
         SeqInitializers.INT_0);
   }
@@ -57,7 +57,7 @@ public class SeqDeclarationBuilder {
   public static CVariableDeclaration buildRoundMaxDeclaration(MPOROptions pOptions) {
     return buildVariableDeclaration(
         true,
-        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
         SeqIdExpressions.ROUND_MAX.getName(),
         SeqInitializers.INT_0);
   }
@@ -86,7 +86,7 @@ public class SeqDeclarationBuilder {
       MPOROptions pOptions, SequentializationFields pFields) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    if (pOptions.scalarPc) {
+    if (pOptions.scalarPc()) {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pFields.numThreads; i++) {
         rDeclarations.add(

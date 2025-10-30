@@ -39,11 +39,11 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           BitVectorAccessEvaluationBuilder.buildVariableOnlyEvaluationByEncoding(
               pOptions, pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
@@ -64,13 +64,13 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    checkArgument(pOptions.reduceLastThreadOrder, "reduceLastThreadOrder must be enabled");
+    checkArgument(pOptions.reduceLastThreadOrder(), "reduceLastThreadOrder must be enabled");
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY -> {
         ImmutableSet<SeqMemoryLocation> directAccessMemoryLocations =
             SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
@@ -104,15 +104,16 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
+              String.format(
+                  "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastAccessBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         ImmutableSet<CExpression> otherAccessBitVectors =
-            ImmutableSet.of(lastAccessBitVector.reachableVariable);
+            ImmutableSet.of(lastAccessBitVector.reachableVariable());
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
             pOptions, otherAccessBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils);
       }
@@ -135,10 +136,11 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
+              String.format(
+                  "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         LastDenseBitVector lastWriteBitVector =
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.WRITE);
@@ -146,8 +148,8 @@ public class BitVectorEvaluationBuilder {
             pBitVectorVariables.getLastDenseBitVectorByAccessType(MemoryAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildDenseEvaluation(
             pOptions,
-            ImmutableSet.of(lastWriteBitVector.reachableVariable),
-            ImmutableSet.of(lastAccessBitVector.reachableVariable),
+            ImmutableSet.of(lastWriteBitVector.reachableVariable()),
+            ImmutableSet.of(lastAccessBitVector.reachableVariable()),
             pDirectReadMemoryLocations,
             pDirectWriteMemoryLocations,
             pMemoryModel,
@@ -181,7 +183,7 @@ public class BitVectorEvaluationBuilder {
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
     for (var entry : lastSparseBitVectors.entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
-      rMap.put(memoryLocation, entry.getValue().reachableVariable);
+      rMap.put(memoryLocation, entry.getValue().reachableVariable());
     }
     return rMap.build();
   }
@@ -199,14 +201,14 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.reduceUntilConflict,
+        pOptions.reduceUntilConflict(),
         "reduceUntilConflict must be enabled to build evaluation expression");
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY -> {
         ImmutableSet<SeqMemoryLocation> directAccessMemoryLocations =
             SeqMemoryLocationFinder.findDirectMemoryLocationsByAccessType(
@@ -252,11 +254,11 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode));
+                  "cannot build evaluation for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           buildAccessEvaluationByEncoding(
               pOptions,
@@ -286,10 +288,11 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
+              String.format(
+                  "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
@@ -317,10 +320,11 @@ public class BitVectorEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build evaluation for encoding %s", pOptions.bitVectorEncoding));
+              String.format(
+                  "cannot build evaluation for encoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL -> {
         ImmutableSet<CExpression> otherWriteBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(

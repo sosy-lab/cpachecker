@@ -12,13 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqSyncUpdateStatement implements SeqInjectedStatement {
-
-  private final CExpressionAssignmentStatement syncUpdate;
-
-  public SeqSyncUpdateStatement(CExpressionAssignmentStatement pSyncUpdate) {
-    syncUpdate = pSyncUpdate;
-  }
+public record SeqSyncUpdateStatement(CExpressionAssignmentStatement syncUpdate)
+    implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

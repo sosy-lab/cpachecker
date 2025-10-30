@@ -94,8 +94,8 @@ public class NumStatementsNondeterministicSimulation {
     // create "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         SeqExpressionBuilder.buildPcUnequalExitPc(
-            pGhostElements.getPcVariables().getPcLeftHandSide(pActiveThread.getId()),
-            pUtils.getBinaryExpressionBuilder());
+            pGhostElements.getPcVariables().getPcLeftHandSide(pActiveThread.id()),
+            pUtils.binaryExpressionBuilder());
     ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
@@ -116,11 +116,7 @@ public class NumStatementsNondeterministicSimulation {
     // add the thread simulation statements
     innerIfBlock.add(
         buildSingleThreadClausesWithCount(
-            pOptions,
-            pGhostElements,
-            pActiveThread,
-            pClauses,
-            pUtils.getBinaryExpressionBuilder()));
+            pOptions, pGhostElements, pActiveThread, pClauses, pUtils.binaryExpressionBuilder()));
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());
@@ -139,7 +135,7 @@ public class NumStatementsNondeterministicSimulation {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    CBinaryExpressionBuilder binaryExpressionBuilder = pUtils.getBinaryExpressionBuilder();
+    CBinaryExpressionBuilder binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
     // round_max > 0
     CExpression roundMaxGreaterZero =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -147,7 +143,7 @@ public class NumStatementsNondeterministicSimulation {
             SeqIntegerLiteralExpressions.INT_0,
             BinaryOperator.GREATER_THAN);
 
-    if (!pOptions.reduceIgnoreSleep) {
+    if (!pOptions.reduceIgnoreSleep()) {
       return roundMaxGreaterZero.toASTString();
     }
     // if enabled, add bit vector evaluation: "round_max > 0 || {bitvector_evaluation}"
@@ -156,10 +152,10 @@ public class NumStatementsNondeterministicSimulation {
             pOptions,
             pActiveThread,
             pOtherThreads,
-            pGhostElements.getBitVectorVariables().orElseThrow(),
+            pGhostElements.bitVectorVariables().orElseThrow(),
             pUtils);
     // ensure that thread is not at a thread sync location: !sync && !conflict
-    CIdExpression syncFlag = pGhostElements.getThreadSyncFlags().getSyncFlag(pActiveThread);
+    CIdExpression syncFlag = pGhostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync = binaryExpressionBuilder.negateExpressionAndSimplify(syncFlag);
     ExpressionTree<String> notSyncAndNotConflict =
         And.of(
@@ -184,12 +180,12 @@ public class NumStatementsNondeterministicSimulation {
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClauses(
             pOptions,
-            pGhostElements.getThreadSyncFlags().getSyncFlag(pThread),
+            pGhostElements.threadSyncFlags().getSyncFlag(pThread),
             pClauses,
             pBinaryExpressionBuilder);
 
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
@@ -197,12 +193,12 @@ public class NumStatementsNondeterministicSimulation {
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             pOptions,
-            pcVariables.getPcLeftHandSide(pThread.getId()),
+            pcVariables.getPcLeftHandSide(pThread.id()),
             clauses,
             pBinaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-            pOptions.controlEncodingStatement,
+            pOptions.controlEncodingStatement(),
             expression,
             assumption.isPresent()
                 ? ImmutableList.of(assumption.orElseThrow())

@@ -45,10 +45,10 @@ class BitVectorReadWriteEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding());
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildFullDenseVariableOnlyEvaluation(
               pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
@@ -75,7 +75,7 @@ class BitVectorReadWriteEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedDenseEvaluation(
           pOtherWriteBitVectors,
           pOtherAccessBitVectors,
@@ -102,7 +102,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<SeqMemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
           pSparseWriteMap,
           pSparseAccessMap,
@@ -135,13 +135,13 @@ class BitVectorReadWriteEvaluationBuilder {
             pOtherWriteBitVectors,
             pDirectReadMemoryLocations,
             pMemoryModel,
-            pUtils.getBinaryExpressionBuilder());
+            pUtils.binaryExpressionBuilder());
     Optional<CBinaryExpression> rightHandSide =
         buildPrunedDenseRightHandSide(
             pOtherAccessBitVectors,
             pDirectWriteMemoryLocations,
             pMemoryModel,
-            pUtils.getBinaryExpressionBuilder());
+            pUtils.binaryExpressionBuilder());
 
     if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
       // both LHS and RHS present: create or expression: ||
@@ -257,11 +257,11 @@ class BitVectorReadWriteEvaluationBuilder {
     // (R & (W' | W'' | ...))
     CExpression leftHandSide =
         buildGeneralDenseLeftHandSide(
-            pDirectReadBitVector, pOtherWriteBitVectors, pUtils.getBinaryExpressionBuilder());
+            pDirectReadBitVector, pOtherWriteBitVectors, pUtils.binaryExpressionBuilder());
     // (W & (A' | A'' | ...))
     CExpression rightHandSide =
         buildGeneralDenseRightHandSide(
-            pDirectWriteBitVector, pOtherAccessBitVectors, pUtils.getBinaryExpressionBuilder());
+            pDirectWriteBitVector, pOtherAccessBitVectors, pUtils.binaryExpressionBuilder());
     // (R & (W' | W'' | ...)) || (W & (A' | A'' | ...))
     ExpressionTree<CExpression> logicalOr =
         Or.of(ExpressionTreeUtil.toExpressionTree(leftHandSide, rightHandSide));

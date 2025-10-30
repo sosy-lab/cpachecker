@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -21,31 +22,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorStatement {
-
-  private final CIdExpression roundMaxVariable;
-
-  private final BitVectorEvaluationExpression bitVectorEvaluationExpression;
-
-  private final SeqBlockLabelStatement nextLabel;
-
-  private final ImmutableList<SeqInjectedStatement> reductionAssumptions;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  public SeqIgnoreSleepReductionStatement(
-      CIdExpression pRoundMaxVariable,
-      BitVectorEvaluationExpression pBitVectorEvaluationExpression,
-      SeqBlockLabelStatement pNextLabel,
-      ImmutableList<SeqInjectedStatement> pReductionAssumptions,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-
-    roundMaxVariable = pRoundMaxVariable;
-    bitVectorEvaluationExpression = pBitVectorEvaluationExpression;
-    nextLabel = pNextLabel;
-    reductionAssumptions = pReductionAssumptions;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-  }
+public record SeqIgnoreSleepReductionStatement(
+    CIdExpression roundMaxVariable,
+    BitVectorEvaluationExpression bitVectorEvaluationExpression,
+    SeqBlockLabelStatement nextLabel,
+    ImmutableList<SeqInjectedStatement> reductionAssumptions,
+    CBinaryExpressionBuilder binaryExpressionBuilder)
+    implements SeqInjectedBitVectorStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
@@ -70,7 +53,7 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
     }
 
     // reduction assumptions are present -> build else branch with assumptions
-    ImmutableList.Builder<String> elseStatements = ImmutableList.builder();
+    Builder<String> elseStatements = ImmutableList.builder();
     for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
       elseStatements.add(reductionAssumption.toASTString());
     }
@@ -103,8 +86,4 @@ public class SeqIgnoreSleepReductionStatement implements SeqInjectedBitVectorSta
   }
 
   // Getters =======================================================================================
-
-  public ImmutableList<SeqInjectedStatement> getReductionAssumptions() {
-    return reductionAssumptions;
-  }
 }

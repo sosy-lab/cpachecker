@@ -10,11 +10,4 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class LastSparseBitVector {
-
-  public final CIdExpression reachableVariable;
-
-  LastSparseBitVector(CIdExpression pReachableVariable) {
-    reachableVariable = pReachableVariable;
-  }
-}
+public record LastSparseBitVector(CIdExpression reachableVariable) {}

@@ -13,40 +13,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
-public class SequentializationUtils {
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final LogManager logger;
-
-  private final ShutdownNotifier shutdownNotifier;
-
-  private SequentializationUtils(
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
-
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-  }
+public record SequentializationUtils(
+    CBinaryExpressionBuilder binaryExpressionBuilder,
+    LogManager logger,
+    ShutdownNotifier shutdownNotifier) {
 
   public static SequentializationUtils of(
       MachineModel pMachineModel, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     return new SequentializationUtils(
         new CBinaryExpressionBuilder(pMachineModel, pLogger), pLogger, pShutdownNotifier);
-  }
-
-  public CBinaryExpressionBuilder getBinaryExpressionBuilder() {
-    return binaryExpressionBuilder;
-  }
-
-  public LogManager getLogger() {
-    return logger;
-  }
-
-  public ShutdownNotifier getShutdownNotifier() {
-    return shutdownNotifier;
   }
 }

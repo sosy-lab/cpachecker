@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -18,59 +19,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class BitVectorVariables {
-
-  private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
-
-  private final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
-
-  private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
-
-  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors;
-
-  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors;
-
-  private final Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors;
-
-  private final Optional<LastDenseBitVector> lastDenseAccessBitVector;
-
-  private final Optional<LastDenseBitVector> lastDenseWriteBitVector;
-
-  private final Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
-      lastSparseAccessBitVector;
-
-  private final Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>>
-      lastSparseWriteBitVector;
-
-  public BitVectorVariables(
-      Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
-      Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
-      Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
-      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseAccessBitVectors,
-      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseReadBitVectors,
-      Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> pSparseWriteBitVectors,
-      Optional<LastDenseBitVector> pLastDenseAccessBitVector,
-      Optional<LastDenseBitVector> pLastDenseWriteBitVector,
-      Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
-      Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
-
-    denseAccessBitVectors = pDenseAccessBitVectors;
-    denseReadBitVectors = pDenseReadBitVectors;
-    denseWriteBitVectors = pDenseWriteBitVectors;
-    sparseAccessBitVectors = pSparseAccessBitVectors;
-    sparseReadBitVectors = pSparseReadBitVectors;
-    sparseWriteBitVectors = pSparseWriteBitVectors;
-    lastDenseAccessBitVector = pLastDenseAccessBitVector;
-    lastDenseWriteBitVector = pLastDenseWriteBitVector;
-    lastSparseAccessBitVector = pLastSparseAccessBitVector;
-    lastSparseWriteBitVector = pLastSparseWriteBitVector;
-  }
+public record BitVectorVariables(
+    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors,
+    Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors,
+    Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors,
+    Optional<LastDenseBitVector> lastDenseAccessBitVector,
+    Optional<LastDenseBitVector> lastDenseWriteBitVector,
+    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseAccessBitVector,
+    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseWriteBitVector) {
 
   public CIdExpression getDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
     for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (denseBitVector.getThread().equals(pThread)) {
+      if (denseBitVector.thread().equals(pThread)) {
         return denseBitVector.getVariableByReachType(pReachType);
       }
     }
@@ -80,9 +45,9 @@ public class BitVectorVariables {
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
       MemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
-    ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
+    Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
     for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (pOtherThreads.contains(denseBitVector.getThread())) {
+      if (pOtherThreads.contains(denseBitVector.thread())) {
         rDenseBitVectors.add(denseBitVector.getVariableByReachType(ReachType.REACHABLE));
       }
     }

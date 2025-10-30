@@ -69,7 +69,7 @@ public class GhostElementBuilder {
     }
     ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.getId());
+      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.id());
       rLabels.put(thread, new SeqThreadLabelStatement(name));
     }
     return rLabels.buildOrThrow();

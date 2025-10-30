@@ -13,31 +13,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class DenseBitVector {
+/**
+ * Represents a dense bit vector variable, i.e. where each index is represented in a single
+ * variable.
+ *
+ * @param thread The thread that this bit vector belongs to.
+ * @param directVariable The bit vector for the next statement.
+ * @param reachableVariable The bit vector for all reachable statements, relative to a location.
+ */
+public record DenseBitVector(
+    MPORThread thread,
+    Optional<CIdExpression> directVariable,
+    Optional<CIdExpression> reachableVariable) {
 
-  /** The thread that this bit vector belongs to. */
-  private final MPORThread thread;
-
-  /** The bit vector for the next statement. */
-  private final Optional<CIdExpression> directVariable;
-
-  /** The bit vector for all reachable statements, relative to a location. */
-  private final Optional<CIdExpression> reachableVariable;
-
-  DenseBitVector(
-      MPORThread pThread,
-      // note that both direct and reachable can be empty, when there are no global variables
-      Optional<CIdExpression> pDirectVariable,
-      Optional<CIdExpression> pReachableVariable) {
-
-    thread = pThread;
-    directVariable = pDirectVariable;
-    reachableVariable = pReachableVariable;
-  }
-
-  public MPORThread getThread() {
-    return thread;
-  }
+  // note that both direct and reachable can be empty, when there are no global variables
 
   public boolean isVariablePresentByReachType(ReachType pReachType) {
     return switch (pReachType) {

@@ -57,15 +57,15 @@ public class NondeterministicSimulationUtil {
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.nondeterminismSource) {
+    return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pUtils.getBinaryExpressionBuilder());
+              pOptions, pFields, pUtils.binaryExpressionBuilder());
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildThreadSimulations(pOptions, pFields, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pUtils.getBinaryExpressionBuilder());
+              pOptions, pFields, pUtils.binaryExpressionBuilder());
     };
   }
 
@@ -78,20 +78,20 @@ public class NondeterministicSimulationUtil {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.nondeterminismSource) {
+    return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildSingleThreadSimulation(
               pOptions,
               pGhostElements.getPcVariables(),
               pThread,
               pClauses,
-              pUtils.getBinaryExpressionBuilder());
+              pUtils.binaryExpressionBuilder());
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
               pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions, pGhostElements, pThread, pClauses, pUtils.getBinaryExpressionBuilder());
+              pOptions, pGhostElements, pThread, pClauses, pUtils.binaryExpressionBuilder());
     };
   }
 
@@ -105,7 +105,7 @@ public class NondeterministicSimulationUtil {
     CFunctionCallStatement mainThreadFunctionCallStatement =
         pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCallStatement();
     rFunctionCalls.add(mainThreadFunctionCallStatement);
-    for (int i = 0; i < pOptions.loopIterations; i++) {
+    for (int i = 0; i < pOptions.loopIterations(); i++) {
       for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
@@ -123,10 +123,10 @@ public class NondeterministicSimulationUtil {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.nondeterminismSource.isNextThreadNondeterministic(),
+        pOptions.nondeterminismSource().isNextThreadNondeterministic(),
         "nondeterminismSource must contain NEXT_THREAD");
 
-    if (!pOptions.loopUnrolling) {
+    if (!pOptions.loopUnrolling()) {
       // when loopUnrolling is disabled, the next_thread is chosen -> no assumption needed
       return Optional.empty();
     }
@@ -138,7 +138,7 @@ public class NondeterministicSimulationUtil {
     CBinaryExpression nextThreadEqualsThreadId =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpressions.NEXT_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.getId()),
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
             BinaryOperator.EQUALS);
     CFunctionCallStatement nextThreadAssumption =
         SeqAssumptionBuilder.buildAssumption(nextThreadEqualsThreadId);
@@ -157,7 +157,7 @@ public class NondeterministicSimulationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions.controlEncodingThread,
+        pOptions.controlEncodingThread(),
         SeqIdExpressions.NEXT_THREAD,
         // the outer multi control statement never has an assumption
         ImmutableList.of(),
@@ -172,14 +172,14 @@ public class NondeterministicSimulationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+    if (!pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
       // without next_thread, no assumption is required due to if (pc != -1) ... check
       return Optional.empty();
     }
-    if (pOptions.scalarPc) {
+    if (pOptions.scalarPc()) {
       CBinaryExpression threadActiveExpression =
           SeqExpressionBuilder.buildPcUnequalExitPc(
-              pPcVariables.getPcLeftHandSide(pThread.getId()), pBinaryExpressionBuilder);
+              pPcVariables.getPcLeftHandSide(pThread.id()), pBinaryExpressionBuilder);
       CFunctionCallStatement assumeCall =
           SeqAssumptionBuilder.buildAssumption(threadActiveExpression);
       return Optional.of(assumeCall);
@@ -291,7 +291,7 @@ public class NondeterministicSimulationUtil {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     // sync variables are only required with reduceIgnoreSleep enabled
-    if (!pOptions.reduceIgnoreSleep) {
+    if (!pOptions.reduceIgnoreSleep()) {
       return pBlock;
     }
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();

@@ -20,39 +20,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 /**
  * Contains ghost elements not present in the input program, e.g. to simulate threads or functions.
  */
-public class GhostElements {
-
-  private final Optional<BitVectorVariables> bitVectorVariables;
-
-  private final ImmutableMap<MPORThread, FunctionStatements> functionStatements;
-
-  private final ProgramCounterVariables programCounterVariables;
-
-  private final ImmutableMap<MPORThread, SeqThreadLabelStatement> threadLabels;
-
-  private final ThreadSyncFlags threadSyncFlags;
-
-  public GhostElements(
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements,
-      ProgramCounterVariables pProgramCounterVariables,
-      ImmutableMap<MPORThread, SeqThreadLabelStatement> pThreadLabels,
-      ThreadSyncFlags pThreadSyncFlags) {
-
-    bitVectorVariables = pBitVectorVariables;
-    functionStatements = pFunctionStatements;
-    programCounterVariables = pProgramCounterVariables;
-    threadLabels = pThreadLabels;
-    threadSyncFlags = pThreadSyncFlags;
-  }
-
-  public Optional<BitVectorVariables> getBitVectorVariables() {
-    return bitVectorVariables;
-  }
-
-  public ImmutableMap<MPORThread, FunctionStatements> getFunctionStatements() {
-    return functionStatements;
-  }
+public record GhostElements(
+    Optional<BitVectorVariables> bitVectorVariables,
+    ImmutableMap<MPORThread, FunctionStatements> functionStatements,
+    ProgramCounterVariables programCounterVariables,
+    ImmutableMap<MPORThread, SeqThreadLabelStatement> threadLabels,
+    ThreadSyncFlags threadSyncFlags) {
 
   public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
     assert functionStatements.containsKey(pThread) : "functionStatements does not contain pThread";
@@ -63,10 +36,6 @@ public class GhostElements {
     return programCounterVariables;
   }
 
-  public ImmutableMap<MPORThread, SeqThreadLabelStatement> getThreadLabels() {
-    return threadLabels;
-  }
-
   public boolean isThreadLabelPresent(MPORThread pThread) {
     return threadLabels.containsKey(pThread);
   }
@@ -74,9 +43,5 @@ public class GhostElements {
   public SeqThreadLabelStatement getThreadLabelByThread(MPORThread pThread) {
     assert threadLabels.containsKey(pThread) : "threadLabels does not contain pThread";
     return threadLabels.get(pThread);
-  }
-
-  public ThreadSyncFlags getThreadSyncFlags() {
-    return threadSyncFlags;
   }
 }

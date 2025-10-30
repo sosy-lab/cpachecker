@@ -108,8 +108,8 @@ public class MPORSubstitution {
     parameterSubstitutes = pParameterSubstitutes;
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
-    binaryExpressionBuilder = pUtils.getBinaryExpressionBuilder();
-    logger = pUtils.getLogger();
+    binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
+    logger = pUtils.logger();
   }
 
   // Substitute Functions ==========================================================================
@@ -405,7 +405,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
         MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
             pIsDeclaration, localSubstitute, pTracker);
-        return localSubstitute.expression;
+        return localSubstitute.expression();
       } else {
         checkArgument(
             globalVariableSubstitutes.containsKey(variableDeclaration),

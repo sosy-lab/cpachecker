@@ -95,7 +95,7 @@ public class SeqThreadStatementUtil {
 
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluationStatement) {
-        if (evaluationStatement.getEvaluationExpression().isEmpty()) {
+        if (evaluationStatement.evaluationExpression().isEmpty()) {
           return true;
         }
       }
@@ -171,7 +171,7 @@ public class SeqThreadStatementUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (pStatement.getTargetGoto().isPresent()) {
-      int targetNumber = pStatement.getTargetGoto().orElseThrow().getNumber();
+      int targetNumber = pStatement.getTargetGoto().orElseThrow().number();
       SeqThreadStatementBlock targetBlock =
           Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
       return targetBlock.getStatements();
@@ -297,7 +297,7 @@ public class SeqThreadStatementUtil {
   private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
       MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    return switch (pOptions.reductionOrder) {
+    return switch (pOptions.reductionOrder()) {
       // if NONE is specified, default to BITVECTOR_THEN_CONFLICT
       case NONE, CONFLICT_THEN_LAST_THREAD ->
           orderInjectedReductionStatements(
@@ -325,7 +325,7 @@ public class SeqThreadStatementUtil {
       SeqIgnoreSleepReductionStatement ignoreSleepStatement =
           (SeqIgnoreSleepReductionStatement) ignoreSleepStatements.getFirst();
       ImmutableList<SeqInjectedStatement> reductionAssumptions =
-          ignoreSleepStatement.getReductionAssumptions();
+          ignoreSleepStatement.reductionAssumptions();
       return ImmutableList.of(
           ignoreSleepStatement.cloneWithReductionAssumptions(
               ImmutableList.<SeqInjectedStatement>builder()
@@ -377,7 +377,7 @@ public class SeqThreadStatementUtil {
       return pStatement.getTargetPc();
 
     } else if (pStatement.getTargetGoto().isPresent()) {
-      return Optional.of(pStatement.getTargetGoto().orElseThrow().getNumber());
+      return Optional.of(pStatement.getTargetGoto().orElseThrow().number());
     }
     return Optional.empty();
   }

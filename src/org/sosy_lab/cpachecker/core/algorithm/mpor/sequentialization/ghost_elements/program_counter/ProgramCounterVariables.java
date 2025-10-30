@@ -12,19 +12,9 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
-public class ProgramCounterVariables {
-
-  private final ImmutableList<CLeftHandSide> programCounter;
-
-  private final ImmutableList<CBinaryExpression> threadNotActiveExpressions;
-
-  ProgramCounterVariables(
-      ImmutableList<CLeftHandSide> pProgramCounter,
-      ImmutableList<CBinaryExpression> pThreadNotActiveExpressions) {
-
-    programCounter = pProgramCounter;
-    threadNotActiveExpressions = pThreadNotActiveExpressions;
-  }
+public record ProgramCounterVariables(
+    ImmutableList<CLeftHandSide> programCounter,
+    ImmutableList<CBinaryExpression> threadNotActiveExpressions) {
 
   public CLeftHandSide getPcLeftHandSide(int pThreadId) {
     return programCounter.get(pThreadId);

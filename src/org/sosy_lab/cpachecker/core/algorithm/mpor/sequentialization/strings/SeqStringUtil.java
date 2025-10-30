@@ -71,12 +71,12 @@ public class SeqStringUtil {
       throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
-    return switch (pOptions.controlEncodingStatement) {
+    return switch (pOptions.controlEncodingStatement()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
+              "cannot build suffix for control encoding " + pOptions.controlEncodingStatement());
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
-        if (pOptions.loopUnrolling) {
+        if (pOptions.loopUnrolling()) {
           // with loop unrolling enabled, always return to main()
           yield SeqToken.RETURN_KEYWORD + SeqSyntax.SEMICOLON;
         }

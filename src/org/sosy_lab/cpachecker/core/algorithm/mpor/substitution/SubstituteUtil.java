@@ -82,13 +82,13 @@ public class SubstituteUtil {
 
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
     if (declaration instanceof CFunctionDeclaration) {
-      return !pOptions.inputFunctionDeclarations;
+      return !pOptions.inputFunctionDeclarations();
 
     } else if (declaration instanceof CTypeDeclaration) {
-      return !pOptions.inputTypeDeclarations;
+      return !pOptions.inputTypeDeclarations();
 
     } else if (declaration instanceof CVariableDeclaration variableDeclaration) {
-      if (!pOptions.inputTypeDeclarations) {
+      if (!pOptions.inputTypeDeclarations()) {
         // if type declarations are excluded, extern variable declarations are excluded too
         return variableDeclaration.getCStorageClass().equals(CStorageClass.EXTERN);
       }

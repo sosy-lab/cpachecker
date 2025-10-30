@@ -85,7 +85,7 @@ public class SeqStatementBuilder {
 
     return buildFunctionCallAssignmentStatement(
         pIdExpression,
-        pOptions.nondeterminismSigned
+        pOptions.nondeterminismSigned()
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
             : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
   }

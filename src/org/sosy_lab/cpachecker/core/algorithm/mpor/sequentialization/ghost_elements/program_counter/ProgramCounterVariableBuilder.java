@@ -45,7 +45,7 @@ public class ProgramCounterVariableBuilder {
 
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     rPcExpressions.addAll(
-        pOptions.scalarPc
+        pOptions.scalarPc()
             ? buildScalarPcExpressions(pNumThreads)
             : buildArrayPcExpressions(pNumThreads));
     return rPcExpressions.build();

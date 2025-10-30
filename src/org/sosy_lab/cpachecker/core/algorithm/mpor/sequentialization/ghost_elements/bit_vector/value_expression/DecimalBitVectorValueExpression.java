@@ -15,14 +15,11 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 
-public class DecimalBitVectorValueExpression implements BitVectorValueExpression {
+public record DecimalBitVectorValueExpression(ImmutableSet<Integer> setBits)
+    implements BitVectorValueExpression {
 
-  private final ImmutableSet<Integer> setBits;
-
-  public DecimalBitVectorValueExpression(ImmutableSet<Integer> pSetBits) {
-    checkArgument(
-        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
-    setBits = pSetBits;
+  public DecimalBitVectorValueExpression {
+    checkArgument(setBits.isEmpty() || Collections.max(setBits) < BitVectorUtil.MAX_BINARY_LENGTH);
   }
 
   @Override

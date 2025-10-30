@@ -33,7 +33,7 @@ public class PartialOrderReducer {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (pOptions.linkReduction) {
+    if (pOptions.linkReduction()) {
       MemoryModel memoryModel = pMemoryModel.orElseThrow();
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pOptions, pClauses, memoryModel);

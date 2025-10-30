@@ -29,7 +29,7 @@ public class SeqFunctionBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (!pOptions.loopUnrolling) {
+    if (!pOptions.loopUnrolling()) {
       return ImmutableList.of();
     }
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();

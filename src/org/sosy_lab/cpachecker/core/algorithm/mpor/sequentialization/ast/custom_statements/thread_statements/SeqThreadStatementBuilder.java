@@ -225,8 +225,7 @@ public class SeqThreadStatementBuilder {
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
-    CLeftHandSide pcLeftHandSide =
-        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
+    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id());
 
     if (yieldsNoStatement(pThread, pSubstituteEdge, successor)) {
       return buildBlankStatement(pOptions, pcLeftHandSide, targetPc);
@@ -326,17 +325,17 @@ public class SeqThreadStatementBuilder {
       ProgramCounterVariables pProgramCounterVariables,
       FunctionStatements pFunctionStatements) {
 
-    CLeftHandSide pcLeftHandSide = pProgramCounterVariables.getPcLeftHandSide(pThread.getId());
+    CLeftHandSide pcLeftHandSide = pProgramCounterVariables.getPcLeftHandSide(pThread.id());
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(
           pOptions, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
     }
-    if (pFunctionStatements.parameterAssignments.containsKey(pThreadEdge)) {
+    if (pFunctionStatements.parameterAssignments().containsKey(pThreadEdge)) {
       // handle function with parameters
       ImmutableList<FunctionParameterAssignment> assignments =
-          pFunctionStatements.parameterAssignments.get(pThreadEdge);
+          pFunctionStatements.parameterAssignments().get(pThreadEdge);
       assert !assignments.isEmpty() : "function has no parameters";
       return new SeqParameterAssignmentStatements(
           pOptions, assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
@@ -357,12 +356,12 @@ public class SeqThreadStatementBuilder {
       FunctionStatements pFunctionStatements) {
 
     // returning from non-start-routine function: assign return value to return vars
-    if (pFunctionStatements.returnValueAssignments.containsKey(pThreadEdge)) {
+    if (pFunctionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
       FunctionReturnValueAssignment assignment =
-          Objects.requireNonNull(pFunctionStatements.returnValueAssignments.get(pThreadEdge));
+          Objects.requireNonNull(pFunctionStatements.returnValueAssignments().get(pThreadEdge));
       return new SeqReturnValueAssignmentStatement(
           pOptions,
-          assignment.statement,
+          assignment.statement(),
           pPcLeftHandSide,
           ImmutableSet.of(pSubstituteEdge),
           pTargetPc);
@@ -383,8 +382,7 @@ public class SeqThreadStatementBuilder {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
-    CLeftHandSide pcLeftHandSide =
-        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
+    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id());
 
     return switch (pthreadFunctionType) {
       case PTHREAD_COND_SIGNAL ->
@@ -394,7 +392,7 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSyncFlags());
+              pGhostElements.threadSyncFlags());
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
@@ -426,21 +424,21 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSyncFlags());
+              pGhostElements.threadSyncFlags());
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pOptions,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSyncFlags());
+              pGhostElements.threadSyncFlags());
       case PTHREAD_RWLOCK_RDLOCK, PTHREAD_RWLOCK_UNLOCK, PTHREAD_RWLOCK_WRLOCK ->
           buildRwLockStatement(
               pOptions,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSyncFlags(),
+              pGhostElements.threadSyncFlags(),
               pthreadFunctionType);
       case VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pOptions, pSubstituteEdge, pTargetPc, pcLeftHandSide);
@@ -516,8 +514,8 @@ public class SeqThreadStatementBuilder {
     return new SeqThreadCreationStatement(
         pOptions,
         startRoutineArgAssignment,
-        pPcVariables.getPcLeftHandSide(pThread.getId()),
-        pPcVariables.getPcLeftHandSide(createdThread.getId()),
+        pPcVariables.getPcLeftHandSide(pThread.id()),
+        pPcVariables.getPcLeftHandSide(createdThread.id()),
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
   }
@@ -531,12 +529,12 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide) {
 
     checkArgument(
-        pFunctionStatements.startRoutineExitAssignments.containsKey(pThreadEdge),
+        pFunctionStatements.startRoutineExitAssignments().containsKey(pThreadEdge),
         "could not find pThreadEdge in returnValueAssignments");
 
     return new SeqThreadExitStatement(
         pOptions,
-        pFunctionStatements.startRoutineExitAssignments.get(pThreadEdge),
+        pFunctionStatements.startRoutineExitAssignments().get(pThreadEdge),
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
@@ -554,11 +552,11 @@ public class SeqThreadStatementBuilder {
         MPORThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
     return new SeqThreadJoinStatement(
         pOptions,
-        targetThread.startRoutineExitVariable,
+        targetThread.startRoutineExitVariable(),
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pGhostElements.getPcVariables().getThreadNotActiveExpression(targetThread.getId()),
-        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId()));
+        pGhostElements.getPcVariables().getThreadNotActiveExpression(targetThread.id()),
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id()));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(
@@ -648,7 +646,7 @@ public class SeqThreadStatementBuilder {
 
     // exiting start_routine of thread -> blank, just set pc[i] = -1;
     if (pSuccessor instanceof FunctionExitNode
-        && pSuccessor.getFunction().equals(pThread.startRoutine)) {
+        && pSuccessor.getFunction().equals(pThread.startRoutine())) {
       // TODO this needs to be refactored once we support start routine return values
       //  that can be used with pthread_join -> block may not be blank but sets the return value
       return true;

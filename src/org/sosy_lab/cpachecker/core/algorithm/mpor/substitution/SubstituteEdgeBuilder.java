@@ -42,7 +42,7 @@ public class SubstituteEdgeBuilder {
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
 
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;

@@ -49,7 +49,7 @@ public class MemoryModelBuilder {
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    if (pOptions.linkReduction) {
+    if (pOptions.linkReduction()) {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
           mapStartRoutineArgAssignments(pOptions, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =

@@ -61,12 +61,12 @@ public class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setNumWritersToZero =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            rwLockFlags.writersIdExpression, SeqIntegerLiteralExpressions.INT_0);
+            rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
 
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(
-            rwLockFlags.writerEqualsZero.toASTString(),
-            ImmutableList.of(rwLockFlags.readersDecrement.toASTString()),
+            rwLockFlags.writerEqualsZero().toASTString(),
+            ImmutableList.of(rwLockFlags.readersDecrement().toASTString()),
             ImmutableList.of(setNumWritersToZero.toASTString()));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

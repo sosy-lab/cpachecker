@@ -79,12 +79,12 @@ public class Sequentialization {
     try {
       String initProgram = initProgram(pOptions, pFields, pUtils);
       String formattedProgram =
-          pOptions.clangFormatStyle.isEnabled()
-              ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle, pUtils.getLogger())
+          pOptions.clangFormatStyle().isEnabled()
+              ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle(), pUtils.logger())
               : initProgram;
       // replace dummy reach_errors after formatting so that line numbers are exact
       String finalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
-      return pOptions.validateParse && pOptions.inputTypeDeclarations
+      return pOptions.validateParse() && pOptions.inputTypeDeclarations()
           ? SeqValidator.validateProgramParsing(finalProgram, pOptions, pUtils)
           : finalProgram;
 
@@ -93,7 +93,7 @@ public class Sequentialization {
         | ParserException
         | InterruptedException e) {
       // we convert to RuntimeExceptions for unit tests
-      pUtils.getLogger().log(Level.SEVERE, e);
+      pUtils.logger().log(Level.SEVERE, e);
       throw new RuntimeException(e);
     }
   }
@@ -108,10 +108,10 @@ public class Sequentialization {
     // if enabled, add a license header
     ImmutableList<String> licenseHeader =
         buildLicenseHeader(Year.now(ZoneId.systemDefault()).getValue());
-    if (pOptions.license) {
+    if (pOptions.license()) {
       licenseHeader.forEach(line -> rProgram.add(line));
     }
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       mporHeader.forEach(line -> rProgram.add(line));
     }
 

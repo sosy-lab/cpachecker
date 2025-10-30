@@ -72,14 +72,14 @@ public class SeqCondWaitStatement extends CSeqThreadStatement {
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
-        SeqAssumptionBuilder.buildAssumption(condSignaledFlag.isSignaledExpression);
+        SeqAssumptionBuilder.buildAssumption(condSignaledFlag.isSignaledExpression());
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression, SeqIntegerLiteralExpressions.INT_0);
+            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression, SeqIntegerLiteralExpressions.INT_1);
+            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

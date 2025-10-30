@@ -68,7 +68,7 @@ public class SeqThreadExitStatement extends CSeqThreadStatement {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return returnValueAssignment.statement.toASTString() + SeqSyntax.SPACE + injected;
+    return returnValueAssignment.statement().toASTString() + SeqSyntax.SPACE + injected;
   }
 
   @Override

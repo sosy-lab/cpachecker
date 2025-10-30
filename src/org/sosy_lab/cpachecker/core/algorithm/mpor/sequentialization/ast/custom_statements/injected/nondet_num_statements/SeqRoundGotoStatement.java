@@ -17,23 +17,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqRoundGotoStatement implements SeqInjectedStatement {
-
-  private final CBinaryExpression roundSmallerMax;
-
-  private final CExpressionAssignmentStatement roundIncrement;
-
-  private final SeqLabelStatement gotoLabel;
-
-  public SeqRoundGotoStatement(
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
-      SeqLabelStatement pGotoLabel) {
-
-    roundSmallerMax = pRoundSmallerMax;
-    roundIncrement = pRoundIncrement;
-    gotoLabel = pGotoLabel;
-  }
+public record SeqRoundGotoStatement(
+    CBinaryExpression roundSmallerMax,
+    CExpressionAssignmentStatement roundIncrement,
+    SeqLabelStatement gotoLabel)
+    implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

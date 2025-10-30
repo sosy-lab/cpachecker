@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -26,24 +27,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqConflictOrderStatement implements SeqInjectedStatement {
+public record SeqConflictOrderStatement(
+    MPORThread activeThread,
+    BitVectorEvaluationExpression lastBitVectorEvaluation,
+    CBinaryExpressionBuilder binaryExpressionBuilder)
+    implements SeqInjectedStatement {
 
-  private final MPORThread activeThread;
+  public SeqConflictOrderStatement {
 
-  private final BitVectorEvaluationExpression lastBitVectorEvaluation;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  public SeqConflictOrderStatement(
-      MPORThread pActiveThread,
-      BitVectorEvaluationExpression pLastBitVectorEvaluation,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-
-    checkArgument(
-        !pActiveThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
-    activeThread = pActiveThread;
-    lastBitVectorEvaluation = pLastBitVectorEvaluation;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    checkArgument(!activeThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
   }
 
   @Override
@@ -53,10 +45,10 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpressions.LAST_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.getId()),
+            SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
-    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
+    Builder<String> ifBlock = ImmutableList.builder();
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
       ifBlock.add(SeqFunctionCallExpressions.ABORT.toASTString());

@@ -102,7 +102,7 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingStatement,
+              pOptions.controlEncodingStatement(),
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
@@ -132,7 +132,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rMap.put(block.getLabel().getNumber(), block);
+        rMap.put(block.getLabel().number(), block);
       }
     }
     return rMap.buildOrThrow();
@@ -172,7 +172,7 @@ public class SeqThreadStatementClauseUtil {
         for (CSeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
-        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().getNumber()));
+        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().number()));
         newBlocks.add(
             block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build()));
       }
@@ -189,7 +189,7 @@ public class SeqThreadStatementClauseUtil {
     int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rLabelToIndex.put(block.getLabel().getNumber(), index++);
+        rLabelToIndex.put(block.getLabel().number(), index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -227,7 +227,7 @@ public class SeqThreadStatementClauseUtil {
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
-      int index = Objects.requireNonNull(pLabelBlockMap.get(label.getNumber()));
+      int index = Objects.requireNonNull(pLabelBlockMap.get(label.number()));
       return pCurrentStatement.withTargetGoto(label.cloneWithLabelNumber(index));
     }
     // no target pc or target goto -> no replacement
@@ -276,7 +276,7 @@ public class SeqThreadStatementClauseUtil {
   public static boolean isSeparateLoopStart(
       MPOROptions pOptions, SeqThreadStatementClause pClause) {
 
-    return pClause.getFirstBlock().isLoopStart() && pOptions.noBackwardLoopGoto;
+    return pClause.getFirstBlock().isLoopStart() && pOptions.noBackwardLoopGoto();
   }
 
   // Path ==========================================================================================
@@ -441,7 +441,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
     return ImmutableList.sortedCopyOf(
-        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().getNumber())
+        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().number())
             .reversed(),
         pBlocks);
   }

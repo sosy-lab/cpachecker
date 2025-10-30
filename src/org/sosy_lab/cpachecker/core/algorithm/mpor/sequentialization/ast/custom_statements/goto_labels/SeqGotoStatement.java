@@ -13,13 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqGotoStatement implements SeqStatement {
-
-  private final SeqLabelStatement label;
-
-  public SeqGotoStatement(SeqLabelStatement pLabel) {
-    label = pLabel;
-  }
+public record SeqGotoStatement(SeqLabelStatement label) implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

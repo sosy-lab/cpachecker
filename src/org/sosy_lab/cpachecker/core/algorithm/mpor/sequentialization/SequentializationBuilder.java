@@ -66,7 +66,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS);
     }
     // add all original program declarations that are not substituted
@@ -75,8 +75,9 @@ public class SequentializationBuilder {
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
         // add function and type declaration only if enabled in options
-        if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
-          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
+        if (!(declaration instanceof CFunctionDeclaration)
+            || pOptions.inputFunctionDeclarations()) {
+          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
             rDeclarations.add(declaration.toASTString());
           }
         }
@@ -91,7 +92,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS);
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
@@ -108,7 +109,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
@@ -183,7 +184,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
@@ -207,7 +208,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES);
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
@@ -220,7 +221,7 @@ public class SequentializationBuilder {
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
     }
     ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
@@ -239,11 +240,11 @@ public class SequentializationBuilder {
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES);
     }
     for (MPORThread thread : pThreads) {
-      Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable;
+      Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
         rDeclarations.add(exitVariable.orElseThrow().getDeclaration().toASTString());
       }
@@ -257,12 +258,12 @@ public class SequentializationBuilder {
       MPOROptions pOptions, SequentializationFields pFields) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
     }
 
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    if (pOptions.nondeterminismSigned) {
+    if (pOptions.nondeterminismSigned()) {
       rDeclarations.add(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
     } else {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
@@ -276,10 +277,10 @@ public class SequentializationBuilder {
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled with loop is unrolled
-    if (pOptions.loopUnrolling) {
+    if (pOptions.loopUnrolling()) {
       for (MPORThread thread : pFields.threads) {
         CFunctionDeclaration threadSimulationFunctionDeclaration =
-            SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(thread.getId());
+            SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(thread.id());
         rDeclarations.add(threadSimulationFunctionDeclaration.toASTString());
       }
     }
@@ -293,7 +294,7 @@ public class SequentializationBuilder {
       throws UnrecognizedCodeException {
 
     StringJoiner rDefinitions = new StringJoiner(SeqSyntax.NEWLINE);
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
     }
     // custom function definitions: reach_error(), assume(), main()
@@ -302,13 +303,13 @@ public class SequentializationBuilder {
 
     CBinaryExpression condEqualsZeroExpression =
         pUtils
-            .getBinaryExpressionBuilder()
+            .binaryExpressionBuilder()
             .buildBinaryExpression(
                 SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rDefinitions.add(assume.buildDefinition());
     // create separate thread simulation functions, if enabled
-    if (pOptions.loopUnrolling) {
+    if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
         rDefinitions.add(threadSimulation.buildDefinition());
       }
@@ -332,7 +333,7 @@ public class SequentializationBuilder {
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
 
     // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
-    if (pOptions.reduceLastThreadOrder) {
+    if (pOptions.reduceLastThreadOrder()) {
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
       CInitializer lastThreadInitializer =
@@ -343,12 +344,12 @@ public class SequentializationBuilder {
     }
 
     // next_thread
-    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+    if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
       rDeclarations.add(SeqDeclarationBuilder.buildNextThreadDeclaration(pOptions).toASTString());
     }
 
     // pc variable(s)
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.PC_DECLARATION);
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
@@ -372,17 +373,17 @@ public class SequentializationBuilder {
     }
 
     // if enabled: round_max and round
-    if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
+    if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
       rDeclarations.add(SeqVariableDeclarations.ROUND.toASTString());
       rDeclarations.add(SeqDeclarationBuilder.buildRoundMaxDeclaration(pOptions).toASTString());
     }
 
     // thread synchronization variables (e.g. mutex_locked)
-    if (pOptions.comments) {
+    if (pOptions.comments()) {
       rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
     }
     for (CSimpleDeclaration declaration :
-        pFields.ghostElements.getThreadSyncFlags().getDeclarations(pOptions)) {
+        pFields.ghostElements.threadSyncFlags().getDeclarations(pOptions)) {
       rDeclarations.add(declaration.toASTString());
     }
     return rDeclarations.toString();

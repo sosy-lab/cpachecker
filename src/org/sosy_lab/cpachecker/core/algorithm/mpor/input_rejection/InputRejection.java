@@ -210,7 +210,7 @@ public class InputRejection {
 
     // if pAssignment is present, it is a write
     if (pIsWrite) {
-      if (!pOptions.allowPointerWrites) {
+      if (!pOptions.allowPointerWrites()) {
         if (pWrittenVariable.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CPointerType) {
             InputRejection.handleRejection(

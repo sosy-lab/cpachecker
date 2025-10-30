@@ -44,7 +44,7 @@ public class StatementInjector {
     // first check shortcuts: are injections necessary?
     if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
       pUtils
-          .getLogger()
+          .logger()
           .log(
               Level.INFO,
               "bit vectors are enabled, but the program does not contain any global memory"
@@ -154,7 +154,7 @@ public class StatementInjector {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (pOptions.reduceUntilConflict) {
+    if (pOptions.reduceUntilConflict()) {
       pStatement =
           ReduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(
               pOptions,
@@ -166,7 +166,7 @@ public class StatementInjector {
               pMemoryModel,
               pUtils);
     }
-    if (pOptions.reduceLastThreadOrder) {
+    if (pOptions.reduceLastThreadOrder()) {
       pStatement =
           ReduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(
               pOptions,
@@ -179,7 +179,7 @@ public class StatementInjector {
               pMemoryModel,
               pUtils);
     }
-    if (pOptions.reduceIgnoreSleep) {
+    if (pOptions.reduceIgnoreSleep()) {
       // this needs to be last, it collects the prior injections
       pStatement =
           ReduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(

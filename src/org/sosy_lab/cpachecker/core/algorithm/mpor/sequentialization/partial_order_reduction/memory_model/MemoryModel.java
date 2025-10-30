@@ -142,7 +142,7 @@ public class MemoryModel {
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       MemoryAccessType pAccessType) {
 
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
       ImmutableSet<SeqMemoryLocation> memoryLocations =
           SeqMemoryLocationFinder.findMemoryLocationsBySubstituteEdge(

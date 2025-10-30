@@ -86,14 +86,14 @@ public class SequentializationFields {
             substitutions,
             substituteEdges,
             memoryModel,
-            pUtils.getBinaryExpressionBuilder());
+            pUtils.binaryExpressionBuilder());
     clauses =
         SeqThreadStatementClauseBuilder.buildClauses(
             pOptions, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
     threadSimulationFunctions =
         SeqFunctionBuilder.buildThreadSimulationFunctions(pOptions, ghostElements, clauses, pUtils);
     mainThreadSimulationFunction =
-        pOptions.loopUnrolling
+        pOptions.loopUnrolling()
             ? Optional.of(
                 SeqFunctionBuilder.getMainThreadSimulationFunction(threadSimulationFunctions))
             : Optional.empty();

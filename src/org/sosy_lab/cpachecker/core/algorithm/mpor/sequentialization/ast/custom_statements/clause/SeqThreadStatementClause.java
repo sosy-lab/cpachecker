@@ -44,13 +44,13 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public SeqThreadStatementClause(SeqThreadStatementBlock pBlock) {
     id = getNewId();
-    labelNumber = pBlock.getLabel().getNumber();
+    labelNumber = pBlock.getLabel().number();
     blocks = ImmutableList.of(pBlock);
   }
 
   public SeqThreadStatementClause(ImmutableList<SeqThreadStatementBlock> pBlocks) {
     id = getNewId();
-    labelNumber = pBlocks.getFirst().getLabel().getNumber();
+    labelNumber = pBlocks.getFirst().getLabel().number();
     blocks = pBlocks;
   }
 

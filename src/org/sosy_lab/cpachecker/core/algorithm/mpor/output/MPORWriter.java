@@ -96,11 +96,11 @@ public class MPORWriter {
       try (Writer writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
         writer.write(pOutputProgram);
         // option: validate that CPAchecker can parse output
-        if (pOptions.validateParse && !pOptions.inputTypeDeclarations) {
+        if (pOptions.validateParse() && !pOptions.inputTypeDeclarations()) {
           handleParsing(pOptions, pOutputProgramPath, metadataPath, pLogger, pShutdownNotifier);
         }
         // option: create metadata file
-        if (pOptions.outputMetadata) {
+        if (pOptions.outputMetadata()) {
           MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
         }
         handleOutputMessage(
@@ -118,7 +118,7 @@ public class MPORWriter {
   public static String buildPath(
       MPOROptions pOptions, String pOutputFileName, FileExtension pFileExtension) {
 
-    return pOptions.outputPath + pOutputFileName + pFileExtension.suffix;
+    return pOptions.outputPath() + pOutputFileName + pFileExtension.suffix;
   }
 
   private static void handleOutputMessage(
@@ -134,7 +134,7 @@ public class MPORWriter {
       MPOROptions pOptions, File pParentDir, LogManager pLogger) {
 
     if (!pParentDir.exists()) {
-      String outputPath = pOptions.outputPath;
+      String outputPath = pOptions.outputPath();
       if (pParentDir.mkdirs()) {
         handleOutputMessage(Level.INFO, OutputMessage.DIRECTORY_CREATED, outputPath, pLogger);
       } else {
@@ -148,7 +148,7 @@ public class MPORWriter {
       MPOROptions pOptions, File pOutputProgramFile, LogManager pLogger) throws IOException {
 
     // ensure the file does not exist already (if overwriting is disabled)
-    if (!pOutputProgramFile.createNewFile() && !pOptions.overwriteFiles) {
+    if (!pOutputProgramFile.createNewFile() && !pOptions.overwriteFiles()) {
       handleOutputMessage(
           Level.SEVERE,
           OutputMessage.OVERWRITE_ERROR,

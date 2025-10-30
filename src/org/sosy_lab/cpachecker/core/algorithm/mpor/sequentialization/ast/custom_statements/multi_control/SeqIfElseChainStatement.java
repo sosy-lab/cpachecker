@@ -18,19 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqIfElseChainStatement implements SeqMultiControlStatement {
-
-  private final ImmutableList<CStatement> precedingStatements;
-
-  private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
-
-  SeqIfElseChainStatement(
-      ImmutableList<CStatement> pPrecedingStatements,
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
-
-    precedingStatements = pPrecedingStatements;
-    statements = pStatements;
-  }
+public record SeqIfElseChainStatement(
+    ImmutableList<CStatement> precedingStatements,
+    ImmutableMap<CExpression, ? extends SeqStatement> statements)
+    implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

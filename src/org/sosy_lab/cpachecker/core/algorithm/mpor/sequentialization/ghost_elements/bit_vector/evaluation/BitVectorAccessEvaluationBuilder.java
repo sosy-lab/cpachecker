@@ -43,10 +43,10 @@ class BitVectorAccessEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding());
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildFullDenseVariableOnlyEvaluation(
               pActiveThread, pOtherThreads, pBitVectorVariables, pUtils);
@@ -63,7 +63,7 @@ class BitVectorAccessEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedDenseEvaluation(
           pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pUtils);
     } else {
@@ -78,7 +78,7 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
           pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
     } else {
@@ -138,7 +138,7 @@ class BitVectorAccessEvaluationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    CBinaryExpressionBuilder binaryExpressionBuilder = pUtils.getBinaryExpressionBuilder();
+    CBinaryExpressionBuilder binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
     CExpression rightHandSide =
         BitVectorEvaluationUtil.binaryDisjunction(pOtherBitVectors, binaryExpressionBuilder);
     CBinaryExpression binaryExpression =

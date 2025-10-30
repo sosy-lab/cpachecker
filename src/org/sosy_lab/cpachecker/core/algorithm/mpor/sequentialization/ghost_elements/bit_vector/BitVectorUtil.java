@@ -52,14 +52,14 @@ public class BitVectorUtil {
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
-    checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
+    checkArgument(pOptions.bitVectorEncoding().isEnabled(), "no bit vector encoding specified");
     checkArgument(
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // retrieve all relevant memory location IDs
     ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
-    return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
+    return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding(), pMemoryModel, setBits);
   }
 
   /**
@@ -198,10 +198,10 @@ public class BitVectorUtil {
   public static boolean isAccessReachPairNeeded(
       MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (pReachType.equals(ReachType.DIRECT) && !pOptions.reduceIgnoreSleep) {
+    if (pReachType.equals(ReachType.DIRECT) && !pOptions.reduceIgnoreSleep()) {
       return false;
     }
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE -> throw new IllegalArgumentException("cannot check for reductionMode NONE");
       case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
