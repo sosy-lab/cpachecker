@@ -48,8 +48,7 @@ public final class ResourceLimitChecker {
   private final List<ResourceLimit> limits;
 
   private static final TimeSpan TIME_LIMIT_INFINITE = TimeSpan.ofNanos(-1);
-  private static TimeSpan globalCPAcheckerCPUTimeLimit = TIME_LIMIT_INFINITE;
-  private static boolean globalTimeLimitAlreadyLogged = false;
+  private static boolean processTimeLimitAlreadyLogged = false;
 
   /**
    * Create a new instance with a list of limits to check and a {@link ShutdownNotifier} that gets
@@ -121,7 +120,7 @@ public final class ResourceLimitChecker {
       limits.add(WalltimeLimit.create(options.walltime));
     }
 
-    checkAndEnforceGlobalTimeLimit(options);
+    checkAndEnforceRequiredTimeLimit(options);
 
     if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
       try {
@@ -161,10 +160,10 @@ public final class ResourceLimitChecker {
    */
   private static boolean isTotalTimeLimitNotYetLogged(ResourceLimit limit) {
     if (limit instanceof ProcessCpuTimeLimit) {
-      if (globalTimeLimitAlreadyLogged) {
+      if (processTimeLimitAlreadyLogged) {
         return false;
       }
-      globalTimeLimitAlreadyLogged = true;
+      processTimeLimitAlreadyLogged = true;
     }
     // TODO: Walltime as well?
     // else if (limit instanceof WalltimeLimit walltimeLimit)
@@ -175,41 +174,21 @@ public final class ResourceLimitChecker {
     return timeSpanToPrint.equals(TIME_LIMIT_INFINITE) ? "INFINITE" : timeSpanToPrint.toString();
   }
 
-  /**
-   * Enforce the option "limits.time.cpu" for this CPAchecker instance statically. Needed for
-   * property based strategy selection that "loses" options set before switching to the new
-   * configurations.
-   */
-  private static void checkAndEnforceGlobalTimeLimit(ResourceLimitOptions options)
+  /** Enforce the option "limit.time.cpu::required" in relation to option 'limit.time.cpu'. */
+  private static void checkAndEnforceRequiredTimeLimit(ResourceLimitOptions options)
       throws InvalidConfigurationException {
-    boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
-
-    if (cpuTimeLimitSet && globalCPAcheckerCPUTimeLimit.equals(TIME_LIMIT_INFINITE)) {
-      // Safe first encountered CPU time-limit statically
-      globalCPAcheckerCPUTimeLimit = options.cpuTime;
-    } else if (globalCPAcheckerCPUTimeLimit.compareTo(TimeSpan.empty()) > 0
-        && !globalCPAcheckerCPUTimeLimit.equals(options.cpuTime)) {
-      // If a global CPU time-limit has been set, all following it must be equal to it!
-      throw new InvalidConfigurationException(
-          "Process CPU time-limit already set to "
-              + processCpuTimeLimitToString(globalCPAcheckerCPUTimeLimit)
-              + ", but this configuration uses "
-              + processCpuTimeLimitToString(options.cpuTime)
-              + ", which is disallowed, as it has to be consistent in all nested configurations");
-    }
-
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
       if (!options.cpuTimeRequired.equals(options.cpuTime)) {
-        if (!cpuTimeLimitSet) {
+        if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
           throw new InvalidConfigurationException(
-              "CPU time limit was not specified but is required to be explicitly set to "
+              "CPU time limit was set to "
+                  + processCpuTimeLimitToString(options.cpuTime)
+                  + "  but is required to be explicitly set to "
                   + options.cpuTimeRequired
                   + " in this configuration.");
         } else {
           throw new InvalidConfigurationException(
-              "CPU time limit was set to "
-                  + options.cpuTime
-                  + "  but is required to be explicitly set to "
+              "CPU time limit was not specified but is required to be explicitly set to "
                   + options.cpuTimeRequired
                   + " in this configuration.");
         }
@@ -318,7 +297,10 @@ public final class ResourceLimitChecker {
         secure = true,
         name = "time.cpu::required",
         description =
-            "Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+            "Enforce that the given CPU time limit is set as the value of limits.time.cpu. This"
+                + " option is carried over into new configurations switched to based on property"
+                + " selection (i.e. options: memorysafety.config, memorycleanup.config,"
+                + " overflow.config, datarace.config, and termination.config).")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTimeRequired = TIME_LIMIT_INFINITE;
 
