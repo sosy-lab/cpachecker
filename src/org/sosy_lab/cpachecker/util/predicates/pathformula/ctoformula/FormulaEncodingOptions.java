@@ -21,7 +21,7 @@ import org.sosy_lab.common.configuration.Options;
 public class FormulaEncodingOptions {
   // This function name is used in internal applications, e.g., when modeling side effects for
   // function calls like fscanf.
-  static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
+  public static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
 
   @Option(
       secure = true,
