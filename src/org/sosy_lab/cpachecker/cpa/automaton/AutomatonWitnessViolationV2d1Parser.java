@@ -74,7 +74,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
-      WaypointRecord flowWaypoint = entry.follow() != null ? entry.follow() : entry.cycle();
+      WaypointRecord flowWaypoint = entry.follow().isPresent() ? entry.follow().get() : entry.cycle().get();
       String nextStateId = getStateName(stateCounter++);
 
       handleWaypoints(

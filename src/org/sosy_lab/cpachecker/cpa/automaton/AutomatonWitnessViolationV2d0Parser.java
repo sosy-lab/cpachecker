@@ -389,7 +389,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-      WaypointRecord follow = entry.follow();
+      WaypointRecord follow = entry.follow().get();
       String nextStateId = getStateName(stateCounter++);
 
       handleWaypoints(

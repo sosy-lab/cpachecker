@@ -103,7 +103,27 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   record PartitionedWaypoints(
-      WaypointRecord follow, WaypointRecord cycle, ImmutableList<WaypointRecord> avoids) {}
+      Optional<WaypointRecord> follow,
+      Optional<WaypointRecord> cycle,
+      ImmutableList<WaypointRecord> avoids
+  ) {
+    // Canonical constructor ensures non-null Optionals and avoids
+    public PartitionedWaypoints {
+      follow = Optional.ofNullable(follow).orElse(Optional.empty());
+      cycle = Optional.ofNullable(cycle).orElse(Optional.empty());
+      avoids = avoids == null ? ImmutableList.of() : avoids;
+    }
+
+    // Constructor that only sets 'follow'
+    PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {
+      this(Optional.ofNullable(follow), Optional.empty(), avoids);
+    }
+
+    // Constructor that only sets 'cycle'
+    PartitionedWaypoints(ImmutableList<WaypointRecord> avoids, WaypointRecord cycle) {
+      this(Optional.empty(), Optional.ofNullable(cycle), avoids);
+    }
+  }
 
   /**
    * Separate the entries into segments whose waypoints should be passed one after the other
@@ -128,9 +148,9 @@ class AutomatonWitnessV2ParserCommon {
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
+            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
-            segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
+            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
           }
         }
       }
