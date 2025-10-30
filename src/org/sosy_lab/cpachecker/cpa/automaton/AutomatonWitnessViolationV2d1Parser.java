@@ -100,7 +100,8 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
               transitions.build(),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ currentStateId.equals(cycleHeadName.isPresent() ? cycleHeadName.get() : "")));
+              /* pIsCycleStart= */ currentStateId.equals(
+                  cycleHeadName.isPresent() ? cycleHeadName.get() : "")));
 
       distance--;
       currentStateId = nextStateId;
@@ -125,7 +126,8 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
           new AutomatonInternalState(
               currentStateId,
               ImmutableList.of(
-                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName.get()).build()),
+                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName.get())
+                      .build()),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
