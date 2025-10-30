@@ -25,6 +25,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * A block features a {@code goto} label and a list of {@link CSeqThreadStatement}. An inner block
+ * is only reachable from inside a thread simulation via its {@code goto} label.
+ */
 public class SeqThreadStatementBlock implements SeqStatement {
 
   private final MPOROptions options;

@@ -6,7 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes representing case blocks in the sequentialization. */
+/**
+ * Classes representing statements executed in a thread simulation in the sequentialization. This is
+ * basically the interface from the input CFA to statements that can be exported (to Strings).
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

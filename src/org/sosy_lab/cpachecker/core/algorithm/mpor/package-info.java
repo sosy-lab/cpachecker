@@ -10,4 +10,7 @@
  * Use Modular Partial Order Reduction (MPOR) to transform a concurrent C program into an
  * equivalent, nondeterministic, sequential program.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor;

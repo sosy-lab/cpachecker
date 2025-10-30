@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * A clause features an {@code int} label and a {@link SeqThreadStatementBlock}.
+ * A clause features an {@code int} label and a list of {@link SeqThreadStatementBlock}. A clause is
+ * reachable from outside a thread simulation via its {@code pc} label.
  *
  * <p>e.g. {@code case 42: fib(42); break;} when using switch cases.
  */

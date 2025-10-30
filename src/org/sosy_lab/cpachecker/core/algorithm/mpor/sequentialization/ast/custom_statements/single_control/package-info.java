@@ -8,7 +8,7 @@
 
 /**
  * Classes to represent and export (as String) control flow statements such as if, else, else if,
- * while, for. *
+ * while, for.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

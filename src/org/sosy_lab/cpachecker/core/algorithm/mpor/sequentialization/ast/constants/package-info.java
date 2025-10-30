@@ -10,4 +10,7 @@
  * Contains fields for ASTNodes used in the sequentialization that are constant and not build
  * depending on the input program or the options specified by the user.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;

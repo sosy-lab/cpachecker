@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * Contains classes that hold data relevant to export an injected bit vector statement to a String.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
