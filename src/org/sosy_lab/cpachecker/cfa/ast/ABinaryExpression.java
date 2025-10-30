@@ -91,5 +91,7 @@ public abstract class ABinaryExpression extends AbstractExpression {
   public interface ABinaryOperator {
     /** Returns the string representation of this operator (e.g. "*", "+"). */
     String getOperator();
+
+    boolean isLogicalOperator();
   }
 }

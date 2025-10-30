@@ -102,6 +102,14 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     public String getOperator() {
       return op;
     }
+
+    @Override
+    public boolean isLogicalOperator() {
+      return switch (this) {
+        case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
+        default -> throw new UnsupportedOperationException("Implement me");
+      };
+    }
   }
 
   @Override
