@@ -31,7 +31,11 @@ public enum BitVectorDataType {
   }
 
   public String toASTString() {
-    return SeqToken.MPOR_PREFIX + SeqToken.uint + size + SeqSyntax.UNDERSCORE + SeqToken.t;
+    return SeqToken.MPOR_PREFIX
+        + SeqToken.UINT_TYPE_KEYWORD
+        + size
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.TYPE_NAME_SUFFIX;
   }
 
   public CTypeDeclaration buildDeclaration() {

@@ -14,9 +14,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 public enum MemoryAccessType {
   NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
   /** For both read and write. */
-  ACCESS(SeqToken.a, SeqToken.ACCESS),
-  READ(SeqToken.r, SeqToken.READ),
-  WRITE(SeqToken.w, SeqToken.WRITE);
+  ACCESS(SeqToken.ACCESS_BIT_VECTOR_PREFIX, SeqToken.ACCESS),
+  READ(SeqToken.READ_BIT_VECTOR_PREFIX, SeqToken.READ),
+  WRITE(SeqToken.WRITE_BIT_VECTOR_PREFIX, SeqToken.WRITE);
 
   public final String shortName;
 

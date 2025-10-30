@@ -653,7 +653,7 @@ public class SeqThreadStatementBuilder {
       //  that can be used with pthread_join -> block may not be blank but sets the return value
       return true;
 
-    } else if (pSuccessor.getFunctionName().equals(SeqToken.reach_error)) {
+    } else if (pSuccessor.getFunctionName().equals(SeqToken.REACH_ERROR_FUNCTION_NAME)) {
       // if we enter reach_error, include only call edge (to inject reach_error)
       return !(pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge);
 

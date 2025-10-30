@@ -23,7 +23,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ABORT,
-          SeqToken.abort,
+          SeqToken.ABORT_FUNCTION_NAME,
           ImmutableList.of(),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
@@ -47,7 +47,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.REACH_ERROR,
-          SeqToken.reach_error,
+          SeqToken.REACH_ERROR_FUNCTION_NAME,
           ImmutableList.of(
               SeqParameterDeclarations.FILE,
               SeqParameterDeclarations.LINE,
@@ -58,7 +58,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ASSERT_FAIL,
-          SeqToken.ASSERT_FAIL_KEYWORD,
+          SeqToken.ASSERT_FAIL_FUNCTION_NAME,
           ImmutableList.of(
               SeqParameterDeclarations.ASSERTION,
               SeqParameterDeclarations.FILE,
@@ -70,7 +70,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ASSUME,
-          SeqNameUtil.buildFunctionName(SeqToken.assume),
+          SeqNameUtil.buildFunctionName(SeqToken.ASSUME_FUNCTION_NAME),
           ImmutableList.of(SeqParameterDeclarations.COND),
           ImmutableSet.of());
 
@@ -78,7 +78,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.MAIN,
-          SeqToken.main,
+          SeqToken.MAIN_FUNCTION_KEYWORD,
           ImmutableList.of(),
           ImmutableSet.of());
 
@@ -86,7 +86,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.MALLOC,
-          SeqToken.malloc,
+          SeqToken.MALLOC_FUNCTION_KEYWORD,
           ImmutableList.of(SeqParameterDeclarations.SIZE),
           ImmutableSet.of());
 }

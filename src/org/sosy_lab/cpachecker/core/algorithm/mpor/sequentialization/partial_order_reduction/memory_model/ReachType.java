@@ -12,11 +12,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public enum ReachType {
   /** For {@link SeqMemoryLocation}s that are reachable before any context switch occurs. */
-  DIRECT(SeqToken.d, SeqToken.DIRECT),
+  DIRECT(SeqToken.DIRECT_BIT_VECTOR_PREFIX, SeqToken.DIRECT),
   /**
    * For all {@link SeqMemoryLocation}s that are reachable, relative to a given program location.
    */
-  REACHABLE(SeqToken.r, SeqToken.REACHABLE);
+  REACHABLE(SeqToken.REACHABLE_BIT_VECTOR_PREFIX, SeqToken.REACHABLE);
 
   public final String shortName;
 

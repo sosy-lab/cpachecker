@@ -64,7 +64,7 @@ public class SeqDeclarationBuilder {
 
   public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
     CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildFunctionName(SeqToken.thread + pThreadId);
+    String functionName = SeqNameUtil.buildFunctionName(SeqToken.THREAD + pThreadId);
     return buildFunctionDeclarationWithoutParameters(functionType, functionName);
   }
 
@@ -106,7 +106,10 @@ public class SeqDeclarationBuilder {
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
-              true, SeqArrayTypes.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
+              true,
+              SeqArrayTypes.UNSIGNED_INT_ARRAY,
+              SeqToken.PROGRAM_COUNTER_VARIABLE,
+              initializerList));
     }
     return rDeclarations.build();
   }
