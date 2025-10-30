@@ -4559,6 +4559,11 @@ limits.time.cpu.thread.percentageOfTotalCpuTime = 100.00
 
 # Enforce that the given CPU time limit is set as the value of
 # limits.time.cpu.
+# Enforce that the given CPU time limit is set as the value of
+# limits.time.cpu. This option is carried over into new configurations
+# switched to based on property selection (i.e. options: memorysafety.config,
+# memorycleanup.config, overflow.config, datarace.config, and
+# termination.config).
 limits.time.cpu::required = -1ns
 limits.time.cpu::required = TIME_LIMIT_INFINITE
 
