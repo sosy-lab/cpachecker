@@ -240,7 +240,7 @@ class AutomatonWitnessV2ParserCommon {
         if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
           numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
           // The sequence of cycle waypoints is interrupted
-        } else if (numCycleWaypoints > 0) {
+        } else if (numCycleWaypoints > 0 && !waypoint.getAction().equals(WaypointAction.AVOID)) {
           numCycleWaypoints = -1;
         }
       }
