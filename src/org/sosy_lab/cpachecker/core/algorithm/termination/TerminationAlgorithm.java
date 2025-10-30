@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -296,8 +297,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // LassoRanker handles unsigned types incorrectly as it does not account for overflows
     for (CVariableDeclaration variable : relevantVariables) {
-      logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
       if (variable.getType().toString().contains("unsigned")) {
+        logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
         return Result.UNKNOWN;
       }
     }
