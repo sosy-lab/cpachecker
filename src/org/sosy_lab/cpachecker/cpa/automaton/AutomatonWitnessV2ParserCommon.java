@@ -111,21 +111,32 @@ class AutomatonWitnessV2ParserCommon {
    * @param pViolationEntry the violation entry to segmentize
    * @return the segmentized entries
    */
-  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry) {
+  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
     ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
 
     for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      boolean containsFollowOrCycle = false;
       ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
       for (WaypointRecord waypoint : segmentRecord.getSegment()) {
         if (waypoint.getAction().equals(WaypointAction.AVOID)) {
           avoids.add(waypoint);
-        } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-          segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
-          break;
-        } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
-          segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
-          break;
+        } else {
+          if (containsFollowOrCycle) {
+            throw new InvalidYAMLWitnessException(
+                "Witnesses in V2 can contain at most one follow or cycle waypoint per segment!");
+          }
+          containsFollowOrCycle = true;
+          if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+            segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
+          } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+            segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
+          }
         }
+      }
+      if (!containsFollowOrCycle) {
+        throw new InvalidYAMLWitnessException(
+            "Every segment in witness V2 must contain follow or cycle waypoint!");
       }
     }
     return segments.build();
