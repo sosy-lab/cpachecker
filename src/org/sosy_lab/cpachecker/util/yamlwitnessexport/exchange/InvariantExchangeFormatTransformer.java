@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -88,7 +88,8 @@ public class InvariantExchangeFormatTransformer {
         ImmutableSet.of(invariantString),
         resultFunction,
         cparser,
-        AutomatonWitnessParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope),
+        AutomatonWitnessV2ParserUtils.determineScopeForLine(
+            resultFunction, callStack, pLine, pScope),
         parserTools);
   }
 

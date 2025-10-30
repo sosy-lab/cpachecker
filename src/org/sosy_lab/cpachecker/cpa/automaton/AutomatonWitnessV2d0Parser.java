@@ -23,14 +23,14 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
-public class AutomatonWitnessV2Parser {
+public class AutomatonWitnessV2d0Parser {
 
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  public AutomatonWitnessV2Parser(
+  public AutomatonWitnessV2d0Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -63,19 +63,19 @@ public class AutomatonWitnessV2Parser {
    */
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
-    List<AbstractEntry> entries = AutomatonWitnessParserUtils.parseYAML(pInputStream);
-    if (AutomatonWitnessParserUtils.getWitnessTypeIfYAML(entries)
+    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
+    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
-      AutomatonWitnessV2ParserCorrectness parser =
-          new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessV2d0ParserCorrectness parser =
+          new AutomatonWitnessV2d0ParserCorrectness(config, logger, shutdownNotifier, cfa);
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
-      AutomatonWitnessViolationV2Parser parser;
-      if (AutomatonWitnessParserUtils.getWitnessVersion(entries)
+      AutomatonWitnessViolationV2d0Parser parser;
+      if (AutomatonWitnessV2ParserUtils.getWitnessVersion(entries)
           .orElseThrow()
           .equals(YAMLWitnessVersion.V2)) {
-        parser = new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
+        parser = new AutomatonWitnessViolationV2d0Parser(config, logger, shutdownNotifier, cfa);
       } else {
         parser = new AutomatonWitnessViolationV2d1Parser(config, logger, shutdownNotifier, cfa);
       }

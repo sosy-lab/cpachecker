@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
-public class AutomatonWitnessParserUtils {
+public class AutomatonWitnessV2ParserUtils {
 
   public static class InvalidYAMLWitnessException extends InvalidConfigurationException {
     @Serial private static final long serialVersionUID = -5647551194742587246L;
@@ -107,7 +107,7 @@ public class AutomatonWitnessParserUtils {
         MoreFiles.asByteSource(pPath),
         x -> {
           try {
-            AutomatonWitnessParserUtils.parseYAML(x);
+            AutomatonWitnessV2ParserUtils.parseYAML(x);
             return true;
           } catch (JsonProcessingException e) {
             return false;
@@ -130,7 +130,7 @@ public class AutomatonWitnessParserUtils {
       entries =
           AutomatonGraphmlParser.handlePotentiallyGZippedInput(
               MoreFiles.asByteSource(pPath),
-              AutomatonWitnessParserUtils::parseYAML,
+              AutomatonWitnessV2ParserUtils::parseYAML,
               WitnessParseException::new);
     } catch (WitnessParseException e) {
       return Optional.empty();
@@ -141,22 +141,20 @@ public class AutomatonWitnessParserUtils {
   public static Optional<YAMLWitnessVersion> getWitnessVersion(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
       return Optional.empty();
-    } else if (allEntriesHaveVersion(YAMLWitnessVersion.V2, entries)) {
+    } else if (allEntriesHaveVersion("2.0", entries)) {
       return Optional.of(YAMLWitnessVersion.V2);
-    } else if (allEntriesHaveVersion(YAMLWitnessVersion.V2d1, entries)) {
+    } else if (allEntriesHaveVersion("2.1", entries)) {
       return Optional.of(YAMLWitnessVersion.V2d1);
     }
     return Optional.empty();
   }
 
-  private static boolean allEntriesHaveVersion(
-      YAMLWitnessVersion pVersion, List<AbstractEntry> entries) {
+  private static boolean allEntriesHaveVersion(String pVersion, List<AbstractEntry> entries) {
     return FluentIterable.from(entries)
         .allMatch(
             e ->
                 (e instanceof ViolationSequenceEntry pEntry
-                    && YAMLWitnessVersion.valueOf(pEntry.getMetadata().getFormatVersion())
-                        .equals(pVersion)));
+                    && pEntry.getMetadata().getFormatVersion().equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {

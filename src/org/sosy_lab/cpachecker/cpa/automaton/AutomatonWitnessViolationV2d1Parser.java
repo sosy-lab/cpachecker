@@ -19,14 +19,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Parser {
+class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0Parser {
   AutomatonWitnessViolationV2d1Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
@@ -47,7 +47,7 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Par
     if (violationEntry.isPresent()) {
       ImmutableList<PartitionedWaypoints> segmentizedEntries =
           segmentize(violationEntry.orElseThrow());
-      checkTarget(violationEntry.orElseThrow());
+      checkCycleOrTargetAtEnd(violationEntry.orElseThrow());
       return segmentizedEntries;
     }
     return ImmutableList.of();

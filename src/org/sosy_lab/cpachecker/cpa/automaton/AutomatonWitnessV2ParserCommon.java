@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
-class AutomatonWitnessParserCommon {
+class AutomatonWitnessV2ParserCommon {
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -69,10 +69,10 @@ class AutomatonWitnessParserCommon {
 
   final InvariantExchangeFormatTransformer transformer;
 
-  AutomatonWitnessParserCommon(
+  AutomatonWitnessV2ParserCommon(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this, AutomatonWitnessParserCommon.class);
+    pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
@@ -144,7 +144,7 @@ class AutomatonWitnessParserCommon {
             default -> DummyScope.getInstance();
           };
       Scope scope =
-          AutomatonWitnessParserUtils.determineScopeForLine(
+          AutomatonWitnessV2ParserUtils.determineScopeForLine(
               resultFunction, null, line, defaultScope);
       AExpression exp =
           transformer

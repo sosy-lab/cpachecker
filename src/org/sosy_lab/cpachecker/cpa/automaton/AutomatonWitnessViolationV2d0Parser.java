@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesEleme
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -61,12 +61,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEnt
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
+class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;
 
-  AutomatonWitnessViolationV2Parser(
+  AutomatonWitnessViolationV2d0Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
