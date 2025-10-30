@@ -44,8 +44,7 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
 public final class IntervalAnalysisState
-    implements
-        LatticeAbstractState<IntervalAnalysisState>,
+    implements LatticeAbstractState<IntervalAnalysisState>,
         AbstractQueryableState,
         Graphable,
         FormulaReportingState,

@@ -192,8 +192,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     if (indeces.isEmpty()) {
       return this;
     }
-    var trailingIndeces =
-        transformedImmutableSetCopy(indeces, e->e.add(1L));
+    var trailingIndeces = transformedImmutableSetCopy(indeces, e -> e.add(1L));
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
