@@ -105,8 +105,7 @@ class AutomatonWitnessV2ParserCommon {
   record PartitionedWaypoints(
       Optional<WaypointRecord> follow,
       Optional<WaypointRecord> cycle,
-      ImmutableList<WaypointRecord> avoids
-  ) {
+      ImmutableList<WaypointRecord> avoids) {
     // Canonical constructor ensures non-null Optionals and avoids
     public PartitionedWaypoints {
       follow = Optional.ofNullable(follow).orElse(Optional.empty());
@@ -236,31 +235,24 @@ class AutomatonWitnessV2ParserCommon {
     for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
       for (WaypointRecord waypoint : segmentRecord.getSegment()) {
         latest = waypoint;
-        numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
+        if (waypoint.getType().equals(WaypointType.TARGET)) {
+          numTargetWaypoints += 1;
+          if (numCycleWaypoints > 0) {
+            throw new InvalidYAMLWitnessException(
+                "Target and cycle waypoints are combined in witness version 2.1!");
+          }
+        }
         if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
           numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
           // The sequence of cycle waypoints is interrupted
         } else if (numCycleWaypoints > 0 && !waypoint.getAction().equals(WaypointAction.AVOID)) {
-          numCycleWaypoints = -1;
+          throw new InvalidYAMLWitnessException(
+              "Cycle waypoints are interrupted with follow waypoints in witness version 2.1!");
         }
       }
     }
     if (numCycleWaypoints == 0) {
       checkTargetIsAtEnd(latest, numTargetWaypoints);
-    }
-    checkCycleIsUninterruptedAtEnd(numCycleWaypoints, numTargetWaypoints);
-  }
-
-  private void checkCycleIsUninterruptedAtEnd(int numCycleWaypoints, int numTargetWaypoints)
-      throws InvalidYAMLWitnessException {
-    if (numTargetWaypoints > 0 && numCycleWaypoints > 0) {
-      throw new InvalidYAMLWitnessException(
-          "Target and cycle waypoints are combined in witness version 2.1!");
-    } else if (numCycleWaypoints == -1) {
-      throw new InvalidYAMLWitnessException(
-          "Cycle waypoints are interrupted with follow waypoints in witness version 2.1!");
-    } else if (numCycleWaypoints == 0) {
-      throw new InvalidYAMLWitnessException("No target or cycle waypoint in witness V2!");
     }
   }
 
