@@ -56,13 +56,14 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
       ImmutableSet.Builder<CExpression> logicalAssumptions = ImmutableSet.builder();
       for (CExpression assumption : assumptions) {
-        if (assumption instanceof CBinaryExpression binExpr && !binExpr.getOperator().isLogicalOperator()) {
+        if (assumption instanceof CBinaryExpression binExpr
+            && !binExpr.getOperator().isLogicalOperator()) {
           // Transform into logical expr
           CExpression logicalAssumption = mkLogical(binExpr);
           // if (cfaEdge instanceof AssumeEdge assumeEdge &&  !assumeEdge.getTruthAssumption()) {
-            // TODO: Does the analysis apply this?
-            // logicalAssumption = mkNot(logicalAssumption);
-          //}
+          // TODO: Does the analysis apply this?
+          // logicalAssumption = mkNot(logicalAssumption);
+          // }
           logicalAssumptions.add(logicalAssumption);
         } else {
           logicalAssumptions.add(assumption);
@@ -82,7 +83,9 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private CExpression mkLogical(CBinaryExpression expr) throws UnrecognizedCodeException {
-    return mkNot(expressionBuilder.buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS));
+    return mkNot(
+        expressionBuilder.buildBinaryExpression(
+            CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS));
   }
 
   private CExpression mkNot(CExpression arg) {

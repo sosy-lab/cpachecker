@@ -37,7 +37,11 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    */
   default ImmutableList<AExpression> getAssumptions() {
     ImmutableList<AExpression> assumptions = getAssumptionsImpl();
-    assumptions.forEach(a -> checkState(a instanceof ABinaryExpression binExpr && binExpr.getOperator().isLogicalOperator()));
+    assumptions.forEach(
+        a ->
+            checkState(
+                a instanceof ABinaryExpression binExpr
+                    && binExpr.getOperator().isLogicalOperator()));
     return assumptions;
   }
 
