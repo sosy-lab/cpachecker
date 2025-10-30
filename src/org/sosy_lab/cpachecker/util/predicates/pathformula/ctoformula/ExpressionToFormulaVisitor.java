@@ -12,7 +12,9 @@ import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -33,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -648,24 +650,69 @@ public class ExpressionToFormulaVisitor
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (BuiltinFunctions.matchesFscanf(functionName)) {
-        CFunctionCallAssignmentStatement nondetCallForScanfCall =
-            BuiltinFunctions.createNondetCallForScanfOverapproximation(e, edge);
 
-        try {
-          BooleanFormula assignment =
-              conv.makeAssignment(
-                  nondetCallForScanfCall.getLeftHandSide(),
-                  nondetCallForScanfCall.getLeftHandSide(),
-                  nondetCallForScanfCall.getRightHandSide(),
+        ValidatedFScanFParameter receivingParameter = validateFscanfParameters(parameters, e);
+
+        if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
+          UnaryOperator operator = unaryParameter.getOperator();
+          CExpression operand = unaryParameter.getOperand();
+          if (operator.equals(UnaryOperator.AMPER)
+              && operand instanceof CIdExpression idExpression) {
+            // For simplicity, we start with the case where only parameters of the form "&id" occur
+            CType variableType = idExpression.getExpressionType();
+
+            if (!isCompatibleWithScanfFormatString(receivingParameter.format(), variableType)) {
+              throw new UnsupportedCodeException(
+                  "fscanf with receiving type <-> format specifier mismatch is not supported.",
                   edge,
-                  function,
-                  ssa,
-                  pts,
-                  constraints,
-                  errorConditions);
-          constraints.addConstraint(assignment);
-        } catch (InterruptedException interruptedException) {
-          CtoFormulaConverter.propagateInterruptedException(interruptedException);
+                  e);
+            }
+
+            CFunctionDeclaration nondetFun =
+                new CFunctionDeclaration(
+                    edge.getFileLocation(),
+                    CFunctionType.functionTypeWithReturnType(variableType),
+                    INTERNAL_NONDET_FUNCTION_NAME,
+                    ImmutableList.of(),
+                    ImmutableSet.of());
+            CIdExpression nondetFunctionName =
+                new CIdExpression(
+                    edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+
+            CFunctionCallExpression rhs =
+                new CFunctionCallExpression(
+                    edge.getFileLocation(),
+                    variableType,
+                    nondetFunctionName,
+                    ImmutableList.of(),
+                    nondetFun);
+            try {
+              BooleanFormula assignment =
+                  conv.makeAssignment(
+                      idExpression,
+                      idExpression,
+                      rhs,
+                      edge,
+                      function,
+                      ssa,
+                      pts,
+                      constraints,
+                      errorConditions);
+              constraints.addConstraint(assignment);
+            } catch (InterruptedException interruptedException) {
+              CtoFormulaConverter.propagateInterruptedException(interruptedException);
+            }
+          } else {
+            throw new UnsupportedCodeException(
+                "Currently, only fscanf with a single parameter of the form &id is supported.",
+                edge,
+                e);
+          }
+        } else {
+          throw new UnsupportedCodeException(
+              "Currently, only fscanf with a single parameter of the form &id is supported.",
+              edge,
+              e);
         }
 
         // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
@@ -1278,7 +1325,7 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  public record ValidatedFScanFParameter(String format, CExpression receiver) {}
+  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
 
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
@@ -1294,36 +1341,34 @@ public class ExpressionToFormulaVisitor
    * @return whether the scanf-format-specifier agrees with the type it writes to
    * @throws UnsupportedCodeException if the format specifier is not supported
    */
-  public static boolean isCompatibleWithScanfFormatString(
-      String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
+  private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
+      throws UnsupportedCodeException {
     CType expectedType =
         BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
             .orElseThrow(
                 () ->
                     new UnsupportedCodeException(
-                        "format specifier " + formatString + " not supported.", pEdge));
+                        "format specifier " + formatString + " not supported.", edge));
 
     return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
   }
 
-  public static ValidatedFScanFParameter validateFscanfParameters(
-      List<CExpression> pParameters, CFunctionCallExpression e, CFAEdge pEdge)
-      throws UnrecognizedCodeException {
+  private ValidatedFScanFParameter validateFscanfParameters(
+      List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
     if (pParameters.size() < 2) {
-      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", pEdge, e);
+      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", edge, e);
     }
 
     if (pParameters.size() > 3) {
       throw new UnsupportedCodeException(
-          "fscanf() with more than 3 parameters is not supported", pEdge, e);
+          "fscanf() with more than 3 parameters is not supported", edge, e);
     }
 
     CExpression file = pParameters.getFirst();
 
     if (file instanceof CIdExpression idExpression) {
       if (!isFilePointer(idExpression.getExpressionType())) {
-        throw new UnrecognizedCodeException(
-            "First parameter of fscanf() must be a FILE*", pEdge, e);
+        throw new UnrecognizedCodeException("First parameter of fscanf() must be a FILE*", edge, e);
       }
     }
 
@@ -1333,12 +1378,12 @@ public class ExpressionToFormulaVisitor
             .orElseThrow(
                 () ->
                     new UnsupportedCodeException(
-                        "Format string of fscanf is not supported", pEdge, e));
+                        "Format string of fscanf is not supported", edge, e));
 
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
   }
 
-  private static Optional<String> checkFscanfFormatString(CExpression pFormat) {
+  private Optional<String> checkFscanfFormatString(CExpression pFormat) {
     ImmutableSet<String> allowlistedFormatStrings =
         BuiltinFunctions.getAllowedScanfFormatSpecifiers();
     if (pFormat instanceof CStringLiteralExpression stringLiteral) {
