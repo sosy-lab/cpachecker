@@ -11,4 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 public sealed interface K3Declaration extends K3SimpleDeclaration, ADeclaration
-    permits K3ProcedureDeclaration, K3VariableDeclaration {}
+    permits K3FunctionDeclaration,
+        K3ProcedureDeclaration,
+        K3SortDeclaration,
+        K3VariableDeclaration {}

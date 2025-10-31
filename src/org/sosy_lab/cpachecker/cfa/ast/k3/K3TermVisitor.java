@@ -19,4 +19,6 @@ public interface K3TermVisitor<R, X extends Exception> {
   R accept(K3IntegerConstantTerm pK3IntegerConstantTerm) throws X;
 
   R accept(K3SymbolApplicationRelationalTerm pK3SymbolApplicationRelationalTerm) throws X;
+
+  R accept(K3BooleanConstantTerm pK3BooleanConstantTerm) throws X;
 }

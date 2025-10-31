@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.java_smt.api.FormulaType;
 
@@ -23,13 +24,14 @@ public sealed interface K3Type extends Type
     return t1.equals(t2);
   }
 
-  static K3Type getTypeForString(String pType) {
-    return switch (pType) {
-      case "Int" -> K3SmtLibType.INT;
-      case "Bool" -> K3SmtLibType.BOOL;
-      case "String" -> K3SmtLibType.STRING;
-      case "Real" -> K3SmtLibType.REAL;
-      default -> new K3CustomType(pType);
-    };
+  static Optional<K3Type> getTypeForString(String pType) {
+    return Optional.ofNullable(
+        switch (pType) {
+          case "Int" -> K3SmtLibType.INT;
+          case "Bool" -> K3SmtLibType.BOOL;
+          case "String" -> K3SmtLibType.STRING;
+          case "Real" -> K3SmtLibType.REAL;
+          default -> null;
+        });
   }
 }

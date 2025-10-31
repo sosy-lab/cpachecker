@@ -13,9 +13,13 @@ public interface K3AstNodeVisitor<R, X extends Exception>
         K3CfaEdgeStatementVisitor<R, X>,
         K3TagAttributeVisitor<R, X>,
         K3TermVisitor<R, X> {
-  R visit(K3VariableDeclaration pK3VariableDeclaration);
+  R visit(K3VariableDeclaration pK3VariableDeclaration) throws X;
 
-  R visit(K3ProcedureDeclaration pK3ProcedureDeclaration);
+  R visit(K3ProcedureDeclaration pK3ProcedureDeclaration) throws X;
 
-  R visit(K3ParameterDeclaration pK3ParameterDeclaration);
+  R visit(K3ParameterDeclaration pK3ParameterDeclaration) throws X;
+
+  R visit(K3SortDeclaration pK3SortDeclaration) throws X;
+
+  R visit(K3FunctionDeclaration pK3FunctionDeclaration) throws X;
 }

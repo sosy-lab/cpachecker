@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-public sealed interface K3ConstantTerm extends K3Term permits K3IntegerConstantTerm {
+public sealed interface K3ConstantTerm extends K3Term
+    permits K3BooleanConstantTerm, K3IntegerConstantTerm {
 
   Object getValue();
 }

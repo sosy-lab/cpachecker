@@ -9,4 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 public sealed interface SMTLibCommand
-    permits K3AssertCommand, K3DeclareConstCommand, K3SetLogicCommand {}
+    permits K3AssertCommand,
+        K3DeclareConstCommand,
+        K3DeclareFunCommand,
+        K3DeclareSortCommand,
+        K3SetLogicCommand {}

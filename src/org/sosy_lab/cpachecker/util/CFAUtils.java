@@ -104,9 +104,11 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
@@ -121,6 +123,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
@@ -1052,6 +1055,18 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(K3SortDeclaration pK3SortDeclaration)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3FunctionDeclaration pK3FunctionDeclaration)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<? extends AAstNode> accept(K3OldTerm pK3OldTerm) throws NoException {
       return ImmutableList.of(pK3OldTerm.getTerm());
     }
@@ -1076,6 +1091,12 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> accept(
         K3SymbolApplicationRelationalTerm pK3SymbolApplicationRelationalTerm) throws NoException {
       return pK3SymbolApplicationRelationalTerm.getTerms();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3BooleanConstantTerm pK3BooleanConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
     }
 
     @Override

@@ -8,19 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 
-class K3CurrentScope implements K3Scope {
+class K3CurrentScope extends K3Scope {
 
   private PersistentMap<String, K3SimpleDeclaration> globalVariables;
 
@@ -28,19 +30,21 @@ class K3CurrentScope implements K3Scope {
 
   private PersistentMap<String, K3ProcedureDeclaration> procedureDeclarations;
 
-  private Set<SmtLibLogic> logics;
-
   public K3CurrentScope() {
+    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
     globalVariables = PathCopyingPersistentTreeMap.of();
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
     procedureDeclarations = PathCopyingPersistentTreeMap.of();
-    logics = new HashSet<>();
   }
 
   private K3CurrentScope(
       PersistentMap<String, K3SimpleDeclaration> pGlobalVariables,
       PersistentMap<String, K3ParameterDeclaration> pProcedureDeclarationVariables,
-      PersistentMap<String, K3ProcedureDeclaration> pProcedureDeclarations) {
+      PersistentMap<String, K3ProcedureDeclaration> pProcedureDeclarations,
+      ImmutableSet.Builder<SmtLibLogic> pLogics,
+      ImmutableMap.Builder<String, K3SortDeclaration> pSortDeclarations,
+      ImmutableMap.Builder<String, K3FunctionDeclaration> pFunctionDeclarations) {
+    super(pLogics, pSortDeclarations, pFunctionDeclarations);
     globalVariables = pGlobalVariables;
     procedureDeclarationVariables = pProcedureDeclarationVariables;
     procedureDeclarations = pProcedureDeclarations;
@@ -49,7 +53,12 @@ class K3CurrentScope implements K3Scope {
   @Override
   public K3CurrentScope copy() {
     return new K3CurrentScope(
-        globalVariables, procedureDeclarationVariables, procedureDeclarations);
+        globalVariables,
+        procedureDeclarationVariables,
+        procedureDeclarations,
+        logics,
+        sortDeclarations,
+        functionDeclarations);
   }
 
   @Override
@@ -107,15 +116,5 @@ class K3CurrentScope implements K3Scope {
   @Override
   public K3ProcedureDeclaration getProcedureDeclaration(String pText) {
     return Objects.requireNonNull(procedureDeclarations.get(pText));
-  }
-
-  @Override
-  public void addLogic(SmtLibLogic pLogic) {
-    logics.add(pLogic);
-  }
-
-  @Override
-  public Set<SmtLibLogic> getLogics() {
-    return logics;
   }
 }

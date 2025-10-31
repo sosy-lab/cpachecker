@@ -17,24 +17,32 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3CustomType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
-import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssertCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.Cmd_declareFunContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareConstCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareFunCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareSortCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareVarContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DefineProcContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetCounterexampleContext;
@@ -55,12 +63,15 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   private final K3UninterpretedScope uninterpretedScope;
 
+  private final K3SortToAstTypeConverter sortToAstTypeConverter;
+
   public CommandToAstConverter(K3Scope pScope, Path pFilePath) {
     super(pScope, pFilePath);
     uninterpretedScope = new K3UninterpretedScope();
     statementConverter = new StatementToAstConverter(pScope, pFilePath);
     termConverter = new TermToAstConverter(pScope, pFilePath);
     tagToAstConverter = new TagToAstConverter(uninterpretedScope, pFilePath);
+    sortToAstTypeConverter = new K3SortToAstTypeConverter(scope, pFilePath);
   }
 
   public CommandToAstConverter(K3Scope pScope) {
@@ -69,12 +80,14 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     statementConverter = new StatementToAstConverter(pScope);
     termConverter = new TermToAstConverter(pScope);
     tagToAstConverter = new TagToAstConverter(uninterpretedScope);
+    sortToAstTypeConverter = new K3SortToAstTypeConverter(scope);
   }
 
   @Override
   public K3Command visitDeclareVar(DeclareVarContext ctx) {
     String variableName = ctx.symbol().getText();
-    K3Type variableType = K3Type.getTypeForString(ctx.sort().getText());
+
+    K3Type variableType = sortToAstTypeConverter.visit(ctx.sort());
     K3VariableDeclaration variableDeclaration =
         new K3VariableDeclaration(
             fileLocationFromContext(ctx),
@@ -93,7 +106,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   @Override
   public K3Command visitDeclareConstCommand(DeclareConstCommandContext ctx) {
     String variableName = ctx.cmd_declareConst().symbol().getText();
-    K3Type variableType = K3Type.getTypeForString(ctx.cmd_declareConst().sort().getText());
+
+    K3Type variableType = sortToAstTypeConverter.visit(ctx.cmd_declareConst().sort());
     K3VariableDeclaration variableDeclaration =
         new K3VariableDeclaration(
             fileLocationFromContext(ctx),
@@ -119,7 +133,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
       parameters.add(
           new K3ParameterDeclaration(
               fileLocationFromContext(parameter, sort),
-              K3Type.getTypeForString(sort.getText()),
+              sortToAstTypeConverter.visit(sort),
               parameter.getText(),
               pProcedureName));
     }
@@ -132,17 +146,17 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     String procedureName = ctx.symbol().getText();
     List<K3ParameterDeclaration> inputParameter =
         createParameterDeclarations(ctx.procDeclarationArguments(0), procedureName);
-    List<K3ParameterDeclaration> localVariables =
-        createParameterDeclarations(ctx.procDeclarationArguments(1), procedureName);
     List<K3ParameterDeclaration> outputParameter =
+        createParameterDeclarations(ctx.procDeclarationArguments(1), procedureName);
+    List<K3ParameterDeclaration> localVariables =
         createParameterDeclarations(ctx.procDeclarationArguments(2), procedureName);
     K3ProcedureDeclaration procedureDeclaration =
         new K3ProcedureDeclaration(
             fileLocationFromContext(ctx),
             procedureName,
             inputParameter,
-            localVariables,
-            outputParameter);
+            outputParameter,
+            localVariables);
 
     scope.enterProcedure(
         FluentIterable.from(inputParameter)
@@ -166,7 +180,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
         scope.getProcedureDeclaration(pContext.symbol().getText());
     List<K3Term> terms = transformedImmutableListCopy(pContext.term(), termConverter::visit);
 
-    return new VerifyCallCommand(procedureDeclaration, terms, fileLocationFromContext(pContext));
+    return new K3VerifyCallCommand(procedureDeclaration, terms, fileLocationFromContext(pContext));
   }
 
   @Override
@@ -204,5 +218,44 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   public K3Command visitAssertCommand(AssertCommandContext pContext) {
     K3Term term = termConverter.visit(pContext.cmd_assert().term());
     return new K3AssertCommand(term, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitDeclareSortCommand(DeclareSortCommandContext pContext) {
+    SymbolContext symbolContext = pContext.cmd_declareSort().symbol();
+    String sortName = symbolContext.getText();
+    int arity = Integer.parseInt(pContext.cmd_declareSort().numeral().getText());
+    K3SortDeclaration sortDeclaration =
+        new K3SortDeclaration(
+            fileLocationFromContext(symbolContext),
+            true,
+            new K3CustomType(sortName, arity),
+            sortName,
+            sortName,
+            sortName);
+
+    // We need to make all scopes aware of the declarations.
+    // Such that symbols can be resolved correctly.
+    scope.addSortDeclaration(sortDeclaration);
+    uninterpretedScope.addSortDeclaration(sortDeclaration);
+
+    return new K3DeclareSortCommand(sortDeclaration, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitDeclareFunCommand(DeclareFunCommandContext pContext) {
+    Cmd_declareFunContext functionDecContext = pContext.cmd_declareFun();
+    String functionName = functionDecContext.symbol().getText();
+    List<K3Type> allTypes =
+        FluentIterable.from(functionDecContext.sort())
+            .transform(sort -> sortToAstTypeConverter.visit(sort))
+            .toList();
+    K3Type returnType = allTypes.getLast();
+    List<K3Type> parameterTypes = allTypes.subList(0, allTypes.size() - 1);
+
+    return new K3DeclareFunCommand(
+        new K3FunctionDeclaration(
+            fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType),
+        fileLocationFromContext(pContext));
   }
 }

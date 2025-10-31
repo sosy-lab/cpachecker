@@ -14,13 +14,15 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class K3CustomType implements K3Type {
 
-  public static final K3CustomType InternalAnyType = new K3CustomType("#any");
+  public static final K3CustomType InternalAnyType = new K3CustomType("#any", -1);
 
   @Serial private static final long serialVersionUID = -1560683119379278009L;
   private final String type;
+  private final int arity;
 
-  public K3CustomType(String pType) {
+  public K3CustomType(String pType, int pArity) {
     type = pType;
+    arity = pArity;
   }
 
   public String getType() {
@@ -33,7 +35,9 @@ public final class K3CustomType implements K3Type {
       return true;
     }
 
-    return pO instanceof K3CustomType other && Objects.equals(type, other.type);
+    return pO instanceof K3CustomType other
+        && Objects.equals(type, other.type)
+        && arity == other.arity;
   }
 
   @Override

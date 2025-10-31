@@ -27,8 +27,8 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
       FileLocation pFileLocation,
       String pName,
       List<K3ParameterDeclaration> pParameters,
-      List<K3ParameterDeclaration> pLocalVariables,
-      List<K3ParameterDeclaration> pReturnValues) {
+      List<K3ParameterDeclaration> pReturnValues,
+      List<K3ParameterDeclaration> pLocalVariables) {
     // The type of the procedure declaration can be inferred from the parameters, since there is no
     // anonymous parameters and no function declaration using only the types
     super(

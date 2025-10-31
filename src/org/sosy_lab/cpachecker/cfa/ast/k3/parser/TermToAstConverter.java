@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
@@ -38,7 +41,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
 
   @Override
   public K3Term visitQualIdentifierTerm(QualIdentifierTermContext ctx) {
-    return new K3IdTerm(scope.getVariable(ctx.getText()), fileLocationFromContext(ctx));
+    String identifier = ctx.qual_identifer().getText();
+    FileLocation fileLocation = fileLocationFromContext(ctx);
+
+    // We handle the case that it is a pre-defined constant like true or false
+    if (ImmutableSet.of("true", "false").contains(identifier)) {
+      return new K3BooleanConstantTerm(identifier.equals("true"), fileLocation);
+    }
+
+    // We now handle the general case of a variable
+    return new K3IdTerm(scope.getVariable(identifier), fileLocation);
   }
 
   @Override

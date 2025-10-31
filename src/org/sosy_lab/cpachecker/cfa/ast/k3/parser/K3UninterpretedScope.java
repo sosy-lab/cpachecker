@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
 
@@ -23,24 +25,28 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
  * This scope represents an uninterpreted scope in K3, which is used for building tags, for which we
  * don't know in which scope they will be interpreted in if at all.
  */
-public class K3UninterpretedScope implements K3Scope {
+public class K3UninterpretedScope extends K3Scope {
 
   private PersistentMap<String, K3ProcedureDeclaration> procedureDeclarations;
 
-  private Set<SmtLibLogic> logics = new HashSet<>();
-
   public K3UninterpretedScope() {
+    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
     procedureDeclarations = PathCopyingPersistentTreeMap.of();
   }
 
   private K3UninterpretedScope(
-      PersistentMap<String, K3ProcedureDeclaration> pProcedureDeclarations) {
+      PersistentMap<String, K3ProcedureDeclaration> pProcedureDeclarations,
+      ImmutableSet.Builder<SmtLibLogic> pLogics,
+      ImmutableMap.Builder<String, K3SortDeclaration> pSortDeclarations,
+      ImmutableMap.Builder<String, K3FunctionDeclaration> pFunctionDeclarations) {
+    super(pLogics, pSortDeclarations, pFunctionDeclarations);
     procedureDeclarations = pProcedureDeclarations;
   }
 
   @Override
   public K3UninterpretedScope copy() {
-    return new K3UninterpretedScope(procedureDeclarations);
+    return new K3UninterpretedScope(
+        procedureDeclarations, logics, sortDeclarations, functionDeclarations);
   }
 
   @Override
@@ -71,15 +77,5 @@ public class K3UninterpretedScope implements K3Scope {
   @Override
   public K3ProcedureDeclaration getProcedureDeclaration(String pName) {
     return procedureDeclarations.get(pName);
-  }
-
-  @Override
-  public void addLogic(SmtLibLogic pLogic) {
-    logics.add(pLogic);
-  }
-
-  @Override
-  public Set<SmtLibLogic> getLogics() {
-    return logics;
   }
 }

@@ -750,8 +750,8 @@ attribute
 // Sorts
 
 sort
-    : identifier
-    | ParOpen identifier sort+ ParClose
+    : identifier                                    # SimpleSort
+    | ParOpen identifier sort+ ParClose             # ParametricSort
     ;
 
 // Terms and Formulas

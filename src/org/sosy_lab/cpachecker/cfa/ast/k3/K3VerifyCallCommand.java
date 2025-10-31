@@ -12,14 +12,14 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class VerifyCallCommand implements K3Command {
+public final class K3VerifyCallCommand implements K3Command {
 
   @Serial private static final long serialVersionUID = 3913861771262171193L;
   private final K3ProcedureDeclaration procedureDeclaration;
   private final List<K3Term> terms;
   private final FileLocation fileLocation;
 
-  public VerifyCallCommand(
+  public K3VerifyCallCommand(
       K3ProcedureDeclaration pProcedureDeclaration,
       List<K3Term> pTerms,
       FileLocation pFileLocation) {
@@ -42,7 +42,7 @@ public final class VerifyCallCommand implements K3Command {
       return true;
     }
 
-    return obj instanceof VerifyCallCommand other
+    return obj instanceof K3VerifyCallCommand other
         && procedureDeclaration.equals(other.procedureDeclaration)
         && terms.equals(other.terms);
   }

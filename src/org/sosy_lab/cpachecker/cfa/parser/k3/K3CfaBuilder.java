@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
@@ -56,8 +58,8 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -512,7 +514,7 @@ class K3CfaBuilder {
           functions.put(functionName, functionParseResult.getFirstNotNull());
           cfaNodes.putAll(functionName, functionParseResult.getSecondNotNull());
         }
-        case VerifyCallCommand pVerifyCallCommand -> {
+        case K3VerifyCallCommand pVerifyCallCommand -> {
           // In theory the idea behind K3 is to have an interactive shell with the ability to talk
           // between the verifier and the user. In this case we do a simplification to match
           // CPAchecker's architecture better by only accepting finished scripts and not enabling an
@@ -594,6 +596,14 @@ class K3CfaBuilder {
 
           // Update the nodes for the next command
           currentMainFunctionNode = successorNode;
+        }
+        case K3DeclareFunCommand pK3DeclareFunCommand -> {
+          throw new K3ParserException(
+              "Function declarations are not supported in the current K3 CFA builder.");
+        }
+        case K3DeclareSortCommand pK3DeclareSortCommand -> {
+          throw new K3ParserException(
+              "Sort declarations are not supported in the current K3 CFA builder.");
         }
       }
     }
