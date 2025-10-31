@@ -6553,13 +6553,13 @@ public class SMGState
   }
 
   /**
-   * Returns the number of global and local variables in the memory model.
+   * Returns the number of global and local variables in the memory model. Note: this might be
+   * inaccurate! We track Strings and functions as encoded variables!
    *
    * @return num of vars.
    */
   @Override
   public int getSize() {
-    // Note: this might be inaccurate! We track Strings and functions as encoded variables!
     return memoryModel.getNumberOfVariables();
   }
 
