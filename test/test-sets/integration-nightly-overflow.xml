@@ -15,13 +15,16 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output-files"/>
   <option name="--heap">11000M</option>
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition>
     <option name="--predicateAnalysis--overflow"/>
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </rundefinition>
 
-  <rundefinition name="SV-COMP26_no-overflow">
+  <rundefinition>
+    <option name="--svcomp26"/>
+  </rundefinition>
+
     <tasks name="C.no-overflow.Main">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
@@ -69,6 +72,5 @@ SPDX-License-Identifier: Apache-2.0
       <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
-  </rundefinition>
 
 </benchmark>
