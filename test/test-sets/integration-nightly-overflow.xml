@@ -17,11 +17,11 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">11000M</option>
   <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-  <rundefinition>
+  <rundefinition name="Overflow-predicateAnalysis">
     <option name="--predicateAnalysis--overflow"/>
   </rundefinition>
 
-  <rundefinition>
+  <rundefinition name="Overflow-svcomp26">
     <option name="--svcomp26"/>
   </rundefinition>
 
