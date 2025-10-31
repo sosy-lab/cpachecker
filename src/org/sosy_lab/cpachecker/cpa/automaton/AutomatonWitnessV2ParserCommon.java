@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
@@ -107,9 +108,11 @@ class AutomatonWitnessV2ParserCommon {
       Optional<WaypointRecord> cycle,
       ImmutableList<WaypointRecord> avoids) {
     // Canonical constructor ensures non-null cycle, follow and avoids
-    public PartitionedWaypoints {
+    PartitionedWaypoints {
       follow = Optional.ofNullable(follow).orElse(Optional.empty());
       cycle = Optional.ofNullable(cycle).orElse(Optional.empty());
+      Verify.verify(follow.isEmpty() || cycle.isEmpty());
+      Verify.verify(follow.isPresent() || cycle.isPresent());
       avoids = avoids == null ? ImmutableList.of() : avoids;
     }
 
@@ -244,7 +247,7 @@ class AutomatonWitnessV2ParserCommon {
           }
         }
         if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
-          numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
+          numCycleWaypoints += 1;
           // The sequence of cycle waypoints is interrupted
         } else if (numCycleWaypoints > 0 && !waypoint.getAction().equals(WaypointAction.AVOID)) {
           throw new InvalidYAMLWitnessException(

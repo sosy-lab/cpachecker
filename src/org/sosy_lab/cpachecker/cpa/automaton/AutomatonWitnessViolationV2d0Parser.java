@@ -373,26 +373,19 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    */
   protected ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2d0(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    Optional<ViolationSequenceEntry> violationEntry = getViolationSequence(pEntries);
-    if (violationEntry.isPresent()) {
-      ImmutableList<PartitionedWaypoints> segmentizedEntries =
-          segmentize(violationEntry.orElseThrow());
-      checkTarget(violationEntry.orElseThrow());
-      return segmentizedEntries;
-    }
-    return ImmutableList.of();
+    ViolationSequenceEntry violationEntry = getViolationSequence(pEntries);
+    ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+    checkTarget(violationEntry);
+    return segmentizedEntries;
   }
 
-  protected Optional<ViolationSequenceEntry> getViolationSequence(List<AbstractEntry> pEntries)
+  protected ViolationSequenceEntry getViolationSequence(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    for (AbstractEntry entry : pEntries) {
-      if (entry instanceof ViolationSequenceEntry violationEntry) {
-        return Optional.of(violationEntry);
-      }
+    if (pEntries.size() != 1) {
       throw new InvalidYAMLWitnessException(
           "A witness in YAML format can have only one violation sequence !");
     }
-    return Optional.empty();
+    return (ViolationSequenceEntry) pEntries.getFirst();
   }
 
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
@@ -537,7 +530,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               follow.getConstraint().getValue(),
               startLineToCFAEdge,
               transitions);
-      default -> logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
+      default -> throw new WitnessParseException("Unknown waypoint type: " + follow.getType());
     }
   }
 }
