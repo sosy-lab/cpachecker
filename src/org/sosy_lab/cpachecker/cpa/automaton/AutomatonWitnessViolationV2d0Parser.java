@@ -411,6 +411,10 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
       handleWaypointsV2d0(
           entry, follow, transitions, automatonStates, distance, nextStateId, currentStateId);
+      ImmutableList<AutomatonTransition> transitionsList = transitions.build();
+      if (transitionsList.isEmpty()) {
+        continue;
+      }
 
       if (follow.getType().equals(WaypointType.TARGET)) {
         if (stateCounter != segments.size() + 1) {
@@ -425,7 +429,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
-              transitions.build(),
+              transitionsList,
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));
