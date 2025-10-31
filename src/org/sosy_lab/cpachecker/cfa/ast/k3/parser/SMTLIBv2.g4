@@ -431,6 +431,10 @@ PK_DiagnosticOutputChannel
     : ':diagnostic-output-channel'
     ;
 
+PK_WitnessOutputChannel
+    : ':witness-output-channel'
+    ;
+
 PK_ErrorBehaviour
     : ':error-behavior'
     ;
@@ -639,6 +643,7 @@ predefKeyword
     | PK_Chainable
     | PK_Definition
     | PK_DiagnosticOutputChannel
+    | PK_WitnessOutputChannel
     | PK_ErrorBehaviour
     | PK_Extension
     | PK_Funs
@@ -1053,6 +1058,7 @@ option
     | PK_RegularOutputChannel string
     | PK_ReproducibleResourceLimit numeral
     | PK_Verbosity numeral
+    | PK_WitnessOutputChannel string
     | attribute
     ;
 

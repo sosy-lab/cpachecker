@@ -7,6 +7,7 @@
 ; SPDX-License-Identifier: Apache-2.0
 
 (set-logic LIA)
+(set-option :witness-output-channel "./witness.svlib")
 
 (declare-sort |c#ptr| 1)
 (declare-sort |c#heap| 0)
@@ -30,3 +31,4 @@
     (return)))
 
 (verify-call main ())
+(get-witness)

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -22,12 +23,12 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
@@ -45,10 +46,11 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareFunCo
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareSortCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareVarContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DefineProcContext;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetCounterexampleContext;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetProofContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetWitnessContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.OptionContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ProcDeclarationArgumentsContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SetLogicCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SetOptionCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SortContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SymbolContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VerifyCallContext;
@@ -195,13 +197,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   }
 
   @Override
-  public K3Command visitGetProof(GetProofContext pContext) {
-    return new K3GetProofCommand(fileLocationFromContext(pContext));
-  }
-
-  @Override
-  public K3Command visitGetCounterexample(GetCounterexampleContext pContext) {
-    return new K3GetCounterexampleCommand(fileLocationFromContext(pContext));
+  public K3Command visitGetWitness(GetWitnessContext pContext) {
+    return new K3GetWitnessCommand(fileLocationFromContext(pContext));
   }
 
   @Override
@@ -257,5 +254,23 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
         new K3FunctionDeclaration(
             fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType),
         fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitSetOptionCommand(SetOptionCommandContext pContext) {
+    OptionContext option = pContext.cmd_setOption().option();
+    if (option.attribute() != null) {
+      throw new UnsupportedOperationException(
+          "Set option given by '"
+              + option.getText()
+              + "' with arbitrary attributes is not supported yet.");
+    }
+
+    Verify.verify(option.getChildCount() == 2);
+    return new K3SetOptionCommand(
+        option.getChild(0).getText(),
+        // We may be parsing a string literal here, so we remove the quotes.
+        option.getChild(1).getText().replace("\"", ""),
+        fileLocationFromContext(option));
   }
 }

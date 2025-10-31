@@ -37,4 +37,4 @@
 
 (verify-call
     add (w0 z0))
-(get-proof)
+(get-witness)

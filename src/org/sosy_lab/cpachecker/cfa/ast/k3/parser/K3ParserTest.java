@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
@@ -369,7 +370,7 @@ public class K3ParserTest {
                         new K3IdTerm(w0Const, FileLocation.DUMMY),
                         new K3IdTerm(z0Const, FileLocation.DUMMY)),
                     FileLocation.DUMMY),
-                new K3GetProofCommand(FileLocation.DUMMY)));
+                new K3GetWitnessCommand(FileLocation.DUMMY)));
 
     Path filePath = Path.of(examplesPath(), "loop-add.smt2");
 
@@ -396,6 +397,8 @@ public class K3ParserTest {
         new K3Script(
             ImmutableList.of(
                 new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new K3SetOptionCommand(
+                    ":witness-output-channel", "./witness.svlib", FileLocation.DUMMY),
                 new K3DeclareSortCommand(
                     new K3SortDeclaration(
                         FileLocation.DUMMY,
@@ -532,7 +535,8 @@ public class K3ParserTest {
                         ImmutableList.of(),
                         ImmutableList.of())),
                 new K3VerifyCallCommand(
-                    mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY)));
+                    mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
+                new K3GetWitnessCommand(FileLocation.DUMMY)));
 
     Path filePath = Path.of(examplesPath(), "loop-simple.smt2");
 

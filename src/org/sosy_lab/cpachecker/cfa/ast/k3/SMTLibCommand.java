@@ -13,4 +13,5 @@ public sealed interface SMTLibCommand
         K3DeclareConstCommand,
         K3DeclareFunCommand,
         K3DeclareSortCommand,
-        K3SetLogicCommand {}
+        K3SetLogicCommand,
+        K3SetOptionCommand {}

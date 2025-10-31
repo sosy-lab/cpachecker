@@ -30,8 +30,7 @@ commandk3
     | ParOpen 'verify-call' symbol
             ParOpen term* ParClose
       ParClose                                                        # VerifyCall
-    | ParOpen 'get-proof' ParClose                                    # GetProof
-    | ParOpen 'get-counterexample' ParClose                           # GetCounterexample
+    | ParOpen 'get-witness' ParClose                                  # GetWitness
     | command                                                         # SMTLIBv2Command
     ;
 

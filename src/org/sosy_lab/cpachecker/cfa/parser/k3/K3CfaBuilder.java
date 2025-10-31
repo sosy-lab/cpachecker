@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
@@ -230,13 +230,11 @@ class K3CfaBuilder {
         logger);
 
     // Keep track of the metadata for the CFA, like the specification, and the SMT-LIB commands.
-    ImmutableList.Builder<SMTLibCommand> smtLibCommandsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMTLibCommand> smtLibCommandsBuilder = new ImmutableList.Builder<>();
 
     // Go through all the commands in the script and parse them.
     List<K3Command> commands = script.getCommands();
     int indexOfFirstVerifyCall = -1;
-    ImmutableSetMultimap.Builder<String, K3TagProperty> tagAnnotations =
-        ImmutableSetMultimap.builder();
 
     for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
 
@@ -291,16 +289,10 @@ class K3CfaBuilder {
           indexOfFirstVerifyCall = i;
         }
         case K3AnnotateTagCommand pK3AnnotateTagCommand -> {
-          tagAnnotations.putAll(
+          tagReferencesToAnnotations.putAll(
               pK3AnnotateTagCommand.getTagName(), pK3AnnotateTagCommand.getTags());
         }
-        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {
-          logger.log(
-              Level.WARNING,
-              "Ignoring get-counterexample command, since there was no verify call command"
-                  + " before.");
-        }
-        case K3GetProofCommand pK3GetProofCommand -> {
+        case K3GetWitnessCommand pK3GetWitnessCommand -> {
           logger.log(
               Level.WARNING,
               "Ignoring get-proof command, since there was no verify call command before.");
@@ -343,6 +335,8 @@ class K3CfaBuilder {
             smtLibCommandsBuilder.add(pK3DeclareFunCommand);
         case K3DeclareSortCommand pK3DeclareSortCommand ->
             smtLibCommandsBuilder.add(pK3DeclareSortCommand);
+        case K3SetOptionCommand pK3SetOptionCommand ->
+            smtLibCommandsBuilder.add(pK3SetOptionCommand);
       }
     }
 
@@ -355,10 +349,7 @@ class K3CfaBuilder {
     boolean exportWitness = false;
     if (indexOfFirstVerifyCall + 1 < commands.size()) {
       switch (commands.get(indexOfFirstVerifyCall + 1)) {
-        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {
-          exportWitness = true;
-        }
-        case K3GetProofCommand pK3GetProofCommand -> {
+        case K3GetWitnessCommand pK3GetWitnessCommand -> {
           exportWitness = true;
         }
         default ->

@@ -11,12 +11,11 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3GetCounterexampleCommand implements K3Command {
+public final class K3GetWitnessCommand implements K3Command {
   @Serial private static final long serialVersionUID = 2891210418359322531L;
-
   private final FileLocation fileLocation;
 
-  public K3GetCounterexampleCommand(FileLocation pFileLocation) {
+  public K3GetWitnessCommand(FileLocation pFileLocation) {
     fileLocation = pFileLocation;
   }
 
@@ -31,7 +30,7 @@ public final class K3GetCounterexampleCommand implements K3Command {
       return true;
     }
 
-    return pO instanceof K3GetCounterexampleCommand;
+    return pO instanceof K3GetWitnessCommand;
   }
 
   public FileLocation getFileLocation() {
