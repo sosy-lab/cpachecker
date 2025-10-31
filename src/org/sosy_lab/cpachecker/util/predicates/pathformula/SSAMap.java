@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 import java.util.NavigableSet;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -157,6 +158,7 @@ public final class SSAMap implements Serializable {
           variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
+    @Nullable
     public Type getType(String name) {
       return varTypes.get(name);
     }

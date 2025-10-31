@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula.K3ToSmtConverterUtils.cleanVariableNameForJavaSMT;
+
 import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
@@ -42,7 +44,10 @@ public class K3StatementToFormulaConverter {
           K3TermToFormulaConverter.convertTerm(assignment.getValue(), ssa, fmgr);
       Formula assignedVariable =
           SSAHandler.makeFreshVariable(
-              assignment.getKey().getQualifiedName(), assignment.getKey().getType(), ssa, fmgr);
+              cleanVariableNameForJavaSMT(assignment.getKey().getQualifiedName()),
+              assignment.getKey().getType(),
+              ssa,
+              fmgr);
 
       result =
           fmgr.getBooleanFormulaManager()

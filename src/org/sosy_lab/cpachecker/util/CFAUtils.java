@@ -694,7 +694,7 @@ public class CFAUtils {
    * duplicates.
    */
   public static FluentIterable<String> getVariableNamesOfExpression(CExpression expr) {
-    return getIdExpressionsOfExpression(expr)
+    return getCIdExpressionsOfExpression(expr)
         .transform(id -> id.getDeclaration().getQualifiedName());
   }
 
@@ -702,8 +702,16 @@ public class CFAUtils {
    * Return all {@link CIdExpression}s that appear in an expression, in pre-order and possibly with
    * duplicates.
    */
-  public static FluentIterable<CIdExpression> getIdExpressionsOfExpression(CExpression expr) {
+  public static FluentIterable<CIdExpression> getCIdExpressionsOfExpression(CExpression expr) {
     return traverseRecursively(expr).filter(CIdExpression.class);
+  }
+
+  /**
+   * Return all {@link AIdExpression}s that appear in an expression, in pre-order and possibly with
+   * duplicates.
+   */
+  public static FluentIterable<AIdExpression> getIdExpressionsOfExpression(AExpression expr) {
+    return traverseRecursively(expr).filter(AIdExpression.class);
   }
 
   /** Get an iterable that recursively lists all AST nodes that occur in an AST (in pre-order). */
@@ -1073,12 +1081,15 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) {
-      return pK3SymbolApplicationTerm.getTerms();
+      return FluentIterable.concat(
+              pK3SymbolApplicationTerm.getTerms(),
+              ImmutableList.of(pK3SymbolApplicationTerm.getSymbol()))
+          .toList();
     }
 
     @Override
     public Iterable<? extends AAstNode> accept(K3IdTerm pK3IdTerm) {
-      return ImmutableList.of();
+      return ImmutableList.of(pK3IdTerm.getDeclaration());
     }
 
     @Override

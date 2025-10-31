@@ -29,7 +29,7 @@ public final class K3BooleanConstantTerm implements K3ConstantTerm {
 
   @Override
   public K3Type getExpressionType() {
-    return K3SmtLibType.INT;
+    return K3SmtLibType.BOOL;
   }
 
   @Override

@@ -9,18 +9,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3IdTerm implements K3Term {
+public final class K3IdTerm extends AIdExpression implements K3Term {
   @Serial private static final long serialVersionUID = 5782817996036730363L;
 
-  private final K3SimpleDeclaration variable;
-  private final FileLocation fileLocation;
-
   public K3IdTerm(K3SimpleDeclaration pVariable, FileLocation pFileLocation) {
-    variable = pVariable;
-
-    fileLocation = pFileLocation;
+    super(pFileLocation, pVariable);
   }
 
   @Override
@@ -29,36 +25,8 @@ public final class K3IdTerm implements K3Term {
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return variable.getName();
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return variable.getName();
-  }
-
-  public K3SimpleDeclaration getVariable() {
-    return variable;
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
-    }
-
-    return pO instanceof K3IdTerm other && variable.equals(other.variable);
-  }
-
-  @Override
-  public int hashCode() {
-    return variable.hashCode();
+  public K3SimpleDeclaration getDeclaration() {
+    return (K3SimpleDeclaration) super.getDeclaration();
   }
 
   @Override
@@ -68,6 +36,6 @@ public final class K3IdTerm implements K3Term {
 
   @Override
   public K3Type getExpressionType() {
-    return variable.getType();
+    return (K3Type) super.getExpressionType();
   }
 }

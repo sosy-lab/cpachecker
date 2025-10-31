@@ -9,18 +9,23 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula.K3ToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GeneralSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -47,14 +52,46 @@ public class K3TermToFormulaConverter {
     return switch (pK3ConstantTerm) {
       case K3IntegerConstantTerm pK3IntegerConstantTerm ->
           fmgr.getIntegerFormulaManager().makeNumber(pK3IntegerConstantTerm.getValue());
+      case K3BooleanConstantTerm pK3BooleanConstantTerm ->
+          fmgr.getBooleanFormulaManager().makeBoolean(pK3BooleanConstantTerm.getValue());
     };
+  }
+
+  /**
+   * This method returns the index of the given variable in the ssa map, if there is none, it
+   * creates one with the value 1.
+   *
+   * @return the index of the variable
+   */
+  protected static int getIndex(String name, K3Type type, SSAMapBuilder ssa) {
+    K3Type existingType = (K3Type) ssa.getType(name);
+    if (existingType != null && !type.equals(existingType)) {
+      throw new IllegalArgumentException(
+          "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
+    }
+
+    int idx = ssa.getIndex(name);
+    if (idx <= 0) {
+      idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
+
+      // It is important to store the index in the variable here.
+      // If getIndex() was called with a specific name,
+      // this means that name@idx will appear in formulas.
+      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
+      // will also add indices for this name,
+      // which it does exactly if the name is in the SSAMap.
+      ssa.setIndex(name, type, idx);
+    }
+
+    return idx;
   }
 
   private static @NonNull Formula convertVariable(
       K3IdTerm pK3IdTerm, SSAMapBuilder ssa, FormulaManagerView fmgr) {
-    String varName = pK3IdTerm.getVariable().getQualifiedName();
-    return fmgr.makeVariable(
-        pK3IdTerm.getExpressionType().toFormulaType(), varName, ssa.getIndex(varName));
+    K3SimpleDeclaration variable = pK3IdTerm.getDeclaration();
+    String varName = cleanVariableNameForJavaSMT(variable.getQualifiedName());
+    int useIndex = getIndex(varName, variable.getType(), ssa);
+    return fmgr.makeVariable(pK3IdTerm.getExpressionType().toFormulaType(), varName, useIndex);
   }
 
   private static @NonNull Formula convertApplication(
@@ -79,7 +116,7 @@ public class K3TermToFormulaConverter {
       K3GeneralSymbolApplicationTerm pK3ApplicationTerm,
       SSAMapBuilder ssa,
       FormulaManagerView fmgr) {
-    String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
+    String functionName = pK3ApplicationTerm.getSymbol().getDeclaration().getName();
     List<IntegerFormula> args =
         transformedImmutableListCopy(
             pK3ApplicationTerm.getTerms(), term -> (IntegerFormula) convertTerm(term, ssa, fmgr));
@@ -117,7 +154,9 @@ public class K3TermToFormulaConverter {
       K3GeneralSymbolApplicationTerm pK3ApplicationTerm,
       SSAMapBuilder ssa,
       FormulaManagerView fmgr) {
-    String functionName = pK3ApplicationTerm.getSymbol().getVariable().getName();
+    String functionName =
+        cleanVariableNameForJavaSMT(
+            pK3ApplicationTerm.getSymbol().getDeclaration().getQualifiedName());
     List<BooleanFormula> args =
         transformedImmutableListCopy(
             pK3ApplicationTerm.getTerms(), term -> (BooleanFormula) convertTerm(term, ssa, fmgr));

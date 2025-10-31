@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula.K3ToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.FormatMethod;
@@ -133,7 +135,7 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
           case K3DeclarationEdge declarationEdge ->
               makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
           case K3ProcedureCallEdge procedureCallEdge ->
-              makeFunctionCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
+              makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
           case K3AssumeEdge assumeEdge ->
               makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
           case K3ProcedureReturnEdge returnEdge ->
@@ -224,7 +226,7 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
       return bfmgr.makeTrue();
     }
 
-    final String varName = decl.getQualifiedName();
+    final String varName = cleanVariableNameForJavaSMT(decl.getQualifiedName());
 
     if (!isRelevantVariable(decl)) {
       logger.logfOnce(
@@ -250,7 +252,7 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
         .collect(ImmutableMap.toImmutableMap(keys::get, values::get));
   }
 
-  protected BooleanFormula makeFunctionCall(
+  protected BooleanFormula makeProcedureCall(
       final K3ProcedureCallEdge edge,
       final String callerFunction,
       final SSAMapBuilder ssa,
@@ -266,6 +268,24 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
     if (formalParams.size() != actualParams.size()) {
       throw new UnrecognizedCodeException(
           "Number of parameters on function call does not match function definition", edge);
+    }
+
+    // Initialize return variables to default values (nondet)
+    for (K3ParameterDeclaration returnVarDecl :
+        edge.getFunctionCall().getProcedureDeclaration().getReturnValues()) {
+      SSAHandler.makeFreshIndex(
+          cleanVariableNameForJavaSMT(returnVarDecl.getQualifiedName()),
+          returnVarDecl.getType(),
+          ssa);
+    }
+
+    // Initialize local variables to default values (nondet)
+    for (K3ParameterDeclaration localVarDecl :
+        edge.getFunctionCall().getProcedureDeclaration().getLocalVariables()) {
+      SSAHandler.makeFreshIndex(
+          cleanVariableNameForJavaSMT(localVarDecl.getQualifiedName()),
+          localVarDecl.getType(),
+          ssa);
     }
 
     return K3StatementToFormulaConverter.convertStatement(
@@ -287,7 +307,9 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pNewSSA)
       throws InterruptedException {
-    throw new RuntimeException("Not implemented yet");
+    // They should always be equal, as there are no pointers in K3.
+    Verify.verify(pPts1.equals(pPts2));
+    return MergeResult.trivial(pPts1, fmgr.getBooleanFormulaManager());
   }
 
   @Override
