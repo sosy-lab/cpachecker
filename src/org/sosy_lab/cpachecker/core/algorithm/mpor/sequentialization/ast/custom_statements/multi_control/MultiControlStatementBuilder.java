@@ -51,14 +51,12 @@ public class MultiControlStatementBuilder {
       Optional<CExpressionAssignmentStatement> pRoundReset) {
 
     ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
-    pPcUnequalExitAssumption.ifPresent(statement -> rPreceding.add(statement));
-    if (pNextThreadAssumption.isPresent()) {
-      pNextThreadAssumption.orElseThrow().forEach(statement -> rPreceding.add(statement));
-    }
-    pRoundMaxNondetAssignment.ifPresent(statement -> rPreceding.add(statement));
-    pRoundMaxGreaterZeroAssumption.ifPresent(statement -> rPreceding.add(statement));
+    pPcUnequalExitAssumption.ifPresent(rPreceding::add);
+    pNextThreadAssumption.ifPresent(rPreceding::addAll);
+    pRoundMaxNondetAssignment.ifPresent(rPreceding::add);
+    pRoundMaxGreaterZeroAssumption.ifPresent(rPreceding::add);
     // place r reset after the assumption for optimization
-    pRoundReset.ifPresent(statement -> rPreceding.add(statement));
+    pRoundReset.ifPresent(rPreceding::add);
     return rPreceding.build();
   }
 }

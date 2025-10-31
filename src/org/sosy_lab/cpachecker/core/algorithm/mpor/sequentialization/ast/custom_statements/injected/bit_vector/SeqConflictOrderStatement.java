@@ -47,17 +47,17 @@ public record SeqConflictOrderStatement(
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
-    ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
+    final String ifBlock;
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
-      ifBlock.add(SeqFunctionCallExpressions.ABORT.toASTString());
+      ifBlock = SeqFunctionCallExpressions.ABORT.toASTString();
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
-      ifBlock.add(
-          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.orElseThrow().expression()));
+      ifBlock =
+          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.orElseThrow().expression());
     }
     SeqBranchStatement ifStatement =
-        new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ifBlock.build());
+        new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
     joiner.add(ifStatement.toASTString());
     return joiner.toString();
   }
