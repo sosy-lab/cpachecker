@@ -1100,7 +1100,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3SequenceStatement pK3SequenceStatement) {
+    public Iterable<? extends AAstNode> visit(K3SequenceStatement pK3SequenceStatement)
+        throws NoException {
       return pK3SequenceStatement.getStatements();
     }
 

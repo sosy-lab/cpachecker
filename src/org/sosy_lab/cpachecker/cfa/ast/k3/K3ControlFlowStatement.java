@@ -32,7 +32,9 @@ public abstract sealed class K3ControlFlowStatement extends K3Statement
     super(pFileLocation, pTagAttributes, pTagReferences);
   }
 
-  abstract <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X;
+  public <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X {
+    return accept((K3StatementVisitor<R, X>) v);
+  }
 
   @Override
   public boolean equals(Object pO) {

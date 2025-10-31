@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 public interface K3ControlFlowStatementVisitor<R, X extends Exception> {
-  R accept(K3SequenceStatement pK3SequenceStatement) throws X;
+  R visit(K3SequenceStatement pK3SequenceStatement) throws X;
 
   R visit(K3AssumeStatement pK3AssumeStatement) throws X;
 

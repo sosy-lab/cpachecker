@@ -41,7 +41,7 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
   }
 
   @Override
-  <R, X extends Exception> R accept(K3CfaEdgeStatementVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(K3StatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

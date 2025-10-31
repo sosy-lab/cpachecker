@@ -33,13 +33,13 @@ public final class K3SequenceStatement extends K3ControlFlowStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X {
-    return v.accept(this);
+  public <R, X extends Exception> R accept(K3StatementVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override
   public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
-    return v.accept(this);
+    return v.visit(this);
   }
 
   @Override

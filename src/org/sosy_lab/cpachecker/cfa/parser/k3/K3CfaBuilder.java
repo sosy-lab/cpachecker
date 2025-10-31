@@ -9,17 +9,18 @@
 package org.sosy_lab.cpachecker.cfa.parser.k3;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -32,34 +33,22 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.SMTLibCommand;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,14 +74,10 @@ class K3CfaBuilder {
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
-  private final Map<String, CFANode> labelToNode = new HashMap<>();
-
-  private Optional<CFANode> outermostLoopHead = Optional.empty();
-
-  private Map<CFANode, String> gotoNodesToLabel = new HashMap<>();
-
   private final ImmutableSetMultimap.Builder<CFANode, K3TagProperty> nodeToTagAnnotations =
       new ImmutableSetMultimap.Builder<>();
+  private final ImmutableSetMultimap.Builder<String, K3TagProperty> tagReferencesToAnnotations =
+      ImmutableSetMultimap.builder();
 
   public K3CfaBuilder(
       LogManager pLogger,
@@ -140,312 +125,68 @@ class K3CfaBuilder {
     return Pair.of(functionEntryNode, functionExitNode);
   }
 
-  private void trackTagPropertiesForStatementStartingWithNode(
-      K3Statement pStatement,
-      CFANode pStartNode,
-      ImmutableSetMultimap<String, K3TagProperty> pTagAnnotations) {
-    nodeToTagAnnotations.putAll(pStartNode, pStatement.getTagAttributes());
-    nodeToTagAnnotations.putAll(
-        pStartNode,
-        FluentIterable.from(pStatement.getTagReferences())
-            .transform(K3TagReference::getTagName)
-            .transformAndConcat(pTagAnnotations::get)
-            .toSet());
-  }
-
-  private Pair<CFANode, List<CFANode>> buildCfaForStatement(
-      K3Statement pStatement,
-      CFANode pCurrentNode,
-      K3ProcedureDeclaration pProcedure,
-      FunctionExitNode pFunctionExitNode,
-      ImmutableSetMultimap<String, K3TagProperty> pTagAnnotations)
-      throws K3ParserException, InterruptedException {
-    ImmutableList.Builder<CFANode> builder = ImmutableList.builder();
-    CFANode predecessorNode = pCurrentNode;
-    CFANode currentSuccessorNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-
-    // Keep track of all the tag properties for the starting node of this statement
-    trackTagPropertiesForStatementStartingWithNode(pStatement, pCurrentNode, pTagAnnotations);
-
-    switch (pStatement) {
-      case K3AssignmentStatement assignmentStatement -> {
-        // Handle assignment statements.
-        CFAEdge edge =
-            new K3StatementEdge(
-                assignmentStatement.toASTString(),
-                assignmentStatement,
-                assignmentStatement.getFileLocation(),
-                predecessorNode,
-                currentSuccessorNode);
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-      case K3AssumeStatement assumeStatement -> {
-        // We do not need to split the assumption into multiple edges, since there is no
-        // short-circuiting
-        CFAEdge edge =
-            new K3AssumeEdge(
-                assumeStatement.toASTString(),
-                assumeStatement.getFileLocation(),
-                predecessorNode,
-                currentSuccessorNode,
-                assumeStatement.getTerm(),
-                true,
-                false,
-                false);
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-      case K3SequenceStatement sequenceStatement -> {
-        // Handle sequence statements.
-        for (K3Statement subStatement : sequenceStatement.getStatements()) {
-          Pair<CFANode, List<CFANode>> lastNodeWithAllNodes =
-              buildCfaForStatement(
-                  subStatement, predecessorNode, pProcedure, pFunctionExitNode, pTagAnnotations);
-          builder.addAll(lastNodeWithAllNodes.getSecondNotNull());
-          predecessorNode = lastNodeWithAllNodes.getFirstNotNull();
-        }
-        CFAEdge edge =
-            new BlankEdge(
-                "end of sequence statement",
-                FileLocation.DUMMY,
-                predecessorNode,
-                currentSuccessorNode,
-                "end of sequence statement");
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-      case K3ProcedureCallStatement pK3ProcedureCallStatement -> {
-        // We do not need to split the assumption into multiple edges, since there is no
-        // short-circuiting
-        CFAEdge edge =
-            new K3StatementEdge(
-                pK3ProcedureCallStatement.toASTString(),
-                pK3ProcedureCallStatement,
-                pK3ProcedureCallStatement.getFileLocation(),
-                predecessorNode,
-                currentSuccessorNode);
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-      case K3BreakStatement pK3BreakStatement -> {
-        Verify.verify(outermostLoopHead.isPresent());
-        CFAEdge edge =
-            new BlankEdge(
-                "break",
-                pK3BreakStatement.getFileLocation(),
-                predecessorNode,
-                outermostLoopHead.orElseThrow(),
-                "break");
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-      case K3ContinueStatement pK3ContinueStatement -> {
-        Verify.verify(outermostLoopHead.isPresent());
-        CFAEdge edge =
-            new BlankEdge(
-                "continue",
-                pK3ContinueStatement.getFileLocation(),
-                predecessorNode,
-                outermostLoopHead.orElseThrow(),
-                "continue");
-        CFACreationUtils.addEdgeToCFA(edge, logger);
-      }
-
-      case K3GotoStatement pK3GotoStatement -> {
-        // We may not have all the labels yet, so we just store the information for later.
-        String label = pK3GotoStatement.getLabel();
-        gotoNodesToLabel.put(predecessorNode, label);
-      }
-
-      case K3HavocStatement pK3HavocStatement -> {
-        CFAEdge egde =
-            new K3StatementEdge(
-                pK3HavocStatement.toASTString(),
-                pK3HavocStatement,
-                pK3HavocStatement.getFileLocation(),
-                predecessorNode,
-                currentSuccessorNode);
-        CFACreationUtils.addEdgeToCFA(egde, logger);
-      }
-      case K3IfStatement pK3IfStatement -> {
-        // Handle conditions
-        CFANode trueConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-        CFANode falseConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-
-        CFAEdge trueEdge =
-            new K3AssumeEdge(
-                pK3IfStatement.getCondition().toASTString(),
-                pK3IfStatement.getFileLocation(),
-                predecessorNode,
-                trueConditionNode,
-                pK3IfStatement.getCondition(),
-                true,
-                false,
-                false);
-        CFAEdge falseEdge =
-            new K3AssumeEdge(
-                "!(" + pK3IfStatement.getCondition().toASTString() + ")",
-                pK3IfStatement.getFileLocation(),
-                predecessorNode,
-                falseConditionNode,
-                pK3IfStatement.getCondition(),
-                false,
-                false,
-                false);
-        CFACreationUtils.addEdgeToCFA(trueEdge, logger);
-        CFACreationUtils.addEdgeToCFA(falseEdge, logger);
-
-        // Handle the then branch
-        Pair<CFANode, List<CFANode>> thenBranchNodes =
-            buildCfaForStatement(
-                pK3IfStatement.getThenBranch(),
-                trueConditionNode,
-                pProcedure,
-                pFunctionExitNode,
-                pTagAnnotations);
-        builder.addAll(thenBranchNodes.getSecondNotNull());
-        final CFANode thenBranchEndNode = thenBranchNodes.getFirstNotNull();
-
-        // Handle the else branch if it exists
-        final CFANode elseBranchEndNode;
-        if (pK3IfStatement.getElseBranch().isPresent()) {
-          Pair<CFANode, List<CFANode>> elseBranchNodes =
-              buildCfaForStatement(
-                  pK3IfStatement.getElseBranch().orElseThrow(),
-                  falseConditionNode,
-                  pProcedure,
-                  pFunctionExitNode,
-                  pTagAnnotations);
-          builder.addAll(elseBranchNodes.getSecondNotNull());
-          elseBranchEndNode = elseBranchNodes.getFirstNotNull();
-        } else {
-          elseBranchEndNode = falseConditionNode;
-        }
-
-        // Connect the end nodes with the node after the if statement
-        CFACreationUtils.addEdgeToCFA(
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                thenBranchEndNode,
-                currentSuccessorNode,
-                "End of if-then(-else)"),
-            logger);
-        CFACreationUtils.addEdgeToCFA(
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                elseBranchEndNode,
-                currentSuccessorNode,
-                "End of if-then(-else)"),
-            logger);
-      }
-      case K3LabelStatement pK3LabelStatement -> {
-        String label = pK3LabelStatement.getLabel();
-        labelToNode.put(label, predecessorNode);
-      }
-      case K3ReturnStatement pK3ReturnStatement -> {
-        CFACreationUtils.addEdgeToCFA(
-            new BlankEdge(
-                "return",
-                pK3ReturnStatement.getFileLocation(),
-                predecessorNode,
-                pFunctionExitNode,
-                "return"),
-            logger);
-      }
-      case K3WhileStatement pK3WhileStatement -> {
-        // Create the loop head and update the outermost loop head
-        CFANode loopHeadNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-        Optional<CFANode> previousOutermostLoopHead = outermostLoopHead;
-
-        outermostLoopHead = Optional.of(loopHeadNode);
-
-        // Connect the predecessor to the loop head
-        CFACreationUtils.addEdgeToCFA(
-            new BlankEdge(
-                "",
-                pK3WhileStatement.getFileLocation(),
-                predecessorNode,
-                loopHeadNode,
-                "entering loop"),
-            logger);
-
-        // Create the edges for the condition
-        CFANode trueConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-        CFANode falseConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
-
-        CFAEdge trueEdge =
-            new K3AssumeEdge(
-                pK3WhileStatement.getCondition().toASTString(),
-                pK3WhileStatement.getFileLocation(),
-                loopHeadNode,
-                trueConditionNode,
-                pK3WhileStatement.getCondition(),
-                true,
-                false,
-                false);
-        CFAEdge falseEdge =
-            new K3AssumeEdge(
-                "!(" + pK3WhileStatement.getCondition().toASTString() + ")",
-                pK3WhileStatement.getFileLocation(),
-                loopHeadNode,
-                falseConditionNode,
-                pK3WhileStatement.getCondition(),
-                false,
-                false,
-                false);
-        CFACreationUtils.addEdgeToCFA(trueEdge, logger);
-        CFACreationUtils.addEdgeToCFA(falseEdge, logger);
-
-        // Handle the body of the while loop
-        Pair<CFANode, List<CFANode>> bodyNodes =
-            buildCfaForStatement(
-                pK3WhileStatement.getBody(),
-                trueConditionNode,
-                pProcedure,
-                pFunctionExitNode,
-                pTagAnnotations);
-        builder.addAll(bodyNodes.getSecondNotNull());
-        CFANode bodyEndNode = bodyNodes.getFirstNotNull();
-
-        // Connect the end of the body back to the loop head
-        CFACreationUtils.addEdgeToCFA(
-            new BlankEdge("", FileLocation.DUMMY, bodyEndNode, loopHeadNode, "Return to loop head"),
-            logger);
-
-        // Reset the outermost loop head
-        outermostLoopHead = previousOutermostLoopHead;
-      }
-    }
-
-    return Pair.of(currentSuccessorNode, builder.build());
-  }
-
-  private Pair<FunctionEntryNode, List<CFANode>> parseProcedureDefinition(
-      K3ProcedureDefinitionCommand pCommand,
-      ImmutableSetMultimap<String, K3TagProperty> pTagAttributes)
-      throws K3ParserException, InterruptedException {
+  private Pair<FunctionEntryNode, Set<CFANode>> parseProcedureDefinition(
+      K3ProcedureDefinitionCommand pCommand) throws K3ParserException, InterruptedException {
     K3ProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
-    ImmutableList.Builder<CFANode> nodesBuilder = ImmutableList.builder();
+
+    ImmutableMap.Builder<CFANode, String> gotoNodesToLabels = ImmutableMap.builder();
+    ImmutableMap.Builder<String, CFANode> labelsToNodes = ImmutableMap.builder();
+    ImmutableSet.Builder<CFANode> allNodesCollector = ImmutableSet.builder();
 
     // Create the entry and exit nodes for the function
     Pair<FunctionEntryNode, FunctionExitNode> functionNodes =
         newFunctionNodesWithMetadataTracking(
-            procedureDeclaration, x -> {}, node -> nodesBuilder.add(node));
+            procedureDeclaration, x -> {}, node -> allNodesCollector.add(node));
 
     FunctionExitNode functionExitNode = functionNodes.getSecondNotNull();
     FunctionEntryNode functionEntryNode = functionNodes.getFirstNotNull();
 
-    Pair<CFANode, List<CFANode>> bodyNodes =
-        buildCfaForStatement(
-            pCommand.getBody(),
+    K3StatementToCfaVisitor statementVisitor =
+        new K3StatementToCfaVisitor(
             functionEntryNode,
             procedureDeclaration,
+            logger,
             functionExitNode,
-            pTagAttributes);
-    CFACreationUtils.addEdgeToCFA(
-        new BlankEdge("", FileLocation.DUMMY, bodyNodes.getFirstNotNull(), functionExitNode, ""),
-        logger);
-    nodesBuilder.addAll(bodyNodes.getSecondNotNull());
+            nodeToTagAnnotations,
+            gotoNodesToLabels,
+            labelsToNodes,
+            allNodesCollector,
+            tagReferencesToAnnotations.build());
 
-    return Pair.of(functionEntryNode, nodesBuilder.build());
+    Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor);
+    if (optionalEndNode.isPresent()) {
+      // In this case we need to add a blank edge to the function exit node
+      // The contrary can happen if there is a return statement at the end of the function body.
+      CFACreationUtils.addEdgeToCFA(
+          new BlankEdge(
+              "", FileLocation.DUMMY, optionalEndNode.orElseThrow(), functionExitNode, ""),
+          logger);
+    }
+
+    // Now generate the connections for the goto labels
+    Map<String, CFANode> labelsToNodesBuilt = labelsToNodes.build();
+    Map<CFANode, String> gotoNodesToLabelBuilt = gotoNodesToLabels.build();
+    for (Map.Entry<CFANode, String> gotoNodeToLabel : gotoNodesToLabelBuilt.entrySet()) {
+      String label = gotoNodeToLabel.getValue();
+      CFANode gotoNode = gotoNodeToLabel.getKey();
+
+      CFANode labelNode = labelsToNodesBuilt.get(label);
+      if (labelNode == null) {
+        throw new K3ParserException("Could not find '" + label + "' to jump with a goto");
+      }
+
+      // Add a blank edge from the goto node to the label node
+      CFACreationUtils.addEdgeToCFA(
+          new BlankEdge(
+              "Goto to label " + label,
+              FileLocation.DUMMY,
+              gotoNode,
+              labelNode,
+              "Goto to label " + label),
+          logger);
+    }
+
+    return Pair.of(functionEntryNode, allNodesCollector.build());
   }
 
   public ParseResult buildCfaFromScript(K3Script script)
@@ -453,8 +194,10 @@ class K3CfaBuilder {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
-    // TODO: For some reason I cannot use the more specialized type `K3VariableDeclaration` here
+    // We cannot use a more specialized data structure here, since we need to
+    // pass it to the ParseResult constructor.
     List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
+
     // Temporary list to keep separation of concerns.
     // This class only parses the script and builds the CFA.
     // The actual parsing of the string, and therefore the information about the file names
@@ -487,8 +230,7 @@ class K3CfaBuilder {
         logger);
 
     // Keep track of the metadata for the CFA, like the specification, and the SMT-LIB commands.
-    ImmutableList.Builder<K3SetLogicCommand> smtLibSetLogicCommandsBuilder =
-        ImmutableList.builder();
+    ImmutableList.Builder<SMTLibCommand> smtLibCommandsBuilder = ImmutableList.builder();
 
     // Go through all the commands in the script and parse them.
     List<K3Command> commands = script.getCommands();
@@ -507,12 +249,12 @@ class K3CfaBuilder {
           K3ProcedureDeclaration procedureDeclaration =
               procedureDefinitionCommand.getProcedureDeclaration();
 
-          Pair<FunctionEntryNode, List<CFANode>> functionParseResult =
-              parseProcedureDefinition(procedureDefinitionCommand, tagAnnotations.build());
+          Pair<FunctionEntryNode, Set<CFANode>> functionDefinitionParseResult =
+              parseProcedureDefinition(procedureDefinitionCommand);
 
           String functionName = procedureDeclaration.getOrigName();
-          functions.put(functionName, functionParseResult.getFirstNotNull());
-          cfaNodes.putAll(functionName, functionParseResult.getSecondNotNull());
+          functions.put(functionName, functionDefinitionParseResult.getFirstNotNull());
+          cfaNodes.putAll(functionName, functionDefinitionParseResult.getSecondNotNull());
         }
         case K3VerifyCallCommand pVerifyCallCommand -> {
           // In theory the idea behind K3 is to have an interactive shell with the ability to talk
@@ -566,7 +308,7 @@ class K3CfaBuilder {
         case K3SetLogicCommand pK3SetLogicCommand -> {
           // We add all set logic commands to the CFA metadata,
           // since we need it later when creating the SMT-Solver instance.
-          smtLibSetLogicCommandsBuilder.add(pK3SetLogicCommand);
+          smtLibCommandsBuilder.add(pK3SetLogicCommand);
         }
         case K3DeclareConstCommand pK3DeclareConstCommand -> {
           globalDeclarations.add(parseGlobalConstant(pK3DeclareConstCommand));
@@ -597,14 +339,10 @@ class K3CfaBuilder {
           // Update the nodes for the next command
           currentMainFunctionNode = successorNode;
         }
-        case K3DeclareFunCommand pK3DeclareFunCommand -> {
-          throw new K3ParserException(
-              "Function declarations are not supported in the current K3 CFA builder.");
-        }
-        case K3DeclareSortCommand pK3DeclareSortCommand -> {
-          throw new K3ParserException(
-              "Sort declarations are not supported in the current K3 CFA builder.");
-        }
+        case K3DeclareFunCommand pK3DeclareFunCommand ->
+            smtLibCommandsBuilder.add(pK3DeclareFunCommand);
+        case K3DeclareSortCommand pK3DeclareSortCommand ->
+            smtLibCommandsBuilder.add(pK3DeclareSortCommand);
       }
     }
 
@@ -654,6 +392,6 @@ class K3CfaBuilder {
         globalDeclarations,
         fileNames,
         new K3CfaMetadata(
-            smtLibSetLogicCommandsBuilder.build(), nodeToTagAnnotations.build(), exportWitness));
+            smtLibCommandsBuilder.build(), nodeToTagAnnotations.build(), exportWitness));
   }
 }

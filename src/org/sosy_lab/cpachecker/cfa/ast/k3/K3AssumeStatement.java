@@ -27,7 +27,7 @@ public final class K3AssumeStatement extends K3ControlFlowStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(K3StatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

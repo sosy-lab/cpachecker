@@ -38,6 +38,8 @@ public abstract sealed class K3Statement implements K3AstNode
     return tagReferences;
   }
 
+  public abstract <R, X extends Exception> R accept(K3StatementVisitor<R, X> v) throws X;
+
   @Override
   public FileLocation getFileLocation() {
     return fileLocation;

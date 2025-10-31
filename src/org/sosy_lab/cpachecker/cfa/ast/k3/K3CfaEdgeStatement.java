@@ -24,7 +24,9 @@ public abstract sealed class K3CfaEdgeStatement extends K3Statement implements A
     super(pFileLocation, pTagAttributes, pTagReferences);
   }
 
-  abstract <R, X extends Exception> R accept(K3CfaEdgeStatementVisitor<R, X> v) throws X;
+  public <R, X extends Exception> R accept(K3CfaEdgeStatementVisitor<R, X> v) throws X {
+    return accept((K3StatementVisitor<R, X>) v);
+  }
 
   @Override
   public boolean equals(Object pO) {

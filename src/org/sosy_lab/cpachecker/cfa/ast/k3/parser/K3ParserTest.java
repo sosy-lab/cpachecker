@@ -490,7 +490,8 @@ public class K3ParserTest {
                                     ImmutableList.of(),
                                     ImmutableList.of()),
                                 ImmutableList.of(),
-                                ImmutableList.of(),
+                                ImmutableList.of(
+                                    new K3TagReference("while-loop", FileLocation.DUMMY, null)),
                                 FileLocation.DUMMY),
                             new K3IfStatement(
                                 FileLocation.DUMMY,

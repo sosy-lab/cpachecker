@@ -22,9 +22,9 @@
   (sequence
     (assign (a 6))
     (assign (a 0))
-    (while
+    (! (while
       (< a 6)
-      (assign (a (+ a 1))))
+      (assign (a (+ a 1)))) :tag while-loop)
     (if (not (= a 6)) (! (sequence) :assert false))
     (assign (|c#result| 1))
     (return)))

@@ -27,7 +27,7 @@ public final class K3LabelStatement extends K3ControlFlowStatement {
   }
 
   @Override
-  <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(K3StatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
