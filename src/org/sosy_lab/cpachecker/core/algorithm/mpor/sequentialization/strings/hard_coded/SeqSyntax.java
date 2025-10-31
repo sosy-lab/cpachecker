@@ -26,6 +26,7 @@ public class SeqSyntax {
 
   public static final String EQUALS = "=";
 
+  /** Use {@link System#lineSeparator()} for independence of system (Windows, UNIX, ...). */
   public static final String NEWLINE = System.lineSeparator();
 
   public static final String QUOTATION_MARK = "\"";

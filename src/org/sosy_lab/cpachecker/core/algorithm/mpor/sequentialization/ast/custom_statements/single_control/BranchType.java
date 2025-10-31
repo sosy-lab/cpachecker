@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Joiner;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -18,8 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public enum BranchType {
   IF("if"),
-  ELSE("else"),
-  ELSE_IF("else if");
+  ELSE("else");
 
   private final String keyword;
 
@@ -34,21 +32,8 @@ public enum BranchType {
   private String buildPrefix(Optional<String> pExpression) {
     return switch (this) {
       case IF ->
-          Joiner.on(SeqSyntax.SPACE)
-              .join(
-                  getKeyword(),
-                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow()),
-                  SeqSyntax.CURLY_BRACKET_LEFT);
-      case ELSE ->
-          Joiner.on(SeqSyntax.SPACE)
-              .join(SeqSyntax.CURLY_BRACKET_RIGHT, getKeyword(), SeqSyntax.CURLY_BRACKET_LEFT);
-      case ELSE_IF ->
-          Joiner.on(SeqSyntax.SPACE)
-              .join(
-                  SeqSyntax.CURLY_BRACKET_RIGHT,
-                  getKeyword(),
-                  SeqStringUtil.wrapInBrackets(pExpression.orElseThrow()),
-                  SeqSyntax.CURLY_BRACKET_LEFT);
+          getKeyword() + SeqSyntax.SPACE + SeqStringUtil.wrapInBrackets(pExpression.orElseThrow());
+      case ELSE -> SeqSyntax.SPACE + getKeyword() + SeqSyntax.SPACE;
     };
   }
 
@@ -58,14 +43,9 @@ public enum BranchType {
     return buildPrefix(Optional.empty());
   }
 
-  /**
-   * Use only for {@link BranchType#IF} or {@link BranchType#ELSE_IF}, since they require a {@link
-   * CExpression}.
-   */
+  /** Use only for {@link BranchType#IF}, since it requires a {@link CExpression}. */
   public String buildPrefix(String pExpression) {
-    checkArgument(
-        this.equals(BranchType.IF) || this.equals(BranchType.ELSE_IF),
-        "BranchType must be IF or ELSE_IF");
+    checkArgument(this.equals(BranchType.IF), "BranchType must be IF or ELSE_IF");
     return buildPrefix(Optional.of(pExpression));
   }
 }

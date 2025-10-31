@@ -75,11 +75,15 @@ public class SeqAssumeStatement extends CSeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    // TODO use SeqBranchStatement here
     String controlFlowPrefix;
     if (branchType.equals(BranchType.IF)) {
-      controlFlowPrefix = branchType.buildPrefix(ifExpression.orElseThrow().toASTString());
+      controlFlowPrefix =
+          branchType.buildPrefix(ifExpression.orElseThrow().toASTString())
+              + SeqSyntax.CURLY_BRACKET_LEFT;
     } else {
-      controlFlowPrefix = branchType.buildPrefix();
+      controlFlowPrefix =
+          SeqSyntax.CURLY_BRACKET_RIGHT + branchType.buildPrefix() + SeqSyntax.CURLY_BRACKET_LEFT;
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

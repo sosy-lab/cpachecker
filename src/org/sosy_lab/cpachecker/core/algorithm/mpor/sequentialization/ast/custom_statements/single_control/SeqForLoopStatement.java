@@ -31,7 +31,7 @@ public class SeqForLoopStatement extends CSeqLoopStatement {
       CExpressionAssignmentStatement pForIterationUpdate,
       ImmutableList<String> pStatements) {
 
-    super(pStatements);
+    super(new SeqCompoundStatement(pStatements));
     counterDeclaration = pForCounterDeclaration;
     conditionExpression = pForExpression;
     iterationUpdate = pForIterationUpdate;
@@ -41,8 +41,8 @@ public class SeqForLoopStatement extends CSeqLoopStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     joiner.add(buildForLoopControlFlowPrefix());
-    statements.forEach(statement -> joiner.add(statement));
-    return joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT).toString();
+    joiner.add(compoundStatement.toASTString());
+    return joiner.toString();
   }
 
   private String buildForLoopControlFlowPrefix() {
@@ -58,7 +58,6 @@ public class SeqForLoopStatement extends CSeqLoopStatement {
         iterationUpdate.toASTString().replace(SeqSyntax.SEMICOLON, SeqSyntax.EMPTY_STRING));
 
     outerJoiner.add(SeqStringUtil.wrapInBrackets(innerJoiner.toString()));
-    outerJoiner.add(SeqSyntax.CURLY_BRACKET_LEFT);
 
     return outerJoiner.toString();
   }

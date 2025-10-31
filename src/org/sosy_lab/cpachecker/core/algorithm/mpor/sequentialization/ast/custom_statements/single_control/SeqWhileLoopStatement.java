@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -22,7 +21,8 @@ public class SeqWhileLoopStatement extends CSeqLoopStatement {
 
   public SeqWhileLoopStatement(
       CExpression pConditionExpression, ImmutableList<String> pStatements) {
-    super(pStatements);
+
+    super(new SeqCompoundStatement(pStatements));
     conditionExpression = pConditionExpression;
   }
 
@@ -30,12 +30,9 @@ public class SeqWhileLoopStatement extends CSeqLoopStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     joiner.add(
-        Joiner.on(SeqSyntax.SPACE)
-            .join(
-                LoopType.WHILE.getKeyword(),
-                SeqStringUtil.wrapInBrackets(conditionExpression.toASTString()),
-                SeqSyntax.CURLY_BRACKET_LEFT));
-    statements.forEach(statement -> joiner.add(statement));
-    return joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT).toString();
+        LoopType.WHILE.getKeyword()
+            + SeqStringUtil.wrapInBrackets(conditionExpression.toASTString()));
+    joiner.add(compoundStatement.toASTString());
+    return joiner.toString();
   }
 }

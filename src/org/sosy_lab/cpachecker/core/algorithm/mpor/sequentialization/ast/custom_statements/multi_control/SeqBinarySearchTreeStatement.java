@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -98,11 +99,12 @@ public record SeqBinarySearchTreeStatement(
             pPc,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
             BinaryOperator.LESS_THAN);
-    return BranchType.IF.buildPrefix(ifExpression.toASTString());
+    return SeqStringUtil.appendCurlyBracketLeft(
+        BranchType.IF.buildPrefix(ifExpression.toASTString()));
   }
 
   private String buildElseSubtree() {
-    return BranchType.ELSE.buildPrefix();
+    return SeqStringUtil.wrapInCurlyBracketsOutwards(BranchType.ELSE.buildPrefix());
   }
 
   private String buildLeaf(

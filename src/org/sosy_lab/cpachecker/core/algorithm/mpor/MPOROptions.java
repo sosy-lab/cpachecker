@@ -68,7 +68,6 @@ public record MPOROptions(
     boolean validatePc) {
 
   public MPOROptions {
-
     checkCorrectParameterCount();
     checkEqualFieldNames();
   }

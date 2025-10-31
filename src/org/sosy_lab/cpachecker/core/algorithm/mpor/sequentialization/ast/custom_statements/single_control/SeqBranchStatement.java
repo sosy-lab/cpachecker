@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -24,12 +25,11 @@ public class SeqBranchStatement implements SeqSingleControlStatement {
 
   private final String ifExpression;
 
-  private final ImmutableList<String> ifStatements;
+  private final SeqCompoundStatement ifCompoundStatement;
 
-  /** The optional {@code else if (*expression*))} */
-  private final Optional<String> elseIfExpression;
+  private final Optional<SeqCompoundStatement> elseCompoundStatement;
 
-  private final Optional<ImmutableList<String>> elseStatements;
+  private final Optional<SeqBranchStatement> elseBranchStatement;
 
   /**
    * Use this constructor for an {@code if (...) { ... }} statement without any {@code else} branch.
@@ -37,9 +37,9 @@ public class SeqBranchStatement implements SeqSingleControlStatement {
   public SeqBranchStatement(String pIfExpression, ImmutableList<String> pIfStatements) {
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
     ifExpression = pIfExpression;
-    ifStatements = pIfStatements;
-    elseIfExpression = Optional.empty();
-    elseStatements = Optional.empty();
+    ifCompoundStatement = new SeqCompoundStatement(pIfStatements);
+    elseCompoundStatement = Optional.empty();
+    elseBranchStatement = Optional.empty();
   }
 
   /** Use this constructor for an {@code if (...) { ... } else { ... }} statement. */
@@ -51,46 +51,50 @@ public class SeqBranchStatement implements SeqSingleControlStatement {
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
     checkArgument(!pElseStatements.isEmpty(), "pElseStatements needs at least one element");
     ifExpression = pIfExpression;
-    ifStatements = pIfStatements;
-    elseIfExpression = Optional.empty();
-    elseStatements = Optional.of(pElseStatements);
+    ifCompoundStatement = new SeqCompoundStatement(pIfStatements);
+    elseCompoundStatement = Optional.of(new SeqCompoundStatement(pElseStatements));
+    elseBranchStatement = Optional.empty();
   }
 
   /** Use this constructor for an {@code if (...) { ... } else if (...) { ... }} statement. */
   public SeqBranchStatement(
       String pIfExpression,
       ImmutableList<String> pIfStatements,
-      String pElseIfExpression,
-      ImmutableList<String> pElseStatements) {
+      SeqBranchStatement pElseBranchStatement) {
 
     checkArgument(!pIfStatements.isEmpty(), "pIfStatements needs at least one element");
-    checkArgument(!pElseStatements.isEmpty(), "pElseStatements needs at least one element");
     ifExpression = pIfExpression;
-    ifStatements = pIfStatements;
-    elseIfExpression = Optional.of(pElseIfExpression);
-    elseStatements = Optional.of(pElseStatements);
+    ifCompoundStatement = new SeqCompoundStatement(pIfStatements);
+    elseCompoundStatement = Optional.empty();
+    elseBranchStatement = Optional.of(pElseBranchStatement);
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    joiner.add(BranchType.IF.buildPrefix(ifExpression));
-    ifStatements.forEach(ifStatement -> joiner.add(ifStatement));
+    checkArgument(
+        elseCompoundStatement.isEmpty() || elseBranchStatement.isEmpty(),
+        "elseCompoundStatement and/or elseBranchStatement must be empty");
 
-    if (elseStatements.isEmpty()) {
-      // if (...) { ... }
-      joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    } else {
-      if (elseIfExpression.isEmpty()) {
-        // if (...) { ... } else { ... }
-        joiner.add(BranchType.ELSE.buildPrefix());
-      } else {
-        // if (...) { ... } else if (...) { ... }
-        joiner.add(BranchType.ELSE_IF.buildPrefix(elseIfExpression.orElseThrow()));
-      }
-      elseStatements.orElseThrow().forEach(elseStatement -> joiner.add(elseStatement));
-      joiner.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
+    // if (...) { ... }
+    joiner.add(BranchType.IF.buildPrefix(ifExpression));
+    joiner.add(ifCompoundStatement.toASTString());
+
+    // if (...) { ... } else { ... }
+    if (elseCompoundStatement.isPresent()) {
+      joiner.add(BranchType.ELSE.buildPrefix());
+      joiner.add(elseCompoundStatement.orElseThrow().toASTString());
     }
+
+    // if (...) { ... } else if (...) { ... }
+    if (elseBranchStatement.isPresent()) {
+      joiner.add(BranchType.ELSE.buildPrefix());
+      ImmutableList<String> elseBranchString =
+          SeqStringUtil.splitOnNewline(elseBranchStatement.orElseThrow().toASTString());
+      SeqCompoundStatement elseBranchCompoundStatement = new SeqCompoundStatement(elseBranchString);
+      joiner.add(elseBranchCompoundStatement.toASTString());
+    }
+
     return joiner.toString();
   }
 }

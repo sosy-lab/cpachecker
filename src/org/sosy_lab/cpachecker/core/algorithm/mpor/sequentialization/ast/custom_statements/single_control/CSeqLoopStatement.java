@@ -8,17 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control;
 
-import com.google.common.collect.ImmutableList;
-
 public abstract class CSeqLoopStatement implements SeqSingleControlStatement {
 
   /**
-   * The list of statements inside the loop block. Can be empty to model infinite loops that do
+   * The compound statement i.e. the loop block. Can be empty to model infinite loops that do
    * nothing. We use {@code String}s so that comments are accepted too.
    */
-  final ImmutableList<String> statements;
+  final SeqCompoundStatement compoundStatement;
 
-  CSeqLoopStatement(ImmutableList<String> pStatements) {
-    statements = pStatements;
+  CSeqLoopStatement(SeqCompoundStatement pCompoundStatement) {
+    compoundStatement = pCompoundStatement;
   }
 }
