@@ -17,9 +17,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -49,16 +46,13 @@ import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils;
 import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.FunctionEntryExitPair;
 
-@Options(prefix = "k3.witnessExport")
 public class ArgToK3CorrectnessWitnessExport {
   private final K3CfaMetadata k3Metadata;
 
   @SuppressWarnings("unused")
   private final LogManager logger;
 
-  public ArgToK3CorrectnessWitnessExport(Configuration pConfig, CFA pCFA, LogManager pLogger)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
+  public ArgToK3CorrectnessWitnessExport(CFA pCFA, LogManager pLogger) {
     Verify.verify(
         pCFA.getMetadata().getK3CfaMetadata().isPresent(),
         "K3 metadata must be present in CFA in order to export a K3 witness.");

@@ -292,7 +292,7 @@ public class ARGStatistics implements Statistics {
 
     Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
     if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportWitness()) {
-      argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(config, pCFA, pLogger);
+      argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(pCFA, pLogger);
       Optional<Path> witnessOutputChannel = k3Metadata.orElseThrow().getExportWitnessPath();
       if (witnessOutputChannel.isPresent()) {
         k3CorrectnessWitnessPath = witnessOutputChannel.orElseThrow();
