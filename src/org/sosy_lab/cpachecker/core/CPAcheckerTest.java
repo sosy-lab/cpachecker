@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.core;
 
+import com.google.common.base.Verify;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
 import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -23,6 +27,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -98,6 +103,39 @@ public class CPAcheckerTest {
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
+
+    Optional<K3CfaMetadata> k3CfaMetadataOptional =
+        result.getCheckerResult().getCfa().getMetadata().getK3CfaMetadata();
+
+    Verify.verify(
+        k3CfaMetadataOptional.isPresent(),
+        "K3 CFA Metadata should be present for every K3 program");
+    K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
+
+    Verify.verify(
+        k3CfaMetadata.exportWitness(),
+        "For the safe K3 program '"
+            + SAFE_LOOP_PROGRAM_K3
+            + "', the witness export should be enabled");
+
+    Optional<Path> witnessPath = k3CfaMetadata.getExportWitnessPath();
+    Verify.verify(
+        witnessPath.isPresent(),
+        "For the safe K3 program '"
+            + SAFE_LOOP_PROGRAM_K3
+            + "', the witness path should be present after exporting the witness");
+
+    // Read entire file content as a single string (UTF-8)
+    // This is safe to do, since the witness files are small.
+    String content = Files.readString(witnessPath.orElseThrow());
+    Verify.verify(
+        content.contains(":invariant"), "The witness should contain at least one invariant.");
+    Verify.verify(
+        content.contains("(annotate-tag"),
+        "The witness should contain at least one annotate-tag command.");
+
+    // TODO: Should we cleanup after the test by deleting the witness file?
+    //      The other tests do not do this either, so for consistency we leave it as is for now.
   }
 
   @Test

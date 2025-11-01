@@ -51,7 +51,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -295,15 +294,9 @@ public class ARGStatistics implements Statistics {
     if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportWitness()) {
       argToK3WitnessWriter =
           new ArgToK3CorrectnessWitnessExport(config, pCFA, pSpecification, pLogger);
-      List<K3SetOptionCommand> witnessOutputChannelCommands =
-          FluentIterable.from(k3Metadata.orElseThrow().smtLibCommands())
-              .filter(K3SetOptionCommand.class)
-              .filter(
-                  command ->
-                      command.getOption().equals(K3SetOptionCommand.OPTION_WITNESS_OUTPUT_CHANNEL))
-              .toList();
-      if (!witnessOutputChannelCommands.isEmpty()) {
-        k3CorrectnessWitnessPath = Path.of(witnessOutputChannelCommands.getLast().getValue());
+      Optional<Path> witnessOutputChannel = k3Metadata.orElseThrow().getExportWitnessPath();
+      if (witnessOutputChannel.isPresent()) {
+        k3CorrectnessWitnessPath = witnessOutputChannel.orElseThrow();
       }
     } else {
       argToK3WitnessWriter = null;
@@ -493,23 +486,31 @@ public class ARGStatistics implements Statistics {
 
         // Now export the correctness witnesses for K3 program
         if (argToK3WitnessWriter != null && k3CorrectnessWitnessPath != null) {
-          List<K3AnnotateTagCommand> witnessCommands =
-              argToK3WitnessWriter.generateWitnessCommands(rootState, pReached);
-          String witnessContent =
-              Joiner.on(System.lineSeparator())
-                  .join(
-                      FluentIterable.from(witnessCommands)
-                          .transform(K3AnnotateTagCommand::toASTString));
-          try (Writer writer =
-              IO.openOutputFile(k3CorrectnessWitnessPath, Charset.defaultCharset())) {
-            writer.write(witnessContent);
-          } catch (IOException e) {
-            logger.logUserException(
-                Level.WARNING,
-                e,
-                "Could not write the K3 correctness witness to file "
-                    + k3CorrectnessWitnessPath
-                    + ". Therefore no K3 witness will be exported.");
+          List<K3AnnotateTagCommand> witnessCommands = null;
+          try {
+            witnessCommands = argToK3WitnessWriter.generateWitnessCommands(rootState, pReached);
+          } catch (ReportingMethodNotImplementedException e) {
+            logger.logUserException(Level.WARNING, e, "Could not export K3 correctness witness.");
+          }
+
+          // The catch block was not triggered, so we can proceed to write the witness
+          if (witnessCommands != null) {
+            String witnessContent =
+                Joiner.on(System.lineSeparator())
+                    .join(
+                        FluentIterable.from(witnessCommands)
+                            .transform(K3AnnotateTagCommand::toASTString));
+            try (Writer writer =
+                IO.openOutputFile(k3CorrectnessWitnessPath, Charset.defaultCharset())) {
+              writer.write(witnessContent);
+            } catch (IOException e) {
+              logger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "Could not write the K3 correctness witness to file "
+                      + k3CorrectnessWitnessPath
+                      + ". Therefore no K3 witness will be exported.");
+            }
           }
         }
 

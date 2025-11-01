@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -919,6 +921,11 @@ public final class ValueAnalysisState
       }
     }
     return And.of(result);
+  }
+
+  @Override
+  public K3RelationalTerm asK3Term(K3Scope pScope) throws ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException("not implemented");
   }
 
   @Override

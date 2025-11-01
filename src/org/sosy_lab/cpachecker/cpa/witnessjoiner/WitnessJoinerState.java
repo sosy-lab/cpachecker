@@ -14,6 +14,8 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
@@ -34,6 +36,11 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
 
   protected WitnessJoinerState(@Nullable AbstractState pWrappedState) {
     super(pWrappedState);
+  }
+
+  @Override
+  public K3RelationalTerm asK3Term(K3Scope pScope) throws ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException("not implemented");
   }
 
   @Override

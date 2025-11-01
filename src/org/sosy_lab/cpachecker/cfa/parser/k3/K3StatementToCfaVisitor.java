@@ -12,6 +12,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -56,6 +57,7 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
 
   private Optional<CFANode> outermostLoopExitNode = Optional.empty();
 
+  private final Builder<CFANode, K3TagReference> nodeToTagReferences;
   private final ImmutableMap.Builder<CFANode, String> gotoNodesToLabels;
   private final ImmutableMap.Builder<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;
@@ -67,6 +69,7 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
       LogManager pLogger,
       FunctionExitNode pFunctionExitNode,
       ImmutableSetMultimap.Builder<CFANode, K3TagProperty> pNodeToTagAnnotations,
+      ImmutableSetMultimap.Builder<CFANode, K3TagReference> pNodeToTagReferences,
       ImmutableMap.Builder<CFANode, String> pGotoNodesToLabels,
       ImmutableMap.Builder<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,
@@ -76,6 +79,7 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
     logger = pLogger;
     functionExitNode = pFunctionExitNode;
     nodeToTagAnnotations = pNodeToTagAnnotations;
+    nodeToTagReferences = pNodeToTagReferences;
     gotoNodesToLabels = pGotoNodesToLabels;
     labelsToNodes = pLabelsToNodes;
     allNodesCollector = pAllNodesCollector;
@@ -94,6 +98,7 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
     for (K3TagReference ref : pStatement.getTagReferences()) {
       ImmutableSet<K3TagProperty> properties = tagReferencesToAnnotations.get(ref.getTagName());
       nodeToTagAnnotations.putAll(pStartNode, properties);
+      nodeToTagReferences.put(pStartNode, ref);
     }
   }
 
@@ -186,11 +191,15 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
 
   @Override
   public Optional<CFANode> visit(K3WhileStatement pK3WhileStatement) throws NoException {
-    trackTagPropertiesForStatementStartingWithNode(pK3WhileStatement, currentStartingNode);
-
-    // Create the loop head and update the outermost loop head
+    // Create the loop head and exit nodes
     CFANode loopHeadNode = getNewNode();
+    loopHeadNode.setLoopStart();
     CFANode exitNode = getNewNode();
+
+    // For while loops we need to track tag properties for the starting loop node
+    trackTagPropertiesForStatementStartingWithNode(pK3WhileStatement, loopHeadNode);
+
+    // Update the outermost loop head, and exit node
     Optional<CFANode> previousOutermostLoopHead = outermostLoopHead;
     Optional<CFANode> previousOutermostLoopExitNode = outermostLoopExitNode;
 

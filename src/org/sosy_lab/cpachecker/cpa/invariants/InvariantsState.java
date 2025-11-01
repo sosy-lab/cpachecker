@@ -45,6 +45,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -1220,6 +1222,11 @@ public class InvariantsState
       }
     }
     return And.of(approximationsAsCode);
+  }
+
+  @Override
+  public K3RelationalTerm asK3Term(K3Scope pScope) throws ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException("not implemented");
   }
 
   @Override

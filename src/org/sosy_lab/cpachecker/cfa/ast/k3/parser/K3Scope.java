@@ -48,6 +48,8 @@ public abstract class K3Scope {
 
   abstract K3SimpleDeclaration getVariable(String pText);
 
+  public abstract K3SimpleDeclaration getVariableForQualifiedName(String pQualifiedName);
+
   abstract void addVariable(K3VariableDeclaration pDeclaration);
 
   abstract void addProcedureDeclaration(K3ProcedureDeclaration pDeclaration);

@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -26,6 +28,16 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  * will not be possible.
  */
 public interface ExpressionTreeReportingState extends AbstractState {
+
+  /**
+   * Returns the K3RelationalTerm representation of the abstract state.
+   *
+   * @return the K3RelationalTerm representation of the abstract state
+   * @throws ReportingMethodNotImplementedException if the method is not implemented. This is useful
+   *     to allow for a gradual implementation of the interface.
+   */
+  K3RelationalTerm asK3Term(K3Scope pScope)
+      throws ReportingMethodNotImplementedException, InterruptedException;
 
   class ReportingMethodNotImplementedException extends Exception {
     @Serial private static final long serialVersionUID = -1208757812;

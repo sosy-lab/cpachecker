@@ -97,4 +97,32 @@ public class SmtLibTheoryDeclarations {
           "not",
           "not",
           "not");
+
+  public static K3VariableDeclaration boolDisjunction(int amountArguments) {
+    return new K3VariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new K3FunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.copyOf(Collections.nCopies(amountArguments, K3SmtLibType.BOOL)),
+            K3SmtLibType.BOOL),
+        "or",
+        "or",
+        "or");
+  }
+
+  public static K3VariableDeclaration boolConjunction(int amountArguments) {
+    return new K3VariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new K3FunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.copyOf(Collections.nCopies(amountArguments, K3SmtLibType.BOOL)),
+            K3SmtLibType.BOOL),
+        "and",
+        "and",
+        "and");
+  }
 }

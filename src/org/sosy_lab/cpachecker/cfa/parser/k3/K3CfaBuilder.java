@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
@@ -77,6 +78,8 @@ class K3CfaBuilder {
   private final ImmutableSetMultimap.Builder<CFANode, K3TagProperty> nodeToTagAnnotations =
       new ImmutableSetMultimap.Builder<>();
   private final ImmutableSetMultimap.Builder<String, K3TagProperty> tagReferencesToAnnotations =
+      ImmutableSetMultimap.builder();
+  private final ImmutableSetMultimap.Builder<CFANode, K3TagReference> nodesToTagReferences =
       ImmutableSetMultimap.builder();
 
   public K3CfaBuilder(
@@ -148,6 +151,7 @@ class K3CfaBuilder {
             logger,
             functionExitNode,
             nodeToTagAnnotations,
+            nodesToTagReferences,
             gotoNodesToLabels,
             labelsToNodes,
             allNodesCollector,
@@ -383,6 +387,9 @@ class K3CfaBuilder {
         globalDeclarations,
         fileNames,
         new K3CfaMetadata(
-            smtLibCommandsBuilder.build(), nodeToTagAnnotations.build(), exportWitness));
+            smtLibCommandsBuilder.build(),
+            nodeToTagAnnotations.build(),
+            nodesToTagReferences.build(),
+            exportWitness));
   }
 }

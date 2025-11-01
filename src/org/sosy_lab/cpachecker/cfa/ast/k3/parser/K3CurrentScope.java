@@ -26,27 +26,37 @@ class K3CurrentScope extends K3Scope {
 
   private PersistentMap<String, K3SimpleDeclaration> globalVariables;
 
+  private PersistentMap<String, K3SimpleDeclaration> globalVariablesQualifiedNames;
+
   private PersistentMap<String, K3ParameterDeclaration> procedureDeclarationVariables;
+
+  private PersistentMap<String, K3ParameterDeclaration> procedureDeclarationVariablesQualifiedNames;
 
   private PersistentMap<String, K3ProcedureDeclaration> procedureDeclarations;
 
   public K3CurrentScope() {
     super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
     globalVariables = PathCopyingPersistentTreeMap.of();
+    globalVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
+    procedureDeclarationVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
     procedureDeclarations = PathCopyingPersistentTreeMap.of();
   }
 
   private K3CurrentScope(
       PersistentMap<String, K3SimpleDeclaration> pGlobalVariables,
+      PersistentMap<String, K3SimpleDeclaration> pGlobalVariablesQualifiedNames,
       PersistentMap<String, K3ParameterDeclaration> pProcedureDeclarationVariables,
+      PersistentMap<String, K3ParameterDeclaration> pProcedureDeclarationVariablesQualifiedNames,
       PersistentMap<String, K3ProcedureDeclaration> pProcedureDeclarations,
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, K3SortDeclaration> pSortDeclarations,
       ImmutableMap.Builder<String, K3FunctionDeclaration> pFunctionDeclarations) {
     super(pLogics, pSortDeclarations, pFunctionDeclarations);
     globalVariables = pGlobalVariables;
+    globalVariablesQualifiedNames = pGlobalVariablesQualifiedNames;
     procedureDeclarationVariables = pProcedureDeclarationVariables;
+    procedureDeclarationVariablesQualifiedNames = pProcedureDeclarationVariablesQualifiedNames;
     procedureDeclarations = pProcedureDeclarations;
   }
 
@@ -54,7 +64,9 @@ class K3CurrentScope extends K3Scope {
   public K3CurrentScope copy() {
     return new K3CurrentScope(
         globalVariables,
+        globalVariablesQualifiedNames,
         procedureDeclarationVariables,
+        procedureDeclarationVariablesQualifiedNames,
         procedureDeclarations,
         logics,
         sortDeclarations,
@@ -71,6 +83,9 @@ class K3CurrentScope extends K3Scope {
       }
       procedureDeclarationVariables =
           procedureDeclarationVariables.putAndCopy(parameter.getName(), parameter);
+      procedureDeclarationVariablesQualifiedNames =
+          procedureDeclarationVariablesQualifiedNames.putAndCopy(
+              parameter.getQualifiedName(), parameter);
     }
   }
 
@@ -93,6 +108,18 @@ class K3CurrentScope extends K3Scope {
   }
 
   @Override
+  public K3SimpleDeclaration getVariableForQualifiedName(String pText) {
+    if (globalVariablesQualifiedNames.containsKey(pText)) {
+      return globalVariablesQualifiedNames.get(pText);
+    } else if (procedureDeclarationVariablesQualifiedNames.containsKey(pText)) {
+      return procedureDeclarationVariablesQualifiedNames.get(pText);
+    } else {
+      throw new IllegalArgumentException(
+          "Variable with name " + pText + " does not exist in the scope.");
+    }
+  }
+
+  @Override
   public void addVariable(K3VariableDeclaration pVariableDeclaration) {
     if (globalVariables.containsKey(pVariableDeclaration.getName())
         || procedureDeclarationVariables.containsKey(pVariableDeclaration.getName())) {
@@ -101,6 +128,9 @@ class K3CurrentScope extends K3Scope {
     }
     globalVariables =
         globalVariables.putAndCopy(pVariableDeclaration.getName(), pVariableDeclaration);
+    globalVariablesQualifiedNames =
+        globalVariablesQualifiedNames.putAndCopy(
+            pVariableDeclaration.getQualifiedName(), pVariableDeclaration);
   }
 
   @Override

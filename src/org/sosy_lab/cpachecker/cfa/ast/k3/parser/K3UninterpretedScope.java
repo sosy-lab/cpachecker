@@ -61,6 +61,11 @@ public class K3UninterpretedScope extends K3Scope {
   }
 
   @Override
+  public K3SimpleDeclaration getVariableForQualifiedName(String pText) {
+    return K3VariableDeclaration.dummyVariableForName(pText);
+  }
+
+  @Override
   public void addVariable(K3VariableDeclaration pDeclaration) {}
 
   @Override

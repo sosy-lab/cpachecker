@@ -21,11 +21,14 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
+import org.sosy_lab.cpachecker.util.k3witnessexport.FormulaToK3Visitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -132,6 +135,11 @@ public class AbstractionFormula implements Serializable {
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+  }
+
+  public K3RelationalTerm asK3Term(K3Scope pScope) {
+    FormulaToK3Visitor visitor = new FormulaToK3Visitor(fMgr, pScope);
+    return fMgr.visit(asFormula(), visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */
