@@ -398,7 +398,7 @@ public class K3ParserTest {
             ImmutableList.of(
                 new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
                 new K3SetOptionCommand(
-                    ":witness-output-channel", "./witness.svlib", FileLocation.DUMMY),
+                    ":witness-output-channel", "./output/witness.svlib", FileLocation.DUMMY),
                 new K3DeclareSortCommand(
                     new K3SortDeclaration(
                         FileLocation.DUMMY,
@@ -533,7 +533,8 @@ public class K3ParserTest {
                                 FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of())),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
-                        ImmutableList.of())),
+                        ImmutableList.of(
+                            new K3TagReference("proc-main", FileLocation.DUMMY, null)))),
                 new K3VerifyCallCommand(
                     mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
                 new K3GetWitnessCommand(FileLocation.DUMMY)));

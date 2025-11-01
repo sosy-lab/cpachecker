@@ -29,6 +29,11 @@ public final class K3DeclareConstCommand implements K3Command, SMTLibCommand {
     return fileLocation;
   }
 
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(declare-const " + variable.getOrigName() + " " + variable.getType() + ")";
+  }
+
   public K3VariableDeclaration getVariable() {
     return variable;
   }
@@ -45,5 +50,15 @@ public final class K3DeclareConstCommand implements K3Command, SMTLibCommand {
     }
 
     return obj instanceof K3DeclareConstCommand other && variable.equals(other.variable);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

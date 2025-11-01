@@ -26,6 +26,11 @@ public final class K3AssertCommand implements K3Command, SMTLibCommand {
     return fileLocation;
   }
 
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(assert " + term.toASTString(pAAstNodeRepresentation) + ")";
+  }
+
   public K3Term getTerm() {
     return term;
   }
@@ -42,5 +47,15 @@ public final class K3AssertCommand implements K3Command, SMTLibCommand {
     }
 
     return obj instanceof K3AssertCommand other && term.equals(other.term);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

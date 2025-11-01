@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -28,6 +30,20 @@ public final class K3DeclareFunCommand implements K3Command, SMTLibCommand {
   }
 
   @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(declare-fun "
+        + functionDeclaration.getOrigName()
+        + " ("
+        + Joiner.on(" ")
+            .join(
+                FluentIterable.from(functionDeclaration.getType().getParameters())
+                    .transform(K3Type::toString))
+        + ") "
+        + functionDeclaration.getType().getReturnType().toString()
+        + ")";
+  }
+
+  @Override
   public int hashCode() {
     return functionDeclaration.hashCode();
   }
@@ -44,5 +60,15 @@ public final class K3DeclareFunCommand implements K3Command, SMTLibCommand {
 
   public K3FunctionDeclaration getFunctionDeclaration() {
     return functionDeclaration;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

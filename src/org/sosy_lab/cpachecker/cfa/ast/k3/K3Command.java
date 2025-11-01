@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serializable;
 
-public sealed interface K3Command extends Serializable
+public sealed interface K3Command extends Serializable, K3AstNode
     permits K3AnnotateTagCommand,
         K3AssertCommand,
         K3DeclareConstCommand,
@@ -21,4 +21,13 @@ public sealed interface K3Command extends Serializable
         K3SetLogicCommand,
         K3SetOptionCommand,
         K3VariableDeclarationCommand,
-        K3VerifyCallCommand {}
+        K3VerifyCallCommand {
+
+  <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X;
+
+  @Override
+  // By default, all commands are already parenthesized in their AST string representation
+  default String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
+  }
+}

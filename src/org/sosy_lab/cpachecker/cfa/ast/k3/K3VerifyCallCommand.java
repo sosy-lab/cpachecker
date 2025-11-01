@@ -55,4 +55,26 @@ public final class K3VerifyCallCommand implements K3Command {
   public FileLocation getFileLocation() {
     return fileLocation;
   }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(verify-call "
+        + procedureDeclaration.getName()
+        + " ("
+        + terms.stream()
+            .map(t -> t.toASTString(pAAstNodeRepresentation))
+            .reduce((t1, t2) -> t1 + " " + t2)
+            .orElse("")
+        + "))";
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
 }

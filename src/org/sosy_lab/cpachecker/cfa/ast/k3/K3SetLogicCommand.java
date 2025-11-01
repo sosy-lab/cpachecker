@@ -26,6 +26,11 @@ public final class K3SetLogicCommand implements K3Command, SMTLibCommand {
     return fileLocation;
   }
 
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(set-logic " + logic + ")";
+  }
+
   public SmtLibLogic getLogic() {
     return logic;
   }
@@ -42,5 +47,15 @@ public final class K3SetLogicCommand implements K3Command, SMTLibCommand {
     }
 
     return obj instanceof K3SetLogicCommand other && logic.equals(other.logic);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

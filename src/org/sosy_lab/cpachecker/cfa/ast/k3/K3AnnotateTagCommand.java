@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -39,6 +41,15 @@ public final class K3AnnotateTagCommand implements K3Command {
   }
 
   @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(annotate-tag "
+        + tagName
+        + " "
+        + Joiner.on(" ").join(FluentIterable.from(tags).transform(K3TagProperty::toASTString))
+        + ")";
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 1;
@@ -55,5 +66,15 @@ public final class K3AnnotateTagCommand implements K3Command {
     return pO instanceof K3AnnotateTagCommand other
         && tagName.equals(other.tagName)
         && tags.equals(other.tags);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

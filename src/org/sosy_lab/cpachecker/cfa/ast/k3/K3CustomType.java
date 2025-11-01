@@ -29,6 +29,10 @@ public final class K3CustomType implements K3Type {
     return type;
   }
 
+  public int getArity() {
+    return arity;
+  }
+
   @Override
   public boolean equals(Object pO) {
     if (this == pO) {

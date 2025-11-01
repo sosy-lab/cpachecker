@@ -26,6 +26,15 @@ public final class K3DeclareSortCommand implements K3Command, SMTLibCommand {
     return fileLocation;
   }
 
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "(declare-sort "
+        + typeDelaration.getType().getType()
+        + " "
+        + typeDelaration.getType().getArity()
+        + ")";
+  }
+
   public K3SortDeclaration getTypeDelaration() {
     return typeDelaration;
   }
@@ -42,5 +51,15 @@ public final class K3DeclareSortCommand implements K3Command, SMTLibCommand {
     }
 
     return obj instanceof K3DeclareSortCommand other && typeDelaration.equals(other.typeDelaration);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3CommandVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

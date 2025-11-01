@@ -19,7 +19,7 @@ public final class K3SortDeclaration extends AVariableDeclaration implements K3D
   public K3SortDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
-      K3Type pType,
+      K3CustomType pType,
       String pName,
       String pOrigName,
       String pQualifiedName) {
@@ -39,7 +39,7 @@ public final class K3SortDeclaration extends AVariableDeclaration implements K3D
   }
 
   @Override
-  public K3Type getType() {
-    return (K3Type) super.getType();
+  public K3CustomType getType() {
+    return (K3CustomType) super.getType();
   }
 }
