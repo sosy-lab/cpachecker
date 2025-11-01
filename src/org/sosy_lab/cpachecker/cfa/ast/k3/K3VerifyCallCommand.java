@@ -52,6 +52,7 @@ public final class K3VerifyCallCommand implements K3Command {
     return 31 * procedureDeclaration.hashCode() + terms.hashCode();
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

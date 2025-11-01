@@ -36,6 +36,7 @@ public final class K3AnnotateTagCommand implements K3Command {
     return tags;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

@@ -45,6 +45,7 @@ public final class K3VariableDeclarationCommand implements K3Command {
     return Objects.hashCode(variableDeclaration);
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

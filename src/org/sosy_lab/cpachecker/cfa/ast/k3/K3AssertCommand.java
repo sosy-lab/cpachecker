@@ -22,6 +22,7 @@ public final class K3AssertCommand implements K3Command, SMTLibCommand {
     fileLocation = pFileLocation;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

@@ -33,6 +33,7 @@ public final class K3GetWitnessCommand implements K3Command {
     return pO instanceof K3GetWitnessCommand;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

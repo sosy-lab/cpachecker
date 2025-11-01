@@ -25,6 +25,7 @@ public final class K3DeclareConstCommand implements K3Command, SMTLibCommand {
     fileLocation = pFileLocation;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

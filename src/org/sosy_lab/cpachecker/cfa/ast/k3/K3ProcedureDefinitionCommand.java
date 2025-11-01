@@ -52,6 +52,7 @@ public final class K3ProcedureDefinitionCommand implements K3Command {
     return result;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }
