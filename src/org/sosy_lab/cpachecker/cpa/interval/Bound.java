@@ -150,12 +150,12 @@ public record Bound(Set<NormalFormExpression> expressions) {
 
   public boolean isGreaterOrEqualThan(NormalFormExpression other, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return compare(other, visitor, (u, v) -> u.isGreaterOrEqualThan(v));
+    return compare(other, visitor, (u, v) -> u.isGreaterOrEqualThan(v) || u.equals(v));
   }
 
   public boolean isEqualTo(NormalFormExpression other, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return compare(other, visitor, (u, v) -> u.isEqualTo(v));
+    return compare(other, visitor, (u, v) -> u.isEqualTo(v) || u.equals(v));
   }
 
   private boolean compare(

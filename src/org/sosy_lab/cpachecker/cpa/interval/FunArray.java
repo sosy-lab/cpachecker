@@ -69,6 +69,12 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         "Number of emptiness values does not match up with count of bound count. Needs to be"
             + "exactly one less.");
 
+    // Check if there are duplicate expressions in bounds
+    var expressions = bounds.stream().flatMap(e -> e.expressions().stream()).toList();
+    if (expressions.size() != expressions.stream().distinct().count()) {
+      throw new IllegalArgumentException("Given list of bounds contains duplicate expressions: %s".formatted(bounds));
+    }
+
     this.bounds = ImmutableList.copyOf(bounds);
     this.values = ImmutableList.copyOf(values);
     this.emptiness = ImmutableList.copyOf(emptiness);
