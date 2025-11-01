@@ -138,7 +138,7 @@ public class ArgToK3CorrectnessWitnessExport {
         pTag.getTagName(),
         ImmutableList.of(
             new K3EnsuresTag(
-                K3TermBuilder.booleanDisjunction(ensuresTerms.build().asList()),
+                K3TermBuilder.booleanConjunction(ensuresTerms.build().asList()),
                 FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
