@@ -849,9 +849,6 @@ bmc.simplifyBooleanFormula = false
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
-# Threshold of maximum acceptable dominance of one category
-categoryRedundancyThreshold = 0.8
-
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -2460,6 +2457,32 @@ cpa.predicate.defaultArrayLength = 20
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
 
+# Acceptable number of interpolants generated per refinement for
+# PredicateDelegatingRefiner heuristic.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.acceptableInterpolantRate = 8.0
+
+# The maximum acceptable ratio of the number of abstraction locations to the
+# number of refinements before this heuristic should stop in favor of other
+# diagnostic heuristics.
+cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio = 3.0
+
+# The maximum number of abstraction locations discovered before this
+# heuristic should stop in favor of other diagnostic heuristics.
+cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationThreshold = 3
+
+# The maximum number of refinement iterations allowed before this heuristic
+# should stop in favor of other diagnostic heuristics.
+cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.refinementThreshold = 10
+
+# Threshold of maximum acceptable dominance of one category
+cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.categoryRedundancyThreshold = 0.8
+
+# Path to the DSL rules file
+cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.dslRulePath = no default value
+
+# Total size of patterns to trigger a stop condition check
+cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.patternSizeTrigger = 6000
+
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
@@ -2740,7 +2763,7 @@ cpa.predicate.pseudoExistQE.useUPD = true
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
 # Acceptable redundancy percentage for added predicates for
-# PredicateDelegatingRefiner heuristic (0.0 - 1.0)
+# PredicateDelegatingRefiner heuristic (0.0 - 1.0).
 cpa.predicate.refinement.acceptableRedundancyThreshold = 0.8
 
 # use only the atoms from the interpolantsas predicates, and not the whole
@@ -2755,15 +2778,6 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
-
-# Acceptable number of interpolants generated per refinement for
-# PredicateDelegatingRefiner heuristic
-cpa.predicate.refinement.defaultInterpolantRate = 8.0
-
-# Ratio of the size of the reached set to the number of refinements. Decides
-# how many times the PredicateCPARefiner should run before diagnostic
-# heuristics should be applied
-cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded = 30
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
@@ -2797,7 +2811,7 @@ cpa.predicate.refinement.graphblockformulastrategy = false
 # use when usePredicateDelegatingRefiner = true.
 cpa.predicate.refinement.heuristicRefinerPairs = [
           "STATIC:STATIC",
-          "DEFAULT_N_TIMES:DEFAULT",
+          "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT"]
 
@@ -4352,9 +4366,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
-# Path to the DSL rules file
-dslRulePath = no default value
-
 # output file for visualizing message exchange
 dss.logging.reportFiles = "block_analysis/messages"
 
@@ -4794,9 +4805,6 @@ parser.useClang = false
 # line numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
-
-# Total size of patterns to trigger a stop condition check
-patternSizeTrigger = 6000
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR

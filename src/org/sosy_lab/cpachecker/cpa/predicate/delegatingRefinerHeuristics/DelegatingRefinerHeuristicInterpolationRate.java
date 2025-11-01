@@ -11,8 +11,13 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -29,31 +34,42 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * number of interpolants/predicates produced per refinement remains below the configured threshold.
  * If the interpolant rate exceeds the threshold, the heuristic returns {@code false}.
  */
+@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.InterpolationRate")
 public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
-  private final double acceptableInterpolantRate;
+
   private double currentTotalInterpolantRate;
+
+  @Option(
+      secure = true,
+      name = "acceptableInterpolantRate",
+      description =
+          "Acceptable number of interpolants generated per refinement for"
+              + " PredicateDelegatingRefiner heuristic.")
+  private double acceptableInterpolantRate = 8.0;
 
   /**
    * Constructs the heuristic monitoring interpolation rate.
    *
+   * @param pConfig configuration used to inject the configurable thresholds
    * @param pLogger logger for diagnostic output
    * @param pFormulaManager FormulaManager needed to filter out trivial predicate, such as {@code
    *     true}
-   * @param pInterpolantRate maximum allowed rate of interpolants generated per refinement
    * @throws InvalidConfigurationException if the rate provided is negative
    */
   public DelegatingRefinerHeuristicInterpolationRate(
-      FormulaManagerView pFormulaManager, final LogManager pLogger, double pInterpolantRate)
+      FormulaManagerView pFormulaManager, final LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     this.formulaManager = pFormulaManager;
-    this.acceptableInterpolantRate = pInterpolantRate;
     this.logger = pLogger;
-    if (pInterpolantRate < 0.0) {
+    pConfig.inject(this);
+    if (acceptableInterpolantRate < 0.0) {
       throw new InvalidConfigurationException(
-          "Acceptable number of interpolants per refinement must not be negative");
+          "Acceptable number of interpolants per refinement used in"
+              + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
     }
+
     currentTotalInterpolantRate = 0.0;
   }
 
@@ -71,11 +87,9 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
     int numberOfRefinements = pDeltas.size();
-    ImmutableList.Builder<BooleanFormula> interpolantsBuilder = ImmutableList.builder();
-    ImmutableList<BooleanFormula> numberInterpolants;
+    Set<BooleanFormula> numberInterpolants = new HashSet<>();
 
     if (numberOfRefinements > 0) {
-
       for (ReachedSetDelta delta : pDeltas) {
         for (AbstractState pState : delta.addedStates()) {
           PredicateAbstractState predState =
@@ -88,13 +102,11 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
                 && !formulaManager
                     .getBooleanFormulaManager()
                     .isFalse(predState.getAbstractionFormula().asFormula()))) {
-              interpolantsBuilder.add(predState.getAbstractionFormula().asFormula());
+              numberInterpolants.add(predState.getAbstractionFormula().asFormula());
             }
           }
         }
       }
-
-      numberInterpolants = interpolantsBuilder.build();
 
       currentTotalInterpolantRate =
           (double) numberInterpolants.size() / (double) numberOfRefinements;

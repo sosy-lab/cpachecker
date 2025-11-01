@@ -55,7 +55,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *   <li>Overall pattern redundancy exceeds beyond the configured threshold.
  * </ul>
  */
-@Options
+@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates")
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
   private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
@@ -294,9 +294,11 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       logger.logf(
           Level.FINE,
           "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
-              + " pattern %s is growing, total pattern size is at %d",
+              + " pattern %s is growing, total pattern size is at %d. Heuristic %s is no longer"
+              + " applicable.",
           pCurrentDominantPattern,
-          pPatternSize);
+          pPatternSize,
+          this.getClass().getSimpleName());
       return true;
     }
     return false;
@@ -311,9 +313,11 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
           Level.FINE,
-          "Stop condition isCategoryDominant: Category %s is dominant at %.2f",
+          "Stop condition isCategoryDominant: Category %s is dominant at %.2f. Heuristic %s is no"
+              + " longer applicable.",
           currentDominantCategory,
-          maxRedundancyDetectedCategories);
+          maxRedundancyDetectedCategories,
+          this.getClass().getSimpleName());
       return true;
     }
     return false;
@@ -326,9 +330,10 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       logger.logf(
           Level.FINE,
           " Stop condition isPatternRedundancyAboveThreshold: Redundancy in patterns too high: %.2f"
-              + " for threshold %.2f.",
+              + " for threshold %.2f. Heuristic %s is no longer applicable.",
           maxRedundancyDetectedPatterns,
-          redundancyThreshold);
+          redundancyThreshold,
+          this.getClass().getSimpleName());
       return true;
     }
     return false;

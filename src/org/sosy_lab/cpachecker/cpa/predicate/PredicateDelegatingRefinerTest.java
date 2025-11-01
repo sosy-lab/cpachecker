@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
@@ -102,9 +102,13 @@ public class PredicateDelegatingRefinerTest {
   public void setUpDefaultRefinementIndividualRuns() throws Exception {
     Configuration pDefaultIndividualRunsConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "500")
+            .setOption(
+                "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
+                "5.0")
             .build();
+
     PredicateCPARefinerFactory pDefaultIndividualRunsRefinerFactory =
         setUpRefinerFactory(pDefaultIndividualRunsConfig);
 
@@ -113,9 +117,9 @@ public class PredicateDelegatingRefinerTest {
             setUpRefinerMap(pDefaultIndividualRunsRefinerFactory));
 
     assertThat(
-            ((DelegatingRefinerHeuristicRunNTimes) pRefinerRecords.getFirst().pHeuristic())
-                .getReachedSetRefinementRatio())
-        .isEqualTo(500);
+            ((DelegatingRefinerHeuristicReachedSetRatio) pRefinerRecords.getFirst().pHeuristic())
+                .getAbstractionLocationRefinementRatio())
+        .isEqualTo(5.0);
   }
 
   /**
@@ -226,7 +230,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "STATIC:STATIC, DEFAULT_N_TIMES:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
+                "STATIC:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceCommaConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceCommaConfig);
@@ -238,7 +242,7 @@ public class PredicateDelegatingRefinerTest {
     assertThat(pRefinerRecords.getFirst().pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
     assertThat(pRefinerRecords.get(1).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunNTimes.class);
+        .isInstanceOf(DelegatingRefinerHeuristicReachedSetRatio.class);
     assertThat(pRefinerRecords.get(2).pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
@@ -257,7 +261,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "STATIC:STATIC;DEFAULT_N_TIMES:DEFAULT")
+                "STATIC:STATIC;REACHED_SET_RATIO:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreOtherSeparatorsRefinerFactory =
         setUpRefinerFactory(pOtherSeparatorsConfig);
@@ -377,8 +381,11 @@ public class PredicateDelegatingRefinerTest {
   public void checkNegativeFixedRuns() throws Exception {
     Configuration pNegativeFixedRunsConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "-10")
+            .setOption(
+                "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
+                "-10")
             .build();
     PredicateCPARefinerFactory pNegativeFixedRunsFactory =
         setUpRefinerFactory(pNegativeFixedRunsConfig);
@@ -388,21 +395,6 @@ public class PredicateDelegatingRefinerTest {
         () ->
             pNegativeFixedRunsFactory.createDelegatingRefinerConfig(
                 setUpRefinerMap(pNegativeFixedRunsFactory)));
-  }
-
-  /**
-   * This test checks if DelegatingRefiner throws an exception for non integer command-line input
-   * for the reached set/refinement number ratio for the run n-times heuristic.
-   */
-  @Test
-  public void checkDoubleFixedRuns() throws Exception {
-    Configuration pDoubleFixedRunsConfig =
-        TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.defaultReachedSetRefinementRatioExceeded", "100.0")
-            .build();
-    assertThrows(
-        InvalidConfigurationException.class, () -> setUpRefinerFactory(pDoubleFixedRunsConfig));
   }
 
   /**

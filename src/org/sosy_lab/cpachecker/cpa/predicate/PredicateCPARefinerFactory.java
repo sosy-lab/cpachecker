@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
@@ -86,30 +86,15 @@ public final class PredicateCPARefinerFactory {
   private ImmutableList<String> heuristicRefinerPairs =
       ImmutableList.of(
           "STATIC:STATIC",
-          "DEFAULT_N_TIMES:DEFAULT",
+          "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT");
 
   @Option(
       secure = true,
       description =
-          "Ratio of the size of the reached set to the number of refinements. Decides how many"
-              + " times the PredicateCPARefiner should run before diagnostic heuristics should be"
-              + " applied")
-  private int defaultReachedSetRefinementRatioExceeded = 30;
-
-  @Option(
-      secure = true,
-      description =
-          "Acceptable number of interpolants generated per refinement for"
-              + " PredicateDelegatingRefiner heuristic")
-  private double defaultInterpolantRate = 8.0;
-
-  @Option(
-      secure = true,
-      description =
           "Acceptable redundancy percentage for added predicates for PredicateDelegatingRefiner"
-              + " heuristic (0.0 - 1.0)")
+              + " heuristic (0.0 - 1.0).")
   private double acceptableRedundancyThreshold = 0.8;
 
   private final PredicateCPA predicateCpa;
@@ -303,7 +288,7 @@ public final class PredicateCPARefinerFactory {
         throw new InvalidConfigurationException(
             "Invalid heuristic-refiner format: "
                 + heuristicRefinerPair
-                + ". Please use this format: STATIC:STATIC,DEFAULT_N_TIMES:DEFAULT.");
+                + ". Please use this format: STATIC:STATIC,REACHED_SET_RATIO:DEFAULT.");
       }
 
       DelegatingRefinerHeuristicType pHeuristicName;
@@ -340,13 +325,14 @@ public final class PredicateCPARefinerFactory {
       DelegatingRefinerHeuristic pHeuristic =
           switch (pHeuristicName) {
             case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
-            case DEFAULT_N_TIMES ->
-                new DelegatingRefinerHeuristicRunNTimes(defaultReachedSetRefinementRatioExceeded);
+            case REACHED_SET_RATIO ->
+                new DelegatingRefinerHeuristicReachedSetRatio(
+                    predicateCpa.getConfiguration(), predicateCpa.getLogger());
             case INTERPOLATION_RATE ->
                 new DelegatingRefinerHeuristicInterpolationRate(
                     predicateCpa.getSolver().getFormulaManager(),
                     predicateCpa.getLogger(),
-                    defaultInterpolantRate);
+                    predicateCpa.getConfiguration());
             case REDUNDANT_PREDICATES ->
                 new DelegatingRefinerHeuristicRedundantPredicates(
                     predicateCpa.getConfiguration(),
