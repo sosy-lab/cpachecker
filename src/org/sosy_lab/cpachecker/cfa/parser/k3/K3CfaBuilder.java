@@ -193,8 +193,7 @@ class K3CfaBuilder {
     return Pair.of(functionEntryNode, allNodesCollector.build());
   }
 
-  public ParseResult buildCfaFromScript(K3Script script)
-      throws K3ParserException, InterruptedException {
+  public ParseResult buildCfaFromScript(K3Script script) throws K3ParserException {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 

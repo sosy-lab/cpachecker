@@ -539,7 +539,7 @@ public class K3ParserTest {
                     mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
                 new K3GetWitnessCommand(FileLocation.DUMMY)));
 
-    Path filePath = Path.of(examplesPath(), "loop-simple.smt2");
+    Path filePath = Path.of(examplesPath(), "loop-simple-safe.smt2");
 
     testScriptParsing(filePath, expectedOutput);
   }

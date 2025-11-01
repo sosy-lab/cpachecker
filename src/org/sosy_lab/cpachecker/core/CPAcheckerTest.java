@@ -54,8 +54,9 @@ public class CPAcheckerTest {
   private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
 
   private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.smt2";
-  private static final String SAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple.smt2";
+  private static final String SAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-safe.smt2";
   private static final String UNSAFE_PROGRAM_K3 = "test/programs/k3/simple-incorrect.smt2";
+  private static final String UNSAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-unsafe.smt2";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -146,6 +147,45 @@ public class CPAcheckerTest {
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testWitnessExportForUnsafeK3Program() throws Exception {
+    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
+    TestResults result = CPATestRunner.run(config, UNSAFE_LOOP_PROGRAM_K3);
+    result.getCheckerResult().printStatistics(statisticsStream);
+    result.getCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+
+    Optional<K3CfaMetadata> k3CfaMetadataOptional =
+        result.getCheckerResult().getCfa().getMetadata().getK3CfaMetadata();
+
+    Verify.verify(
+        k3CfaMetadataOptional.isPresent(),
+        "K3 CFA Metadata should be present for every K3 program");
+    K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
+
+    Verify.verify(
+        k3CfaMetadata.exportWitness(),
+        "For the safe K3 program '"
+            + SAFE_LOOP_PROGRAM_K3
+            + "', the witness export should be enabled");
+
+    Optional<Path> witnessPath = k3CfaMetadata.getExportWitnessPath();
+    Verify.verify(
+        witnessPath.isPresent(),
+        "For the safe K3 program '"
+            + SAFE_LOOP_PROGRAM_K3
+            + "', the witness path should be present after exporting the witness");
+
+    // Read entire file content as a single string (UTF-8)
+    // This is safe to do, since the witness files are small.
+    String content = Files.readString(witnessPath.orElseThrow());
+    // TODO: Check for more specific content
+
+    // TODO: Should we cleanup after the test by deleting the witness file?
+    //      The other tests do not do this either, so for consistency we leave it as is for now.
   }
 
   @Test
