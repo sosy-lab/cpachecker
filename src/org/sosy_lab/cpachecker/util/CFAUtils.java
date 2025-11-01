@@ -100,6 +100,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
@@ -107,8 +109,12 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
@@ -120,14 +126,19 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -1208,6 +1219,76 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> accept(K3InvariantTag pK3InvariantTag) throws NoException {
       return ImmutableList.of(pK3InvariantTag.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3AnnotateTagCommand pK3AnnotateTagCommand)
+        throws NoException {
+      return pK3AnnotateTagCommand.getTags();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3AssertCommand pK3AssertCommand) throws NoException {
+      return ImmutableList.of(pK3AssertCommand.getTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3DeclareConstCommand pK3DeclareConstCommand)
+        throws NoException {
+      return ImmutableList.of(pK3DeclareConstCommand.getVariable());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3DeclareFunCommand pK3DeclareFunCommand)
+        throws NoException {
+      return ImmutableList.of(pK3DeclareFunCommand.getFunctionDeclaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3DeclareSortCommand pK3DeclareSortCommand)
+        throws NoException {
+      return ImmutableList.of(pK3DeclareSortCommand.getTypeDelaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3GetWitnessCommand pK3GetWitnessCommand)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        K3ProcedureDefinitionCommand pK3ProcedureDefinitionCommand) throws NoException {
+      return ImmutableList.of(
+          pK3ProcedureDefinitionCommand.getProcedureDeclaration(),
+          pK3ProcedureDefinitionCommand.getBody());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3SetLogicCommand pK3SetLogicCommand)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3SetOptionCommand pK3SetOptionCommand)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        K3VariableDeclarationCommand pK3VariableDeclarationCommand) throws NoException {
+      return ImmutableList.of(pK3VariableDeclarationCommand.getVariableDeclaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3VerifyCallCommand pK3VerifyCallCommand)
+        throws NoException {
+      return FluentIterable.concat(
+              ImmutableList.of(pK3VerifyCallCommand.getProcedureDeclaration()),
+              pK3VerifyCallCommand.getTerms())
+          .toList();
     }
   }
 }

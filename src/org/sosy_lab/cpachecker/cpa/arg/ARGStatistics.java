@@ -12,7 +12,9 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -30,7 +32,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -46,6 +50,9 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -70,6 +77,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.k3witnessexport.ArgToK3CorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
@@ -130,6 +138,20 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
+
+  @Option(
+      secure = true,
+      name = "k3CorrectnessWitness",
+      description =
+          "The file into which to write the correctness "
+              + "witness for K3 programs. If set to 'null', "
+              + "no witness is exported. Be aware that one "
+              + "can also set this option in K3 programs, "
+              + "instead of in CPAchecker's configuration."
+              + "In case this happens, the option "
+              + "will be overriden, and this option ignored.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path k3CorrectnessWitnessPath = null;
 
   // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
   // deactivate it in the configs, since when it is 'null' the default value is used, which is not
@@ -227,6 +249,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final ArgToK3CorrectnessWitnessExport argToK3WitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -266,6 +289,24 @@ public class ARGStatistics implements Statistics {
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
+    }
+
+    Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
+    if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportWitness()) {
+      argToK3WitnessWriter =
+          new ArgToK3CorrectnessWitnessExport(config, pCFA, pSpecification, pLogger);
+      List<K3SetOptionCommand> witnessOutputChannelCommands =
+          FluentIterable.from(k3Metadata.orElseThrow().smtLibCommands())
+              .filter(K3SetOptionCommand.class)
+              .filter(
+                  command ->
+                      command.getOption().equals(K3SetOptionCommand.OPTION_WITNESS_OUTPUT_CHANNEL))
+              .toList();
+      if (!witnessOutputChannelCommands.isEmpty()) {
+        k3CorrectnessWitnessPath = Path.of(witnessOutputChannelCommands.getLast().getValue());
+      }
+    } else {
+      argToK3WitnessWriter = null;
     }
 
     if (counterexampleOptions.disabledCompletely()) {
@@ -432,8 +473,8 @@ public class ARGStatistics implements Statistics {
     if (pResult == Result.TRUE
         || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+          if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
               argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
@@ -448,6 +489,28 @@ public class ARGStatistics implements Statistics {
           logger.log(
               Level.WARNING,
               "Cannot export correctness witness in YAML format for languages other than C.");
+        }
+
+        // Now export the correctness witnesses for K3 program
+        if (argToK3WitnessWriter != null && k3CorrectnessWitnessPath != null) {
+          List<K3AnnotateTagCommand> witnessCommands =
+              argToK3WitnessWriter.generateWitnessCommands(rootState, pReached);
+          String witnessContent =
+              Joiner.on(System.lineSeparator())
+                  .join(
+                      FluentIterable.from(witnessCommands)
+                          .transform(K3AnnotateTagCommand::toASTString));
+          try (Writer writer =
+              IO.openOutputFile(k3CorrectnessWitnessPath, Charset.defaultCharset())) {
+            writer.write(witnessContent);
+          } catch (IOException e) {
+            logger.logUserException(
+                Level.WARNING,
+                e,
+                "Could not write the K3 correctness witness to file "
+                    + k3CorrectnessWitnessPath
+                    + ". Therefore no K3 witness will be exported.");
+          }
         }
 
         if (proofWitness != null || proofWitnessDot != null) {

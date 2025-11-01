@@ -17,12 +17,12 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.SMTLibCommand;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record K3CfaMetadata(
-    List<SMTLibCommand> setLogicCommands,
+    List<SMTLibCommand> smtLibCommands,
     ImmutableSetMultimap<CFANode, K3TagProperty> tagAnnotations,
     boolean exportWitness) {
 
   public K3CfaMetadata {
-    checkNotNull(setLogicCommands);
+    checkNotNull(smtLibCommands);
     checkNotNull(tagAnnotations);
   }
 }
