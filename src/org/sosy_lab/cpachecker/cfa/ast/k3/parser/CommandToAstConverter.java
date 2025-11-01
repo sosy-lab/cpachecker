@@ -244,9 +244,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     Cmd_declareFunContext functionDecContext = pContext.cmd_declareFun();
     String functionName = functionDecContext.symbol().getText();
     List<K3Type> allTypes =
-        FluentIterable.from(functionDecContext.sort())
-            .transform(sort -> sortToAstTypeConverter.visit(sort))
-            .toList();
+        transformedImmutableListCopy(
+            functionDecContext.sort(), sort -> sortToAstTypeConverter.visit(sort));
     K3Type returnType = allTypes.getLast();
     List<K3Type> parameterTypes = allTypes.subList(0, allTypes.size() - 1);
 

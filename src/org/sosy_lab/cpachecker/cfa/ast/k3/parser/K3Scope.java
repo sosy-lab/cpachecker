@@ -82,7 +82,8 @@ public abstract class K3Scope {
     }
 
     return Objects.requireNonNull(
-            sortDeclarations.build().get(pName), "Sort declaration '" + pName + "' not found.")
+            sortDeclarations.buildOrThrow().get(pName),
+            "Sort declaration '" + pName + "' not found.")
         .getType();
   }
 
@@ -92,6 +93,7 @@ public abstract class K3Scope {
 
   K3FunctionDeclaration getFunctionDeclaration(String pName) {
     return Objects.requireNonNull(
-        functionDeclarations.build().get(pName), "Function declaration '" + pName + "' not found.");
+        functionDeclarations.buildOrThrow().get(pName),
+        "Function declaration '" + pName + "' not found.");
   }
 }

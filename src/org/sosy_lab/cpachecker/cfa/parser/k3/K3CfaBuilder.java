@@ -168,8 +168,8 @@ class K3CfaBuilder {
     }
 
     // Now generate the connections for the goto labels
-    Map<String, CFANode> labelsToNodesBuilt = labelsToNodes.build();
-    Map<CFANode, String> gotoNodesToLabelBuilt = gotoNodesToLabels.build();
+    Map<String, CFANode> labelsToNodesBuilt = labelsToNodes.buildOrThrow();
+    Map<CFANode, String> gotoNodesToLabelBuilt = gotoNodesToLabels.buildOrThrow();
     for (Map.Entry<CFANode, String> gotoNodeToLabel : gotoNodesToLabelBuilt.entrySet()) {
       String label = gotoNodeToLabel.getValue();
       CFANode gotoNode = gotoNodeToLabel.getKey();

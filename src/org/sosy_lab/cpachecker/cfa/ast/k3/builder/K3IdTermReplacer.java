@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.builder;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
@@ -53,17 +54,14 @@ public class K3IdTermReplacer implements K3TermVisitor<K3FinalRelationalTerm, No
     }
 
     List<K3FinalRelationalTerm> argsReplacedTerms =
-        FluentIterable.from(pK3SymbolApplicationTerm.getTerms())
-            .transform(t -> t.accept(this))
-            .toList();
+        transformedImmutableListCopy(pK3SymbolApplicationTerm.getTerms(), t -> t.accept(this));
     if (argsReplacedTerms.stream().anyMatch(t -> !(t instanceof K3IdTerm))) {
       throw new IllegalStateException(
           "Using a non-id term as argument in K3SymbolApplicationTerm is not supported: "
               + argsReplacedTerms);
     }
 
-    List<K3Term> argsAsTerms =
-        FluentIterable.from(argsReplacedTerms).transform(t -> (K3Term) t).toList();
+    List<K3Term> argsAsTerms = transformedImmutableListCopy(argsReplacedTerms, t -> (K3Term) t);
 
     return new K3SymbolApplicationTerm(pIdTerm, argsAsTerms, FileLocation.DUMMY);
   }
@@ -91,9 +89,8 @@ public class K3IdTermReplacer implements K3TermVisitor<K3FinalRelationalTerm, No
     }
 
     List<K3FinalRelationalTerm> argsReplacedTerms =
-        FluentIterable.from(pK3SymbolApplicationRelationalTerm.getTerms())
-            .transform(t -> t.accept(this))
-            .toList();
+        transformedImmutableListCopy(
+            pK3SymbolApplicationRelationalTerm.getTerms(), t -> t.accept(this));
 
     return new K3SymbolApplicationRelationalTerm(pIdTerm, argsReplacedTerms, FileLocation.DUMMY);
   }

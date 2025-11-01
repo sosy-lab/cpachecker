@@ -39,7 +39,7 @@ public final class K3DeclareFunCommand implements K3Command, SMTLibCommand {
                 FluentIterable.from(functionDeclaration.getType().getParameters())
                     .transform(K3Type::toString))
         + ") "
-        + functionDeclaration.getType().getReturnType().toString()
+        + functionDeclaration.getType().getReturnType()
         + ")";
   }
 
