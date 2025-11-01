@@ -129,7 +129,7 @@ class K3CfaBuilder {
   }
 
   private Pair<FunctionEntryNode, Set<CFANode>> parseProcedureDefinition(
-      K3ProcedureDefinitionCommand pCommand) throws K3ParserException, InterruptedException {
+      K3ProcedureDefinitionCommand pCommand) throws K3ParserException {
     K3ProcedureDeclaration procedureDeclaration = pCommand.getProcedureDeclaration();
 
     ImmutableMap.Builder<CFANode, String> gotoNodesToLabels = ImmutableMap.builder();

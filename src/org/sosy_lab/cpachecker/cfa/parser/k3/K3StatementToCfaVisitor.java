@@ -12,7 +12,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -57,7 +56,7 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
 
   private Optional<CFANode> outermostLoopExitNode = Optional.empty();
 
-  private final Builder<CFANode, K3TagReference> nodeToTagReferences;
+  private final ImmutableSetMultimap.Builder<CFANode, K3TagReference> nodeToTagReferences;
   private final ImmutableMap.Builder<CFANode, String> gotoNodesToLabels;
   private final ImmutableMap.Builder<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;

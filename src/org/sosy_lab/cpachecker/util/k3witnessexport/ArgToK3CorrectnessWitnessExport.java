@@ -19,6 +19,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -42,28 +43,26 @@ import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils;
 import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.FunctionEntryExitPair;
 
+@Options(prefix = "k3.witnessExport")
 public class ArgToK3CorrectnessWitnessExport {
   private final K3CfaMetadata k3Metadata;
-  private final Specification specification;
+
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
-  public ArgToK3CorrectnessWitnessExport(
-      Configuration pConfig, CFA pCFA, Specification pSpecification, LogManager pLogger)
+  public ArgToK3CorrectnessWitnessExport(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {
-    // pConfig.inject(this);
+    pConfig.inject(this);
     Verify.verify(
         pCFA.getMetadata().getK3CfaMetadata().isPresent(),
         "K3 metadata must be present in CFA in order to export a K3 witness.");
     k3Metadata = pCFA.getMetadata().getK3CfaMetadata().orElseThrow();
-    specification = pSpecification;
     logger = pLogger;
   }
 
@@ -155,8 +154,7 @@ public class ArgToK3CorrectnessWitnessExport {
         FileLocation.DUMMY);
   }
 
-  public List<K3AnnotateTagCommand> generateWitnessCommands(
-      ARGState pRootState, UnmodifiableReachedSet pReached)
+  public List<K3AnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
       throws ReportingMethodNotImplementedException, InterruptedException {
     CollectedARGStates relevantStates = ArgAnalysisUtils.getRelevantStates(pRootState);
 

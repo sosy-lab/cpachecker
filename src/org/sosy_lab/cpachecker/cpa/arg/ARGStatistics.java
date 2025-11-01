@@ -292,8 +292,7 @@ public class ARGStatistics implements Statistics {
 
     Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
     if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportWitness()) {
-      argToK3WitnessWriter =
-          new ArgToK3CorrectnessWitnessExport(config, pCFA, pSpecification, pLogger);
+      argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(config, pCFA, pLogger);
       Optional<Path> witnessOutputChannel = k3Metadata.orElseThrow().getExportWitnessPath();
       if (witnessOutputChannel.isPresent()) {
         k3CorrectnessWitnessPath = witnessOutputChannel.orElseThrow();
@@ -488,7 +487,7 @@ public class ARGStatistics implements Statistics {
         if (argToK3WitnessWriter != null && k3CorrectnessWitnessPath != null) {
           List<K3AnnotateTagCommand> witnessCommands = null;
           try {
-            witnessCommands = argToK3WitnessWriter.generateWitnessCommands(rootState, pReached);
+            witnessCommands = argToK3WitnessWriter.generateWitnessCommands(rootState);
           } catch (ReportingMethodNotImplementedException e) {
             logger.logUserException(Level.WARNING, e, "Could not export K3 correctness witness.");
           }
