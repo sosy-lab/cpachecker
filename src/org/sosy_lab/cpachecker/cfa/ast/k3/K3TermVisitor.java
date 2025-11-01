@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 public interface K3TermVisitor<R, X extends Exception> {
 
-  R accept(K3OldTerm pK3OldTerm) throws X;
+  R accept(K3FinalTerm pK3FinalTerm) throws X;
 
   R accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) throws X;
 

@@ -8,5 +8,5 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-public sealed interface K3Term extends K3AstNode, K3RelationalTerm
+public sealed interface K3Term extends K3AstNode, K3FinalRelationalTerm
     permits K3SymbolApplicationTerm, K3ConstantTerm, K3IdTerm {}

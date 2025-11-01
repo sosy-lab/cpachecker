@@ -15,15 +15,15 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.SmtLibTheoryDeclarations;
 
 public class K3TermBuilder {
 
-  public static K3RelationalTerm booleanNegation(K3RelationalTerm pTerm) {
+  public static K3FinalRelationalTerm booleanNegation(K3FinalRelationalTerm pTerm) {
     checkArgument(pTerm.getExpressionType().equals(K3SmtLibType.BOOL));
     return new K3SymbolApplicationRelationalTerm(
         new K3IdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
@@ -31,7 +31,7 @@ public class K3TermBuilder {
         FileLocation.DUMMY);
   }
 
-  public static K3RelationalTerm booleanDisjunction(List<K3RelationalTerm> pTerms) {
+  public static K3FinalRelationalTerm booleanDisjunction(List<K3FinalRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
             .allMatch(term -> term.getExpressionType().equals(K3SmtLibType.BOOL)));
@@ -51,7 +51,7 @@ public class K3TermBuilder {
         FileLocation.DUMMY);
   }
 
-  public static K3RelationalTerm booleanConjunction(List<K3RelationalTerm> pTerms) {
+  public static K3FinalRelationalTerm booleanConjunction(List<K3FinalRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
             .allMatch(term -> term.getExpressionType().equals(K3SmtLibType.BOOL)));
@@ -67,6 +67,17 @@ public class K3TermBuilder {
     return new K3SymbolApplicationRelationalTerm(
         new K3IdTerm(SmtLibTheoryDeclarations.boolConjunction(pTerms.size()), FileLocation.DUMMY),
         ImmutableList.copyOf(pTerms),
+        FileLocation.DUMMY);
+  }
+
+  public static K3FinalRelationalTerm implication(
+      K3FinalRelationalTerm pAssumption, K3FinalRelationalTerm pConclusion) {
+    checkArgument(
+        pAssumption.getExpressionType().equals(K3SmtLibType.BOOL)
+            && pConclusion.getExpressionType().equals(K3SmtLibType.BOOL));
+    return new K3SymbolApplicationRelationalTerm(
+        new K3IdTerm(SmtLibTheoryDeclarations.boolImplication(2), FileLocation.DUMMY),
+        ImmutableList.of(pAssumption, pConclusion),
         FileLocation.DUMMY);
   }
 }

@@ -14,9 +14,9 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
-public class FormulaToK3Visitor implements FormulaVisitor<K3RelationalTerm> {
+public class FormulaToK3Visitor implements FormulaVisitor<K3FinalRelationalTerm> {
 
   private final FormulaManagerView fmgr;
   private final K3Scope scope;
@@ -86,13 +86,13 @@ public class FormulaToK3Visitor implements FormulaVisitor<K3RelationalTerm> {
   }
 
   @Override
-  public K3RelationalTerm visitFreeVariable(Formula pFormula, String pS) {
+  public K3FinalRelationalTerm visitFreeVariable(Formula pFormula, String pS) {
     K3SimpleDeclaration variableDeclaration = scope.getVariableForQualifiedName(pS);
     return new K3IdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 
   @Override
-  public K3RelationalTerm visitConstant(Formula pFormula, Object pO) {
+  public K3FinalRelationalTerm visitConstant(Formula pFormula, Object pO) {
     if (pO instanceof Boolean pBoolean) {
       return new K3BooleanConstantTerm(pBoolean, FileLocation.DUMMY);
     } else if (pO instanceof BigInteger pInteger) {
@@ -103,7 +103,7 @@ public class FormulaToK3Visitor implements FormulaVisitor<K3RelationalTerm> {
   }
 
   @Override
-  public K3RelationalTerm visitFunction(
+  public K3FinalRelationalTerm visitFunction(
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
 
     K3IdTerm functionIdTerm =
@@ -114,13 +114,13 @@ public class FormulaToK3Visitor implements FormulaVisitor<K3RelationalTerm> {
                 .map(this::formulaTypeToK3Type)
                 .toList());
 
-    List<K3RelationalTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
+    List<K3FinalRelationalTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
 
     return new K3SymbolApplicationRelationalTerm(functionIdTerm, args, FileLocation.DUMMY);
   }
 
   @Override
-  public K3RelationalTerm visitQuantifier(
+  public K3FinalRelationalTerm visitQuantifier(
       BooleanFormula pBooleanFormula,
       Quantifier pQuantifier,
       List<Formula> pList,

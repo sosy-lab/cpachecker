@@ -14,10 +14,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class K3EnsuresTag implements K3TagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
-  private final K3RelationalTerm term;
+  private final K3FinalRelationalTerm term;
   private final FileLocation fileLocation;
 
-  public K3EnsuresTag(K3RelationalTerm pTerm, FileLocation pFileLocation) {
+  public K3EnsuresTag(K3FinalRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -42,7 +42,7 @@ public final class K3EnsuresTag implements K3TagProperty {
     return ":ensures " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
-  public K3RelationalTerm getTerm() {
+  public K3FinalRelationalTerm getTerm() {
     return term;
   }
 

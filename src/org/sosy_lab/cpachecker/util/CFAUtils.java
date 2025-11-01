@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
@@ -122,7 +123,6 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
@@ -1086,8 +1086,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3OldTerm pK3OldTerm) throws NoException {
-      return ImmutableList.of(pK3OldTerm.getTerm());
+    public Iterable<? extends AAstNode> accept(K3FinalTerm pK3FinalTerm) throws NoException {
+      return ImmutableList.of(pK3FinalTerm.getTerm());
     }
 
     @Override

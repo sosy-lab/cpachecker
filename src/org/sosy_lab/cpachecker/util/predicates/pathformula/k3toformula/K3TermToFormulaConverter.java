@@ -17,11 +17,11 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GeneralSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
@@ -37,13 +37,14 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 public class K3TermToFormulaConverter {
 
   public static @NonNull Formula convertTerm(
-      K3RelationalTerm pK3Term, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      K3FinalRelationalTerm pK3Term, SSAMapBuilder ssa, FormulaManagerView fmgr) {
     return switch (pK3Term) {
       case K3GeneralSymbolApplicationTerm pK3ApplicationTerm ->
           convertApplication(pK3ApplicationTerm, ssa, fmgr);
       case K3ConstantTerm pK3ConstantTerm -> convertConstant(pK3ConstantTerm, fmgr);
       case K3IdTerm pK3IdTerm -> convertVariable(pK3IdTerm, ssa, fmgr);
-      case K3OldTerm pK3OldTerm -> throw new UnsupportedOperationException("Not yet implemented");
+      case K3FinalTerm pK3FinalTerm ->
+          throw new UnsupportedOperationException("Not yet implemented");
     };
   }
 
@@ -99,11 +100,11 @@ public class K3TermToFormulaConverter {
       SSAMapBuilder ssa,
       FormulaManagerView fmgr) {
     if (FluentIterable.from(pK3ApplicationTerm.getTerms())
-        .transform(K3RelationalTerm::getExpressionType)
+        .transform(K3FinalRelationalTerm::getExpressionType)
         .allMatch(type -> type.equals(K3SmtLibType.INT))) {
       return convertIntegerApplication(pK3ApplicationTerm, ssa, fmgr);
     } else if (FluentIterable.from(pK3ApplicationTerm.getTerms())
-        .transform(K3RelationalTerm::getExpressionType)
+        .transform(K3FinalRelationalTerm::getExpressionType)
         .allMatch(type -> type.equals(K3SmtLibType.BOOL))) {
       return convertBooleanApplication(pK3ApplicationTerm, ssa, fmgr);
     }

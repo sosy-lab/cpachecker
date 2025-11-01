@@ -22,7 +22,7 @@ import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -164,7 +164,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public K3RelationalTerm asK3Term(K3Scope pScope)
+    public K3FinalRelationalTerm asK3Term(K3Scope pScope)
         throws ReportingMethodNotImplementedException, InterruptedException {
       return getAbstractionFormula().asK3Term(pScope);
     }

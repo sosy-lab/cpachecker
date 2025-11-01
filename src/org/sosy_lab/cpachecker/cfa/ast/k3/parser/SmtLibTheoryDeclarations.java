@@ -125,4 +125,18 @@ public class SmtLibTheoryDeclarations {
         "and",
         "and");
   }
+
+  public static K3VariableDeclaration boolImplication(int amountArguments) {
+    return new K3VariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new K3FunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.copyOf(Collections.nCopies(amountArguments, K3SmtLibType.BOOL)),
+            K3SmtLibType.BOOL),
+        "=>",
+        "=>",
+        "=>");
+  }
 }

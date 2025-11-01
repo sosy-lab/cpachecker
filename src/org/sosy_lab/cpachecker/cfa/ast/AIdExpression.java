@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AIdExpression extends AbstractLeftHandSide {
@@ -68,6 +69,7 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
     };
   }
 
+  @NonNull
   public ASimpleDeclaration getDeclaration() {
     return declaration;
   }

@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
@@ -137,7 +137,7 @@ public class AbstractionFormula implements Serializable {
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
-  public K3RelationalTerm asK3Term(K3Scope pScope) {
+  public K3FinalRelationalTerm asK3Term(K3Scope pScope) {
     FormulaToK3Visitor visitor = new FormulaToK3Visitor(fMgr, pScope);
     return fMgr.visit(asFormula(), visitor);
   }

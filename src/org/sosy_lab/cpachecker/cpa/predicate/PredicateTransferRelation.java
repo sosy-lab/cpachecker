@@ -24,7 +24,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -413,7 +413,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         } finally {
           pathFormulaTimer.stop();
         }
-      } else if (assumption instanceof K3RelationalTerm pTerm) {
+      } else if (assumption instanceof K3FinalRelationalTerm pTerm) {
         pathFormulaTimer.start();
         try {
           // compute new pathFormula with the operation on the edge

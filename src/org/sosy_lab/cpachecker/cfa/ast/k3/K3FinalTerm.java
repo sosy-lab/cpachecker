@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3OldTerm implements K3RelationalTerm {
+public final class K3FinalTerm implements K3FinalRelationalTerm {
 
   @Serial private static final long serialVersionUID = 5381549261475877405L;
   private final FileLocation fileLocation;
-  private final K3Term term;
+  private final K3IdTerm term;
 
-  public K3OldTerm(FileLocation pFileLocation, K3Term pTerm) {
+  public K3FinalTerm(FileLocation pFileLocation, K3IdTerm pTerm) {
     fileLocation = pFileLocation;
     term = pTerm;
   }
@@ -63,10 +63,10 @@ public final class K3OldTerm implements K3RelationalTerm {
       return true;
     }
 
-    return pO instanceof K3OldTerm other && term.equals(other.term);
+    return pO instanceof K3FinalTerm other && term.equals(other.term);
   }
 
-  public K3Term getTerm() {
+  public K3IdTerm getTerm() {
     return term;
   }
 }

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.k3;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -20,7 +20,7 @@ public final class K3AssumeEdge extends AssumeEdge implements K3CfaEdge {
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      K3RelationalTerm pExpression,
+      K3FinalRelationalTerm pExpression,
       boolean pTruthAssumption,
       boolean pSwapped,
       boolean pArtificialIntermediate) {
@@ -36,7 +36,7 @@ public final class K3AssumeEdge extends AssumeEdge implements K3CfaEdge {
   }
 
   @Override
-  public K3RelationalTerm getExpression() {
-    return (K3RelationalTerm) super.getExpression();
+  public K3FinalRelationalTerm getExpression() {
+    return (K3FinalRelationalTerm) super.getExpression();
   }
 }

@@ -15,17 +15,17 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class K3GeneralSymbolApplicationTerm implements K3RelationalTerm
+public abstract sealed class K3GeneralSymbolApplicationTerm implements K3FinalRelationalTerm
     permits K3SymbolApplicationRelationalTerm, K3SymbolApplicationTerm {
 
   @Serial private static final long serialVersionUID = -1896197197042124013L;
 
   private final K3IdTerm symbol;
-  private final List<? extends K3RelationalTerm> terms;
+  private final List<? extends K3FinalRelationalTerm> terms;
   private final FileLocation fileLocation;
 
   protected K3GeneralSymbolApplicationTerm(
-      K3IdTerm pSymbol, List<? extends K3RelationalTerm> pTerms, FileLocation pFileLocation) {
+      K3IdTerm pSymbol, List<? extends K3FinalRelationalTerm> pTerms, FileLocation pFileLocation) {
     terms = pTerms;
     fileLocation = pFileLocation;
     symbol = pSymbol;
@@ -45,7 +45,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
     return type;
   }
 
-  public @NonNull List<? extends K3RelationalTerm> getTerms() {
+  public @NonNull List<? extends K3FinalRelationalTerm> getTerms() {
     return terms;
   }
 
@@ -59,7 +59,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(K3RelationalTerm::toASTString).toList())
+        + Joiner.on(" ").join(terms.stream().map(K3FinalRelationalTerm::toASTString).toList())
         + ")";
   }
 
@@ -68,7 +68,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(K3RelationalTerm::toASTString).toList())
+        + Joiner.on(" ").join(terms.stream().map(K3FinalRelationalTerm::toASTString).toList())
         + ")";
   }
 
@@ -89,7 +89,7 @@ public abstract sealed class K3GeneralSymbolApplicationTerm implements K3Relatio
   }
 
   protected static boolean wellFormedTerms(
-      K3IdTerm pSymbol, List<? extends K3RelationalTerm> pTerms) {
+      K3IdTerm pSymbol, List<? extends K3FinalRelationalTerm> pTerms) {
     if (pSymbol.getExpressionType() instanceof K3FunctionType functionType) {
       List<K3Type> parameterTypes = functionType.getParameters();
       if (parameterTypes.size() != pTerms.size()) {

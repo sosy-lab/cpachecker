@@ -17,7 +17,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class K3SafetySpecState
     implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
-  private final ImmutableSet<@NonNull K3RelationalTerm> assumptions;
+  private final ImmutableSet<@NonNull K3FinalRelationalTerm> assumptions;
   private final boolean hasPropertyViolation;
 
-  public K3SafetySpecState(Set<K3RelationalTerm> pAssumptions, boolean pHasPropertyViolation) {
+  public K3SafetySpecState(Set<K3FinalRelationalTerm> pAssumptions, boolean pHasPropertyViolation) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
     hasPropertyViolation = pHasPropertyViolation;
   }

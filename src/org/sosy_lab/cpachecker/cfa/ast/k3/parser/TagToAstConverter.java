@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
@@ -44,19 +44,19 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<K3TagAttribute> {
 
   @Override
   public K3TagAttribute visitAssertProperty(AssertPropertyContext pContext) {
-    K3RelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    K3FinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new K3AssertTag(term, fileLocationFromContext(pContext));
   }
 
   @Override
   public K3TagAttribute visitInvariantProperty(InvariantPropertyContext pContext) {
-    K3RelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    K3FinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new K3InvariantTag(term, fileLocationFromContext(pContext));
   }
 
   @Override
   public K3TagAttribute visitEnsuresProperty(EnsuresPropertyContext pContext) {
-    K3RelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    K3FinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new K3EnsuresTag(term, fileLocationFromContext(pContext));
   }
 

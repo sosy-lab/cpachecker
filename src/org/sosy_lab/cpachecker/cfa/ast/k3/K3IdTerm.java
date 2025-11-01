@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -25,6 +26,7 @@ public final class K3IdTerm extends AIdExpression implements K3Term {
   }
 
   @Override
+  @NonNull
   public K3SimpleDeclaration getDeclaration() {
     return (K3SimpleDeclaration) super.getDeclaration();
   }
