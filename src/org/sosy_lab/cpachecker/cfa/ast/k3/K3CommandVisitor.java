@@ -30,4 +30,6 @@ public interface K3CommandVisitor<R, X extends Exception> {
   R visit(K3VariableDeclarationCommand pK3VariableDeclarationCommand) throws X;
 
   R visit(K3VerifyCallCommand pK3VerifyCallCommand) throws X;
+
+  R visit(K3SelectTraceCommand pK3SelectTraceCommand) throws X;
 }

@@ -58,6 +58,32 @@ public class SmtLibTheoryDeclarations {
           "<=",
           "<=");
 
+  public static K3VariableDeclaration INT_GREATER_THAN =
+      new K3VariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new K3FunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(K3SmtLibType.INT, K3SmtLibType.INT),
+              K3SmtLibType.BOOL),
+          ">",
+          ">",
+          ">");
+
+  public static K3VariableDeclaration INT_GREATER_EQUAL_THAN =
+      new K3VariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new K3FunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(K3SmtLibType.INT, K3SmtLibType.INT),
+              K3SmtLibType.BOOL),
+          ">=",
+          ">=",
+          ">=");
+
   public static K3VariableDeclaration INT_MINUS =
       new K3VariableDeclaration(
           FileLocation.DUMMY,

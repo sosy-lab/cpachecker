@@ -42,14 +42,16 @@ public final class K3AssignmentStatement extends K3CfaEdgeStatement {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(assign ("
+    return "(assign "
         + ("("
             + Joiner.on(")(")
                 .join(
                     transformedImmutableListCopy(
-                        assignments.entrySet(), entry -> entry.getKey() + " " + entry.getValue()))
+                        assignments.entrySet(),
+                        entry ->
+                            entry.getKey().getOrigName() + " " + entry.getValue().toASTString()))
             + ")")
-        + "))";
+        + ")";
   }
 
   @Override

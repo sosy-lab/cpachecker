@@ -79,6 +79,12 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
         case "<=" -> {
           return SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN;
         }
+        case ">" -> {
+          return SmtLibTheoryDeclarations.INT_GREATER_THAN;
+        }
+        case ">=" -> {
+          return SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN;
+        }
         case "-" -> {
           return SmtLibTheoryDeclarations.INT_MINUS;
         }
@@ -92,6 +98,15 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
     switch (pSymbol) {
       case "not" -> {
         return SmtLibTheoryDeclarations.BOOL_NEGATION;
+      }
+      case "and" -> {
+        return SmtLibTheoryDeclarations.boolConjunction(pArguments.size());
+      }
+      case "or" -> {
+        return SmtLibTheoryDeclarations.boolDisjunction(pArguments.size());
+      }
+      case "=>" -> {
+        return SmtLibTheoryDeclarations.boolImplication(pArguments.size());
       }
     }
 

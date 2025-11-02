@@ -18,6 +18,7 @@ public sealed interface K3Command extends Serializable, K3AstNode
         K3DeclareSortCommand,
         K3GetWitnessCommand,
         K3ProcedureDefinitionCommand,
+        K3SelectTraceCommand,
         K3SetLogicCommand,
         K3SetOptionCommand,
         K3VariableDeclarationCommand,
