@@ -1172,9 +1172,6 @@ counterexample.export.exportAllFoundErrorPaths = false
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
-# export counterexample as witness/graphml file
-counterexample.export.exportCorrectnessWitness = true
-
 # export coverage information for every witness: requires using an Assumption
 # Automaton as part of the specification. Lines are considered to be covered
 # only when the path reaching the statement does not reach the __FALSE state
@@ -1197,6 +1194,9 @@ counterexample.export.exportImmediately = false
 # export test case that represents the counterexample. Further options can be
 # set with options 'testcase.*'
 counterexample.export.exportTestCase = false
+
+# export counterexample as witness/graphml file
+counterexample.export.exportWitness = true
 
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -1409,9 +1409,6 @@ cpa.arg.errorPath.exportAllFoundErrorPaths = false
 # deprecated name for counterexample.export.exportAsSource
 cpa.arg.errorPath.exportAsSource = true
 
-# deprecated name for counterexample.export.exportCorrectnessWitness
-cpa.arg.errorPath.exportCorrectnessWitness = true
-
 # deprecated name for counterexample.export.exportCounterexampleCoverage
 cpa.arg.errorPath.exportCounterexampleCoverage = false
 
@@ -1429,6 +1426,9 @@ cpa.arg.errorPath.exportImmediately = false
 
 # deprecated name for counterexample.export.exportTestCase
 cpa.arg.errorPath.exportTestCase = false
+
+# deprecated name for counterexample.export.exportWitness
+cpa.arg.errorPath.exportWitness = true
 
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"

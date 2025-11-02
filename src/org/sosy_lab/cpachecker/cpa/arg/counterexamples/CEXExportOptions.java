@@ -80,7 +80,7 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
-      name = "exportCorrectnessWitness",
+      name = "exportWitness",
       description = "export counterexample as witness/graphml file")
   private boolean exportWitness = true;
 

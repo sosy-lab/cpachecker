@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ViolatedProperty;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3BlankChoiceEdge;
@@ -185,6 +186,10 @@ public class CounterexampleToK3WitnessExport {
         pCallEdge.getFileLocation());
   }
 
+  // We need to suppress the warnings, because error-prone says that the continue for the BlankEdge
+  // is misleading, and when I remove it, IntelliJ complains about an empty if body. So I keep it as
+  // is.
+  @SuppressWarnings("RedundantControlFlow")
   public List<K3Command> generateWitnessCommands(CounterexampleInfo pCounterexample) {
     ConcreteStatePath concretePath =
         pCounterexample.getCFAPathWithAssignments().getConcreteStatePath().orElseThrow();
@@ -214,6 +219,9 @@ public class CounterexampleToK3WitnessExport {
       if (stateIndex == concretePath.size()) {
         // If we get to the last state in the path, we need to handle the violated property.
         violatedProperty = getViolatedProperty(edge);
+      } else if (edge instanceof BlankEdge && !(edge instanceof K3BlankChoiceEdge)) {
+        // Blank edges do not contribute to the witness trace.
+        continue;
       } else if (inGlobalDeclarationPhase && edge instanceof K3ProcedureCallEdge pCallEdge) {
         // The first procedure call edge is the entry call.
         inGlobalDeclarationPhase = false;
