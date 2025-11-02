@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
@@ -118,17 +119,22 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IncorrectTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3LeapStep;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3LocalVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
@@ -136,6 +142,10 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Trace;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceEntryCall;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceSetGlobalVariable;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceSetTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
@@ -1289,6 +1299,74 @@ public class CFAUtils {
               ImmutableList.of(pK3VerifyCallCommand.getProcedureDeclaration()),
               pK3VerifyCallCommand.getTerms())
           .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3SelectTraceCommand pK3SelectTraceCommand)
+        throws NoException {
+      return ImmutableList.of(pK3SelectTraceCommand.getTrace());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3TraceSetGlobalVariable pK3TraceSetGlobalVariable)
+        throws NoException {
+      return ImmutableList.of(
+          pK3TraceSetGlobalVariable.getSymbol(), pK3TraceSetGlobalVariable.getConstantTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3TraceEntryCall pK3TraceEntryCall)
+        throws NoException {
+      return FluentIterable.concat(
+              ImmutableList.of(pK3TraceEntryCall.getDeclaration()),
+              pK3TraceEntryCall.getConstantTerms())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3LocalVariablesStep pK3LocalVariablesStep)
+        throws NoException {
+      return ImmutableList.copyOf(pK3LocalVariablesStep.getValues());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3HavocVariablesStep pK3HavocVariablesStep)
+        throws NoException {
+      return ImmutableList.copyOf(pK3HavocVariablesStep.getValues());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3ChoiceStep pK3ChoiceStep) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3LeapStep pK3LeapStep) throws NoException {
+      return FluentIterable.concat(
+              pK3LeapStep.getAssignments().values(), pK3LeapStep.getAssignments().keySet())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3Trace pK3Trace) throws NoException {
+      return FluentIterable.concat(
+              pK3Trace.getSetGlobalVariables(),
+              ImmutableList.of(pK3Trace.getEntryCall()),
+              pK3Trace.getSteps(),
+              ImmutableList.of(pK3Trace.getViolatedProperty()),
+              pK3Trace.getSetTags())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3IncorrectTagProperty pK3IncorrectTagProperty)
+        throws NoException {
+      return pK3IncorrectTagProperty.getViolatedProperties();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3TraceSetTag pK3TraceSetTag) throws NoException {
+      return pK3TraceSetTag.getAttributes();
     }
   }
 }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
+package org.sosy_lab.cpachecker.cfa.ast.k3.builder;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;

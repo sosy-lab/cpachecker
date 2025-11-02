@@ -435,6 +435,14 @@ PK_WitnessOutputChannel
     : ':witness-output-channel'
     ;
 
+PK_EnableProductionCorrectnessWitnesses
+    : ':produce-correctness-witnesses'
+    ;
+
+PK_EnableProductionViolationWitnesses
+    : ':produce-violation-witnesses'
+    ;
+
 PK_ErrorBehaviour
     : ':error-behavior'
     ;
@@ -644,6 +652,8 @@ predefKeyword
     | PK_Definition
     | PK_DiagnosticOutputChannel
     | PK_WitnessOutputChannel
+    | PK_EnableProductionCorrectnessWitnesses
+    | PK_EnableProductionViolationWitnesses
     | PK_ErrorBehaviour
     | PK_Extension
     | PK_Funs
@@ -1059,6 +1069,8 @@ option
     | PK_ReproducibleResourceLimit numeral
     | PK_Verbosity numeral
     | PK_WitnessOutputChannel string
+    | PK_EnableProductionCorrectnessWitnesses b_value
+    | PK_EnableProductionViolationWitnesses b_value
     | attribute
     ;
 

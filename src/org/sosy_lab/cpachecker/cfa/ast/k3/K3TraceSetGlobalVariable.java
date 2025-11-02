@@ -23,6 +23,14 @@ public final class K3TraceSetGlobalVariable extends K3SelectTraceComponent {
     constantTerm = pConstantTerm;
   }
 
+  public K3IdTerm getSymbol() {
+    return declaration;
+  }
+
+  public K3ConstantTerm getConstantTerm() {
+    return constantTerm;
+  }
+
   @Override
   public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
     return v.accept(this);

@@ -114,7 +114,7 @@ public class CPAcheckerTest {
     K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
 
     Verify.verify(
-        k3CfaMetadata.exportWitness(),
+        k3CfaMetadata.exportCorrectnessWitness(),
         "For the safe K3 program '"
             + SAFE_LOOP_PROGRAM_K3
             + "', the witness export should be enabled");
@@ -167,7 +167,7 @@ public class CPAcheckerTest {
     K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
 
     Verify.verify(
-        k3CfaMetadata.exportWitness(),
+        k3CfaMetadata.exportCorrectnessWitness(),
         "For the safe K3 program '"
             + SAFE_LOOP_PROGRAM_K3
             + "', the witness export should be enabled");
@@ -181,6 +181,7 @@ public class CPAcheckerTest {
 
     // Read entire file content as a single string (UTF-8)
     // This is safe to do, since the witness files are small.
+    @SuppressWarnings("unused")
     String content = Files.readString(witnessPath.orElseThrow());
     // TODO: Check for more specific content
 

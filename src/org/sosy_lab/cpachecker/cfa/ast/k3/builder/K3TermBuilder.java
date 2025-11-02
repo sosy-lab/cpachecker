@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.SmtLibTheoryDeclarations;
 
 public class K3TermBuilder {
 

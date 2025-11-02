@@ -25,7 +25,8 @@ public record K3CfaMetadata(
     List<SMTLibCommand> smtLibCommands,
     ImmutableSetMultimap<CFANode, K3TagProperty> tagAnnotations,
     ImmutableSetMultimap<CFANode, K3TagReference> tagReferences,
-    boolean exportWitness) {
+    boolean exportCorrectnessWitness,
+    boolean exportViolationWitness) {
 
   public K3CfaMetadata {
     checkNotNull(smtLibCommands);

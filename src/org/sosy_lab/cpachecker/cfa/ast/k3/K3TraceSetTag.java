@@ -13,16 +13,16 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3IncorrectTagProperty extends K3ViolatedProperty {
+public final class K3TraceSetTag extends K3SelectTraceComponent {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
   private final String tagName;
-  private final List<K3TagProperty> violatedProperties;
+  private final List<K3TagProperty> attributes;
 
-  K3IncorrectTagProperty(
-      FileLocation pFileLocation, String pTagName, List<K3TagProperty> pViolatedTerm) {
+  public K3TraceSetTag(
+      FileLocation pFileLocation, String pTagName, List<K3TagProperty> pAttributes) {
     super(pFileLocation);
     tagName = pTagName;
-    violatedProperties = pViolatedTerm;
+    attributes = pAttributes;
   }
 
   @Override
@@ -37,10 +37,10 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(incorrect-tag "
+    return "(set-tag "
         + tagName
         + " "
-        + Joiner.on(" ").join(violatedProperties.stream().map(K3AstNode::toASTString).toList())
+        + Joiner.on(" ").join(attributes.stream().map(K3AstNode::toASTString).toList())
         + ")";
   }
 
@@ -53,8 +53,8 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
     return tagName;
   }
 
-  public List<K3TagProperty> getViolatedProperties() {
-    return violatedProperties;
+  public List<K3TagProperty> getAttributes() {
+    return attributes;
   }
 
   @Override
@@ -62,7 +62,7 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
     final int prime = 31;
     int result = 1;
     result = prime * result + tagName.hashCode();
-    result = prime * result + violatedProperties.hashCode();
+    result = prime * result + attributes.hashCode();
     return result;
   }
 
@@ -72,8 +72,8 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
       return true;
     }
 
-    return obj instanceof K3IncorrectTagProperty other
+    return obj instanceof K3TraceSetTag other
         && tagName.equals(other.tagName)
-        && violatedProperties.equals(other.violatedProperties);
+        && attributes.equals(other.attributes);
   }
 }

@@ -28,6 +28,14 @@ public final class K3TraceEntryCall extends K3SelectTraceComponent {
     constantTerms = pConstantTerms;
   }
 
+  public K3ProcedureDeclaration getDeclaration() {
+    return declaration;
+  }
+
+  public ImmutableList<K3ConstantTerm> getConstantTerms() {
+    return constantTerms;
+  }
+
   @Override
   public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
     return v.accept(this);

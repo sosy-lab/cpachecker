@@ -143,6 +143,14 @@ public class K3TermToFormulaConverter {
         Verify.verify(args.size() == 2);
         yield imgr.lessOrEquals(args.getFirst(), args.get(1));
       }
+      case ">" -> {
+        Verify.verify(args.size() == 2);
+        yield imgr.greaterThan(args.getFirst(), args.get(1));
+      }
+      case ">=" -> {
+        Verify.verify(args.size() == 2);
+        yield imgr.greaterOrEquals(args.getFirst(), args.get(1));
+      }
       default ->
           throw new IllegalStateException(
               "Unexpected value: '"

@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -39,6 +40,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -62,6 +65,7 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.k3witnessexport.CounterexampleToK3WitnessExport;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
@@ -110,6 +114,8 @@ public class CEXExporter {
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
   private final CounterexampleToWitness cexToWitness;
+  private final CounterexampleToK3WitnessExport cexToK3Witness;
+  private final Path k3WitnessOutputPath;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
@@ -131,6 +137,20 @@ public class CEXExporter {
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
     cfa = pCFA;
+
+    Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
+    if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportViolationWitness()) {
+      k3WitnessOutputPath =
+          k3Metadata
+              .orElseThrow()
+              .getExportWitnessPath()
+              .orElse(options.getK3ViolationWitnessPath());
+      cexToK3Witness = new CounterexampleToK3WitnessExport(pLogger, pCFA);
+    } else {
+      // We do not have K3 metadata, or do not want to export witnesses
+      k3WitnessOutputPath = null;
+      cexToK3Witness = null;
+    }
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -335,24 +355,45 @@ public class CEXExporter {
               uniqueId,
               (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
               compressWitness);
-          if (cfa.getMetadata().getInputLanguage() == Language.C) {
-            if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+            if (cfa.getMetadata().getInputLanguage() == Language.C) {
               try {
                 cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
               } catch (IOException e) {
                 logger.logUserException(
                     Level.WARNING, e, "Could not generate YAML violation witness.");
               }
+            } else {
+              logger.log(
+                  Level.WARNING,
+                  "Cannot export violation witness to YAML format for languages other than C.");
             }
-          } else {
-            logger.log(
-                Level.WARNING,
-                "Cannot export violation witness to YAML format for languages other than C.");
           }
 
         } catch (InterruptedException e) {
           logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
         }
+      }
+    }
+
+    // Now export the correctness witnesses for K3 program
+    if (cexToK3Witness != null && k3WitnessOutputPath != null) {
+      List<K3AnnotateTagCommand> witnessCommands =
+          cexToK3Witness.generateWitnessCommands(counterexample);
+      String witnessContent =
+          Joiner.on(System.lineSeparator())
+              .join(
+                  FluentIterable.from(witnessCommands)
+                      .transform(K3AnnotateTagCommand::toASTString));
+      try (Writer writer = IO.openOutputFile(k3WitnessOutputPath, Charset.defaultCharset())) {
+        writer.write(witnessContent);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Could not write the K3 violation witness to file: "
+                + k3WitnessOutputPath
+                + ". Therefore no K3 witness will be exported.");
       }
     }
 

@@ -8,6 +8,8 @@
 
 (set-logic LIA)
 (set-option :witness-output-channel "./output/witness.svlib")
+(set-option :produce-correctness-witnesses true)
+(set-option :produce-violation-witnesses true)
 
 (declare-sort |c#ptr| 1)
 (declare-sort |c#heap| 0)

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import java.nio.file.Path;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -79,7 +80,7 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
-      name = "exportWitness",
+      name = "exportCorrectnessWitness",
       description = "export counterexample as witness/graphml file")
   private boolean exportWitness = true;
 
@@ -103,6 +104,20 @@ public final class CEXExportOptions {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("Counterexample.%d.witness-%s.yml");
+
+  @Option(
+      secure = true,
+      name = "k3",
+      description =
+          "The file into which to write the violation "
+              + "witness for K3 programs. If set to 'null', "
+              + "no witness is exported. Be aware that one "
+              + "can also set this option in K3 programs, "
+              + "instead of in CPAchecker's configuration."
+              + "In case this happens, the option "
+              + "will be overriden by the one from the program, and this option ignored.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path k3ViolationWitnessPath = null;
 
   @Option(
       secure = true,
@@ -231,6 +246,13 @@ public final class CEXExportOptions {
       return null;
     }
     return yamlWitnessOutputFileTemplate;
+  }
+
+  @Nullable Path getK3ViolationWitnessPath() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return k3ViolationWitnessPath;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {

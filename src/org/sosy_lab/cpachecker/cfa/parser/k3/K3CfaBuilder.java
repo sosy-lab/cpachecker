@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
@@ -239,6 +240,11 @@ class K3CfaBuilder {
     List<K3Command> commands = script.getCommands();
     int indexOfFirstVerifyCall = -1;
 
+    // In order to determine whether correctness or violation witness production
+    // has been enabled, we need to keep track of this information while parsing.
+    boolean correctnessWitnessProductionEnabled = false;
+    boolean violationWitnessProductionEnabled = false;
+
     for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
 
       K3Command command = commands.get(i);
@@ -302,7 +308,11 @@ class K3CfaBuilder {
         }
         case K3SetLogicCommand pK3SetLogicCommand -> {
           // We add all set logic commands to the CFA metadata,
-          // since we need it later when creating the SMT-Solver instance.
+          // since we could need it later when creating the SMT-Solver instance.
+          //
+          // Currently due to how JavaSMT handles stuff we do not really need it,
+          // but in the future this could change. In particular once more logics
+          // of SMT-LIB are supported by K3.
           smtLibCommandsBuilder.add(pK3SetLogicCommand);
         }
         case K3DeclareConstCommand pK3DeclareConstCommand -> {
@@ -338,8 +348,38 @@ class K3CfaBuilder {
             smtLibCommandsBuilder.add(pK3DeclareFunCommand);
         case K3DeclareSortCommand pK3DeclareSortCommand ->
             smtLibCommandsBuilder.add(pK3DeclareSortCommand);
-        case K3SetOptionCommand pK3SetOptionCommand ->
+        case K3SetOptionCommand pK3SetOptionCommand -> {
+          if (pK3SetOptionCommand
+              .getOption()
+              .equals(K3SetOptionCommand.OPTION_PRODUCE_CORRECTNESS)) {
+            Optional<Boolean> booleanValue = pK3SetOptionCommand.getBooleanValue();
+            if (booleanValue.isEmpty()) {
+              throw new K3ParserException(
+                  "The value for the option "
+                      + K3SetOptionCommand.OPTION_PRODUCE_CORRECTNESS
+                      + " must be either 'true' or 'false'.");
+            }
+            correctnessWitnessProductionEnabled = booleanValue.orElseThrow();
+          } else if (pK3SetOptionCommand
+              .getOption()
+              .equals(K3SetOptionCommand.OPTION_PRODUCE_VIOLATION)) {
+            Optional<Boolean> booleanValue = pK3SetOptionCommand.getBooleanValue();
+            if (booleanValue.isEmpty()) {
+              throw new K3ParserException(
+                  "The value for the option "
+                      + K3SetOptionCommand.OPTION_PRODUCE_VIOLATION
+                      + " must be either 'true' or 'false'.");
+            }
+            violationWitnessProductionEnabled = booleanValue.orElseThrow();
+          } else {
+            // For all other options we simply add them to the SMT-LIB commands.
             smtLibCommandsBuilder.add(pK3SetOptionCommand);
+          }
+        }
+        case K3SelectTraceCommand pK3SelectTraceCommand -> {
+          throw new K3ParserException(
+              "Select trace commands are not yet supported in CFA parsing.");
+        }
       }
     }
 
@@ -350,6 +390,7 @@ class K3CfaBuilder {
     // this command first before continuing. Therefore, we need to stop here.
     // We will print a warning if there are any commands after this one.
     boolean exportWitness = false;
+
     if (indexOfFirstVerifyCall + 1 < commands.size()) {
       switch (commands.get(indexOfFirstVerifyCall + 1)) {
         case K3GetWitnessCommand pK3GetWitnessCommand -> {
@@ -389,6 +430,7 @@ class K3CfaBuilder {
             smtLibCommandsBuilder.build(),
             nodeToTagAnnotations.build(),
             nodesToTagReferences.build(),
-            exportWitness));
+            exportWitness && correctnessWitnessProductionEnabled,
+            exportWitness && violationWitnessProductionEnabled));
   }
 }

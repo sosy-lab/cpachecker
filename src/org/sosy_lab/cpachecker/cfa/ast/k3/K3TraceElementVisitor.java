@@ -25,4 +25,6 @@ public interface K3TraceElementVisitor<R, X extends Exception> {
   R accept(K3Trace pK3Trace) throws X;
 
   R accept(K3IncorrectTagProperty pK3IncorrectTagProperty) throws X;
+
+  R accept(K3TraceSetTag pK3TraceSetTag) throws X;
 }

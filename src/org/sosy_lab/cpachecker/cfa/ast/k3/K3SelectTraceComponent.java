@@ -12,7 +12,12 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3SelectTraceComponent implements K3AstNode
-    permits K3Trace, K3TraceEntryCall, K3TraceSetGlobalVariable, K3TraceStep, K3ViolatedProperty {
+    permits K3Trace,
+        K3TraceEntryCall,
+        K3TraceSetGlobalVariable,
+        K3TraceSetTag,
+        K3TraceStep,
+        K3ViolatedProperty {
   @Serial private static final long serialVersionUID = -5924055290995494634L;
   private final FileLocation fileLocation;
 

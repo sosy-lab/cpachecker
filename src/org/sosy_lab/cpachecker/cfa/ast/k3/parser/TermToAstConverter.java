@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.ast.k3.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ApplicationTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.QualIdentifierTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.Qual_identiferContext;

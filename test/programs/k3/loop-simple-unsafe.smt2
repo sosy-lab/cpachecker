@@ -8,6 +8,8 @@
 
 (set-logic LIA)
 (set-option :witness-output-channel "./output/witness.svlib")
+(set-option :produce-correctness-witnesses true)
+(set-option :produce-violation-witnesses true)
 
 (declare-sort |c#ptr| 1)
 (declare-sort |c#heap| 0)
@@ -21,8 +23,7 @@
   ((|c#result| Int))
   ((a Int))
   (! (sequence
-    (assign (a 6))
-    (assign (a 0))
+    (if (>= a 0) (return))
     (! (while
       (< a 6)
       (assign (a (+ a 1)))) :tag while-loop)

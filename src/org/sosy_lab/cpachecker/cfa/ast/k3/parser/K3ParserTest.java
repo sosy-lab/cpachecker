@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.ast.k3.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3ToAstParser.K3AstParseException;
 
 public class K3ParserTest {
@@ -399,6 +400,9 @@ public class K3ParserTest {
                 new K3SetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
                 new K3SetOptionCommand(
                     ":witness-output-channel", "./output/witness.svlib", FileLocation.DUMMY),
+                new K3SetOptionCommand(
+                    ":produce-correctness-witnesses", "true", FileLocation.DUMMY),
+                new K3SetOptionCommand(":produce-violation-witnesses", "true", FileLocation.DUMMY),
                 new K3DeclareSortCommand(
                     new K3SortDeclaration(
                         FileLocation.DUMMY,

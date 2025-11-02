@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Preconditions;
 import java.io.Serial;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -22,6 +23,10 @@ public final class K3SetOptionCommand implements SMTLibCommand, K3Command {
 
   // Some constants to identify common options
   public static final String OPTION_WITNESS_OUTPUT_CHANNEL = ":witness-output-channel";
+
+  public static String OPTION_PRODUCE_CORRECTNESS = ":produce-correctness-witnesses";
+
+  public static String OPTION_PRODUCE_VIOLATION = ":produce-violation-witnesses";
 
   public K3SetOptionCommand(String pOption, String pValue, FileLocation pFileLocation) {
     Preconditions.checkArgument(pOption != null);
@@ -39,6 +44,16 @@ public final class K3SetOptionCommand implements SMTLibCommand, K3Command {
   @NonNull
   public String getValue() {
     return value;
+  }
+
+  public Optional<Boolean> getBooleanValue() {
+    if (value.equalsIgnoreCase("true")) {
+      return Optional.of(true);
+    } else if (value.equalsIgnoreCase("false")) {
+      return Optional.of(false);
+    } else {
+      return Optional.empty();
+    }
   }
 
   @Override

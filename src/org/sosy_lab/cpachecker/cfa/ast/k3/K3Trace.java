@@ -20,18 +20,21 @@ public final class K3Trace extends K3SelectTraceComponent {
   private final K3TraceEntryCall entryCall;
   private final List<K3TraceStep> steps;
   private final K3ViolatedProperty violatedProperty;
+  private final List<K3TraceSetTag> setTags;
 
   public K3Trace(
       List<K3TraceSetGlobalVariable> pSetGlobalVariables,
       K3TraceEntryCall pEntryCall,
       List<K3TraceStep> pSteps,
       K3ViolatedProperty pViolatedProperty,
+      List<K3TraceSetTag> pSetTags,
       FileLocation pFileLocation) {
     super(pFileLocation);
     setGlobalVariables = pSetGlobalVariables;
     entryCall = pEntryCall;
     steps = pSteps;
     violatedProperty = pViolatedProperty;
+    setTags = pSetTags;
   }
 
   @Override
@@ -75,6 +78,10 @@ public final class K3Trace extends K3SelectTraceComponent {
     return violatedProperty;
   }
 
+  public List<K3TraceSetTag> getSetTags() {
+    return setTags;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -83,6 +90,7 @@ public final class K3Trace extends K3SelectTraceComponent {
     result = prime * result + entryCall.hashCode();
     result = prime * result + steps.hashCode();
     result = prime * result + violatedProperty.hashCode();
+    result = prime * result + setTags.hashCode();
     return result;
   }
 
@@ -96,6 +104,7 @@ public final class K3Trace extends K3SelectTraceComponent {
         && setGlobalVariables.equals(other.setGlobalVariables)
         && entryCall.equals(other.entryCall)
         && steps.equals(other.steps)
-        && violatedProperty.equals(other.violatedProperty);
+        && violatedProperty.equals(other.violatedProperty)
+        && setTags.equals(other.setTags);
   }
 }

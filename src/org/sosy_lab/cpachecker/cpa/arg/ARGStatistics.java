@@ -148,7 +148,7 @@ public class ARGStatistics implements Statistics {
               + "can also set this option in K3 programs, "
               + "instead of in CPAchecker's configuration."
               + "In case this happens, the option "
-              + "will be overriden, and this option ignored.")
+              + "will be overriden by the one from the program, and this option ignored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path k3CorrectnessWitnessPath = null;
 
@@ -291,14 +291,14 @@ public class ARGStatistics implements Statistics {
     }
 
     Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
-    if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportWitness()) {
+    if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportCorrectnessWitness()) {
       argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(pCFA, pLogger);
-      Optional<Path> witnessOutputChannel = k3Metadata.orElseThrow().getExportWitnessPath();
-      if (witnessOutputChannel.isPresent()) {
-        k3CorrectnessWitnessPath = witnessOutputChannel.orElseThrow();
-      }
+      k3CorrectnessWitnessPath =
+          k3Metadata.orElseThrow().getExportWitnessPath().orElse(k3CorrectnessWitnessPath);
     } else {
+      // We do not have K3 metadata, or do not want to export witnesses
       argToK3WitnessWriter = null;
+      k3CorrectnessWitnessPath = null;
     }
 
     if (counterexampleOptions.disabledCompletely()) {
@@ -506,7 +506,7 @@ public class ARGStatistics implements Statistics {
               logger.logUserException(
                   Level.WARNING,
                   e,
-                  "Could not write the K3 correctness witness to file "
+                  "Could not write the K3 correctness witness to file: "
                       + k3CorrectnessWitnessPath
                       + ". Therefore no K3 witness will be exported.");
             }
