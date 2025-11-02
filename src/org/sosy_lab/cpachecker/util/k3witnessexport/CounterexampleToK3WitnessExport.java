@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.k3witnessexport;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -40,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ViolatedProperty;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3BlankChoiceEdge;
@@ -137,16 +138,17 @@ public class CounterexampleToK3WitnessExport {
       K3IdTerm idTerm = new K3IdTerm(paramDecl, FileLocation.DUMMY);
       functionCallAssignmentsBuilder.put(idTerm, assignedValue);
     }
-    return new K3LocalVariablesStep(functionCallAssignmentsBuilder.build(), FileLocation.DUMMY);
+    return new K3LocalVariablesStep(
+        functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
   private K3TraceSetGlobalVariable handleGlobalVariableAssignment(
       ConcreteState pConcreteState, K3Declaration pDeclaration) {
-    if (!(pDeclaration instanceof K3VariableDeclaration pVarDecl)) {
-      throw new IllegalStateException(
-          "Expected only variable or constant declarations in the global declaration phase.");
-    }
+    checkState(
+        (pDeclaration instanceof K3VariableDeclaration),
+        "Expected only variable or constant declarations in the global declaration phase.");
 
+    K3VariableDeclaration pVarDecl = (K3VariableDeclaration) pDeclaration;
     K3ConstantTerm assignedValue =
         getValueOrDefault(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
 
@@ -212,9 +214,6 @@ public class CounterexampleToK3WitnessExport {
       if (stateIndex == concretePath.size()) {
         // If we get to the last state in the path, we need to handle the violated property.
         violatedProperty = getViolatedProperty(edge);
-      } else if (edge instanceof BlankEdge && (!(edge instanceof K3BlankChoiceEdge))) {
-        // Blank edges do not contribute to the witness trace.
-        continue;
       } else if (inGlobalDeclarationPhase && edge instanceof K3ProcedureCallEdge pCallEdge) {
         // The first procedure call edge is the entry call.
         inGlobalDeclarationPhase = false;
@@ -224,14 +223,14 @@ public class CounterexampleToK3WitnessExport {
                 concreteState, pCallEdge.getFunctionCall().getProcedureDeclaration()));
       } else if (inGlobalDeclarationPhase) {
         // Handle all the global declarations
-        if (!(edge instanceof K3DeclarationEdge pDeclarationEdge)) {
-          throw new IllegalStateException(
-              "Expected global declaration edges in the global declaration phase of K3 witness"
-                  + " export.");
-        }
+        checkState(
+            (edge instanceof K3DeclarationEdge),
+            "Expected global declaration edges in the global declaration phase of K3 witness"
+                + " export.");
 
         globalVariableAssignmentBuilder.add(
-            handleGlobalVariableAssignment(concreteState, pDeclarationEdge.getDeclaration()));
+            handleGlobalVariableAssignment(
+                concreteState, ((K3DeclarationEdge) edge).getDeclaration()));
 
       } else if (edge instanceof K3ProcedureCallEdge pCallEdge) {
         // Initialize all the local variables of the called procedure
@@ -239,7 +238,7 @@ public class CounterexampleToK3WitnessExport {
             setLocalVariablesForFunctionCall(
                 concreteState, pCallEdge.getFunctionCall().getProcedureDeclaration()));
       } else if (edge instanceof K3StatementEdge pStatementEdge
-          && pStatementEdge.getStatement() instanceof K3HavocStatement pHavoc) {
+          && pStatementEdge.getStatement() instanceof K3HavocStatement) {
         // Handle havoc statements as trace steps
         throw new UnsupportedOperationException(
             "Havoc statements are not yet supported in K3 witness export.");

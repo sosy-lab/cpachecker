@@ -56,7 +56,7 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(incorrect-tag "
         + (k3TagReference.isPresent()
-            ? k3TagReference.get().toASTString(pAAstNodeRepresentation)
+            ? k3TagReference.orElseThrow().toASTString(pAAstNodeRepresentation)
             : "")
         + " "
         + Joiner.on(" ").join(violatedProperties.stream().map(K3AstNode::toASTString).toList())

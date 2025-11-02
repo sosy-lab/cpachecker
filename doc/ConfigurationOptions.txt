@@ -1172,6 +1172,9 @@ counterexample.export.exportAllFoundErrorPaths = false
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
+# export counterexample as witness/graphml file
+counterexample.export.exportCorrectnessWitness = true
+
 # export coverage information for every witness: requires using an Assumption
 # Automaton as part of the specification. Lines are considered to be covered
 # only when the path reaching the statement does not reach the __FALSE state
@@ -1194,9 +1197,6 @@ counterexample.export.exportImmediately = false
 # export test case that represents the counterexample. Further options can be
 # set with options 'testcase.*'
 counterexample.export.exportTestCase = false
-
-# export counterexample as witness/graphml file
-counterexample.export.exportWitness = true
 
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -1222,6 +1222,13 @@ counterexample.export.graphml = "Counterexample.%d.graphml"
 
 # export test harness to file as code
 counterexample.export.harness = "Counterexample.%d.harness.c"
+
+# The file into which to write the violation witness for K3 programs. If set
+# to 'null', no witness is exported. Be aware that one can also set this
+# option in K3 programs, instead of in CPAchecker's configuration.In case
+# this happens, the option will be overriden by the one from the program, and
+# this option ignored.
+counterexample.export.k3 = no default value
 
 # where to dump the counterexample model in case a specification violation is
 # found
@@ -1402,6 +1409,9 @@ cpa.arg.errorPath.exportAllFoundErrorPaths = false
 # deprecated name for counterexample.export.exportAsSource
 cpa.arg.errorPath.exportAsSource = true
 
+# deprecated name for counterexample.export.exportCorrectnessWitness
+cpa.arg.errorPath.exportCorrectnessWitness = true
+
 # deprecated name for counterexample.export.exportCounterexampleCoverage
 cpa.arg.errorPath.exportCounterexampleCoverage = false
 
@@ -1420,9 +1430,6 @@ cpa.arg.errorPath.exportImmediately = false
 # deprecated name for counterexample.export.exportTestCase
 cpa.arg.errorPath.exportTestCase = false
 
-# deprecated name for counterexample.export.exportWitness
-cpa.arg.errorPath.exportWitness = true
-
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1440,6 +1447,9 @@ cpa.arg.errorPath.graphml = "Counterexample.%d.graphml"
 
 # deprecated name for counterexample.export.harness
 cpa.arg.errorPath.harness = "Counterexample.%d.harness.c"
+
+# deprecated name for counterexample.export.k3
+cpa.arg.errorPath.k3 = no default value
 
 # deprecated name for counterexample.export.prefixCoverageFile
 cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
@@ -1496,7 +1506,8 @@ cpa.arg.inCPAEnabledAnalysis = false
 # The file into which to write the correctness witness for K3 programs. If
 # set to 'null', no witness is exported. Be aware that one can also set this
 # option in K3 programs, instead of in CPAchecker's configuration.In case
-# this happens, the option will be overriden, and this option ignored.
+# this happens, the option will be overriden by the one from the program, and
+# this option ignored.
 cpa.arg.k3CorrectnessWitness = no default value
 
 # whether to keep covered states in the reached set as addition to keeping

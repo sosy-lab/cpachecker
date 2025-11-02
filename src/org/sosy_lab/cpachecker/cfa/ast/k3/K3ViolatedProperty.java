@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3ViolatedProperty extends K3SelectTraceComponent
     permits K3IncorrectTagProperty {
+  @Serial private static final long serialVersionUID = -4859233865865266662L;
+
   K3ViolatedProperty(FileLocation pFileLocation) {
     super(pFileLocation);
   }

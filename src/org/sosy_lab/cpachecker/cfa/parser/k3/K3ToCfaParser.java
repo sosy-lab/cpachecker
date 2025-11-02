@@ -53,8 +53,7 @@ public class K3ToCfaParser implements Parser {
     cfaBuilder = new K3CfaBuilder(logger, config, machineModel, shutdownNotifier);
   }
 
-  private ParseResult buildCfaFromScript(K3Script script)
-      throws ParserException, InterruptedException {
+  private ParseResult buildCfaFromScript(K3Script script) throws ParserException {
     cfaTimer.start();
 
     ParseResult result = cfaBuilder.buildCfaFromScript(script);
