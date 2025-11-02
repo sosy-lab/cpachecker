@@ -10,16 +10,16 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Joiner;
 import java.io.Serial;
-import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3HavocVariablesStep extends K3TraceStep {
-  @Serial private static final long serialVersionUID = 5468636322364703923L;
-  private final List<K3ConstantTerm> values;
+  @Serial private static final long serialVersionUID = -1341873304472826329L;
+  private final Map<K3IdTerm, K3ConstantTerm> assignments;
 
-  K3HavocVariablesStep(List<K3ConstantTerm> pValues, FileLocation pFileLocation) {
+  public K3HavocVariablesStep(Map<K3IdTerm, K3ConstantTerm> pValues, FileLocation pFileLocation) {
     super(pFileLocation);
-    values = pValues;
+    assignments = pValues;
   }
 
   @Override
@@ -35,7 +35,17 @@ public final class K3HavocVariablesStep extends K3TraceStep {
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(havoc "
-        + Joiner.on(" ").join(values.stream().map(K3ConstantTerm::toASTString).toList())
+        + Joiner.on(" ")
+            .join(
+                assignments.entrySet().stream()
+                    .map(
+                        entry ->
+                            "("
+                                + entry.getKey().toASTString()
+                                + " "
+                                + entry.getValue().toASTString()
+                                + ")")
+                    .toList())
         + ")";
   }
 
@@ -44,15 +54,15 @@ public final class K3HavocVariablesStep extends K3TraceStep {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public List<K3ConstantTerm> getValues() {
-    return values;
+  public Map<K3IdTerm, K3ConstantTerm> getAssignments() {
+    return assignments;
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + values.hashCode();
+    result = prime * result + assignments.hashCode();
     return result;
   }
 
@@ -62,6 +72,6 @@ public final class K3HavocVariablesStep extends K3TraceStep {
       return true;
     }
 
-    return obj instanceof K3HavocVariablesStep other && values.equals(other.values);
+    return obj instanceof K3HavocVariablesStep other && assignments.equals(other.assignments);
   }
 }

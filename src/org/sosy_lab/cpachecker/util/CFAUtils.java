@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
@@ -1207,6 +1208,12 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(K3ChoiceStatement pK3ChoiceStatement)
+        throws NoException {
+      return ImmutableList.copyOf(pK3ChoiceStatement.getChoices());
+    }
+
+    @Override
     public Iterable<? extends AAstNode> accept(K3TagReference pK3TagReference) {
       return ImmutableList.of();
     }
@@ -1326,13 +1333,19 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> accept(K3LocalVariablesStep pK3LocalVariablesStep)
         throws NoException {
-      return ImmutableList.copyOf(pK3LocalVariablesStep.getValues());
+      return FluentIterable.concat(
+              pK3LocalVariablesStep.getAssignments().keySet(),
+              pK3LocalVariablesStep.getAssignments().values())
+          .toList();
     }
 
     @Override
     public Iterable<? extends AAstNode> accept(K3HavocVariablesStep pK3HavocVariablesStep)
         throws NoException {
-      return ImmutableList.copyOf(pK3HavocVariablesStep.getValues());
+      return FluentIterable.concat(
+              pK3HavocVariablesStep.getAssignments().keySet(),
+              pK3HavocVariablesStep.getAssignments().values())
+          .toList();
     }
 
     @Override

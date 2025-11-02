@@ -106,4 +106,9 @@ public final class K3ProcedureType implements K3Type, AFunctionType {
   public boolean takesVarArgs() {
     return false;
   }
+
+  @Override
+  public K3ConstantTerm defaultValue() {
+    throw new UnsupportedOperationException("Procedure types do not have a default value");
+  }
 }

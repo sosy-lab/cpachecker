@@ -86,4 +86,9 @@ public final class K3FunctionType implements K3Type, AFunctionType {
   public boolean takesVarArgs() {
     return false;
   }
+
+  @Override
+  public K3ConstantTerm defaultValue() {
+    throw new UnsupportedOperationException("Function types do not have a default value");
+  }
 }

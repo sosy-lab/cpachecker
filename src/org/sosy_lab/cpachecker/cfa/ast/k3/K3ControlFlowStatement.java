@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public abstract sealed class K3ControlFlowStatement extends K3Statement
     permits K3AssumeStatement,
         K3BreakStatement,
+        K3ChoiceStatement,
         K3ContinueStatement,
         K3GotoStatement,
         K3IfStatement,

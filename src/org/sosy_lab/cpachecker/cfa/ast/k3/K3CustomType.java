@@ -50,6 +50,11 @@ public final class K3CustomType implements K3Type {
   }
 
   @Override
+  public K3ConstantTerm defaultValue() {
+    throw new UnsupportedOperationException("Custom types do not have a default value");
+  }
+
+  @Override
   public int hashCode() {
     return Objects.hashCode(type);
   }

@@ -10,19 +10,36 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Joiner;
 import java.io.Serial;
-import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3IncorrectTagProperty extends K3ViolatedProperty {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
-  private final String tagName;
-  private final List<K3TagProperty> violatedProperties;
+  private final Optional<K3TagReference> k3TagReference;
+  private final Set<K3TagProperty> violatedProperties;
 
-  K3IncorrectTagProperty(
-      FileLocation pFileLocation, String pTagName, List<K3TagProperty> pViolatedTerm) {
+  public K3IncorrectTagProperty(
+      FileLocation pFileLocation,
+      K3TagReference pK3TagReference,
+      Set<K3TagProperty> pViolatedTerm) {
     super(pFileLocation);
-    tagName = pTagName;
+    k3TagReference = Optional.of(pK3TagReference);
     violatedProperties = pViolatedTerm;
+  }
+
+  public K3IncorrectTagProperty(FileLocation pFileLocation, Set<K3TagProperty> pViolatedTerm) {
+    super(pFileLocation);
+    k3TagReference = Optional.empty();
+    violatedProperties = pViolatedTerm;
+  }
+
+  public Optional<K3TagReference> getK3TagReference() {
+    return k3TagReference;
+  }
+
+  public Set<K3TagProperty> getViolatedProperties() {
+    return violatedProperties;
   }
 
   @Override
@@ -38,7 +55,9 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(incorrect-tag "
-        + tagName
+        + (k3TagReference.isPresent()
+            ? k3TagReference.get().toASTString(pAAstNodeRepresentation)
+            : "")
         + " "
         + Joiner.on(" ").join(violatedProperties.stream().map(K3AstNode::toASTString).toList())
         + ")";
@@ -49,19 +68,11 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public String getTagName() {
-    return tagName;
-  }
-
-  public List<K3TagProperty> getViolatedProperties() {
-    return violatedProperties;
-  }
-
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + tagName.hashCode();
+    result = prime * result + k3TagReference.hashCode();
     result = prime * result + violatedProperties.hashCode();
     return result;
   }
@@ -73,7 +84,7 @@ public final class K3IncorrectTagProperty extends K3ViolatedProperty {
     }
 
     return obj instanceof K3IncorrectTagProperty other
-        && tagName.equals(other.tagName)
+        && k3TagReference.equals(other.k3TagReference)
         && violatedProperties.equals(other.violatedProperties);
   }
 }

@@ -13,13 +13,17 @@
 
 (declare-sort |c#ptr| 1)
 (declare-sort |c#heap| 0)
-(declare-var |c#heap| |c#heap|)
+; (declare-var |c#heap| |c#heap|) ; Currently we cannot export a model for this variable
 (declare-fun |c#bitxor| (Int Int) Int)
 (declare-fun |c#bitand| (Int Int) Int)
 (declare-fun |c#bitor| (Int Int) Int)
+
+(declare-var b Int)
+(declare-var c Int)
+
 (define-proc
   main
-  ()
+  ((d Int) (e Int))
   ((|c#result| Int))
   ((a Int))
   (! (sequence
@@ -27,9 +31,13 @@
     (! (while
       (< a 6)
       (assign (a (+ a 1)))) :tag while-loop)
+    (if (>= b 0) (return))
+    (if (> c 0) (return))
+    (if (>= d 0) (return))
+    (if (> e 0) (return))
     (if (= a 6) (! (sequence) :assert false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 
-(verify-call main ())
+(verify-call main (c 0))
 (get-witness)

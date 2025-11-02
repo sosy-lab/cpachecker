@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Ascii;
+import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public enum K3SmtLibType implements K3Type {
@@ -24,6 +26,16 @@ public enum K3SmtLibType implements K3Type {
       case BOOL -> FormulaType.BooleanType;
       case STRING -> FormulaType.BooleanType;
       case REAL -> FormulaType.RationalType;
+    };
+  }
+
+  @Override
+  public K3ConstantTerm defaultValue() {
+    return switch (this) {
+      case INT -> new K3IntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY);
+      case BOOL -> new K3BooleanConstantTerm(false, FileLocation.DUMMY);
+      default ->
+          throw new UnsupportedOperationException("Default value not supported for type " + name());
     };
   }
 

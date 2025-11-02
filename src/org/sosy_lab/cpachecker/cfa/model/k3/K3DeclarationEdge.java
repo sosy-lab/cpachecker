@@ -22,4 +22,9 @@ public final class K3DeclarationEdge extends ADeclarationEdge implements K3CfaEd
       K3Declaration pDeclaration) {
     super(pRawSignature, pFileLocation, pPredecessor, pSuccessor, pDeclaration);
   }
+
+  @Override
+  public K3Declaration getDeclaration() {
+    return (K3Declaration) declaration;
+  }
 }

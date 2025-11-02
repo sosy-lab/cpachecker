@@ -26,4 +26,6 @@ public interface K3ControlFlowStatementVisitor<R, X extends Exception> {
   R visit(K3GotoStatement pK3GotoStatement) throws X;
 
   R visit(K3LabelStatement pK3LabelStatement) throws X;
+
+  R visit(K3ChoiceStatement pK3ChoiceStatement) throws X;
 }

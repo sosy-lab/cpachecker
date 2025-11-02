@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.k3.K3BlankChoiceEdge;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3StatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
@@ -415,5 +417,51 @@ public class K3StatementToCfaVisitor implements K3StatementVisitor<Optional<CFAN
 
     labelsToNodes.put(pK3LabelStatement.getLabel(), currentStartingNode);
     return Optional.of(currentStartingNode);
+  }
+
+  @Override
+  public Optional<CFANode> visit(K3ChoiceStatement pK3ChoiceStatement) throws NoException {
+    CFANode startingNode = currentStartingNode;
+    CFANode endNode = getNewNode();
+    boolean atLeastOneChoiceHasEndNode = false;
+
+    for (int i = 0; i < pK3ChoiceStatement.getChoices().size(); i++) {
+      K3Statement choice = pK3ChoiceStatement.getChoices().get(i);
+      // For each choice, we need to create a branch from the current starting node
+      CFANode choiceStartingNode = getNewNode();
+      CFACreationUtils.addEdgeToCFA(
+          new K3BlankChoiceEdge(
+              // This is definitely not the nicest solution, but it
+              "choice",
+              pK3ChoiceStatement.getFileLocation(),
+              startingNode,
+              choiceStartingNode,
+              "choice branch",
+              i),
+          logger);
+
+      // Process the choice
+      currentStartingNode = choiceStartingNode;
+      Optional<CFANode> choiceEndNode = choice.accept(this);
+
+      if (choiceEndNode.isPresent()) {
+        // Connect the end of the choice back to the CFA
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge(
+                "",
+                FileLocation.DUMMY,
+                choiceEndNode.orElseThrow(),
+                endNode,
+                "end of choice branch"),
+            logger);
+        atLeastOneChoiceHasEndNode = true;
+      }
+    }
+
+    if (atLeastOneChoiceHasEndNode) {
+      return Optional.of(endNode);
+    } else {
+      return Optional.empty();
+    }
   }
 }

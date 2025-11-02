@@ -16,7 +16,7 @@ public final class K3ChoiceStep extends K3TraceStep {
   @Serial private static final long serialVersionUID = 3030434235034450950L;
   private final int statementToFollow;
 
-  K3ChoiceStep(int pStatementToFollow, FileLocation pFileLocation) {
+  public K3ChoiceStep(int pStatementToFollow, FileLocation pFileLocation) {
     super(pFileLocation);
     statementToFollow = pStatementToFollow;
   }

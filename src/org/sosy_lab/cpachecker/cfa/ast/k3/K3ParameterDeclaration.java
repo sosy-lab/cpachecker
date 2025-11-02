@@ -23,6 +23,10 @@ public final class K3ParameterDeclaration extends AParameterDeclaration
     procedureName = pProcedureName;
   }
 
+  public String getProcedureName() {
+    return procedureName;
+  }
+
   @Override
   public K3Type getType() {
     return (K3Type) super.getType();

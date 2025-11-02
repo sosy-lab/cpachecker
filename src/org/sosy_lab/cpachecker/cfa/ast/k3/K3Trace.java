@@ -49,12 +49,13 @@ public final class K3Trace extends K3SelectTraceComponent {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return Joiner.on(" ")
+    return Joiner.on(System.lineSeparator())
         .join(
             Joiner.on(" ").join(setGlobalVariables.stream().map(K3AstNode::toASTString).toList()),
             entryCall.toASTString(pAAstNodeRepresentation),
             Joiner.on(" ").join(steps.stream().map(K3AstNode::toASTString).toList()),
-            violatedProperty.toASTString(pAAstNodeRepresentation));
+            violatedProperty.toASTString(pAAstNodeRepresentation),
+            Joiner.on(" ").join(setTags.stream().map(K3AstNode::toASTString).toList()));
   }
 
   @Override

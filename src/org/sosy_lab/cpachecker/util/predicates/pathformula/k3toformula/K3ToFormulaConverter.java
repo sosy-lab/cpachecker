@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula.K3ToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -316,7 +318,13 @@ public class K3ToFormulaConverter implements LanguageToSmtConverter {
   public BooleanFormula makeSsaUpdateTerm(
       String pSymbolName, Type pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
       throws InterruptedException {
-    throw new RuntimeException("Not implemented yet");
+    checkArgument(pOldIndex > 0 && pNewIndex > pOldIndex);
+    checkArgument(pSymbolType instanceof K3Type);
+
+    final FormulaType<?> variableFormulaType = ((K3Type) pSymbolType).toFormulaType();
+    final Formula oldVariable = fmgr.makeVariable(variableFormulaType, pSymbolName, pOldIndex);
+    final Formula newVariable = fmgr.makeVariable(variableFormulaType, pSymbolName, pNewIndex);
+    return fmgr.assignment(newVariable, oldVariable);
   }
 
   @Override

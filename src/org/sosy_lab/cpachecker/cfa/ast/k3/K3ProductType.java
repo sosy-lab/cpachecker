@@ -37,4 +37,9 @@ public final class K3ProductType implements K3Type {
   public List<K3Type> getElementTypes() {
     return elementTypes;
   }
+
+  @Override
+  public K3ConstantTerm defaultValue() {
+    throw new UnsupportedOperationException("Product types do not have a default value");
+  }
 }

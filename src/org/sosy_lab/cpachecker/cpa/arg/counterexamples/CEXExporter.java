@@ -40,7 +40,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
 import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -378,13 +378,10 @@ public class CEXExporter {
 
     // Now export the correctness witnesses for K3 program
     if (cexToK3Witness != null && k3WitnessOutputPath != null) {
-      List<K3AnnotateTagCommand> witnessCommands =
-          cexToK3Witness.generateWitnessCommands(counterexample);
+      List<K3Command> witnessCommands = cexToK3Witness.generateWitnessCommands(counterexample);
       String witnessContent =
           Joiner.on(System.lineSeparator())
-              .join(
-                  FluentIterable.from(witnessCommands)
-                      .transform(K3AnnotateTagCommand::toASTString));
+              .join(FluentIterable.from(witnessCommands).transform(K3Command::toASTString));
       try (Writer writer = IO.openOutputFile(k3WitnessOutputPath, Charset.defaultCharset())) {
         writer.write(witnessContent);
       } catch (IOException e) {

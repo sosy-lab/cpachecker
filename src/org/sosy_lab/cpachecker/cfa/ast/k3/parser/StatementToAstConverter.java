@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssignStatem
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssumeStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AttributeContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.BreakStatementContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ChoiceStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ContinueStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GotoStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.HavocStatementContext;
@@ -230,5 +232,20 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
     }
     FileLocation location = fileLocationFromContext(ctx);
     return new K3AssignmentStatement(assignments.buildOrThrow(), location, properties, references);
+  }
+
+  @Override
+  public K3Statement visitChoiceStatement(ChoiceStatementContext pContext) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
+    ImmutableList.Builder<K3Statement> optionsBuilder = ImmutableList.builder();
+    for (StatementContext statementContext : pContext.statement()) {
+      K3Statement option = visit(statementContext);
+      optionsBuilder.add(option);
+    }
+
+    return new K3ChoiceStatement(
+        optionsBuilder.build(), fileLocationFromContext(pContext), properties, references);
   }
 }

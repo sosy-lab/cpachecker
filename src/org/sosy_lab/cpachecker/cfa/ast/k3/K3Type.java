@@ -17,6 +17,8 @@ public sealed interface K3Type extends Type
 
   FormulaType<?> toFormulaType();
 
+  K3ConstantTerm defaultValue();
+
   static boolean compatibleTypes(K3Type t1, K3Type t2) {
     if (t1.equals(K3CustomType.InternalAnyType) || t2.equals(K3CustomType.InternalAnyType)) {
       return true;

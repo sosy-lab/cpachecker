@@ -181,9 +181,9 @@ public class CPAcheckerTest {
 
     // Read entire file content as a single string (UTF-8)
     // This is safe to do, since the witness files are small.
-    @SuppressWarnings("unused")
     String content = Files.readString(witnessPath.orElseThrow());
-    // TODO: Check for more specific content
+
+    Verify.verify(content.contains("(select-trace"), "The witness should contain an error-path.");
 
     // TODO: Should we cleanup after the test by deleting the witness file?
     //      The other tests do not do this either, so for consistency we leave it as is for now.

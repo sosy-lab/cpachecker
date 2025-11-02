@@ -226,11 +226,11 @@ class K3CfaBuilder {
     // Add blank edge for all global declarations
     CFACreationUtils.addEdgeToCFA(
         new BlankEdge(
-            "Start of Global Declarations",
+            "End of Global Declarations",
             FileLocation.DUMMY,
             mainFunctionNodes.getFirstNotNull(),
             currentMainFunctionNode,
-            "Start of Global Declarations"),
+            "End of Global Declarations"),
         logger);
 
     // Keep track of the metadata for the CFA, like the specification, and the SMT-LIB commands.

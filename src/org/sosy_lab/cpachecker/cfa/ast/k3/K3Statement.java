@@ -14,7 +14,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3Statement implements K3AstNode
-    permits K3ControlFlowStatement, K3CfaEdgeStatement {
+    permits K3CfaEdgeStatement, K3ControlFlowStatement {
 
   @Serial private static final long serialVersionUID = -2682818218051235918L;
   private final FileLocation fileLocation;
