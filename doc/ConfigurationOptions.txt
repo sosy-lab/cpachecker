@@ -2457,9 +2457,25 @@ cpa.predicate.defaultArrayLength = 20
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
 
-# Acceptable number of interpolants generated per refinement for
+# The lower bound for the ratio of the number of abstraction locations to the
+# number of refinements. Used to prevent premature early termination.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.abstractionLocationRefinementRatioLower = 0.18
+
+# The upper bound for the ratio of the number of abstraction locations to the
+# number of refinements. Used to prevent unproductive long runs.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.abstractionLocationRefinementRatioUpper = 0.28
+
+# Acceptable interpolant rate generated per refinement for
 # PredicateDelegatingRefiner heuristic.
 cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.acceptableInterpolantRate = 8.0
+
+# Factor to decrease the acceptable interpolant rate in unproductive runs in
+# the PredicateDelegatingRefiner heuristic.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.decreaseFactorInterpolants = 2.0
+
+# Factor to increase the acceptable interpolant rate in productive runs in
+# the PredicateDelegatingRefiner heuristic.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.increaseFactorInterpolants = 1.5
 
 # The maximum acceptable ratio of the number of abstraction locations to the
 # number of refinements before this heuristic should stop in favor of other

@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * This class implements a DelegatingRefinerHeuristic. A heuristic that monitors the rate
@@ -38,6 +35,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
+  private double currentAbstractionLocationRefinementRatio;
 
   private double currentTotalInterpolantRate;
 
@@ -45,9 +43,41 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       secure = true,
       name = "acceptableInterpolantRate",
       description =
-          "Acceptable number of interpolants generated per refinement for"
+          "Acceptable interpolant rate generated per refinement for"
               + " PredicateDelegatingRefiner heuristic.")
   private double acceptableInterpolantRate = 8.0;
+
+  @Option(
+      secure = true,
+      name = "increaseFactorInterpolants",
+      description =
+          "Factor to increase the acceptable interpolant rate in productive runs in the"
+              + " PredicateDelegatingRefiner heuristic.")
+  private double increaseFactorInterpolants = 1.5;
+
+  @Option(
+      secure = true,
+      name = "decreaseFactorInterpolants",
+      description =
+          "Factor to decrease the acceptable interpolant rate in unproductive runs in the"
+              + " PredicateDelegatingRefiner heuristic.")
+  private double decreaseFactorInterpolants = 2.0;
+
+  @Option(
+      secure = true,
+      name = "abstractionLocationRefinementRatioUpper",
+      description =
+          "The upper bound for the ratio of the number of abstraction locations to the number of"
+              + " refinements. Used to prevent unproductive long runs.")
+  private double abstractionLocationRefinementRatioUpper = 0.28;
+
+  @Option(
+      secure = true,
+      name = "abstractionLocationRefinementRatioLower",
+      description =
+          "The lower bound for the ratio of the number of abstraction locations to the number of"
+              + " refinements. Used to prevent premature early termination.")
+  private double abstractionLocationRefinementRatioLower = 0.18;
 
   /**
    * Constructs the heuristic monitoring interpolation rate.
@@ -69,7 +99,18 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
           "Acceptable number of interpolants per refinement used in"
               + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
     }
+    if (increaseFactorInterpolants < 0.0 || decreaseFactorInterpolants < 0.0) {
+      throw new InvalidConfigurationException(
+          "Factors to tune the acceptable number of interpolants per refinement used in"
+              + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
+    }
 
+    if (abstractionLocationRefinementRatioUpper < 0
+        || abstractionLocationRefinementRatioLower < 0) {
+      throw new InvalidConfigurationException(
+          "The bounds for the number of abstraction locations to refinement iterations used in"
+              + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
+    }
     currentTotalInterpolantRate = 0.0;
   }
 
@@ -86,46 +127,107 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
-    int numberOfRefinements = pDeltas.size();
-    Set<BooleanFormula> numberInterpolants = new HashSet<>();
+    int currentAbstractionLocationCount = 0;
+    int numberRefinements = pDeltas.size();
 
-    if (numberOfRefinements > 0) {
-      for (ReachedSetDelta delta : pDeltas) {
-        for (AbstractState pState : delta.addedStates()) {
-          PredicateAbstractState predState =
-              checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+    // Dynamic increase or decrease of the interpolant rate depends on the ratio number of
+    // abstraction locations to refinements
+    for (AbstractState pState : pReached) {
+      PredicateAbstractState predState =
+          checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
 
-          if (predState.isAbstractionState()) {
-            if ((!formulaManager
-                    .getBooleanFormulaManager()
-                    .isTrue(predState.getAbstractionFormula().asFormula())
-                && !formulaManager
-                    .getBooleanFormulaManager()
-                    .isFalse(predState.getAbstractionFormula().asFormula()))) {
-              numberInterpolants.add(predState.getAbstractionFormula().asFormula());
-            }
-          }
-        }
-      }
-
-      currentTotalInterpolantRate =
-          (double) numberInterpolants.size() / (double) numberOfRefinements;
-
-      if (currentTotalInterpolantRate < acceptableInterpolantRate) {
-        logger.logf(
-            Level.FINER,
-            "Checking current rate of interpolants generated per refinement: %.2f.",
-            currentTotalInterpolantRate);
-      } else {
-        logger.logf(
-            Level.FINE,
-            "Number of interpolants per refinement is too high:  %.2f. Heuristic %s is no longer"
-                + " applicable.",
-            currentTotalInterpolantRate,
-            this.getClass().getSimpleName());
+      if (predState.isAbstractionState()) {
+        currentAbstractionLocationCount++;
       }
     }
 
-    return currentTotalInterpolantRate < acceptableInterpolantRate;
+    if (numberRefinements == 0) {
+      return false;
+    }
+
+    currentAbstractionLocationRefinementRatio =
+        (double) currentAbstractionLocationCount / numberRefinements;
+
+    // Compute the number of interpolants added and their average ratio per refinement
+    int numberInterpolants = 0;
+
+    for (ReachedSetDelta delta : pDeltas) {
+      for (AbstractState pState : delta.addedStates()) {
+        PredicateAbstractState predState =
+            checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+
+        if (predState.isAbstractionState()) {
+          if ((!formulaManager
+                  .getBooleanFormulaManager()
+                  .isTrue(predState.getAbstractionFormula().asFormula())
+              && !formulaManager
+                  .getBooleanFormulaManager()
+                  .isFalse(predState.getAbstractionFormula().asFormula()))) {
+            numberInterpolants++;
+          }
+        }
+      }
+    }
+
+    currentTotalInterpolantRate = (double) numberInterpolants / (double) numberRefinements;
+
+    // dynamically adjusting interpolant rate
+    double effectiveAcceptableInterpolantRate = acceptableInterpolantRate;
+
+    // if abstractionLocations to refinement ratio is very low, run usually needs a higher
+    // interpolation threshold
+    if (currentAbstractionLocationRefinementRatio < abstractionLocationRefinementRatioLower) {
+      // acceptableInterpolantRate should be increased to prevent premature termination
+      effectiveAcceptableInterpolantRate = acceptableInterpolantRate * increaseFactorInterpolants;
+      if (currentTotalInterpolantRate <= effectiveAcceptableInterpolantRate) {
+        logger.logf(
+            Level.FINER,
+            "Current rate of interpolants generated per refinement: %.2f. Ratio of abstraction"
+                + " location to refinements is: %.2f.",
+            currentTotalInterpolantRate,
+            currentAbstractionLocationRefinementRatio);
+        return true;
+      } else {
+        logger.logf(
+            Level.FINE,
+            "Current rate of interpolants generated per refinement is too high: %.2f. Ratio of"
+                + " abstraction location to refinements is: %.2f. Heuristic %s is no longer"
+                + " applicable.",
+            currentTotalInterpolantRate,
+            currentAbstractionLocationRefinementRatio,
+            this.getClass().getSimpleName());
+        return false;
+      }
+      // if abstractionLocations to refinement ratio is higher, run usually needs a lower
+      // interpolation threshold
+    } else if (currentAbstractionLocationRefinementRatio
+        > abstractionLocationRefinementRatioUpper) {
+      // acceptableInterpolantRate should be decreased to prevent long runs resulting in timeouts
+      effectiveAcceptableInterpolantRate = acceptableInterpolantRate / decreaseFactorInterpolants;
+      if (currentTotalInterpolantRate <= effectiveAcceptableInterpolantRate) {
+        logger.logf(
+            Level.FINER,
+            "Current rate of interpolants generated per refinement: %.2f and ratio of abstraction"
+                + " location to refinements is: %.2f.",
+            currentTotalInterpolantRate,
+            currentAbstractionLocationRefinementRatio);
+        return true;
+      } else {
+        logger.logf(
+            Level.FINE,
+            "Current rate of interpolants generated per refinement: %.2f and ratio of abstraction"
+                + " location to refinements is: %.2f. Heuristic %s is no longer applicable.",
+            currentTotalInterpolantRate,
+            currentAbstractionLocationRefinementRatio,
+            this.getClass().getSimpleName());
+        return false;
+      }
+    }
+
+    // if  abstractionLocations to refinement ratio is between the two bounds, use configured
+    // acceptableInterpolantRate
+    else {
+      return currentTotalInterpolantRate < acceptableInterpolantRate;
+    }
   }
 }
