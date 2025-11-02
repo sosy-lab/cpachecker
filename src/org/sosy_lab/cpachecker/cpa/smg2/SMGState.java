@@ -2969,7 +2969,7 @@ public class SMGState
     String leakedObjectsLabels =
         leakedObjects.stream().map(Object::toString).collect(Collectors.joining(","));
     String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected";
-    if (edge != null) {
+    if (edge != null && edge.getFileLocation().getStartingLineInOrigin() != 0) {
       errorMSG = errorMSG + " in line " + edge.getFileLocation().getStartingLineInOrigin();
     }
     errorMSG = errorMSG + ".";
@@ -3326,6 +3326,10 @@ public class SMGState
     }
 
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
+    String loc = "";
+    if (lineInOrigin != 0) {
+      loc = "in line " + lineInOrigin;
+    }
     String errorMSG =
         "Try writing value "
             + pValue
@@ -3335,8 +3339,8 @@ public class SMGState
             + writeOffset
             + " bit to object sized "
             + objectWrittenTo.getSize()
-            + " bit in line "
-            + lineInOrigin
+            + " bit "
+            + loc
             + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -3371,6 +3375,10 @@ public class SMGState
 
     // TODO: get model for offset
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
+    String loc = "";
+    if (lineInOrigin != 0) {
+      loc = "in line " + lineInOrigin;
+    }
     String errorMSG =
         "Try writing value "
             + pValue
@@ -3378,8 +3386,8 @@ public class SMGState
             + writeSize
             + " at unknown possible offset bit to object sized "
             + objectWrittenTo.getSize()
-            + " bit in line "
-            + lineInOrigin
+            + " bit "
+            + loc
             + ".";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -3412,9 +3420,12 @@ public class SMGState
             || !getMemoryModel().isObjectValid(objectDerefed));
 
     int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
+    String loc = "";
+    if (lineInOrigin != 0) {
+      loc = "in line " + lineInOrigin;
+    }
     String errorMSG =
-        String.format(
-            "valid-deref: invalid pointer dereference in line %d with: " + edge, lineInOrigin);
+        String.format("valid-deref: invalid pointer dereference %s with: " + edge, loc);
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
