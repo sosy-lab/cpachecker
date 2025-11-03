@@ -157,8 +157,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       // Determine whether any of the new accesses constitutes a data race
       boolean hasDataRace = state.hasDataRace();
       Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
-      ImmutableSet<MemoryAccess> newMemoryAccessesSet = memoryAccessBuilder.build();
-      for (MemoryAccess access : newMemoryAccessesSet) {
+      for (MemoryAccess access : memoryAccessBuilder.build()) {
         if (hasDataRace) {
           // Already found a data race, no need to continue
           break;
@@ -195,7 +194,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
       strengthenedStates.add(
           new DataRaceState(
-              memoryAccessBuilder.build(),
+              newMemoryAccesses,
               subsequentWritesBuilder.build(),
               newThreadInfo,
               threadSynchronizations,
