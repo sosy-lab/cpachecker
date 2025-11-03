@@ -214,7 +214,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     Optional<List<AutomatonTransition>> newTransitions;
     if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
       logger.log(
-          Level.FINE, "Could not find an element corresponding to the waypoint, skipping it");
+          Level.INFO, "Could not find an element corresponding to the waypoint, skipping it");
       return;
     }
 
