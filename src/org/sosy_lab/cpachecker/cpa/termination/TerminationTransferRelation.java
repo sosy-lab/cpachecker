@@ -407,7 +407,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             new CIdExpression(FileLocation.DUMMY, pSuccessor.getFunctionDefinition()),
             pSuccessor.getFunctionParameters().stream()
                 .map(d -> new CIdExpression(DUMMY, d))
-                .collect(Collectors.toList()),
+                .collect(ImmutableList.toImmutableList()),
             pSuccessor.getFunctionDefinition());
     CFunctionCallStatement functionCall = new CFunctionCallStatement(DUMMY, expression);
     CFunctionSummaryEdge summaryEdge =

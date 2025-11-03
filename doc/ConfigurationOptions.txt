@@ -5282,7 +5282,7 @@ termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES
 termination.lassoAnalysis.linear.externalSolver = false
 
 # Maximal number of functions used in a ranking function template.
-termination.lassoAnalysis.maxTemplateFunctions = 5
+termination.lassoAnalysis.maxTemplateFunctions = 3
 
 # Number of non-strict supporting invariants for each Motzkin transformation
 # during synthesis of termination arguments.
