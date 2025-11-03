@@ -60,6 +60,11 @@ public class BuiltinFunctionsHandling {
       case FLOAT -> "__VERIFIER_nondet_float";
       case DOUBLE -> "__VERIFIER_nondet_double";
       case BOOL -> "__VERIFIER_nondet_bool";
+      case INT128 -> {
+        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        yield "__VERIFIER_nondet_" + prefix + "int128";
+      }
+      case FLOAT128 -> "__VERIFIER_nondet_float128";
       default ->
           throw new IllegalArgumentException("No verifier nondet function for type: " + basicType);
     };
