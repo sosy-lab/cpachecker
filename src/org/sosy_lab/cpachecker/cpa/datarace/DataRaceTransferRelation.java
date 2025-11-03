@@ -169,11 +169,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
 
         for (MemoryAccess newAccess : newMemoryAccesses) {
-
-          // Add the new access to the set of tracked accesses
-          // such that the next state also knows about it.
-          memoryAccessBuilder.add(newAccess);
-
           if (access.mightAccessSameLocationAs(newAccess)
               && (access.isWrite() || newAccess.isWrite())
               && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
