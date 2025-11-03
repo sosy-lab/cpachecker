@@ -142,6 +142,9 @@ public class BuiltinFunctionsHandling {
    * parameter to fscanf a call to __VERIFIER_nondet_* of the correct type. In case this cannot be
    * done precisely, an {@code UnrecognizedCodeException} is thrown.
    *
+   * <p>Only the particular cases where the call can be replaced into a __VERIFIER_nondet_* call are
+   * handled. Anything else results in an {@code UnsupportedCodeException}.
+   *
    * @param e the {@code CFunctionCallExpression} representing the fscanf call
    * @param pEdge the CFA edge where the fscanf call occurs, required for proper exception handling
    * @return a {@code CFunctionCallAssignmentStatement} setting the receiving parameter of fscanf to
