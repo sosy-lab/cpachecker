@@ -36,7 +36,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;

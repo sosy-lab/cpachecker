@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
-class AutomatonWitnessV21ParserCorrectness extends AutomatonWitnessV2ParserCorrectness {
-  AutomatonWitnessV21ParserCorrectness(
+class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCorrectness {
+  AutomatonWitnessV2d1ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);

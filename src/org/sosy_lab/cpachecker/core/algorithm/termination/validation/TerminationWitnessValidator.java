@@ -263,11 +263,10 @@ public class TerminationWitnessValidator implements Algorithm {
               shutdownNotifier);
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              generationConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
-      ConfigurableProgramAnalysis supportingInvariantsCPA =
-          coreComponents.createCPA(cfa, invariantSpec);
+              generationConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
+      ConfigurableProgramAnalysis supportingInvariantsCPA = coreComponents.createCPA(invariantSpec);
       Algorithm invariantCheckingAlgorithm =
-          coreComponents.createAlgorithm(supportingInvariantsCPA, cfa, invariantSpec);
+          coreComponents.createAlgorithm(supportingInvariantsCPA, invariantSpec);
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
       ForwardingReachedSet reachedSet =

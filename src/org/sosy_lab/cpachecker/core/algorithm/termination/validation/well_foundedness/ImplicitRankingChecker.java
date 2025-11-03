@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ImplicitRankingChecker implements WellFoundednessChecker {
 
@@ -124,7 +125,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
     // Build the loop
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    String loopCondition = converter.formulaToCExpression(pFormula);
+    String loopCondition;
+    try {
+      loopCondition = converter.formulaToCExpression(pFormula);
+    } catch (SolverException e) {
+      throw new CPAException("It was not possible to translate invariant to CExpression.");
+    }
     List<String> exitConditions =
         pLoop.getOutgoingEdges().stream()
             .filter(x -> x instanceof CAssumeEdge)
@@ -132,7 +138,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
             .toList();
     loopCondition = loopCondition + " && " + String.join(" && ", exitConditions);
     for (BooleanFormula invariant : pSupportingInvariants) {
-      loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
+
+      try {
+        loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
+      } catch (SolverException e) {
+        throw new CPAException("It was not possible to translate invariant to CExpression.");
+      }
+
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
@@ -185,9 +197,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
               Configuration.builder().loadFromFile(lassoRankerConfigPath).build(),
               logger,
               shutdownNotifier,
-              AggregatedReachedSets.empty());
-      ConfigurableProgramAnalysis terminationCpa =
-          coreComponents.createCPA(overapproximatingCFA, specification);
+              AggregatedReachedSets.empty(),
+              overapproximatingCFA);
+      ConfigurableProgramAnalysis terminationCpa = coreComponents.createCPA(specification);
       // Reached Set
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
       ReachedSet reachedSet = reachedSetFactory.create(terminationCpa);
@@ -200,7 +212,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
       // Running the algorithm
       Algorithm terminationAlgorithm =
-          coreComponents.createAlgorithm(terminationCpa, overapproximatingCFA, specification);
+          coreComponents.createAlgorithm(terminationCpa, specification);
       terminationAlgorithm.run(reachedSet);
 
       if (reachedSet.wasTargetReached()) {
