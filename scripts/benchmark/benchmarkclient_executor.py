@@ -108,8 +108,6 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
         if benchmark.config.tryLessMemory:
             cmdLine.extend(["--try-less-memory", str(benchmark.config.tryLessMemory)])
-        if benchmark.config.debug:
-            cmdLine.extend(["--print-new-files", "true"])
         if benchmark.config.containerImage:
             cmdLine.extend(["--containerImage", str(benchmark.config.containerImage)])
 
