@@ -887,18 +887,12 @@ public class ValueAnalysisTransferRelation
 
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         } else {
-          // Only unhandled cases of expression instanceof CFunctionCallStatement end up here!
-          if (options.ignoreCallsToUnknownFunctions) {
-            // It is UNSOUND to ignore these!!!!
-            logger.log(
-                Level.WARNING,
-                "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
-                functionCall);
-          } else {
-            throw new UnsupportedCodeException(
-                "Unhandled call to function " + functionCall, cfaEdge, fn);
-          }
+
+          handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
         }
+      } else {
+
+        handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
       }
     }
 
@@ -918,6 +912,21 @@ public class ValueAnalysisTransferRelation
     }
 
     return state;
+  }
+
+  private void handleUnknownOrUnhandledFunctionCalls(
+      AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
+      throws UnsupportedCodeException {
+    // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
+    if (options.ignoreCallsToUnknownFunctions) {
+      // It is UNSOUND to ignore these!!!!
+      logger.log(
+          Level.WARNING,
+          "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
+          functionCall);
+    } else {
+      throw new UnsupportedCodeException("Unhandled call to function " + functionCall, cfaEdge, fn);
+    }
   }
 
   private ValueAnalysisState handleFunctionAssignment(
