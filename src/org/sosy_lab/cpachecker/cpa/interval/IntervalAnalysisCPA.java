@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -69,7 +68,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
   private IntervalAnalysisCPA(
       Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
-    super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
+    super("irrelevant", "sep", IntervalFunArrayDomain.getInstance(), null);
     config.inject(this);
     writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
     logger = pLogger;

@@ -72,7 +72,8 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     // Check if there are duplicate expressions in bounds
     var expressions = bounds.stream().flatMap(e -> e.expressions().stream()).toList();
     if (expressions.size() != expressions.stream().distinct().count()) {
-      throw new IllegalArgumentException("Given list of bounds contains duplicate expressions: %s".formatted(bounds));
+      throw new IllegalArgumentException(
+          "Given list of bounds contains duplicate expressions: %s".formatted(bounds));
     }
 
     this.bounds = ImmutableList.copyOf(bounds);
