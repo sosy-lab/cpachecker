@@ -3874,6 +3874,11 @@ cpa.value.exportLoopInvariants = IF_TRUE
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
 
+# In case a function unknown to the CPA is encountered and this is set to
+# true, a warning is logged and the function call is ignored. Ignoring
+# function calls is unsound! If this is set to false, a exception is raised.
+cpa.value.ignoreCallsToUnknownFunctions = true
+
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
 

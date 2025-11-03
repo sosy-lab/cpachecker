@@ -173,6 +173,14 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
+            "In case a function unknown to the CPA is encountered and this is set to true, a"
+                + " warning is logged and the function call is ignored. Ignoring function calls is"
+                + " unsound! If this is set to false, a exception is raised.")
+    private boolean ignoreCallsToUnknownFunctions = true;
+
+    @Option(
+        secure = true,
+        description =
             "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
                 + " values in the TestComp format. It is used for function-calls to calls of"
                 + " VERIFIER_nondet_*. The file is provided via the option"
@@ -878,6 +886,18 @@ public class ValueAnalysisTransferRelation
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
+        } else {
+          // Only unhandled cases of expression instanceof CFunctionCallStatement end up here!
+          if (options.ignoreCallsToUnknownFunctions) {
+            // It is UNSOUND to ignore these!!!!
+            logger.log(
+                Level.WARNING,
+                "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
+                functionCall);
+          } else {
+            throw new UnsupportedCodeException(
+                "Unhandled call to function " + functionCall, cfaEdge, fn);
+          }
         }
       }
     }
