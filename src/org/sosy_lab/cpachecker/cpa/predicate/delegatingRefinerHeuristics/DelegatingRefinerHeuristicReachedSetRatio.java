@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -17,11 +15,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * A heuristic which lets a refiner do several number of iterations without assessing the refinement
@@ -104,27 +99,25 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
    */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
-
-    int currentAbstractionLocationCount = 0;
     int numberRefinements = pDeltas.size();
+    if (numberRefinements == 0) {
+      return false;
+    }
 
-    for (AbstractState pState : pReached) {
-      PredicateAbstractState predState =
-          checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+    // Get the current number of abstraction locations from the delta
+    int currentAbstractionLocationCount = 0;
 
-      if (predState.isAbstractionState()) {
-        currentAbstractionLocationCount++;
-      }
+    for (ReachedSetDelta delta : pDeltas) {
+      // Get the current number of abstraction locations from the delta
+      currentAbstractionLocationCount += delta.abstractionLocationsCount();
     }
 
     if (currentAbstractionLocationCount < abstractionLocationThreshold) {
       return true;
     }
 
-    if (numberRefinements > 0) {
-      currentAbstractionLocationRefinementRatio =
-          (double) currentAbstractionLocationCount / numberRefinements;
-    }
+    currentAbstractionLocationRefinementRatio =
+        (double) currentAbstractionLocationCount / numberRefinements;
 
     if (currentAbstractionLocationRefinementRatio > abstractionLocationRefinementRatio) {
       logger.logf(

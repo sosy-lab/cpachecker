@@ -15,6 +15,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   private final Set<AbstractState> addedStates = new HashSet<>();
   private final Set<AbstractState> removedStates = new HashSet<>();
+  private int abstractionCount;
 
   public TrackingForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
@@ -34,6 +37,7 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   public void resetTracking() {
     addedStates.clear();
     removedStates.clear();
+    abstractionCount = 0;
   }
 
   /**
@@ -44,12 +48,15 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
    */
   public ReachedSetDelta getDelta() {
     return new ReachedSetDelta(
-        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));
+        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates), abstractionCount);
   }
 
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
     addedStates.add(checkNotNull(pState));
+    if (isAbstractionState(pState)) {
+      abstractionCount++;
+    }
     super.add(pState, pPrecision);
   }
 
@@ -58,7 +65,10 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
     for (Pair<AbstractState, Precision> pair : pToAdd) {
       AbstractState pState = pair.getFirst();
       if (pState != null) {
-        addedStates.add(pState);
+        if (isAbstractionState(pState)) {
+          abstractionCount++;
+          addedStates.add(pState);
+        }
       }
     }
     super.addAll(pToAdd);
@@ -67,6 +77,9 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   @Override
   public void remove(AbstractState pState) {
     removedStates.add(checkNotNull(pState));
+    if (isAbstractionState(pState)) {
+      abstractionCount--;
+    }
     super.remove(pState);
   }
 
@@ -74,6 +87,9 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
     for (AbstractState pState : pToRemove) {
       removedStates.add(pState);
+      if (isAbstractionState(pState)) {
+        abstractionCount--;
+      }
     }
     super.removeAll(pToRemove);
   }
@@ -82,5 +98,11 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   public void clear() {
     resetTracking();
     super.clear();
+  }
+
+  private boolean isAbstractionState(AbstractState pState) {
+    PredicateAbstractState pred =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    return pred != null && pred.isAbstractionState();
   }
 }

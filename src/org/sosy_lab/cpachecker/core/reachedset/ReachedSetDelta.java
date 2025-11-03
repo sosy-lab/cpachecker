@@ -20,7 +20,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
  * DelegatingRefinerHeuristics.
  */
 public record ReachedSetDelta(
-    ImmutableSet<AbstractState> addedStates, ImmutableSet<AbstractState> removedStates) {
+    ImmutableSet<AbstractState> addedStates,
+    ImmutableSet<AbstractState> removedStates,
+    int abstractionLocationsCount) {
 
   public ReachedSetDelta {
     checkNotNull(addedStates, "addedStates must not be null.");

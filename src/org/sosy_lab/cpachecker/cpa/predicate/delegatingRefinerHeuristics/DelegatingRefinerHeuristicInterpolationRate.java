@@ -127,32 +127,22 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
 
-    int currentAbstractionLocationCount = 0;
     int numberRefinements = pDeltas.size();
-
-    // Dynamic increase or decrease of the interpolant rate depends on the ratio number of
-    // abstraction locations to refinements
-    for (AbstractState pState : pReached) {
-      PredicateAbstractState predState =
-          checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
-
-      if (predState.isAbstractionState()) {
-        currentAbstractionLocationCount++;
-      }
-    }
-
     if (numberRefinements == 0) {
       return false;
     }
 
-    currentAbstractionLocationRefinementRatio =
-        (double) currentAbstractionLocationCount / numberRefinements;
+    int currentAbstractionLocationCount = 0;
 
     // Compute the number of interpolants added and their average ratio per refinement
     int numberInterpolants = 0;
 
     for (ReachedSetDelta delta : pDeltas) {
+      // Get the current number of abstraction locations from the delta
+      currentAbstractionLocationCount += delta.abstractionLocationsCount();
+
       for (AbstractState pState : delta.addedStates()) {
+
         PredicateAbstractState predState =
             checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
 
@@ -168,6 +158,9 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
         }
       }
     }
+
+    currentAbstractionLocationRefinementRatio =
+        (double) currentAbstractionLocationCount / numberRefinements;
 
     currentTotalInterpolantRate = (double) numberInterpolants / (double) numberRefinements;
 
