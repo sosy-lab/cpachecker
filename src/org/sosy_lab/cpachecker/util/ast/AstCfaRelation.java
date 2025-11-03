@@ -169,7 +169,7 @@ public final class AstCfaRelation {
    */
   public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
     for (IterationElement structure : iterationStructures) {
-      if (structure.getCompleteElement().location().getStartingLineNumber() == line
+      if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
         return structure.getLoopHead();
       }
@@ -191,7 +191,7 @@ public final class AstCfaRelation {
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
             .getValue();
 
-    if (statement.location().getStartingLineNumber() != line
+    if (statement.location().getStartingLineInOrigin() != line
         || statement.location().getStartColumnInLine() != column) {
       // We only want to match the exact starting location of the statement
       return Optional.empty();
@@ -293,7 +293,7 @@ public final class AstCfaRelation {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
-              element.getCompleteElement().location().getStartingLineNumber());
+              element.getCompleteElement().location().getStartingLineInOrigin());
       builder.put(key, element.getCompleteElement());
     }
     startingLocationToTightestStatement = builder.buildOrThrow();
@@ -364,7 +364,7 @@ public final class AstCfaRelation {
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
 
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
@@ -383,7 +383,7 @@ public final class AstCfaRelation {
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
 
