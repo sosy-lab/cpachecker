@@ -154,6 +154,13 @@ public class BuiltinFunctionsHandling {
   public static CFunctionCallAssignmentStatement createNondetCallModellingFscanf(
       CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
+    if (!(e.getFunctionNameExpression() instanceof CIdExpression funcNameIdExpression)
+        || !funcNameIdExpression.getName().equals("fscanf")) {
+      throw new UnrecognizedCodeException(
+          "fscanf function call expected to have a direct function name called 'fscanf'.",
+          pEdge,
+          e);
+    }
 
     ValidatedFScanFParameter receivingParameter =
         BuiltinFunctionsHandling.validateFscanfParameters(parameters, e, pEdge);
