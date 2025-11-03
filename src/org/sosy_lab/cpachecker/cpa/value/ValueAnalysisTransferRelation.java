@@ -220,7 +220,7 @@ public class ValueAnalysisTransferRelation
             "If given functions are not handled by the analysis, they are interpret as pure"
                 + " functions although the value analysis does not support their semantics."
                 + " This can be unsound!")
-    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of("printf");
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of("printf", "srand");
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
