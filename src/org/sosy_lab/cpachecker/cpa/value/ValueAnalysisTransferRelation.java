@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
@@ -136,9 +135,6 @@ import org.xml.sax.SAXException;
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<
         ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
-  // set of functions that may not appear in the source code
-  // the value of the map entry is the explanation for the user
-  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
 
@@ -868,12 +864,7 @@ public class ValueAnalysisTransferRelation
 
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
-        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          if (!options.isAllowedUnsupportedOption(func)) {
-            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
-          }
-
-        } else if (func.equals("free")) {
+        if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
@@ -914,18 +905,28 @@ public class ValueAnalysisTransferRelation
     return state;
   }
 
+  /**
+   * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
+   * either trigger a warning or a {@link UnsupportedCodeException} depending on option
+   * 'ignoreCallsToUnknownFunctions'.
+   */
   private void handleUnknownOrUnhandledFunctionCalls(
       AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
       throws UnsupportedCodeException {
     // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
-    if (options.ignoreCallsToUnknownFunctions) {
-      // It is UNSOUND to ignore these!!!!
-      logger.log(
-          Level.WARNING,
-          "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
-          functionCall);
-    } else {
-      throw new UnsupportedCodeException("Unhandled call to function " + functionCall, cfaEdge, fn);
+    String calledFunctionName =
+        functionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    if (!options.isAllowedUnsupportedOption(calledFunctionName)) {
+      if (options.ignoreCallsToUnknownFunctions) {
+        // It is UNSOUND to ignore these!!!!
+        logger.log(
+            Level.WARNING,
+            "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
+            functionCall);
+      } else {
+        throw new UnsupportedCodeException(
+            "Unhandled call to function " + functionCall, cfaEdge, fn);
+      }
     }
   }
 
