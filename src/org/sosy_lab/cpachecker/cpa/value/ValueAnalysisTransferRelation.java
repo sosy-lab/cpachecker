@@ -169,9 +169,11 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "In case a function unknown to the CPA is encountered and this is set to true, a"
-                + " warning is logged and the function call is ignored. Ignoring function calls is"
-                + " unsound! If this is set to false, a exception is raised.")
+            "In case the value analysis encounters a unhandled or unknown function, and this is set"
+                + " to true, a warning is logged and the function call is ignored. Ignoring"
+                + " function calls is unsound! If this is set to false, a exception is raised."
+                + " Functions listed in option allowedUnsupportedFunctions are considered pure and"
+                + " are exempt from this.")
     private boolean ignoreCallsToUnknownFunctions = true;
 
     @Option(
@@ -215,10 +217,10 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "Allow the given extern functions and interpret them as pure functions"
-                + " although the value analysis does not support their semantics"
-                + " and this can produce wrong results.")
-    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
+            "If given functions are not handled by the analysis, they are interpret as pure"
+                + " functions although the value analysis does not support their semantics."
+                + " This can be unsound!")
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of("printf");
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
