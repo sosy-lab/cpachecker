@@ -347,7 +347,7 @@ public class TemplatePrecision implements Precision {
     Set<Template> templates = new HashSet<>();
 
     for (CFANode node : cfa.nodes()) {
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         String statement = edge.getRawStatement();
         Optional<LinearExpression<CIdExpression>> template = Optional.empty();
 
@@ -355,7 +355,7 @@ public class TemplatePrecision implements Precision {
         // do not hardcode the function names.
         if (statement.contains(ASSERT_H_FUNC_NAME) && edge instanceof CStatementEdge) {
 
-          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+          for (CFAEdge enteringEdge : node.getEnteringEdges()) {
             if (enteringEdge instanceof CAssumeEdge assumeEdge) {
               CExpression expression = assumeEdge.getExpression();
 
@@ -369,7 +369,7 @@ public class TemplatePrecision implements Precision {
           if (callEdge.getArguments().isEmpty()) {
             continue;
           }
-          CExpression expression = callEdge.getArguments().get(0);
+          CExpression expression = callEdge.getArguments().getFirst();
           template = expressionToSingleTemplate(expression);
         }
 

@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,7 +55,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -135,7 +136,7 @@ public class WitnessInvariantsExtractor {
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    isYAMLWitness = AutomatonWitnessParserUtils.isYAMLWitness(pPathToWitnessFile);
+    isYAMLWitness = AutomatonWitnessV2ParserUtils.isYAMLWitness(pPathToWitnessFile);
     if (isYAMLWitness) {
       try {
         potentialCandidatesYAMLWitness = analyzeYAMLWitness(pPathToWitnessFile);
@@ -244,7 +245,7 @@ public class WitnessInvariantsExtractor {
           InvalidWitnessException {
 
     List<AbstractEntry> entries =
-        AutomatonWitnessParserUtils.parseYAML(
+        AutomatonWitnessV2ParserUtils.parseYAML(
             MoreFiles.asByteSource(pPathToWitnessFile).openStream());
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
@@ -316,7 +317,7 @@ public class WitnessInvariantsExtractor {
       return potentialCandidatesYAMLWitness.orElseThrow();
     }
 
-    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    SequencedSet<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
@@ -411,7 +412,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

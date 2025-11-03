@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation {
 
@@ -84,13 +83,13 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
       ImmutableSet<String> changedVarsInGiven = locations.getChangedVarsInGivenCfa();
 
-      if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
+      if (nodeInGiven.getLeavingEdges().contains(pCfaEdge)) {
         // possible successor adheres to control-flow
         CFANode succInGiven = pCfaEdge.getSuccessor();
         Collection<ModificationsRcdState> successors = new HashSet<>();
 
         Optional<ModificationsRcdState> potSucc;
-        for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+        for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
           potSucc = findMatchingSuccessor(pCfaEdge, edgeInOriginal, changedVarsInGiven);
           if (potSucc.isPresent()) {
 
@@ -111,7 +110,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         // Since the modified edges do not have any successors we do not need to worry about the
         // changed variables any more and can simply pass an empty set instead.
         if (successors.isEmpty()) {
-          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
             successors.add(
                 new ModificationsRcdState(
                     succInGiven, edgeInOriginal.getSuccessor(), ImmutableSet.of(), true));
@@ -188,8 +187,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           }
           // move on one by one node in the given, and by two nodes in the original CPA;
           // find out which edge is matching
-          for (CFAEdge edgeLeavingOrigSuccessor :
-              CFAUtils.leavingEdges(originalEdge.getSuccessor())) {
+          for (CFAEdge edgeLeavingOrigSuccessor : originalEdge.getSuccessor().getLeavingEdges()) {
             if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
               changedVarsInSuccessor =
                   removeVariableFromSetIfAssignedInEdge(pEdgeInGiven, changedVarsInSuccessor);
@@ -309,8 +307,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       if (lhsInOriginal != null) {
 
         // check if pEdgeInOriginal has successor edge equal to pEdgeInGiven
-        for (CFAEdge edgeLeavingOrigSuccessor :
-            CFAUtils.leavingEdges(pEdgeInOriginal.getSuccessor())) {
+        for (CFAEdge edgeLeavingOrigSuccessor : pEdgeInOriginal.getSuccessor().getLeavingEdges()) {
           if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
             return Optional.of(lhsInOriginal);
           }
@@ -334,8 +331,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       if (lhsInGiven != null) {
 
         // check if pEdgeInGiven has successor edge equal to pEdgeInOriginal
-        for (CFAEdge edgeLeavingGivenSuccessor :
-            CFAUtils.leavingEdges(pEdgeInGiven.getSuccessor())) {
+        for (CFAEdge edgeLeavingGivenSuccessor : pEdgeInGiven.getSuccessor().getLeavingEdges()) {
           if (edgesMatch(edgeLeavingGivenSuccessor, pEdgeInOriginal)) {
             return Optional.of(lhsInGiven);
           }
@@ -352,9 +348,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
+          ((FunctionReturnEdge) pEdgeInGiven).getCallNode().getEnteringEdges()) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
+            ((FunctionReturnEdge) pEdgeInOriginal).getCallNode().getEnteringEdges()) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }
@@ -391,65 +387,69 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
     Set<String> usedVars = new HashSet<>();
 
-    // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge cDeclarationEdge) { // DeclarationEdge
-      CDeclaration decl = cDeclarationEdge.getDeclaration();
-
-      if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
-        return false;
-      } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
-        CInitializer initl = cVariableDeclaration.getInitializer();
-        if (initl instanceof CInitializerExpression cInitializerExpression) {
-          usedVars = cInitializerExpression.getExpression().accept(visitor);
+    switch (pEdge) {
+      case CDeclarationEdge cDeclarationEdge -> {
+        CDeclaration decl = cDeclarationEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
+          return false;
+        } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer initl = cVariableDeclaration.getInitializer();
+          if (initl instanceof CInitializerExpression cInitializerExpression) {
+            usedVars = cInitializerExpression.getExpression().accept(visitor);
+          } else {
+            return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          }
+        }
+      }
+      case CReturnStatementEdge cReturnStatementEdge -> {
+        CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
+        if (exp != null) {
+          usedVars = exp.accept(visitor);
         } else {
-          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          return !pVars.isEmpty(); // fallback, shouldn't happen
         }
       }
-
-    } else if (pEdge instanceof CReturnStatementEdge cReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
-      if (exp != null) {
-        usedVars = exp.accept(visitor);
-      } else {
-        return !pVars.isEmpty(); // fallback, shouldn't happen
-      }
-    } else if (pEdge instanceof CAssumeEdge cAssumeEdge) { // AssumeEdge
-      usedVars = cAssumeEdge.getExpression().accept(visitor);
-    } else if (pEdge instanceof CStatementEdge cStatementEdge) { // StatementEdge
-      CStatement stmt = cStatementEdge.getStatement();
-
-      if (stmt instanceof CExpressionStatement cExpressionStatement) {
-        usedVars = cExpressionStatement.getExpression().accept(visitor);
-      } else {
-        if (stmt instanceof CAssignment cAssignment) {
-          CLeftHandSide lhs = cAssignment.getLeftHandSide();
-          if (!(lhs instanceof CIdExpression)) {
-            usedVars.addAll(lhs.accept(visitor));
+      case CAssumeEdge cAssumeEdge -> usedVars = cAssumeEdge.getExpression().accept(visitor);
+      case CStatementEdge cStatementEdge -> {
+        CStatement stmt = cStatementEdge.getStatement();
+        if (stmt instanceof CExpressionStatement cExpressionStatement) {
+          usedVars = cExpressionStatement.getExpression().accept(visitor);
+        } else {
+          if (stmt instanceof CAssignment cAssignment) {
+            CLeftHandSide lhs = cAssignment.getLeftHandSide();
+            if (!(lhs instanceof CIdExpression)) {
+              usedVars.addAll(lhs.accept(visitor));
+            }
+            if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
+            }
           }
-          if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
-            usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
-          }
-        }
-        if (stmt instanceof CFunctionCall cFunctionCall) {
-          CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
-          usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
-          for (CExpression exp : funCall.getParameterExpressions()) {
-            usedVars.addAll(exp.accept(visitor));
+          if (stmt instanceof CFunctionCall cFunctionCall) {
+            CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
+            usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              usedVars.addAll(exp.accept(visitor));
+            }
           }
         }
       }
-
-    } else if (pEdge instanceof BlankEdge) { // BlankEdge
-      return false;
-    } else if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) { // FunctionCallEdge
-      for (CExpression exp : cFunctionCallEdge.getArguments()) {
-        usedVars.addAll(exp.accept(visitor));
+      case BlankEdge blankEdge -> {
+        return false;
       }
-    } else if (pEdge instanceof CFunctionSummaryEdge
-        || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
-      return false;
-    } else {
-      return !pVars.isEmpty();
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        for (CExpression exp : cFunctionCallEdge.getArguments()) {
+          usedVars.addAll(exp.accept(visitor));
+        }
+      }
+      case CFunctionSummaryEdge summaryEdge -> {
+        return false;
+      }
+      case CFunctionReturnEdge returnEdge -> {
+        return false;
+      }
+      default -> {
+        return !pVars.isEmpty();
+      }
     }
 
     return !Collections.disjoint(usedVars, pVars);

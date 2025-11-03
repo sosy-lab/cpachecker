@@ -619,7 +619,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
 
     // root state needs special treatment:
     if (Objects.equals(parent, rootState)) {
-      ARGState firstAfterRoot = abstractionStatesTrace.get(0);
+      ARGState firstAfterRoot = abstractionStatesTrace.getFirst();
       ARGState s = forkedStateMap.get(firstAfterRoot);
       if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;

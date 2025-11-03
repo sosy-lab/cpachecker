@@ -58,7 +58,7 @@ class LlvmParser implements Parser {
       throw new InvalidConfigurationException(
           "Multiple program files not supported when using LLVM frontend.");
     }
-    return parseFile(Path.of(pFilenames.get(0)));
+    return parseFile(Path.of(pFilenames.getFirst()));
   }
 
   protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {

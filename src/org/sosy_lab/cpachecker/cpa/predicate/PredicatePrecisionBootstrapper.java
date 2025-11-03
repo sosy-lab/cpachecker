@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -193,8 +193,8 @@ public final class PredicatePrecisionBootstrapper {
               case VIOLATION_WITNESS ->
                   logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
             }
-          } else if (AutomatonWitnessParserUtils.isYAMLWitness(predicatesFile)) {
-            if (!AutomatonWitnessParserUtils.getWitnessTypeIfYAML(predicatesFile)
+          } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(predicatesFile)) {
+            if (!AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(predicatesFile)
                 .orElseThrow()
                 .equals(WitnessType.CORRECTNESS_WITNESS)) {
               logger.log(
@@ -233,7 +233,7 @@ public final class PredicatePrecisionBootstrapper {
       final Path pWitnessFile) throws IOException, InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
     try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
-      List<AbstractEntry> entries = AutomatonWitnessParserUtils.parseYAML(witness);
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
 
       InvariantExchangeFormatTransformer transformer =
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);

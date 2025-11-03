@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -44,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
@@ -194,11 +191,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    for (FunctionEntryNode node :
-        CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class)) {
-      if (node.getFunctionName().equals(pState.getCurrentFunction())) {
-        return false;
-      }
+    if (pState.isNormalFunctionCall()) {
+      return false;
     }
 
     // Not a function call node -> wildcard state
@@ -211,7 +205,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       final CallstackState element, final FunctionCallEdge callEdge) {
     // Cannot skip if there is no edge for skipping
     // (this would just terminate the path here -> unsound).
-    if (leavingEdges(callEdge.getPredecessor())
+    if (callEdge
+        .getPredecessor()
+        .getLeavingEdges()
         .filter(CFunctionSummaryStatementEdge.class)
         .isEmpty()) {
       return false;
@@ -352,7 +348,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   }
 
   protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
-    for (CFAEdge edge : leavingEdges(predNode)) {
+    for (CFAEdge edge : predNode.getLeavingEdges()) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return (FunctionCallEdge) edge;
       }

@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -223,8 +223,9 @@ public class CPAMain {
         secure = true,
         name = "memorysafety.config",
         description =
-            "When checking for memory safety properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory safety properties, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
@@ -232,8 +233,9 @@ public class CPAMain {
         secure = true,
         name = "memorycleanup.config",
         description =
-            "When checking for memory cleanup properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory cleanup properties, use this configuration file instead of"
+                + " the current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memcleanupConfig = null;
 
@@ -241,8 +243,9 @@ public class CPAMain {
         secure = true,
         name = "overflow.config",
         description =
-            "When checking for the overflow property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the overflow property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
@@ -250,8 +253,9 @@ public class CPAMain {
         secure = true,
         name = "datarace.config",
         description =
-            "When checking for the data race property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the data race property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path dataraceConfig = null;
 
@@ -259,8 +263,9 @@ public class CPAMain {
         secure = true,
         name = "termination.config",
         description =
-            "When checking for the termination property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the termination property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 
@@ -609,7 +614,7 @@ public class CPAMain {
     if (propertyFiles.size() > 1) {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
-    String propertyFile = propertyFiles.get(0);
+    String propertyFile = propertyFiles.getFirst();
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
@@ -713,7 +718,7 @@ public class CPAMain {
         // stdout/stderr. This is not desired in CPAchecker. For the meaning of the error see:
         // https://stackoverflow.com/questions/11577420/fatal-error-11-content-is-not-allowed-in-prolog
         Optional<WitnessType> optionalWitnessTypeYAML =
-            AutomatonWitnessParserUtils.getWitnessTypeIfYAML(options.witness);
+            AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
         if (optionalWitnessTypeYAML.isPresent()) {
           witnessType = optionalWitnessTypeYAML.orElseThrow();
         } else {

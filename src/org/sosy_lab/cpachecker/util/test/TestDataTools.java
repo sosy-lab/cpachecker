@@ -115,7 +115,7 @@ public class TestDataTools {
       Preconditions.checkState(!node.isLoopStart(), "Can only work on loop-free fragments");
       PathFormula path = mapping.get(node);
 
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge e : node.getLeavingEdges()) {
         CFANode toNode = e.getSuccessor();
         PathFormula old = mapping.get(toNode);
 

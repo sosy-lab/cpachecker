@@ -18,6 +18,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -76,7 +77,7 @@ public abstract class ARGSubtreeRemover {
    */
   protected Map<BackwardARGState, ARGState> getBlockInitAndExitStates(
       ImmutableList<ARGState> path) {
-    final Map<BackwardARGState, ARGState> blockInitAndExitStates = new LinkedHashMap<>();
+    final SequencedMap<BackwardARGState, ARGState> blockInitAndExitStates = new LinkedHashMap<>();
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
       final ARGState state = ((BackwardARGState) bamState).getARGState();

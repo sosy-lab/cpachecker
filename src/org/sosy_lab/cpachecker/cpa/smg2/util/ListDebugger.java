@@ -188,13 +188,13 @@ public class ListDebugger {
                 objWPtrToList, BigInteger.valueOf(readOffsetForPtr), smg.getSizeOfPointer(), false)
             .getHvEdges();
     if (edges.size() != 1
-        || !smg.isPointer(edges.get(0).hasValue())
-        || edges.get(0).hasValue().isZero()) {
+        || !smg.isPointer(edges.getFirst().hasValue())
+        || edges.getFirst().hasValue().isZero()) {
       // No List yet
       return ImmutableList.of();
     }
 
-    SMGPointsToEdge pteList = smg.getPTEdge(edges.get(0).hasValue()).orElseThrow();
+    SMGPointsToEdge pteList = smg.getPTEdge(edges.getFirst().hasValue()).orElseThrow();
     if (!pteList.getOffset().isNumericValue()
         || pteList.getOffset().asNumericValue().bigIntegerValue().intValueExact() != 0) {
       throw new RuntimeException(
@@ -296,12 +296,12 @@ public class ListDebugger {
                   listElem, BigInteger.valueOf(pfo.orElseThrow()), smg.getSizeOfPointer(), false)
               .getHvEdges();
 
-      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.get(0).hasValue())) {
+      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.getFirst().hasValue())) {
         // Wierd
         throw new RuntimeException();
       }
 
-      if (prevEdges.get(0).hasValue().isZero()) {
+      if (prevEdges.getFirst().hasValue().isZero()) {
         // End of list left
         builder.add(
             new ListElement(
@@ -316,7 +316,7 @@ public class ListDebugger {
                 ImmutableMap.of()));
 
       } else {
-        SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.get(0).hasValue()).orElseThrow();
+        SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
         Preconditions.checkArgument(
             ptePrev.getOffset().isNumericValue()
                 && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
@@ -348,12 +348,12 @@ public class ListDebugger {
         smg.readValue(listElem, BigInteger.valueOf(nfo), smg.getSizeOfPointer(), false)
             .getHvEdges();
 
-    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.get(0).hasValue())) {
+    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.getFirst().hasValue())) {
       // Wierd
       throw new RuntimeException();
     }
 
-    if (nextEdges.get(0).hasValue().isZero()) {
+    if (nextEdges.getFirst().hasValue().isZero()) {
       // End of list
       builder.add(
           new ListElement(
@@ -370,7 +370,7 @@ public class ListDebugger {
       return builder.build();
 
     } else {
-      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.getFirst().hasValue()).orElseThrow();
       return addNext(pteNext.pointsTo(), listElem, listElem, builder, state);
     }
   }
@@ -465,12 +465,12 @@ public class ListDebugger {
                   currentObj, BigInteger.valueOf(pfo.orElseThrow()), smg.getSizeOfPointer(), false)
               .getHvEdges();
 
-      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.get(0).hasValue())) {
+      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.getFirst().hasValue())) {
         // Wierd
         throw new RuntimeException();
       }
 
-      SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
       Preconditions.checkArgument(
           ptePrev.getOffset().isNumericValue()
               && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
@@ -500,12 +500,12 @@ public class ListDebugger {
         smg.readValue(currentObj, BigInteger.valueOf(nfo), smg.getSizeOfPointer(), false)
             .getHvEdges();
 
-    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.get(0).hasValue())) {
+    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.getFirst().hasValue())) {
       // Wierd
       throw new RuntimeException();
     }
 
-    if (nextEdges.get(0).hasValue().isZero()) {
+    if (nextEdges.getFirst().hasValue().isZero()) {
       // End of list
       pBuilder.add(
           new ListElement(
@@ -522,7 +522,7 @@ public class ListDebugger {
       return pBuilder.build();
 
     } else {
-      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.getFirst().hasValue()).orElseThrow();
       if (currentObj.equals(pRoot)) {
         // End through looping
         return pBuilder.build();

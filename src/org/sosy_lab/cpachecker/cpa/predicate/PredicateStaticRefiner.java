@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -231,7 +232,7 @@ final class PredicateStaticRefiner extends StaticRefiner
 
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState) reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+      ARGState targetState = abstractionStatesTrace.getLast();
 
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
@@ -287,7 +288,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
     for (CFANode u : cfa.nodes()) {
-      Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
+      Deque<CFAEdge> edgesToHandle = u.getLeavingEdges().copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
@@ -376,7 +377,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
     for (ARGState s : allStatesOnPath) {
       CFANode u = AbstractStates.extractLocation(s);
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+      for (CFAEdge e : u.getLeavingEdges()) {
         CFANode v = e.getSuccessor();
         Collection<AbstractState> reachedOnV = reached.getReached(v);
 
@@ -423,7 +424,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();

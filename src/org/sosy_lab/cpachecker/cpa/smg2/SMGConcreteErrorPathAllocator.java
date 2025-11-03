@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,7 +79,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
-        for (CFAEdge innerEdge : Lists.reverse(edges)) {
+        for (CFAEdge innerEdge : edges.reversed()) {
           ConcreteState state =
               createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
 
@@ -94,7 +93,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
           }
         }
-        result.addAll(Lists.reverse(intermediateStates));
+        result.addAll(intermediateStates.reversed());
 
         // a normal edge, no special handling required
       } else {

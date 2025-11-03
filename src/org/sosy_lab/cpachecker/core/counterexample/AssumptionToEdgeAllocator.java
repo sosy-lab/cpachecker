@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -94,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
@@ -118,8 +120,6 @@ public class AssumptionToEdgeAllocator {
 
   private final LogManager logger;
   private final MachineModel machineModel;
-
-  private static final int FIRST = 0;
 
   @Option(
       secure = true,
@@ -519,7 +519,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
-    Set<AExpressionStatement> statements = new LinkedHashSet<>();
+    SequencedSet<AExpressionStatement> statements = new LinkedHashSet<>();
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
@@ -633,7 +633,9 @@ public class AssumptionToEdgeAllocator {
     }
     inner =
         new CCastExpression(
-            pDereference.getFileLocation(), new CPointerType(false, false, pTargetType), inner);
+            pDereference.getFileLocation(),
+            new CPointerType(CTypeQualifiers.NONE, pTargetType),
+            inner);
     return new CPointerExpression(pDereference.getFileLocation(), pTargetType, inner);
   }
 
@@ -651,7 +653,7 @@ public class AssumptionToEdgeAllocator {
       CUnaryExpression unaryExpression =
           new CUnaryExpression(
               pLValue.getFileLocation(),
-              new CPointerType(false, false, type),
+              new CPointerType(CTypeQualifiers.NONE, type),
               pLValue,
               CUnaryExpression.UnaryOperator.AMPER);
       return unaryExpression;
@@ -683,12 +685,12 @@ public class AssumptionToEdgeAllocator {
 
     List<String> fieldNameList = new ArrayList<>();
     CFieldReference reference = pIastFieldReference;
-    fieldNameList.add(FIRST, reference.getFieldName());
+    fieldNameList.addFirst(reference.getFieldName());
 
     while (reference.getFieldOwner() instanceof CFieldReference
         && !reference.isPointerDereference()) {
       reference = (CFieldReference) reference.getFieldOwner();
-      fieldNameList.add(FIRST, reference.getFieldName());
+      fieldNameList.addFirst(reference.getFieldName());
     }
 
     if (reference.getFieldOwner() instanceof CIdExpression idExpression) {
@@ -1140,9 +1142,11 @@ public class AssumptionToEdgeAllocator {
         BinaryOperator binaryOperator = binaryExp.getOperator();
 
         CType elementType =
-            addressType instanceof CPointerType
-                ? ((CPointerType) addressType).getType().getCanonicalType()
-                : ((CArrayType) addressType).getType().getCanonicalType();
+            switch (addressType) {
+              case CPointerType pointerType -> pointerType.getType().getCanonicalType();
+              case CArrayType arrayType -> arrayType.getType().getCanonicalType();
+              default -> throw new AssertionError();
+            };
 
         return switch (binaryOperator) {
           case PLUS, MINUS -> {
@@ -1465,25 +1469,26 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
-      if (pValue instanceof Rational rationalValue) {
-        FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromRational(format, rationalValue), machineModel, pType);
-      } else if (pValue instanceof Double doubleValue) {
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromDouble(doubleValue), machineModel, pType);
-      } else if (pValue instanceof Float floatValue) {
-        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
-      } else if (pValue instanceof FloatValue floatValue) {
-        return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
-      } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
-      }
-      throw new UnsupportedOperationException(
-          String.format(
-              "Can't handle the value `%s` of type `%s` as a floating point number.",
-              pValue, pValue.getClass().getSimpleName()));
+      return switch (pValue) {
+        case Rational rationalValue -> {
+          FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
+          yield ExplicitValueLiteral.valueOf(
+              FloatValue.fromRational(format, rationalValue), machineModel, pType);
+        }
+        case Double doubleValue ->
+            ExplicitValueLiteral.valueOf(FloatValue.fromDouble(doubleValue), machineModel, pType);
+        case Float floatValue ->
+            ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
+        case FloatValue floatValue -> ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
+        case FloatingPointNumber floatingPointNumber ->
+            ExplicitValueLiteral.valueOf(
+                FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
+        default ->
+            throw new UnsupportedOperationException(
+                String.format(
+                    "Can't handle the value `%s` of type `%s` as a floating point number.",
+                    pValue, pValue.getClass().getSimpleName()));
+      };
     }
 
     void resolveStruct(
@@ -1570,8 +1575,7 @@ public class AssumptionToEdgeAllocator {
     private CSimpleType nextLargerIntegerTypeIfPossible(CSimpleType pType) {
       if (pType.hasSignedSpecifier()) {
         return new CSimpleType(
-            pType.isConst(),
-            pType.isVolatile(),
+            pType.getQualifiers(),
             pType.getType(),
             pType.hasLongSpecifier(),
             pType.hasShortSpecifier(),
@@ -2192,27 +2196,27 @@ public class AssumptionToEdgeAllocator {
   private static Optional<BigInteger> getFieldOffset(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
-    if (ownerType instanceof CElaboratedType cElaboratedType) {
-      CType realType = cElaboratedType.getRealType();
-      if (realType == null) {
-        return Optional.empty();
+    return switch (ownerType) {
+      case CElaboratedType cElaboratedType -> {
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          yield Optional.empty();
+        }
+        yield getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
       }
-
-      return getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
-    } else if (ownerType instanceof CCompositeType cCompositeType) {
-      BigInteger fieldOffsetInBits = pMachineModel.getFieldOffsetInBits(cCompositeType, fieldName);
-      return bitsToByte(fieldOffsetInBits, pMachineModel); // TODO this looses values of bit fields
-    } else if (ownerType instanceof CPointerType cPointerType) {
-
-      /* We do not explicitly transform x->b,
-      so when we try to get the field b the ownerType of x
-      is a pointer type.*/
-
-      CType type = cPointerType.getType().getCanonicalType();
-      return getFieldOffset(type, fieldName, pMachineModel);
-    }
-
-    throw new AssertionError();
+      case CCompositeType cCompositeType -> {
+        BigInteger fieldOffsetInBits =
+            pMachineModel.getFieldOffsetInBits(cCompositeType, fieldName);
+        yield bitsToByte(fieldOffsetInBits, pMachineModel); // TODO this looses values of bit fields
+      }
+      case CPointerType cPointerType -> {
+        // We do not explicitly transform x->b, so when we try to get the field b the ownerType of x
+        // is a pointer type.
+        CType type = cPointerType.getType().getCanonicalType();
+        yield getFieldOffset(type, fieldName, pMachineModel);
+      }
+      default -> throw new AssertionError();
+    };
   }
 
   private static Optional<BigInteger> bitsToByte(BigInteger bits, MachineModel pMachineModel) {

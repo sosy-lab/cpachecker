@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -211,7 +210,7 @@ public class NonRecursiveEnvironment
 
   @Override
   public Collection<NumeralFormula<CompoundInterval>> values() {
-    return Collections.unmodifiableCollection(inner.values());
+    return inner.values();
   }
 
   @Override

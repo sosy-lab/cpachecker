@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -223,17 +222,14 @@ public final class CCfaTransformer {
         return newNode;
       }
 
-      if (pOldNode instanceof CFALabelNode cFALabelNode) {
-        newNode = newCfaLabelNode(cFALabelNode);
-      } else if (pOldNode instanceof CFunctionEntryNode cFunctionEntryNode) {
-        newNode = newCFunctionEntryNode(cFunctionEntryNode);
-      } else if (pOldNode instanceof FunctionExitNode functionExitNode) {
-        newNode = newFunctionExitNode(functionExitNode);
-      } else if (pOldNode instanceof CFATerminationNode cFATerminationNode) {
-        newNode = newCfaTerminationNode(cFATerminationNode);
-      } else {
-        newNode = newCfaNode(pOldNode);
-      }
+      newNode =
+          switch (pOldNode) {
+            case CFALabelNode cFALabelNode -> newCfaLabelNode(cFALabelNode);
+            case CFunctionEntryNode cFunctionEntryNode -> newCFunctionEntryNode(cFunctionEntryNode);
+            case FunctionExitNode functionExitNode -> newFunctionExitNode(functionExitNode);
+            case CFATerminationNode cFATerminationNode -> newCfaTerminationNode(cFATerminationNode);
+            default -> newCfaNode(pOldNode);
+          };
 
       oldNodeToNewNode.put(pOldNode, newNode);
 
@@ -508,7 +504,7 @@ public final class CCfaTransformer {
       List<SummaryPlaceholderEdge> summaryPlaceholderEdges = new ArrayList<>();
 
       for (CFANode newCfaNode : oldNodeToNewNode.values()) {
-        for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
+        for (CFAEdge newCfaEdge : newCfaNode.getAllLeavingEdges()) {
           if (newCfaEdge instanceof SummaryPlaceholderEdge summaryPlaceholderEdge) {
             summaryPlaceholderEdges.add(summaryPlaceholderEdge);
           }

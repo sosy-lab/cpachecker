@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -42,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class allows to dump functioncalls in a tree-like structure. For most cases the structure is
@@ -142,7 +142,7 @@ public final class FunctionCallDumper {
       return functionCalls.keySet();
     }
 
-    Set<String> calls = new LinkedHashSet<>();
+    SequencedSet<String> calls = new LinkedHashSet<>();
     Deque<String> worklist = new ArrayDeque<>();
     worklist.push(mainFunction);
     while (!worklist.isEmpty()) {
@@ -190,7 +190,9 @@ public final class FunctionCallDumper {
           final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
           final String functionName = function.getPredecessor().getFunctionName();
           final AFunctionDeclaration calledFunctionDecl =
-              CFAUtils.leavingEdges(function.getPredecessor())
+              function
+                  .getPredecessor()
+                  .getLeavingEdges()
                   .filter(FunctionCallEdge.class)
                   .first()
                   .toJavaUtil()

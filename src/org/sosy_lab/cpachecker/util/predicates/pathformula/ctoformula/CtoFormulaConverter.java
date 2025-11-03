@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -233,7 +234,7 @@ public class CtoFormulaConverter {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = CTypes.copyDequalified(pCompositeType);
+    CCompositeType compositeType = pCompositeType.withoutQualifiers();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -792,6 +793,8 @@ public class CtoFormulaConverter {
           fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
       final Formula upperBound =
           fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+
+      constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
       constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }
@@ -819,7 +822,7 @@ public class CtoFormulaConverter {
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
-      fromType = new CPointerType(false, false, fromType);
+      fromType = new CPointerType(CTypeQualifiers.NONE, fromType);
     }
 
     // This results in a signed type for pointers, which is what we need because GCC does sign

@@ -90,56 +90,42 @@ public abstract class Address {
    * @return an address for the given address representation
    */
   public static Address valueOf(Object pAddress) {
+    return switch (pAddress) {
+      case Address address -> address;
 
-    if (pAddress instanceof Address address) {
-      return address;
-    } else if (pAddress instanceof BigInteger bigInteger) {
-      return new ConcreteAddress(bigInteger);
-    } else if (pAddress instanceof Rational rational) {
-      if (rational.isIntegral()) {
-        return new ConcreteAddress(rational.getNum());
-      }
-    } else if (pAddress instanceof ExtendedRational eRat) {
-      if (eRat.isRational()) {
-        Rational rat = eRat.getRational();
-        if (rat.isIntegral()) {
-          return new ConcreteAddress(rat.getNum());
+      case BigInteger bigInteger -> new ConcreteAddress(bigInteger);
+
+      case Rational rational when rational.isIntegral() -> new ConcreteAddress(rational.getNum());
+
+      case ExtendedRational eRat when eRat.isRational() && eRat.getRational().isIntegral() ->
+          new ConcreteAddress(eRat.getRational().getNum());
+
+      case Byte b -> new ConcreteAddress(BigInteger.valueOf(b.longValue()));
+
+      case Integer i -> new ConcreteAddress(BigInteger.valueOf(i.longValue()));
+
+      case Long l -> new ConcreteAddress(BigInteger.valueOf(l));
+
+      case Short s -> new ConcreteAddress(BigInteger.valueOf(s.longValue()));
+
+      case Double value when DoubleMath.isMathematicalInteger(value) ->
+          new ConcreteAddress(BigInteger.valueOf(value.longValue()));
+
+      case Float value when DoubleMath.isMathematicalInteger(value) ->
+          new ConcreteAddress(BigInteger.valueOf(value.longValue()));
+
+      case BigDecimal bdVal -> {
+        try {
+          BigInteger bigIntValue = bdVal.toBigIntegerExact();
+          yield new ConcreteAddress(bigIntValue);
+        } catch (ArithmeticException e) {
+          // This double cannot be represented as integer,
+          // represent it as symbolic Address instead
+          yield new SymbolicAddress(pAddress);
         }
       }
-    } else if (pAddress instanceof Byte b) {
-      long value = b.longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Integer i) {
-      long value = i.longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Long l) {
-      long value = l;
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Short s) {
-      long value = s.longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Double value) {
-      if (DoubleMath.isMathematicalInteger(value)) {
-        long dValue = value.longValue();
-        return new ConcreteAddress(BigInteger.valueOf(dValue));
-      }
-    } else if (pAddress instanceof Float value) {
-      if (DoubleMath.isMathematicalInteger(value)) {
-        long dValue = value.longValue();
-        return new ConcreteAddress(BigInteger.valueOf(dValue));
-      }
-    } else if (pAddress instanceof BigDecimal bdVal) {
-      try {
-        BigInteger bigIntValue = bdVal.toBigIntegerExact();
-        return new ConcreteAddress(bigIntValue);
-      } catch (ArithmeticException e) {
-        // This double cannot be represented as integer,
-        // represent it as symbolic Address instead
-        return new SymbolicAddress(pAddress);
-      }
-    }
-
-    return new SymbolicAddress(pAddress);
+      case null /*TODO check if null is necessary*/, default -> new SymbolicAddress(pAddress);
+    };
   }
 
   /**

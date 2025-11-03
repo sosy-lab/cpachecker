@@ -178,7 +178,6 @@ public class CPAchecker {
   private final Configuration config;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final CoreComponentsFactory factory;
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -275,9 +274,6 @@ public class CPAchecker {
     shutdownNotifier = pShutdownManager.getNotifier();
 
     config.inject(this);
-    factory =
-        new CoreComponentsFactory(
-            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
   public CPAcheckerResult run(List<String> programDenotation) {
@@ -285,6 +281,7 @@ public class CPAchecker {
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
+    CoreComponentsFactory factory;
     MainCPAStatistics stats = null;
     CFA cfa = null;
 
@@ -297,8 +294,11 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
+      factory =
+          new CoreComponentsFactory(
+              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
 
-      return run0(cfa, stats);
+      return run0(cfa, factory, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
@@ -311,20 +311,20 @@ public class CPAchecker {
     }
   }
 
-  public CPAcheckerResult run(CFA cfa, MainCPAStatistics stats) {
+  public CPAcheckerResult run(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, stats);
+      return run0(cfa, factory, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
@@ -347,7 +347,7 @@ public class CPAchecker {
         logAboutSpecification();
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
-        cpa = factory.createCPA(cfa, specification);
+        cpa = factory.createCPA(specification);
       } finally {
         stats.cpaCreationTime.stop();
       }
@@ -357,7 +357,7 @@ public class CPAchecker {
         statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
-      algorithm = factory.createAlgorithm(cpa, cfa, specification);
+      algorithm = factory.createAlgorithm(cpa, specification);
 
       if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
         // sanity check
@@ -377,7 +377,7 @@ public class CPAchecker {
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+        initializeReachedSet(reached, cpa, factory.getCfa().getMainFunction(), factory.getCfa());
       }
 
       printConfigurationWarnings();
@@ -503,7 +503,7 @@ public class CPAchecker {
           Classes.getCodeLocation(CPAchecker.class)
               .resolveSibling("config/specification/default.spc");
       if (specificationFiles.size() == 1
-          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+          && Files.isSameFile(specificationFiles.getFirst(), defaultSpec)) {
         logger.log(
             Level.INFO,
             "Using default specification, which checks for assertion failures and error labels.");

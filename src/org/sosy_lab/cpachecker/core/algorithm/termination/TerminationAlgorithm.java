@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -177,13 +178,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     cfa = checkNotNull(pCfa);
-    reachedSetFactory = checkNotNull(pReachedSetFactory);
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
 
     TerminationCPA terminationCpa =
-        CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
+        CPAs.retrieveCPAOrFail(safetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
@@ -201,8 +202,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
-    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
   @Override
@@ -221,7 +222,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     statistics.algorithmStarted();
     try {
       return run0(pReachedSet);
-
     } finally {
       statistics.algorithmFinished();
     }
@@ -797,7 +797,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
+    private final SequencedSet<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();

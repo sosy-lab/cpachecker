@@ -212,32 +212,22 @@ public class SMGExpressionEvaluator {
   }
 
   private SMGField getField(CType pOwnerType, String pFieldName) {
-
-    if (pOwnerType instanceof CElaboratedType cElaboratedType) {
-
-      CType realType = cElaboratedType.getRealType();
-
-      if (realType == null) {
-        return SMGField.getUnknownInstance();
+    return switch (pOwnerType) {
+      case CElaboratedType cElaboratedType -> {
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          yield SMGField.getUnknownInstance();
+        }
+        yield getField(realType, pFieldName);
       }
+      case CCompositeType cCompositeType -> getField(cCompositeType, pFieldName);
 
-      return getField(realType, pFieldName);
-    } else if (pOwnerType instanceof CCompositeType cCompositeType) {
-      return getField(cCompositeType, pFieldName);
-    } else if (pOwnerType instanceof CPointerType cPointerType) {
-
-      /* We do not explicitly transform x->b,
-      so when we try to get the field b the ownerType of x
-      is a pointer type.*/
-
-      CType type = cPointerType.getType();
-
-      type = TypeUtils.getRealExpressionType(type);
-
-      return getField(type, pFieldName);
-    }
-
-    throw new AssertionError();
+      case CPointerType cPointerType -> {
+        CType type = TypeUtils.getRealExpressionType(cPointerType.getType());
+        yield getField(type, pFieldName);
+      }
+      default -> throw new AssertionError();
+    };
   }
 
   private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
@@ -277,7 +267,7 @@ public class SMGExpressionEvaluator {
     List<SMGExplicitValueAndState> result = evaluateExplicitValue(smgState, cfaEdge, rValue);
 
     if (result.size() == 1) {
-      return result.get(0).getObject();
+      return result.getFirst().getObject();
     } else {
       return SMGUnknownValue.INSTANCE;
     }
@@ -473,8 +463,7 @@ public class SMGExpressionEvaluator {
             SMGObject target = addressValue.getObject();
             SMGExplicitValue addressOffset = addressValue.getOffset();
 
-            SMGExplicitValue newAddressOffset;
-            newAddressOffset =
+            SMGExplicitValue newAddressOffset =
                 switch (binaryOperator) {
                   case PLUS -> addressOffset.add(pointerOffsetValue);
                   case MINUS -> {

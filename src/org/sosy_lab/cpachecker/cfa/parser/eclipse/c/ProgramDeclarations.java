@@ -286,12 +286,7 @@ public class ProgramDeclarations {
       handledTypes.add(origName);
       CElaboratedType newType =
           new CElaboratedType(
-              type.isConst(),
-              type.isVolatile(),
-              type.getKind(),
-              type.getOrigName(),
-              type.getOrigName(),
-              null);
+              type.getQualifiers(), type.getKind(), type.getOrigName(), type.getOrigName(), null);
       for (String name : origNamesToQualifiedNames.get(origName)) {
         if (elaboratedTypes.containsKey(name)) {
           CElaboratedType elabType = elaboratedTypes.get(name);

@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
@@ -51,9 +52,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula booleanTraceFormula = tf.toFormula(new SelectorTraceInterpreter(bmgr), true);
 
-    Set<ImmutableSet<TraceAtom>> hard = new LinkedHashSet<>();
+    SequencedSet<ImmutableSet<TraceAtom>> hard = new LinkedHashSet<>();
 
-    Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
+    SequencedSet<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
     int initSize = soft.size();
 
     ImmutableSet<TraceAtom> minUnsatCore = ImmutableSet.of();
@@ -122,12 +123,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       throws SolverException, InterruptedException {
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    Set<TraceAtom> result = new LinkedHashSet<>(pSoftSet);
+    SequencedSet<TraceAtom> result = new LinkedHashSet<>(pSoftSet);
     boolean changed;
     do {
       changed = false;
       for (TraceAtom atom : result) {
-        Set<TraceAtom> copy = new LinkedHashSet<>(result);
+        SequencedSet<TraceAtom> copy = new LinkedHashSet<>(result);
         copy.remove(atom);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
           stats.unsatCalls.inc();

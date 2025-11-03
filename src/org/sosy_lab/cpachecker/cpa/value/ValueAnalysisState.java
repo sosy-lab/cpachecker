@@ -18,12 +18,12 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -527,17 +527,18 @@ public final class ValueAnalysisState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+      ValueAndType val =
+          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.getFirst()));
       if (val == null) {
         return false;
       }
-      Long value = val.getValue().asLong(CNumericTypes.INT);
+      OptionalLong value = val.getValue().asLong(CNumericTypes.INT);
 
-      if (value == null) {
+      if (value.isEmpty()) {
         return false;
       } else {
         try {
-          return value == Long.parseLong(parts.get(1));
+          return value.orElseThrow() == Long.parseLong(parts.get(1));
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to
           // compare the variable p to the variable cmd (nearest in scope)
@@ -596,7 +597,7 @@ public final class ValueAnalysisState
                   + pModification
                   + "\" is invalid. Could not split the property string correctly.");
         } else {
-          String varName = assignmentParts.get(0);
+          String varName = assignmentParts.getFirst();
           try {
             Value newValue = new NumericValue(Long.parseLong(assignmentParts.get(1)));
             this.assignConstant(varName, newValue);
@@ -734,7 +735,7 @@ public final class ValueAnalysisState
   }
 
   public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
-    return Collections.unmodifiableSet(constantsMap.entrySet());
+    return constantsMap.entrySet();
   }
 
   /**

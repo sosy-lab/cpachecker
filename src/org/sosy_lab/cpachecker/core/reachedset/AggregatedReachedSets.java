@@ -15,6 +15,7 @@ import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -52,7 +53,7 @@ public abstract class AggregatedReachedSets {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     @GuardedBy("lock")
-    private final Set<UnmodifiableReachedSet> reachedSets = new LinkedHashSet<>();
+    private final SequencedSet<UnmodifiableReachedSet> reachedSets = new LinkedHashSet<>();
 
     @GuardedBy("lock")
     private final List<AggregatedThreadedReachedSets> otherAggregators = new ArrayList<>();

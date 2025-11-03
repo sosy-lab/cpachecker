@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
@@ -123,7 +123,7 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
   private Set<Invariant> readInvariantEntriesFromWitness(final Path pWitnessFile)
       throws InterruptedException, InvalidConfigurationException {
     try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream(); ) {
-      List<AbstractEntry> entries = AutomatonWitnessParserUtils.parseYAML(witness);
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
       return new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa)
           .generateInvariantsFromEntries(entries);
     } catch (IOException e) {

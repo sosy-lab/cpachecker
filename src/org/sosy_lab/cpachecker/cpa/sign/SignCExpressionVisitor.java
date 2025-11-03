@@ -111,7 +111,7 @@ public class SignCExpressionVisitor
         Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
       result =
           result.combineWith(
-              evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+              evaluateExpression(signCombi.getFirst(), pIastBinaryExpression, signCombi.get(1)));
     }
     return result;
   }

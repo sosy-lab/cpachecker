@@ -437,18 +437,8 @@ final class VariableAndFieldRelevancyComputer {
             + fieldOwnerType.getClass().getSimpleName()
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
-    // Currently, we don't pay attention to possible const and volatile modifiers
-    if (compositeType.isConst() || compositeType.isVolatile()) {
-      return new CCompositeType(
-          false,
-          false,
-          compositeType.getKind(),
-          compositeType.getMembers(),
-          compositeType.getName(),
-          compositeType.getOrigName());
-    } else {
-      return compositeType;
-    }
+    // Currently, we don't pay attention to possible qualifiers (e.g., const/volatile)
+    return compositeType.withoutQualifiers();
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)

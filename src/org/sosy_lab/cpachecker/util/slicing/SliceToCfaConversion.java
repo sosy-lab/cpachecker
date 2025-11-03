@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.slicing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
@@ -327,7 +326,7 @@ final class SliceToCfaConversion {
       boolean relevantTakesVarargs =
           functionType.takesVarArgs()
               && !parameters.isEmpty()
-              && relevantDeclarations.contains(Iterables.getLast(parameters));
+              && relevantDeclarations.contains(parameters.getLast());
 
       CFunctionType relevantFunctionType =
           new CFunctionTypeWithNames(relevantReturnType, relevantParameters, relevantTakesVarargs);
@@ -404,8 +403,7 @@ final class SliceToCfaConversion {
         CExpression argument = arguments.get(index);
 
         // varargs can lead to more arguments than parameters
-        if (index >= parameters.size()
-            && relevantDeclarations.contains(Iterables.getLast(parameters))) {
+        if (index >= parameters.size() && relevantDeclarations.contains(parameters.getLast())) {
 
           assert functionDeclaration.getType().takesVarArgs();
 
