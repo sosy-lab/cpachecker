@@ -57,7 +57,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
     for (ThreadingState threadingState :
-        AbstractStates.projectToType(otherStates, ThreadingState.class)) {
+        AbstractStates.projectToType(otherStates, ThreadingState.class).toSet()) {
 
       Set<String> threadIds = threadingState.getThreadIds();
       String activeThread = getActiveThread(cfaEdge, threadingState);
