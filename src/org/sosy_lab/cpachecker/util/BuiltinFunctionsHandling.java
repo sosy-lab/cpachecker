@@ -137,17 +137,18 @@ public class BuiltinFunctionsHandling {
   }
 
   /**
-   * Creates a nondet assignment statement to overapproximate the effect of a fscanf call. The
-   * created statement assigns a nondet value to the variable passed as receiving parameter to
-   * fscanf.
+   * Creates a nondet assignment {@code CFunctionCallAssignmentStatement} to overapproximate the
+   * effect of a fscanf call. The created statement assigns to the variable passed as receiving
+   * parameter to fscanf a call to __VERIFIER_nondet_* of the correct type. In case this cannot be
+   * done precisely, an {@code UnrecognizedCodeException} is thrown.
    *
-   * @param e the function call expression representing the fscanf call
+   * @param e the {@code CFunctionCallExpression} representing the fscanf call
    * @param pEdge the CFA edge where the fscanf call occurs, required for proper exception handling
-   * @return a nondet assignment statement assigning a nondet value to the receiving parameter of
-   *     fscanf, whenever possible
+   * @return a {@code CFunctionCallAssignmentStatement} setting the receiving parameter of fscanf to
+   *     a __VERIFIER_nondet_* call of the correct type
    * @throws UnrecognizedCodeException in case is not precise to create such an assignment
    */
-  public static CFunctionCallAssignmentStatement createNondetCallModellingScanf(
+  public static CFunctionCallAssignmentStatement createNondetCallModellingFscanf(
       CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
 
