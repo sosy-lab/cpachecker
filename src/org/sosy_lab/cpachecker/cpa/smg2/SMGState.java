@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -4808,8 +4809,10 @@ public class SMGState
   /**
    * Handles smybolic offsets (and sizes if they are symbolic as well) in write operations. Will
    * check if there are options to handle symbolic values, if yes, will use those, e.g.
-   * overapproximate or find concrete values.
+   * overapproximate or find concrete values. This method does NOT check any memory-safety
+   * properties and assumes that values are only written inside the object given.
    */
+  @NonNull
   private List<SMGState> handleSymbolicOffsetForWriteOperation(
       SMGObject object,
       Value writeOffsetInBits,
@@ -4822,10 +4825,23 @@ public class SMGState
       SMGState currentState)
       throws SMGException, SMGSolverException {
     if (options.isOverapproximateSymbolicOffsets()) {
-      // Delete ALL edges in the target region, as they may all be now different
+      // Delete ALL edges in the target region as precise as possible. This overapproximates the
+      // values.
+      if (!(writeOffsetInBits instanceof NumericValue numericOffset)) {
+        return ImmutableList.of(
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.copyAndRemoveAllEdgesFrom(object)));
+      }
+      if (!(sizeInBits instanceof NumericValue numericSize)) {
+        return ImmutableList.of(
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.copyAndRemoveAllEdgesFrom(
+                    object, numericOffset.bigIntegerValue())));
+      }
       return ImmutableList.of(
-          currentState.copyAndReplaceMemoryModel(
-              currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of())));
+          copyAndReplaceMemoryModel(
+              currentState.memoryModel.copyAndRemoveAllEdgesFrom(
+                  object, numericOffset.bigIntegerValue(), numericSize.bigIntegerValue())));
 
     } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
       // Find the possible assignments of the offset (or the symbolic value therein)
