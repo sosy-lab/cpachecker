@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -58,7 +57,7 @@ public final class AstCfaRelation {
   @LazyInit private ImmutableMap<CFAEdge, IfElement> conditionEdgesToIfStructure = null;
 
   @LazyInit
-  private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
+  private ImmutableMap<StartingLocation, IfElement> lineAndStartColumnToIfStructure = null;
 
   @LazyInit
   private ImmutableMap<StartingLocation, IterationElement> lineAndStartColumnToIterationStructure =
@@ -205,11 +204,11 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<Pair<Integer, Integer>, IfElement> builder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<StartingLocation, IfElement> builder = new ImmutableMap.Builder<>();
     for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
-      Pair<Integer, Integer> key =
-          Pair.of(location.getStartColumnInLine(), location.getStartingLineNumber());
+      StartingLocation key =
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIfStructure = builder.buildOrThrow();
@@ -222,12 +221,12 @@ public final class AstCfaRelation {
    * @param pLine the line to look for
    * @return the IfElement that starts at the given column and line
    */
-  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pLine, Integer pColumn) {
     if (lineAndStartColumnToIfStructure == null) {
       initializeMapFromLineAndStartColumnToIfStructure();
     }
 
-    Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
+    StartingLocation key = new StartingLocation(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
     }
@@ -243,7 +242,7 @@ public final class AstCfaRelation {
     for (IterationElement structure : iterationStructures) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
-          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineNumber());
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIterationStructure = builder.buildOrThrow();

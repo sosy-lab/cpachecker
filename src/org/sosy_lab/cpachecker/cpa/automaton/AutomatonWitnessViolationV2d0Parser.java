@@ -208,7 +208,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       ImmutableList.Builder<AutomatonTransition> transitions) {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
-        pAstCfaRelation.getIfStructureStartingAtColumn(followColumn, followLine);
+        pAstCfaRelation.getIfStructureStartingAtColumn(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
     Optional<List<AutomatonTransition>> newTransitions;
@@ -274,6 +274,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     newTransitions = Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
     if (newTransitions.orElseThrow().isEmpty()) {
       logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
+      return;
     }
     transitions.addAll(newTransitions.orElseThrow());
   }
