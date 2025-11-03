@@ -107,7 +107,6 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinFunctionsHandling;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
@@ -781,10 +780,7 @@ public abstract class AbstractExpressionValueVisitor
       throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
-    if (functionName.equals(BuiltinFunctionsHandling.INTERNAL_NONDET_FUNCTION_NAME)) {
-      // In case we have a call to a nondeterministic function, we return an unknown value
-      return Value.UnknownValue.getInstance();
-    } else if (functionNameExp instanceof CIdExpression cIdExpression) {
+    if (functionNameExp instanceof CIdExpression cIdExpression) {
       // We only handle builtin functions
       String calledFunctionName = cIdExpression.getName();
 

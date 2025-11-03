@@ -23,7 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -34,11 +36,34 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  */
 public class BuiltinFunctionsHandling {
 
-  // This function name is used in internal applications, e.g., when modeling side effects for
-  // function calls like fscanf.
-  public static final String INTERNAL_NONDET_FUNCTION_NAME = "__CPAchecker_nondet_assign";
-
   public record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
+  private static String getVerifierNondetNameForType(CSimpleType pType) {
+    CBasicType basicType = pType.getType();
+    return switch (basicType) {
+      case INT -> {
+        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        if (pType.hasLongLongSpecifier()) {
+          yield "__VERIFIER_nondet_" + prefix + "longlong";
+        } else if (pType.hasLongSpecifier()) {
+          yield "__VERIFIER_nondet_" + prefix + "long";
+        } else if (pType.hasShortSpecifier()) {
+          yield "__VERIFIER_nondet_" + prefix + "short";
+        } else {
+          yield "__VERIFIER_nondet_" + prefix + "int";
+        }
+      }
+      case CHAR -> {
+        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        yield "__VERIFIER_nondet_" + prefix + "char";
+      }
+      case FLOAT -> "__VERIFIER_nondet_float";
+      case DOUBLE -> "__VERIFIER_nondet_double";
+      case BOOL -> "__VERIFIER_nondet_bool";
+      default ->
+          throw new IllegalArgumentException("No verifier nondet function for type: " + basicType);
+    };
+  }
 
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
@@ -144,21 +169,27 @@ public class BuiltinFunctionsHandling {
               e);
         }
 
+        if (!(variableType.getCanonicalType() instanceof CSimpleType pSimpleType)) {
+          throw new UnsupportedCodeException(
+              "Currently, only simple types are supported as receiving parameters of fscanf.",
+              pEdge,
+              e);
+        }
+
         CFunctionDeclaration nondetFun =
             new CFunctionDeclaration(
                 pEdge.getFileLocation(),
-                CFunctionType.functionTypeWithReturnType(variableType),
-                INTERNAL_NONDET_FUNCTION_NAME,
+                CFunctionType.functionTypeWithReturnType(pSimpleType),
+                getVerifierNondetNameForType(pSimpleType),
                 ImmutableList.of(),
                 ImmutableSet.of());
         CIdExpression nondetFunctionName =
-            new CIdExpression(
-                pEdge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
+            new CIdExpression(pEdge.getFileLocation(), pSimpleType, nondetFun.getName(), nondetFun);
 
         CFunctionCallExpression rhs =
             new CFunctionCallExpression(
                 pEdge.getFileLocation(),
-                variableType,
+                pSimpleType,
                 nondetFunctionName,
                 ImmutableList.of(),
                 nondetFun);

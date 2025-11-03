@@ -15,7 +15,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.BuiltinFunctionsHandling;
 
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
@@ -154,9 +153,7 @@ public class FormulaEncodingOptions {
   }
 
   public boolean isNondetFunction(String function) {
-    return function.equals(BuiltinFunctionsHandling.INTERNAL_NONDET_FUNCTION_NAME)
-        || nondetFunctions.contains(function)
-        || nondetFunctionsRegexp.matcher(function).matches();
+    return nondetFunctions.contains(function) || nondetFunctionsRegexp.matcher(function).matches();
   }
 
   public boolean isMemoryAllocationFunction(String function) {
