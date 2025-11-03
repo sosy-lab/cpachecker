@@ -99,7 +99,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
           "Acceptable number of interpolants per refinement used in"
               + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
     }
-    if (increaseFactorInterpolants < 0.0 || decreaseFactorInterpolants < 0.0) {
+    if (increaseFactorInterpolants < 0.0 || decreaseFactorInterpolants <= 0.0) {
       throw new InvalidConfigurationException(
           "Factors to tune the acceptable number of interpolants per refinement used in"
               + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
@@ -198,8 +198,6 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
             this.getClass().getSimpleName());
         return false;
       }
-      // if abstractionLocations to refinement ratio is higher, run usually needs a lower
-      // interpolation threshold
     } else if (currentAbstractionLocationRefinementRatio
         > abstractionLocationRefinementRatioUpper) {
       // acceptableInterpolantRate should be decreased to prevent long runs resulting in timeouts
@@ -222,11 +220,9 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
             this.getClass().getSimpleName());
         return false;
       }
-    }
-
-    // if  abstractionLocations to refinement ratio is between the two bounds, use configured
-    // acceptableInterpolantRate
-    else {
+    } else {
+      // if abstractionLocations to refinement ratio is between the two bounds, use configured
+      // acceptableInterpolantRate
       return currentTotalInterpolantRate < acceptableInterpolantRate;
     }
   }
