@@ -59,12 +59,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
         if (!(assumption instanceof CBinaryExpression binExpr)
             || !binExpr.getOperator().isLogicalOperator()) {
           // Transform into logical expr
-          CBinaryExpression logicalAssumption = mkLogical(assumption);
-          // if (cfaEdge instanceof AssumeEdge assumeEdge &&  !assumeEdge.getTruthAssumption()) {
-          // TODO: Does the analysis apply this?
-          // logicalAssumption = mkNot(logicalAssumption);
-          // }
-          logicalAssumptions.add(logicalAssumption);
+          logicalAssumptions.add(mkLogical(assumption));
         } else {
           logicalAssumptions.add(assumption);
         }
