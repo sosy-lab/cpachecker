@@ -294,14 +294,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
 
-    // LassoRanker handles unsigned types incorrectly as it does not account for overflows
-    for (CVariableDeclaration variable : relevantVariables) {
-      if (variable.getType().toString().contains("unsigned")) {
-        logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
-        return Result.UNKNOWN;
-      }
-    }
-
     if (considerRecursion) {
       setExplicitAbstractionNodes(pLoop);
     }
