@@ -4057,7 +4057,7 @@ public class SMGState
       @Nullable CFAEdge edge)
       throws SMGException {
     // TODO: find all possible values with a solver. This should be a relatively small finite list.
-    if (options.isFindConcreteValuesForSymbolicOffsets()) {}
+    // if (options.findConcreteValuesForSymbolicTypeSize()) {}
 
     if (options.isOverapproximateValuesForSymbolicTypeSize()) {
       return ImmutableList.of(
