@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
@@ -36,19 +33,11 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * @return A (possibly empty list) of expressions.
    */
   default ImmutableList<AExpression> getAssumptions() {
-    ImmutableList<AExpression> assumptions = getAssumptionsImpl();
-    // TODO: make this check complete. Suggestion: add a isLogicalExpression() check to all
-    // expressions.
-    assumptions.forEach(
-        a ->
-            checkState(
-                !(a instanceof ABinaryExpression binExpr)
-                    || binExpr.getOperator().isLogicalOperator(),
-                "AExpression "
-                    + a
-                    + " is exported as assumption, but is non-logical due to operator "
-                    + ((ABinaryExpression) a).getOperator()));
-    return assumptions;
+    // TODO: add assertion to ensure all assumptions are logical.
+    // TODO: work on the CPAs exporting non-logical expressions or transform them to logical
+    // expressions here.
+    // TODO: suggestion: add a isLogicalExpression() check to all expressions.
+    return getAssumptionsImpl();
   }
 
   ImmutableList<AExpression> getAssumptionsImpl();
