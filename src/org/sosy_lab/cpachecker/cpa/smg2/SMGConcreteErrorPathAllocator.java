@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -18,7 +18,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -82,37 +82,19 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
-
-    // TODO: this is missing heap completely, and is also just BAD....
     ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
 
-    /* This is more or less a modified copy of what value does.
-     * We generate addresses for our memory locations.
-     * This avoids needing to get the CDeclaration
-     * representing each memory location, which would be necessary if we
-     * wanted to exactly map each memory location to a LeftHandSide.*/
-    Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(FluentIterable.from(pPath).transform(Pair::getFirst));
-
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
-
-      SMGState smgState = checkNotNull(edgeStatePair.getFirst());
+      SMGState state = checkNotNull(edgeStatePair.getFirst());
       List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
-      if (edges.size() > 1) {
-        // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
-        handleMultiEdge(smgState, edges, pathBuilder);
-
-      } else {
+      checkState(!edges.isEmpty());
+      if (edges.size() == 1) {
         // a normal edge, no special handling required
-        pathBuilder.add(
-            new SingleConcreteState(
-                edges.getFirst(),
-                new ConcreteState(
-                    ImmutableMap.of(),
-                    allocateAddresses(smgState, variableAddresses),
-                    variableAddresses,
-                    exp -> MEMORY_NAME)));
+        pathBuilder.add(new SingleConcreteState(edges.getFirst(), createConcreteStateFrom(state)));
+      } else {
+        // Multi-edge. E.g. in the beginning of the program declaring all the types etc.
+        handleMultiEdge(state, edges, pathBuilder);
       }
     }
 
@@ -144,13 +126,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private ConcreteState createConcreteStateForMultiEdge(
       SMGState pState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
-    ConcreteState state;
+    ConcreteState concreteState;
 
     // We know only values for LeftHandSides that have not yet been assigned.
     if (allValuesForLeftHandSideKnown(innerEdge, alreadyAssigned)) {
-      state = createConcreteState(pState, pState.getMachineModel());
+      concreteState = createConcreteStateFrom(pState);
     } else {
-      state = ConcreteState.empty();
+      concreteState = ConcreteState.empty();
     }
 
     // add handled edges to alreadyAssigned list if necessary
@@ -163,19 +145,65 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       }
     }
 
-    return state;
+    return concreteState;
   }
 
-  private ConcreteState createConcreteState(SMGState pSMGState, MachineModel pMachineModel) {
-    Map<LeftHandSide, Address> variableAddresses =
-        generateVariableAddresses(Collections.singleton(pSMGState));
-    // We assign every variable to the heap, that's why the variable map is empty.
+  private ConcreteState createConcreteStateFrom(SMGState pSMGState) {
     return new ConcreteState(
+        getVariables(pSMGState),
         ImmutableMap.of(),
-        allocateAddresses(pSMGState, variableAddresses),
-        variableAddresses,
+        ImmutableMap.of(),
         exp -> MEMORY_NAME,
-        pMachineModel);
+        pSMGState.getMachineModel());
+  }
+
+  private static Map<LeftHandSide, Object> getVariables(SMGState state) {
+
+    Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
+    for (ValueAssignment va : state.getModel()) {
+      if (SymbolicValues.isSymbolicTerm(va.getName())) {
+        SymbolicIdentifier identifier =
+            SymbolicValues.convertTermToSymbolicIdentifier(va.getName());
+        Value value = SymbolicValues.convertToValue(va);
+        assignment.put((SymbolicIdentifier) identifier.copyForLocation(null), value);
+      }
+    }
+
+    ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
+    for (Entry<MemoryLocation, ValueAndValueSize> locsAndValues :
+        state.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+      MemoryLocation location = locsAndValues.getKey();
+      Value value = locsAndValues.getValue().getValue();
+      // @Nullable BigInteger typeSize = locsAndValues.getValue().getSizeInBits();
+      if (value instanceof SymbolicValue symValue && !state.isPointer(value)) {
+        // TODO: get all symIdents in symbolic expr, if at least one in assignments, use value
+        //  visitor and substitute the symIdents with the assignments to get a full evaluation
+        if (symValue instanceof ConstantSymbolicExpression constSymExpr
+            && constSymExpr.getValue() instanceof SymbolicValue nestedSymValue) {
+          symValue = nestedSymValue;
+          checkState(
+              !state.isPointer(symValue) || symValue.isNumericValue(),
+              "Error: assigned a concrete value to a non-null address");
+        }
+        if (symValue instanceof SymbolicIdentifier symIdent && assignment.containsKey(symIdent)) {
+          Value assignedValue = assignment.get(symIdent);
+          if (assignedValue != null && assignedValue.isNumericValue()) {
+            value = assignedValue;
+          }
+        }
+      }
+
+      if (value instanceof NumericValue numValue) {
+        IDExpression idExp = createBaseIdExpresssion(location);
+        if (location.getOffset() != 0) {
+          throw new AssertionError("Missing implementation for offset memory location in CEX");
+        }
+        checkState(idExp.isGlobal() == !location.isOnFunctionStack());
+        result.put(idExp, numValue.bigIntegerValue());
+      }
+    }
+
+    return result.buildOrThrow();
   }
 
   private static Map<LeftHandSide, Address> generateVariableAddresses(Iterable<SMGState> pPath) {
@@ -194,13 +222,11 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     Map<LeftHandSide, Address> result =
         Maps.newHashMapWithExpectedSize(pMemoryLocationsInPath.size());
 
-    // Start with Address 0
     Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
 
     for (IDExpression variable : pMemoryLocationsInPath.keySet()) {
       result.put(variable, nextAddressToBeAssigned);
 
-      // leave enough space for values between addresses
       nextAddressToBeAssigned =
           generateNextAddresses(pMemoryLocationsInPath.get(variable), nextAddressToBeAssigned);
     }
@@ -208,23 +234,20 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return result;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private static Address generateNextAddresses(
       Collection<MemoryLocation> pCollection, Address pNextAddressToBeAssigned) {
-
-    long biggestStoredOffsetInPath = 0;
-
+    /*
     for (MemoryLocation loc : pCollection) {
       if (loc.isReference() && loc.getOffset() > biggestStoredOffsetInPath) {
         biggestStoredOffsetInPath = loc.getOffset();
       }
     }
 
-    // Leave enough space for a long Value
-    // TODO find good value
-    long spaceForLastValue = 64;
     BigInteger offset = BigInteger.valueOf(biggestStoredOffsetInPath + spaceForLastValue);
 
-    return pNextAddressToBeAssigned.addOffset(offset);
+    return pNextAddressToBeAssigned.addOffset(offset);*/
+    return null;
   }
 
   private static Multimap<IDExpression, MemoryLocation> getAllMemoryLocationsInPath(
