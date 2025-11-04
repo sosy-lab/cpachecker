@@ -346,7 +346,7 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
 
-# the file name for the sequentialization and metadata. use the first input
+# the file name for the sequentialization and metadata. uses the first input
 # file name as default.
 analysis.algorithm.MPOR.outputPath = SeqToken.MPOR_PREFIX + "%s"
 

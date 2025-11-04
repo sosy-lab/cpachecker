@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 /** A class to write the sequentialized program to a file. */
 public class MPORWriter {
 
-  public enum FileExtension {
+  enum FileExtension {
     I(".i"),
     YML(".yml");
 
@@ -34,16 +34,15 @@ public class MPORWriter {
       suffix = pSuffix;
     }
 
-    public String getSuffix() {
+    private String getSuffix() {
       return suffix;
     }
   }
 
   private enum OutputMessage {
-    IO_ERROR("An IO error occurred while writing the output program:"),
+    IO_ERROR("An IO error occurred while writing the output program."),
     OVERWRITE_ERROR("File exists already:"),
-    SEQUENTIALIZATION_CREATED("Sequentialization created in:"),
-    TARGET_DIRECTORY_ERROR("Could not create target directory:");
+    SEQUENTIALIZATION_CREATED("Sequentialization created in:");
 
     private final String message;
 
@@ -101,10 +100,7 @@ public class MPORWriter {
 
     if (!pOptions.overwriteFiles()) {
       if (Files.exists(pOutputProgramPath)) {
-        pLogger.logUserException(
-            Level.SEVERE,
-            new IOException(),
-            String.format(OutputMessage.OVERWRITE_ERROR.getMessage(), pOutputProgramPath));
+        pLogger.log(Level.SEVERE, OutputMessage.OVERWRITE_ERROR.getMessage(), pOutputProgramPath);
         // assertion error is required to stop execution and prevent any overwriting
         throw new AssertionError();
       }

@@ -161,7 +161,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "the file name for the sequentialization and metadata. use the first input file name as"
+          "the file name for the sequentialization and metadata. uses the first input file name as"
               + " default.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate outputPath = PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "%s");

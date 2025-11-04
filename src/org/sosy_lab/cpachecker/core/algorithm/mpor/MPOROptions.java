@@ -19,7 +19,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
@@ -98,7 +97,7 @@ public record MPOROptions(
         false,
         NondeterminismSource.NUM_STATEMENTS,
         true,
-        PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "test" + FileExtension.I.getSuffix()),
+        PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "test"),
         true,
         true,
         false,
@@ -170,7 +169,7 @@ public record MPOROptions(
         pNondeterminismSource,
         // never output for unit tests
         false,
-        PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "test" + FileExtension.I.getSuffix()),
+        PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "test"),
         false,
         false,
         pPruneBitVectorEvaluations,
