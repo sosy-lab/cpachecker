@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -38,11 +39,12 @@ public class BuiltinFunctionsHandling {
 
   public record ValidatedFScanFParameter(String format, CExpression receiver) {}
 
-  private static String getVerifierNondetNameForType(CSimpleType pType) {
+  private static String getVerifierNondetNameForType(
+      CSimpleType pType, MachineModel pMachineModel) {
     CBasicType basicType = pType.getType();
     return switch (basicType) {
       case INT -> {
-        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
         if (pType.hasLongLongSpecifier()) {
           yield "__VERIFIER_nondet_" + prefix + "longlong";
         } else if (pType.hasLongSpecifier()) {
@@ -54,14 +56,14 @@ public class BuiltinFunctionsHandling {
         }
       }
       case CHAR -> {
-        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
         yield "__VERIFIER_nondet_" + prefix + "char";
       }
       case FLOAT -> "__VERIFIER_nondet_float";
       case DOUBLE -> "__VERIFIER_nondet_double";
       case BOOL -> "__VERIFIER_nondet_bool";
       case INT128 -> {
-        String prefix = (pType.hasUnsignedSpecifier() ? "u" : "");
+        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
         yield "__VERIFIER_nondet_" + prefix + "int128";
       }
       case FLOAT128 -> "__VERIFIER_nondet_float128";
@@ -157,7 +159,8 @@ public class BuiltinFunctionsHandling {
    * @throws UnrecognizedCodeException in case is not precise to create such an assignment
    */
   public static CFunctionCallAssignmentStatement createNondetCallModellingFscanf(
-      CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
+      CFunctionCallExpression e, CFAEdge pEdge, MachineModel pMachineModel)
+      throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (!(e.getFunctionNameExpression() instanceof CIdExpression funcNameIdExpression)
         || !funcNameIdExpression.getName().equals("fscanf")) {
@@ -196,7 +199,7 @@ public class BuiltinFunctionsHandling {
             new CFunctionDeclaration(
                 pEdge.getFileLocation(),
                 CFunctionType.functionTypeWithReturnType(pSimpleType),
-                getVerifierNondetNameForType(pSimpleType),
+                getVerifierNondetNameForType(pSimpleType, pMachineModel),
                 ImmutableList.of(),
                 ImmutableSet.of());
         CIdExpression nondetFunctionName =

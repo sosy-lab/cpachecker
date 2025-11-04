@@ -647,7 +647,8 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.matchesFscanf(functionName)) {
         CFunctionCallAssignmentStatement nondetCallForScanfCall =
-            BuiltinFunctionsHandling.createNondetCallModellingFscanf(e, edge);
+            BuiltinFunctionsHandling.createNondetCallModellingFscanf(
+                e, edge, conv.getMachineModel());
 
         try {
           BooleanFormula assignment =
