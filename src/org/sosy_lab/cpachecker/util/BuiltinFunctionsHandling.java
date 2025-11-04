@@ -37,7 +37,13 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  */
 public class BuiltinFunctionsHandling {
 
-  public record ValidatedFScanFParameter(String format, CExpression receiver) {}
+  /**
+   * Result of validating the parameters of a fscanf call.
+   *
+   * @param format the validated format string
+   * @param receiver the receiving parameter expression
+   */
+  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
 
   private static String getVerifierNondetNameForType(
       CSimpleType pType, MachineModel pMachineModel) {
