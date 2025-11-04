@@ -84,7 +84,7 @@ public class LoopTransitionFinderTest {
             MachineModel.LINUX32,
             Optional.empty(),
             AnalysisDirection.FORWARD);
-    creator = CFACreator.construct(config, logger, notifier);
+    creator = new CFACreator(config, logger, notifier);
   }
 
   @Test

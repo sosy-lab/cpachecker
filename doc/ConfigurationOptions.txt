@@ -588,10 +588,6 @@ analysis.partitionInitialStates = false
 # A String, denoting the programs to be analyzed
 analysis.programNames = []
 
-# Transform the input program into another program before analysis?
-analysis.programTransformation = NONE
-  enum:     [NONE, SEQUENTIALIZATION]
-
 # which reached set implementation to use?
 # NORMAL: just a simple set
 # LOCATIONMAPPED: a different set per location (faster, states with different

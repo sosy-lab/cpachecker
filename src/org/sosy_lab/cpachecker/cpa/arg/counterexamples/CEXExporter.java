@@ -15,9 +15,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -28,12 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -47,7 +39,6 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -64,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
@@ -74,9 +64,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExpor
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -121,7 +108,6 @@ public class CEXExporter {
 
   private final CEXExportOptions options;
   private final LogManager logger;
-  private final Specification specification;
   private final WitnessExporter witnessExporter;
   private final CounterexampleToWitness cexToWitness;
   private final ExtendedWitnessExporter extendedWitnessExporter;
@@ -139,11 +125,9 @@ public class CEXExporter {
       WitnessExporter pWitnessExporter,
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
-
     config.inject(this);
     options = pOptions;
     logger = pLogger;
-    specification = pSpecification;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
     cfa = pCFA;
@@ -196,7 +180,6 @@ public class CEXExporter {
    */
   public void exportCounterexample(
       final ARGState targetState, final CounterexampleInfo counterexample) {
-
     checkNotNull(targetState);
     checkNotNull(counterexample);
 
@@ -338,33 +321,18 @@ public class CEXExporter {
             witnessExporter.generateErrorWitness(
                 rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-        // for .graphml counterexamples
-        switch (cfa.getMetadata().getProgramTransformation()) {
-          case NONE ->
-              writeErrorPathFile(
-                  options.getWitnessFile(),
-                  uniqueId,
-                  (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-                  compressWitness);
-          case SEQUENTIALIZATION -> {
-            String updatedGraphml =
-                buildDefaultSequentializationCounterexample(
-                    cfa.getMetadata().getOriginalCfa().orElseThrow(), specification, logger);
-            writeErrorPathFile(options.getWitnessFile(), uniqueId, updatedGraphml, compressWitness);
-          }
-        }
+        writeErrorPathFile(
+            options.getWitnessFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+            compressWitness);
 
-        // for .dot counterexamples
         writeErrorPathFile(
             options.getWitnessDotFile(),
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
-
-        // for .yaml counterexamples
-        if (cfa.getMetadata().getOriginalCfa().isPresent()) {
-          // TODO create .yaml witness from program transformation
-        } else if (cfa.getMetadata().getInputLanguage() == Language.C) {
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
             try {
               cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
@@ -429,7 +397,6 @@ public class CEXExporter {
 
   private void writeErrorPathFile(
       @Nullable PathTemplate template, int uniqueId, Object content, boolean pCompress) {
-
     if (template != null) {
       // fill in index in file name
       Path file = template.getPath(uniqueId);
@@ -444,81 +411,6 @@ public class CEXExporter {
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write information about the error path to file");
-      }
-    }
-  }
-
-  /** Returns a dummy {@code .graphml} counterexample without any meaningful nodes or edges. */
-  private static String buildDefaultSequentializationCounterexample(
-      CFA pOriginalCfa, Specification pSpecification, LogManager pLogger) {
-
-    String defaultGraphml = "./test/programs/mpor/violation_witness/default_counterexample.graphml";
-
-    try {
-      File xmlFile = new File(defaultGraphml);
-      DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-      DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-      Document document = documentBuilder.parse(xmlFile);
-      document.getDocumentElement().normalize();
-
-      document = updateDefaultGraphml(pOriginalCfa, pSpecification, document);
-
-      Transformer transformer = TransformerFactory.newInstance().newTransformer();
-      StringWriter stringWriter = new StringWriter();
-      transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
-      return stringWriter.toString();
-
-    } catch (Exception e) {
-      pLogger.log(Level.SEVERE, "Could not parse .graphml file: ", e);
-      throw new IllegalArgumentException(e);
-    }
-  }
-
-  private static Document updateDefaultGraphml(
-      CFA pOriginalCfa, Specification pSpecification, Document pDocument) throws IOException {
-
-    Path filePath = pOriginalCfa.getFileNames().getFirst();
-    String cpaCheckerVersion = CPAchecker.getPlainVersion();
-    String producer =
-        cpaCheckerVersion.equals(CPAchecker.unknownVersion)
-            ? "CPAchecker"
-            : "CPAchecker-" + cpaCheckerVersion;
-    String specification = AutomatonGraphmlCommon.getSpecificationAutomaton(pSpecification);
-    String programHash = AutomatonGraphmlCommon.computeHash(filePath);
-    String architecture = AutomatonGraphmlCommon.getArchitecture(pOriginalCfa.getMachineModel());
-    String creationTime = AutomatonGraphmlCommon.getCreationTime();
-
-    // update entries
-    updateKeyDefault(pDocument, "originfile", filePath.toString());
-    updateDataValue(pDocument, "producer", producer);
-    updateDataValue(pDocument, "specification", specification);
-    updateDataValue(pDocument, "programfile", filePath.toString());
-    updateDataValue(pDocument, "programhash", programHash);
-    updateDataValue(pDocument, "architecture", architecture);
-    updateDataValue(pDocument, "creationtime", creationTime);
-
-    return pDocument;
-  }
-
-  private static void updateDataValue(Document pDocument, String pKeyName, String pNewValue) {
-    NodeList list = pDocument.getElementsByTagName("data");
-    for (int i = 0; i < list.getLength(); i++) {
-      Element data = (Element) list.item(i);
-      if (pKeyName.equals(data.getAttribute("key"))) {
-        data.setTextContent(pNewValue);
-      }
-    }
-  }
-
-  private static void updateKeyDefault(Document pDocument, String pKeyId, String pNewDefault) {
-    NodeList keys = pDocument.getElementsByTagName("key");
-    for (int i = 0; i < keys.getLength(); i++) {
-      Element key = (Element) keys.item(i);
-      if (pKeyId.equals(key.getAttribute("id"))) {
-        NodeList defaults = key.getElementsByTagName("default");
-        if (defaults.getLength() > 0) {
-          defaults.item(0).setTextContent(pNewDefault);
-        }
       }
     }
   }

@@ -494,6 +494,16 @@ public final class ExpressionTrees {
     return pSource.accept(converter);
   }
 
+  /**
+   * Converts a variable number of leaf values into an iterable of {@link ExpressionTree} object,
+   * useful for further usage in {@link Or} / {@link And}.
+   *
+   * @param pLeafs The leaf values of which to build an {@link ExpressionTree}. Must not be null,
+   *     but may be an empty array.
+   * @return An {@link ImmutableList} of {@link ExpressionTree} where each element corresponds to
+   *     one of the input {@code pLeafs}.
+   * @param <LeafType> The generic type of the leaf values.
+   */
   @SafeVarargs
   public static <LeafType> ImmutableList<ExpressionTree<LeafType>> toExpressionTree(
       LeafType... pLeafs) {
@@ -505,6 +515,16 @@ public final class ExpressionTrees {
     return rTree.build();
   }
 
+  /**
+   * Converts an {@code Iterable} of leaf values into an {@code ImmutableList} of {@link
+   * ExpressionTree} objects, useful for further usage in {@link Or} / {@link And}.
+   *
+   * @param pLeafs The {@code Iterable} of leaf values from which to build the {@link
+   *     ExpressionTree} list. Must not be null.
+   * @return An {@code ImmutableList} of {@link ExpressionTree}, where each element corresponds to
+   *     one value from the input {@code pLeafs}.
+   * @param <LeafType> The type of the leaf values.
+   */
   public static <LeafType> ImmutableList<ExpressionTree<LeafType>> toExpressionTree(
       Iterable<LeafType> pLeafs) {
 

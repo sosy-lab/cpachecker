@@ -97,7 +97,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -406,36 +405,15 @@ public class CFACreator {
   private final CFACreatorStatistics stats;
   private final Configuration config;
 
-  public static CFACreator construct(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    return new CFACreator(pConfig, pLogger, pShutdownNotifier, ProgramTransformation.NONE);
-  }
+    config.inject(this);
 
-  public static CFACreator constructForProgramTransformation(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      ProgramTransformation pProgramTransformation)
-      throws InvalidConfigurationException {
-
-    return new CFACreator(pConfig, pLogger, pShutdownNotifier, pProgramTransformation);
-  }
-
-  private CFACreator(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      ProgramTransformation pProgramTransformation)
-      throws InvalidConfigurationException {
-
-    pConfig.inject(this);
-
-    this.config = pConfig;
-    this.logger = pLogger;
+    this.config = config;
+    this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
-    stats = new CFACreatorStatistics(pLogger);
+    stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
     String regExPattern;
@@ -447,7 +425,7 @@ public class CFACreator {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
-        parser = Parsers.getJavaParser(pLogger, pConfig, mainFunctionName);
+        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
       }
       case C -> {
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
@@ -457,32 +435,29 @@ public class CFACreator {
         }
         CParser outerParser =
             CParser.Factory.getParser(
-                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
+                logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
 
         outerParser =
             new CParserWithLocationMapper(
-                pConfig, pLogger, outerParser, readLineDirectives || usePreprocessor || useClang);
+                config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
-        // for program transformations, parseString is used (not supported in
-        // CParserWithPreprocessor), instead of parseFiles. but preprocessing is not necessary for
-        // program transformations anyway, since the original CFA was preprocessed already
-        if (usePreprocessor && pProgramTransformation.equals(ProgramTransformation.NONE)) {
-          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
+        if (usePreprocessor) {
+          CPreprocessor preprocessor = new CPreprocessor(config, logger);
           outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
         }
 
         if (useClang) {
           if (usePreprocessor) {
-            pLogger.log(
+            logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          parser = Parsers.getLlvmClangParser(pConfig, pLogger, machineModel);
+          parser = Parsers.getLlvmClangParser(config, logger, machineModel);
         } else {
           parser = outerParser;
         }
       }
       case LLVM -> {
-        parser = Parsers.getLlvmParser(pLogger, machineModel);
+        parser = Parsers.getLlvmParser(logger, machineModel);
         language = Language.C;
         // After parsing, we will have a CFA representing C code
       }
@@ -498,41 +473,18 @@ public class CFACreator {
   /**
    * Parse a program given as String and create a CFA, including all post-processing etc.
    *
-   * @param pProgram The program represented as String to parse.
+   * @param program The program represented as String to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the
    *     configuration is not found.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseSourceAndCreateCFA(String pProgram)
+  public CFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
-
-    return parseSourceAndCreateCFA(pProgram, Optional.empty(), ProgramTransformation.NONE);
-  }
-
-  /**
-   * Parse a program given as String and create a CFA, optionally with an original CFA if the
-   * program is the result of a program transformation.
-   */
-  public CFA parseSourceAndCreateCFA(
-      String pProgram, CFA pOriginalCfa, ProgramTransformation pProgramTransformation)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-
-    return parseSourceAndCreateCFA(pProgram, Optional.of(pOriginalCfa), pProgramTransformation);
-  }
-
-  private CFA parseSourceAndCreateCFA(
-      String pProgram, Optional<CFA> pOriginalCfa, ProgramTransformation pProgramTransformation)
-      throws ParserException, InterruptedException, InvalidConfigurationException {
 
     stats.totalTime.start();
     try {
-      ParseResult parseResult = parseToCFAs(pProgram);
-      if (pOriginalCfa.isPresent()) {
-        parseResult =
-            parseResult.withOriginalCfaAndProgramTransformation(
-                pOriginalCfa.orElseThrow(), pProgramTransformation);
-      }
+      ParseResult parseResult = parseToCFAs(program);
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
@@ -652,13 +604,7 @@ public class CFACreator {
             inputLanguage,
             pParseResult.fileNames(),
             mainFunction,
-            CfaConnectedness.UNCONNECTED_FUNCTIONS,
-            pParseResult.programTransformation());
-
-    if (pParseResult.originalCfa().isPresent()) {
-      cfaMetadata = cfaMetadata.withOriginalCfa(pParseResult.originalCfa().orElseThrow());
-    }
-
+            CfaConnectedness.UNCONNECTED_FUNCTIONS);
     MutableCFA cfa = new MutableCFA(pParseResult.functions(), pParseResult.cfaNodes(), cfaMetadata);
 
     stats.checkTime.start();
@@ -771,7 +717,6 @@ public class CFACreator {
    */
   private ParseResult parseToCFAs(final String program)
       throws ParserException, InterruptedException {
-
     final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {

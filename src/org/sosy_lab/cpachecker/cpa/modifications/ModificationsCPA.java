@@ -80,7 +80,7 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
     shutdownNotifier = pShutdownNotifier;
 
     // create CFA here to avoid handling of checked exceptions in #getInitialState
-    CFACreator cfaCreator = CFACreator.construct(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     try {
       cfaForComparison =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));

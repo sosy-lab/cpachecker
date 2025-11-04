@@ -218,7 +218,7 @@ public final class Specification {
 
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
-      CFACreator cfaCreator = CFACreator.construct(config, logger, pShutdownNotifier);
+      CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
       CFA annotatedCFA;
       try {
         annotatedCFA = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));

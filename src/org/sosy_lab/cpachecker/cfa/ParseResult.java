@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -46,9 +45,7 @@ public record ParseResult(
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
-    Optional<CFA> originalCfa,
-    ProgramTransformation programTransformation) {
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -64,9 +61,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        ProgramTransformation.NONE);
+        Optional.empty());
   }
 
   public ParseResult(
@@ -85,9 +80,7 @@ public record ParseResult(
         Optional.of(pCommentLocations),
         Optional.of(pBlocks),
         Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        ProgramTransformation.NONE);
+        Optional.empty());
   }
 
   public boolean isEmpty() {
@@ -105,15 +98,12 @@ public record ParseResult(
         commentLocations,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope,
-        originalCfa,
-        programTransformation);
+        cfaNodeToAstParametersInScope);
   }
 
   public ParseResult withInScopeInformation(
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
-
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
     return new ParseResult(
@@ -125,30 +115,6 @@ public record ParseResult(
         commentLocations,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
-        Optional.of(pCfaNodeToAstParametersInScope),
-        originalCfa,
-        programTransformation);
-  }
-
-  /**
-   * If there exists an original {@link CFA}, then the {@link ProgramTransformation} must be set, so
-   * we use a single function for this.
-   */
-  public ParseResult withOriginalCfaAndProgramTransformation(
-      CFA pOriginalCfa, ProgramTransformation pProgramTransformation) {
-
-    Verify.verify(pProgramTransformation.isEnabled(), "pProgramTransformation must be set");
-    return new ParseResult(
-        functions,
-        cfaNodes,
-        globalDeclarations,
-        fileNames,
-        astStructure,
-        commentLocations,
-        blocks,
-        cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope,
-        Optional.of(pOriginalCfa),
-        pProgramTransformation);
+        Optional.of(pCfaNodeToAstParametersInScope));
   }
 }

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ProgramTransformation;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
@@ -168,7 +167,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs, options.programTransformation);
+    CPAcheckerResult result = cpachecker.run(options.programs);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -286,12 +285,6 @@ public class CPAMain {
         // required=true, NOT required because we want to give a nicer user message ourselves
         description = "A String, denoting the programs to be analyzed")
     private ImmutableList<String> programs = ImmutableList.of();
-
-    @Option(
-        secure = true,
-        name = "analysis.programTransformation",
-        description = "Transform the input program into another program before analysis?")
-    private ProgramTransformation programTransformation = ProgramTransformation.NONE;
 
     @Option(
         secure = true,

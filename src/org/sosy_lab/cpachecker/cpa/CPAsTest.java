@@ -156,7 +156,7 @@ public class CPAsTest {
 
     cfa =
         TestDataTools.toSingleFunctionCFA(
-            CFACreator.construct(config, logManager, shutdownNotifier),
+            new CFACreator(config, logManager, shutdownNotifier),
             "  int a;",
             "  a = 1;",
             "  return a;");

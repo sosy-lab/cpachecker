@@ -396,8 +396,8 @@ public final class MainCPAStatistics implements Statistics {
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
     assert pReached != null : "ReachedSet may be null only if analysis not yet started";
 
-    for (Statistics statistic : subStats) {
-      StatisticsUtils.writeOutputFiles(statistic, logger, pResult, pReached);
+    for (Statistics s : subStats) {
+      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
     }
   }
 
@@ -558,15 +558,13 @@ public final class MainCPAStatistics implements Statistics {
     }
   }
 
-  public void setCFACreator(CFACreator pCfaCreator, ProgramTransformation pProgramTransformation) {
-    // when transforming program, the cfaCreatorStatistics may be set already
-    Preconditions.checkState(cfaCreatorStatistics == null || pProgramTransformation.isEnabled());
+  public void setCFACreator(CFACreator pCfaCreator) {
+    Preconditions.checkState(cfaCreatorStatistics == null);
     cfaCreatorStatistics = pCfaCreator.getStatistics();
   }
 
-  public void setCFA(CFA pCfa, ProgramTransformation pProgramTransformation) {
-    // when transforming program, the cfa may be set already
-    Preconditions.checkState(cfa == null || pProgramTransformation.isEnabled());
+  public void setCFA(CFA pCfa) {
+    Preconditions.checkState(cfa == null);
     cfa = pCfa;
   }
 

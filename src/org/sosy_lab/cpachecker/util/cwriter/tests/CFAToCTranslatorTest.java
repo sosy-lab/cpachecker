@@ -77,7 +77,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
     final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
     final Configuration parseConfig =
         Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
-    final CFACreator cfaCreator = CFACreator.construct(parseConfig, logger, shutdown);
+    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
 
     return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
   }

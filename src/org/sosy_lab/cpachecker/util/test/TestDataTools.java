@@ -83,8 +83,7 @@ public class TestDataTools {
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =
-        CFACreator.construct(
-            config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
     return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(lines));
   }

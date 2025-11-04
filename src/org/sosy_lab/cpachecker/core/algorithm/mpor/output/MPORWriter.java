@@ -82,8 +82,7 @@ public class MPORWriter {
   }
 
   static Path buildOutputPath(
-      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension, LogManager pLogger)
-      throws IOException {
+      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension, LogManager pLogger) {
 
     String templateWithExtension = pOptions.outputPath().getTemplate() + pFileExtension.getSuffix();
     Path rOutputPath = PathTemplate.ofFormatString(templateWithExtension).getPath(pProgramName);
