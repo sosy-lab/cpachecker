@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -508,14 +508,16 @@ class BitVectorReadWriteEvaluationBuilder {
     CExpression activeReadVariable =
         sparseReadBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
     ExpressionTree<CExpression> leftHandSide =
-        buildFullSparseSingleVariableLeftHandSide(activeReadVariable, pOtherWriteVariables);
+        buildFullSparseSingleVariableLeftHandSide(
+            Objects.requireNonNull(activeReadVariable), pOtherWriteVariables);
 
     SparseBitVector sparseWriteBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(pMemoryLocation));
     CExpression activeWriteVariable =
         sparseWriteBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
     ExpressionTree<CExpression> rightHandSide =
-        buildFullSparseSingleVariableRightHandSide(activeWriteVariable, pOtherAccessVariables);
+        buildFullSparseSingleVariableRightHandSide(
+            Objects.requireNonNull(activeWriteVariable), pOtherAccessVariables);
 
     return Or.of(leftHandSide, rightHandSide);
   }

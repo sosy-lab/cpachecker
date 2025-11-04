@@ -30,6 +30,48 @@ public record BitVectorVariables(
     Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseAccessBitVector,
     Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseWriteBitVector) {
 
+  /**
+   * Represents a dense bit vector variable where each index represents a relevant memory locations.
+   */
+  public record DenseBitVector(
+      MPORThread thread,
+      Optional<CIdExpression> directVariable,
+      Optional<CIdExpression> reachableVariable) {
+
+    /**
+     * Note that both direct and reachable can be empty, when there are no relevant memory
+     * locations.
+     */
+    public CIdExpression getVariableByReachType(ReachType pReachType) {
+      return switch (pReachType) {
+        case DIRECT -> directVariable.orElseThrow();
+        case REACHABLE -> reachableVariable.orElseThrow();
+      };
+    }
+  }
+
+  /**
+   * Represents a sparse bit vector, where each memory location, for each thread, has its own
+   * variable in the sequentialization which can be either {@code 0} or {@code 1}.
+   */
+  public record SparseBitVector(
+      ImmutableMap<MPORThread, CIdExpression> directVariables,
+      ImmutableMap<MPORThread, CIdExpression> reachableVariables) {
+
+    public ImmutableMap<MPORThread, CIdExpression> getVariablesByReachType(ReachType pReachType) {
+      return switch (pReachType) {
+        case DIRECT -> directVariables;
+        case REACHABLE -> reachableVariables;
+      };
+    }
+  }
+
+  /** The reachable dense bit vector for the thread that previously executed a statement. */
+  public record LastDenseBitVector(CIdExpression reachableVariable) {}
+
+  /** The reachable sparse bit vector for the thread that previously executed a statement. */
+  public record LastSparseBitVector(CIdExpression reachableVariable) {}
+
   public CIdExpression getDenseBitVector(
       MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
