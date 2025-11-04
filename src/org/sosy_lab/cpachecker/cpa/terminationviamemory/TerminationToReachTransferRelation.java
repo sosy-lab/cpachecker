@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -127,8 +129,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      if (state instanceof CallstackState pCallstackState) {
-        return pCallstackState;
+      Optional<CallstackStateEqualsWrapper> possibleCallStack = AbstractStates.extractOptionalCallstackWraper(state);
+      if (possibleCallStack.isPresent()) {
+        return possibleCallStack.get().getState();
       }
     }
     throw new UnsupportedOperationException("TransferRelation requires call-stack information.");
