@@ -52,7 +52,6 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
 

@@ -81,7 +81,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 

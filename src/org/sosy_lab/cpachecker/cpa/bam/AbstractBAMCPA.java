@@ -112,7 +112,6 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-
     super(pCpa);
     pConfig.inject(this, AbstractBAMCPA.class);
 

@@ -56,7 +56,6 @@ public class BAMARGStatistics extends ARGStatistics {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-
     super(pConfig, pLogger, pCpa, pSpecification, pCfa);
     bamCpa = pBamCpa;
   }
