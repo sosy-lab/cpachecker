@@ -1207,6 +1207,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/YML file
+counterexample.export.exportWitnessV2 = true
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1431,6 +1434,9 @@ cpa.arg.errorPath.exportTestCase = false
 
 # deprecated name for counterexample.export.exportWitness
 cpa.arg.errorPath.exportWitness = true
+
+# deprecated name for counterexample.export.exportWitnessV2
+cpa.arg.errorPath.exportWitnessV2 = true
 
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"

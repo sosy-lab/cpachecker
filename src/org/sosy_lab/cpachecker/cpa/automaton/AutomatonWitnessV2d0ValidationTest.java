@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-public class AutomatonWitnessV2ValidationTest {
+public class AutomatonWitnessV2d0ValidationTest {
 
   private String TEST_DIR_PATH = "test/programs/witness-v2-validation";
   private String SPECIFICATION_PATH = "config/properties/";
