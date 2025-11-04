@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -37,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -50,14 +49,12 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
     MPORThread mainThread = MPORThreadUtil.extractMainThread(pThreads);
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes =
-        buildGlobalVariableSubstitutes(
-            pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder, pLogger);
+        buildGlobalVariableSubstitutes(pOptions, mainThread, pGlobalVariableDeclarations, pUtils);
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
         getMainFunctionArgSubstitutes(pOptions, mainThread);
     // use same start_routine arg substitutes across threads, so that all threads can access them
@@ -80,10 +77,9 @@ public class MPORSubstitutionBuilder {
                   parameterSubstitutes,
                   mainFunctionArgSubstitutes,
                   startRoutineArgSubstitutes,
-                  thread.getId(),
-                  thread.localVariables,
-                  pBinaryExpressionBuilder,
-                  pLogger);
+                  thread.id(),
+                  thread.localVariables(),
+                  pUtils);
       rSubstitutions.add(
           new MPORSubstitution(
               false,
@@ -94,8 +90,7 @@ public class MPORSubstitutionBuilder {
               parameterSubstitutes,
               mainFunctionArgSubstitutes,
               startRoutineArgSubstitutes,
-              pBinaryExpressionBuilder,
-              pLogger));
+              pUtils));
     }
     return rSubstitutions.build();
   }
@@ -104,8 +99,7 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
@@ -125,8 +119,7 @@ public class MPORSubstitutionBuilder {
             ImmutableTable.of(),
             ImmutableMap.of(),
             ImmutableTable.of(),
-            pBinaryExpressionBuilder,
-            pLogger);
+            pUtils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
@@ -173,7 +166,7 @@ public class MPORSubstitutionBuilder {
     for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
       CStorageClass storageClass = variableDeclaration.getCStorageClass();
       // if type declarations are not included, the storage class cannot be extern
-      if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+      if (pOptions.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
         String substituteName = SeqNameUtil.buildGlobalVariableName(pOptions, variableDeclaration);
         CVariableDeclaration substitute =
             substituteVariableDeclaration(variableDeclaration, substituteName);
@@ -197,7 +190,7 @@ public class MPORSubstitutionBuilder {
         rParameterSubstitutes = ImmutableTable.builder();
     Map<CFunctionDeclaration, Integer> callCounts = new HashMap<>();
 
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionCallEdge pFunctionCallEdge) {
         CFunctionDeclaration functionDeclaration =
             pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
@@ -229,7 +222,7 @@ public class MPORSubstitutionBuilder {
           SeqNameUtil.buildParameterName(
               pOptions,
               parameterDeclaration,
-              pThread.getId(),
+              pThread.id(),
               pFunctionDeclaration.getOrigName(),
               pCallNumber);
       // we use variable declarations for parameters in the sequentialization
@@ -249,7 +242,7 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions, MPORThread pMainThread) {
 
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rArgs = ImmutableMap.builder();
-    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine.getParameters()) {
+    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine().getParameters()) {
       String varName = SeqNameUtil.buildMainFunctionArgName(pOptions, parameterDeclaration);
       // we use variable declarations for main function args in the sequentialization
       CVariableDeclaration variableDeclaration =
@@ -269,7 +262,7 @@ public class MPORSubstitutionBuilder {
         ImmutableTable.builder();
 
     for (MPORThread thread : pAllThreads) {
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
           // TODO if we support pthread return values, this may not hold
@@ -279,10 +272,10 @@ public class MPORSubstitutionBuilder {
           MPORThread createdThread =
               MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
           // pthread_t matches
-          if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
+          if (pthreadT.equals(createdThread.threadObject().orElseThrow())) {
             CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(cfaEdge);
             CFunctionDeclaration startRoutineDeclaration =
-                (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
+                (CFunctionDeclaration) createdThread.cfa().entryNode.getFunction();
             // start_routine matches
             if (startRoutineDeclaration.getType().equals(startRoutineType)) {
               if (!startRoutineDeclaration.getParameters().isEmpty()) {
@@ -294,7 +287,7 @@ public class MPORSubstitutionBuilder {
                     SeqNameUtil.buildStartRoutineArgName(
                         pOptions,
                         parameterDeclaration,
-                        createdThread.getId(),
+                        createdThread.id(),
                         startRoutineDeclaration.getOrigName());
                 CParameterDeclaration substituteParameterDeclaration =
                     substituteParameterDeclaration(parameterDeclaration, varName);
@@ -331,8 +324,7 @@ public class MPORSubstitutionBuilder {
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
               pLocalVariableDeclarations,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder,
-          LogManager pLogger) {
+          SequentializationUtils pUtils) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableTable<
@@ -351,8 +343,7 @@ public class MPORSubstitutionBuilder {
             pParameterSubstitutes,
             pMainFunctionArgSubstitutes,
             pStartRoutineArgSubstitutes,
-            pBinaryExpressionBuilder,
-            pLogger);
+            pUtils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableTable.Builder<
@@ -413,7 +404,7 @@ public class MPORSubstitutionBuilder {
           CStorageClass storageClass = variableDeclaration.getCStorageClass();
 
           // if type declarations are not included, the storage class cannot be extern
-          if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+          if (pOptions.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
             Optional<String> functionName = getFunctionNameByCallContext(callContext);
             String substituteName =
                 SeqNameUtil.buildLocalVariableName(

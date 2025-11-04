@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -25,9 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public abstract class SeqFunction {
+public abstract sealed class SeqFunction
+    permits SeqAssumeFunction, SeqMainFunction, SeqReachErrorFunction, SeqThreadSimulationFunction {
 
-  abstract ImmutableList<String> buildBody() throws UnrecognizedCodeException;
+  abstract String buildBody() throws UnrecognizedCodeException;
 
   abstract CType getReturnType();
 
@@ -75,12 +77,12 @@ public abstract class SeqFunction {
         + SeqSyntax.BRACKET_RIGHT;
   }
 
-  public final ImmutableList<String> buildDefinition() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rDefinition = ImmutableList.builder();
+  public final String buildDefinition() throws UnrecognizedCodeException {
+    StringJoiner rDefinition = new StringJoiner(SeqSyntax.NEWLINE);
     rDefinition.add(SeqStringUtil.appendCurlyBracketLeft(buildSignature()));
-    rDefinition.addAll(buildBody());
+    rDefinition.add(buildBody());
     rDefinition.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return rDefinition.build();
+    return rDefinition.toString();
   }
 
   public final CFunctionCallExpression buildFunctionCallExpression(

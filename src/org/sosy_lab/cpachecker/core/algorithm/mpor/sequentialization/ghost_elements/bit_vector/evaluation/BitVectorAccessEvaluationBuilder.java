@@ -16,11 +16,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -29,53 +28,58 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 class BitVectorAccessEvaluationBuilder {
 
-  static BitVectorEvaluationExpression buildVariableOnlyEvaluationByEncoding(
+  static Optional<BitVectorEvaluationExpression> buildVariableOnlyEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding());
       case BINARY, DECIMAL, HEXADECIMAL ->
-          buildFullDenseVariableOnlyEvaluation(
-              pActiveThread, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+          Optional.of(
+              buildFullDenseVariableOnlyEvaluation(
+                  pActiveThread, pOtherThreads, pBitVectorVariables, pUtils));
       case SPARSE ->
           buildFullSparseVariableOnlyEvaluation(pActiveThread, pOtherThreads, pBitVectorVariables);
     };
   }
 
-  static BitVectorEvaluationExpression buildDenseEvaluation(
+  static Optional<BitVectorEvaluationExpression> buildDenseEvaluation(
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedDenseEvaluation(
-          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
+          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pUtils);
     } else {
-      return buildFullDenseEvaluation(
-          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
+      return Optional.of(
+          buildFullDenseEvaluation(pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pUtils));
     }
   }
 
-  static BitVectorEvaluationExpression buildSparseEvaluation(
+  static Optional<BitVectorEvaluationExpression> buildSparseEvaluation(
       MPOROptions pOptions,
-      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pOptions.pruneBitVectorEvaluations) {
+    if (pOptions.pruneBitVectorEvaluations()) {
       return buildPrunedSparseEvaluation(
           pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
     } else {
@@ -86,38 +90,39 @@ class BitVectorAccessEvaluationBuilder {
 
   // Dense Access Bit Vectors ======================================================================
 
-  private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
+  private static Optional<BitVectorEvaluationExpression> buildPrunedDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     // no direct global variable accesses -> prune (either full or entirely pruned evaluation)
     if (pDirectAccessMemoryLocations.isEmpty()) {
-      return BitVectorEvaluationExpression.empty();
+      return Optional.empty();
     }
-    return buildFullDenseEvaluation(
-        pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
+    return Optional.of(
+        buildFullDenseEvaluation(
+            pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pUtils));
   }
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectMemoryLocations);
-    return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pBinaryExpressionBuilder);
+    return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pUtils);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     CExpression directBitVector =
@@ -126,36 +131,36 @@ class BitVectorAccessEvaluationBuilder {
     ImmutableSet<CExpression> otherReachableBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             MemoryAccessType.ACCESS, pOtherThreads);
-    return buildFullDenseBinaryAnd(
-        directBitVector, otherReachableBitVectors, pBinaryExpressionBuilder);
+    return buildFullDenseBinaryAnd(directBitVector, otherReachableBitVectors, pUtils);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseBinaryAnd(
       CExpression pDirectBitVector,
       ImmutableSet<CExpression> pOtherBitVectors,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
+    CBinaryExpressionBuilder binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
     CExpression rightHandSide =
-        BitVectorEvaluationUtil.binaryDisjunction(pOtherBitVectors, pBinaryExpressionBuilder);
+        BitVectorEvaluationUtil.binaryDisjunction(pOtherBitVectors, binaryExpressionBuilder);
     CBinaryExpression binaryExpression =
-        pBinaryExpressionBuilder.buildBinaryExpression(
+        binaryExpressionBuilder.buildBinaryExpression(
             pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
-    return new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
+    return new BitVectorEvaluationExpression(LeafExpression.of(binaryExpression));
   }
 
   // Sparse Access Bit Vectors =====================================================================
 
-  private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
-      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+  private static Optional<BitVectorEvaluationExpression> buildPrunedSparseEvaluation(
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
-      return BitVectorEvaluationExpression.empty();
+      return Optional.empty();
     }
-    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableList.Builder<ExpressionTree<CExpression>> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
       // if the LHS is 0, then the entire && expression is 0 -> prune
@@ -163,8 +168,9 @@ class BitVectorAccessEvaluationBuilder {
         // if the LHS is 1, check if any expression exists for the RHS
         if (!pSparseBitVectorMap.get(memoryLocation).isEmpty()) {
           // simplify A && (B || C || ...) to just (B || C || ...)
-          SeqExpression logicalDisjunction =
-              BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(memoryLocation));
+          ExpressionTree<CExpression> logicalDisjunction =
+              BitVectorEvaluationUtil.logicalDisjunction(
+                  ExpressionTrees.toExpressionTree(pSparseBitVectorMap.get(memoryLocation)));
           sparseExpressions.add(logicalDisjunction);
         }
       }
@@ -172,69 +178,78 @@ class BitVectorAccessEvaluationBuilder {
     return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
-  private static BitVectorEvaluationExpression buildFullSparseEvaluation(
-      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
+  private static Optional<BitVectorEvaluationExpression> buildFullSparseEvaluation(
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
-      return BitVectorEvaluationExpression.empty();
+      return Optional.empty();
     }
-    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableList.Builder<ExpressionTree<CExpression>> sparseExpressions = ImmutableList.builder();
     for (SeqMemoryLocation memoryLocation :
         pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
-      SeqExpression directBitVector =
+      CIntegerLiteralExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(
               memoryLocation, pDirectMemoryLocations);
-      SeqExpression logicalAnd =
+      ExpressionTree<CExpression> logicalAnd =
           buildSingleSparseLogicalAndExpression(
               pSparseBitVectorMap, directBitVector, memoryLocation);
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    SeqExpression logicalDisjunction =
+    ExpressionTree<CExpression> logicalDisjunction =
         BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
+    return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction));
   }
 
-  private static BitVectorEvaluationExpression buildFullSparseVariableOnlyEvaluation(
+  /**
+   * Note that the 'full' evaluation can still be pruned entirely if {@link
+   * MPOROptions#pruneSparseBitVectors()} is enabled.
+   */
+  private static Optional<BitVectorEvaluationExpression> buildFullSparseVariableOnlyEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables) {
 
-    ImmutableListMultimap<SeqMemoryLocation, SeqExpression> sparseBitVectorMap =
+    ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
-    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableList.Builder<ExpressionTree<CExpression>> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      SeqExpression directBitVector =
-          new CToSeqExpression(
-              entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread));
-      SeqExpression logicalAnd =
+      CIdExpression directBitVector =
+          entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
+      ExpressionTree<CExpression> logicalAnd =
           buildSingleSparseLogicalAndExpression(
               sparseBitVectorMap, directBitVector, entry.getKey());
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    Optional<SeqExpression> logicalDisjunction =
+    Optional<ExpressionTree<CExpression>> logicalDisjunction =
         BitVectorEvaluationUtil.tryLogicalDisjunction(sparseExpressions.build());
-    return new BitVectorEvaluationExpression(Optional.empty(), logicalDisjunction);
+    if (logicalDisjunction.isEmpty()) {
+      return Optional.empty();
+    } else {
+      return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction.orElseThrow()));
+    }
   }
 
-  private static SeqExpression buildSingleSparseLogicalAndExpression(
-      ImmutableListMultimap<SeqMemoryLocation, SeqExpression> pSparseBitVectorMap,
-      SeqExpression pDirectBitVector,
+  private static ExpressionTree<CExpression> buildSingleSparseLogicalAndExpression(
+      ImmutableListMultimap<SeqMemoryLocation, CExpression> pSparseBitVectorMap,
+      CExpression pDirectBitVector,
       SeqMemoryLocation pMemoryLocation) {
 
     // create logical disjunction -> (B || C || ...)
-    ImmutableList<SeqExpression> sparseBitVectors = pSparseBitVectorMap.get(pMemoryLocation);
+    ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(pMemoryLocation);
     if (sparseBitVectors.isEmpty()) {
       // if the logical disjunction is empty, return just (A) instead of (A && (B || C || ...))
-      return pDirectBitVector;
+      return LeafExpression.of(pDirectBitVector);
     }
-    SeqExpression disjunction = BitVectorEvaluationUtil.logicalDisjunction(sparseBitVectors);
+    ExpressionTree<CExpression> disjunction =
+        BitVectorEvaluationUtil.logicalDisjunction(
+            ExpressionTrees.toExpressionTree(sparseBitVectors));
     // create logical and -> (A && (B || C || ...))
-    return new SeqLogicalAndExpression(pDirectBitVector, disjunction);
+    return And.of(LeafExpression.of(pDirectBitVector), disjunction);
   }
 }

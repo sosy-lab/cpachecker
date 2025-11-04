@@ -17,18 +17,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class HexadecimalBitVectorValueExpression implements BitVectorValueExpression {
+public record HexadecimalBitVectorValueExpression(int hexLength, ImmutableSet<Integer> setBits)
+    implements BitVectorValueExpression {
 
-  private final int hexLength;
-
-  private final ImmutableSet<Integer> setBits;
-
-  public HexadecimalBitVectorValueExpression(int pHexLength, ImmutableSet<Integer> pSetBits) {
+  public HexadecimalBitVectorValueExpression {
     // we still use the max binary length here, because setBits represents the binary positions
-    checkArgument(
-        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
-    hexLength = pHexLength;
-    setBits = pSetBits;
+    checkArgument(setBits.isEmpty() || Collections.max(setBits) < BitVectorUtil.MAX_BINARY_LENGTH);
   }
 
   @Override

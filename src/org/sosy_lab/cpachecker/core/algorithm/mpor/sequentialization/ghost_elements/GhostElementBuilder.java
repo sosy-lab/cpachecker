@@ -12,10 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatementBuilder;
@@ -43,8 +41,6 @@ public class GhostElementBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CIdExpression numThreadsIdExpression =
-        SeqExpressionBuilder.buildNumThreadsIdExpression(pThreads.size());
     Optional<BitVectorVariables> bitVectorVariables =
         BitVectorBuilder.buildBitVectorVariables(
             pOptions, pThreads, pSubstituteEdges, pMemoryModel);
@@ -58,7 +54,6 @@ public class GhostElementBuilder {
         ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
 
     return new GhostElements(
-        numThreadsIdExpression,
         bitVectorVariables,
         functionStatements,
         programCounterVariables,
@@ -74,7 +69,7 @@ public class GhostElementBuilder {
     }
     ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.getId());
+      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.id());
       rLabels.put(thread, new SeqThreadLabelStatement(name));
     }
     return rLabels.buildOrThrow();

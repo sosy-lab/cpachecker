@@ -14,24 +14,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /** A simple wrapper for {@link CIdExpression}s of {@code {mutex}_LOCKED} variables. */
-public class MutexLockedFlag {
+public record MutexLockedFlag(
+    CIdExpression idExpression,
+    CBinaryExpression isLockedExpression,
+    CBinaryExpression notLockedExpression) {
 
-  public final CIdExpression idExpression;
-
-  public final CBinaryExpression isLockedExpression;
-
-  public final CBinaryExpression notLockedExpression;
-
-  public MutexLockedFlag(
-      CIdExpression pIdExpression,
-      CBinaryExpression pIsLockedExpression,
-      CBinaryExpression pNotLockedExpression) {
-
-    checkNotNull(pIdExpression);
-    checkNotNull(pIsLockedExpression);
-    checkNotNull(pNotLockedExpression);
-    idExpression = pIdExpression;
-    isLockedExpression = pIsLockedExpression;
-    notLockedExpression = pNotLockedExpression;
+  public MutexLockedFlag {
+    checkNotNull(idExpression);
+    checkNotNull(isLockedExpression);
+    checkNotNull(notLockedExpression);
   }
 }

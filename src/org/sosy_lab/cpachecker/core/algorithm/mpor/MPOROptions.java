@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -19,7 +20,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatStyle;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -29,157 +30,47 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
  * For better overview so that {@link Option}s do not have to be accessed through {@link
  * MPORAlgorithm}.
  */
-public class MPOROptions {
+public record MPOROptions(
+    boolean allowPointerWrites,
+    boolean atomicBlockMerge,
+    BitVectorEncoding bitVectorEncoding,
+    ClangFormatStyle clangFormatStyle,
+    boolean comments,
+    boolean consecutiveLabels,
+    MultiControlStatementEncoding controlEncodingStatement,
+    MultiControlStatementEncoding controlEncodingThread,
+    boolean inputFunctionDeclarations,
+    boolean inputTypeDeclarations,
+    boolean license,
+    boolean linkReduction,
+    int loopIterations,
+    boolean loopUnrolling,
+    boolean noBackwardGoto,
+    boolean noBackwardLoopGoto,
+    boolean nondeterminismSigned,
+    NondeterminismSource nondeterminismSource,
+    boolean outputMetadata,
+    String outputPath,
+    boolean outputProgram,
+    boolean overwriteFiles,
+    boolean pruneBitVectorEvaluations,
+    boolean pruneEmptyStatements,
+    boolean pruneSparseBitVectors,
+    boolean pruneSparseBitVectorWrites,
+    boolean reduceIgnoreSleep,
+    boolean reduceLastThreadOrder,
+    boolean reduceUntilConflict,
+    ReductionMode reductionMode,
+    ReductionOrder reductionOrder,
+    boolean scalarPc,
+    boolean shortVariableNames,
+    boolean validateNoBackwardGoto,
+    boolean validateParse,
+    boolean validatePc) {
 
-  public final boolean allowPointerWrites;
-
-  public final boolean atomicBlockMerge;
-
-  public final BitVectorEncoding bitVectorEncoding;
-
-  public final ClangFormatStyle clangFormatStyle;
-
-  public final boolean comments;
-
-  public final boolean consecutiveLabels;
-
-  public final MultiControlStatementEncoding controlEncodingStatement;
-
-  public final MultiControlStatementEncoding controlEncodingThread;
-
-  public final boolean inputFunctionDeclarations;
-
-  public final boolean inputTypeDeclarations;
-
-  public final boolean license;
-
-  public final boolean linkReduction;
-
-  public final int loopIterations;
-
-  public final boolean loopUnrolling;
-
-  public final boolean noBackwardGoto;
-
-  public final boolean noBackwardLoopGoto;
-
-  public final boolean nondeterminismSigned;
-
-  public final NondeterminismSource nondeterminismSource;
-
-  public final boolean outputMetadata;
-
-  public final String outputPath;
-
-  public final boolean outputProgram;
-
-  public final boolean overwriteFiles;
-
-  public final boolean pruneBitVectorEvaluations;
-
-  public final boolean pruneEmptyStatements;
-
-  public final boolean pruneSparseBitVectors;
-
-  public final boolean pruneSparseBitVectorWrites;
-
-  public final boolean reduceIgnoreSleep;
-
-  public final boolean reduceLastThreadOrder;
-
-  public final boolean reduceUntilConflict;
-
-  public final ReductionMode reductionMode;
-
-  public final ReductionOrder reductionOrder;
-
-  public final boolean scalarPc;
-
-  public final boolean shortVariableNames;
-
-  public final boolean validateNoBackwardGoto;
-
-  public final boolean validateParse;
-
-  public final boolean validatePc;
-
-  public MPOROptions(
-      boolean pAllowPointerWrites,
-      boolean pAtomicBlockMerge,
-      BitVectorEncoding pBitVectorEncoding,
-      ClangFormatStyle pClangFormatStyle,
-      boolean pComments,
-      boolean pConsecutiveLabels,
-      MultiControlStatementEncoding pControlEncodingStatement,
-      MultiControlStatementEncoding pControlEncodingThread,
-      boolean pInputFunctionDeclarations,
-      boolean pInputTypeDeclarations,
-      boolean pLicense,
-      boolean pLinkReduction,
-      int pLoopIterations,
-      boolean pLoopUnrolling,
-      boolean pNoBackwardGoto,
-      boolean pNoBackwardLoopGoto,
-      boolean pNondeterminismSigned,
-      NondeterminismSource pNondeterminismSource,
-      boolean pOutputMetadata,
-      String pOutputPath,
-      boolean pOutputProgram,
-      boolean pOverwriteFiles,
-      boolean pPruneBitVectorEvaluations,
-      boolean pPruneEmptyStatements,
-      boolean pPruneSparseBitVectors,
-      boolean pPruneSparseBitVectorWrites,
-      boolean pReduceIgnoreSleep,
-      boolean pReduceLastThreadOrder,
-      boolean pReduceUntilConflict,
-      ReductionMode pReductionMode,
-      ReductionOrder pReductionOrder,
-      boolean pScalarPc,
-      boolean pShortVariableNames,
-      boolean pValidateNoBackwardGoto,
-      boolean pValidateParse,
-      boolean pValidatePc) {
-
+  public MPOROptions {
     checkCorrectParameterCount();
     checkEqualFieldNames();
-
-    allowPointerWrites = pAllowPointerWrites;
-    atomicBlockMerge = pAtomicBlockMerge;
-    bitVectorEncoding = pBitVectorEncoding;
-    clangFormatStyle = pClangFormatStyle;
-    comments = pComments;
-    consecutiveLabels = pConsecutiveLabels;
-    controlEncodingStatement = pControlEncodingStatement;
-    controlEncodingThread = pControlEncodingThread;
-    inputFunctionDeclarations = pInputFunctionDeclarations;
-    inputTypeDeclarations = pInputTypeDeclarations;
-    license = pLicense;
-    linkReduction = pLinkReduction;
-    loopIterations = pLoopIterations;
-    loopUnrolling = pLoopUnrolling;
-    noBackwardGoto = pNoBackwardGoto;
-    noBackwardLoopGoto = pNoBackwardLoopGoto;
-    nondeterminismSigned = pNondeterminismSigned;
-    nondeterminismSource = pNondeterminismSource;
-    outputMetadata = pOutputMetadata;
-    outputPath = pOutputPath;
-    outputProgram = pOutputProgram;
-    overwriteFiles = pOverwriteFiles;
-    pruneBitVectorEvaluations = pPruneBitVectorEvaluations;
-    pruneEmptyStatements = pPruneEmptyStatements;
-    pruneSparseBitVectors = pPruneSparseBitVectors;
-    pruneSparseBitVectorWrites = pPruneSparseBitVectorWrites;
-    reduceIgnoreSleep = pReduceIgnoreSleep;
-    reduceLastThreadOrder = pReduceLastThreadOrder;
-    reduceUntilConflict = pReduceUntilConflict;
-    reductionMode = pReductionMode;
-    reductionOrder = pReductionOrder;
-    scalarPc = pScalarPc;
-    shortVariableNames = pShortVariableNames;
-    validateNoBackwardGoto = pValidateNoBackwardGoto;
-    validateParse = pValidateParse;
-    validatePc = pValidatePc;
   }
 
   public static MPOROptions getDefaultTestInstance() {
@@ -298,6 +189,8 @@ public class MPOROptions {
         true);
   }
 
+  // Reflection ====================================================================================
+
   private void checkCorrectParameterCount() {
     // extract amount of MPOROptions constructor parameters
     Constructor<?>[] constructors = MPOROptions.class.getDeclaredConstructors();
@@ -334,6 +227,18 @@ public class MPOROptions {
       }
     }
   }
+
+  public ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
+      throws IllegalAccessException {
+
+    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
+    for (Field field : pOptions.getClass().getDeclaredFields()) {
+      rMap.put(field.getName(), field.get(pOptions));
+    }
+    return rMap.buildOrThrow();
+  }
+
+  // Rejection =====================================================================================
 
   void handleOptionRejections(LogManager pLogger) {
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {

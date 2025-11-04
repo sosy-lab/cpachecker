@@ -35,7 +35,7 @@ public class MPORThreadUtil {
   public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
       Optional<CFAEdgeForThread> pCallContext, MPORThread pThread) {
 
-    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall;
+    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall();
   }
 
   public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
@@ -63,7 +63,7 @@ public class MPORThreadUtil {
    */
   public static ImmutableList<CDeclaration> extractNonVariableDeclarations(MPORThread pThread) {
     ImmutableList.Builder<CDeclaration> rNonVariableDeclarations = ImmutableList.builder();
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (!(declaration instanceof CVariableDeclaration)) {
@@ -105,7 +105,7 @@ public class MPORThreadUtil {
       ImmutableCollection<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
 
     for (MPORThread rThread : pThreads) {
-      if (rThread.threadObject.equals(pThreadObject)) {
+      if (rThread.threadObject().equals(pThreadObject)) {
         return rThread;
       }
     }
@@ -114,7 +114,7 @@ public class MPORThreadUtil {
 
   public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
     for (MPORThread thread : pThreads) {
-      if (thread.getId() == pId) {
+      if (thread.id() == pId) {
         return thread;
       }
     }

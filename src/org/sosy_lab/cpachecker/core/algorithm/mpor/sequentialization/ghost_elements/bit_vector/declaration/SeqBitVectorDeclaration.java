@@ -15,21 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqBitVectorDeclaration implements SeqDeclaration {
-
-  private final BitVectorDataType type;
-
-  private final CExpression variable;
-
-  private final BitVectorValueExpression initializer;
-
-  public SeqBitVectorDeclaration(
-      BitVectorDataType pType, CExpression pVariable, BitVectorValueExpression pInitializer) {
-
-    type = pType;
-    variable = pVariable;
-    initializer = pInitializer;
-  }
+public record SeqBitVectorDeclaration(
+    BitVectorDataType type, CExpression variable, BitVectorValueExpression initializer)
+    implements SeqDeclaration {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

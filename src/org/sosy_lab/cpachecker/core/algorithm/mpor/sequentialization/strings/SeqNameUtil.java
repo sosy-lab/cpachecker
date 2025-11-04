@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class SeqNameUtil {
 
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
-    return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD) + pThreadId;
+    return (pOptions.shortVariableNames() ? SeqToken.THREAD_PREFIX : SeqToken.THREAD) + pThreadId;
   }
 
   public static String buildFunctionName(String pFunctionName) {
@@ -60,7 +60,7 @@ public class SeqNameUtil {
   }
 
   private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
-    return pOptions.shortVariableNames ? SeqToken.G : SeqToken.GLOBAL;
+    return pOptions.shortVariableNames() ? SeqToken.GLOBAL_VARIABLE_PREFIX : SeqToken.GLOBAL;
   }
 
   private static String buildLocalVariablePrefix(
@@ -68,10 +68,10 @@ public class SeqNameUtil {
 
     return Joiner.on(SeqSyntax.UNDERSCORE)
         .join(
-            (pOptions.shortVariableNames ? SeqToken.L : SeqToken.LOCAL),
+            (pOptions.shortVariableNames() ? SeqToken.LOCAL_VARIABLE_PREFIX : SeqToken.LOCAL),
             pFunctionName,
             buildThreadPrefix(pOptions, pThreadId),
-            (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL) + pCallNumber);
+            (pOptions.shortVariableNames() ? SeqToken.CALL_PREFIX : SeqToken.CALL) + pCallNumber);
   }
 
   public static String buildParameterName(
@@ -83,10 +83,10 @@ public class SeqNameUtil {
 
     return Joiner.on(SeqSyntax.UNDERSCORE)
         .join(
-            pOptions.shortVariableNames ? SeqToken.P : SeqToken.PARAMETER,
+            pOptions.shortVariableNames() ? SeqToken.PARAMETER_PREFIX : SeqToken.PARAMETER,
             pFunctionName,
             buildThreadPrefix(pOptions, pThreadId),
-            (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL) + pCallNumber,
+            (pOptions.shortVariableNames() ? SeqToken.CALL_PREFIX : SeqToken.CALL) + pCallNumber,
             pParameterDeclaration.getName());
   }
 
@@ -102,7 +102,9 @@ public class SeqNameUtil {
   public static String buildMainFunctionArgName(
       MPOROptions pOptions, CParameterDeclaration pMainFunctionArgDeclaration) {
 
-    return (pOptions.shortVariableNames ? SeqToken.M : SeqToken.MAIN_FUNCTION_ARG)
+    return (pOptions.shortVariableNames()
+            ? SeqToken.MAIN_FUNCTION_ARG_PREFIX
+            : SeqToken.MAIN_FUNCTION_ARG)
         + SeqSyntax.UNDERSCORE
         + pMainFunctionArgDeclaration.getName();
   }
@@ -114,16 +116,20 @@ public class SeqNameUtil {
       int pThreadId,
       String pFunctionName) {
 
-    String startPrefix = pOptions.shortVariableNames ? SeqToken.S : SeqToken.START_ROUTINE_ARG;
+    String startPrefix =
+        pOptions.shortVariableNames()
+            ? SeqToken.START_ROUTINE_ARG_PREFIX
+            : SeqToken.START_ROUTINE_ARG;
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
     return Joiner.on(SeqSyntax.UNDERSCORE)
         .join(startPrefix, pFunctionName, threadPrefix, pStartRoutineArgDeclaration.getName());
   }
 
   public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {
-    String exitPrefix = pOptions.shortVariableNames ? SeqToken.E : SeqToken.EXIT;
+    String exitPrefix = pOptions.shortVariableNames() ? SeqToken.EXIT_PREFIX : SeqToken.EXIT;
     String threadPrefix = buildThreadPrefix(pOptions, pThreadId);
-    return Joiner.on(SeqSyntax.UNDERSCORE).join(exitPrefix, threadPrefix, SeqToken.return_value);
+    return Joiner.on(SeqSyntax.UNDERSCORE)
+        .join(exitPrefix, threadPrefix, SeqToken.RETURN_VALUE_SUFFIX);
   }
 
   // Bit Vectors ===================================================================================
@@ -139,7 +145,7 @@ public class SeqNameUtil {
     return switch (pDirection) {
       case CURRENT ->
           buildBitVectorName(
-              pOptions, pThread.orElseThrow().getId(), pMemoryLocation, pAccessType, pReachType);
+              pOptions, pThread.orElseThrow().id(), pMemoryLocation, pAccessType, pReachType);
       case LAST -> buildLastBitVectorName(pOptions, pMemoryLocation, pAccessType);
     };
   }
@@ -151,7 +157,7 @@ public class SeqNameUtil {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE -> throw new IllegalArgumentException();
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
@@ -166,7 +172,7 @@ public class SeqNameUtil {
       Optional<SeqMemoryLocation> pMemoryLocation,
       MemoryAccessType pAccessType) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE -> throw new IllegalArgumentException();
       case BINARY, DECIMAL, HEXADECIMAL -> buildLastDenseBitVectorName(pOptions, pAccessType);
       case SPARSE ->
@@ -179,8 +185,8 @@ public class SeqNameUtil {
   private static String buildDenseBitVectorName(
       MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    return pOptions.shortVariableNames
-        ? SeqToken.b + pReachType.shortName + pAccessType.shortName + pThreadId
+    return pOptions.shortVariableNames()
+        ? SeqToken.BIT_VECTOR_PREFIX + pReachType.shortName + pAccessType.shortName + pThreadId
         : Joiner.on(SeqSyntax.UNDERSCORE)
             .join(
                 buildThreadPrefix(pOptions, pThreadId),
@@ -192,10 +198,19 @@ public class SeqNameUtil {
   private static String buildLastDenseBitVectorName(
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
-    return pOptions.shortVariableNames
-        ? SeqToken.last + SeqSyntax.UNDERSCORE + SeqToken.b + SeqToken.round + pAccessType.shortName
+    return pOptions.shortVariableNames()
+        ? SeqToken.LAST_KEYWORD
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.BIT_VECTOR_PREFIX
+            // last bit vectors are always reachable
+            + ReachType.REACHABLE.shortName
+            + pAccessType.shortName
         : Joiner.on(SeqSyntax.UNDERSCORE)
-            .join(SeqToken.LAST, SeqToken.BIT_VECTOR, SeqToken.REACHABLE, pAccessType.longName);
+            .join(
+                SeqToken.LAST_KEYWORD,
+                SeqToken.BIT_VECTOR,
+                ReachType.REACHABLE.longName,
+                pAccessType.longName);
   }
 
   // Sparse Bit Vector =============================================================================
@@ -207,8 +222,8 @@ public class SeqNameUtil {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    return pOptions.shortVariableNames
-        ? SeqToken.b
+    return pOptions.shortVariableNames()
+        ? SeqToken.BIT_VECTOR_PREFIX
             + pReachType.shortName
             + pAccessType.shortName
             + pThreadId
@@ -226,17 +241,17 @@ public class SeqNameUtil {
   private static String buildLastSparseBitVectorName(
       MPOROptions pOptions, SeqMemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
 
-    return pOptions.shortVariableNames
-        ? SeqToken.last
+    return pOptions.shortVariableNames()
+        ? SeqToken.LAST_KEYWORD
             + SeqSyntax.UNDERSCORE
-            + SeqToken.b
-            + SeqToken.round
+            + SeqToken.BIT_VECTOR_PREFIX
+            + SeqToken.ROUND_VARIABLE
             + pAccessType.shortName
             + SeqSyntax.UNDERSCORE
             + pMemoryLocation.getName()
         : Joiner.on(SeqSyntax.UNDERSCORE)
             .join(
-                SeqToken.LAST,
+                SeqToken.LAST_KEYWORD,
                 SeqToken.BIT_VECTOR,
                 SeqToken.REACHABLE,
                 pAccessType.longName,
@@ -246,19 +261,19 @@ public class SeqNameUtil {
   // Thread Synchronization ========================================================================
 
   public static String buildCondSignaledName(String pCondName) {
-    return pCondName + SeqSyntax.UNDERSCORE + SeqToken.SIGNALED;
+    return pCondName + SeqSyntax.UNDERSCORE + SeqToken.COND_SIGNALED_SUFFIX;
   }
 
   public static String buildMutexLockedName(String pMutexName) {
-    return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
+    return pMutexName + SeqSyntax.UNDERSCORE + SeqToken.MUTEX_LOCKED_SUFFIX;
   }
 
   public static String buildRwLockReadersName(String pRwLockName) {
-    return Joiner.on(SeqSyntax.UNDERSCORE).join(pRwLockName, SeqToken.NUM, SeqToken.READERS);
+    return Joiner.on(SeqSyntax.UNDERSCORE).join(pRwLockName, SeqToken.RW_LOCK_NUM_READERS_SUFFIX);
   }
 
   public static String buildRwLockWritersName(String pRwLockName) {
-    return Joiner.on(SeqSyntax.UNDERSCORE).join(pRwLockName, SeqToken.NUM, SeqToken.WRITERS);
+    return Joiner.on(SeqSyntax.UNDERSCORE).join(pRwLockName, SeqToken.RW_LOCK_NUM_WRITERS_SUFFIX);
   }
 
   public static String buildSyncName(MPOROptions pOptions, int pThreadId) {
@@ -269,7 +284,7 @@ public class SeqNameUtil {
 
   public static String buildDummyQualifiedName(String pVarName) {
     // the qualified names are not relevant in the seq, so we just use dummy::
-    return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
+    return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
   public static String buildOutputFileName(String pInputFileName) {

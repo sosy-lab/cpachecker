@@ -11,4 +11,7 @@
  * merges statements that are guaranteed to commute, and injects statements that allow a thread to
  * continue execution, if its memory location accesses are not in conflict with another thread.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;

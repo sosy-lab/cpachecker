@@ -10,26 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqAssumeFunction extends SeqFunction {
+public final class SeqAssumeFunction extends SeqFunction {
 
-  private static final CFunctionCallExpression abortCall =
+  private static final CFunctionCallExpression abortFunctionCallExpression =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
           CVoidType.VOID,
@@ -37,28 +33,21 @@ public class SeqAssumeFunction extends SeqFunction {
           ImmutableList.of(),
           SeqFunctionDeclarations.ABORT);
 
-  private final SeqSingleControlExpression ifCond;
+  private static final CFunctionCallStatement abortFunctionCallStatement =
+      new CFunctionCallStatement(FileLocation.DUMMY, abortFunctionCallExpression);
 
-  public SeqAssumeFunction(CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-    ifCond =
-        new SeqIfExpression(
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS));
+  private final CBinaryExpression condEqualsZeroExpression;
+
+  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression) {
+    condEqualsZeroExpression = pCondEqualsZeroExpression;
   }
 
   @Override
-  public ImmutableList<String> buildBody() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rBody = ImmutableList.builder();
-    String code =
-        SeqStringUtil.appendCurlyBracketLeft(ifCond.toASTString())
-            + SeqSyntax.SPACE
-            + abortCall.toASTString()
-            + SeqSyntax.SEMICOLON
-            + SeqSyntax.SPACE
-            + SeqSyntax.CURLY_BRACKET_RIGHT;
-    rBody.add(code);
-    return rBody.build();
+  public String buildBody() throws UnrecognizedCodeException {
+    ImmutableList<String> ifBlock = ImmutableList.of(abortFunctionCallStatement.toASTString());
+    SeqBranchStatement ifStatement =
+        new SeqBranchStatement(condEqualsZeroExpression.toASTString(), ifBlock);
+    return ifStatement.toASTString();
   }
 
   @Override

@@ -61,7 +61,7 @@ public class ThreadSyncFlagsBuilder {
 
     Set<CIdExpression> rIdExpressions = new HashSet<>();
     for (MPORThread thread : pThreads) {
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
           rIdExpressions.add(PthreadUtil.extractPthreadObject(cfaEdge, pObjectType));
@@ -176,7 +176,7 @@ public class ThreadSyncFlagsBuilder {
 
     ImmutableMap.Builder<MPORThread, CIdExpression> rSyncFlags = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildSyncName(pOptions, thread.getId());
+      String name = SeqNameUtil.buildSyncName(pOptions, thread.id());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(

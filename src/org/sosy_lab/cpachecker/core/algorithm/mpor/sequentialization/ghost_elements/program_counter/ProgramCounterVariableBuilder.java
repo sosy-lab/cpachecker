@@ -45,7 +45,7 @@ public class ProgramCounterVariableBuilder {
 
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     rPcExpressions.addAll(
-        pOptions.scalarPc
+        pOptions.scalarPc()
             ? buildScalarPcExpressions(pNumThreads)
             : buildArrayPcExpressions(pNumThreads));
     return rPcExpressions.build();
@@ -59,7 +59,7 @@ public class ProgramCounterVariableBuilder {
       CInitializer initializer = SeqInitializers.getPcInitializer(i == 0);
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
-              true, CNumericTypes.UNSIGNED_INT, SeqToken.pc + i, initializer);
+              true, CNumericTypes.UNSIGNED_INT, SeqToken.PROGRAM_COUNTER_VARIABLE + i, initializer);
       rScalarPc.add(new CIdExpression(FileLocation.DUMMY, declaration));
     }
     return rScalarPc.build();

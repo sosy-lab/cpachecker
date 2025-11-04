@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressionBuilder {
@@ -150,16 +149,6 @@ public class SeqExpressionBuilder {
     CFunctionDeclaration functionDeclaration =
         SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pThreadId);
     return SeqExpressionBuilder.buildIdExpression(functionDeclaration);
-  }
-
-  public static CIdExpression buildNumThreadsIdExpression(int pNumThreads) {
-    return SeqExpressionBuilder.buildIdExpression(
-        SeqDeclarationBuilder.buildVariableDeclaration(
-            false,
-            CNumericTypes.CONST_INT,
-            SeqToken.NUM_THREADS,
-            SeqInitializerBuilder.buildInitializerExpression(
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));
   }
 
   // CStringLiteralExpression ======================================================================

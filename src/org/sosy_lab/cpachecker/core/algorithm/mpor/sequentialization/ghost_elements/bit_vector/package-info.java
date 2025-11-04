@@ -10,4 +10,7 @@
  * Contains everything for representing bit vectors in the output program, which serve as our basis
  * to reason about memory location accesses by threads to apply partial order reduction.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector;

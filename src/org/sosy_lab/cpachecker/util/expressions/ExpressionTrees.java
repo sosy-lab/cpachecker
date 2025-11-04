@@ -494,6 +494,27 @@ public final class ExpressionTrees {
     return pSource.accept(converter);
   }
 
+  @SafeVarargs
+  public static <LeafType> ImmutableList<ExpressionTree<LeafType>> toExpressionTree(
+      LeafType... pLeafs) {
+
+    ImmutableList.Builder<ExpressionTree<LeafType>> rTree = ImmutableList.builder();
+    for (LeafType leaf : pLeafs) {
+      rTree.add(LeafExpression.of(leaf));
+    }
+    return rTree.build();
+  }
+
+  public static <LeafType> ImmutableList<ExpressionTree<LeafType>> toExpressionTree(
+      Iterable<LeafType> pLeafs) {
+
+    ImmutableList.Builder<ExpressionTree<LeafType>> rTree = ImmutableList.builder();
+    for (LeafType leaf : pLeafs) {
+      rTree.add(LeafExpression.of(leaf));
+    }
+    return rTree.build();
+  }
+
   /**
    * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
    * a literal/variable from another method is present (not in scope) an exception is thrown.

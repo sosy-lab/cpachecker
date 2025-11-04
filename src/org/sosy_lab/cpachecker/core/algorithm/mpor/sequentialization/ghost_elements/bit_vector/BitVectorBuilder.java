@@ -21,6 +21,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.DenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -45,7 +49,7 @@ public class BitVectorBuilder {
       return Optional.empty();
     }
     MemoryModel memoryModel = pMemoryModel.orElseThrow();
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               "reductionMode is not set, cannot build bit vector variables");
@@ -142,7 +146,7 @@ public class BitVectorBuilder {
   private static Optional<ImmutableSet<DenseBitVector>> buildDenseBitVectorsByAccessType(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads, MemoryAccessType pAccessType) {
 
-    if (!pOptions.bitVectorEncoding.isDense) {
+    if (!pOptions.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
     ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
@@ -194,7 +198,7 @@ public class BitVectorBuilder {
       MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
-    if (pOptions.bitVectorEncoding.isDense) {
+    if (pOptions.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<SeqMemoryLocation, SparseBitVector> rAccessVariables =
@@ -219,7 +223,7 @@ public class BitVectorBuilder {
               pAccessType,
               ReachType.REACHABLE);
       rAccessVariables.put(
-          memoryLocation, new SparseBitVector(directVariables, reachableVariables, pAccessType));
+          memoryLocation, new SparseBitVector(directVariables, reachableVariables));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }
@@ -246,7 +250,7 @@ public class BitVectorBuilder {
               pAccessType,
               pReachType,
               BitVectorDirection.CURRENT);
-      if (pOptions.pruneSparseBitVectors) {
+      if (pOptions.pruneSparseBitVectors()) {
         boolean isReachable =
             pMemoryModel.isMemoryLocationReachableByThread(
                 pMemoryLocation, thread, pSubstituteEdges, pAccessType);
@@ -265,7 +269,7 @@ public class BitVectorBuilder {
   private static Optional<LastDenseBitVector> tryBuildLastDenseBitVectorByAccessType(
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
-    if (!pOptions.reduceLastThreadOrder || pOptions.bitVectorEncoding.isSparse) {
+    if (!pOptions.reduceLastThreadOrder() || pOptions.bitVectorEncoding().isSparse) {
       return Optional.empty();
     }
     CIdExpression lastIdExpression =
@@ -283,7 +287,7 @@ public class BitVectorBuilder {
       tryBuildLastSparseBitVectorsByAccessType(
           MPOROptions pOptions, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
 
-    if (!pOptions.reduceLastThreadOrder || pOptions.bitVectorEncoding.isDense) {
+    if (!pOptions.reduceLastThreadOrder() || pOptions.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<SeqMemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();
@@ -312,7 +316,7 @@ public class BitVectorBuilder {
       BitVectorDirection pDirection) {
 
     checkArgument(
-        !pOptions.bitVectorEncoding.isSparse || pMemoryLocation.isPresent(),
+        !pOptions.bitVectorEncoding().isSparse || pMemoryLocation.isPresent(),
         "if the bitVectorEncoding is sparse, then pMemoryLocation must be present");
 
     String name =

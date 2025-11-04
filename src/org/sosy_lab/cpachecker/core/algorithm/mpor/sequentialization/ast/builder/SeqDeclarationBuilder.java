@@ -49,7 +49,7 @@ public class SeqDeclarationBuilder {
   public static CVariableDeclaration buildNextThreadDeclaration(MPOROptions pOptions) {
     return buildVariableDeclaration(
         true,
-        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
         SeqIdExpressions.NEXT_THREAD.getName(),
         SeqInitializers.INT_0);
   }
@@ -57,14 +57,14 @@ public class SeqDeclarationBuilder {
   public static CVariableDeclaration buildRoundMaxDeclaration(MPOROptions pOptions) {
     return buildVariableDeclaration(
         true,
-        pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
         SeqIdExpressions.ROUND_MAX.getName(),
         SeqInitializers.INT_0);
   }
 
   public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
     CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildFunctionName(SeqToken.thread + pThreadId);
+    String functionName = SeqNameUtil.buildFunctionName(SeqToken.THREAD + pThreadId);
     return buildFunctionDeclarationWithoutParameters(functionType, functionName);
   }
 
@@ -86,7 +86,7 @@ public class SeqDeclarationBuilder {
       MPOROptions pOptions, SequentializationFields pFields) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    if (pOptions.scalarPc) {
+    if (pOptions.scalarPc()) {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pFields.numThreads; i++) {
         rDeclarations.add(
@@ -106,7 +106,10 @@ public class SeqDeclarationBuilder {
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
-              true, SeqArrayTypes.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
+              true,
+              SeqArrayTypes.UNSIGNED_INT_ARRAY,
+              SeqToken.PROGRAM_COUNTER_VARIABLE,
+              initializerList));
     }
     return rDeclarations.build();
   }

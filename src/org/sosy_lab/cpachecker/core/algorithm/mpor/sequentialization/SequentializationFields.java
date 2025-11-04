@@ -12,12 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
@@ -65,11 +63,7 @@ public class SequentializationFields {
   public final Optional<SeqThreadSimulationFunction> mainThreadSimulationFunction;
 
   // TODO split into separate function so that unit tests create only what they test
-  SequentializationFields(
-      MPOROptions pOptions,
-      CFA pInputCfa,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
+  SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     resetStaticFields();
@@ -77,11 +71,7 @@ public class SequentializationFields {
     numThreads = threads.size();
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
-            pOptions,
-            CFAUtils.getGlobalVariableDeclarations(pInputCfa),
-            threads,
-            pBinaryExpressionBuilder,
-            pLogger);
+            pOptions, CFAUtils.getGlobalVariableDeclarations(pInputCfa), threads, pUtils);
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
     memoryModel =
@@ -96,23 +86,16 @@ public class SequentializationFields {
             substitutions,
             substituteEdges,
             memoryModel,
-            pBinaryExpressionBuilder);
+            pUtils.binaryExpressionBuilder());
     clauses =
         SeqThreadStatementClauseBuilder.buildClauses(
-            pOptions,
-            substitutions,
-            substituteEdges,
-            memoryModel,
-            ghostElements,
-            pBinaryExpressionBuilder,
-            pLogger);
+            pOptions, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
     threadSimulationFunctions =
-        SeqFunctionBuilder.buildThreadSimulationFunctions(
-            pOptions, ghostElements, clauses, pBinaryExpressionBuilder);
+        SeqFunctionBuilder.buildThreadSimulationFunctions(pOptions, ghostElements, clauses, pUtils);
     mainThreadSimulationFunction =
-        pOptions.loopUnrolling
+        pOptions.loopUnrolling()
             ? Optional.of(
-                SeqFunctionBuilder.extractMainThreadSimulationFunction(threadSimulationFunctions))
+                SeqFunctionBuilder.getMainThreadSimulationFunction(threadSimulationFunctions))
             : Optional.empty();
   }
 

@@ -49,7 +49,7 @@ public class MPORWriter {
     }
   }
 
-  private enum OutputMessage {
+  enum OutputMessage {
     DIRECTORY_CREATED(OutputMessageType.INFO, "Directory created:"),
     IO_ERROR(OutputMessageType.FAIL, "An IO error occurred while writing the output program:"),
     OPTION_ACCESS_ERROR(OutputMessageType.FAIL, "Could not access algorithm option fields:"),
@@ -80,8 +80,8 @@ public class MPORWriter {
       String pOutputProgramName,
       String pOutputProgramPath,
       List<Path> pInputFilePaths,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) {
 
     try {
       String metadataPath = buildPath(pOptions, pOutputProgramName, FileExtension.YML);
@@ -96,12 +96,17 @@ public class MPORWriter {
       try (Writer writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
         writer.write(pOutputProgram);
         // option: validate that CPAchecker can parse output
-        if (pOptions.validateParse && !pOptions.inputTypeDeclarations) {
-          handleParsing(pOptions, pOutputProgramPath, metadataPath, pShutdownNotifier, pLogger);
+        if (pOptions.validateParse() && !pOptions.inputTypeDeclarations()) {
+          handleParsing(pOptions, pOutputProgramPath, metadataPath, pLogger, pShutdownNotifier);
         }
         // option: create metadata file
-        if (pOptions.outputMetadata) {
-          MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
+        if (pOptions.outputMetadata()) {
+          try {
+            MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
+          } catch (IllegalAccessException e) {
+            handleOutputMessage(
+                Level.SEVERE, OutputMessage.OPTION_ACCESS_ERROR, e.getMessage(), pLogger);
+          }
         }
         handleOutputMessage(
             Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
@@ -109,19 +114,16 @@ public class MPORWriter {
 
     } catch (IOException e) {
       handleOutputMessage(Level.SEVERE, OutputMessage.IO_ERROR, e.getMessage(), pLogger);
-
-    } catch (IllegalAccessException e) {
-      handleOutputMessage(Level.SEVERE, OutputMessage.OPTION_ACCESS_ERROR, e.getMessage(), pLogger);
     }
   }
 
   public static String buildPath(
       MPOROptions pOptions, String pOutputFileName, FileExtension pFileExtension) {
 
-    return pOptions.outputPath + pOutputFileName + pFileExtension.suffix;
+    return pOptions.outputPath() + pOutputFileName + pFileExtension.suffix;
   }
 
-  private static void handleOutputMessage(
+  static void handleOutputMessage(
       Level pLevel, OutputMessage pOutputMessage, String pMessage, LogManager pLogger) {
 
     pLogger.log(pLevel, pOutputMessage.getMessage(), pMessage);
@@ -134,7 +136,7 @@ public class MPORWriter {
       MPOROptions pOptions, File pParentDir, LogManager pLogger) {
 
     if (!pParentDir.exists()) {
-      String outputPath = pOptions.outputPath;
+      String outputPath = pOptions.outputPath();
       if (pParentDir.mkdirs()) {
         handleOutputMessage(Level.INFO, OutputMessage.DIRECTORY_CREATED, outputPath, pLogger);
       } else {
@@ -148,7 +150,7 @@ public class MPORWriter {
       MPOROptions pOptions, File pOutputProgramFile, LogManager pLogger) throws IOException {
 
     // ensure the file does not exist already (if overwriting is disabled)
-    if (!pOutputProgramFile.createNewFile() && !pOptions.overwriteFiles) {
+    if (!pOutputProgramFile.createNewFile() && !pOptions.overwriteFiles()) {
       handleOutputMessage(
           Level.SEVERE,
           OutputMessage.OVERWRITE_ERROR,
@@ -161,13 +163,13 @@ public class MPORWriter {
       MPOROptions pOptions,
       String pOutputProgramPath,
       String pMetadataPath,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws IOException {
 
     Path seqPath = Path.of(pOutputProgramPath);
     try {
-      SeqValidator.validateProgramParsing(seqPath, pOptions, pShutdownNotifier, pLogger);
+      SeqValidator.validateProgramParsing(seqPath, pOptions, pLogger, pShutdownNotifier);
       handleOutputMessage(
           Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
 

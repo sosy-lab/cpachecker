@@ -134,7 +134,7 @@ public final class MPORUtil {
         .getFunctionEntry()
         .getFunction()
         .getOrigName()
-        .equals(SeqToken.reach_error);
+        .equals(SeqToken.REACH_ERROR_FUNCTION_NAME);
   }
 
   private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
@@ -142,7 +142,7 @@ public final class MPORUtil {
         .getFunctionCallExpression()
         .getDeclaration()
         .getOrigName()
-        .equals(SeqToken.reach_error);
+        .equals(SeqToken.REACH_ERROR_FUNCTION_NAME);
   }
 
   // const CPAchecker_TMP ==========================================================================

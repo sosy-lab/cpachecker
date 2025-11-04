@@ -29,10 +29,11 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -43,19 +44,19 @@ public class SeqValidator {
   /**
    * Checks whether CPAchecker can parse the output file {@code pSequentializationPath}.
    *
-   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations} is disabled, because using
-   * preprocessors on source code (i.e. {@code String}s) is not allowed, and we need to run it on
-   * the output file.
+   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations()} is disabled, because
+   * using preprocessors on source code (i.e. {@code String}s) is not allowed, and we need to run it
+   * on the output file.
    */
   public static void validateProgramParsing(
       Path pSequentializationPath,
       MPOROptions pOptions,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, ParserException, InterruptedException, IOException {
 
     checkArgument(
-        !pOptions.inputTypeDeclarations,
+        !pOptions.inputTypeDeclarations(),
         "can only validate source code if inputTypeDeclaration is disabled");
     // validate that seq can be parsed and cfa created -> code compiles
     CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
@@ -67,21 +68,18 @@ public class SeqValidator {
    * Returns {@code pSequentialization} as is if CPAchecker can parse it, reports an error
    * otherwise.
    *
-   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations} is enabled, because using
-   * preprocessors on source code (i.e. {@code String}s) is not allowed.
+   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations()} is enabled, because
+   * using preprocessors on source code (i.e. {@code String}s) is not allowed.
    */
   public static String validateProgramParsing(
-      String pSequentialization,
-      MPOROptions pOptions,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      String pSequentialization, MPOROptions pOptions, SequentializationUtils pUtils)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     checkArgument(
-        pOptions.inputTypeDeclarations,
+        pOptions.inputTypeDeclarations(),
         "can only validate source code if inputTypeDeclaration is enabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
     Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
     return pSequentialization;
   }
@@ -118,7 +116,7 @@ public class SeqValidator {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
 
-    if (pOptions.validatePc) {
+    if (pOptions.validatePc()) {
       for (MPORThread thread : pClauses.keySet()) {
         ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
         // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
@@ -129,8 +127,8 @@ public class SeqValidator {
             pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
         for (var pcEntry : pcMap.entrySet()) {
           validateLabelPcAsTargetPc(
-              pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.getId(), pLogger);
-          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.getId(), pLogger);
+              pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.id(), pLogger);
+          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id(), pLogger);
         }
       }
     }
@@ -143,7 +141,7 @@ public class SeqValidator {
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqThreadStatement statement : clause.getAllStatements()) {
+      for (CSeqThreadStatement statement : clause.getAllStatements()) {
         targetPcs.addAll(SeqThreadStatementClauseUtil.collectAllIntegerTargetPc(statement));
       }
       rPcMap.put(clause.labelNumber, targetPcs.build());
@@ -223,7 +221,7 @@ public class SeqValidator {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
 
-    if (pOptions.validateNoBackwardGoto) {
+    if (pOptions.validateNoBackwardGoto()) {
       for (MPORThread thread : pClauses.keySet()) {
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
@@ -239,19 +237,19 @@ public class SeqValidator {
       LogManager pLogger) {
 
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
-      for (SeqThreadStatement statement : block.getStatements()) {
+      for (CSeqThreadStatement statement : block.getStatements()) {
         if (statement.getTargetGoto().isPresent()) {
-          int blockNumber = block.getLabel().getNumber();
-          int targetNumber = statement.getTargetGoto().orElseThrow().getNumber();
+          int blockNumber = block.getLabel().number();
+          int targetNumber = statement.getTargetGoto().orElseThrow().number();
           if (blockNumber > targetNumber) {
             SeqThreadStatementBlock targetBlock =
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
             // ignore backward jump, if it is to a loop start and enabled in options
-            if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto) {
+            if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto()) {
               handleValidationException(
                   String.format(
                       "block number %s is greater than target number %s in thread %s",
-                      blockNumber, targetNumber, pThread.getId()),
+                      blockNumber, targetNumber, pThread.id()),
                   pLogger);
             }
           }
@@ -262,13 +260,13 @@ public class SeqValidator {
 
   // No Blank Clauses ==============================================================================
 
-  /** Checks that no clause is blank, when {@link MPOROptions#pruneEmptyStatements} is enabled. */
+  /** Checks that no clause is blank, when {@link MPOROptions#pruneEmptyStatements()} is enabled. */
   public static void tryValidateNoBlankClauses(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
 
-    if (pOptions.pruneEmptyStatements) {
+    if (pOptions.pruneEmptyStatements()) {
       for (MPORThread thread : pClauses.keySet()) {
         // ignore threads that have only one clause, they may be blank
         if (pClauses.get(thread).size() > 1) {
@@ -278,7 +276,7 @@ public class SeqValidator {
             }
           }
           handleValidationException(
-              String.format("thread %s contains a blank statement after pruning", thread.getId()),
+              String.format("thread %s contains a blank statement after pruning", thread.id()),
               pLogger);
         }
       }

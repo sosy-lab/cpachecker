@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -50,7 +49,7 @@ class MetadataWriter {
       throws IllegalAccessException {
 
     MetadataRecord metadata = buildMetadataRecord(pInputFilePaths);
-    ImmutableMap<String, Object> algorithmOptions = buildAlgorithmOptionMap(pOptions);
+    ImmutableMap<String, Object> algorithmOptions = pOptions.buildAlgorithmOptionMap(pOptions);
     return new RootRecord(metadata, algorithmOptions);
   }
 
@@ -66,15 +65,5 @@ class MetadataWriter {
       rInputFileRecords.add(new InputFileRecord(path.getFileName().toString(), path.toString()));
     }
     return rInputFileRecords.build();
-  }
-
-  private static ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
-      throws IllegalAccessException {
-
-    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
-    for (Field field : pOptions.getClass().getDeclaredFields()) {
-      rMap.put(field.getName(), field.get(pOptions));
-    }
-    return rMap.buildOrThrow();
   }
 }

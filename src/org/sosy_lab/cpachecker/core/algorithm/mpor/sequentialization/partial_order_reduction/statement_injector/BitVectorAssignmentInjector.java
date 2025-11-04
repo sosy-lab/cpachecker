@@ -18,11 +18,12 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
@@ -37,10 +38,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAssignmentInjector {
 
-  static SeqThreadStatement injectBitVectorAssignmentsIntoStatement(
+  static CSeqThreadStatement injectBitVectorAssignmentsIntoStatement(
       MPOROptions pOptions,
       final MPORThread pActiveThread,
-      SeqThreadStatement pCurrentStatement,
+      CSeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       final BitVectorVariables pBitVectorVariables,
@@ -55,7 +56,9 @@ public class BitVectorAssignmentInjector {
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets =
             buildBitVectorResets(pOptions, pActiveThread, pBitVectorVariables, pMemoryModel);
         newInjected.addAll(bitVectorResets);
-        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pCurrentStatement, newInjected.build());
+
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -70,7 +73,8 @@ public class BitVectorAssignmentInjector {
                 pBitVectorVariables,
                 pMemoryModel);
         newInjected.addAll(bitVectorAssignments);
-        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pCurrentStatement, newInjected.build());
       }
     }
     // no injection possible -> return statement as is
@@ -86,7 +90,7 @@ public class BitVectorAssignmentInjector {
       MemoryModel pMemoryModel) {
 
     checkArgument(
-        !pOptions.reductionMode.equals(ReductionMode.NONE),
+        !pOptions.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
@@ -121,7 +125,7 @@ public class BitVectorAssignmentInjector {
           MemoryModel pMemoryModel) {
 
     checkArgument(
-        !pOptions.reductionMode.equals(ReductionMode.NONE),
+        !pOptions.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
@@ -160,7 +164,7 @@ public class BitVectorAssignmentInjector {
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector assignments for encoding NONE");
@@ -235,7 +239,7 @@ public class BitVectorAssignmentInjector {
       return Optional.empty();
     }
     // if enabled, consider only 0 writes (the memory location is not reachable anymore)
-    if (pOptions.pruneSparseBitVectorWrites && pMemoryLocations.contains(pMemoryLocation)) {
+    if (pOptions.pruneSparseBitVectorWrites() && pMemoryLocations.contains(pMemoryLocation)) {
       return Optional.empty();
     }
     boolean value = pMemoryLocations.contains(pMemoryLocation);

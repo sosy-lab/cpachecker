@@ -10,25 +10,28 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqConflictOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqLastBitVectorUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqConflictOrderStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -42,19 +45,19 @@ class ReduceLastThreadOrderInjector {
 
   // Public Interface ==============================================================================
 
-  static SeqThreadStatement injectLastThreadOrderReductionIntoStatement(
+  static CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
-      SeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    SeqThreadStatement withConflictOrder =
+    CSeqThreadStatement withConflictOrder =
         injectConflictOrderIntoStatement(
             pOptions,
             pStatement,
@@ -63,22 +66,22 @@ class ReduceLastThreadOrderInjector {
             pLabelBlockMap,
             pBitVectorVariables,
             pMemoryModel,
-            pBinaryExpressionBuilder);
+            pUtils);
     return injectLastUpdatesIntoStatement(
         pOptions, pNumThreads, withConflictOrder, pActiveThread, pBitVectorVariables);
   }
 
   // Private =======================================================================================
 
-  private static SeqThreadStatement injectConflictOrderIntoStatement(
+  private static CSeqThreadStatement injectConflictOrderIntoStatement(
       MPOROptions pOptions,
-      SeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     if (pActiveThread.isMain()) {
@@ -90,21 +93,16 @@ class ReduceLastThreadOrderInjector {
       SeqThreadStatementClause targetClause = pLabelClauseMap.get(targetPc);
       assert targetClause != null : "could not find targetPc in pLabelBlockMap";
       if (StatementInjector.isReductionAllowed(pOptions, targetClause)) {
-        SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
+        SeqThreadStatementBlock targetBlock = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
         // build conflict order statement (with bit vector evaluations based on targetBlock)
-        BitVectorEvaluationExpression lastBitVectorEvaluation =
+        Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
             BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
-                pOptions,
-                pLabelBlockMap,
-                targetBlock,
-                pBitVectorVariables,
-                pMemoryModel,
-                pBinaryExpressionBuilder);
+                pOptions, pLabelBlockMap, targetBlock, pBitVectorVariables, pMemoryModel, pUtils);
         SeqConflictOrderStatement conflictOrderStatement =
             new SeqConflictOrderStatement(
-                pActiveThread, lastBitVectorEvaluation, pBinaryExpressionBuilder);
-        return pStatement.cloneAppendingInjectedStatements(
-            ImmutableList.of(conflictOrderStatement));
+                pActiveThread, lastBitVectorEvaluation, pUtils.binaryExpressionBuilder());
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, conflictOrderStatement);
       }
     }
     // no conflict order injected
@@ -113,10 +111,10 @@ class ReduceLastThreadOrderInjector {
 
   // Last Updates ==================================================================================
 
-  private static SeqThreadStatement injectLastUpdatesIntoStatement(
+  private static CSeqThreadStatement injectLastUpdatesIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
-      SeqThreadStatement pStatement,
+      CSeqThreadStatement pStatement,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables) {
 
@@ -130,19 +128,22 @@ class ReduceLastThreadOrderInjector {
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(lastThreadExit, ImmutableList.of());
-        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(lastUpdateStatement));
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, lastUpdateStatement);
+
       } else {
         // for all other target pc, set last_thread to current thread id and update last bitvectors
         CExpressionAssignmentStatement lastThreadUpdate =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpressions.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.getId()));
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.id()));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(
                 lastThreadUpdate,
                 buildLastAccessBitVectorUpdatesByEncoding(
                     pOptions, pActiveThread, pBitVectorVariables));
-        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(lastUpdateStatement));
+        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+            pStatement, lastUpdateStatement);
       }
     } else {
       // no valid target pc -> no conflict order required
@@ -156,11 +157,11 @@ class ReduceLastThreadOrderInjector {
       buildLastAccessBitVectorUpdatesByEncoding(
           MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build updates for bitVectorEncoding %s", pOptions.bitVectorEncoding));
+                  "cannot build updates for bitVectorEncoding %s", pOptions.bitVectorEncoding()));
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
       case SPARSE -> buildSparseLastBitVectorUpdates(pOptions, pActiveThread, pBitVectorVariables);
@@ -170,10 +171,10 @@ class ReduceLastThreadOrderInjector {
   private static ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdates(
       MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           buildDenseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
@@ -192,10 +193,10 @@ class ReduceLastThreadOrderInjector {
   private static ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdates(
       MPOROptions pOptions, MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode));
+              String.format("cannot build updates for reductionMode %s", pOptions.reductionMode()));
       case ACCESS_ONLY ->
           buildSparseLastBitVectorUpdatesByAccessType(
               pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
@@ -223,7 +224,7 @@ class ReduceLastThreadOrderInjector {
         pBitVectorVariables.getDenseBitVector(pActiveThread, pAccessType, ReachType.REACHABLE);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            lastDenseBitVector.reachableVariable, rightHandSide);
+            lastDenseBitVector.reachableVariable(), rightHandSide);
     return ImmutableList.of(update);
   }
 
@@ -249,7 +250,7 @@ class ReduceLastThreadOrderInjector {
           CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  lastSparseBitVector.reachableVariable, rightHandSide);
+                  lastSparseBitVector.reachableVariable(), rightHandSide);
           rUpdates.add(update);
         }
       }

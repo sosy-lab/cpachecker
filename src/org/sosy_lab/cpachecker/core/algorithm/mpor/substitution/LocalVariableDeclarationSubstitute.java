@@ -13,18 +13,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
-public class LocalVariableDeclarationSubstitute {
-
-  public final CIdExpression expression;
-
-  private final Optional<MPORSubstitutionTracker> tracker;
-
-  public LocalVariableDeclarationSubstitute(
-      CIdExpression pExpression, Optional<MPORSubstitutionTracker> pTracker) {
-
-    expression = pExpression;
-    tracker = pTracker;
-  }
+public record LocalVariableDeclarationSubstitute(
+    CIdExpression expression, Optional<MPORSubstitutionTracker> tracker) {
 
   public boolean isTrackerPresent() {
     return tracker.isPresent();
@@ -50,8 +40,12 @@ public class LocalVariableDeclarationSubstitute {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof LocalVariableDeclarationSubstitute other
-        && expression.equals(other.expression)
-        && tracker.equals(other.tracker);
+    return pOther
+            instanceof
+            LocalVariableDeclarationSubstitute(
+                CIdExpression pExpression,
+                Optional<MPORSubstitutionTracker> pTracker)
+        && expression.equals(pExpression)
+        && tracker.equals(pTracker);
   }
 }

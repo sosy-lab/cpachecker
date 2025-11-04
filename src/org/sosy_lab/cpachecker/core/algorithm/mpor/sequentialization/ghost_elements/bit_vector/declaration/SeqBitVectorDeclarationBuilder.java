@@ -16,16 +16,16 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.DenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.LastSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -48,7 +48,7 @@ public class SeqBitVectorDeclarationBuilder {
     if (!pOptions.isAnyReductionEnabled()) {
       return ImmutableList.of();
     }
-    return switch (pOptions.bitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding()) {
       case NONE -> ImmutableList.of();
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorDeclarationsByReduction(pOptions, pFields);
@@ -61,7 +61,7 @@ public class SeqBitVectorDeclarationBuilder {
   private static ImmutableList<SeqBitVectorDeclaration> buildDenseBitVectorDeclarationsByReduction(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           buildDenseBitVectorDeclarationsByAccessType(pOptions, pFields, MemoryAccessType.ACCESS);
@@ -85,7 +85,7 @@ public class SeqBitVectorDeclarationBuilder {
       MPOROptions pOptions, SequentializationFields pFields, MemoryAccessType pAccessType) {
 
     BitVectorVariables bitVectorVariables =
-        pFields.ghostElements.getBitVectorVariables().orElseThrow();
+        pFields.ghostElements.bitVectorVariables().orElseThrow();
     MemoryModel memoryModel = pFields.memoryModel.orElseThrow();
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses = pFields.clauses;
 
@@ -94,7 +94,7 @@ public class SeqBitVectorDeclarationBuilder {
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (DenseBitVector denseBitVector :
         bitVectorVariables.getDenseBitVectorsByAccessType(pAccessType)) {
-      MPORThread thread = denseBitVector.getThread();
+      MPORThread thread = denseBitVector.thread();
 
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(thread));
@@ -123,7 +123,7 @@ public class SeqBitVectorDeclarationBuilder {
           BitVectorUtil.buildBitVectorExpression(pOptions, memoryModel, ImmutableSet.of());
       // reachable last bit vector
       SeqBitVectorDeclaration reachableDeclaration =
-          new SeqBitVectorDeclaration(type, lastDenseBitVector.reachableVariable, initializer);
+          new SeqBitVectorDeclaration(type, lastDenseBitVector.reachableVariable(), initializer);
       rDeclarations.add(reachableDeclaration);
     }
     return rDeclarations.build();
@@ -134,7 +134,7 @@ public class SeqBitVectorDeclarationBuilder {
   private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarationsByReduction(
       MPOROptions pOptions, SequentializationFields pFields) {
 
-    return switch (pOptions.reductionMode) {
+    return switch (pOptions.reductionMode()) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY -> buildSparseBitVectorDeclarations(pFields, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
@@ -153,7 +153,7 @@ public class SeqBitVectorDeclarationBuilder {
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
 
     BitVectorVariables bitVectorVariables =
-        pFields.ghostElements.getBitVectorVariables().orElseThrow();
+        pFields.ghostElements.bitVectorVariables().orElseThrow();
     // first add declarations for the current bitvectors
     for (MPORThread thread : pFields.clauses.keySet()) {
       rDeclarations.addAll(
@@ -173,7 +173,7 @@ public class SeqBitVectorDeclarationBuilder {
         SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(
-                BitVectorDataType.UINT8_T, sparseBitVector.reachableVariable, initializer);
+                BitVectorDataType.UINT8_T, sparseBitVector.reachableVariable(), initializer);
         rDeclarations.add(declaration);
       }
     }

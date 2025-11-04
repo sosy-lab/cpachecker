@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -24,9 +24,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class SeqAssumptionBuilder {
 
@@ -34,11 +35,9 @@ public class SeqAssumptionBuilder {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
   }
 
-  public static String buildAssumption(SeqExpression pCondition) throws UnrecognizedCodeException {
-    return SeqFunctionDeclarations.ASSUME.getName()
-        + SeqSyntax.BRACKET_LEFT
-        + pCondition.toASTString()
-        + SeqSyntax.BRACKET_RIGHT
+  public static String buildAssumption(ExpressionTree<CExpression> pCondition) {
+    return SeqIdExpressions.ASSUME
+        + SeqStringUtil.wrapInBrackets(pCondition.toString())
         + SeqSyntax.SEMICOLON;
   }
 
@@ -68,11 +67,12 @@ public class SeqAssumptionBuilder {
               BinaryOperator.LESS_EQUAL);
       rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
-    CIdExpression numThreads = pFields.ghostElements.numThreadsIdExpression;
+    CIntegerLiteralExpression numThreadsExpression =
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
     // ensure that next_thread < NUM_THREADS
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
+            SeqIdExpressions.NEXT_THREAD, numThreadsExpression, BinaryOperator.LESS_THAN);
     rAssumptions.add(buildAssumption(nextThreadLessThanNumThreads));
     return rAssumptions.build();
   }

@@ -23,7 +23,8 @@ public class SeqParameterDeclarations {
           SeqToken.ASSERTION_KEYWORD_ASSERT_FAIL);
 
   public static final CParameterDeclaration COND =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.cond);
+      new CParameterDeclaration(
+          FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.COND_KEYWORD_ASSUME);
 
   public static final CParameterDeclaration FUNCTION =
       new CParameterDeclaration(
@@ -42,5 +43,6 @@ public class SeqParameterDeclarations {
           FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.LINE_KEYWORD_ASSERT_FAIL);
 
   public static final CParameterDeclaration SIZE =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.size);
+      new CParameterDeclaration(
+          FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.SIZE_KEYWORD_MALLOC);
 }

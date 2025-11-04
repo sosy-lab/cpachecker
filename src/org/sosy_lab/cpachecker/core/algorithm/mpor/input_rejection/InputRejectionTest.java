@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -195,7 +195,7 @@ public class InputRejectionTest {
             RuntimeException.class,
             () ->
                 Sequentialization.tryBuildProgramString(
-                    customOptions, cfa, "test", shutdownNotifier, logger));
+                    customOptions, cfa, "test", logger, shutdownNotifier));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage().contains(expectedMessage)).isTrue();
   }

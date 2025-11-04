@@ -20,13 +20,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatStyle;
-import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
@@ -275,8 +274,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         outputFileName,
         outputFilePath,
         cfa.getFileNames(),
-        shutdownNotifier,
-        logger);
+        logger,
+        shutdownNotifier);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -284,12 +283,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
-    String program =
-        Sequentialization.tryBuildProgramString(
-            options, cfa, inputFileName, shutdownNotifier, logger);
-    return options.clangFormatStyle.isEnabled()
-        ? ClangFormatter.tryFormat(program, options.clangFormatStyle, logger)
-        : program;
+    return Sequentialization.tryBuildProgramString(
+        options, cfa, inputFileName, logger, shutdownNotifier);
   }
 
   private final ConfigurableProgramAnalysis cpa;

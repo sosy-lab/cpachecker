@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -23,71 +21,59 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 
 public class BitVectorEvaluationUtil {
 
-  static CIdExpression extractActiveVariable(
-      MPORThread pActiveThread, ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
-    assert pAllVariables.containsKey(pActiveThread) : "no variable found for active thread";
-    CIdExpression rActiveVariable = pAllVariables.get(pActiveThread);
-    assert rActiveVariable != null;
-    return rActiveVariable;
-  }
-
-  static ImmutableList<SeqExpression> convertOtherVariablesToSeqExpression(
+  static ImmutableList<CIdExpression> getOtherVariables(
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
 
     return pAllVariables.entrySet().stream()
         .filter(entry -> pOtherThreads.contains(entry.getKey()))
-        .map(entry -> new CToSeqExpression(entry.getValue()))
+        .map(entry -> entry.getValue())
         .collect(ImmutableList.toImmutableList());
   }
 
-  static SeqExpression buildSparseDirectBitVector(
+  static CIntegerLiteralExpression buildSparseDirectBitVector(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations) {
 
-    CIntegerLiteralExpression integerLiteralExpression =
-        pDirectAccessMemoryLocations.contains(pMemoryLocation)
-            ? SeqIntegerLiteralExpressions.INT_1
-            : SeqIntegerLiteralExpressions.INT_0;
-    return new CToSeqExpression(integerLiteralExpression);
+    return pDirectAccessMemoryLocations.contains(pMemoryLocation)
+        ? SeqIntegerLiteralExpressions.INT_1
+        : SeqIntegerLiteralExpressions.INT_0;
   }
 
   // Conjunction and Disjunction ===================================================================
 
   /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
-  static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
-      ImmutableList<SeqExpression> pExpressions) {
+  static Optional<BitVectorEvaluationExpression> buildSparseLogicalDisjunction(
+      ImmutableList<ExpressionTree<CExpression>> pTerms) {
 
-    if (pExpressions.isEmpty()) {
-      return BitVectorEvaluationExpression.empty();
-    }
-    SeqExpression logicalDisjunction = BitVectorEvaluationUtil.logicalDisjunction(pExpressions);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
-  }
-
-  static Optional<SeqExpression> tryLogicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
     if (pTerms.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(logicalDisjunction(pTerms));
+    return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction(pTerms)));
+  }
+
+  static <LeafType> Optional<ExpressionTree<LeafType>> tryLogicalDisjunction(
+      ImmutableList<ExpressionTree<LeafType>> pTerms) {
+
+    return pTerms.isEmpty() ? Optional.empty() : Optional.of(Or.of(pTerms));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */
-  static SeqExpression logicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
-    return nestLogicalExpressions(pTerms, SeqLogicalOperator.OR);
+  static <LeafType> ExpressionTree<LeafType> logicalDisjunction(
+      ImmutableList<ExpressionTree<LeafType>> pTerms) {
+
+    return Or.of(pTerms);
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
@@ -102,36 +88,20 @@ public class BitVectorEvaluationUtil {
 
   // Nest Expressions ==============================================================================
 
-  private static SeqExpression nestLogicalExpressions(
-      ImmutableCollection<SeqExpression> pExpressions, SeqLogicalOperator pLogicalOperator) {
-
-    checkArgument(!pExpressions.isEmpty(), "pExpressions must not be empty");
-
-    SeqExpression rNested = pExpressions.iterator().next();
-    for (SeqExpression next : pExpressions) {
-      if (!next.equals(rNested)) {
-        rNested =
-            SeqLogicalExpressionBuilder.buildBinaryLogicalExpressionByOperator(
-                pLogicalOperator, rNested, next);
-      }
-    }
-    return rNested;
-  }
-
-  static ImmutableListMultimap<SeqMemoryLocation, SeqExpression>
+  static ImmutableListMultimap<SeqMemoryLocation, CExpression>
       mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
           BitVectorVariables pBitVectorVariables,
           MemoryAccessType pAccessType) {
 
-    ImmutableListMultimap.Builder<SeqMemoryLocation, SeqExpression> rMap =
+    ImmutableListMultimap.Builder<SeqMemoryLocation, CExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       SeqMemoryLocation memoryLocation = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> variables =
           entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
-      ImmutableList<SeqExpression> otherVariables =
-          BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(pOtherThreads, variables);
+      ImmutableList<CIdExpression> otherVariables =
+          BitVectorEvaluationUtil.getOtherVariables(pOtherThreads, variables);
       rMap.putAll(memoryLocation, otherVariables);
     }
     return rMap.build();

@@ -78,7 +78,7 @@ public class MPORThreadBuilder {
     List<MPORThread> createdThreads = new ArrayList<>();
     recursivelyFindThreadCreations(pOptions, pCfa, mainThread, createdThreads);
     // sort threads by ID, otherwise the program could have backward jumps
-    createdThreads.sort(Comparator.comparingInt(MPORThread::getId));
+    createdThreads.sort(Comparator.comparingInt(MPORThread::id));
     rThreads.addAll(createdThreads);
     return rThreads.build();
   }
@@ -86,7 +86,7 @@ public class MPORThreadBuilder {
   private static void recursivelyFindThreadCreations(
       MPOROptions pOptions, CFA pCfa, MPORThread pCurrentThread, List<MPORThread> pFoundThreads) {
 
-    for (CFAEdgeForThread threadEdge : pCurrentThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pCurrentThread.cfa().threadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
       if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";

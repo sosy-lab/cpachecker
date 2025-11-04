@@ -18,21 +18,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public class FunctionParameterAssignment {
-
-  private final CFAEdgeForThread callContext;
-
-  private final CLeftHandSide leftHandSide;
-
-  private final CExpression rightHandSide;
-
-  public FunctionParameterAssignment(
-      CFAEdgeForThread pCallContext, CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
-
-    callContext = pCallContext;
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
-  }
+public record FunctionParameterAssignment(
+    CFAEdgeForThread callContext, CLeftHandSide leftHandSide, CExpression rightHandSide) {
 
   public boolean isPointer() {
     return leftHandSide.getExpressionType() instanceof CPointerType;
@@ -51,16 +38,4 @@ public class FunctionParameterAssignment {
   }
 
   // getters
-
-  public CLeftHandSide getLeftHandSide() {
-    return leftHandSide;
-  }
-
-  public CExpression getRightHandSide() {
-    return rightHandSide;
-  }
-
-  public CFAEdgeForThread getCallContext() {
-    return callContext;
-  }
 }

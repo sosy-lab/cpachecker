@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -97,8 +98,7 @@ public class MPORSubstitution {
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
           pStartRoutineArgSubstitutes,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     isDummy = pIsDummy;
     options = pOptions;
@@ -108,8 +108,8 @@ public class MPORSubstitution {
     parameterSubstitutes = pParameterSubstitutes;
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    logger = pLogger;
+    binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
+    logger = pUtils.logger();
   }
 
   // Substitute Functions ==========================================================================
@@ -405,7 +405,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
         MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
             pIsDeclaration, localSubstitute, pTracker);
-        return localSubstitute.expression;
+        return localSubstitute.expression();
       } else {
         checkArgument(
             globalVariableSubstitutes.containsKey(variableDeclaration),

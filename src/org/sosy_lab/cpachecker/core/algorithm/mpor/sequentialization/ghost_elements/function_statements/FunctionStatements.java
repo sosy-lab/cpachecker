@@ -13,30 +13,11 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public class FunctionStatements {
-
-  public final ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment>
-      parameterAssignments;
-
-  private final ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
-      startRoutineArgAssignments;
-
-  public final ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> returnValueAssignments;
-
-  public final ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
-      startRoutineExitAssignments;
-
-  FunctionStatements(
-      ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment> pParameterAssignments,
-      ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment> pStartRoutineArgAssignments,
-      ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> pReturnValueAssignments,
-      ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> pStartRoutineExitAssignments) {
-
-    parameterAssignments = pParameterAssignments;
-    startRoutineArgAssignments = pStartRoutineArgAssignments;
-    returnValueAssignments = pReturnValueAssignments;
-    startRoutineExitAssignments = pStartRoutineExitAssignments;
-  }
+public record FunctionStatements(
+    ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment> parameterAssignments,
+    ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment> startRoutineArgAssignments,
+    ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> returnValueAssignments,
+    ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> startRoutineExitAssignments) {
 
   public Optional<FunctionParameterAssignment> tryGetStartRoutineArgAssignmentByThreadEdge(
       CFAEdgeForThread pThreadEdge) {
