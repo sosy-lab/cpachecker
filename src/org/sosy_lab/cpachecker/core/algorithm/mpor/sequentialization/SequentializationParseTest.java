@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -551,7 +552,6 @@ public class SequentializationParseTest {
     testParse(programA, logger, shutdownNotifier);
   }
 
-  // TODO also try to compare SequentializationFields for equality
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
@@ -563,10 +563,16 @@ public class SequentializationParseTest {
     for (int i = 0; i < linesA.size(); i++) {
       String lineA = linesA.get(i);
       String lineB = linesB.get(i);
-      assertWithMessage(
-              "lineA, lineB with number " + (i + Sequentialization.FIRST_LINE) + " are not equal: ")
-          .that(lineA)
-          .isEqualTo(lineB);
+      // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
+      if (!lineA.contains(SeqToken.ANON_TYPE_KEYWORD)
+          && !lineB.contains(SeqToken.ANON_TYPE_KEYWORD)) {
+        assertWithMessage(
+                "lineA, lineB with number "
+                    + (i + Sequentialization.FIRST_LINE)
+                    + " are not equal: ")
+            .that(lineA)
+            .isEqualTo(lineB);
+      }
     }
   }
 

@@ -112,9 +112,6 @@ class EclipseCParser implements CParser {
     Preconditions.checkNotNull(pSourceOriginMapping);
     Preconditions.checkNotNull(pWrapperFunction);
 
-    // reset anon_type counter so that parsing identical programs in one run result in the same CFA
-    ASTConverter.resetAnonTypeCounter();
-
     Map<Path, Path> fileNameMapping = new HashMap<>();
     for (FileToParse f : pInput) {
       fileNameMapping.put(fixPath(f.getFileName()), f.getFileName());

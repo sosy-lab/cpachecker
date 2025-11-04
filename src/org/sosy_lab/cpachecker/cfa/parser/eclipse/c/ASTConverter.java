@@ -318,10 +318,6 @@ class ASTConverter {
   // they are in the same run) unique
   private static int anonTypeCounter = 0;
 
-  static void resetAnonTypeCounter() {
-    anonTypeCounter = 0;
-  }
-
   private final Sideassignments sideAssignmentStack;
   private final String staticVariablePrefix;
 

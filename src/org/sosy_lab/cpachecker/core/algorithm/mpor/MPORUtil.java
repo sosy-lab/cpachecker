@@ -11,14 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -46,9 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cmdline.CPAMain;
-import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -347,36 +343,18 @@ public final class MPORUtil {
 
   // CFA ===========================================================================================
 
-  private static Configuration buildDefaultTestConfiguration(LogManager pLogger) {
-    try {
-      // for tests, no files are exported. we use the internal String to parse the output program
-      return CPAMain.createConfiguration(new String[] {"--no-output-files"}).configuration();
-    } catch (IOException
-        | InvalidCmdlineArgumentException
-        | InterruptedException
-        | InvalidConfigurationException e) {
-      pLogger.log(
-          Level.SEVERE,
-          "An error occurred while building default test Configuration: ",
-          e.getMessage());
-      throw new RuntimeException(e);
-    }
-  }
-
   public static CFACreator buildTestCfaCreator(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return CFACreator.construct(buildDefaultTestConfiguration(pLogger), pLogger, pShutdownNotifier);
+    return CFACreator.construct(
+        TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
   }
 
   public static CFACreator buildTestCfaCreatorWithPreprocessor(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     return CFACreator.construct(
-        Configuration.builder()
-            .copyFrom(buildDefaultTestConfiguration(pLogger))
-            .setOption("parser.usePreprocessor", "true")
-            .build(),
+        TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);
   }

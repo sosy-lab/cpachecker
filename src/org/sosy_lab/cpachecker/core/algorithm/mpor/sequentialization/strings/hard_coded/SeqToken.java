@@ -31,6 +31,8 @@ public class SeqToken {
 
   public static final String ACCESS = "ACCESS";
 
+  public static final String ANON_TYPE_KEYWORD = "__anon_type_";
+
   public static final String ASSERT_FAIL_FUNCTION_NAME = "__assert_fail";
 
   public static final String ASSERTION_KEYWORD_ASSERT_FAIL = "__assertion";
