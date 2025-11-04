@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.V
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -147,8 +148,8 @@ public class SequentializationBuilder {
         // const CPAchecker_TMP variables are declared and initialized directly in the case.
         // everything else: add declaration without initializer (and assign later in cases)
         return Optional.of(
-            pLocalVariableDeclaration.toASTStringWithoutInitializer(
-                AAstNodeRepresentation.DEFAULT));
+            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+                pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
       }
     }
     return Optional.empty();

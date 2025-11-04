@@ -88,52 +88,26 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     super.addInitializer(pCInitializer);
   }
 
-  /**
-   * If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
-   * yields {@code int x;}.
-   */
-  public String toASTStringWithoutInitializer(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return buildStorageClassNameAndTypeASTString(pAAstNodeRepresentation) + ";";
-  }
-
-  /**
-   * If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
-   * method yields {@code x = 42;}. Note that the initializer does not have to be present.
-   */
-  public String toASTStringWithoutStorageClassAndType(
-      AAstNodeRepresentation pAAstNodeRepresentation) {
-
-    return buildNameASTString(pAAstNodeRepresentation)
-        + buildInitializerASTString(pAAstNodeRepresentation)
-        + ";";
-  }
-
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return buildStorageClassNameAndTypeASTString(pAAstNodeRepresentation)
-        + buildInitializerASTString(pAAstNodeRepresentation)
-        + ";";
-  }
+    StringBuilder lASTString = new StringBuilder();
 
-  private String buildStorageClassNameAndTypeASTString(
-      AAstNodeRepresentation pAAstNodeRepresentation) {
-    return cStorageClass.toASTString()
-        + getType().toASTString(buildNameASTString(pAAstNodeRepresentation));
-  }
+    lASTString.append(cStorageClass.toASTString());
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
-  private String buildNameASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return switch (pAAstNodeRepresentation) {
-      case DEFAULT -> getName();
-      case QUALIFIED -> getQualifiedName().replace("::", "__");
-      case ORIGINAL_NAMES -> getOrigName();
-    };
-  }
-
-  private String buildInitializerASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     if (getInitializer() != null) {
-      return " = " + getInitializer().toASTString(pAAstNodeRepresentation);
+      lASTString.append(" = ");
+      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
     }
-    return "";
+
+    lASTString.append(";");
+
+    return lASTString.toString();
   }
 
   @Override

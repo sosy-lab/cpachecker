@@ -15,6 +15,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
@@ -88,33 +90,21 @@ public class SeqStringUtil {
     };
   }
 
-  // Comments ======================================================================================
+  // Wrap / Append Methods =========================================================================
 
   /** Returns {@code /* pString * /} without the last whitespace (Javadoc doesn't allow it ...) */
   public static String wrapInBlockComment(String pString) {
     return SeqComment.COMMENT_BLOCK_BEGIN + pString + SeqComment.COMMENT_BLOCK_END;
   }
 
-  // Quotation Marks ===============================================================================
-
   /** Returns ""pString"" */
   public static String wrapInQuotationMarks(String pString) {
     return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
   }
 
-  // Brackets ======================================================================================
-
   /** Returns "(pString)" */
   public static String wrapInBrackets(String pString) {
     return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
-  }
-
-  // Curly Brackets ================================================================================
-
-  /** Returns "{ pString }" */
-  public static String wrapInCurlyBracketsInwards(String pString) {
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(SeqSyntax.CURLY_BRACKET_LEFT, pString, SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   /** Returns "} pString {" */
@@ -128,10 +118,65 @@ public class SeqStringUtil {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
+  // AST Nodes =====================================================================================
+
   /** {@link CType#toString()} yields a trailing white space, this function strips it. */
   public static String getTypeName(CType pType) {
     return pType.toString().strip();
   }
+
+  /**
+   * If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
+   * yields {@code int x;}.
+   */
+  public static String getVariableDeclarationASTStringWithoutInitializer(
+      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    return buildStorageClassNameAndTypeASTString(pVariableDeclaration, pAAstNodeRepresentation)
+        + ";";
+  }
+
+  /**
+   * If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
+   * method yields {@code x = 42;}. Note that the initializer does not have to be present.
+   */
+  public static String getVariableDeclarationASTStringWithoutStorageClassAndType(
+      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    return buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation)
+        + buildInitializerASTString(pVariableDeclaration, pAAstNodeRepresentation)
+        + ";";
+  }
+
+  private static String buildStorageClassNameAndTypeASTString(
+      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    return pVariableDeclaration.getCStorageClass().toASTString()
+        + pVariableDeclaration
+            .getType()
+            .toASTString(buildNameASTString(pVariableDeclaration, pAAstNodeRepresentation));
+  }
+
+  private static String buildNameASTString(
+      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    return switch (pAAstNodeRepresentation) {
+      case DEFAULT -> pVariableDeclaration.getName();
+      case QUALIFIED -> pVariableDeclaration.getQualifiedName().replace("::", "__");
+      case ORIGINAL_NAMES -> pVariableDeclaration.getOrigName();
+    };
+  }
+
+  private static String buildInitializerASTString(
+      CVariableDeclaration pVariableDeclaration, AAstNodeRepresentation pAAstNodeRepresentation) {
+
+    if (pVariableDeclaration.getInitializer() != null) {
+      return " = " + pVariableDeclaration.getInitializer().toASTString(pAAstNodeRepresentation);
+    }
+    return "";
+  }
+
+  // Hexadecimal Format ============================================================================
 
   public static String hexFormat(int pLength, BigInteger pBigInteger) {
     return String.format("%0" + pLength + "x", pBigInteger);

@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -77,7 +78,8 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return variableDeclaration.toASTStringWithoutStorageClassAndType(AAstNodeRepresentation.DEFAULT)
+    return SeqStringUtil.getVariableDeclarationASTStringWithoutStorageClassAndType(
+            variableDeclaration, AAstNodeRepresentation.DEFAULT)
         + SeqSyntax.SPACE
         + injected;
   }
