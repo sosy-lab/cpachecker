@@ -7,11 +7,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int main() {
-  int a = 1;    // binary: 01
-  int b = 2;    // binary: 10
+  unsigned int a = 1;    // binary: 01
+  unsigned int b = 2;    // binary: 10
+  unsigned int c = 3;    // binary: 11
 
-  int bitwise_and = a & b;
-  int logical_and = a && b;
+  if ((a && a) && (b && c)){
+        // should be true
+        return 0;
+  }
+  else{
+        // error? should not happen
+        return -1;
+  }
 
-  return (bitwise_and != logical_and);
 }
