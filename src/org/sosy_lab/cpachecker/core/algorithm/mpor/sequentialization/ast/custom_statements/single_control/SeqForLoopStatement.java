@@ -17,6 +17,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * Used to export loop statements such as {@code for (int i = 0; i < N; i++) { ... }} that can be
+ * used for finite loops.
+ */
 public final class SeqForLoopStatement extends CSeqLoopStatement {
 
   private final CVariableDeclaration counterDeclaration;

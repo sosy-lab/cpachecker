@@ -13,7 +13,7 @@ public abstract sealed class CSeqLoopStatement implements SeqSingleControlStatem
 
   /**
    * The compound statement i.e. the loop block. Can be empty to model infinite loops that do
-   * nothing. We use {@code String}s so that comments are accepted too.
+   * nothing.
    */
   final SeqCompoundStatement compoundStatement;
 
