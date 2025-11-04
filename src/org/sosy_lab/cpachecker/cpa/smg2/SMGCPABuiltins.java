@@ -1452,10 +1452,7 @@ public class SMGCPABuiltins {
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
         // Since this is newly created memory get(0) is fine
-        stateWithNewHeap =
-            stateWithNewHeap
-                .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                .getFirst();
+        stateWithNewHeap = stateWithNewHeap.writeToZero(addressToNewRegion, edge).getFirst();
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
     } else {
@@ -1533,14 +1530,12 @@ public class SMGCPABuiltins {
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
         // Need symbolic edges for that
-        throw new SMGException(
-            "Zeroing allocation function with symbolic memory size is currently not supported.");
-        /*
-          stateWithNewNonZeroHeap =
-              stateWithNewNonZeroHeap
-                  .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                  .get(0);
-        */
+        // throw new SMGException(
+        //  "Zeroing allocation function with symbolic memory size is currently not supported.");
+
+        List<SMGState> zeroedStates = stateWithNewNonZeroHeap.writeToZero(addressToNewRegion, edge);
+        checkState(zeroedStates.size() == 1);
+        stateWithNewNonZeroHeap = zeroedStates.getFirst();
       }
 
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewNonZeroHeap));
