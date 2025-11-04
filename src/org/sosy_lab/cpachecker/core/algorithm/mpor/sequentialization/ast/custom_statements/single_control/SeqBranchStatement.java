@@ -23,6 +23,21 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public final class SeqBranchStatement implements SeqSingleControlStatement {
 
+  private enum BranchType {
+    IF("if"),
+    ELSE("else");
+
+    private final String keyword;
+
+    BranchType(String pKeyword) {
+      keyword = pKeyword;
+    }
+
+    private String getKeyword() {
+      return keyword;
+    }
+  }
+
   private final String ifExpression;
 
   private final SeqCompoundStatement ifCompoundStatement;
@@ -77,18 +92,18 @@ public final class SeqBranchStatement implements SeqSingleControlStatement {
 
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     // if (...) { ... }
-    joiner.add(BranchType.IF.buildPrefix(ifExpression));
+    joiner.add(buildIfPrefix(ifExpression));
     joiner.add(ifCompoundStatement.toASTString());
 
     // if (...) { ... } else { ... }
     if (elseCompoundStatement.isPresent()) {
-      joiner.add(BranchType.ELSE.buildPrefix());
+      joiner.add(buildElsePrefix());
       joiner.add(elseCompoundStatement.orElseThrow().toASTString());
     }
 
     // if (...) { ... } else if (...) { ... }
     if (elseBranchStatement.isPresent()) {
-      joiner.add(BranchType.ELSE.buildPrefix());
+      joiner.add(buildElsePrefix());
       ImmutableList<String> elseBranchString =
           SeqStringUtil.splitOnNewline(elseBranchStatement.orElseThrow().toASTString());
       SeqCompoundStatement elseBranchCompoundStatement = new SeqCompoundStatement(elseBranchString);
@@ -96,5 +111,13 @@ public final class SeqBranchStatement implements SeqSingleControlStatement {
     }
 
     return joiner.toString();
+  }
+
+  private static String buildIfPrefix(String pExpression) {
+    return BranchType.IF.getKeyword() + SeqSyntax.SPACE + SeqStringUtil.wrapInBrackets(pExpression);
+  }
+
+  private String buildElsePrefix() {
+    return SeqSyntax.SPACE + BranchType.ELSE.getKeyword() + SeqSyntax.SPACE;
   }
 }

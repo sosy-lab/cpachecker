@@ -22,9 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -43,7 +41,8 @@ public record SeqBinarySearchTreeStatement(
     // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
-    recursivelyBuildTree(statementList, statementList, expression, tree);
+    SeqStatement treeStatement = recursivelyBuildTree(statementList, statementList, expression);
+    tree.add(treeStatement.toASTString());
     return tree.toString();
   }
 
@@ -53,71 +52,65 @@ public record SeqBinarySearchTreeStatement(
   }
 
   /**
-   * Recursively builds a binary if-else search tree for {@code pAllStatements} and stores it in
-   * {@code pTree}. Note that the labeling does not have to be consecutive from {@code 0}, e.g.
-   * {@code 0, 1, 2} or {@code 1, 2, 3} or {@code 0, 2, 3} are all allowed.
+   * Recursively builds a binary if-else search tree for {@code pAllStatements} and returns the
+   * resulting root statement (SeqStatement).
    */
-  private void recursivelyBuildTree(
+  private SeqStatement recursivelyBuildTree(
       final ImmutableList<Entry<CExpression, ? extends SeqStatement>> pAllStatements,
       List<Entry<CExpression, ? extends SeqStatement>> pCurrentStatements,
-      CLeftHandSide pPc,
-      StringJoiner pTree)
+      CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
     int size = pCurrentStatements.size();
 
     if (size == 1) {
-      // single element -> just place statement without any control flow
-      pTree.add(pCurrentStatements.getFirst().getValue().toASTString());
+      // single element -> return the statement directly (this is the leaf)
+      return pCurrentStatements.getFirst().getValue();
 
     } else if (size == 2) {
-      // only two elements -> create if and else leafs with ==
-      Entry<CExpression, ? extends SeqStatement> ifStatement = pCurrentStatements.getFirst();
-      SeqStatement elseStatement = pCurrentStatements.get(1).getValue();
-      pTree.add(buildLeaf(ifStatement.getKey(), ifStatement.getValue(), elseStatement));
+      // only two elements -> create the final if-else leaf statement
+      Entry<CExpression, ? extends SeqStatement> ifEntry = pCurrentStatements.getFirst();
+      SeqStatement elseStatement = pCurrentStatements.getLast().getValue();
+      return buildIfElseLeaf(ifEntry.getKey(), ifEntry.getValue(), elseStatement);
 
     } else {
       // more than two elements -> create if and else subtrees with <
-      int mid = size / 2;
-      Entry<CExpression, ? extends SeqStatement> midEntry = pCurrentStatements.get(mid);
+      int middleIndex = size / 2;
+      Entry<CExpression, ? extends SeqStatement> midEntry = pCurrentStatements.get(middleIndex);
       SeqStatement midStatement = midEntry.getValue();
-      // if statement is a clause, use its label number for the < check
-      int midIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midEntry)) - 1;
+      int labelIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midEntry)) - 1;
+      CBinaryExpression ifExpression = buildIfSmallerExpression(labelIndex, pPc);
 
-      pTree.add(buildIfSmallerSubtree(midIndex, pPc));
-      recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, mid), pPc, pTree);
-      pTree.add(buildElseSubtree());
-      recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(mid, size), pPc, pTree);
-      pTree.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+      // recursively build if < ...  and else ... subtrees
+      SeqStatement ifBranchStatement =
+          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, middleIndex), pPc);
+      SeqStatement elseBranchStatement =
+          recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(middleIndex, size), pPc);
+
+      return new SeqBranchStatement(
+          ifExpression.toASTString(),
+          ImmutableList.of(ifBranchStatement.toASTString()),
+          ImmutableList.of(elseBranchStatement.toASTString()));
     }
   }
 
-  private String buildIfSmallerSubtree(int pMid, CLeftHandSide pPc)
+  private CBinaryExpression buildIfSmallerExpression(int pMiddleIndex, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
-    CBinaryExpression ifExpression =
-        binaryExpressionBuilder.buildBinaryExpression(
-            pPc,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
-            BinaryOperator.LESS_THAN);
-    return SeqStringUtil.appendCurlyBracketLeft(
-        BranchType.IF.buildPrefix(ifExpression.toASTString()));
+    return binaryExpressionBuilder.buildBinaryExpression(
+        pPc,
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pMiddleIndex + 1),
+        BinaryOperator.LESS_THAN);
   }
 
-  private String buildElseSubtree() {
-    return SeqStringUtil.wrapInCurlyBracketsOutwards(BranchType.ELSE.buildPrefix());
-  }
-
-  private String buildLeaf(
+  private SeqBranchStatement buildIfElseLeaf(
       CExpression pIfExpression, SeqStatement pIfBranchStatement, SeqStatement pElseIfStatement)
       throws UnrecognizedCodeException {
 
-    SeqBranchStatement ifElseLeaf =
-        new SeqBranchStatement(
-            pIfExpression.toASTString(),
-            ImmutableList.of(pIfBranchStatement.toASTString()),
-            ImmutableList.of(pElseIfStatement.toASTString()));
-    return ifElseLeaf.toASTString();
+    return new SeqBranchStatement(
+        pIfExpression.toASTString(),
+        ImmutableList.of(pIfBranchStatement.toASTString()),
+        ImmutableList.of(pElseIfStatement.toASTString()));
   }
 
   // Helpers =======================================================================================
