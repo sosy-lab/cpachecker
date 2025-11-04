@@ -49,7 +49,7 @@ public class MPORWriter {
     }
   }
 
-  private enum OutputMessage {
+  enum OutputMessage {
     DIRECTORY_CREATED(OutputMessageType.INFO, "Directory created:"),
     IO_ERROR(OutputMessageType.FAIL, "An IO error occurred while writing the output program:"),
     OPTION_ACCESS_ERROR(OutputMessageType.FAIL, "Could not access algorithm option fields:"),
@@ -101,7 +101,7 @@ public class MPORWriter {
         }
         // option: create metadata file
         if (pOptions.outputMetadata()) {
-          MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
+          MetadataWriter.write(pOptions, metadataPath, pInputFilePaths, pLogger);
         }
         handleOutputMessage(
             Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
@@ -109,9 +109,6 @@ public class MPORWriter {
 
     } catch (IOException e) {
       handleOutputMessage(Level.SEVERE, OutputMessage.IO_ERROR, e.getMessage(), pLogger);
-
-    } catch (IllegalAccessException e) {
-      handleOutputMessage(Level.SEVERE, OutputMessage.OPTION_ACCESS_ERROR, e.getMessage(), pLogger);
     }
   }
 
@@ -121,7 +118,7 @@ public class MPORWriter {
     return pOptions.outputPath() + pOutputFileName + pFileExtension.suffix;
   }
 
-  private static void handleOutputMessage(
+  static void handleOutputMessage(
       Level pLevel, OutputMessage pOutputMessage, String pMessage, LogManager pLogger) {
 
     pLogger.log(pLevel, pOutputMessage.getMessage(), pMessage);

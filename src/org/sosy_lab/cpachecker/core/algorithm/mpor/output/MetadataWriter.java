@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.handleOutputMessage;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
@@ -20,8 +22,11 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.OutputMessage;
 
 class MetadataWriter {
 
@@ -37,20 +42,21 @@ class MetadataWriter {
       @JsonProperty("metadata") MetadataRecord pMetadata,
       @JsonProperty("algorithm_options") Map<String, Object> pAlgorithmOptions) {}
 
-  static void write(MPOROptions pOptions, String pMetadataPath, List<Path> pInputFilePaths)
-      throws IOException, IllegalAccessException {
+  static void write(
+      MPOROptions pOptions, String pMetadataPath, List<Path> pInputFilePaths, LogManager pLogger)
+      throws IOException {
 
     YAMLMapper yamlMapper = new YAMLMapper();
     File metadataFile = new File(pMetadataPath);
-    RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions);
+    RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions, pLogger);
     yamlMapper.writeValue(metadataFile, yamlRoot);
   }
 
-  private static RootRecord buildMetadataYamlRoot(List<Path> pInputFilePaths, MPOROptions pOptions)
-      throws IllegalAccessException {
+  private static RootRecord buildMetadataYamlRoot(
+      List<Path> pInputFilePaths, MPOROptions pOptions, LogManager pLogger) {
 
     MetadataRecord metadata = buildMetadataRecord(pInputFilePaths);
-    ImmutableMap<String, Object> algorithmOptions = buildAlgorithmOptionMap(pOptions);
+    ImmutableMap<String, Object> algorithmOptions = buildAlgorithmOptionMap(pOptions, pLogger);
     return new RootRecord(metadata, algorithmOptions);
   }
 
@@ -68,12 +74,22 @@ class MetadataWriter {
     return rInputFileRecords.build();
   }
 
-  private static ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
-      throws IllegalAccessException {
+  private static ImmutableMap<String, Object> buildAlgorithmOptionMap(
+      MPOROptions pOptions, LogManager pLogger) {
 
     ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
     for (Field field : pOptions.getClass().getDeclaredFields()) {
-      rMap.put(field.getName(), field.get(pOptions));
+      try {
+        // allow access to the MPOROptions record private final fields
+        field.setAccessible(true);
+        rMap.put(field.getName(), field.get(pOptions));
+      } catch (IllegalAccessException e) {
+        handleOutputMessage(
+            Level.SEVERE,
+            OutputMessage.OPTION_ACCESS_ERROR,
+            e.getMessage() + ". Field name: " + field.getName(),
+            pLogger);
+      }
     }
     return rMap.buildOrThrow();
   }
