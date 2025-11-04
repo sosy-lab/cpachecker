@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -188,6 +189,8 @@ public record MPOROptions(
         true);
   }
 
+  // Reflection ====================================================================================
+
   private void checkCorrectParameterCount() {
     // extract amount of MPOROptions constructor parameters
     Constructor<?>[] constructors = MPOROptions.class.getDeclaredConstructors();
@@ -224,6 +227,18 @@ public record MPOROptions(
       }
     }
   }
+
+  public ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
+      throws IllegalAccessException {
+
+    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
+    for (Field field : pOptions.getClass().getDeclaredFields()) {
+      rMap.put(field.getName(), field.get(pOptions));
+    }
+    return rMap.buildOrThrow();
+  }
+
+  // Rejection =====================================================================================
 
   void handleOptionRejections(LogManager pLogger) {
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {

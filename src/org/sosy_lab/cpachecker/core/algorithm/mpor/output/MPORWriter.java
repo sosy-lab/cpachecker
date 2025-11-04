@@ -101,7 +101,12 @@ public class MPORWriter {
         }
         // option: create metadata file
         if (pOptions.outputMetadata()) {
-          MetadataWriter.write(pOptions, metadataPath, pInputFilePaths, pLogger);
+          try {
+            MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
+          } catch (IllegalAccessException e) {
+            handleOutputMessage(
+                Level.SEVERE, OutputMessage.OPTION_ACCESS_ERROR, e.getMessage(), pLogger);
+          }
         }
         handleOutputMessage(
             Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
