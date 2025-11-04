@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -296,7 +297,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // LassoRanker handles unsigned types incorrectly as it does not account for overflows
     for (CVariableDeclaration variable : relevantVariables) {
-      if (variable.getType().toString().contains("unsigned")) {
+      if (!cfa.getMachineModel().isSigned((CSimpleType) variable.getType().getCanonicalType())) {
         logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
         return Result.UNKNOWN;
       }
