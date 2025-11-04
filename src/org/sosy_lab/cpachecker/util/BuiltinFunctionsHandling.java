@@ -65,7 +65,7 @@ public class BuiltinFunctionsHandling {
         yield "__VERIFIER_nondet_" + prefix + "int128";
       }
       case FLOAT128 -> "__VERIFIER_nondet_float128";
-      default ->
+      case UNSPECIFIED ->
           throw new IllegalArgumentException("No verifier nondet function for type: " + basicType);
     };
   }
