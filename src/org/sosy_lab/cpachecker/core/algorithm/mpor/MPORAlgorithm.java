@@ -14,22 +14,24 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -159,8 +161,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "the path to output the sequentialization and metadata to. (\"output/\" by default)")
-  private String outputPath = MPORWriter.DEFAULT_OUTPUT_PATH;
+          "the file name for the sequentialization and metadata. use the first input file name as"
+              + " default.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate outputPath = PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "%s");
 
   @Option(secure = true, description = "export the sequentialized program in a .i file?")
   private boolean outputProgram = true;
@@ -260,22 +264,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final MPOROptions options;
 
-  private final String outputFileName;
-
-  private final String outputFilePath;
-
   @CanIgnoreReturnValue
   @Override
   public AlgorithmStatus run(@Nullable ReachedSet pReachedSet) throws CPAException {
     String sequentializedProgram = buildSequentializedProgram();
-    MPORWriter.write(
-        options,
-        sequentializedProgram,
-        outputFileName,
-        outputFilePath,
-        cfa.getFileNames(),
-        logger,
-        shutdownNotifier);
+    MPORWriter.write(options, sequentializedProgram, cfa.getFileNames(), logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -354,9 +347,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     validateParse,
                     validatePc));
 
-    outputFileName = SeqNameUtil.buildOutputFileName(pInputCfa.getFileNames().getFirst());
-    outputFilePath = MPORWriter.buildPath(options, outputFileName, FileExtension.I);
-
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
@@ -372,9 +362,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws InvalidConfigurationException {
 
     return new MPORAlgorithm(null, null, pLogManager, null, pInputCfa, pOptions);
-  }
-
-  public String getOutputFilePath() {
-    return outputFilePath;
   }
 }

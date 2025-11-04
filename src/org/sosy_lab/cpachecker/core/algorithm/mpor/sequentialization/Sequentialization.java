@@ -85,7 +85,7 @@ public class Sequentialization {
       // replace dummy reach_errors after formatting so that line numbers are exact
       String finalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
       return pOptions.validateParse() && pOptions.inputTypeDeclarations()
-          ? SeqValidator.validateProgramParsing(finalProgram, pOptions, pUtils)
+          ? SeqValidator.validateProgramParsing(finalProgram, pUtils)
           : finalProgram;
 
     } catch (UnrecognizedCodeException

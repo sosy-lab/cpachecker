@@ -346,9 +346,9 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
 
-# the path to output the sequentialization and metadata to. ("output/" by
-# default)
-analysis.algorithm.MPOR.outputPath = MPORWriter.DEFAULT_OUTPUT_PATH
+# the file name for the sequentialization and metadata. use the first input
+# file name as default.
+analysis.algorithm.MPOR.outputPath = SeqToken.MPOR_PREFIX + "%s"
 
 # export the sequentialized program in a .i file?
 analysis.algorithm.MPOR.outputProgram = true

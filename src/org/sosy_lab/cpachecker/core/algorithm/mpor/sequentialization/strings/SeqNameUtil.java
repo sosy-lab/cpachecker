@@ -287,15 +287,7 @@ public class SeqNameUtil {
     return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
-  public static String buildOutputFileName(String pInputFileName) {
-    return SeqToken.MPOR_PREFIX + pInputFileName;
-  }
-
-  public static String buildOutputFileName(Path pInputFilePath) {
-    return SeqToken.MPOR_PREFIX + getFileNameWithoutExtension(pInputFilePath);
-  }
-
-  private static String getFileNameWithoutExtension(Path pInputFilePath) {
+  public static String getFileNameWithoutExtension(Path pInputFilePath) {
     String fileName = pInputFilePath.getFileName().toString();
     return fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
   }

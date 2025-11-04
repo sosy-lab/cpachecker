@@ -12,15 +12,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 
 class MetadataWriter {
 
@@ -36,13 +38,21 @@ class MetadataWriter {
       @JsonProperty("metadata") MetadataRecord pMetadata,
       @JsonProperty("algorithm_options") Map<String, Object> pAlgorithmOptions) {}
 
-  static void write(MPOROptions pOptions, String pMetadataPath, List<Path> pInputFilePaths)
-      throws IOException, IllegalAccessException {
+  static void tryWrite(
+      MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
 
-    YAMLMapper yamlMapper = new YAMLMapper();
-    File metadataFile = new File(pMetadataPath);
-    RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions);
-    yamlMapper.writeValue(metadataFile, yamlRoot);
+    if (pOptions.outputMetadata()) {
+      try {
+        Path metadataPath =
+            MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML, pLogger);
+        YAMLMapper yamlMapper = new YAMLMapper();
+        RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions);
+        yamlMapper.writeValue(metadataPath.toFile(), yamlRoot);
+
+      } catch (IllegalAccessException | IOException e) {
+        pLogger.logUserException(Level.SEVERE, e, "An error occurred while writing metadata.");
+      }
+    }
   }
 
   private static RootRecord buildMetadataYamlRoot(List<Path> pInputFilePaths, MPOROptions pOptions)
