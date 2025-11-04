@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
@@ -289,7 +288,6 @@ public final class SeqThreadStatementBuilder {
 
     return new SeqAssumeStatement(
         pOptions,
-        pFirstEdge ? BranchType.IF : BranchType.ELSE,
         pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty(),
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),

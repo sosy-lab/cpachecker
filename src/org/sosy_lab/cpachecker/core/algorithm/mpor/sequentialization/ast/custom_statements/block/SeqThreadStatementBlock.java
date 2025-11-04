@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -15,9 +17,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -49,6 +52,9 @@ public class SeqThreadStatementBlock implements SeqStatement {
       SeqBlockLabelStatement pLabel,
       ImmutableList<CSeqThreadStatement> pStatements) {
 
+    checkArgument(
+        pStatements.size() == 1 || pStatements.size() == 2,
+        "pStatements must have either 1 or 2 elements");
     options = pOptions;
     nextThreadLabel = pNextThreadLabel;
     label = pLabel;
@@ -60,15 +66,31 @@ public class SeqThreadStatementBlock implements SeqStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
     joiner.add(label.toASTString() + SeqSyntax.SPACE);
-    for (CSeqThreadStatement statement : statements) {
-      joiner.add(statement.toASTString() + SeqSyntax.SPACE);
-    }
+    joiner.add(buildStatementsString());
     Optional<String> suffix =
         SeqStringUtil.tryBuildBlockSuffix(options, nextThreadLabel, statements);
     if (suffix.isPresent()) {
       joiner.add(suffix.orElseThrow());
     }
     return joiner.toString();
+  }
+
+  private String buildStatementsString() throws UnrecognizedCodeException {
+    if (statements.size() == 1) {
+      // 1 statement: just return toASTString
+      return statements.getFirst().toASTString();
+
+    } else {
+      // 2 statements (= assume statements): create if-else statement
+      SeqAssumeStatement ifStatement = (SeqAssumeStatement) statements.getFirst();
+      SeqAssumeStatement elseStatement = (SeqAssumeStatement) statements.getLast();
+      SeqBranchStatement branchStatement =
+          new SeqBranchStatement(
+              ifStatement.ifExpression.orElseThrow().toASTString(),
+              ImmutableList.of(ifStatement.toASTString()),
+              ImmutableList.of(elseStatement.toASTString()));
+      return branchStatement.toASTString();
+    }
   }
 
   public SeqBlockLabelStatement getLabel() {
@@ -98,14 +120,15 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return new SeqThreadStatementBlock(options, nextThreadLabel, label, pStatements);
   }
 
+  /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */
   public boolean startsAtomicBlock() {
     return getFirstStatement() instanceof SeqAtomicBeginStatement;
   }
 
-  public boolean endsAtomicBlock() {
-    return getFirstStatement() instanceof SeqAtomicEndStatement;
-  }
-
+  /**
+   * Whether this block begins in an atomic block. This is true for all blocks after {@code
+   * __VERIFIER_atomic_begin();}, but not {@code __VERIFIER_atomic_begin();} itself.
+   */
   public boolean startsInAtomicBlock() {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
   }

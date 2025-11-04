@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -19,21 +16,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.BranchType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a conditional case block statement with {@code if} and {@code else} statements. */
 public final class SeqAssumeStatement extends CSeqThreadStatement {
 
-  public final BranchType branchType;
-
-  private final Optional<CExpression> ifExpression;
+  public final Optional<CExpression> ifExpression;
 
   SeqAssumeStatement(
       MPOROptions pOptions,
-      BranchType pBranchType,
       Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -47,20 +39,11 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
         Optional.empty(),
         ImmutableList.of());
 
-    checkArgument(
-        pBranchType.equals(BranchType.IF) || pBranchType.equals(BranchType.ELSE),
-        "pStatementType must be IF or ELSE");
-    checkArgument(
-        !pBranchType.equals(BranchType.IF) || pIfExpression.isPresent(),
-        "if pStatementType is IF, then pIfExpression must be present");
-
-    branchType = pBranchType;
     ifExpression = pIfExpression;
   }
 
   private SeqAssumeStatement(
       MPOROptions pOptions,
-      BranchType pBranchType,
       Optional<CExpression> pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -69,39 +52,20 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
-    branchType = pBranchType;
     ifExpression = pIfExpression;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    // TODO use SeqBranchStatement here
-    String controlFlowPrefix;
-    if (branchType.equals(BranchType.IF)) {
-      controlFlowPrefix =
-          branchType.buildPrefix(ifExpression.orElseThrow().toASTString())
-              + SeqSyntax.CURLY_BRACKET_LEFT;
-    } else {
-      controlFlowPrefix =
-          SeqSyntax.CURLY_BRACKET_RIGHT + branchType.buildPrefix() + SeqSyntax.CURLY_BRACKET_LEFT;
-    }
-    String injected =
-        SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    if (branchType.equals(BranchType.IF)) {
-      return Joiner.on(SeqSyntax.NEWLINE).join(controlFlowPrefix, injected);
-    } else {
-      // need additional closing bracket for the "else" statement
-      return Joiner.on(SeqSyntax.NEWLINE)
-          .join(controlFlowPrefix, injected, SeqSyntax.CURLY_BRACKET_RIGHT);
-    }
+    // just return the injected statements, the block handles the if-else branch
+    return SeqThreadStatementUtil.buildInjectedStatementsString(
+        options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
   }
 
   @Override
   public SeqAssumeStatement withTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
         options,
-        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -114,7 +78,6 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         options,
-        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
@@ -129,7 +92,6 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
 
     return new SeqAssumeStatement(
         options,
-        branchType,
         ifExpression,
         pcLeftHandSide,
         substituteEdges,
