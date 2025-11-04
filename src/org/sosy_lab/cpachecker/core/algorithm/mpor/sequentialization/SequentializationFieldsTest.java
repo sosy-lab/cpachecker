@@ -344,7 +344,7 @@ public class SequentializationFieldsTest {
     // create cfa for test program pInputFilePath
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
     SequentializationUtils utils =
         SequentializationUtils.of(inputCfa.getMachineModel(), logger, shutdownNotifier);

@@ -59,7 +59,8 @@ public class SeqValidator {
         !pOptions.inputTypeDeclarations(),
         "can only validate source code if inputTypeDeclaration is disabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator =
+        MPORUtil.buildTestCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
     List<String> files = ImmutableList.of(pSequentializationPath.toString());
     Verify.verify(cfaCreator.parseFileAndCreateCFA(files) != null);
   }
@@ -79,7 +80,8 @@ public class SeqValidator {
         pOptions.inputTypeDeclarations(),
         "can only validate source code if inputTypeDeclaration is enabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
+    CFACreator cfaCreator =
+        MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
     Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
     return pSequentialization;
   }

@@ -49,7 +49,7 @@ public class InputRejectionTest {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
@@ -68,7 +68,7 @@ public class InputRejectionTest {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/HelloJava.java");
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(logger, ShutdownNotifier.createDummy());
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(logger, ShutdownNotifier.createDummy());
     String program = Files.readString(inputFilePath);
     CParserException exception =
         assertThrows(CParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(program));
@@ -187,7 +187,7 @@ public class InputRejectionTest {
     // create cfa for test program pFileName
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     LogManager logger = LogManager.createTestLogManager();
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
     // test if MPORAlgorithm rejects program with correct error message
     RuntimeException throwable =

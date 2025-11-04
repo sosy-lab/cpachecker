@@ -519,7 +519,8 @@ public class SequentializationParseTest {
       throws Exception {
 
     // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator =
+        MPORUtil.buildTestCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
     return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
   }
 
@@ -576,7 +577,7 @@ public class SequentializationParseTest {
     assertThat(pSequentialization.isEmpty()).isFalse();
 
     // test that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(pLogger, pShutdownNotifier);
     CFA seqCfa = cfaCreator.parseSourceAndCreateCFA(pSequentialization);
     assertThat(seqCfa != null).isTrue();
 
