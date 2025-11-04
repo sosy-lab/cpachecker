@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -44,39 +43,6 @@ public class BuiltinFunctionsHandling {
    * @param receiver the receiving parameter expression
    */
   private record ValidatedFScanFParameter(String format, CExpression receiver) {}
-
-  private static String getVerifierNondetNameForType(
-      CSimpleType pType, MachineModel pMachineModel) {
-    CBasicType basicType = pType.getType();
-    return switch (basicType) {
-      case INT -> {
-        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
-        if (pType.hasLongLongSpecifier()) {
-          yield "__VERIFIER_nondet_" + prefix + "longlong";
-        } else if (pType.hasLongSpecifier()) {
-          yield "__VERIFIER_nondet_" + prefix + "long";
-        } else if (pType.hasShortSpecifier()) {
-          yield "__VERIFIER_nondet_" + prefix + "short";
-        } else {
-          yield "__VERIFIER_nondet_" + prefix + "int";
-        }
-      }
-      case CHAR -> {
-        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
-        yield "__VERIFIER_nondet_" + prefix + "char";
-      }
-      case FLOAT -> "__VERIFIER_nondet_float";
-      case DOUBLE -> "__VERIFIER_nondet_double";
-      case BOOL -> "__VERIFIER_nondet_bool";
-      case INT128 -> {
-        String prefix = (pMachineModel.isSigned(pType) ? "u" : "");
-        yield "__VERIFIER_nondet_" + prefix + "int128";
-      }
-      case FLOAT128 -> "__VERIFIER_nondet_float128";
-      case UNSPECIFIED ->
-          throw new IllegalArgumentException("No verifier nondet function for type: " + basicType);
-    };
-  }
 
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
@@ -158,6 +124,11 @@ public class BuiltinFunctionsHandling {
    * <p>Only the particular cases where the call can be replaced into a __VERIFIER_nondet_* call are
    * handled. Anything else results in an {@code UnsupportedCodeException}.
    *
+   * <p>The function returns a function named `__VERIFIER_nondet_ANY` whose return type matches the
+   * type of the receiving variable of fscanf. The analysis making use of this function must ensure
+   * that such a function is properly modeled, and that the same function name being used with
+   * multiple different return types is handled correctly.
+   *
    * @param e the {@code CFunctionCallExpression} representing the fscanf call
    * @param pEdge the CFA edge where the fscanf call occurs, required for proper exception handling
    * @return a {@code CFunctionCallAssignmentStatement} setting the receiving parameter of fscanf to
@@ -205,7 +176,7 @@ public class BuiltinFunctionsHandling {
             new CFunctionDeclaration(
                 pEdge.getFileLocation(),
                 CFunctionType.functionTypeWithReturnType(pSimpleType),
-                getVerifierNondetNameForType(pSimpleType, pMachineModel),
+                "__VERIFIER_nondet_ANY",
                 ImmutableList.of(),
                 ImmutableSet.of());
         CIdExpression nondetFunctionName =
