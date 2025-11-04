@@ -216,10 +216,6 @@ public class CtoFormulaConverter {
     direction = pDirection;
   }
 
-  public MachineModel getMachineModel() {
-    return machineModel;
-  }
-
   @FormatMethod
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {

@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -136,8 +135,7 @@ public class BuiltinFunctionsHandling {
    * @throws UnrecognizedCodeException in case is not precise to create such an assignment
    */
   public static CFunctionCallAssignmentStatement createNondetCallModellingFscanf(
-      CFunctionCallExpression e, CFAEdge pEdge, MachineModel pMachineModel)
-      throws UnrecognizedCodeException {
+      CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (!(e.getFunctionNameExpression() instanceof CIdExpression funcNameIdExpression)
         || !funcNameIdExpression.getName().equals("fscanf")) {
