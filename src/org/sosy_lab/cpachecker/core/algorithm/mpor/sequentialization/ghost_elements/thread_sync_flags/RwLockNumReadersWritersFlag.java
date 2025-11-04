@@ -23,7 +23,6 @@ public record RwLockNumReadersWritersFlag(
     CExpressionAssignmentStatement readersDecrement) {
 
   public RwLockNumReadersWritersFlag {
-
     checkNotNull(readersIdExpression);
     checkNotNull(writersIdExpression);
   }

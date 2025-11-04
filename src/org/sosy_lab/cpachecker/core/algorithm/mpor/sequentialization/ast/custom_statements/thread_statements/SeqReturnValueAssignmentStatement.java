@@ -14,8 +14,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * has a return statement {@code return fibNumber;} then we create a statement {@code x =
  * fibNumber;}.
  */
-public class SeqReturnValueAssignmentStatement extends CSeqThreadStatement {
+public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement {
 
   private final CExpressionAssignmentStatement assignment;
 

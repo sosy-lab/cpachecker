@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,31 +60,18 @@ public record ThreadSyncFlags(
   // Getters =======================================================================================
 
   public CondSignaledFlag getCondSignaledFlag(CIdExpression pIdExpression) {
-    checkArgument(
-        condSignaledFlags.containsKey(pIdExpression),
-        "pIdExpression %s was not found in condSignaled map",
-        pIdExpression);
-    return condSignaledFlags.get(pIdExpression);
+    return Objects.requireNonNull(condSignaledFlags.get(pIdExpression));
   }
 
   public MutexLockedFlag getMutexLockedFlag(CIdExpression pIdExpression) {
-    checkArgument(
-        mutexLockedFlags.containsKey(pIdExpression),
-        "pIdExpression %s was not found in mutexLocked map",
-        pIdExpression);
-    return mutexLockedFlags.get(pIdExpression);
+    return Objects.requireNonNull(mutexLockedFlags.get(pIdExpression));
   }
 
   public RwLockNumReadersWritersFlag getRwLockFlag(CIdExpression pIdExpression) {
-    checkArgument(
-        rwLockFlags.containsKey(pIdExpression),
-        "pIdExpression %s was not found in rwLockFlags map",
-        pIdExpression);
     return Objects.requireNonNull(rwLockFlags.get(pIdExpression));
   }
 
   public CIdExpression getSyncFlag(MPORThread pThread) {
-    checkArgument(syncFlags.containsKey(pThread), "pThread was not found in syncFlags map");
-    return syncFlags.get(pThread);
+    return Objects.requireNonNull(syncFlags.get(pThread));
   }
 }

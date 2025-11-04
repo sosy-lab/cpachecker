@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * An {@code if (*expression*) { *statements* }} statement with an optional {@code else if
  * (*expression*) { *statements* }} branch.
  */
-public class SeqBranchStatement implements SeqSingleControlStatement {
+public final class SeqBranchStatement implements SeqSingleControlStatement {
 
   private final String ifExpression;
 

@@ -40,6 +40,7 @@ public record SeqBinarySearchTreeStatement(
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner tree = new StringJoiner(SeqSyntax.NEWLINE);
     precedingStatements.forEach(statement -> tree.add(statement.toASTString()));
+    // use list<entry<,>> instead of map so that we can split it in the middle for the bin tree
     ImmutableList<Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);

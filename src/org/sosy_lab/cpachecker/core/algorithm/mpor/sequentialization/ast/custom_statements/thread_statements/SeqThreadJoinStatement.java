@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
-public class SeqThreadJoinStatement extends CSeqThreadStatement {
+public final class SeqThreadJoinStatement extends CSeqThreadStatement {
 
   private final Optional<CIdExpression> joinedThreadExitVariable;
 

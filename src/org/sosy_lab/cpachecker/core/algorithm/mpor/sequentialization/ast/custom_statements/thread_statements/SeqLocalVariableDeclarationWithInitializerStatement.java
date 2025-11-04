@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * declarations. Thus, only (local) variable declarations inside functions have to handled
  * explicitly for the sequentialization.
  */
-public class SeqLocalVariableDeclarationWithInitializerStatement extends CSeqThreadStatement {
+public final class SeqLocalVariableDeclarationWithInitializerStatement extends CSeqThreadStatement {
 
   private final CVariableDeclaration variableDeclaration;
 

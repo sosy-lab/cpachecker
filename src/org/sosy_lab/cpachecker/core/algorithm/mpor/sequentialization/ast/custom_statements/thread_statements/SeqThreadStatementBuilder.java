@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class SeqThreadStatementBuilder {
+public final class SeqThreadStatementBuilder {
 
   public static ImmutableList<CSeqThreadStatement> buildStatementsFromThreadNode(
       MPOROptions pOptions,

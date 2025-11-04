@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqForLoopStatement extends CSeqLoopStatement {
+public final class SeqForLoopStatement extends CSeqLoopStatement {
 
   private final CVariableDeclaration counterDeclaration;
 

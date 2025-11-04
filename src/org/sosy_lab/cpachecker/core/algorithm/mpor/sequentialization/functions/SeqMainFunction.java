@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqMainFunction extends SeqFunction {
+public final class SeqMainFunction extends SeqFunction {
 
   private final MPOROptions options;
 

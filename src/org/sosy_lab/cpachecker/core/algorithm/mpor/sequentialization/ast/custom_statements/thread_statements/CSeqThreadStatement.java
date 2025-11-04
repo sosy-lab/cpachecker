@@ -16,18 +16,38 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Statements that convert {@link CFAEdge}s to {@link String}s for the output program, {@code
  * abstract} so that it centralizes fields and methods for all these statements.
  *
- * <p>Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder} and
- * constructors used for cloning are {@code private}.
+ * <p>Please ensure that constructors are package-private (see {@link SeqThreadStatementBuilder})
+ * and constructors used for cloning are {@code private}.
  */
-public abstract class CSeqThreadStatement implements SeqStatement {
+public abstract sealed class CSeqThreadStatement implements SeqStatement
+    permits SeqAssumeStatement,
+        SeqAtomicBeginStatement,
+        SeqAtomicEndStatement,
+        SeqBlankStatement,
+        SeqCondSignalStatement,
+        SeqCondWaitStatement,
+        SeqConstCpaCheckerTmpStatement,
+        SeqDefaultStatement,
+        SeqLocalVariableDeclarationWithInitializerStatement,
+        SeqMutexLockStatement,
+        SeqMutexUnlockStatement,
+        SeqParameterAssignmentStatements,
+        SeqReachErrorStatement,
+        SeqReturnValueAssignmentStatement,
+        SeqRwLockRdLockStatement,
+        SeqRwLockUnlockStatement,
+        SeqRwLockWrLockStatement,
+        SeqThreadCreationStatement,
+        SeqThreadExitStatement,
+        SeqThreadJoinStatement {
 
   final MPOROptions options;
 

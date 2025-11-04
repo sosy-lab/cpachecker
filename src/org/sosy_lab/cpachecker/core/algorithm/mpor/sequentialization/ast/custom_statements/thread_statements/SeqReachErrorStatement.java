@@ -16,8 +16,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * {@code reach_error}s from the input program for the property {@code unreach-call.prp} instead of
  * inlining the function.
  */
-public class SeqReachErrorStatement extends CSeqThreadStatement {
+public final class SeqReachErrorStatement extends CSeqThreadStatement {
 
   SeqReachErrorStatement(
       MPOROptions pOptions,

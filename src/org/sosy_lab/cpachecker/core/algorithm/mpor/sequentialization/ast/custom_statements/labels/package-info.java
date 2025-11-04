@@ -7,9 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Contains classes that hold data relevant to export an injected bit vector statement to a String.
+ * Classes to represent and export (as String) goto statements, include the labels that are jumped
+ * to.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;

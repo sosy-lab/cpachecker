@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class SeqThreadSimulationFunction extends SeqFunction {
+public final class SeqThreadSimulationFunction extends SeqFunction {
 
   public final MPORThread thread;
 

@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Represents the default case block statement where the original {@link CFAEdge}s require no
  * specific handling and their (substituted) code is placed directly into the case block.
  */
-public class SeqDefaultStatement extends CSeqThreadStatement {
+public final class SeqDefaultStatement extends CSeqThreadStatement {
 
   private final CStatementEdge edge;
 

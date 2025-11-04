@@ -10,4 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 
-public interface SeqInjectedStatement extends SeqStatement {}
+public sealed interface SeqInjectedStatement extends SeqStatement
+    permits SeqBitVectorAssignmentStatement,
+        SeqBitVectorEvaluationStatement,
+        SeqConflictOrderStatement,
+        SeqCountUpdateStatement,
+        SeqIgnoreSleepReductionStatement,
+        SeqLastBitVectorUpdateStatement,
+        SeqRoundGotoStatement,
+        SeqSyncUpdateStatement {}

@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control;
 
-public abstract class CSeqLoopStatement implements SeqSingleControlStatement {
+public abstract sealed class CSeqLoopStatement implements SeqSingleControlStatement
+    permits SeqForLoopStatement, SeqWhileLoopStatement {
 
   /**
    * The compound statement i.e. the loop block. Can be empty to model infinite loops that do

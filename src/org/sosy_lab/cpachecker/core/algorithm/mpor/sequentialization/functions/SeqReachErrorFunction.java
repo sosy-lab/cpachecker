@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqStringLiteralExpressions;
 
-public class SeqReachErrorFunction extends SeqFunction {
+public final class SeqReachErrorFunction extends SeqFunction {
 
   private static final CFunctionCallExpression assertFailFunctionCallExpression =
       new CFunctionCallExpression(

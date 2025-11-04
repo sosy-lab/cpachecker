@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>Reasoning: given that we declare all variables outside the main function in the
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
  */
-public class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
+public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 

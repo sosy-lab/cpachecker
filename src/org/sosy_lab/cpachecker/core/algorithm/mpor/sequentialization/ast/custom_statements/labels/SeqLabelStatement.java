@@ -6,10 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 
-public interface SeqLabelStatement extends SeqStatement {
+public sealed interface SeqLabelStatement extends SeqStatement
+    permits SeqBlockLabelStatement, SeqThreadLabelStatement {
+
   String toASTStringWithoutColon();
 }

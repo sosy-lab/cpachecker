@@ -26,7 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public abstract class SeqFunction {
+public abstract sealed class SeqFunction
+    permits SeqAssumeFunction, SeqMainFunction, SeqReachErrorFunction, SeqThreadSimulationFunction {
 
   abstract String buildBody() throws UnrecognizedCodeException;
 

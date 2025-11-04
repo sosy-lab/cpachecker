@@ -16,8 +16,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * intermediate variable can then be accessed by threads calling {@code pthread_join} on this
  * exiting thread.
  */
-public class SeqThreadExitStatement extends CSeqThreadStatement {
+public final class SeqThreadExitStatement extends CSeqThreadStatement {
 
   private final FunctionReturnValueAssignment returnValueAssignment;
 

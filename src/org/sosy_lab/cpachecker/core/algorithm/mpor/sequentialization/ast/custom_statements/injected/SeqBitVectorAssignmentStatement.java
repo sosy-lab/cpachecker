@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
@@ -14,8 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqBitVectorAssignmentStatement(
-    CIdExpression variable, BitVectorValueExpression value)
-    implements SeqInjectedBitVectorStatement {
+    CIdExpression variable, BitVectorValueExpression value) implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

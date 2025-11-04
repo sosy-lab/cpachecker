@@ -6,7 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Contains all injected statements, such as marking entering critical sections. */
+/**
+ * Contains all injected statements that are not part of the original program syntax. This includes
+ * e.g. marking that a thread enters a critical section, or updating bit vector variables.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

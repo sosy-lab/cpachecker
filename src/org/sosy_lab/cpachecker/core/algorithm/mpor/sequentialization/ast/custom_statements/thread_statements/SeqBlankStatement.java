@@ -13,8 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */
-public class SeqBlankStatement extends CSeqThreadStatement {
+public final class SeqBlankStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
