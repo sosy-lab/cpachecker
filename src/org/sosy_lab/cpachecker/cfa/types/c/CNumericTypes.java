@@ -8,6 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+/**
+ * Utility class providing constant instances for all standard C numeric simple types.
+ *
+ * <p>These constants are pre-configured with the correct qualifiers (e.g., signed, unsigned, long,
+ * short) for common C primitive types like {@code int}, {@code char}, and {@code float} .
+ *
+ * <p>Note: This class explicitly deals only with scalar CSimpleTypes and does not include derived
+ * types such as arrays, pointers, or structures, which are available in {@link CDerivedTypes}.
+ */
 public final class CNumericTypes {
 
   private CNumericTypes() {}

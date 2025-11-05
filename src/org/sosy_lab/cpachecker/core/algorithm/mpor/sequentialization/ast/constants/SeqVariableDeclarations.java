@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.consta
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder.buildVariableDeclaration;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDerivedTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -20,7 +21,7 @@ public class SeqVariableDeclarations {
   static final CVariableDeclaration PC_ARRAY_DUMMY =
       buildVariableDeclaration(
           false,
-          SeqArrayTypes.UNSIGNED_INT_ARRAY,
+          CDerivedTypes.UNSIGNED_INT_ARRAY,
           SeqToken.PROGRAM_COUNTER_VARIABLE,
           SeqInitializers.EMPTY_LIST);
 

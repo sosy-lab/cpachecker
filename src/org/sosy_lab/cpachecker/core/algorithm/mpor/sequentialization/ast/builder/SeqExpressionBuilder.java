@@ -29,11 +29,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDerivedTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqArrayTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -47,7 +47,7 @@ public class SeqExpressionBuilder {
   public static CArraySubscriptExpression buildPcSubscriptExpression(CExpression pSubscriptExpr) {
     return new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        SeqArrayTypes.UNSIGNED_INT_ARRAY,
+        CDerivedTypes.UNSIGNED_INT_ARRAY,
         SeqIdExpressions.PC_ARRAY_DUMMY,
         pSubscriptExpr);
   }
