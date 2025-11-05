@@ -19,7 +19,11 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -183,6 +187,36 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             //   - One access happens-before the other
             hasDataRace = true;
             break;
+          }
+        }
+      }
+
+      // Some edges, are not actually statements which should reset the
+      // tracked accesses (e.g., function call edges, and blank edges).
+      // In this, cases we need to keep the old accesses as well.
+      CFAEdgeType edgeType = cfaEdge.getEdgeType();
+      switch (edgeType) {
+        case BlankEdge, FunctionCallEdge, FunctionReturnEdge, DeclarationEdge -> {
+          newMemoryAccesses = memoryAccessBuilder.build();
+        }
+        case AssumeEdge, ReturnStatementEdge, CallToReturnEdge -> {
+          // Do nothing, newMemoryAccesses is already correct
+        }
+        case StatementEdge -> {
+          if (!(cfaEdge instanceof AStatementEdge statementEdge)) {
+            throw new CPATransferException(
+                "Unexpected statement edge type: " + cfaEdge.getClass().getSimpleName());
+          }
+          AStatement statement = statementEdge.getStatement();
+          if (statement instanceof AFunctionCallStatement pCallStatement
+              && pCallStatement
+                  .getFunctionCallExpression()
+                  .getDeclaration()
+                  .getName()
+                  .startsWith("__VERIFIER_atomic_")) {
+            // Atomic sections do not invalidate tracked accesses
+            // (they are not synchronization operations)
+            newMemoryAccesses = memoryAccessBuilder.build();
           }
         }
       }
