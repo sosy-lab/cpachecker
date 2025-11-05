@@ -129,7 +129,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      Optional<CallstackStateEqualsWrapper> possibleCallStack = AbstractStates.extractOptionalCallstackWraper(state);
+      Optional<CallstackStateEqualsWrapper> possibleCallStack =
+          AbstractStates.extractOptionalCallstackWraper(state);
       if (possibleCallStack.isPresent()) {
         return possibleCallStack.get().getState();
       }

@@ -561,11 +561,6 @@ public class CoreComponentsFactory {
           new ParallelAlgorithm(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
-    } else if (useTerminationToSafetyAlgorithm) {
-      algorithm =
-          new TerminationToSafetyAlgorithm(
-              config, logger, shutdownNotifier, aggregatedReachedSets, specification, cfa, cpa);
-
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
 
@@ -581,6 +576,10 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
+      if (useTerminationToSafetyAlgorithm) {
+         new TerminationToSafetyAlgorithm(config, cpa);
+      }
+
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {

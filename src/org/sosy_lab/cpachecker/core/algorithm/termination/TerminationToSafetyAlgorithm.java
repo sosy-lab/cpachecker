@@ -22,82 +22,36 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public class TerminationToSafetyAlgorithm implements Algorithm {
 
-  private final Configuration configuration;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final AggregatedReachedSets aggregatedReachedSets;
-  private final Specification specification;
-  private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
-  private final Algorithm algorithm;
 
   public TerminationToSafetyAlgorithm(
       Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      AggregatedReachedSets pAggregatedReachedSets,
-      Specification pSpecification,
-      CFA pCfa,
       ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
-    logger = checkNotNull(pLogger);
-    aggregatedReachedSets = pAggregatedReachedSets;
-    specification = pSpecification;
-    shutdownNotifier = pShutdownNotifier;
-    cfa = checkNotNull(pCfa);
+      throws InvalidConfigurationException {
     cpa = checkNotNull(pCpa);
-    PredicateCPA predicateCPA = null;
-    TerminationToReachCPA terminationCPA = null;
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
     configBuilder.clearOption("analysis.algorithm.terminationToSafety");
-    configuration = configBuilder.build();
 
-    CoreComponentsFactory factory =
-        new CoreComponentsFactory(
-            configuration, logger, shutdownNotifier, aggregatedReachedSets, cfa);
-    if (cpa instanceof ARGCPA pArgCpa) {
-      CompositeCPA compositeCPA = null;
-      for (ConfigurableProgramAnalysis wrappedCpa : pArgCpa.getWrappedCPAs()) {
-        if (wrappedCpa instanceof CompositeCPA pCompositeCPA) {
-          compositeCPA = pCompositeCPA;
-        }
-      }
-      if (compositeCPA == null) {
-        throw new InvalidConfigurationException("TerminationToSafety needs CompositeCPA!");
-      }
-
-      for (ConfigurableProgramAnalysis wrappedCpa : compositeCPA.getWrappedCPAs()) {
-        if (wrappedCpa instanceof PredicateCPA pPredicateCPA) {
-          predicateCPA = pPredicateCPA;
-        }
-        if (wrappedCpa instanceof TerminationToReachCPA pTerminationCPA) {
-          terminationCPA = pTerminationCPA;
-        }
-      }
-      if (terminationCPA == null || predicateCPA == null) {
-        throw new InvalidConfigurationException(
-            "TerminationToSafety needs both PredicateCPA and TerminationToReachCPA!");
-      }
-    } else {
-      throw new InvalidConfigurationException("TerminationToSafety needs ARGCPA!");
-    }
+    TerminationToReachCPA terminationCPA =
+        CPAs.retrieveCPAOrFail(
+            cpa, TerminationToReachCPA.class, TerminationToSafetyAlgorithm.class);
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, TerminationToSafetyAlgorithm.class);
 
     terminationCPA.setSolver(predicateCPA.getSolver());
-    algorithm = factory.createAlgorithm(cpa, specification);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    return algorithm.run(reachedSet);
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }
