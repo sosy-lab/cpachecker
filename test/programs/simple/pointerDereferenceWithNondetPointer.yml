@@ -15,3 +15,5 @@ properties:
   - property_file: ../../config/properties/valid-memsafety.prp
     expected_verdict: false
     subproperty: valid-deref
+  - property_file: ../../config/properties/unreach-label.prp
+    expected_verdict: false
