@@ -207,11 +207,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
         AStatement statement = statementEdge.getStatement();
         if (statement instanceof AFunctionCallStatement pCallStatement
-            && pCallStatement
-                .getFunctionCallExpression()
-                .getDeclaration()
-                .getName()
-                .startsWith("__VERIFIER_atomic_")) {
+            && ImmutableSet.of("__VERIFIER_atomic_begin", "__VERIFIER_atomic_end")
+                .contains(pCallStatement.getFunctionCallExpression().getDeclaration().getName())) {
           // Atomic sections do not invalidate tracked accesses
           // (they are not synchronization operations)
           newMemoryAccesses = memoryAccessBuilder.build();
