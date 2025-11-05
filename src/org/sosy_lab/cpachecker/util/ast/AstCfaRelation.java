@@ -15,7 +15,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
-import java.util.Map;
+import java.util.Comparator;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -25,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
 public final class AstCfaRelation {
@@ -57,7 +57,7 @@ public final class AstCfaRelation {
   @LazyInit private ImmutableMap<CFAEdge, IfElement> conditionEdgesToIfStructure = null;
 
   @LazyInit
-  private ImmutableMap<Pair<Integer, Integer>, IfElement> lineAndStartColumnToIfStructure = null;
+  private ImmutableMap<StartingLocation, IfElement> lineAndStartColumnToIfStructure = null;
 
   @LazyInit
   private ImmutableMap<StartingLocation, IterationElement> lineAndStartColumnToIterationStructure =
@@ -65,18 +65,18 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
-  private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
-  private final Map<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
-  private final Set<AVariableDeclaration> globalVariables;
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
       ImmutableSet<StatementElement> pStatementElements,
-      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
-      Set<AVariableDeclaration> pGlobalVariables,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableSet<AVariableDeclaration> pGlobalVariables,
       ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;
@@ -169,7 +169,7 @@ public final class AstCfaRelation {
    */
   public Optional<CFANode> getNodeForIterationStatementLocation(int line, int column) {
     for (IterationElement structure : iterationStructures) {
-      if (structure.getCompleteElement().location().getStartingLineNumber() == line
+      if (structure.getCompleteElement().location().getStartingLineInOrigin() == line
           && structure.getCompleteElement().location().getStartColumnInLine() == column) {
         return structure.getLoopHead();
       }
@@ -191,7 +191,7 @@ public final class AstCfaRelation {
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
             .getValue();
 
-    if (statement.location().getStartingLineNumber() != line
+    if (statement.location().getStartingLineInOrigin() != line
         || statement.location().getStartColumnInLine() != column) {
       // We only want to match the exact starting location of the statement
       return Optional.empty();
@@ -204,11 +204,11 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<Pair<Integer, Integer>, IfElement> builder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<StartingLocation, IfElement> builder = new ImmutableMap.Builder<>();
     for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
-      Pair<Integer, Integer> key =
-          Pair.of(location.getStartColumnInLine(), location.getStartingLineNumber());
+      StartingLocation key =
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIfStructure = builder.buildOrThrow();
@@ -221,12 +221,12 @@ public final class AstCfaRelation {
    * @param pLine the line to look for
    * @return the IfElement that starts at the given column and line
    */
-  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pColumn, Integer pLine) {
+  public Optional<IfElement> getIfStructureStartingAtColumn(Integer pLine, Integer pColumn) {
     if (lineAndStartColumnToIfStructure == null) {
       initializeMapFromLineAndStartColumnToIfStructure();
     }
 
-    Pair<Integer, Integer> key = Pair.of(pColumn, pLine);
+    StartingLocation key = new StartingLocation(pColumn, pLine);
     if (lineAndStartColumnToIfStructure.containsKey(key)) {
       return Optional.ofNullable(lineAndStartColumnToIfStructure.get(key));
     }
@@ -242,7 +242,7 @@ public final class AstCfaRelation {
     for (IterationElement structure : iterationStructures) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
-          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineNumber());
+          new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
       builder.put(key, structure);
     }
     lineAndStartColumnToIterationStructure = builder.buildOrThrow();
@@ -293,7 +293,7 @@ public final class AstCfaRelation {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
-              element.getCompleteElement().location().getStartingLineNumber());
+              element.getCompleteElement().location().getStartingLineInOrigin());
       builder.put(key, element.getCompleteElement());
     }
     startingLocationToTightestStatement = builder.buildOrThrow();
@@ -309,10 +309,93 @@ public final class AstCfaRelation {
         .getValue();
   }
 
-  public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
-    return FluentIterable.concat(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
-        globalVariables);
+  /**
+   * This method returns all variables and parameters in scope at the given node. It includes global
+   * variables, local variables and parameters.
+   *
+   * <p>Whenever this is not possible, it returns an empty Optional instead. This usually happens
+   * when some information was not passed/tracked correctly from the frontend and is likely a bug in
+   * CPAchecker, so in case you encounter such a case please report it.
+   *
+   * <p>We return an empty Optional to avoid throwing an exception in case the information is not
+   * available, since currently this information is only required when generating some output of
+   * CPAchecker, in which case we can simply remove the information if it is not available.
+   *
+   * @param pNode The node for which we want to get the variables and parameters in scope
+   * @return An Optional containing all variables and parameters in scope at the given node, or an
+   *     empty Optional if the information is not available
+   */
+  public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
+      CFANode pNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(pNode)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        FluentIterable.concat(
+            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
+            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
+            globalVariables));
+  }
+
+  /**
+   * This method returns all the best approximation we have for the file location of the node in the
+   * original program.
+   *
+   * <p>Whenever doing a matching is not possible, it returns an empty Optional instead. This can
+   * happen with difficult control structures which may make it difficult to determine a single
+   * location.
+   *
+   * @param pNode The node for which we want to get the file location
+   * @return An Optional containing the best approximation we have for the position of a CFANode in
+   *     the input program, or an empty Optional if we cannot generate such a matching
+   */
+  public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
+    if (pNode.getNumLeavingEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
+              .min(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineInOrigin());
+
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the first node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else if (pNode.getNumLeavingEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          pNode.getAllLeavingEdges().transform(CFAEdge::getFileLocation).stream()
+              .max(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineInOrigin());
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the last node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else {
+      // Could happen if a node is not connected to the CFA
+      return Optional.empty();
+    }
   }
 }

@@ -102,7 +102,7 @@ public abstract sealed class PredicateAbstractState
       if (super.abstractionFormula.isFalse()) {
         // put unreachable states in a separate partition to avoid merging
         // them with any reachable states
-        return Boolean.FALSE;
+        return false;
       } else {
         return null;
       }
@@ -183,6 +183,7 @@ public abstract sealed class PredicateAbstractState
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
                   && pAstCfaRelation
                       .getVariablesAndParametersInScope(pLocation)
+                      .orElseThrow()
                       .anyMatch(
                           var ->
                               // For local variables

@@ -5,13 +5,14 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
+  <!-- Documentation on creating new svcomp configurations can be found in doc/SV-Comp.md -->
 
   <!--
     Benchmark definition for SV-COMP configuration and benchmarks.
@@ -34,7 +35,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <resultfiles>**/*.graphml</resultfiles>
 
-  <option name="--svcomp25"/>
+  <option name="--svcomp26"/>
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
   <option name="--timelimit">900 s</option>

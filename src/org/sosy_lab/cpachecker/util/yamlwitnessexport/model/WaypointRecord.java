@@ -166,6 +166,7 @@ public class WaypointRecord {
 
   public enum WaypointAction {
     FOLLOW("follow"),
+    CYCLE("cycle"),
     AVOID("avoid"),
     UNKNOWN("unknown");
 

@@ -14,8 +14,11 @@ import static com.google.common.base.Verify.verify;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -56,24 +59,39 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
+
+  // CDT has no builtin support for _Atomic. In some cases we can use a workaround where we convert
+  // _Atomic into an attribute and get the info from there, but whenever we need to convert an IType
+  // instance we do not know whether it should be _Atomic. Use this constant to mark such places.
+  // Cf. #1253, https://github.com/eclipse-cdt/cdt/issues/946
+  private static final boolean ATOMIC_MISSING_FOR_ITYPES = false;
 
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
   private final ParseContext parseContext;
 
+  // All cases of _Atomic that were not handled so far. This set is pre-filled and we need to remove
+  // locations once we handled their respective AST node.
+  private final Set<FileLocation> unhandledAtomicOccurrences;
+
   ASTTypeConverter(
-      Scope pScope, ASTConverter pConverter, String pFilePrefix, ParseContext pParseContext) {
+      Scope pScope,
+      ASTConverter pConverter,
+      String pFilePrefix,
+      ParseContext pParseContext,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
+    unhandledAtomicOccurrences = pUnhandledAtomicOccurrences;
 
     pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
@@ -92,100 +110,88 @@ class ASTTypeConverter {
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   private CType convert0(IType t) {
-    if (t instanceof IBasicType) {
-      return conv((IBasicType) t);
+    return switch (t) {
+      case IBasicType iBasicType -> conv(iBasicType);
 
-    } else if (t instanceof IPointerType) {
-      return conv((IPointerType) t);
+      case IPointerType iPointerType -> conv(iPointerType);
 
-    } else if (t instanceof ITypedef) {
-      return conv((ITypedef) t);
+      case ITypedef iTypedef -> conv(iTypedef);
 
-    } else if (t instanceof ICompositeType ct) {
-      ComplexTypeKind kind =
-          switch (ct.getKey()) {
-            case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
-            case ICompositeType.k_union -> ComplexTypeKind.UNION;
-            default ->
-                throw new CFAGenerationRuntimeException(
-                    "Unknown key " + ct.getKey() + " for composite type " + t);
-          };
-      String name = ct.getName();
-      String qualifiedName = kind.toASTString() + " " + name;
-
-      @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
-
-      // We have seen this type already.
-      // Replace it with a CElaboratedType.
-      if (oldType != null) {
-        return new CElaboratedType(
-            false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
-      }
-
-      // empty linkedList for the Fields of the struct, they are created afterwards
-      // with the right references in case of pointers to a struct of the same type
-      // otherwise they would not point to the correct struct
-      // TODO: volatile and const cannot be checked here until no, so both is set
-      //       to false
-      CCompositeType compType = new CCompositeType(false, false, kind, name, name);
-
-      // We need to cache compType before converting the type of its fields!
-      // Otherwise we run into an infinite recursion if the type of one field
-      // is (a pointer to) the struct itself.
-      // In order to prevent a recursive reference from compType to itself,
-      // we cheat and put a CElaboratedType instance in the map.
-      // This means that wherever the ICompositeType instance appears, it will be
-      // replaced by an CElaboratedType.
-      CElaboratedType elaborateType =
-          new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
-      parseContext.rememberCType(t, elaborateType, filePrefix);
-
-      compType.setMembers(conv(ct.getFields()));
-
-      return compType;
-
-    } else if (t instanceof IFunctionType ft) {
-      IType[] parameters = ft.getParameterTypes();
-      List<CType> newParameters = new ArrayList<>(parameters.length);
-      for (IType p : parameters) {
-        if (p instanceof IBasicType && ((IBasicType) p).getKind() == IBasicType.Kind.eVoid) {
-          // there may be a function declaration f(void), which is equal to f()
-          // we don't want this dummy parameter "void"
-          assert parameters.length == 1;
-        } else {
-          newParameters.add(convert(p));
+      case ICompositeType ct -> {
+        ComplexTypeKind kind =
+            switch (ct.getKey()) {
+              case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
+              case ICompositeType.k_union -> ComplexTypeKind.UNION;
+              default ->
+                  throw new CFAGenerationRuntimeException(
+                      "Unknown key " + ct.getKey() + " for composite type " + t);
+            };
+        String name = ct.getName();
+        String qualifiedName = kind.toASTString() + " " + name;
+        @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
+        // We have seen this type already.
+        // Replace it with a CElaboratedType.
+        if (oldType != null) {
+          yield new CElaboratedType(
+              CTypeQualifiers.NONE, kind, oldType.getName(), oldType.getOrigName(), oldType);
         }
+        // empty linkedList for the Fields of the struct, they are created afterward
+        // with the right references in case of pointers to a struct of the same type
+        // otherwise they would not point to the correct struct
+        // TODO: volatile and const cannot be checked here until no, so both is set
+        //       to false
+        CCompositeType compType = new CCompositeType(CTypeQualifiers.NONE, kind, name, name);
+        // We need to cache compType before converting the type of its fields!
+        // Otherwise, we run into an infinite recursion if the type of one field
+        // is (a pointer to) the struct itself.
+        // In order to prevent a recursive reference from compType to itself,
+        // we cheat and put a CElaboratedType instance in the map.
+        // This means that wherever the ICompositeType instance appears, it will be
+        // replaced by a CElaboratedType.
+        CElaboratedType elaborateType =
+            new CElaboratedType(CTypeQualifiers.NONE, kind, name, compType.getOrigName(), compType);
+        parseContext.rememberCType(t, elaborateType, filePrefix);
+        compType.setMembers(conv(ct.getFields()));
+        yield compType;
       }
-
-      // TODO varargs
-      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
-
-    } else if (t instanceof ICArrayType) {
-      return conv((ICArrayType) t);
-
-    } else if (t instanceof IQualifierType) {
-      return conv((IQualifierType) t);
-
-    } else if (t instanceof IEnumeration) {
-      return conv((IEnumeration) t);
-
-    } else if (t instanceof IProblemType) {
-      // Of course, the obvious idea would be to throw an exception here.
-      // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
-      // e.g. in cdaudio_safe.i.cil.c
-      return new CProblemType(t + ": " + ((IProblemType) t).getMessage());
-
-    } else if (t instanceof IProblemBinding problem) {
-      if (problem.getASTNode().getRawSignature().equals("__label__")) {
-        // This is a "local label" (a GNU C extension).
-        // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
-        return new CProblemType(problem.getASTNode().getRawSignature());
+      case IFunctionType ft -> {
+        IType[] parameters = ft.getParameterTypes();
+        List<CType> newParameters = new ArrayList<>(parameters.length);
+        for (IType p : parameters) {
+          if (p instanceof IBasicType iBasicType && iBasicType.getKind() == IBasicType.Kind.eVoid) {
+            // there may be a function declaration f(void), which is equal to f()
+            // we don't want this dummy parameter "void"
+            assert parameters.length == 1;
+          } else {
+            newParameters.add(convert(p));
+          }
+        }
+        // TODO varargs
+        yield new CFunctionType(convert(ft.getReturnType()), newParameters, false);
       }
-      throw parseContext.parseError(problem.getMessage(), problem.getASTNode());
+      case ICArrayType iCArrayType -> conv(iCArrayType);
 
-    } else {
-      throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
-    }
+      case IQualifierType iQualifierType -> conv(iQualifierType);
+
+      case IEnumeration iEnumeration -> conv(iEnumeration);
+
+      case IProblemType iProblemType -> {
+        // Of course, the obvious idea would be to throw an exception here.
+        // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
+        // e.g. in cdaudio_safe.i.cil.c
+        yield new CProblemType(t + ": " + iProblemType.getMessage());
+      }
+      case IProblemBinding problem -> {
+        if (problem.getASTNode().getRawSignature().equals("__label__")) {
+          // This is a "local label" (a GNU C extension).
+          // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
+          yield new CProblemType(problem.getASTNode().getRawSignature());
+        }
+        throw parseContext.parseError(problem.getMessage(), problem.getASTNode());
+      }
+      default ->
+          throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
+    };
   }
 
   private CType conv(final IBasicType t) {
@@ -228,8 +234,7 @@ class ASTTypeConverter {
 
       // TODO why is there no isConst() and isVolatile() here?
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           c.isLong(),
           c.isShort(),
@@ -245,7 +250,9 @@ class ASTTypeConverter {
   }
 
   private CPointerType conv(final IPointerType t) {
-    return new CPointerType(t.isConst(), t.isVolatile(), convert(t.getType()));
+    return new CPointerType(
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
+        convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -256,10 +263,10 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), oldType);
+      return new CTypedefType(CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(
-          false, false, scope.getFileSpecificTypeName(name), convert(t.getType()));
+          CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), convert(t.getType()));
     }
   }
 
@@ -293,7 +300,10 @@ class ASTTypeConverter {
         throw new CFAGenerationRuntimeException(e);
       }
     }
-    return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
+    return new CArrayType(
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
+        convert(t.getType()),
+        length);
   }
 
   private CType conv(final IQualifierType t) {
@@ -302,11 +312,8 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = CTypes.withConstSetTo(i, isConst);
-    i = CTypes.withVolatileSetTo(i, isVolatile);
-
-    assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
-    return i;
+    return i.withQualifiersSetTo(
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -320,38 +327,23 @@ class ASTTypeConverter {
     } else {
       name = scope.getFileSpecificTypeName(name);
     }
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, origName, realType);
+    return new CElaboratedType(
+        CTypeQualifiers.NONE, ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   CType convert(final IASTSimpleDeclSpecifier dd) {
     CBasicType type;
     switch (dd.getType()) {
-      case IASTSimpleDeclSpecifier.t_bool:
-        type = CBasicType.BOOL;
-        break;
-      case IASTSimpleDeclSpecifier.t_char:
-        type = CBasicType.CHAR;
-        break;
-      case IASTSimpleDeclSpecifier.t_double:
-        type = CBasicType.DOUBLE;
-        break;
-      case IASTSimpleDeclSpecifier.t_float:
-        type = CBasicType.FLOAT;
-        break;
-      case IASTSimpleDeclSpecifier.t_float128:
-        type = CBasicType.FLOAT128;
-        break;
-      case IASTSimpleDeclSpecifier.t_int:
-        type = CBasicType.INT;
-        break;
-      case IASTSimpleDeclSpecifier.t_int128:
-        type = CBasicType.INT128;
-        break;
-      case IASTSimpleDeclSpecifier.t_unspecified:
-        type = CBasicType.UNSPECIFIED;
-        break;
-      case IASTSimpleDeclSpecifier.t_void:
+      case IASTSimpleDeclSpecifier.t_bool -> type = CBasicType.BOOL;
+      case IASTSimpleDeclSpecifier.t_char -> type = CBasicType.CHAR;
+      case IASTSimpleDeclSpecifier.t_double -> type = CBasicType.DOUBLE;
+      case IASTSimpleDeclSpecifier.t_float -> type = CBasicType.FLOAT;
+      case IASTSimpleDeclSpecifier.t_float128 -> type = CBasicType.FLOAT128;
+      case IASTSimpleDeclSpecifier.t_int -> type = CBasicType.INT;
+      case IASTSimpleDeclSpecifier.t_int128 -> type = CBasicType.INT128;
+      case IASTSimpleDeclSpecifier.t_unspecified -> type = CBasicType.UNSPECIFIED;
+      case IASTSimpleDeclSpecifier.t_void -> {
         if (dd.isComplex()
             || dd.isImaginary()
             || dd.isLong()
@@ -361,8 +353,9 @@ class ASTTypeConverter {
             || dd.isUnsigned()) {
           throw parseContext.parseError("Void type with illegal modifier", dd);
         }
-        return CVoidType.create(dd.isConst(), dd.isVolatile());
-      case IASTSimpleDeclSpecifier.t_typeof:
+        return CVoidType.create(convertCTypeQualifiers(dd));
+      }
+      case IASTSimpleDeclSpecifier.t_typeof -> {
         CType ctype;
         if (dd.getDeclTypeExpression() instanceof IASTTypeIdExpression typeId) {
           verify(
@@ -374,18 +367,19 @@ class ASTTypeConverter {
           ctype = convert(dd.getDeclTypeExpression().getExpressionType());
         }
 
-        // readd the information about isVolatile and isConst if they got lost in
-        // the previous conversion
-        if (dd.isConst()) {
-          ctype = CTypes.withConst(ctype);
-        }
-        if (dd.isVolatile()) {
-          ctype = CTypes.withVolatile(ctype);
+        if (!(ctype instanceof CProblemType)) {
+          // We can have something like "const __typeof__(volatile int)", we need to combine inner
+          // and outer qualifier.
+          // TODO wrong for arrays once we fix its getCanonicalType(), cf. #1375
+          ctype =
+              ctype.withQualifiersSetTo(
+                  CTypeQualifiers.union(ctype.getQualifiers(), convertCTypeQualifiers(dd)));
         }
         return ctype;
-      default:
-        throw parseContext.parseError(
-            "Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), dd);
+      }
+      default ->
+          throw parseContext.parseError(
+              "Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), dd);
     }
 
     if ((dd.isShort() && dd.isLong())
@@ -396,8 +390,7 @@ class ASTTypeConverter {
     }
 
     return new CSimpleType(
-        dd.isConst(),
-        dd.isVolatile(),
+        convertCTypeQualifiers(dd),
         type,
         dd.isLong(),
         dd.isShort(),
@@ -408,11 +401,11 @@ class ASTTypeConverter {
         dd.isLongLong());
   }
 
-  CType convert(final IASTNamedTypeSpecifier d) {
+  CTypedefType convert(final IASTNamedTypeSpecifier d) {
     org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
     String name = ASTConverter.convert(astName);
     org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
-    if (!(binding instanceof IType)) {
+    if (!(binding instanceof IType iType)) {
       throw parseContext.parseError("Unknown binding of typedef", d);
     }
     CType type = null;
@@ -421,17 +414,9 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      type = convert((IType) binding);
+      type = convert(iType);
     }
-
-    if (d.isConst()) {
-      type = CTypes.withConst(type);
-    }
-    if (d.isVolatile()) {
-      type = CTypes.withVolatile(type);
-    }
-
-    return type;
+    return new CTypedefType(convertCTypeQualifiers(d), scope.getFileSpecificTypeName(name), type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
@@ -445,6 +430,36 @@ class ASTTypeConverter {
       case IASTDeclSpecifier.sc_typedef -> CStorageClass.TYPEDEF;
       default -> throw parseContext.parseError("Unsupported storage class", d);
     };
+  }
+
+  CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
+    return CTypeQualifiers.create(hasCPAcheckerAttributeForAtomic(d), d.isConst(), d.isVolatile());
+  }
+
+  /**
+   * Check whether this AST node has an attribute that was added by the preprocessor as a
+   * replacement for _Atomic. Cf #1253
+   */
+  boolean hasCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      String name = String.valueOf(attr.getName());
+      if (name.equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        FileLocation loc = converter.getLocation(attr);
+        // We cannot check that loc is still in unhandledAtomic, some AST nodes are handled twice.
+        unhandledAtomicOccurrences.remove(loc);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  boolean hasUnexpectedCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        throw parseContext.parseError("_Atomic in currently unsupported location", ao.getParent());
+      }
+    }
+    return false;
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
@@ -465,13 +480,16 @@ class ASTTypeConverter {
       name = scope.getFileSpecificTypeName(name);
     }
 
-    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);
+    return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
-      return new CPointerType(p.isConst(), p.isVolatile(), type);
+      return new CPointerType(
+          CTypeQualifiers.create(
+              hasUnexpectedCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+          type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);

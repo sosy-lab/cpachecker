@@ -56,13 +56,13 @@ public interface DssActor extends Runnable {
    * Returns false as long as this worker should run. Once it returns true it should never switch
    * back to returning false.
    *
-   * @return true iff actor should stop working and is never needed again, false otherwise.
+   * @return whether actor should stop working and is never needed again
    * @see DssWorker
    */
   boolean shutdownRequested();
 
   /**
-   * Get an unique ID of this actor.
+   * Get a unique ID of this actor.
    *
    * @return Unique ID of this worker.
    */

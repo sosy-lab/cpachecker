@@ -8,11 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import java.io.IOException;
@@ -32,7 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
@@ -80,20 +74,20 @@ public class LocationState
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
     if (followFunctionCalls) {
-      return leavingEdges(locationNode);
+      return locationNode.getLeavingEdges();
 
     } else {
-      return allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall);
+      return locationNode.getAllLeavingEdges().filter(LocationState::isNoFunctionCall);
     }
   }
 
   @Override
   public Iterable<CFAEdge> getIncomingEdges() {
     if (followFunctionCalls) {
-      return enteringEdges(locationNode);
+      return locationNode.getEnteringEdges();
 
     } else {
-      return allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall);
+      return locationNode.getAllEnteringEdges().filter(LocationState::isNoFunctionCall);
     }
   }
 
@@ -112,11 +106,11 @@ public class LocationState
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      switch (Ascii.toLowerCase(parts.get(0))) {
-        case "line":
+      switch (Ascii.toLowerCase(parts.getFirst())) {
+        case "line" -> {
           try {
             int queryLine = Integer.parseInt(parts.get(1));
-            for (CFAEdge edge : CFAUtils.enteringEdges(locationNode)) {
+            for (CFAEdge edge : locationNode.getEnteringEdges()) {
               if (edge.getLineNumber() == queryLine) {
                 return true;
               }
@@ -130,13 +124,16 @@ public class LocationState
                     + parts.get(1)
                     + "\"");
           }
-        case "functionname":
+        }
+        case "functionname" -> {
           return locationNode.getFunctionName().equals(parts.get(1));
-        case "label":
-          return locationNode instanceof CFALabelNode
-              ? ((CFALabelNode) locationNode).getLabel().equals(parts.get(1))
+        }
+        case "label" -> {
+          return locationNode instanceof CFALabelNode labelNode
+              ? labelNode.getLabel().equals(parts.get(1))
               : false;
-        case "nodenumber":
+        }
+        case "nodenumber" -> {
           try {
             int queryNumber = Integer.parseInt(parts.get(1));
             return locationNode.getNodeNumber() == queryNumber;
@@ -148,7 +145,8 @@ public class LocationState
                     + parts.get(1)
                     + "\"");
           }
-        case "mainentry":
+        }
+        case "mainentry" -> {
           if (locationNode.getNumEnteringEdges() == 1
               && locationNode.getFunctionName().equals(parts.get(1))) {
             CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
@@ -159,13 +157,14 @@ public class LocationState
             }
           }
           return false;
-        default:
-          throw new InvalidQueryException(
-              "The Query \""
-                  + pProperty
-                  + "\" is invalid. \""
-                  + parts.get(0)
-                  + "\" is no valid keyword");
+        }
+        default ->
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pProperty
+                    + "\" is invalid. \""
+                    + parts.getFirst()
+                    + "\" is no valid keyword");
       }
     }
   }
@@ -214,7 +213,7 @@ public class LocationState
     @Serial private static final long serialVersionUID = 6889568471468710163L;
     private final int nodeNumber;
 
-    public SerialProxy(int nodeNumber) {
+    SerialProxy(int nodeNumber) {
       this.nodeNumber = nodeNumber;
     }
 

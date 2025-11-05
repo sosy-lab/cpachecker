@@ -52,7 +52,7 @@ public class TraceFormulaTest {
     TFPRECONDITION,
     TFPOSTCONDITION;
 
-    public static boolean containsKey(String keyString) {
+    static boolean containsKey(String keyString) {
       for (LogKeys key : values()) {
         if (key.toString().equalsIgnoreCase(keyString)) {
           return true;
@@ -85,8 +85,8 @@ public class TraceFormulaTest {
         .forEach(
             line -> {
               List<String> result = Splitter.on("=").limit(2).splitToList(line);
-              if (result.size() == 2 && LogKeys.containsKey(result.get(0))) {
-                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.get(0)));
+              if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
+                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
                 String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
                 if (keywords.contains(key)) {
                   if (key == LogKeys.TFPRECONDITION) {
@@ -116,7 +116,7 @@ public class TraceFormulaTest {
             AbstractStates.getTargetStates(test.getCheckerResult().getReached()).stream()
                 .filter(state -> ((ARGState) state).getCounterexampleInformation().isPresent())
                 .map(state -> ((ARGState) state).getCounterexampleInformation().orElseThrow())
-                .filter(cex -> cex instanceof FaultLocalizationInfoWithTraceFormula)
+                .filter(FaultLocalizationInfoWithTraceFormula.class::isInstance)
                 .findFirst()
                 .orElseThrow();
 
@@ -125,64 +125,49 @@ public class TraceFormulaTest {
     List<Integer> lines = new ArrayList<>();
     for (Fault fault : faultInfo.getRankedList()) {
       switch (algorithm) {
-        case ERRINV:
+        case ERRINV -> {
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
             TraceAtom traceElement = (TraceAtom) Iterables.getOnlyElement(fault);
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
-          break;
-
-        case MAXSAT:
+        }
+        case MAXSAT -> {
           for (FaultContribution contribution : fault) {
             TraceAtom traceElement = (TraceAtom) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
-          break;
-
-        default:
-          throw new AssertionError(algorithm + " is not a valid algorithm.");
+        }
       }
     }
 
     expected.forEach(
         (key, value) -> {
           switch (key) {
-            case TFRESULT:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-                ImmutableList<Integer> foundLinesLog =
-                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-                assertThat(lines).containsExactlyElementsIn(expectedLines);
-                assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
-                break;
-              }
-
-            case TFPOSTCONDITION:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-                ImmutableList<Integer> foundLines =
-                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-                assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-                break;
-              }
-
-            case TFPRECONDITION:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<String> expectedValues = (ImmutableList<String>) value;
-                ImmutableList<String> variableValues =
-                    found.get(key).stream()
-                        .map(Object::toString)
-                        .collect(ImmutableList.toImmutableList());
-                assertThat(variableValues).containsExactlyElementsIn(expectedValues);
-                break;
-              }
-
-            default:
-              throw new AssertionError("Unknown log keyword: " + key);
+            case TFRESULT -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+              ImmutableList<Integer> foundLinesLog =
+                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+              assertThat(lines).containsExactlyElementsIn(expectedLines);
+              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
+            }
+            case TFPOSTCONDITION -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+              ImmutableList<Integer> foundLines =
+                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+            }
+            case TFPRECONDITION -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<String> expectedValues = (ImmutableList<String>) value;
+              ImmutableList<String> variableValues =
+                  found.get(key).stream()
+                      .map(Object::toString)
+                      .collect(ImmutableList.toImmutableList());
+              assertThat(variableValues).containsExactlyElementsIn(expectedValues);
+            }
           }
         });
   }

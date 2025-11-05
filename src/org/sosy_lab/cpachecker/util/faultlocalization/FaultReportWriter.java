@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
- * Provides useful methods for converting objects in this package to a HTML format. Extend this
+ * Provides useful methods for converting objects in this package to an HTML format. Extend this
  * class and override the methods to create a different HTML-representation. Change the
  * FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
  *
@@ -81,7 +81,7 @@ public class FaultReportWriter {
   }
 
   /**
-   * Convert this object to a HTML string for the report.
+   * Convert this object to an HTML string for the report.
    *
    * @param correspondingEdges the corresponding edges to the fault
    * @param infos the FaultInfos appended to a Fault(Contribution)
@@ -95,15 +95,9 @@ public class FaultReportWriter {
     // Sorted insert
     for (FaultInfo info : infos) {
       switch (info.getType()) {
-        case FIX:
-          faultFix.add((PotentialFix) info);
-          break;
-        case REASON:
-          faultReasons.add((FaultReason) info);
-          break;
-        case RANK_INFO:
-          faultInfo.add((RankInfo) info);
-          break;
+        case FIX -> faultFix.add((PotentialFix) info);
+        case REASON -> faultReasons.add((FaultReason) info);
+        case RANK_INFO -> faultInfo.add((RankInfo) info);
       }
     }
 

@@ -21,6 +21,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
+ * distributed analysis.
+ *
+ * <p>DistributedConfigurableProgramAnalysis enables standard CPAs to participate in DSS by
+ * providing operators to serialize abstract states into messages that can be transmitted between
+ * workers, and to deserialize received messages back into abstract states to start a new analysis
+ * with this information as initial state(s).
+ */
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
   /**
@@ -76,7 +85,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * Check whether this distributed CPA can work with {@code pClass}.
    *
    * @param pClass Decide whether this DCPA can work with this class.
-   * @return Returns whether this DCPA accepts {@code pClass}
+   * @return whether this DCPA accepts {@code pClass}
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);

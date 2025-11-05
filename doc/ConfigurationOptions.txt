@@ -56,17 +56,17 @@ output.path = "output/"
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Bitwuzla in addition to the default options. Format: 
 # "option_name=value" with ’,’ to separate options. Option names and values
-# can be found in the Bitwuzla documentation
-# online:https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionEExample:
-# "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
+# can be found in the Bitwuzla documentation online:
+# https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
+# Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
 solver.bitwuzla.furtherOptions = ""
 
 # The SAT solver used by Bitwuzla.
@@ -74,8 +74,8 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
-# be found in BtorOption or Boolector C Api.Example:
+# "Optionname=value" with ’,’ to separate options. Option names and values
+# can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
 
@@ -85,6 +85,10 @@ solver.boolector.satSolver = CADICAL
 
 # Counts all operations and interactions towards the SMT solver.
 solver.collectStatistics = false
+
+# Further options that will be passed to CVC5 in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.cvc5.furtherOptions = ""
 
 # apply additional validation checks for interpolation results
 solver.cvc5.validateInterpolants = false
@@ -125,18 +129,26 @@ solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
 # Algorithm for boolean interpolation
-solver.opensmt.algBool = 0
+solver.opensmt.algBool = MCMILLAN
+  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
+             PROOF_SENSITIVE_STRONG]
 
 # Algorithm for LRA interpolation
-solver.opensmt.algLra = 0
+solver.opensmt.algLra = STRONG
+  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
 # Algorithm for UF interpolation
-solver.opensmt.algUf = 0
+solver.opensmt.algUf = STRONG
+  enum:     [STRONG, WEAK, RANDOM]
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
+
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
+solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
 # debugging. This option can cause a performance overhead.
@@ -206,6 +218,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -254,12 +267,21 @@ analysis.algorithm.MPI = false
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
-# use a analysis which proves if the program satisfies a specified property
+# use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
+
+# Everything constructed in the CoreComponentsFactory is done on a copy of
+# the original CFA, if the option is set to true. One of the possible
+# use-cases are modifications of the CFA by the algorithm. For example, if we
+# run algorithms in parallel or in sequence, they are expected to get the CFA
+# corresponding to the original program. Hence, to prevent these
+# modifications from influencing other algorithms, each algorithm can claim
+# a copy of the original CFA to modify.
+analysis.algorithm.copyCFA = false
 
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
@@ -319,6 +341,12 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# Generate samples using the provided algorithm. Currently this only works
+# using the configuration 'config/valueAnalysis-NoCegar.properties' as an
+# algorithm.Ideally never use this option directly, but only through a
+# configuration
+analysis.algorithm.useSamplingAlgorithm = false
+
 # If not already done by the analysis, store a found counterexample in the
 # ARG for later re-use. Does nothing if no ARGCPA is used
 analysis.alwaysStoreCounterexamples = false
@@ -345,7 +373,7 @@ analysis.constructProgramSlice = false
 # Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
-# continue analysis after a unsupported code was found on one path
+# continue analysis after an unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
 
 # Maximum number of counterexamples to be created.
@@ -420,7 +448,7 @@ analysis.programNames = []
 # NORMAL: just a simple set
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
-# PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)
+# PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)
 # PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
@@ -442,7 +470,7 @@ analysis.restartAfterUnknown = false
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
-# Split program in subprograms which can be analyzed separately afterwards
+# Split program in subprograms which can be analyzed separately afterward
 analysis.split.program = false
 
 # stop after the first error has been found
@@ -480,7 +508,7 @@ analysis.traversal.order = DFS
 # Exponent of random function.This value influences the probability
 # distribution over the waitlist elementswhen choosing the next element.Has
 # to be a double in the range [0, INF)
-analysis.traversal.random.exponent = 1
+analysis.traversal.random.exponent = 8
 
 # Seed for random values.
 analysis.traversal.random.seed = 0
@@ -715,6 +743,11 @@ bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 bdd.pjbdd.useApply = true
 
 # Type of BDD used in PJBDD.
+bdd.pjbdd.useBDDType = "BDD"
+  allowed values: [BDD, ChainedBDD]
+
+# Use internal an int based bdd representation.
+bdd.pjbdd.useInts = false
 bdd.pjbdd.useDDType = "BDD"
   allowed values: [BDD, CBDD, TBDD, TaggedDD, IntDD]
 
@@ -750,7 +783,7 @@ blockreducer.allowReduceFunctionExits = true
 # Allow reduction of loop heads; calculate abstractions always at loop heads?
 blockreducer.allowReduceLoopHeads = false
 
-# write the reduced cfa to the specified file.
+# write the reduced CFA to the specified file.
 blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 
 # Do at most n summarizations on a node.
@@ -849,7 +882,7 @@ cegar.domainScoreThreshold = 1024
 
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
-# whether or not global refinement is performed
+# whether global refinement is performed
 cegar.globalRefinement = false
 
 # Max number of refinement iterations, -1 for no limit
@@ -860,7 +893,7 @@ cegar.maxIterations = -1
 # omitted.
 cegar.refiner = no default value
 
-# whether or not to use refinement selection to decide which domain to refine
+# whether to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
 # Which functions should be interpreted as encoding assumptions
@@ -902,7 +935,7 @@ cfa.exportToC.file = "cfa.c"
 cfa.file = "cfa.dot"
 
 # By enabling this option the variables that are live are computed for each
-# edge of the cfa. Live means that their value is read later on.
+# edge of the CFA. Live means that their value is read later on.
 cfa.findLiveVariables = false
 
 # how often can a function appear in the callstack as a clone of the original
@@ -923,6 +956,12 @@ cfa.moveDeclarationsToFunctionStart = false
 # Which functions should be interpreted as never returning to their call site
 cfa.nonReturningFunctions = {"abort", "exit"}
 
+# the path to export a json mapping which for each location contains the
+# variables in scope and their type. Please be aware that this is **not** a
+# stable interface and the output format of the file may change in future
+# versions.
+cfa.pathForExportingVariablesInScopeWithTheirType = no default value
+
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
@@ -937,7 +976,7 @@ cfa.simplifyCfa = true
 # simplify simple const expressions like 1+2
 cfa.simplifyConstExpressions = true
 
-# simplify pointer expressions like s->f to (*s).f with this option the cfa
+# simplify pointer expressions like s->f to (*s).f with this option the CFA
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
@@ -1011,9 +1050,9 @@ compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"
 # round.If no (correct) limit is given a default limit is used.
 compositionAlgorithm.configFiles = no default value
 
-# Whether or not to create an initial condition, that excludes no paths,
-# before first analysis is run.Required when first analysis uses condition
-# from conditional model checking
+# Whether to create an initial condition, that excludes no paths, before
+# first analysis is run.Required when first analysis uses condition from
+# conditional model checking
 compositionAlgorithm.initCondition = false
 
 # print the statistics of each component of the composition algorithm
@@ -1068,10 +1107,13 @@ counterexample.checker = CBMC
 counterexample.checker.changeCEXInfo = false
 
 # counterexample check checks MemSafety sub-properties (valid-deref,
-# valid-free, valid-memtrack) additionally to the path.
+# valid-free, valid-memtrack) additionally to the path. This is generally
+# only needed if there are multiple sub-properties.
 counterexample.checker.checkMemorySafetySubproperty = false
 
-# configuration file for counterexample checks with CPAchecker
+# configuration file for counterexample checks with CPAchecker. The config is
+# only loaded once a CEX-check is performed and is not influenced by settings
+# of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
 # counterexample check should fully replace existing counterexamples with own
@@ -1096,7 +1138,7 @@ counterexample.concrete.pathToCompiler = "/usr/bin/gcc"
 # (use milliseconds or specify a unit; 0 for infinite)
 counterexample.concrete.timelimit = 0ms
 
-# continue analysis after an counterexample was found that was denied by the
+# continue analysis after a counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
 
@@ -1180,6 +1222,9 @@ counterexample.export.exportTestCase = false
 
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
+
+# export counterexample as witness/YML file
+counterexample.export.exportWitnessV2 = true
 
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -1406,6 +1451,9 @@ cpa.arg.errorPath.exportTestCase = false
 # deprecated name for counterexample.export.exportWitness
 cpa.arg.errorPath.exportWitness = true
 
+# deprecated name for counterexample.export.exportWitnessV2
+cpa.arg.errorPath.exportWitnessV2 = true
+
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1557,7 +1605,7 @@ cpa.arg.witness.exportSourceFileName = false
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = false
 
-# Verification witness: Include an thread-identifier within the file?
+# Verification witness: Include a thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
 
 # Verification witness: Include (not necessarily globally unique) thread
@@ -1676,7 +1724,7 @@ cpa.bam.handleRecursiveProcedures = false
 cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 
 # if we cannot determine a repeating/covering call-state, we will run into
-# CallStackOverflowException. Thus we bound the stack size (unsound!). This
+# CallStackOverflowException. Thus, we bound the stack size (unsound!). This
 # option only limits non-covered recursion, but not a recursion where we find
 # a coverage and re-use the cached block several times. The value '-1'
 # disables this option.
@@ -1876,7 +1924,8 @@ cpa.constraints.lessOrEqualType = SUBSET
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
 
-# Whether to perform SAT checks only for the last added constraint
+# Whether to perform SAT checks only for the last added constraint, as well
+# as all constraints dependent on it. Might improve solver performance.
 cpa.constraints.minimalSatCheck = true
 
 # enable if variables from value precision should be considered in variable's
@@ -1905,8 +1954,16 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
-# Resolve definite assignments
-cpa.constraints.resolveDefinites = true
+# Resolve definite assignments, i.e. use the solver to find out whether there
+# is only a single satisfiable value for variables and assign it. Might
+# result in inefficient SMT solver usage with reuseSolver = true.
+cpa.constraints.resolveDefinites = false
+
+# Whether to create a new, fresh solver instance for each SAT check with an
+# SMT solver (=false), or try to reuse the solver and its previous
+# constraints and results as far as possible (may be helpful/faster when
+# formulas are built on top of each other often).
+cpa.constraints.reuseSolver = true
 
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
@@ -1968,8 +2025,8 @@ cpa.invariants.abstractionStateFactory = ENTERING_EDGES
 # fast; this is imprecise
 cpa.invariants.allowOverapproximationOfUnsupportedFeatures = true
 
-# determine variables relevant to the decision whether or not a target path
-# assume edge is taken and limit the analyis to those variables.
+# determine variables relevant to the decision whether a target path assume
+# edge is taken and limit the analyis to those variables.
 cpa.invariants.analyzeRelevantVariablesOnly = true
 
 # determine target locations in advance and analyse paths to the target
@@ -2325,6 +2382,11 @@ cpa.predicate.alwaysUseImpreciseCounterexamples = false
 # deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
 cpa.predicate.appendToAbstractionFormula = false
 
+# When using the NLA encoding, approximate unsupported operations (e.g.,
+# bitwise shift) with an uninterpreted function (UF). If false, the operation
+# fails early by throwing UnsupportedOperationByDesignException.
+cpa.predicate.approximateBitwiseWithUFs = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -2588,6 +2650,13 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # deprecated name for cpa.predicate.invariants.kInductionTries
 cpa.predicate.kInductionTries = 3
 
+# Apply AND- LBE transformation to loop transition relation.
+cpa.predicate.loopTransition.applyLBETransformation = true
+
+# Time for loop generation before aborting.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.predicate.loopTransition.timeForLoopGeneration = 0s
+
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
@@ -2719,7 +2788,7 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # Do a complete restart (clearing the reached set) after the refinement
 cpa.predicate.refinement.global.restartAfterRefinement = false
 
-# Instead of updating precision and arg we say that the refinement was not
+# Instead of updating precision and ARG we say that the refinement was not
 # successful after N times of refining. A real error state is not necessary
 # to be found. Use 0 for unlimited refinements (default).
 cpa.predicate.refinement.global.stopAfterNRefinements = 0
@@ -2999,6 +3068,12 @@ cpa.predicate.useMemoryRegions = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# When using encodeBitvectorAs=INTEGER, this will modify the bitvector
+# replacement behavior such that unbounded integer arithmetic (NLA) (and
+# additional
+#  constraints) is used to model wrap-around and boundedness.
+cpa.predicate.useNonlinearArithmeticForIntAsBv = false
+
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
 cpa.predicate.useParameterVariables = false
@@ -3054,7 +3129,7 @@ cpa.sign.stop = "SEP"
 # max length of a chain of states, -1 for infinity
 cpa.singleSuccessorCompactor.maxChainLength = -1
 
-# Apply AND- LBE transformation to loop transition relation.
+# deprecated name for cpa.predicate.loopTransition.applyLBETransformation
 cpa.slicing.applyLBETransformation = true
 
 # Check target states reachability
@@ -3110,8 +3185,7 @@ cpa.slicing.refinement.takeEagerSlice = false
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
 
-# Time for loop generation before aborting.
-# (Use seconds or specify a unit; 0 for infinite)
+# deprecated name for cpa.predicate.loopTransition.timeForLoopGeneration
 cpa.slicing.timeForLoopGeneration = 0s
 
 # Inductive weakening strategy
@@ -3223,7 +3297,7 @@ cpa.smg.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
 # Patterns of unknown functions which are always considered as safe
-# functions, i.e., free of memory-related side-effects.
+# functions, i.e., free of memory-related side effects.
 cpa.smg.safeUnknownFunctionsPatterns = {"abort"}
 
 # which stop operator to use for the SMGCPA
@@ -3373,6 +3447,10 @@ cpa.smg2.enableHeapAbstraction = false
 # If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
+# If true, memory with symbolic size can be zeroed, which allows usage of
+# zeroing allocation functions like calloc().
+cpa.smg2.enableZeroingOfSymbolicMemorySize = false
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
@@ -3380,10 +3458,11 @@ cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg2.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
-# Functions which indicate on external allocated memory
+# Functions which return externally allocated memory with bit size defined by
+# option externalAllocationSize
 cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
-# Default size of externally allocated memory
+# Default bit size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
 
 # If this Option is enabled, all symbolic offsets used when writing to memory
@@ -3412,7 +3491,20 @@ cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
 cpa.smg2.handleUnknownDereferenceAsSafe = false
 
 # Sets how unknown functions are handled.
-cpa.smg2.handleUnknownFunctions = STRICT
+# STRICT: Unknown functions cause a stop in the analysis, i.e. known and
+# handled functions are evaluated normally.
+# ASSUME_SAFE: unknown functions are assumed to be safe. No input into the
+# function is checked for validity and the result is a UNKNOWN value (which
+# may itself violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound
+# due to side effects, the unknown return value etc.!
+# ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity
+# and may cause memory based errors. Returned values are unknown, but in a
+# valid new memory section that can be freed normally. Functions allocating
+# external memory and returning their address can be defined with option
+# externalAllocationFunction and externalAllocationSize.
+# Functions defined in option "safeUnknownFunctions" are handled equally to
+# ASSUME_SAFE in all cases.
+cpa.smg2.handleUnknownFunctions = ASSUME_EXTERNAL_ALLOCATED
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
@@ -3453,7 +3545,7 @@ cpa.smg2.memoryArrayAllocationFunctionsElemSizeParameter = 1
 cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
-cpa.smg2.memoryErrors = true
+cpa.smg2.memoryErrors = false
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
@@ -3474,11 +3566,10 @@ cpa.smg2.optimizeBooleanVariables = true
 # at the same time as option findConcreteValuesForSymbolicOffsets.
 cpa.smg2.overapproximateSymbolicOffsets = false
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non-unique offset in symbolically sized memory are
-# deleted and the value itself is overapproximated to unknown in the memory
-# region.
-cpa.smg2.overapproximateValuesForSymbolicSize = false
+# If this Option is enabled, writing with symbolic sized value types are
+# overapproximated. I.e. the memory region affected is overapproximated,
+# including the value itself, to unknown.
+cpa.smg2.overapproximateValuesForSymbolicTypeSize = false
 
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
@@ -3488,7 +3579,7 @@ cpa.smg2.preciseSMGRead = true
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
 
-# whether or not to use heuristic to avoid similar, repeated refinements
+# whether to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
 
 # Which base precision should be used for a new precision? ALL: During
@@ -3499,14 +3590,14 @@ cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
 cpa.smg2.refinement.basisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
-# whether or not to do lazy-abstraction
+# whether to do lazy-abstraction
 cpa.smg2.refinement.doLazyAbstraction = true
 
 # whether to perform (more precise) edge-based interpolation or (more
 # efficient) path-based interpolation
 cpa.smg2.refinement.performEdgeBasedInterpolation = true
 
-# whether or not to do lazy-abstraction
+# whether to do lazy-abstraction
 cpa.smg2.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
 
@@ -3517,9 +3608,12 @@ cpa.smg2.resolveDefinites = true
 cpa.smg2.runtimeCheck = NONE
   enum:     [FORCED, NONE, HALF, FULL]
 
-# Which unknown function are always considered as safe functions, i.e., free
-# of memory-related side-effects?
-cpa.smg2.safeUnknownFunctions = {"abort"}
+# List of functions that are always considered as safe, i.e. they are not
+# evaluated, even if known to the analysis, nor are their inputs checked for
+# validity. They always return a new, unknown value and therefore
+# overapproximate if their signature does not return void. Using this option
+# might be unsound, depending on the function.
+cpa.smg2.safeUnknownFunctions = {""}
 
 # When to check the satisfiability of constraints
 cpa.smg2.satCheckStrategy = AT_ASSUME
@@ -3533,7 +3627,7 @@ cpa.smg2.stop = "SEP"
 cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
-cpa.smg2.trackPredicates = false
+cpa.smg2.trackPredicates = true
 
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.treatSymbolicValuesAsUnknown = false
@@ -3835,18 +3929,26 @@ cpa.value.interpolation.applyRenamingOptimization = true
 # apply optimizations based on infeasibility of suffix
 cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
-# whether or not to manage the callstack, which is needed for BAM
+# whether to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
+
+# Defines which variables may be combined in binary and ternary invariants
+cpa.value.invExport.combinationStrategy = ALL
+  enum:     [ALL, FUNCTION_SCOPE, PROGRAM_RELATION, ASSUME_RELATION]
 
 # Enable invariants that use  an arithmetic operator(linear invariants are
 # enabled separately)
-cpa.value.invExport.exportArithmetic = true
+cpa.value.invExport.exportArithmetic = false
 
 # Enable to export invariants that include two variables
 cpa.value.invExport.exportBinary = true
 
 # Enable invariants that use a bit operator
 cpa.value.invExport.exportBitops = true
+
+# Enable to export invariants stating whether single variables are even or
+# odd
+cpa.value.invExport.exportEvenVal = true
 
 # Enable to export linear equalities or inequalities over variables, e.g., ax
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
@@ -3869,8 +3971,9 @@ cpa.value.invExport.exportUnary = true
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
 
-# target file to hold the exported loop invariants
-cpa.value.loopInvariantsFile = no default value
+# template for target files, e.g., loopInvPrec%s.txt, to hold the exported
+# loop invariants
+cpa.value.loopInvariantsFiles = no default value
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -3883,11 +3986,20 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
-# whether or not to add assumptions to counterexamples, e.g., for supporting
+# random seed for sampling function return values. If not set, a seed of '0'
+# is taken. This options only has an effect if the option
+# 'randomlySampleFunctionReturnValues' is used.
+cpa.value.randomSamplingSeed = 0
+
+# if set to true this option will generate random test values for function
+# calls to VERIFIER_nondet_*.
+cpa.value.randomlySampleFunctionReturnValues = false
+
+# whether to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
 
-# whether or not to use heuristic to avoid similar, repeated refinements
+# whether to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
 # Which base precision should be used for a new precision? ALL: During
@@ -3902,7 +4014,7 @@ cpa.value.refinement.basisStrategy = SUBGRAPH
 # disable the detection of repeated counterexamples
 cpa.value.refinement.disableErrorPathTracking = false
 
-# whether or not to do lazy-abstraction
+# whether to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
 
 # when to export the interpolation tree
@@ -3923,7 +4035,7 @@ cpa.value.refinement.itpSortedTargets = false
 # File to which path constraints should be written.
 cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
-# whether or not to perform path slicing before interpolation
+# whether to perform path slicing before interpolation
 cpa.value.refinement.pathSlicing = true
 
 # whether to perform (more precise) edge-based interpolation or (more
@@ -3934,7 +4046,7 @@ cpa.value.refinement.performEdgeBasedInterpolation = true
 # interpolation
 cpa.value.refinement.prefixPreference = [PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN]
 
-# whether or not to do lazy-abstraction
+# whether to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
 
@@ -3976,6 +4088,10 @@ cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
 
 # also consider control dependencies during adaption of predicate precision
 cpa.value.reuse.precision.predicate.useControl = false
+
+# configure whether to export all loop invariants into one file or to split
+# the export into one file per type
+cpa.value.splitLoopInvariantsInExport = false
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
@@ -4077,7 +4193,9 @@ dar.removeUnreachableStopStates = false
 dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 datarace.config = no default value
 
 # Whether to consider pointees. Only if this option is set to true, a pointer
@@ -4226,10 +4344,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
-distributedSummaries.worker.logDirectory = "block_summary/logfiles"
+distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
 # output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/block_analysis"
+dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4451,8 +4569,8 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 java.version = JavaCore.VERSION_1_7
 
 # Programming language of the input program. If not given explicitly,
-# auto-detection will occur
-# C, Java, or LLVM IR?
+# auto-detection will occur. LLVM IR is currently unsupported as input (cf.
+# https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
   enum:     [C, JAVA, LLVM]
 language = no default value
@@ -4479,7 +4597,7 @@ limits.time.wall = -1ns
 
 # By changing this option one can adjust the way how live variables are
 # created. Function-wise means that each function is handled separately,
-# global means that the whole cfa is used for the computation.
+# global means that the whole CFA is used for the computation.
 liveVar.evaluationStrategy = FUNCTION_WISE
   enum:     [FUNCTION_WISE, GLOBAL]
 
@@ -4489,7 +4607,7 @@ liveVar.overallLivenessCheckTime = 0ns
 
 # Timelimit for collecting the liveness information with one approach, (p.e.
 # if global analysis is selected and fails in the specified timelimit the
-# function wise approach will have the same time-limit afterwards to compute
+# function wise approach will have the same time-limit afterward to compute
 # the live variables).(use seconds or specify a unit; 0 for infinite)
 liveVar.partwiseLivenessCheckTime = 20s
 
@@ -4500,11 +4618,15 @@ locmapper.dumpTokenizedProgramToFile = no default value
 log.usedOptions.export = false
 
 # When checking for memory cleanup properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorycleanup.config = no default value
 
 # When checking for memory safety properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorysafety.config = no default value
 
 # which merge operator to use for LiveVariablesCPA
@@ -4582,7 +4704,9 @@ mpv.propertySeparator = FILE
 overflow.checkUnsigned = false
 
 # When checking for the overflow property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 overflow.config = no default value
 
 # Simplify overflow assumptions.
@@ -4653,8 +4777,8 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
-# For C files, convert to LLVM IR with clang first and then use the LLVM
-# parser.
+# DEPRECATED: For C files, convert to LLVM IR with clang first and then use
+# the LLVM parser (currently unsupported).
 parser.useClang = false
 
 # For C files, run the preprocessor on them before parsing. Note that all
@@ -4887,7 +5011,7 @@ precision.template.varFiltering = ALL_LIVE
 # variable that is addressed is definitely not tracked.
 precision.trackAddressedVariables = true
 
-# If this option is used, booleans from the cfa are tracked.
+# If this option is used, booleans from the CFA are tracked.
 precision.trackBooleanVariables = true
 
 # If this option is used, variables that have type double or float are
@@ -5015,6 +5139,23 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# File name for analysis report in case a counterexample was found.
+sampling.random.counterexampleExport = "Counterexample.trace.%d.txt"
+
+# Whether the random sampling algorithm exports traces.
+sampling.random.exportTraces = false
+
+# File name for analysis report in case no counterexample was found.
+sampling.random.safeExport = "Safe.trace.%d.txt"
+
+# Amount of samples to be generated. Generate an infinite amount of samples
+# with a value less than 0.
+sampling.random.samplesToBeGenerated = 10
+
+# Stop after finding the first counterexample. This is useful when using this
+# as an actual analysis.
+sampling.random.stopAfterFirstCounterexample = false
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -5094,7 +5235,7 @@ statesToFormulas.exportFile = no default value
 statesToFormulas.exportOnlyImporantLocations = false
 
 # instead of writing the exact state-representation as a single formula,
-# write its atoms as a list of formulas. Therefore we ignore operators for
+# write its atoms as a list of formulas. Therefore, we ignore operators for
 # conjunction and disjunction.
 statesToFormulas.splitFormulas = LOCATION
   enum:     [LOCATION, STATE, ATOM]
@@ -5102,7 +5243,7 @@ statesToFormulas.splitFormulas = LOCATION
 # Add all assumptions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false
 
-# Add all assumptions along a error trace to the precision.
+# Add all assumptions along an error trace to the precision.
 staticRefiner.addAllErrorTraceAssumes = false
 
 # Add all assumptions along the error trace to the precision.
@@ -5140,7 +5281,9 @@ stop = "SEP"
 termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void, except for command-line options, which are applied on top of the
+# final config.
 termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
@@ -5375,7 +5518,7 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
 
-# Whether or not one wants to refine MemorySafety errors.
+# Whether one wants to refine MemorySafety errors.
 util.refinement.refineMemorySafety = false
 
 # Instead of comments, output the assertions into the original program as
@@ -5399,6 +5542,10 @@ witness.automatonDumpFile = no default value
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.checkInvariantViolations = true
+
+# When the witness is used as an automaton, check that the invariants hold
+# for every path in the program
+witness.checkInvariantsHoldForEveryPath = true
 
 # Check that the value of the programhash field of the witness matches the
 # SHA-256 hash value computed for the source code.

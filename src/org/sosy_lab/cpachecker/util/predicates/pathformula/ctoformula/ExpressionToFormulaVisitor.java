@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
+import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
@@ -50,22 +51,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
@@ -76,6 +75,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -179,8 +180,8 @@ public class ExpressionToFormulaVisitor
     final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
 
     final boolean signed;
-    if (calculationType instanceof CSimpleType) {
-      signed = conv.machineModel.isSigned((CSimpleType) calculationType);
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = conv.machineModel.isSigned(cSimpleType);
     } else {
       // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
       // and comparisons. GCC implements pointer comparisons as unsigned.
@@ -195,11 +196,11 @@ public class ExpressionToFormulaVisitor
     final Formula ret;
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         if (!(promT1 instanceof CPointerType)
             && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
           ret = mgr.makePlus(f1, f2);
-        } else if (!(promT2 instanceof CPointerType)) {
+        } else if (!(promT2 instanceof CPointerType cPointerType)) {
           // operand1 is a pointer => we should multiply the second summand by the size of the
           // pointer target
           ret =
@@ -208,14 +209,12 @@ public class ExpressionToFormulaVisitor
         } else if (!(promT1 instanceof CPointerType)) {
           // operand2 is a pointer => we should multiply the first summand by the size of the
           // pointer target
-          ret =
-              mgr.makePlus(
-                  f2, mgr.makeMultiply(f1, getSizeExpression(((CPointerType) promT2).getType())));
+          ret = mgr.makePlus(f2, mgr.makeMultiply(f1, getSizeExpression(cPointerType.getType())));
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }
-        break;
-      case MINUS:
+      }
+      case MINUS -> {
         if (!(promT1 instanceof CPointerType)
             && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
           ret = mgr.makeMinus(f1, f2);
@@ -225,14 +224,12 @@ public class ExpressionToFormulaVisitor
           ret =
               mgr.makeMinus(
                   f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
-        } else if (promT1 instanceof CPointerType) {
+        } else if (promT1 instanceof CPointerType cPointerType) {
           // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
           if (promT1.equals(promT2)) {
             ret =
                 mgr.makeDivide(
-                    mgr.makeMinus(f1, f2),
-                    getSizeExpression(((CPointerType) promT1).getType()),
-                    true);
+                    mgr.makeMinus(f1, f2), getSizeExpression(cPointerType.getType()), true);
           } else {
             throw new UnrecognizedCodeException(
                 "Can't subtract pointers of different types", edge, exp);
@@ -241,65 +238,43 @@ public class ExpressionToFormulaVisitor
           throw new UnrecognizedCodeException(
               "Can't subtract a pointer from a non-pointer", edge, exp);
         }
-        break;
-      case MULTIPLY:
-        ret = mgr.makeMultiply(f1, f2);
-        break;
-      case DIVIDE:
-        ret = mgr.makeDivide(f1, f2, signed);
-        break;
-      case MODULO:
+      }
+      case MULTIPLY -> ret = mgr.makeMultiply(f1, f2);
+      case DIVIDE -> ret = mgr.makeDivide(f1, f2, signed);
+      case MODULO -> {
         // Modulo in C is remainder in SMTLIB2
         ret = mgr.makeRemainder(f1, f2, signed);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
-
-        break;
-      case BINARY_AND:
-        ret = mgr.makeAnd(f1, f2);
-        break;
-      case BINARY_OR:
-        ret = mgr.makeOr(f1, f2);
-        break;
-      case BINARY_XOR:
-        ret = mgr.makeXor(f1, f2);
-        break;
-      case SHIFT_LEFT:
-
-        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-        ret = mgr.makeShiftLeft(f1, f2);
-        break;
-      case SHIFT_RIGHT:
-        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-        ret = mgr.makeShiftRight(f1, f2, signed);
-        break;
-
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case EQUALS:
-      case NOT_EQUALS:
-        {
-          BooleanFormula result =
-              switch (op) {
-                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
-                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
-                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
-                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
-                case EQUALS -> handleEquals(exp, f1, f2);
-                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
-                default -> throw new AssertionError();
-              };
-          // Here we directly use the returnFormulaType instead of the calculcationType
-          // to avoid a useless cast.
-          // However, this means that we may not call makeCast() below
-          // because it expects the input in the calculationType.
-          // So we return here directly.
-          return conv.ifTrueThenOneElseZero(returnFormulaType, result);
-        }
-      default:
-        throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);
+      }
+      case BINARY_AND -> ret = mgr.makeAnd(f1, f2);
+      case BINARY_OR -> ret = mgr.makeOr(f1, f2);
+      case BINARY_XOR -> ret = mgr.makeXor(f1, f2);
+      case SHIFT_LEFT ->
+          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+          ret = mgr.makeShiftLeft(f1, f2);
+      case SHIFT_RIGHT ->
+          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+          ret = mgr.makeShiftRight(f1, f2, signed);
+      case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, EQUALS, NOT_EQUALS -> {
+        BooleanFormula result =
+            switch (op) {
+              case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+              case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+              case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+              case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+              case EQUALS -> handleEquals(exp, f1, f2);
+              case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+              default -> throw new AssertionError();
+            };
+        // Here we directly use the returnFormulaType instead of the calculcationType
+        // to avoid a useless cast.
+        // However, this means that we may not call makeCast() below
+        // because it expects the input in the calculationType.
+        // So we return here directly.
+        return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+      }
+      default -> throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);
     }
 
     // The CalculationType could be different from returnType, so we cast the result.
@@ -348,9 +323,9 @@ public class ExpressionToFormulaVisitor
       final Formula ret) {
     BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
-    if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+    if (exp.getOperand2() instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
       // We use a BigInteger because it can always be made positive, this is not true for type long!
-      BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
+      BigInteger modulo = cIntegerLiteralExpression.getValue();
       if (!modulo.equals(BigInteger.ZERO)) {
         // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
         // actually want to generate a modular congruence condition mod (-b):
@@ -426,9 +401,9 @@ public class ExpressionToFormulaVisitor
     }
 
     CExpression fieldRef = fExp.getFieldOwner();
-    if (fieldRef instanceof CIdExpression) {
-      CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-      if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+    if (fieldRef instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration decl = cIdExpression.getDeclaration();
+      if (decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal()) {
         // this is the reference to a global field variable
 
         // we can omit the warning (no pointers involved),
@@ -461,8 +436,15 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    return mgr.getFloatingPointFormulaManager().makeNumber(fExp.getValue(), (FloatingPointType) t);
+    FloatingPointFormulaManager fmgr = mgr.getFloatingPointFormulaManager();
+    FloatValue value = fExp.getValue();
+    FloatingPointNumber converted = value.toFloatingPointNumber();
+
+    return fmgr.makeNumber(
+        converted.getExponent(),
+        converted.getMantissa(),
+        converted.getMathSign(),
+        FormulaType.getFloatingPointType(value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
   @Override
@@ -476,55 +458,47 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CUnaryExpression exp) throws UnrecognizedCodeException {
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
-    switch (op) {
-      case MINUS:
-      case TILDE:
-        {
-          // Handle Integer Promotion
-          CType t = operand.getExpressionType();
-          CType promoted = t.getCanonicalType();
-          if (CTypes.isIntegerType(promoted)) {
-            // Integer types smaller than int are promoted when an operation is performed on them.
-            promoted = conv.machineModel.applyIntegerPromotion(promoted);
-          }
-          Formula operandFormula = toFormula(operand);
-          operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
-          Formula ret;
-          if (op == UnaryOperator.MINUS) {
-            ret = mgr.makeNegate(operandFormula);
-          } else {
-            assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
-            ret = mgr.makeNot(operandFormula);
-          }
-
-          CType returnType = exp.getExpressionType();
-          FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-          if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-            ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
-          }
-          assert returnFormulaType.equals(mgr.getFormulaType(ret))
-              : "Returntype "
-                  + returnFormulaType
-                  + " and Formulatype "
-                  + mgr.getFormulaType(ret)
-                  + " do not match in visit(CUnaryExpression) for "
-                  + exp;
-          return ret;
+    return switch (op) {
+      case MINUS, TILDE -> {
+        // Handle Integer Promotion
+        CType t = operand.getExpressionType();
+        CType promoted = t.getCanonicalType();
+        if (CTypes.isIntegerType(promoted)) {
+          // Integer types smaller than int are promoted when an operation is performed on them.
+          promoted = conv.machineModel.applyIntegerPromotion(promoted);
+        }
+        Formula operandFormula = toFormula(operand);
+        operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
+        Formula ret;
+        if (op == UnaryOperator.MINUS) {
+          ret = mgr.makeNegate(operandFormula);
+        } else {
+          assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
+          ret = mgr.makeNot(operandFormula);
         }
 
-      case AMPER:
-        return visitDefault(exp);
+        CType returnType = exp.getExpressionType();
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+        if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
+          ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
+        }
+        assert returnFormulaType.equals(mgr.getFormulaType(ret))
+            : "Returntype "
+                + returnFormulaType
+                + " and Formulatype "
+                + mgr.getFormulaType(ret)
+                + " do not match in visit(CUnaryExpression) for "
+                + exp;
+        yield ret;
+      }
+      case AMPER -> visitDefault(exp);
 
-      case SIZEOF:
+      case SIZEOF -> {
         CType lCType = exp.getOperand().getExpressionType();
-        return getSizeExpression(lCType);
-
-      case ALIGNOF:
-        return handleAlignOf(exp, exp.getOperand().getExpressionType());
-
-      default:
-        throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
-    }
+        yield getSizeExpression(lCType);
+      }
+      case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
+    };
   }
 
   @Override
@@ -664,8 +638,8 @@ public class ExpressionToFormulaVisitor
 
     // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
     final String functionName;
-    if (functionNameExpression instanceof CIdExpression) {
-      functionName = ((CIdExpression) functionNameExpression).getName();
+    if (functionNameExpression instanceof CIdExpression cIdExpression) {
+      functionName = cIdExpression.getName();
 
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
@@ -802,7 +776,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula zero =
                 fpfmgr.makeNumber(0.0, (FormulaType.FloatingPointType) formulaType);
             FloatingPointFormula nan = fpfmgr.makeNaN((FormulaType.FloatingPointType) formulaType);
@@ -827,7 +801,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
@@ -845,7 +819,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
@@ -861,7 +835,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero =
                 fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
 
@@ -885,7 +859,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero =
                 fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
 
@@ -909,7 +883,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
@@ -939,7 +913,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
@@ -980,7 +954,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
@@ -1029,7 +1003,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
@@ -1051,7 +1025,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
@@ -1074,7 +1048,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
             FloatingPointFormula zero =
@@ -1148,7 +1122,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
@@ -1168,7 +1142,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
@@ -1199,7 +1173,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
             FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
             FloatingPointFormula nan = fpfmgr.makeNaN((FloatingPointType) formulaType);
@@ -1364,7 +1338,7 @@ public class ExpressionToFormulaVisitor
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
-   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @return whether the scanf-format-specifier agrees with the type it writes to
    * @throws UnsupportedCodeException if the format specifier is not supported
    */
   private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
@@ -1390,7 +1364,7 @@ public class ExpressionToFormulaVisitor
           "fscanf() with more than 3 parameters is not supported", edge, e);
     }
 
-    CExpression file = pParameters.get(0);
+    CExpression file = pParameters.getFirst();
 
     if (file instanceof CIdExpression idExpression) {
       if (!isFilePointer(idExpression.getExpressionType())) {
@@ -1407,19 +1381,6 @@ public class ExpressionToFormulaVisitor
                         "Format string of fscanf is not supported", edge, e));
 
     return new ValidatedFScanFParameter(formatString, pParameters.get(2));
-  }
-
-  private boolean isFilePointer(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CType realType = typedefType.getRealType();
-        if (realType instanceof CElaboratedType elaboratedType) {
-          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
-              && elaboratedType.getName().equals("_IO_FILE");
-        }
-      }
-    }
-    return false;
   }
 
   private Optional<String> checkFscanfFormatString(CExpression pFormat) {
@@ -1445,7 +1406,7 @@ public class ExpressionToFormulaVisitor
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
-            (FloatingPointFormula) processOperand(pParameters.get(0), paramType, paramType);
+            (FloatingPointFormula) processOperand(pParameters.getFirst(), paramType, paramType);
         FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
         FloatingPointFormula fp_half = fpfmgr.makeNumber(0.5, (FloatingPointType) formulaType);
         FloatingPointFormula fp_neg_half = fpfmgr.makeNumber(-0.5, (FloatingPointType) formulaType);
@@ -1473,7 +1434,7 @@ public class ExpressionToFormulaVisitor
           castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
-        // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+        // XXX: Currently, MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
         // which corresponds to the semantics of 'round'.
         // Hence, we represent those semantics by the formula below, until there
         // is a release of MathSAT supporting NEAREST_TIE_AWAY.
@@ -1520,7 +1481,7 @@ public class ExpressionToFormulaVisitor
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
-            (FloatingPointFormula) processOperand(pParameters.get(0), paramType, paramType);
+            (FloatingPointFormula) processOperand(pParameters.getFirst(), paramType, paramType);
 
         FloatingPointFormula rounded = fpfmgr.round(param, pRoundingMode);
 
@@ -1554,7 +1515,7 @@ public class ExpressionToFormulaVisitor
       FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormula param0 =
-            (FloatingPointFormula) processOperand(pParameters.get(0), paramType, paramType);
+            (FloatingPointFormula) processOperand(pParameters.getFirst(), paramType, paramType);
         FloatingPointFormula param1 =
             (FloatingPointFormula) processOperand(pParameters.get(1), paramType, paramType);
 
@@ -1579,9 +1540,9 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits of an int, long or long long. Test c programs available:
-   * test/programs/simple/builtin_popcount32_x.c and test/programs/simple/builtin_popcount64_x.c
+   * Handle calls to __builtin_popcount(), __builtin_popcountl(), and __builtin_popcountll().
+   * Popcount sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int
+   * number given. Test C programs available at test/programs/simple/builtin_popcount*.c
    */
   private Formula handlePopCount(
       String pFunctionName,
@@ -1596,7 +1557,7 @@ public class ExpressionToFormulaVisitor
 
       if (paramFormulaType.isBitvectorType()) {
         BitvectorFormulaManagerView bvMgrv = mgr.getBitvectorFormulaManager();
-        BitvectorFormula bvParameter = (BitvectorFormula) toFormula(pParameters.get(0));
+        BitvectorFormula bvParameter = (BitvectorFormula) toFormula(pParameters.getFirst());
         BitvectorType bvParamType = (BitvectorType) paramFormulaType;
         BitvectorType bvReturnType = (BitvectorType) formulaReturnType;
         int offset = 0;
