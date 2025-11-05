@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -57,7 +56,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
     DataRaceState state = (DataRaceState) pState;
     Map<String, ThreadInfo> threadInfo = state.getThreadInfo();
-    Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
     synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
     ThreadingState threadingState =
@@ -109,7 +108,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Update tracked memory accesses
-    Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
     for (MemoryAccess access : state.getMemoryAccesses()) {
       if (!threadIds.contains(access.getThreadId())) {
         // If the thread that made the access is no longer running,
@@ -247,7 +246,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       String activeThread,
       Set<String> activeThreadLocks,
       Map<String, ThreadInfo> threadInfo) {
-    Builder<LockRelease> newReleases = ImmutableSet.builder();
+    ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
     // First, add any new lock releases
     for (String lock : state.getLocksForThread(activeThread)) {
       if (!activeThreadLocks.contains(lock)) {
@@ -283,7 +282,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Map<String, ThreadInfo> threadInfo,
       Set<String> threadIds,
       String activeThread,
-      Builder<ThreadSynchronization> threadSynchronizations) {
+      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations) {
     Set<String> added = Sets.difference(threadIds, threadInfo.keySet());
     assert added.size() < 2 : "Multiple thread creations in same step not supported";
     Set<String> removed = Sets.difference(threadInfo.keySet(), threadIds);
