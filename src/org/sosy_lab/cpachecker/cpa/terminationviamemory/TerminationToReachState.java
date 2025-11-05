@@ -37,7 +37,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   /** We store number of times that we have iterated over a loop */
   private Map<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
-  /** Stores assumptions from path formula after i iterations of the loop */
+  /**
+   * Stores assumptions from path formula after i iterations of the loop, where i is the number of
+   * iterations of the loop needed to reach this abstract state
+   */
   private Map<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
