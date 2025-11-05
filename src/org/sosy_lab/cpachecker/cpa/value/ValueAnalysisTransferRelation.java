@@ -218,9 +218,9 @@ public class ValueAnalysisTransferRelation
         secure = true,
         name = "allowedUnsupportedFunctions",
         description =
-            "If given functions are not handled by the analysis, they are interpret as pure"
-                + " functions although the value analysis does not support their semantics."
-                + " This can be unsound!")
+            "If given functions are not handled by the analysis, they are interpret as functions"
+                + " without side-effects and return a new nondeterministic value every time they"
+                + " are called. This can be unsound!")
     private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
