@@ -18,13 +18,11 @@ int main() {
 
   char *p = (char*)&(s.a2[0]); // The & and [0] erase each other, so this is essentially just the address of s + the offset. (memsafety not violated)
   char *q = (char*)&s;
-  printf("p = %lu != %lu = q\n", ((unsigned long)p), ((unsigned long)q));
-  printf("p = %lu != %lu = q\n", ((unsigned long)p), ((unsigned long)q) + size + sizeof(int));
   if (p != q + size + sizeof(int)) {
-    printf("no error");
     return 0;
   }
-  printf("Error\n");
+  // CPAchecker internal note: if you are wondering why you MIGHT not end up here, 
+  // take a look at: https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1150
 ERROR:
   return 1;
 }
