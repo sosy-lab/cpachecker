@@ -925,7 +925,17 @@ public class ValueAnalysisTransferRelation
       AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
       throws UnsupportedCodeException {
     // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
-    String calledFunctionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
+    String calledFunctionName;
+    CFunctionCallExpression funcCallExpr = functionCall.getFunctionCallExpression();
+    if (funcCallExpr.getDeclaration() != null) {
+      calledFunctionName = funcCallExpr.getDeclaration().getName();
+    } else if (funcCallExpr.getFunctionNameExpression() instanceof CIdExpression funNameIdExpr) {
+      calledFunctionName = funNameIdExpr.getName();
+    } else {
+      throw new AssertionError(
+          "Could not determine function name in function call: " + functionCall);
+    }
+
     if (!isAllowedUnsupportedOption(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         // It is UNSOUND to ignore these!!!!
