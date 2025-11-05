@@ -110,8 +110,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
     // Update tracked memory accesses
     Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-    Builder<MemoryAccess> subsequentWritesBuilder =
-        prepareSubsequentWritesBuilder(state, threadIds);
     for (MemoryAccess access : state.getMemoryAccesses()) {
       if (!threadIds.contains(access.getThreadId())) {
         // If the thread that made the access is no longer running,
@@ -121,22 +119,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
       memoryAccessBuilder.add(access);
 
-      // Add new synchronizes-with edges, if possible.
-      // We do this here to avoid looping over all memory accesses a second time.
-      if (!access.isWrite() || state.getAccessesWithSubsequentWrites().contains(access)) {
-        continue;
-      }
       for (MemoryAccess newAccess : newMemoryAccesses) {
         if (!access.mightAccessSameLocationAs(newAccess)) {
           continue;
         }
-        if (newAccess.isWrite()) {
-          // There is now a more recent write to the same memory location,
-          // so mark the old access accordingly.
-          // Other accesses currently in newMemoryAccesses that read this memory location still
-          // synchronize-with the old access, so no need to break/rollback here.
-          subsequentWritesBuilder.add(access);
-        } else {
+        if (!newAccess.isWrite()) {
           if (access.getThreadId().equals(newAccess.getThreadId())) {
             // Adding synchronizes-with edge between accesses made by the same thread is
             // unnecessary, because happens-before is established anyway.
@@ -194,7 +181,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         new DataRaceState(
             determineSuccessorAccessedMemoryLocations(
                 memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge),
-            subsequentWritesBuilder.build(),
             newThreadInfo,
             threadSynchronizations,
             heldLocks,
@@ -237,17 +223,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     };
-  }
-
-  private Builder<MemoryAccess> prepareSubsequentWritesBuilder(
-      DataRaceState current, Set<String> threadIds) {
-    Builder<MemoryAccess> subsequentWritesBuilder = ImmutableSet.builder();
-    for (MemoryAccess access : current.getAccessesWithSubsequentWrites()) {
-      if (threadIds.contains(access.getThreadId())) {
-        subsequentWritesBuilder.add(access);
-      }
-    }
-    return subsequentWritesBuilder;
   }
 
   private ImmutableSetMultimap<String, String> updateHeldLocks(
