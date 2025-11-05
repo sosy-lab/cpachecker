@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -385,18 +384,12 @@ public class MPORSubstitution {
       return pReturnStatement;
     } else {
       CExpression expression = pReturnStatement.getReturnValue().orElseThrow();
-      // the assignment is not actually needed, but we substitute anyway for completeness
-      Optional<CAssignment> assignmentSubstitute =
-          pReturnStatement.asAssignment().isPresent()
-              ? Optional.of(
-                  (CAssignment)
-                      substitute(
-                          pReturnStatement.asAssignment().orElseThrow(), pCallContext, pTracker))
-              : Optional.empty();
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
           Optional.of(substitute(expression, pCallContext, false, false, false, false, pTracker)),
-          assignmentSubstitute);
+          // substituting the assignment is not necessary because it is never used
+          // + the return variable from the function entry node does not have a substitute
+          pReturnStatement.asAssignment());
     }
   }
 
