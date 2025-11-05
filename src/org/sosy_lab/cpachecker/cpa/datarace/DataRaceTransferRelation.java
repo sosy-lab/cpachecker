@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -56,7 +58,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
     DataRaceState state = (DataRaceState) pState;
     Map<String, ThreadInfo> threadInfo = state.getThreadInfo();
-    ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
+    Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
     synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
     ThreadingState threadingState =
@@ -108,8 +110,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Update tracked memory accesses
-    ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-    ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
+    Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+    Builder<MemoryAccess> subsequentWritesBuilder =
         prepareSubsequentWritesBuilder(state, threadIds);
     for (MemoryAccess access : state.getMemoryAccesses()) {
       if (!threadIds.contains(access.getThreadId())) {
@@ -189,22 +191,37 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    return ImmutableSet.of(
+        new DataRaceState(
+            determineSuccessorAccessedMemoryLocations(
+                memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge),
+            subsequentWritesBuilder.build(),
+            newThreadInfo,
+            threadSynchronizations,
+            heldLocks,
+            lastReleases,
+            hasDataRace));
+  }
+
+  private static Set<MemoryAccess> determineSuccessorAccessedMemoryLocations(
+      Set<MemoryAccess> previousAccesses, Set<MemoryAccess> newAccesses, CFAEdge cfaEdge)
+      throws CPATransferException {
     // Some edges, are not actually statements which should reset the
     // tracked accesses (e.g., function call edges, and blank edges).
     // In this, cases we need to keep the old accesses as well.
     CFAEdgeType edgeType = cfaEdge.getEdgeType();
-    switch (edgeType) {
-      case BlankEdge, FunctionReturnEdge, DeclarationEdge -> {
-        newMemoryAccesses = memoryAccessBuilder.build();
-      }
+    final Set<MemoryAccess> finalMemoryAccesses;
+    return switch (edgeType) {
+      case BlankEdge, FunctionReturnEdge, DeclarationEdge -> previousAccesses;
       case ReturnStatementEdge -> {
         // Do nothing, newMemoryAccesses is already correct
+        yield previousAccesses;
       }
       case AssumeEdge, FunctionCallEdge, CallToReturnEdge -> {
         // A function call, and assume edges, are not a statement and therefore do not invalidate
         // previously tracked accesses, but they may add new accesses as well, due to
         // function arguments being passed, or the variables being read in the assume condition.
-        newMemoryAccesses = memoryAccessBuilder.addAll(newMemoryAccesses).build();
+        yield FluentIterable.concat(previousAccesses, newAccesses).toSet();
       }
       case StatementEdge -> {
         if (!(cfaEdge instanceof AStatementEdge statementEdge)) {
@@ -217,25 +234,17 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                 .contains(pCallStatement.getFunctionCallExpression().getDeclaration().getName())) {
           // Atomic sections do not invalidate tracked accesses
           // (they are not synchronization operations)
-          newMemoryAccesses = memoryAccessBuilder.build();
+          yield previousAccesses;
+        } else {
+          yield newAccesses;
         }
       }
-    }
-
-    return ImmutableSet.of(
-        new DataRaceState(
-            newMemoryAccesses,
-            subsequentWritesBuilder.build(),
-            newThreadInfo,
-            threadSynchronizations,
-            heldLocks,
-            lastReleases,
-            hasDataRace));
+    };
   }
 
-  private ImmutableSet.Builder<MemoryAccess> prepareSubsequentWritesBuilder(
+  private Builder<MemoryAccess> prepareSubsequentWritesBuilder(
       DataRaceState current, Set<String> threadIds) {
-    ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder = ImmutableSet.builder();
+    Builder<MemoryAccess> subsequentWritesBuilder = ImmutableSet.builder();
     for (MemoryAccess access : current.getAccessesWithSubsequentWrites()) {
       if (threadIds.contains(access.getThreadId())) {
         subsequentWritesBuilder.add(access);
@@ -266,7 +275,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       String activeThread,
       Set<String> activeThreadLocks,
       Map<String, ThreadInfo> threadInfo) {
-    ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
+    Builder<LockRelease> newReleases = ImmutableSet.builder();
     // First, add any new lock releases
     for (String lock : state.getLocksForThread(activeThread)) {
       if (!activeThreadLocks.contains(lock)) {
@@ -302,7 +311,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Map<String, ThreadInfo> threadInfo,
       Set<String> threadIds,
       String activeThread,
-      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations) {
+      Builder<ThreadSynchronization> threadSynchronizations) {
     Set<String> added = Sets.difference(threadIds, threadInfo.keySet());
     assert added.size() < 2 : "Multiple thread creations in same step not supported";
     Set<String> removed = Sets.difference(threadInfo.keySet(), threadIds);
