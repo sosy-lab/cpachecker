@@ -929,7 +929,7 @@ public class ValueAnalysisTransferRelation
     if (!isAllowedUnsupportedOption(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         // It is UNSOUND to ignore these!!!!
-        logger.log(
+        logger.logOnce(
             Level.WARNING,
             "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
             functionCall);
