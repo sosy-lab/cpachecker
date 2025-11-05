@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.isFilePointer;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -33,7 +35,61 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  * This function contains utility methods for handling built-in functions in CPAchecker. It provides
  * some methods to identify, process, and manage built-in functions.
  */
-public class BuiltinFunctionsHandling {
+public class HandleBuiltinIoFunctions {
+
+  private static final ImmutableMap<String, CType> supportedScanfFormatSpecifiers =
+      ImmutableMap.<String, CType>builder()
+          .put("%d", CNumericTypes.INT) // decimal integer
+          .put("%i", CNumericTypes.INT) // decimal, octal, or hexadecimal integer
+          .put("%o", CNumericTypes.UNSIGNED_INT) // octal integer
+          .put("%u", CNumericTypes.UNSIGNED_INT) // unsigned decimal integer
+          .put("%x", CNumericTypes.UNSIGNED_INT) // hexadecimal integer
+          .put("%ld", CNumericTypes.LONG_INT) // long decimal integer
+          .put("%li", CNumericTypes.LONG_INT) // long decimal, octal, or hexadecimal integer
+          .put("%lo", CNumericTypes.UNSIGNED_LONG_INT) // long octal integer
+          .put("%lu", CNumericTypes.UNSIGNED_LONG_INT) // long unsigned decimal integer
+          .put("%lx", CNumericTypes.UNSIGNED_LONG_INT) // long hexadecimal integer
+          .put("%hd", CNumericTypes.SHORT_INT) // short decimal integer
+          .put("%hi", CNumericTypes.SHORT_INT) // short decimal, octal, or hexadecimal integer
+          .put("%ho", CNumericTypes.UNSIGNED_SHORT_INT) // short octal integer
+          .put("%hu", CNumericTypes.UNSIGNED_SHORT_INT) // short unsigned decimal integer
+          .put("%hx", CNumericTypes.UNSIGNED_SHORT_INT) // short hexadecimal integer
+          .put("%lld", CNumericTypes.LONG_LONG_INT) // long long decimal integer
+          .put(
+              "%lli",
+              CNumericTypes.LONG_LONG_INT) // long long decimal, octal, or hexadecimal integer
+          .put("%llo", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long octal integer
+          .put("%llu", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long unsigned decimal integer
+          .put("%llx", CNumericTypes.UNSIGNED_LONG_LONG_INT) // long long hexadecimal integer
+          .put("%hhd", CNumericTypes.SIGNED_CHAR)
+          .put("%hhi", CNumericTypes.SIGNED_CHAR)
+          .put("%hhx", CNumericTypes.UNSIGNED_CHAR)
+          .put("%hho", CNumericTypes.UNSIGNED_CHAR)
+          .put("%hhu", CNumericTypes.UNSIGNED_CHAR)
+          .put("%f", CNumericTypes.FLOAT)
+          .put("%e", CNumericTypes.FLOAT)
+          .put("%g", CNumericTypes.FLOAT)
+          .put("%a", CNumericTypes.FLOAT)
+          .put("%lf", CNumericTypes.DOUBLE)
+          .put("%le", CNumericTypes.DOUBLE)
+          .put("%lg", CNumericTypes.DOUBLE)
+          .put("%la", CNumericTypes.DOUBLE)
+          .put("%Lf", CNumericTypes.LONG_DOUBLE)
+          .put("%Le", CNumericTypes.LONG_DOUBLE)
+          .put("%Lg", CNumericTypes.LONG_DOUBLE)
+          .put("%La", CNumericTypes.LONG_DOUBLE)
+          .put("%c", CNumericTypes.CHAR)
+          .buildOrThrow();
+
+  private static final String FSCANF = "fscanf";
+
+  public static boolean matchesFscanf(String pFunctionName) {
+    return pFunctionName.equals(FSCANF);
+  }
+
+  public static Optional<CType> getTypeFromScanfFormatSpecifier(String specifier) {
+    return Optional.ofNullable(supportedScanfFormatSpecifiers.get(specifier));
+  }
 
   /**
    * Result of validating the parameters of a fscanf call.
@@ -42,6 +98,15 @@ public class BuiltinFunctionsHandling {
    * @param receiver the receiving parameter expression
    */
   private record ValidatedFScanFParameter(String format, CExpression receiver) {}
+
+  /**
+   * Returns the set of allowed format specifiers for scanf-like functions.
+   *
+   * @return the set of allowed format specifiers
+   */
+  public static ImmutableSet<String> getAllowedScanfFormatSpecifiers() {
+    return supportedScanfFormatSpecifiers.keySet();
+  }
 
   /**
    * Checks whether the format specifier in the second argument of fscanf agrees with the type of
@@ -60,7 +125,7 @@ public class BuiltinFunctionsHandling {
   private static boolean isCompatibleWithScanfFormatString(
       String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
     CType expectedType =
-        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
+        HandleBuiltinIoFunctions.getTypeFromScanfFormatSpecifier(formatString)
             .orElseThrow(
                 () ->
                     new UnsupportedCodeException(
@@ -103,7 +168,7 @@ public class BuiltinFunctionsHandling {
 
   private static Optional<String> checkFscanfFormatString(CExpression pFormat) {
     ImmutableSet<String> allowlistedFormatStrings =
-        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
+        HandleBuiltinIoFunctions.getAllowedScanfFormatSpecifiers();
     if (pFormat instanceof CStringLiteralExpression stringLiteral) {
       String content = stringLiteral.getContentWithoutNullTerminator();
       if (allowlistedFormatStrings.contains(content)) {
@@ -137,8 +202,8 @@ public class BuiltinFunctionsHandling {
   public static CFunctionCallAssignmentStatement createNondetCallModellingFscanf(
       CFunctionCallExpression e, CFAEdge pEdge) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
-    if (!(e.getFunctionNameExpression() instanceof CIdExpression funcNameIdExpression)
-        || !funcNameIdExpression.getName().equals("fscanf")) {
+    if (!(e.getFunctionNameExpression() instanceof CIdExpression funcNameIdExpression
+        && matchesFscanf(funcNameIdExpression.getName()))) {
       throw new UnrecognizedCodeException(
           "fscanf function call expected to have a direct function name called 'fscanf'.",
           pEdge,
@@ -146,7 +211,7 @@ public class BuiltinFunctionsHandling {
     }
 
     ValidatedFScanFParameter receivingParameter =
-        BuiltinFunctionsHandling.validateFscanfParameters(parameters, e, pEdge);
+        HandleBuiltinIoFunctions.validateFscanfParameters(parameters, e, pEdge);
 
     if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
       UnaryOperator operator = unaryParameter.getOperator();
@@ -155,7 +220,7 @@ public class BuiltinFunctionsHandling {
         // For simplicity, we start with the case where only parameters of the form "&id" occur
         CType variableType = idExpression.getExpressionType();
 
-        if (!BuiltinFunctionsHandling.isCompatibleWithScanfFormatString(
+        if (!HandleBuiltinIoFunctions.isCompatibleWithScanfFormatString(
             receivingParameter.format(), variableType, pEdge)) {
           throw new UnsupportedCodeException(
               "fscanf with receiving type <-> format specifier mismatch is not supported.",
