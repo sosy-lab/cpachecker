@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,18 +46,18 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> newStoredValuesMap =
+    Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> newStoredValuesMap =
         new HashMap<>();
-    Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> oldStoredValuesMap =
+    Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> oldStoredValuesMap =
         terminationState.getStoredValues();
-    for (Entry<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> keyPair :
+    for (Entry<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> keyPair :
         oldStoredValuesMap.entrySet()) {
       newStoredValuesMap.put(keyPair.getKey(), new HashMap<>());
-      for (Entry<Integer, Set<Formula>> storedValues :
+      for (Entry<Integer, ImmutableSet<Formula>> storedValues :
           oldStoredValuesMap.get(keyPair.getKey()).entrySet()) {
         newStoredValuesMap
             .get(keyPair.getKey())
-            .put(storedValues.getKey(), new HashSet<>(storedValues.getValue()));
+            .put(storedValues.getKey(), storedValues.getValue());
       }
     }
     return Collections.singleton(
@@ -104,18 +105,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return Collections.singleton(pState);
   }
 
-  /**
-   * Stores new assumptions about value of variables seen. For instance, if there is x@2 in SSAmap
-   * then it will add a condition to the stored values: __Q__x0 = x@2 Where the storing variables
-   * are of the form __Q__[name of variable][number of loop iterations].
-   */
-  private Set<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
+  private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
     SSAMap ssaMap = pPathFormula.getSsa();
-    Set<Formula> newStoredIndices = new HashSet<>();
+    ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
     for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
       newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));
     }
-    return newStoredIndices;
+    return newStoredIndices.build();
   }
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {

@@ -9,6 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -102,7 +105,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
   private BooleanFormula buildCycleFormula(
       BooleanFormula pFullPathFormula,
-      Map<Integer, Set<Formula>> storedValues,
+      Map<Integer, ImmutableSet<Formula>> storedValues,
       SSAMap pLatestValues,
       int pMaxIndex) {
     BooleanFormula cycle =
@@ -111,10 +114,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return bfmgr.and(pFullPathFormula, cycle);
   }
 
-  private List<BooleanFormula> buildComparingFormulas(
-      Map<Integer, Set<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
-    List<BooleanFormula> comparingFormulas = new ArrayList<>();
-    for (Entry<Integer, Set<Formula>> savedVariables : storedValues.entrySet()) {
+  private ImmutableList<BooleanFormula> buildComparingFormulas(
+      Map<Integer, ImmutableSet<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
+    ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
+    for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
       if (savedVariables.getKey().intValue() >= pMaxIndex) {
         continue;
       }
@@ -128,6 +131,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
       comparingFormulas.add(comparingFormula);
     }
-    return comparingFormulas;
+    return comparingFormulas.build();
   }
 }

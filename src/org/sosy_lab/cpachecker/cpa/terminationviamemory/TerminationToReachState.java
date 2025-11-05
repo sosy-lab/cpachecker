@@ -42,7 +42,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * call-stack states of loop-heads to a map with information about which variables were seen after
    * which unrolling of the loop.
    */
-  private Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> storedValues;
+  private Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> storedValues;
 
   /**
    * For every loop-head (given by location and call-stack), we track how many times have we passed
@@ -57,7 +57,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private Map<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
-      Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> pStoredValues,
+      Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> pStoredValues,
       Map<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       Map<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
 
@@ -89,20 +89,20 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   public void setNewStoredValues(
       LocationState pLoopHead,
       CallstackState pCallstackState,
-      Set<Formula> pNewStoredValues,
+      ImmutableSet<Formula> pNewStoredValues,
       int index) {
     Pair<LocationState, CallstackState> newKey = Pair.of(pLoopHead, pCallstackState);
     if (storedValues.containsKey(newKey)) {
-      Map<Integer, Set<Formula>> assumptions = storedValues.get(newKey);
+      Map<Integer, ImmutableSet<Formula>> assumptions = storedValues.get(newKey);
       assumptions.put(index, pNewStoredValues);
     } else {
-      Map<Integer, Set<Formula>> newValues = new HashMap<>();
+      Map<Integer, ImmutableSet<Formula>> newValues = new HashMap<>();
       newValues.put(0, pNewStoredValues);
       storedValues.put(newKey, newValues);
     }
   }
 
-  public Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> getStoredValues() {
+  public Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> getStoredValues() {
     return storedValues;
   }
 
@@ -151,7 +151,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private String getReadableStoredValues() {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> entry :
+    for (Map.Entry<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> entry :
         getStoredValues().entrySet()) {
       sb.append(entry);
     }
