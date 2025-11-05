@@ -194,11 +194,17 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     // In this, cases we need to keep the old accesses as well.
     CFAEdgeType edgeType = cfaEdge.getEdgeType();
     switch (edgeType) {
-      case BlankEdge, FunctionCallEdge, FunctionReturnEdge, DeclarationEdge -> {
+      case BlankEdge, FunctionReturnEdge, DeclarationEdge -> {
         newMemoryAccesses = memoryAccessBuilder.build();
       }
-      case AssumeEdge, ReturnStatementEdge, CallToReturnEdge -> {
+      case ReturnStatementEdge -> {
         // Do nothing, newMemoryAccesses is already correct
+      }
+      case AssumeEdge, FunctionCallEdge, CallToReturnEdge -> {
+        // A function call, and assume edges, are not a statement and therefore do not invalidate
+        // previously tracked accesses, but they may add new accesses as well, due to
+        // function arguments being passed, or the variables being read in the assume condition.
+        newMemoryAccesses = memoryAccessBuilder.addAll(newMemoryAccesses).build();
       }
       case StatementEdge -> {
         if (!(cfaEdge instanceof AStatementEdge statementEdge)) {
