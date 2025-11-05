@@ -777,8 +777,16 @@ public class CFAUtils {
     return rGlobalVariables.build();
   }
 
+  /**
+   * Extracts the name of the function being called from {@code pCfaEdge} based on its {@link
+   * CFunctionCall}.
+   *
+   * @param pCfaEdge The {@link CFAEdge} from which to extract the function name.
+   * @return A {@code String} representing the function name (e.g., "main").
+   * @throws IllegalArgumentException if {@code pCfaEdge} is not a {@link CFunctionCall}.
+   */
   public static String getFunctionNameFromCfaEdge(CFAEdge pCfaEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pCfaEdge));
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pCfaEdge), "pCfaEdge must be a CFunctionCall");
     return CFAUtils.getCFunctionCallFromCfaEdge(pCfaEdge)
         .getFunctionCallExpression()
         .getFunctionNameExpression()
@@ -811,6 +819,15 @@ public class CFAUtils {
     throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
   }
 
+  /**
+   * Retrieves the {@link CFunctionDeclaration} from the {@link CFunctionCallStatement} of {@code
+   * pStatementEdge}.
+   *
+   * @param pStatementEdge The {@link CStatementEdge} to analyze.
+   * @return The {@link CFunctionDeclaration} of the function being called.
+   * @throws IllegalArgumentException If the statement in {@code pStatementEdge} is not a {@link
+   *     CFunctionCallStatement}.
+   */
   public static CFunctionDeclaration getFunctionDeclarationByStatementEdge(
       CStatementEdge pStatementEdge) {
 
@@ -820,6 +837,19 @@ public class CFAUtils {
     throw new IllegalArgumentException("pStatementEdge has no function call statement");
   }
 
+  /**
+   * Retrieves all incoming {@link CFunctionCallEdge}s that correspond to the function from which
+   * the given {@link CReturnStatementEdge} originates.
+   *
+   * <p>A {@link CReturnStatementEdge}s successor is typically the {@link FunctionExitNode}, which
+   * is linked to the function's entry node via the CFA. This method traverses from the entry node
+   * back to all the edges that initiated a call to this function.
+   *
+   * @param pReturnStatementEdge The C return statement edge, representing a return point within a
+   *     function (e.g. 'return ret;')
+   * @return An {@link ImmutableSet} of {@link CFunctionCallEdge}s, where each edge represents a
+   *     point in the program that called the function being returned from.
+   */
   public static ImmutableSet<CFunctionCallEdge> getFunctionCallEdgesByReturnStatementEdge(
       CReturnStatementEdge pReturnStatementEdge) {
 
@@ -881,11 +911,28 @@ public class CFAUtils {
     return (CFunctionCall) pCfaEdge.getRawAST().orElseThrow();
   }
 
+  /**
+   * Retrieves the {@link CFunctionDeclaration} from the {@link CFunctionCall} represented by the
+   * given {@link CFAEdge}.
+   *
+   * @param pCfaEdge The {@link CFAEdge} representing a function call.
+   * @return The {@link CFunctionDeclaration} of the function being called.
+   * @throws RuntimeException If the edge is not a {@link CFunctionCall}.
+   */
   public static CFunctionDeclaration getCFunctionDeclarationFromCFaEdge(CFAEdge pCfaEdge) {
     CFunctionCall functionCall = getCFunctionCallFromCfaEdge(pCfaEdge);
     return functionCall.getFunctionCallExpression().getDeclaration();
   }
 
+  /**
+   * Retrieves the parameter declarations of the function being called through the given {@link
+   * CFAEdge}.
+   *
+   * @param pCfaEdge The {@link CFAEdge} representing a C function call.
+   * @return An {@link ImmutableList} of {@link CParameterDeclaration}s for the function being
+   *     called.
+   * @throws RuntimeException If the edge is not a {@link CFunctionCall}.
+   */
   public static ImmutableList<CParameterDeclaration> getParameterDeclarationsFromCfaEdge(
       CFAEdge pCfaEdge) {
 
