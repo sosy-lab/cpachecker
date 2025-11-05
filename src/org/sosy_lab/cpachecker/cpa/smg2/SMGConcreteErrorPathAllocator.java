@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
+import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
@@ -194,12 +195,16 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       }
 
       if (value instanceof NumericValue numValue) {
-        IDExpression idExp = createBaseIdExpresssion(location);
-        if (location.getOffset() != 0) {
-          throw new AssertionError("Missing implementation for offset memory location in CEX");
+        LeftHandSide lhs = createLeftHandSideFor(location);
+        if (lhs == null) {
+          // We can't handle local arrays or field references currently, as we only have an offset,
+          // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
+          // MEMORY IS NOT NEEDED IN CPACHECKER
+          continue;
         }
-        checkState(idExp.isGlobal() == !location.isOnFunctionStack());
-        result.put(idExp, numValue.bigIntegerValue());
+        checkState(lhs.isGlobal() == !location.isOnFunctionStack());
+        checkState(location.getOffset() == 0 || lhs instanceof FieldReference);
+        result.put(lhs, numValue.bigIntegerValue());
       }
     }
 
@@ -278,6 +283,19 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       return new IDExpression(pLoc.getIdentifier());
     } else {
       return new IDExpression(pLoc.getIdentifier(), pLoc.getFunctionName());
+    }
+  }
+
+  private static LeftHandSide createLeftHandSideFor(MemoryLocation memLoc) {
+    if (memLoc.getOffset() == 0) {
+      if (!memLoc.isOnFunctionStack()) {
+        return new IDExpression(memLoc.getIdentifier());
+      } else {
+        return new IDExpression(memLoc.getIdentifier(), memLoc.getFunctionName());
+      }
+    } else {
+      return null;
+      // return new FieldReference();
     }
   }
 
