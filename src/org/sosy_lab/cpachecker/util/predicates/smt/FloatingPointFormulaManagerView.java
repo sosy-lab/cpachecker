@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -45,10 +46,37 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     bitvectorFormulaManager = pBitvectorFormulaManager;
   }
 
-  private boolean isBitvectorIntermediateNecessary(FormulaType<?> pTargetType) {
+  /**
+   * To decide if we should use bitvectors as intermediary between ints and floats, we need:
+   *
+   * <ul>
+   *   <li>the bitvector formula manager (some solvers don't have that)
+   *   <li>to use SMT floats to represent floats (reals can be directly created from ints)
+   *   <li>the {@param type} to be a bitvector
+   *   <li>the unwrapped @{param type} to be integer
+   * </ul>
+   */
+  private boolean isBitvectorIntermediateNecessary(FormulaType<?> type) {
     return bitvectorFormulaManager != null
-        && pTargetType.isBitvectorType()
-        && unwrapType(pTargetType).isIntegerType();
+        && useFloatForFloats()
+        && type.isBitvectorType()
+        && unwrapType(type).isIntegerType();
+  }
+
+  /**
+   * Decides if an intermediary bitvector should be used; and returns one if so
+   *
+   * @param pFormula the candidate (potentially wrapped) integer
+   * @return an optional bitvector of the same size as the wrapper specified
+   */
+  private Optional<BitvectorFormula> getBitvectorIntermediateIfNecessary(Formula pFormula) {
+    if (isBitvectorIntermediateNecessary(getFormulaType(pFormula))) {
+      return Optional.of(
+          bitvectorFormulaManager.makeBitvector(
+              bitvectorFormulaManager.getLength((BitvectorFormula) pFormula),
+              (IntegerFormula) unwrap(pFormula)));
+    }
+    return Optional.empty();
   }
 
   @Override
@@ -108,15 +136,9 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    * instead of merely unwrapping it.
    */
   private Formula interpretSourceFormula(Formula pNumber) {
-    if (bitvectorFormulaManager != null
-        && pNumber instanceof WrappingFormula.WrappingBitvectorFormula<?> pBitvectorFormula
-        && unwrap(pNumber) instanceof IntegerFormula pIntegerFormula) {
-      // We don't actually want to just unwrap it, as int<->float conversion is
-      // (with current solvers) always approximated.
-      final int size = ((BitvectorType) pBitvectorFormula.getType()).getSize();
-      return bitvectorFormulaManager.makeBitvector(size, pIntegerFormula);
-    }
-    return unwrap(pNumber);
+    return getBitvectorIntermediateIfNecessary(pNumber)
+        .map(it -> (Formula) it)
+        .orElse(unwrap(pNumber));
   }
 
   @Override
@@ -124,28 +146,34 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       BitvectorFormula pNumber, FloatingPointType pTargetType) {
     if (useBitvectors()) {
       return manager.fromIeeeBitvector(pNumber, pTargetType);
-    } else if (useIntForBitvectors() && useFloatForFloats() && bitvectorFormulaManager != null) {
-      // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
-      // representing a bitvector
-      // useFloatForFloats() is required here, because if it's not the case, then the actual manager
-      // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not accept actual
-      // bitvectors, only wrapped integers. In those cases, we fall back to the approximation in the
-      // else branch of this decision.
-      final BitvectorFormula bv =
-          bitvectorFormulaManager.makeBitvector(
-              bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
-      return manager.fromIeeeBitvector(bv, pTargetType);
     } else {
-      return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
-          pNumber, pTargetType, this, functionManager);
+      return getBitvectorIntermediateIfNecessary(pNumber)
+          .map(
+              it ->
+                  // we don't use bitvectors but have found an integer --> consider this as an
+                  // unsigned integer
+                  // representing a bitvector
+                  // useFloatForFloats() is required here, because if it's not the case, then the
+                  // actual manager
+                  // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not
+                  // accept actual
+                  // bitvectors, only wrapped integers. In those cases, we fall back to the
+                  // approximation in the
+                  // else branch of this decision.
+                  manager.fromIeeeBitvector(it, pTargetType))
+          .orElse(
+              ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
+                  pNumber, pTargetType, this, functionManager));
     }
   }
 
   @Override
   public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
+    FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
+    BitvectorType targetType = FormulaType.getBitvectorTypeWithSize(type.getTotalSize());
     if (useBitvectors()) {
       return manager.toIeeeBitvector(pNumber);
-    } else if (useIntForBitvectors() && useFloatForFloats() && bitvectorFormulaManager != null) {
+    } else if (isBitvectorIntermediateNecessary(targetType)) {
       // useFloatForFloats() is required here, because if it's not the case, then the actual manager
       // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not accept actual
       // bitvectors, only wrapped integers. In those cases, we fall back to the approximation in the
@@ -154,8 +182,6 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       final FormulaType<BitvectorFormula> retType = getFormulaType(bv);
       return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));
     } else {
-      FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
-      BitvectorType targetType = FormulaType.getBitvectorTypeWithSize(type.getTotalSize());
       return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
           pNumber, targetType, this, functionManager);
     }
@@ -289,7 +315,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointFormula makeNumber(double pN, FormulaType.FloatingPointType type) {
+  public FloatingPointFormula makeNumber(double pN, FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 
@@ -300,7 +326,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointFormula makeNumber(BigDecimal pN, FormulaType.FloatingPointType type) {
+  public FloatingPointFormula makeNumber(BigDecimal pN, FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 
@@ -311,7 +337,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointFormula makeNumber(String pN, FormulaType.FloatingPointType type) {
+  public FloatingPointFormula makeNumber(String pN, FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 
@@ -322,7 +348,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointFormula makeNumber(Rational pN, FormulaType.FloatingPointType type) {
+  public FloatingPointFormula makeNumber(Rational pN, FloatingPointType type) {
     return manager.makeNumber(pN, type);
   }
 
@@ -339,12 +365,11 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public FloatingPointFormula makeVariable(String pVar, FormulaType.FloatingPointType pType) {
+  public FloatingPointFormula makeVariable(String pVar, FloatingPointType pType) {
     return manager.makeVariable(pVar, pType);
   }
 
-  public FloatingPointFormula makeVariable(
-      String pVar, int idx, FormulaType.FloatingPointType pType) {
+  public FloatingPointFormula makeVariable(String pVar, int idx, FloatingPointType pType) {
     return manager.makeVariable(FormulaManagerView.makeName(pVar, idx), pType);
   }
 
