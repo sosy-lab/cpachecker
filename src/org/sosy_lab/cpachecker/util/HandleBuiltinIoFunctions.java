@@ -191,7 +191,8 @@ public class HandleBuiltinIoFunctions {
    * <p>The function returns a function named `__VERIFIER_nondet_ANY` whose return type matches the
    * type of the receiving variable of fscanf. The analysis making use of this function must ensure
    * that such a function is properly modeled, and that the same function name being used with
-   * multiple different return types is handled correctly.
+   * multiple different return types is handled correctly, by for example ignoring the function name
+   * completely.
    *
    * @param e the {@code CFunctionCallExpression} representing the fscanf call
    * @param pEdge the CFA edge where the fscanf call occurs, required for proper exception handling
