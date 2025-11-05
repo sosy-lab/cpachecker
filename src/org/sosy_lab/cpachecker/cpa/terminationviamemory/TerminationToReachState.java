@@ -25,21 +25,34 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-/** Tracks already seen states at loop-head locations */
+/**
+ * Tracks already seen states at loop-head locations and within the same call-stack. In the
+ * following documentation, a loop-head is given by the location and call-stack.
+ */
 public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
   private boolean isTarget;
 
-  /** The constraints on values of the variables that has already been seen in a loop-head */
+  /**
+   * The following map keeps track of all the variables as type of @Formula, so that they can be
+   * directly used in the further formulas by precision-adjustment operator. For every loop-head
+   * (i.e. given by location and call-stack), it keeps track of which variables (with SSA indices)
+   * where the most recent ones after how many iteration. In other words, it maps location and
+   * call-stack states of loop-heads to a map with information about which variables were seen after
+   * which unrolling of the loop.
+   */
   private Map<Pair<LocationState, CallstackState>, Map<Integer, Set<Formula>>> storedValues;
 
-  /** We store number of times that we have iterated over a loop */
+  /**
+   * For every loop-head (given by location and call-stack), we track how many times have we passed
+   * it in the abstract graph until reaching this state.
+   */
   private Map<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
   /**
-   * Stores assumptions from path formula after i iterations of the loop, where i is the number of
-   * iterations of the loop needed to reach this abstract state
+   * For every loop-head (given by location and call-stack), we track the path formula until
+   * reaching this abstract state.
    */
   private Map<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
