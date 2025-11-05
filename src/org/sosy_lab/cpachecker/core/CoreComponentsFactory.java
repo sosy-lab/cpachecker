@@ -577,7 +577,7 @@ public class CoreComponentsFactory {
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
       if (useTerminationToSafetyAlgorithm) {
-         new TerminationToSafetyAlgorithm(config, cpa);
+        new TerminationToSafetyAlgorithm(config, cpa);
       }
 
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);

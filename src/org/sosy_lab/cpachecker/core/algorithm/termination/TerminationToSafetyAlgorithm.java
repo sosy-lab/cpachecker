@@ -10,18 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -31,9 +25,7 @@ public class TerminationToSafetyAlgorithm implements Algorithm {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public TerminationToSafetyAlgorithm(
-      Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa)
+  public TerminationToSafetyAlgorithm(Configuration pConfig, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     cpa = checkNotNull(pCpa);
 

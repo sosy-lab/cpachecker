@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -103,8 +105,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       Map<Integer, Set<Formula>> storedValues,
       SSAMap pLatestValues,
       int pMaxIndex) {
-    BooleanFormula cycle = bfmgr.makeFalse();
+    BooleanFormula cycle =
+        buildComparingFormulas(storedValues, pMaxIndex, pLatestValues).stream()
+            .collect(bfmgr.toDisjunction());
+    return bfmgr.and(pFullPathFormula, cycle);
+  }
 
+  private List<BooleanFormula> buildComparingFormulas(
+      Map<Integer, Set<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
+    List<BooleanFormula> comparingFormulas = new ArrayList<>();
     for (Entry<Integer, Set<Formula>> savedVariables : storedValues.entrySet()) {
       if (savedVariables.getKey().intValue() >= pMaxIndex) {
         continue;
@@ -117,8 +126,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 fmgr.assignment(
                     fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
       }
-      cycle = bfmgr.or(cycle, comparingFormula);
+      comparingFormulas.add(comparingFormula);
     }
-    return bfmgr.and(pFullPathFormula, cycle);
+    return comparingFormulas;
   }
 }
