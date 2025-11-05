@@ -3859,9 +3859,9 @@ cpa.value.abstraction.iterationThreshold = -1
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
 # If given functions are not handled by the analysis, they are interpret as
-# pure functions although the value analysis does not support their
-# semantics. This can be unsound!
-cpa.value.allowedUnsupportedFunctions = {"printf", "srand"}
+# functions without side-effects and return a new nondeterministic value
+# every time they are called. This can be unsound!
+cpa.value.allowedUnsupportedFunctions = {}
 
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
