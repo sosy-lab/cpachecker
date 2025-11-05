@@ -156,7 +156,6 @@ public class MemoryModel {
 
   // getters =======================================================================================
 
-  // TODO this can be optimized by using an ImmutableSetMultimap and saving it on creation
   static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,

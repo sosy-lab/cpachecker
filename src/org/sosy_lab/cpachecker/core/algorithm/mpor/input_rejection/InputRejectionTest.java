@@ -106,7 +106,6 @@ public class InputRejectionTest {
         InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
-  // TODO check binary expressions e.g. pthread_create != 0 when substituting
   @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {

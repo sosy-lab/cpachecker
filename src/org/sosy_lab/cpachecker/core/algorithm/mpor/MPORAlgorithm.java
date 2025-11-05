@@ -98,10 +98,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " function pointers for CPAchecker)")
   private boolean inputFunctionDeclarations = false;
 
-  // TODO make this secure by checking if all types for all variables are included.
-  //  note that this is probably a lot of work (recursive type checking, and the only benefit would
-  //  be that the output programs are smaller in size.
-  @Option(description = "include original type declarations from input file?")
+  @Option(
+      description =
+          "include original type declarations from input file? disabling may result in parse errors"
+              + " for the output program.")
   private boolean inputTypeDeclarations = true;
 
   @Option(

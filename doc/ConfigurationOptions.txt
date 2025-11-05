@@ -307,7 +307,8 @@ analysis.algorithm.MPOR.controlEncodingThread = NONE
 # calls through function pointers for CPAchecker)
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
 
-# include original type declarations from input file?
+# include original type declarations from input file? disabling may result in
+# parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
 # include CPAchecker license header in the sequentialization?
