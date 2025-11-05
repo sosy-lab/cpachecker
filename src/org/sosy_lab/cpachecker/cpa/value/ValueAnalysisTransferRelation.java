@@ -917,7 +917,7 @@ public class ValueAnalysisTransferRelation
       throws UnsupportedCodeException {
     // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
     String calledFunctionName =
-        functionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+        functionCall.getFunctionCallExpression().getDeclaration().getName();
     if (!options.isAllowedUnsupportedOption(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         // It is UNSOUND to ignore these!!!!
