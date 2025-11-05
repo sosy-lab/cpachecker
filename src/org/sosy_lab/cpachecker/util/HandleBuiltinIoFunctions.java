@@ -115,7 +115,7 @@ public class HandleBuiltinIoFunctions {
    * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
    * for each argument, corresponding to a conversion specifier and length modifier .The exact
    * mapping brought forward by the standard is reflected in {@link
-   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
+   * HandleBuiltinIoFunctions#getTypeFromScanfFormatSpecifier(String)}.
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
