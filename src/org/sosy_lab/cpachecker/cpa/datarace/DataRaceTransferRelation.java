@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -209,9 +208,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     // Some edges, are not actually statements which should reset the
     // tracked accesses (e.g., function call edges, and blank edges).
     // In this, cases we need to keep the old accesses as well.
-    CFAEdgeType edgeType = cfaEdge.getEdgeType();
-    final Set<MemoryAccess> finalMemoryAccesses;
-    return switch (edgeType) {
+    return switch (cfaEdge.getEdgeType()) {
       case BlankEdge, FunctionReturnEdge, DeclarationEdge -> previousAccesses;
       case ReturnStatementEdge -> {
         // Do nothing, newMemoryAccesses is already correct
