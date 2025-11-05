@@ -52,8 +52,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    * <ul>
    *   <li>the bitvector formula manager (some solvers don't have that)
    *   <li>to use SMT floats to represent floats (reals can be directly created from ints)
-   *   <li>the {@param type} to be a bitvector
-   *   <li>the unwrapped @{param type} to be integer
+   *   <li>the type to be a bitvector
+   *   <li>the unwrapped type to be integer
    * </ul>
    */
   private boolean isBitvectorIntermediateNecessary(FormulaType<?> type) {
