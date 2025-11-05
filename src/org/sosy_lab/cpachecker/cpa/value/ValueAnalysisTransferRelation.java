@@ -216,11 +216,12 @@ public class ValueAnalysisTransferRelation
 
     @Option(
         secure = true,
+        name = "allowedUnsupportedFunctions",
         description =
             "If given functions are not handled by the analysis, they are interpret as pure"
                 + " functions although the value analysis does not support their semantics."
                 + " This can be unsound!")
-    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of("printf", "srand");
+    private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -250,8 +251,8 @@ public class ValueAnalysisTransferRelation
       return functionValuesForRandom;
     }
 
-    boolean isAllowedUnsupportedOption(String func) {
-      return allowedUnsupportedFunctions.contains(func);
+    boolean isUserDefinedAllowedUnsupportedFunction(String funcName) {
+      return additionalAllowedUnsupportedFunctions.contains(funcName);
     }
 
     public boolean randomlySampleFunctionReturnValues() {
@@ -303,6 +304,9 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> booleanVariables;
   private Map<Integer, String> valuesFromFile;
   @LazyInit private Random randomSampler = null;
+
+  // Functions that we know are safe to ignore
+  private final Set<String> ignoredUnsupportedFunctions = ImmutableSet.of("printf", "srand");
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -871,7 +875,7 @@ public class ValueAnalysisTransferRelation
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (!options.isAllowedUnsupportedOption(func)) {
+            if (!isAllowedUnsupportedOption(func)) {
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
@@ -907,6 +911,11 @@ public class ValueAnalysisTransferRelation
     return state;
   }
 
+  private boolean isAllowedUnsupportedOption(String pFunc) {
+    return ignoredUnsupportedFunctions.contains(pFunc)
+        || options.isUserDefinedAllowedUnsupportedFunction(pFunc);
+  }
+
   /**
    * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
    * either trigger a warning or a {@link UnsupportedCodeException} depending on option
@@ -916,9 +925,8 @@ public class ValueAnalysisTransferRelation
       AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
       throws UnsupportedCodeException {
     // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
-    String calledFunctionName =
-        functionCall.getFunctionCallExpression().getDeclaration().getName();
-    if (!options.isAllowedUnsupportedOption(calledFunctionName)) {
+    String calledFunctionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
+    if (!isAllowedUnsupportedOption(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         // It is UNSOUND to ignore these!!!!
         logger.log(
