@@ -27,8 +27,10 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
@@ -120,6 +122,41 @@ public class PredicateDelegatingRefinerTest {
             ((DelegatingRefinerHeuristicReachedSetRatio) pRefinerRecords.getFirst().pHeuristic())
                 .getAbstractionLocationRefinementRatio())
         .isEqualTo(5.0);
+  }
+
+  /**
+   * This test checks if DelegatingRefiner correctly instantiates a negated heuristic and if that
+   * heuristics correctly negates the result of another heuristic.
+   */
+  @Test
+  public void setUpNegatedHeuristic() throws Exception {
+    Configuration pNegatedConfig =
+        TestDataTools.configurationForTest()
+            .setOption(
+                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "NEGATED(STATIC):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
+            .build();
+
+    PredicateCPARefinerFactory pNegatedRunsRefinerFactory = setUpRefinerFactory(pNegatedConfig);
+
+    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
+        pNegatedRunsRefinerFactory.createDelegatingRefinerConfig(
+            setUpRefinerMap(pNegatedRunsRefinerFactory));
+
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicResultNegation.class);
+    assertThat(pRefinerRecords.getLast().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicResultNegation.class);
+
+    DelegatingRefinerHeuristicResultNegation firstHeuristic =
+        (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getFirst().pHeuristic();
+    assertThat(firstHeuristic.getDelegateHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+
+    DelegatingRefinerHeuristicResultNegation secondHeuristic =
+        (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getLast().pHeuristic();
+    assertThat(secondHeuristic.getDelegateHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicInterpolationRate.class);
   }
 
   /**

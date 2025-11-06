@@ -17,5 +17,6 @@ public enum DelegatingRefinerHeuristicType {
   REACHED_SET_RATIO,
   REDUNDANT_PREDICATES,
   INTERPOLATION_RATE,
+  NEGATED,
   STOP
 }

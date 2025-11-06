@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
@@ -280,21 +281,35 @@ public final class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
 
     ImmutableList.Builder<HeuristicDelegatingRefinerRecord> recordBuilder = ImmutableList.builder();
+    DelegatingRefinerHeuristicType pHeuristicName;
 
     for (String heuristicRefinerPair : heuristicRefinerPairs) {
+      DelegatingRefinerHeuristicType pInnerNegatedHeuristic = null;
       Iterable<String> rawPair = Splitter.on(':').trimResults().split(heuristicRefinerPair);
       ImmutableList<String> pairs = ImmutableList.copyOf(rawPair);
       if (pairs.size() != 2) {
         throw new InvalidConfigurationException(
             "Invalid heuristic-refiner format: "
                 + heuristicRefinerPair
-                + ". Please use this format: STATIC:STATIC,REACHED_SET_RATIO:DEFAULT.");
+                + ". Please use this format:"
+                + " STATIC:STATIC,NEGATED(STATIC):STATIC,REACHED_SET_RATIO:DEFAULT.");
       }
 
-      DelegatingRefinerHeuristicType pHeuristicName;
       try {
-        pHeuristicName =
-            DelegatingRefinerHeuristicType.valueOf(pairs.getFirst().toUpperCase(Locale.ROOT));
+        String heuristicSpec = pairs.getFirst().trim();
+
+        if (heuristicSpec.startsWith("NEGATED(") && pairs.getFirst().trim().endsWith(")")) {
+          pHeuristicName = DelegatingRefinerHeuristicType.NEGATED;
+
+          String inner =
+              heuristicSpec.substring("NEGATED(".length(), heuristicSpec.length() - 1).trim();
+          pInnerNegatedHeuristic =
+              DelegatingRefinerHeuristicType.valueOf(inner.toUpperCase(Locale.ROOT));
+        } else {
+          pHeuristicName =
+              DelegatingRefinerHeuristicType.valueOf(heuristicSpec.toUpperCase(Locale.ROOT));
+        }
+
       } catch (IllegalArgumentException unknownHeuristicType) {
         throw new InvalidConfigurationException(
             "Unknown heuristic type: "
@@ -323,28 +338,39 @@ public final class PredicateCPARefinerFactory {
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
       }
       DelegatingRefinerHeuristic pHeuristic =
-          switch (pHeuristicName) {
-            case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
-            case REACHED_SET_RATIO ->
-                new DelegatingRefinerHeuristicReachedSetRatio(
-                    predicateCpa.getConfiguration(), predicateCpa.getLogger());
-            case INTERPOLATION_RATE ->
-                new DelegatingRefinerHeuristicInterpolationRate(
-                    predicateCpa.getSolver().getFormulaManager(),
-                    predicateCpa.getLogger(),
-                    predicateCpa.getConfiguration());
-            case REDUNDANT_PREDICATES ->
-                new DelegatingRefinerHeuristicRedundantPredicates(
-                    predicateCpa.getConfiguration(),
-                    acceptableRedundancyThreshold,
-                    predicateCpa.getSolver().getFormulaManager(),
-                    predicateCpa.getLogger());
-            case STOP -> (pReached, pDeltas) -> true;
-          };
-
+          buildHeuristics(pHeuristicName, pInnerNegatedHeuristic);
       recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));
     }
     return recordBuilder.build();
+  }
+
+  private DelegatingRefinerHeuristic buildHeuristics(
+      DelegatingRefinerHeuristicType pHeuristicType,
+      @Nullable DelegatingRefinerHeuristicType pNegatedInnerHeuristic)
+      throws InvalidConfigurationException {
+    DelegatingRefinerHeuristic heuristic =
+        switch (pHeuristicType) {
+          case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
+          case REACHED_SET_RATIO ->
+              new DelegatingRefinerHeuristicReachedSetRatio(
+                  predicateCpa.getConfiguration(), predicateCpa.getLogger());
+          case INTERPOLATION_RATE ->
+              new DelegatingRefinerHeuristicInterpolationRate(
+                  predicateCpa.getSolver().getFormulaManager(),
+                  predicateCpa.getLogger(),
+                  predicateCpa.getConfiguration());
+          case REDUNDANT_PREDICATES ->
+              new DelegatingRefinerHeuristicRedundantPredicates(
+                  predicateCpa.getConfiguration(),
+                  acceptableRedundancyThreshold,
+                  predicateCpa.getSolver().getFormulaManager(),
+                  predicateCpa.getLogger());
+          case STOP -> (pReached, pDeltas) -> true;
+          case NEGATED ->
+              new DelegatingRefinerHeuristicResultNegation(
+                  buildHeuristics(checkNotNull(pNegatedInnerHeuristic), null));
+        };
+    return heuristic;
   }
 
   public ImmutableList<HeuristicDelegatingRefinerRecord> getRefinerRecords() {
