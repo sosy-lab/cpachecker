@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
@@ -42,37 +42,33 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * call-stack states of loop-heads to a map with information about which variables were seen after
    * which unrolling of the loop.
    */
-  private Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> storedValues;
+  private ImmutableMap<
+          Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+      storedValues;
 
   /**
    * For every loop-head (given by location and call-stack), we track how many times have we passed
    * it in the abstract graph until reaching this state.
    */
-  private Map<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
+  private ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state.
    */
-  private Map<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
+  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
   public TerminationToReachState(
-      Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> pStoredValues,
-      Map<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
-      Map<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
+      ImmutableMap<
+              Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          pStoredValues,
+      ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
+      ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     isTarget = false;
-  }
-
-  public void increaseNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
-    if (numberOfIterations.containsKey(pKeyPair)) {
-      numberOfIterations.put(pKeyPair, numberOfIterations.get(pKeyPair) + 1);
-    } else {
-      numberOfIterations.put(pKeyPair, 1);
-    }
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -82,36 +78,17 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return 0;
   }
 
-  public Map<Pair<LocationState, CallstackState>, Integer> getNumberOfIterationsMap() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterationsMap() {
     return numberOfIterations;
   }
 
-  public void setNewStoredValues(
-      LocationState pLoopHead,
-      CallstackState pCallstackState,
-      ImmutableSet<Formula> pNewStoredValues,
-      int index) {
-    Pair<LocationState, CallstackState> newKey = Pair.of(pLoopHead, pCallstackState);
-    if (storedValues.containsKey(newKey)) {
-      Map<Integer, ImmutableSet<Formula>> assumptions = storedValues.get(newKey);
-      assumptions.put(index, pNewStoredValues);
-    } else {
-      Map<Integer, ImmutableSet<Formula>> newValues = new HashMap<>();
-      newValues.put(0, pNewStoredValues);
-      storedValues.put(newKey, newValues);
-    }
-  }
-
-  public Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> getStoredValues() {
+  public ImmutableMap<
+          Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+      getStoredValues() {
     return storedValues;
   }
 
-  public void putNewPathFormula(
-      Pair<LocationState, CallstackState> pKeyPair, PathFormula pPathFormula) {
-    pathFormulaForIteration.put(pKeyPair, pPathFormula);
-  }
-
-  public Map<Pair<LocationState, CallstackState>, PathFormula> getPathFormulas() {
+  public ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> getPathFormulas() {
     return pathFormulaForIteration;
   }
 
@@ -151,8 +128,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   private String getReadableStoredValues() {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> entry :
-        getStoredValues().entrySet()) {
+    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+        entry : getStoredValues().entrySet()) {
       sb.append(entry);
     }
     return sb.toString();

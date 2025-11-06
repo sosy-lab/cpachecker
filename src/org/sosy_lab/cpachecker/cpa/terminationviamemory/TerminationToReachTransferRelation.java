@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -46,25 +43,25 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> newStoredValuesMap =
-        new HashMap<>();
-    Map<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> oldStoredValuesMap =
-        terminationState.getStoredValues();
-    for (Entry<Pair<LocationState, CallstackState>, Map<Integer, ImmutableSet<Formula>>> keyPair :
-        oldStoredValuesMap.entrySet()) {
-      newStoredValuesMap.put(keyPair.getKey(), new HashMap<>());
+    ImmutableMap.Builder<
+            Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+        newStoredValuesMap = ImmutableMap.builder();
+    ImmutableMap<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+        oldStoredValuesMap = terminationState.getStoredValues();
+    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+        keyPair : oldStoredValuesMap.entrySet()) {
+      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
       for (Entry<Integer, ImmutableSet<Formula>> storedValues :
           oldStoredValuesMap.get(keyPair.getKey()).entrySet()) {
-        newStoredValuesMap
-            .get(keyPair.getKey())
-            .put(storedValues.getKey(), storedValues.getValue());
+        newValues.put(storedValues.getKey(), storedValues.getValue());
       }
+      newStoredValuesMap.put(keyPair.getKey(), newValues.build());
     }
     return Collections.singleton(
         new TerminationToReachState(
-            newStoredValuesMap,
-            new HashMap<>(terminationState.getNumberOfIterationsMap()),
-            new HashMap<>(terminationState.getPathFormulas())));
+            newStoredValuesMap.build(),
+            terminationState.getNumberOfIterationsMap(),
+            terminationState.getPathFormulas()));
   }
 
   @Override
@@ -85,24 +82,49 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     }
     if (location.isLoopStart()) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
-      terminationState.putNewPathFormula(pairKey, predicateState.getPathFormula());
-      if (terminationState.getStoredValues().containsKey(pairKey)) {
-        terminationState.setNewStoredValues(
-            locationState,
-            callstackState,
-            extractLoopHeadVariables(predicateState.getPathFormula()),
-            terminationState.getNumberOfIterationsAtLoopHead(pairKey));
-        terminationState.increaseNumberOfIterationsAtLoopHead(pairKey);
-      } else {
-        terminationState.setNewStoredValues(
-            locationState,
-            callstackState,
-            extractLoopHeadVariables(predicateState.getPathFormula()),
-            0);
-        terminationState.increaseNumberOfIterationsAtLoopHead(pairKey);
+
+      ImmutableMap.Builder<
+              Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          newStoredValues = ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, Integer> newNumberOfIterations =
+          ImmutableMap.builder();
+      ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
+          newPathFormulaForIteration = ImmutableMap.builder();
+
+      for (Pair<LocationState, CallstackState> pairKey2 :
+          terminationState.getStoredValues().keySet()) {
+        if (!pairKey2.equals(pairKey)) {
+          newStoredValues.put(pairKey2, terminationState.getStoredValues().get(pairKey2));
+          newNumberOfIterations.put(
+              pairKey2, terminationState.getNumberOfIterationsAtLoopHead(pairKey2));
+          newPathFormulaForIteration.put(
+              pairKey2, terminationState.getPathFormulas().get(pairKey2));
+        }
       }
+      newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
+      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
+
+      if (terminationState.getStoredValues().containsKey(pairKey)) {
+        newValues.putAll(terminationState.getStoredValues().get(pairKey));
+        newValues.put(
+            terminationState.getNumberOfIterationsAtLoopHead(pairKey),
+            extractLoopHeadVariables(predicateState.getPathFormula()));
+        newStoredValues.put(pairKey, newValues.build());
+        newNumberOfIterations.put(
+            pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
+      } else {
+        newValues.put(0, extractLoopHeadVariables(predicateState.getPathFormula()));
+        newStoredValues.put(pairKey, newValues.build());
+        newNumberOfIterations.put(pairKey, 1);
+      }
+      return Collections.singleton(
+          new TerminationToReachState(
+              newStoredValues.build(),
+              newNumberOfIterations.build(),
+              newPathFormulaForIteration.build()));
+    } else {
+      return Collections.singleton(pState);
     }
-    return Collections.singleton(pState);
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
