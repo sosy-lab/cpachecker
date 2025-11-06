@@ -916,40 +916,6 @@ public class ValueAnalysisTransferRelation
         || options.isUserDefinedAllowedUnsupportedFunction(pFunc);
   }
 
-  /**
-   * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
-   * either trigger a warning or a {@link UnsupportedCodeException} depending on option
-   * 'ignoreCallsToUnknownFunctions'.
-   */
-  private void handleUnknownOrUnhandledFunctionCalls(
-      AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
-      throws UnsupportedCodeException {
-    // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
-    String calledFunctionName;
-    CFunctionCallExpression funcCallExpr = functionCall.getFunctionCallExpression();
-    if (funcCallExpr.getDeclaration() != null) {
-      calledFunctionName = funcCallExpr.getDeclaration().getName();
-    } else if (funcCallExpr.getFunctionNameExpression() instanceof CIdExpression funNameIdExpr) {
-      calledFunctionName = funNameIdExpr.getName();
-    } else {
-      throw new AssertionError(
-          "Could not determine function name in function call: " + functionCall);
-    }
-
-    if (!isAllowedUnsupportedOption(calledFunctionName)) {
-      if (options.ignoreCallsToUnknownFunctions) {
-        // It is UNSOUND to ignore these!!!!
-        logger.logOnce(
-            Level.WARNING,
-            "Unknown and unhandled function call %s ignored. The analysis is no longer sound!",
-            functionCall);
-      } else {
-        throw new UnsupportedCodeException(
-            "Unhandled call to function " + functionCall, cfaEdge, fn);
-      }
-    }
-  }
-
   private ValueAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
@@ -1850,5 +1816,47 @@ public class ValueAnalysisTransferRelation
 
   private ExpressionValueVisitor getVisitor() {
     return getVisitor(state, functionName);
+  }
+
+  /**
+   * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
+   * either trigger a warning or a {@link UnsupportedCodeException} depending on option
+   * 'ignoreCallsToUnknownFunctions'.
+   */
+  private void handleUnknownOrUnhandledFunctionCalls(
+      AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
+      throws UnsupportedCodeException {
+    // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
+    String calledFunctionName;
+    CFunctionCallExpression funcCallExpr = functionCall.getFunctionCallExpression();
+    if (funcCallExpr.getDeclaration() != null) {
+      calledFunctionName = funcCallExpr.getDeclaration().getName();
+    } else if (funcCallExpr.getFunctionNameExpression() instanceof CIdExpression funNameIdExpr) {
+      calledFunctionName = funNameIdExpr.getName();
+    } else {
+      throw new AssertionError(
+          "Could not determine function name in function call: " + functionCall);
+    }
+
+    if (!isAllowedUnsupportedOption(calledFunctionName)) {
+      if (options.ignoreCallsToUnknownFunctions) {
+        String additionalMsg = "";
+        if (!functionCall.getFunctionCallExpression().getParameterExpressions().isEmpty()) {
+          // It is UNSOUND to ignore these (in case of side effects)!!!!
+          additionalMsg =
+              " Side-effects of the function call are ignored! The analysis may no longer be"
+                  + " sound!";
+        }
+        logger.logOnce(
+            Level.WARNING,
+            "Return value for unknown and unhandled function call "
+                + functionCall
+                + " is overapproximated."
+                + additionalMsg);
+      } else {
+        throw new UnsupportedCodeException(
+            "Unhandled call to function " + functionCall, cfaEdge, fn);
+      }
+    }
   }
 }
