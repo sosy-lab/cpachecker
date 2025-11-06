@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -298,8 +299,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // LassoRanker handles unsigned types incorrectly as it does not account for overflows
     for (CVariableDeclaration variable : relevantVariables) {
       if (!cfa.getMachineModel().isSigned((CSimpleType) variable.getType().getCanonicalType())) {
-        logger.logf(WARNING, "LassoRanker does not support domains with possible overflows.");
-        return Result.UNKNOWN;
+        throw new UnsupportedCodeException(
+            "LassoRanker does not support domains with possible overflows. Encountered in the loop"
+                + " starting with the edge.",
+            pLoop.getInnerLoopEdges().asList().getFirst());
       }
     }
 
