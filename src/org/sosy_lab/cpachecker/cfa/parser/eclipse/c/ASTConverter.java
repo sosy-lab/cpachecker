@@ -2753,19 +2753,23 @@ class ASTConverter {
 
     FileLocation fileLoc = cInit.getFileLocation();
 
-    List<CDesignator> designators;
-    if (type.getCanonicalType() instanceof CCompositeType compositeType) {
-      Preconditions.checkState(
-          Arrays.stream(desInit)
-              .allMatch(designator -> designator instanceof ICASTFieldDesignator));
+    List<CDesignator> designators = new ArrayList<>(desInit.length);
 
-      List<ICASTFieldDesignator> fieldDesignators =
-          Arrays.stream(desInit).map(designator -> (ICASTFieldDesignator) designator).toList();
-      designators = resolveFieldDesignators(fileLoc, compositeType, fieldDesignators);
+    CType currentOwnerType = type.getCanonicalType();
 
-    } else {
-      designators = new ArrayList<>(desInit.length);
-      for (ICASTDesignator designator : desInit) {
+    // convert all designators
+    for (ICASTDesignator designator : desInit) {
+      if (designator instanceof ICASTFieldDesignator iCASTFieldDesignator) {
+        // Special case: One field designator in the C code may be
+        // resolved to multiple designators internally, because CPAchecker represents anonymous
+        // types explicitly by name (.a may become .some_anon_name1.some_anon_name_n.a)
+        DesignatorsAndLastType resolvedDesignators =
+            resolveFieldDesignator(
+                fileLoc, currentOwnerType, convert(iCASTFieldDesignator.getName()));
+        designators.addAll(resolvedDesignators.designators());
+        currentOwnerType = resolvedDesignators.lastOwnerType();
+
+      } else {
         CDesignator resolvedDesignator =
             switch (designator) {
               case ICASTArrayDesignator iCASTArrayDesignator ->
@@ -2789,34 +2793,29 @@ class ASTConverter {
     return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
-  private List<CDesignator> resolveFieldDesignators(
-      FileLocation fileLoc, CCompositeType ownerType, List<ICASTFieldDesignator> fieldDesignators) {
-    CType currentDirectOwnerType = ownerType;
-    List<CDesignator> designators = new ArrayList<>();
-    for (ICASTFieldDesignator designator : fieldDesignators) {
-      String fieldName = convert(designator.getName());
-      if (!(currentDirectOwnerType instanceof CCompositeType compositeType)) {
-        throw new AssertionError(
-            "Expected that field designator only appears for composite type: '"
-                + fieldName
-                + "' for type "
-                + currentDirectOwnerType);
-      }
-      // One field designator in the C code may resolve to multiple designators internally,
-      // because CPAchecker represents anonymous types explicitly by name
-      // (.x.y may become .some_anon_name1.x.some_anon_name2.some_anon_name3.y)
+  private record DesignatorsAndLastType(List<CFieldDesignator> designators, CType lastOwnerType) {}
+
+  private DesignatorsAndLastType resolveFieldDesignator(
+      FileLocation fileLoc, CType ownerType, String fieldName) {
+
+    final List<CFieldDesignator> designators;
+    CType currentOwnerType = ownerType;
+    if (ownerType instanceof CCompositeType compositeType) {
       List<Pair<String, CType>> wayToField =
           getWayToInnerField(compositeType, fieldName, fileLoc, new ArrayList<>());
       Preconditions.checkState(!wayToField.isEmpty());
 
-      for (Pair<String, CType> pairOfNameAndType : wayToField) {
-        String nextFieldName = pairOfNameAndType.getFirst();
-        CType nextFieldType = pairOfNameAndType.getSecond();
-        designators.add(new CFieldDesignator(fileLoc, nextFieldName));
-        currentDirectOwnerType = nextFieldType.getCanonicalType();
+      designators = new ArrayList<>(wayToField.size());
+      for (Pair<String, CType> wayToFieldPair : wayToField) {
+        String name = wayToFieldPair.getFirst();
+        designators.add(new CFieldDesignator(fileLoc, name));
+        currentOwnerType = wayToFieldPair.getSecondNotNull();
       }
+
+    } else {
+      designators = List.of(new CFieldDesignator(fileLoc, fieldName));
     }
-    return designators;
+    return new DesignatorsAndLastType(designators, currentOwnerType);
   }
 
   /** Find the direct member type for a field of a composite type (no anonymous traversal). */
