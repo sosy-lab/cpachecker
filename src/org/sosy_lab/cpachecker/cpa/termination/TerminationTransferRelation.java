@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
 import static java.util.logging.Level.FINEST;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -406,9 +406,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             FileLocation.DUMMY,
             CNumericTypes.INT,
             new CIdExpression(FileLocation.DUMMY, pSuccessor.getFunctionDefinition()),
-            pSuccessor.getFunctionParameters().stream()
-                .map(d -> new CIdExpression(DUMMY, d))
-                .collect(ImmutableList.toImmutableList()),
+            transformedImmutableListCopy(
+                pSuccessor.getFunctionParameters(), d -> new CIdExpression(DUMMY, d)),
             pSuccessor.getFunctionDefinition());
     CFunctionCallStatement functionCall = new CFunctionCallStatement(DUMMY, expression);
     CFunctionSummaryEdge summaryEdge =
