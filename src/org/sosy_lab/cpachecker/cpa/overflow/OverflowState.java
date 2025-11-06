@@ -52,7 +52,7 @@ public final class OverflowState
   }
 
   @Override
-  public ImmutableList<AExpression> getAssumptionsImpl() {
+  public ImmutableList<AExpression> getAssumptions() {
     return assumptions.asList();
   }
 
