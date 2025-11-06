@@ -5326,6 +5326,11 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
+# Consider variables with unsigned types in ranking function synthesis.This
+# can lead to unsound results as LassoRanker assumes infinite domain for
+# these variables.
+termination.useRankingFunctionUnsoundHeuristic = false
+
 # Export termination counterexample to file as GraphML automaton 
 termination.violation.witness = "nontermination_witness.graphml"
 

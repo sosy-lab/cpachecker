@@ -143,6 +143,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   @Option(
       secure = true,
       description =
+          "Consider variables with unsigned types in ranking function synthesis.This can lead to"
+              + " unsound results as LassoRanker assumes infinite domain for these variables.")
+  private boolean useRankingFunctionUnsoundHeuristic = false;
+
+  @Option(
+      secure = true,
+      description =
           "consider counterexamples for loops for which only pointer variables are relevant or"
               + " which check that pointer is unequal to null pointer to be imprecise")
   private boolean useCexImpreciseHeuristic = false;
@@ -260,6 +267,19 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CPAcheckerResult.Result loopTermination =
           proveLoopTermination(pReachedSet, loop, initialLocation);
 
+      if (!useRankingFunctionUnsoundHeuristic && loopTermination == Result.TRUE) {
+        // LassoRanker handles unsigned types incorrectly as it does not account for overflows
+        for (CVariableDeclaration variable : getRelevantVariables(loop)) {
+          if (!cfa.getMachineModel()
+              .isSigned((CSimpleType) variable.getType().getCanonicalType())) {
+            throw new UnsupportedCodeException(
+                "LassoRanker does not support domains with possible overflows. Encountered in the"
+                    + " loop starting with the edge.",
+                loop.getInnerLoopEdges().asList().getFirst());
+          }
+        }
+      }
+
       if (loopTermination == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -295,16 +315,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
-
-    // LassoRanker handles unsigned types incorrectly as it does not account for overflows
-    for (CVariableDeclaration variable : relevantVariables) {
-      if (!cfa.getMachineModel().isSigned((CSimpleType) variable.getType().getCanonicalType())) {
-        throw new UnsupportedCodeException(
-            "LassoRanker does not support domains with possible overflows. Encountered in the loop"
-                + " starting with the edge.",
-            pLoop.getInnerLoopEdges().asList().getFirst());
-      }
-    }
 
     if (considerRecursion) {
       setExplicitAbstractionNodes(pLoop);
