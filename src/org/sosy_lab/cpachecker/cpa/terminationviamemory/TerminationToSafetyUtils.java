@@ -6,44 +6,31 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.termination;
+package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-public class TerminationToSafetyAlgorithm implements Algorithm {
+public class TerminationToSafetyUtils {
 
-  private final ConfigurableProgramAnalysis cpa;
-
-  public TerminationToSafetyAlgorithm(Configuration pConfig, ConfigurableProgramAnalysis pCpa)
+  public static void shareTheSolverBetweenCPAs(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    cpa = checkNotNull(pCpa);
+    checkNotNull(pCpa);
 
     ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder.copyFrom(pConfig);
     configBuilder.clearOption("analysis.algorithm.terminationToSafety");
 
     TerminationToReachCPA terminationCPA =
-        CPAs.retrieveCPAOrFail(
-            cpa, TerminationToReachCPA.class, TerminationToSafetyAlgorithm.class);
+        CPAs.retrieveCPAOrFail(pCpa, TerminationToReachCPA.class, TerminationToSafetyUtils.class);
     PredicateCPA predicateCPA =
-        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, TerminationToSafetyAlgorithm.class);
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, TerminationToSafetyUtils.class);
 
     terminationCPA.setSolver(predicateCPA.getSolver());
-  }
-
-  @Override
-  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

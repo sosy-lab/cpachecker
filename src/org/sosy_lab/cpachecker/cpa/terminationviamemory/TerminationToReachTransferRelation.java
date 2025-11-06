@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -71,14 +72,14 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       ImmutableMap.Builder<Pair<LocationState, CallstackState>, PathFormula>
           newPathFormulaForIteration = ImmutableMap.builder();
 
-      for (Pair<LocationState, CallstackState> pairKey2 :
-          terminationState.getStoredValues().keySet()) {
-        if (!pairKey2.equals(pairKey)) {
-          newStoredValues.put(pairKey2, terminationState.getStoredValues().get(pairKey2));
+      for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
+          entry : terminationState.getStoredValues().entrySet()) {
+        if (!entry.getKey().equals(pairKey)) {
+          newStoredValues.put(entry.getKey(), entry.getValue());
           newNumberOfIterations.put(
-              pairKey2, terminationState.getNumberOfIterationsAtLoopHead(pairKey2));
+              entry.getKey(), terminationState.getNumberOfIterationsAtLoopHead(entry.getKey()));
           newPathFormulaForIteration.put(
-              pairKey2, terminationState.getPathFormulas().get(pairKey2));
+              entry.getKey(), terminationState.getPathFormulas().get(entry.getKey()));
         }
       }
       newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
@@ -89,19 +90,19 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
             extractLoopHeadVariables(predicateState.getPathFormula()));
-        newStoredValues.put(pairKey, newValues.build());
+        newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
       } else {
         newValues.put(0, extractLoopHeadVariables(predicateState.getPathFormula()));
-        newStoredValues.put(pairKey, newValues.build());
+        newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
       return Collections.singleton(
           new TerminationToReachState(
-              newStoredValues.build(),
-              newNumberOfIterations.build(),
-              newPathFormulaForIteration.build()));
+              newStoredValues.buildOrThrow(),
+              newNumberOfIterations.buildOrThrow(),
+              newPathFormulaForIteration.buildOrThrow()));
     } else {
       return Collections.singleton(pState);
     }
@@ -130,7 +131,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       Optional<CallstackStateEqualsWrapper> possibleCallStack =
           AbstractStates.extractOptionalCallstackWraper(state);
       if (possibleCallStack.isPresent()) {
-        return possibleCallStack.get().getState();
+        return possibleCallStack.orElseThrow().getState();
       }
     }
     throw new UnsupportedOperationException("TransferRelation requires call-stack information.");

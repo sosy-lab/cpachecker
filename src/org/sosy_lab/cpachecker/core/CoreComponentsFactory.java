@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationToSafetyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -90,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
@@ -577,7 +577,7 @@ public class CoreComponentsFactory {
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
       if (useTerminationToSafetyAlgorithm) {
-        new TerminationToSafetyAlgorithm(config, cpa);
+        TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
       }
 
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
