@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -400,14 +401,17 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
   private CFunctionCallEdge createBlankFunctionCallEdge(
       CFANode pPredecessor, CFunctionEntryNode pSuccessor, String pDescription) {
+    List<CExpression> parameters = new ArrayList<>();
+    for (CParameterDeclaration declaration : pSuccessor.getFunctionParameters()) {
+      parameters.add(new CIdExpression(DUMMY, declaration));
+    }
+
     CFunctionCallExpression expression =
         new CFunctionCallExpression(
             FileLocation.DUMMY,
             CNumericTypes.INT,
             new CIdExpression(FileLocation.DUMMY, pSuccessor.getFunctionDefinition()),
-            pSuccessor.getFunctionParameters().stream()
-                .map(d -> new CIdExpression(DUMMY, d))
-                .collect(Collectors.toList()),
+            parameters,
             pSuccessor.getFunctionDefinition());
     CFunctionCallStatement functionCall = new CFunctionCallStatement(DUMMY, expression);
     CFunctionSummaryEdge summaryEdge =
