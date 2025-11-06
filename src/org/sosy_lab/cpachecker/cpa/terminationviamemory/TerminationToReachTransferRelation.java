@@ -42,26 +42,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    TerminationToReachState terminationState = (TerminationToReachState) state;
-    ImmutableMap.Builder<
-            Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
-        newStoredValuesMap = ImmutableMap.builder();
-    ImmutableMap<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
-        oldStoredValuesMap = terminationState.getStoredValues();
-    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
-        keyPair : oldStoredValuesMap.entrySet()) {
-      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
-      for (Entry<Integer, ImmutableSet<Formula>> storedValues :
-          oldStoredValuesMap.get(keyPair.getKey()).entrySet()) {
-        newValues.put(storedValues.getKey(), storedValues.getValue());
-      }
-      newStoredValuesMap.put(keyPair.getKey(), newValues.build());
-    }
-    return Collections.singleton(
-        new TerminationToReachState(
-            newStoredValuesMap.build(),
-            terminationState.getNumberOfIterationsMap(),
-            terminationState.getPathFormulas()));
+    return Collections.singleton(state);
   }
 
   @Override
