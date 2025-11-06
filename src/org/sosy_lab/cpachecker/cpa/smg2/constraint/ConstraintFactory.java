@@ -127,7 +127,6 @@ public class ConstraintFactory {
       // Make non-logical constraints logical, so that SMT can be used for C
       // Example: an expression (x | y) in C returns a number, which can be interpreted as bool with
       // (x | y) != 0
-      // TODO: experimental, is this sound?
       expression =
           exprBuilder.negateExpressionAndSimplify(
               exprBuilder.buildBinaryExpression(
