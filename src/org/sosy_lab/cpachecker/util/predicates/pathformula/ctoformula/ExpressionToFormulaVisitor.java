@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.HandleBuiltinIoFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -645,9 +645,9 @@ public class ExpressionToFormulaVisitor
         // Ignore parameters and just create a fresh variable for it.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
-      } else if (HandleBuiltinIoFunctions.matchesFscanf(functionName)) {
+      } else if (BuiltinIoFunctions.matchesFscanf(functionName)) {
         CFunctionCallAssignmentStatement nondetCallForScanfCall =
-            HandleBuiltinIoFunctions.createNondetCallModellingFscanf(e, edge);
+            BuiltinIoFunctions.createNondetCallModellingFscanf(e, edge);
 
         try {
           BooleanFormula assignment =

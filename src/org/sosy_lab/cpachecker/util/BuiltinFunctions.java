@@ -53,7 +53,7 @@ public class BuiltinFunctions {
         || pFunctionName.startsWith("__atomic_")
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
-        || HandleBuiltinIoFunctions.matchesFscanf(pFunctionName)
+        || BuiltinIoFunctions.matchesFscanf(pFunctionName)
         || isSetjmpFunction(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
   }

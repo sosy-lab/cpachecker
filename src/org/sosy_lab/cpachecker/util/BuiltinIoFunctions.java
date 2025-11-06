@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  * This function contains utility methods for handling built-in functions in CPAchecker. It provides
  * some methods to identify, process, and manage built-in functions.
  */
-public class HandleBuiltinIoFunctions {
+public class BuiltinIoFunctions {
 
   private static final ImmutableMap<String, CType> supportedScanfFormatSpecifiers =
       ImmutableMap.<String, CType>builder()
@@ -115,7 +115,7 @@ public class HandleBuiltinIoFunctions {
    * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
    * for each argument, corresponding to a conversion specifier and length modifier .The exact
    * mapping brought forward by the standard is reflected in {@link
-   * HandleBuiltinIoFunctions#getTypeFromScanfFormatSpecifier(String)}.
+   * BuiltinIoFunctions#getTypeFromScanfFormatSpecifier(String)}.
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
@@ -125,7 +125,7 @@ public class HandleBuiltinIoFunctions {
   private static boolean isCompatibleWithScanfFormatString(
       String formatString, CType pVariableType, CFAEdge pEdge) throws UnsupportedCodeException {
     CType expectedType =
-        HandleBuiltinIoFunctions.getTypeFromScanfFormatSpecifier(formatString)
+        BuiltinIoFunctions.getTypeFromScanfFormatSpecifier(formatString)
             .orElseThrow(
                 () ->
                     new UnsupportedCodeException(
@@ -168,7 +168,7 @@ public class HandleBuiltinIoFunctions {
 
   private static Optional<String> checkFscanfFormatString(CExpression pFormat) {
     ImmutableSet<String> allowlistedFormatStrings =
-        HandleBuiltinIoFunctions.getAllowedScanfFormatSpecifiers();
+        BuiltinIoFunctions.getAllowedScanfFormatSpecifiers();
     if (pFormat instanceof CStringLiteralExpression stringLiteral) {
       String content = stringLiteral.getContentWithoutNullTerminator();
       if (allowlistedFormatStrings.contains(content)) {
@@ -212,7 +212,7 @@ public class HandleBuiltinIoFunctions {
     }
 
     ValidatedFScanFParameter receivingParameter =
-        HandleBuiltinIoFunctions.validateFscanfParameters(parameters, e, pEdge);
+        BuiltinIoFunctions.validateFscanfParameters(parameters, e, pEdge);
 
     if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
       UnaryOperator operator = unaryParameter.getOperator();
@@ -221,7 +221,7 @@ public class HandleBuiltinIoFunctions {
         // For simplicity, we start with the case where only parameters of the form "&id" occur
         CType variableType = idExpression.getExpressionType();
 
-        if (!HandleBuiltinIoFunctions.isCompatibleWithScanfFormatString(
+        if (!BuiltinIoFunctions.isCompatibleWithScanfFormatString(
             receivingParameter.format(), variableType, pEdge)) {
           throw new UnsupportedCodeException(
               "fscanf with receiving type <-> format specifier mismatch is not supported.",
