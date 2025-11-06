@@ -1212,6 +1212,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/YML file
+counterexample.export.exportWitnessV2 = true
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1436,6 +1439,9 @@ cpa.arg.errorPath.exportTestCase = false
 
 # deprecated name for counterexample.export.exportWitness
 cpa.arg.errorPath.exportWitness = true
+
+# deprecated name for counterexample.export.exportWitnessV2
+cpa.arg.errorPath.exportWitnessV2 = true
 
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -3427,6 +3433,10 @@ cpa.smg2.enableHeapAbstraction = false
 # If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
+# If true, memory with symbolic size can be zeroed, which allows usage of
+# zeroing allocation functions like calloc().
+cpa.smg2.enableZeroingOfSymbolicMemorySize = false
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
@@ -3542,11 +3552,10 @@ cpa.smg2.optimizeBooleanVariables = true
 # at the same time as option findConcreteValuesForSymbolicOffsets.
 cpa.smg2.overapproximateSymbolicOffsets = false
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non-unique offset in symbolically sized memory are
-# deleted and the value itself is overapproximated to unknown in the memory
-# region.
-cpa.smg2.overapproximateValuesForSymbolicSize = false
+# If this Option is enabled, writing with symbolic sized value types are
+# overapproximated. I.e. the memory region affected is overapproximated,
+# including the value itself, to unknown.
+cpa.smg2.overapproximateValuesForSymbolicTypeSize = false
 
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
