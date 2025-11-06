@@ -89,9 +89,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -1841,7 +1843,11 @@ public class ValueAnalysisTransferRelation
     if (!isAllowedUnsupportedOption(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         String additionalMsg = "";
-        if (!functionCall.getFunctionCallExpression().getParameterExpressions().isEmpty()) {
+        if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
+            .anyMatch(
+                p ->
+                    p.getExpressionType().getCanonicalType() instanceof CPointerType
+                        || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           additionalMsg =
               " Side-effects of the function call are ignored! The analysis may no longer be"
