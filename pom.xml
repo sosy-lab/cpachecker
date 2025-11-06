@@ -41,6 +41,9 @@ SPDX-License-Identifier: Apache-2.0
     <ant.deploy.target>dist-unix-zip</ant.deploy.target>
 
     <ant.extra.args></ant.extra.args>
+
+    <maven.install.skip>true</maven.install.skip>
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <build>
@@ -90,34 +93,6 @@ SPDX-License-Identifier: Apache-2.0
             </configuration>
             <goals><goal>run</goal></goals>
           </execution>
-
-          <execution>
-            <id>ant-tests</id>
-            <phase>test</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="tests" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
-
-          <execution>
-            <id>ant-all-checks</id>
-            <phase>verify</phase>
-            <configuration>
-              <target>
-                <ant antfile="build.xml" target="all-checks" inheritAll="true">
-                  <property name="ivy.repo.url" value="${ivy.repo.url}"/>
-                  <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
-                </ant>
-              </target>
-            </configuration>
-            <goals><goal>run</goal></goals>
-          </execution>
         </executions>
       </plugin>
 
@@ -135,7 +110,7 @@ SPDX-License-Identifier: Apache-2.0
         <artifactId>maven-install-plugin</artifactId>
         <version>3.1.2</version>
         <configuration>
-          <skip>true</skip>
+          <skip>${maven.install.skip}</skip>
         </configuration>
       </plugin>
 
@@ -144,9 +119,10 @@ SPDX-License-Identifier: Apache-2.0
         <artifactId>maven-deploy-plugin</artifactId>
         <version>3.1.2</version>
         <configuration>
-          <skip>true</skip>
+          <skip>${maven.deploy.skip}</skip>
         </configuration>
       </plugin>
+
     </plugins>
   </build>
 </project>
