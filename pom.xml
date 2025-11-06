@@ -41,9 +41,6 @@ SPDX-License-Identifier: Apache-2.0
     <ant.deploy.target>dist-unix-zip</ant.deploy.target>
 
     <ant.extra.args></ant.extra.args>
-
-    <maven.install.skip>true</maven.install.skip>
-    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <build>
@@ -110,7 +107,7 @@ SPDX-License-Identifier: Apache-2.0
         <artifactId>maven-install-plugin</artifactId>
         <version>3.1.2</version>
         <configuration>
-          <skip>${maven.install.skip}</skip>
+          <skip>true</skip>
         </configuration>
       </plugin>
 
@@ -119,7 +116,7 @@ SPDX-License-Identifier: Apache-2.0
         <artifactId>maven-deploy-plugin</artifactId>
         <version>3.1.2</version>
         <configuration>
-          <skip>${maven.deploy.skip}</skip>
+          <skip>true</skip>
         </configuration>
       </plugin>
 
