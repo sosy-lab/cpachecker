@@ -169,7 +169,9 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "0.1")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "0.1")
             .build();
     PredicateCPARefinerFactory pRedundantCustomThresholdRefinerFactory =
         setUpRefinerFactory(pRedundantCustomThresholdConfig);
@@ -444,7 +446,9 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "-0.1")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "-0.1")
             .build();
     PredicateCPARefinerFactory pNegativeRedundancyRefinerFactory =
         setUpRefinerFactory(pNegativeRedundancyConfig);
@@ -466,7 +470,9 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "2.0")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "2.0")
             .build();
     PredicateCPARefinerFactory pTooLargeRedundancyRefinerFactory =
         setUpRefinerFactory(pTooLargeRedundancyConfig);
@@ -488,12 +494,16 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "xyz")
+            .setOption(
+                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "xyz")
             .build();
+
+    PredicateCPARefinerFactory factory = setUpRefinerFactory(pStringRedundancyThresholdConfig);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> setUpRefinerFactory(pStringRedundancyThresholdConfig));
+        () -> factory.createDelegatingRefinerConfig(setUpRefinerMap(factory)));
   }
 
   // A dummy refiner to serve as Refiner instances the DelegatingRefiner adds to its map of

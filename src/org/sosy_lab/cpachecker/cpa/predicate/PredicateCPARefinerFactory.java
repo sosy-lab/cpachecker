@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicatesPlateau;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
@@ -90,13 +91,6 @@ public final class PredicateCPARefinerFactory {
           "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT");
-
-  @Option(
-      secure = true,
-      description =
-          "Acceptable redundancy percentage for added predicates for PredicateDelegatingRefiner"
-              + " heuristic (0.0 - 1.0).")
-  private double acceptableRedundancyThreshold = 0.8;
 
   private final PredicateCPA predicateCpa;
 
@@ -362,7 +356,11 @@ public final class PredicateCPARefinerFactory {
           case REDUNDANT_PREDICATES ->
               new DelegatingRefinerHeuristicRedundantPredicates(
                   predicateCpa.getConfiguration(),
-                  acceptableRedundancyThreshold,
+                  predicateCpa.getSolver().getFormulaManager(),
+                  predicateCpa.getLogger());
+          case REDUNDANT_PREDICATES_PLATEAU ->
+              new DelegatingRefinerHeuristicRedundantPredicatesPlateau(
+                  predicateCpa.getConfiguration(),
                   predicateCpa.getSolver().getFormulaManager(),
                   predicateCpa.getLogger());
           case STOP -> (pReached, pDeltas) -> true;

@@ -50,48 +50,41 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * of the following stop conditions are met:
  *
  * <ul>
- *   <li>Redundancy has plateaued and only a single patterns continues to grow.
  *   <li>A single semantic category dominates the predicate set.
  *   <li>Overall pattern redundancy exceeds beyond the configured threshold.
  * </ul>
  */
 @Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates")
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
-  private static final double EPSILON = 0.01;
   private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
-  private static final int MAX_PLATEAU_STEPS = 3;
 
   @Option(
       secure = true,
-      name = "patternSizeTrigger",
-      description = "Total size of patterns to trigger a stop condition check")
-  private int patternSizeTrigger = 6000;
+      name = "redundancyThreshold",
+      description =
+          "Acceptable redundancy percentage for added predicates for PredicateDelegatingRefiner"
+              + " heuristic (0.0 - 1.0).")
+  private double redundancyThreshold = 0.2;
 
   @Option(
       secure = true,
       name = "categoryRedundancyThreshold",
       description = "Threshold of maximum acceptable dominance of one category")
-  private double categoryRedundancyThreshold = 0.8;
+  private double categoryRedundancyThreshold = 0.6;
 
   @Option(secure = true, name = "dslRulePath", description = "Path to the DSL rules file")
   private Path dslRulePath = null;
 
-  private final double redundancyThreshold;
-  private double previousRedundancyPatterns = -1.0;
-  private double previousDominantPatternCount = 0.0;
-  private int plateauSteps = 0;
-  private String lastDominantPatternKey = null;
-
   private final FormulaManagerView formulaManager;
-  private final LogManager logger;
+  protected final LogManager logger;
   private final DelegatingRefinerAtomNormalizer normalizer;
   private final DelegatingRefinerMatchingVisitor matcher;
 
   /**
-   * Construct a redundant predicates heuristic.
+   * Construct a redundant predicates heuristic which checks for pattern and category redundancy as
+   * stop condition.
    *
    * @param pConfiguration configuration used to inject the DSL rule path
-   * @param pAcceptableRedundancyThreshold maximum redundancy rate acceptable
    * @param pFormulaManager formula manager used for normalization
    * @param pLogger logger for diagnostic output
    * @throws InvalidConfigurationException if the provided redundancy rate is smaller than 0.0 (=
@@ -100,17 +93,15 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
    */
   public DelegatingRefinerHeuristicRedundantPredicates(
       Configuration pConfiguration,
-      double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
       final LogManager pLogger)
       throws InvalidConfigurationException {
 
-    pConfiguration.inject(this);
-    if (pAcceptableRedundancyThreshold < 0.0 || pAcceptableRedundancyThreshold > 1.0) {
+    pConfiguration.inject(this, DelegatingRefinerHeuristicRedundantPredicates.class);
+    if (redundancyThreshold < 0.0 || redundancyThreshold > 1.0) {
       throw new InvalidConfigurationException(
           "Acceptable redundancy rate must be between 0.0 and 1.0.");
     }
-    this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
     normalizer = new DelegatingRefinerAtomNormalizer(formulaManager);
@@ -173,7 +164,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     return true;
   }
 
-  private void collectAndCategorizePatterns(
+  protected void collectAndCategorizePatterns(
       ImmutableList<ReachedSetDelta> pDeltas,
       ImmutableMultiset.Builder<String> pPatternBuilder,
       ImmutableMultiset.Builder<String> pCategoryBuilder) {
@@ -209,17 +200,17 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     }
   }
 
-  private void logPatterns(
+  protected void logPatterns(
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
     Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
     if (dominantCategory != null) {
-      logger.logf(Level.FINER, "Dominant category is %s.", dominantCategory);
+      logger.logf(Level.INFO, "Dominant category is %s.", dominantCategory);
     }
 
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.FINER, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
+          Level.INFO, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
     }
   }
 
@@ -235,7 +226,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     return (double) dominant.getCount() / total;
   }
 
-  private <T> Multiset.Entry<T> getMostFrequent(ImmutableMultiset<T> pMultiset) {
+  protected <T> Multiset.Entry<T> getMostFrequent(ImmutableMultiset<T> pMultiset) {
     Multiset.Entry<T> dominant = null;
     for (Multiset.Entry<T> entry : pMultiset.entrySet()) {
       if (dominant == null || entry.getCount() > dominant.getCount()) {
@@ -247,69 +238,18 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
   private boolean checkStopConditions(
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
-    int patternSize = pPatternFrequency.size();
-    double maxRedundancyDetectedPatterns = calculateMaxRedundancy(pPatternFrequency);
-    Multiset.Entry<String> currentDominantPattern = getMostFrequent(pPatternFrequency);
-
-    if (isPlateauingAndDominantPatternGrowing(
-            maxRedundancyDetectedPatterns, currentDominantPattern, patternSize)
-        || isCategoryDominant(pCategoryFrequency, patternSize)
+    if (isCategoryDominant(pCategoryFrequency)
         || isPatternRedundancyAboveThreshold(pPatternFrequency)) {
       return true;
     }
     return false;
   }
 
-  private boolean isPlateauingAndDominantPatternGrowing(
-      double pMaxRedundancyDetectedPatterns,
-      Multiset.Entry<String> pCurrentDominantPattern,
-      int pPatternSize) {
-
-    if (pCurrentDominantPattern == null) {
-      return false;
-    }
-
-    boolean isRedundancyPlateauingPatterns =
-        (previousRedundancyPatterns >= 0.0)
-            && (Math.abs(pMaxRedundancyDetectedPatterns - previousRedundancyPatterns) < EPSILON);
-    previousRedundancyPatterns = pMaxRedundancyDetectedPatterns;
-
-    if (isRedundancyPlateauingPatterns
-        && lastDominantPatternKey != null
-        && lastDominantPatternKey.equals(pCurrentDominantPattern.getElement())) {
-      plateauSteps++;
-    } else {
-      plateauSteps = 0;
-    }
-
-    boolean isDominantPatternGrowing =
-        pCurrentDominantPattern.getCount() > previousDominantPatternCount;
-    previousDominantPatternCount = pCurrentDominantPattern.getCount();
-    lastDominantPatternKey = pCurrentDominantPattern.getElement();
-
-    if (pPatternSize > patternSizeTrigger
-        && isRedundancyPlateauingPatterns
-        && isDominantPatternGrowing
-        && plateauSteps > MAX_PLATEAU_STEPS) {
-      logger.logf(
-          Level.FINE,
-          "Stop condition isPlateauingAndDominantPatternGrowing: Redundancy is plateauing and only"
-              + " pattern %s is growing, total pattern size is at %d. Heuristic %s is no longer"
-              + " applicable.",
-          pCurrentDominantPattern,
-          pPatternSize,
-          this.getClass().getSimpleName());
-      return true;
-    }
-    return false;
-  }
-
-  private boolean isCategoryDominant(
-      ImmutableMultiset<String> pCategoryFrequency, int pPatternSize) {
+  private boolean isCategoryDominant(ImmutableMultiset<String> pCategoryFrequency) {
     double maxRedundancyDetectedCategories = calculateMaxRedundancy(pCategoryFrequency);
     boolean isOneCategoryDominant = maxRedundancyDetectedCategories > categoryRedundancyThreshold;
 
-    if (pPatternSize > patternSizeTrigger && isOneCategoryDominant) {
+    if (isOneCategoryDominant) {
       Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
       logger.logf(
           Level.FINE,
