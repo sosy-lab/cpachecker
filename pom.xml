@@ -125,4 +125,49 @@ SPDX-License-Identifier: Apache-2.0
 
     </plugins>
   </build>
+
+  <!-- Opt-in profile to map tests/checks, disabled by default -->
+  <profiles>
+    <profile>
+      <id>ant-checks</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>ant-tests</id>
+                <phase>test</phase>
+                <configuration>
+                  <target>
+                    <ant antfile="build.xml" target="tests" inheritAll="true">
+                      <property name="ivy.repo.url" value="${ivy.repo.url}"/>
+                      <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
+                    </ant>
+                  </target>
+                </configuration>
+                <goals><goal>run</goal></goals>
+              </execution>
+
+              <execution>
+                <id>ant-all-checks</id>
+                <phase>verify</phase>
+                <configuration>
+                  <target>
+                    <ant antfile="build.xml" target="all-checks" inheritAll="true">
+                      <property name="ivy.repo.url" value="${ivy.repo.url}"/>
+                      <property name="ivy.cache.dir" value="${ivy.cache.dir}"/>
+                    </ant>
+                  </target>
+                </configuration>
+                <goals><goal>run</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
