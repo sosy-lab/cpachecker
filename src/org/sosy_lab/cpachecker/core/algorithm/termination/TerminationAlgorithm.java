@@ -270,8 +270,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       if (!ignoreOverflowsForUnsignedVariables && loopTermination == Result.TRUE) {
         // LassoRanker handles unsigned types incorrectly as it does not account for overflows
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
-          if (!cfa.getMachineModel()
-              .isSigned((CSimpleType) variable.getType().getCanonicalType())) {
+          if (variable.getType().getCanonicalType() instanceof CSimpleType
+              && !cfa.getMachineModel()
+                  .isSigned((CSimpleType) variable.getType().getCanonicalType())) {
             throw new UnsupportedCodeException(
                 "LassoRanker does not support domains with possible overflows.",
                 loop.getInnerLoopEdges().asList().getFirst());
