@@ -335,6 +335,11 @@ analysis.algorithm.propertyCheck = false
 # termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
+# Use termination-to-safety algorithm to prove (non-)termination. This needs
+# the TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the
+# CompositeCPA.
+analysis.algorithm.terminationToSafety = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -2484,9 +2489,6 @@ cpa.predicate.enableBlockreducer = false
 # Enable handling of functions memset, memcopy, memmove. If disabled, using
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
-
-# Enable to share the information via serialization storage.
-cpa.predicate.enableSharedInformation = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for

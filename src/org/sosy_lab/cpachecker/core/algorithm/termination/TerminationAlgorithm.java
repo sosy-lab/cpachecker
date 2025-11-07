@@ -285,7 +285,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAException, InterruptedException {
 
-    logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
+    logger.logf(Level.FINE, "Proving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
