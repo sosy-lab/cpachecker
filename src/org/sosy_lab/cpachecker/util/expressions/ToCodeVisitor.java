@@ -62,7 +62,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
       return items.getFirst();
     }
     if (items.size() == 2) {
-      return "(" + items.get(0) + separator + items.get(1) + ")";
+      return "(" + items.getFirst() + separator + items.get(1) + ")";
     }
 
     int mid = items.size() / 2;
