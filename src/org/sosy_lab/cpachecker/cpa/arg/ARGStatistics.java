@@ -271,25 +271,6 @@ public class ARGStatistics implements Statistics {
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
-    if (argFile == null
-        && simplifiedArgFile == null
-        && refinementGraphFile == null
-        && proofWitness == null
-        && proofWitnessDot == null
-        && pixelGraphicFile == null
-        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)) {
-      exportARG = false;
-    }
-
-    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
-
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
-    } else {
-      argToWitnessWriter = null;
-    }
-
     Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
     if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportCorrectnessWitness()) {
       argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(pCFA, pLogger);
@@ -301,7 +282,28 @@ public class ARGStatistics implements Statistics {
       k3CorrectnessWitnessPath = null;
     }
 
-    if (counterexampleOptions.disabledCompletely()) {
+    if (argFile == null
+        && simplifiedArgFile == null
+        && refinementGraphFile == null
+        && proofWitness == null
+        && proofWitnessDot == null
+        && pixelGraphicFile == null
+        && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
+        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
+        && (k3CorrectnessWitnessPath == null)) {
+      exportARG = false;
+    }
+
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
+
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+      argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
+    } else {
+      argToWitnessWriter = null;
+    }
+
+    if (counterexampleOptions.disabledCompletely()
+        && (k3Metadata.isEmpty() || !k3Metadata.orElseThrow().exportViolationWitness())) {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
@@ -380,9 +382,11 @@ public class ARGStatistics implements Statistics {
 
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (!counterexampleOptions.disabledCompletely()
-        && !counterexampleOptions.dumpErrorPathImmediately()
-        && pResult == Result.FALSE) {
+    if ((!counterexampleOptions.disabledCompletely()
+            || (cfa.getMetadata().getK3CfaMetadata().isPresent()
+                && cfa.getMetadata().getK3CfaMetadata().orElseThrow().exportViolationWitness()))
+        && pResult == Result.FALSE
+        && !counterexampleOptions.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }

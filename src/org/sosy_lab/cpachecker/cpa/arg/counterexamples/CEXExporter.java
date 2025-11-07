@@ -203,6 +203,25 @@ public class CEXExporter {
     checkNotNull(targetState);
     checkNotNull(counterexample);
 
+    // Now export the correctness witnesses for K3 program
+    // K3 witnesses have their own export behavior, which overrides CPAchecker settings
+    if (cexToK3Witness != null && k3WitnessOutputPath != null) {
+      List<K3Command> witnessCommands = cexToK3Witness.generateWitnessCommands(counterexample);
+      String witnessContent =
+          Joiner.on(System.lineSeparator())
+              .join(FluentIterable.from(witnessCommands).transform(K3Command::toASTString));
+      try (Writer writer = IO.openOutputFile(k3WitnessOutputPath, Charset.defaultCharset())) {
+        writer.write(witnessContent);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Could not write the K3 violation witness to file: "
+                + k3WitnessOutputPath
+                + ". Therefore no K3 witness will be exported.");
+      }
+    }
+
     if (options.disabledCompletely()) {
       return;
     }
@@ -373,24 +392,6 @@ public class CEXExporter {
         } catch (InterruptedException e) {
           logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
         }
-      }
-    }
-
-    // Now export the correctness witnesses for K3 program
-    if (cexToK3Witness != null && k3WitnessOutputPath != null) {
-      List<K3Command> witnessCommands = cexToK3Witness.generateWitnessCommands(counterexample);
-      String witnessContent =
-          Joiner.on(System.lineSeparator())
-              .join(FluentIterable.from(witnessCommands).transform(K3Command::toASTString));
-      try (Writer writer = IO.openOutputFile(k3WitnessOutputPath, Charset.defaultCharset())) {
-        writer.write(witnessContent);
-      } catch (IOException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Could not write the K3 violation witness to file: "
-                + k3WitnessOutputPath
-                + ". Therefore no K3 witness will be exported.");
       }
     }
 
