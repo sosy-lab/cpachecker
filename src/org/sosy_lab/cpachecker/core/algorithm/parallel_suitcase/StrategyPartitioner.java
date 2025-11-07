@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,9 +23,7 @@ public class StrategyPartitioner implements PartitioningStrategy {
 
   @Override
   public List<Set<CFAEdge>> partition(Set<CFAEdge> testTargets, int numPartitions) {
-    if (numPartitions <= 0) {
-      throw new IllegalArgumentException("Number of partitions must be positive");
-    }
+    Preconditions.checkArgument(numPartitions > 0, "Number of partitions must be positive");
 
     if (testTargets.isEmpty()) {
       return createEmptyPartitions(numPartitions);
