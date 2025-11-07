@@ -24,14 +24,14 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**.svlib*</resultfiles>
 
   <rundefinition>
-    <option name="--predicateAnalysis-k3"/>
+    <option name="--predicateAnalysis-svlib"/>
   </rundefinition>
 
   <!--
     Currently there are so few SV-LIB benchmarks that we can afford
     to run all of them with witness generation enabled.
   -->
-  <tasks name="SV-LIVl.Main">
+  <tasks name="SV-LIB.Main">
     <includesfile>../programs/sv-lib-benchmarks/CTranslated.set</includesfile>
     <includesfile>../programs/sv-lib-benchmarks/CoreValidation.set</includesfile>
     <includesfile>../programs/sv-lib-benchmarks/CoreVerification.set</includesfile>
