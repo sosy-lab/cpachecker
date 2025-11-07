@@ -30,7 +30,7 @@ public class RandomPartitioner implements PartitioningStrategy {
 
     // Convert to list and shuffle for random distribution
     List<CFAEdge> shuffledTargets = new ArrayList<>(testTargets);
-    // currently fixed seed, might need to be configurable
+    // currently fixed seed, might want it to be configurable
     Collections.shuffle(shuffledTargets, new Random(0));
 
     // Initialize partitions
