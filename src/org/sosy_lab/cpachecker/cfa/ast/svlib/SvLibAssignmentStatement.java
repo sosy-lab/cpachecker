@@ -44,7 +44,7 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(assign "
         + ("("
-            + Joiner.on(")(")
+            + Joiner.on(") (")
                 .join(
                     transformedImmutableListCopy(
                         assignments.entrySet(),

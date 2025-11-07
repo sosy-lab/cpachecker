@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
@@ -69,9 +70,15 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
                     ImmutableSet.of(
                         SvLibTermBuilder.booleanNegation(pSvLibCheckTruetTag.getTerm())),
                     true);
-            case SvLibEnsuresTag pSvLibEnsuresTag -> null;
-            case SvLibInvariantTag pSvLibInvariantTag -> null;
-            case SvLibRequiresTag pSvLibRequiresTag -> null;
+            case SvLibEnsuresTag pSvLibEnsuresTag ->
+                throw new UnsupportedCodeException(
+                    "Ensures tags are not supported in safety specifications.", cfaEdge);
+            case SvLibInvariantTag pSvLibInvariantTag ->
+                throw new UnsupportedCodeException(
+                    "Invariant tags are not supported in safety specifications.", cfaEdge);
+            case SvLibRequiresTag pSvLibRequiresTag ->
+                throw new UnsupportedCodeException(
+                    "Requires tags are not supported in safety specifications.", cfaEdge);
           };
       outStates.add(successorState);
     }

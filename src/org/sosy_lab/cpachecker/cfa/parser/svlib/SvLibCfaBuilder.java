@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
@@ -300,8 +301,18 @@ class SvLibCfaBuilder {
           indexOfFirstVerifyCall = i;
         }
         case SvLibAnnotateTagCommand pSvLibAnnotateTagCommand -> {
-          tagReferencesToAnnotations.putAll(
-              pSvLibAnnotateTagCommand.getTagName(), pSvLibAnnotateTagCommand.getTags());
+          String tagName = pSvLibAnnotateTagCommand.getTagName();
+          List<SvLibTagProperty> tagProperties = pSvLibAnnotateTagCommand.getTags();
+
+          // TODO: This is highly inefficient!!!
+          for (Entry<CFANode, SvLibTagReference> entry : nodesToTagReferences.build().entries()) {
+            CFANode node = entry.getKey();
+            SvLibTagReference tagReference = entry.getValue();
+            if (tagReference.getTagName().equals(tagName)) {
+              nodeToTagAnnotations.putAll(node, tagProperties);
+            }
+          }
+          tagReferencesToAnnotations.putAll(tagName, tagProperties);
         }
         case SvLibGetWitnessCommand pSvLibGetWitnessCommand -> {
           logger.log(

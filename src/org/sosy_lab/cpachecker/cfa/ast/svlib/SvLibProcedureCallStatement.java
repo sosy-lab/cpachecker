@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -77,7 +76,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "";
+    return toASTString(pAAstNodeRepresentation);
   }
 
   public List<SvLibVariableDeclaration> getReturnVariables() {
@@ -104,10 +103,6 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
 
   @Override
   public String toASTString() {
-    return procedureDeclaration.getName()
-        + "("
-        + Joiner.on(", ")
-            .join(getParameterExpressions().stream().map(arg -> arg.toASTString()).toList())
-        + ")";
+    return toASTString(AAstNodeRepresentation.ORIGINAL_NAMES);
   }
 }
