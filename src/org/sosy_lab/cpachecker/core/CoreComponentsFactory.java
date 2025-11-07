@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
@@ -240,6 +241,15 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.terminationToSafety",
+      description =
+          "Use termination-to-safety algorithm to prove (non-)termination. This needs the"
+              + " TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the"
+              + " CompositeCPA.")
+  private boolean useTerminationToSafetyAlgorithm = false;
 
   @Option(
       secure = true,
@@ -575,6 +585,10 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
+      if (useTerminationToSafetyAlgorithm) {
+        TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
+      }
+
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {

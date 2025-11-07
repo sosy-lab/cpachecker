@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
@@ -194,7 +195,8 @@ public class SMGCPABuiltins {
    * Verification (SV-COMP). E.g. __VERIFIER_nondet_int().
    */
   private List<ValueAndSMGState> handleVerifierNondetGeneratorFunction(
-      String pFunctionName, SMGState pState, CFAEdge pCfaEdge) throws SMGException {
+      String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
+      throws SMGException, UnsupportedCodeException {
     // Allowed (SVCOMP26): {bool, char, int, int128, float, double, loff_t, long, longlong, pchar,
     // pthread_t, sector_t, short, size_t, u32, uchar, uint, uint128, ulong, ulonglong, unsigned,
     // ushort} (no side effects, pointer for void *, etc.).
@@ -202,7 +204,7 @@ public class SMGCPABuiltins {
     // TODO: __VERIFIER_nondet_memory(void *, size_t): This function initializes the given memory
     // block with arbitrary values. The first argument must be a valid pointer to the start of a
     // memory block of the given size. The second argument specifies the size of the memory to
-    // initializeand must match the size of the memory block that the first argument points to. The
+    // initialize and must match the size of the memory block that the first argument points to. The
     // dereference of any pointer value set through this method results in undefined behavior. This
     // means that pointer values must be explicitly set through different means before they can be
     // dereferenced.
@@ -210,6 +212,12 @@ public class SMGCPABuiltins {
     // TODO: consider casting directly to desired type?
     //  castCValue(uncastedValueAndState.getValue(), pTargetType);
     return switch (pFunctionName.replace(VERIFIER_NONDET_PREFIX, "")) {
+      case "pointer" ->
+          throw new UnsupportedCodeException(
+              "Function "
+                  + pFunctionName
+                  + " is no longer supported by SV-COMP and is not supported by this analysis",
+              pCfaEdge);
       case "bool",
           "char",
           "int",
@@ -1452,10 +1460,7 @@ public class SMGCPABuiltins {
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
         // Since this is newly created memory get(0) is fine
-        stateWithNewHeap =
-            stateWithNewHeap
-                .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                .getFirst();
+        stateWithNewHeap = stateWithNewHeap.writeToZero(addressToNewRegion, edge).getFirst();
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
     } else {
@@ -1533,14 +1538,12 @@ public class SMGCPABuiltins {
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
         // Need symbolic edges for that
-        throw new SMGException(
-            "Zeroing allocation function with symbolic memory size is currently not supported.");
-        /*
-          stateWithNewNonZeroHeap =
-              stateWithNewNonZeroHeap
-                  .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                  .get(0);
-        */
+        // throw new SMGException(
+        //  "Zeroing allocation function with symbolic memory size is currently not supported.");
+
+        List<SMGState> zeroedStates = stateWithNewNonZeroHeap.writeToZero(addressToNewRegion, edge);
+        checkState(zeroedStates.size() == 1);
+        stateWithNewNonZeroHeap = zeroedStates.getFirst();
       }
 
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewNonZeroHeap));
