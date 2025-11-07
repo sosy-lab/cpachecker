@@ -8,19 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map.Entry;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -42,7 +40,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return Collections.singleton(state);
+    return ImmutableList.of(state);
   }
 
   @Override
@@ -98,13 +96,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
-      return Collections.singleton(
+      return ImmutableList.of(
           new TerminationToReachState(
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow()));
     } else {
-      return Collections.singleton(pState);
+      return ImmutableList.of(pState);
     }
   }
 
@@ -119,24 +117,24 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      LocationState possibleState =
-          AbstractStates.extractStateByType(state, LocationState.class);
+      LocationState possibleState = AbstractStates.extractStateByType(state, LocationState.class);
       if (possibleState != null) {
         return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
   }
 
   private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      CallstackState possibleState =
-          AbstractStates.extractStateByType(state, CallstackState.class);
+      CallstackState possibleState = AbstractStates.extractStateByType(state, CallstackState.class);
       if (possibleState != null) {
         return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
   }
 
   private PredicateAbstractState getPredicateState(Iterable<AbstractState> otherStates) {
@@ -147,6 +145,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
+    throw new UnsupportedOperationException(
+        "TransferRelation requires information from PredicateCPA.");
   }
 }

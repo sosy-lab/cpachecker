@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
