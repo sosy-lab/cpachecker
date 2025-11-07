@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+
+  <!--
+    SV-LIB programs can overwrite the default behavior of a verifier,
+    so we can set no output files, and still get witnesses,
+    because the task sets their production to true
+  -->
+  <option name="--no-output-files"/>
+  <option name="--heap">10000M</option>
+  <resultfiles>**.svlib*</resultfiles>
+
+  <rundefinition>
+    <option name="--predicateAnalysis-k3"/>
+  </rundefinition>
+
+  <!--
+    Currently there are so few SV-LIB benchmarks that we can afford
+    to run all of them with witness generation enabled.
+  -->
+  <tasks name="SV-LIVl.Main">
+    <includesfile>../programs/sv-lib-benchmarks/CTranslated.set</includesfile>
+    <includesfile>../programs/sv-lib-benchmarks/CoreValidation.set</includesfile>
+    <includesfile>../programs/sv-lib-benchmarks/CoreVerification.set</includesfile>
+    <propertyfile>../programs/sv-lib-benchmarks/properties/correct-tags.prp</propertyfile>
+  </tasks>
+</benchmark>
