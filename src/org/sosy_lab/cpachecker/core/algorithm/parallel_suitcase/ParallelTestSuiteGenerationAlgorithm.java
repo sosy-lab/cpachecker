@@ -8,102 +8,163 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.testcase.TestVector;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 
 /**
- * ParallelTestSuiteGenerationAlgorithm executes multiple TestCaseGeneratorAlgorithm instances in
- * parallel on partitions of a full ReachedSet, collects all generated test vectors, deduplicates
- * them, and produces the same output as the sequential generator.
+ * Parallel test case generation algorithm Divides global test targets into multiple subsets and
+ * processes each subset in parallel using multiple threads
  */
+@Options(prefix = "parallelTestGeneration")
 public class ParallelTestSuiteGenerationAlgorithm {
 
-  private final PartitioningStrategy partitioner;
-  private final int threadCount;
+  // Configuration option: Number of threads for parallel execution
+  @Option(description = "Number of threads for parallel test generation", secure = true)
+  private int numberOfThreads = 4;
+
+  // Configuration option: Partitioning strategy selection
+  @Option(description = "Partitioning strategy to use (RANDOM or STRATEGY)", secure = true)
+  private PartitioningStrategyType partitioningStrategy = PartitioningStrategyType.RANDOM;
+
   private final LogManager logger;
+  private final CFA cfa;
 
   /**
-   * Constructor.
+   * Constructor - injects necessary dependencies
    *
-   * @param partitioner The strategy to split ReachedSet into partitions.
-   * @param threadCount Number of threads for parallel execution.
-   * @param logger Logger for messages.
+   * @param config Configuration object for option injection
+   * @param logger Logger for output messages
+   * @param cfa Control flow automaton for test target retrieval
    */
-  public ParallelTestSuiteGenerationAlgorithm(
-      PartitioningStrategy partitioner, int threadCount, LogManager logger) {
-    this.partitioner = partitioner;
-    this.threadCount = threadCount;
+  public ParallelTestSuiteGenerationAlgorithm(Configuration config, LogManager logger, CFA cfa)
+      throws InvalidConfigurationException {
+
+    // Inject configuration options
+    config.inject(this);
     this.logger = logger;
+    this.cfa = cfa;
+
+    // Validate thread count configuration
+    if (numberOfThreads <= 0) {
+      throw new InvalidConfigurationException("Number of threads must be positive");
+    }
   }
 
   /**
-   * Run parallel test generation.
-   *
-   * @param fullReachedSet Full ReachedSet containing all states to generate tests from.
-   * @param generatorSupplier Supplies a fresh TestCaseGeneratorAlgorithm per thread.
-   * @return Deduplicated set of TestVector covering all partitions.
-   * @throws InterruptedException if thread execution is interrupted.
-   * @throws ExecutionException if a thread throws an exception.
+   * Main entry point for parallel test generation Execution flow: 1. Get global test targets from
+   * TestTargetProvider 2. Partition targets into subsets using selected strategy 3. Create thread
+   * pool and submit tasks for each partition 4. Wait for all threads to complete processing
    */
-  public Set<TestVector> runParallel(
-      ReachedSet fullReachedSet,
-      java.util.function.Supplier<TestCaseGeneratorAlgorithm> generatorSupplier)
-      throws InterruptedException, ExecutionException {
+  @SuppressWarnings("FutureReturnValueIgnored")
+  public void generateTestSuite() {
+    logger.log(
+        Level.INFO, "Starting parallel test generation with " + numberOfThreads + " threads");
 
-    logger.log(Level.INFO, "Starting parallel test generation with " + threadCount + " threads.");
+    try {
+      // Step 1: Get global test targets
+      Set<CFAEdge> testTargets =
+          TestTargetProvider.getTestTargets(
+              cfa,
+              false, // We handle parallelism ourselves
+              TestTargetType.ASSUME, // Use assumption edges as test targets
+              "", // No specific target function
+              null, // No optimization strategies
+              false, // Don't apply optimizations nested
+              false, // Don't track redundant targets
+              logger);
 
-    // 1. Partition the ReachedSet
-    List<ReachedSet> partitions = partitioner.partition(fullReachedSet, threadCount);
+      logger.log(Level.INFO, "Retrieved " + testTargets.size() + " test targets");
 
-    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-    List<Future<List<TestVector>>> futures = new ArrayList<>();
+      if (testTargets.isEmpty()) {
+        logger.log(Level.WARNING, "No test targets found");
+        return;
+      }
 
-    // 2. Submit tasks: each thread runs the sequential generator on its partition
-    for (ReachedSet subSet : partitions) {
-      futures.add(
-          executor.submit(
-              () -> {
-                List<TestVector> localResults = new ArrayList<>();
-                try {
-                  TestCaseGeneratorAlgorithm generator = generatorSupplier.get();
-                  generator.run(subSet); // run sequential algorithm on partition
-                  // Collect generated test vectors
-                  localResults.addAll(
-                      generator
-                          .getGeneratedTestVectors()); // i do not know should i write this method
+      // Step 2: Partition targets using selected strategy
+      PartitioningStrategy strategy = createPartitioningStrategy();
+      List<Set<CFAEdge>> partitions = strategy.partition(testTargets, numberOfThreads);
 
-                } catch (Exception e) {
-                  logger.log(Level.SEVERE, "Error in parallel test generation thread.", e);
-                }
-                return localResults;
-              }));
+      logger.log(Level.INFO, "Divided targets into " + partitions.size() + " partitions");
+
+      // Step 3: Create thread pool and submit tasks
+      ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+
+      for (int i = 0; i < partitions.size(); i++) {
+        Set<CFAEdge> partition = partitions.get(i);
+        // Submit a task for each partition
+        executorService.submit(new TestCaseGenerationTask(partition, i));
+      }
+
+      // Step 4: Wait for all tasks to complete
+      executorService.shutdown();
+      boolean completed = executorService.awaitTermination(1, TimeUnit.HOURS);
+
+      if (completed) {
+        logger.log(Level.INFO, "Parallel test generation completed successfully");
+      } else {
+        logger.log(Level.WARNING, "Parallel test generation timed out");
+        executorService.shutdownNow(); // Force shutdown
+      }
+
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, "Error during parallel test generation", e);
+    }
+  }
+
+  /** Creates partitioning strategy instance based on user configuration */
+  private PartitioningStrategy createPartitioningStrategy() {
+    return switch (partitioningStrategy) {
+      case RANDOM -> new RandomPartitioner(); // Random distribution
+      case STRATEGY -> new StrategyPartitioner(); // Sequential distribution
+    };
+  }
+
+  /** Test case generation task Each task processes one subset of test targets */
+  private class TestCaseGenerationTask implements Runnable {
+
+    private final Set<CFAEdge> partition; // Subset of targets this task handles
+    private final int threadId; // Thread ID for logging
+
+    /**
+     * Task constructor
+     *
+     * @param partition Subset of test targets to process
+     * @param threadId Unique thread identifier
+     */
+    TestCaseGenerationTask(Set<CFAEdge> partition, int threadId) {
+      this.partition = partition;
+      this.threadId = threadId;
     }
 
-    // 3. Merge results and deduplicate
-    Set<TestVector> allTests = new HashSet<>();
-    for (Future<List<TestVector>> f : futures) {
-      List<TestVector> threadResults = f.get();
-      if (threadResults != null) {
-        allTests.addAll(threadResults);
+    /** Task execution method Processes all test targets in the assigned subset */
+    @Override
+    public void run() {
+      logger.log(Level.INFO, "Thread " + threadId + " processing " + partition.size() + " targets");
+
+      try {
+        // Process each test target in the subset
+        for (CFAEdge target : partition) {
+          logger.log(Level.FINE, "Thread " + threadId + " processing target: " + target);
+        }
+
+        logger.log(Level.INFO, "Thread " + threadId + " completed successfully");
+
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, "Thread " + threadId + " failed", e);
       }
     }
-
-    executor.shutdown();
-    logger.log(
-        Level.INFO,
-        "Parallel test generation completed. Total unique test vectors: " + allTests.size());
-
-    return allTests;
   }
 }

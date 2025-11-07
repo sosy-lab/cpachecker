@@ -1,0 +1,88 @@
+Buildfile: /home/xym01/cpachecker/build.xml
+
+-warn-factorypath:
+
+determine-version-revision:
+     [exec] fatal: 没有发现名称，无法描述任何东西。
+     [exec] Result: 128
+
+determine-version:
+
+init:
+     [echo] Building CPAchecker 4.1-unknown
+
+bootstrap-ivy:
+
+load-ivy:
+
+update-contrib:
+
+resolve-dependencies:
+     [echo] Downloading and installing dependencies with Ivy...
+[ivy:resolve] :: Apache Ivy 2.5.2 - 20230817170011 :: https://ant.apache.org/ivy/ ::
+[ivy:resolve] :: loading settings :: file = /home/xym01/cpachecker/build/ivysettings.xml
+[ivy:retrieve] :: retrieving :: org.sosy_lab#CPAchecker [sync]
+[ivy:retrieve] 	confs: [build, runtime, test, format-source, spotbugs, checkstyle]
+[ivy:retrieve] 	0 artifacts copied, 216 already retrieved (0kB/19ms)
+
+build-subprojects:
+     [echo] Generate automaton parser if necessary
+
+generate-scanner:
+
+generate-parser:
+     [echo] Generate precision-rewriting parser if necessary
+
+generate-scanner:
+
+generate-parser:
+     [echo] Generate antlr4 parser if necessary
+
+generate-antlr4-lexer:
+
+generate-antlr4-parser:
+
+generate-antlr4-grammar:
+     [echo] Generate ACSL parser if necessary
+
+generate-scanner:
+
+generate-parser:
+
+build-dependencies:
+
+build-project:
+    [javac] Compiling 2989 source files to /home/xym01/cpachecker/classes
+    [javac] /home/xym01/cpachecker/src/org/sosy_lab/cpachecker/core/algorithm/parallel_suitcase/ParallelTestSuiteGenerationAlgorithm.java:43: 警告: [UnusedVariable] The field 'testCaseExporter' is never read.
+    [javac]   private final TestCaseExporter testCaseExporter;
+    [javac]                                  ^
+    [javac]     (see https://errorprone.info/bugpattern/UnusedVariable)
+    [javac]   Did you mean to remove this line?
+    [javac] /home/xym01/cpachecker/src/org/sosy_lab/cpachecker/core/algorithm/parallel_suitcase/ParallelTestSuiteGenerationAlgorithm.java:95: 警告: [FutureReturnValueIgnored] Return value of methods returning Future must be checked. Ignoring returned Futures suppresses exceptions thrown from the code that completes the Future.
+    [javac]         executorService.submit(new TestCaseGenerationTask(partition, i));
+    [javac]                               ^
+    [javac]     (see https://errorprone.info/bugpattern/FutureReturnValueIgnored)
+    [javac]   Did you mean 'var unused = executorService.submit(new TestCaseGenerationTask(partition, i));' or to remove this line?
+    [javac] /home/xym01/cpachecker/src/org/sosy_lab/cpachecker/core/algorithm/parallel_suitcase/ParallelTestSuiteGenerationAlgorithm.java:115: 警告: [StatementSwitchToExpressionSwitch] This statement switch can be converted to a new-style arrow switch
+    [javac]     switch (partitioningStrategy) {
+    [javac]     ^
+    [javac]     (see https://errorprone.info/bugpattern/StatementSwitchToExpressionSwitch)
+    [javac]   Did you mean 'return switch (partitioningStrategy) {' or 'return switch (partitioningStrategy) {' or 'switch (partitioningStrategy) {' or 'switch (partitioningStrategy) {'?
+    [javac] /home/xym01/cpachecker/src/org/sosy_lab/cpachecker/core/algorithm/parallel_suitcase/ParallelTestSuiteGenerationAlgorithm.java:120: 警告: [UnnecessaryDefaultInEnumSwitch] Switch handles all enum values: move code from the default case to execute after the switch statement to enable checking for non-exhaustive switches. That is, prefer: `switch (...) { ... } throw new AssertionError();` to `switch (...) { ... default: throw new AssertionError(); }`
+    [javac]       default:
+    [javac]       ^
+    [javac]     (see https://errorprone.info/bugpattern/UnnecessaryDefaultInEnumSwitch)
+    [javac]   Did you mean to remove this line?
+    [javac] /home/xym01/cpachecker/src/org/sosy_lab/cpachecker/core/algorithm/parallel_suitcase/ParallelTestSuiteGenerationAlgorithm.java:131: 警告: [EffectivelyPrivate] This declaration has public or protected modifiers, but is effectively private.
+    [javac]     public TestCaseGenerationTask(Set<CFAEdge> partition, int threadId) {
+    [javac]            ^
+    [javac]     (see https://errorprone.info/bugpattern/EffectivelyPrivate)
+    [javac]   Did you mean 'TestCaseGenerationTask(Set<CFAEdge> partition, int threadId) {'?
+    [javac] 错误: 发现警告, 但指定了 -Werror
+    [javac] 1 个错误
+    [javac] 5 个警告
+
+BUILD FAILED
+/home/xym01/cpachecker/build/build-compile.xml:74: Compile failed; see the compiler error output for details.
+
+Total time: 51 seconds

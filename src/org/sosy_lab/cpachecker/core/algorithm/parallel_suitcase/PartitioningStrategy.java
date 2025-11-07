@@ -8,22 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
-
 import java.util.List;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/**
- * Interface for splitting a full ReachedSet into multiple partitions. Used to enable parallel test
- * case generation.
- */
+/** Interface for partitioning strategies */
 public interface PartitioningStrategy {
 
   /**
-   * Partition the given ReachedSet into numPartitions subsets.
+   * Partition the test targets into multiple subsets
    *
-   * @param reachedSet The full ReachedSet containing all AbstractStates.
-   * @param numPartitions The number of partitions (usually equals number of threads).
-   * @return A list of sub-ReachedSets.
+   * @param testTargets The set of test targets to partition
+   * @param numPartitions The number of partitions to create
+   * @return List of partitioned subsets
    */
-  List<ReachedSet> partition(ReachedSet reachedSet, int numPartitions);
+  List<Set<CFAEdge>> partition(Set<CFAEdge> testTargets, int numPartitions);
 }
