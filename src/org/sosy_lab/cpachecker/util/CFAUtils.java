@@ -137,6 +137,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
@@ -1322,6 +1323,12 @@ public class CFAUtils {
     public Iterable<? extends AAstNode> visit(SvLibSelectTraceCommand pSvLibSelectTraceCommand)
         throws NoException {
       return ImmutableList.of(pSvLibSelectTraceCommand.getTrace());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibSetInfoCommand pSvLibSetInfoCommand)
+        throws NoException {
+      return ImmutableList.of();
     }
 
     @Override

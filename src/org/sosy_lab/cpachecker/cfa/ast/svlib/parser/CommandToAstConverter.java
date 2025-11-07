@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssertCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AttributeContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Cmd_declareFunContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.DeclareConstCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.DeclareFunCommandContext;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Define
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.GetWitnessContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.OptionContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ProcDeclarationArgumentsContext;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SetInfoCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SetLogicCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SetOptionCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SortContext;
@@ -272,5 +276,20 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
         // We may be parsing a string literal here, so we remove the quotes.
         option.getChild(1).getText().replace("\"", ""),
         fileLocationFromContext(option));
+  }
+
+  @Override
+  public SvLibCommand visitSetInfoCommand(SetInfoCommandContext pContext) {
+    AttributeContext option = pContext.cmd_setInfo().attribute();
+    @Nullable
+    String attributeValue =
+        option.attribute_value() != null
+            ?
+            // We may be parsing a string literal here, so we remove the quotes.
+            option.attribute_value().getText().replace("\"", "")
+            : null;
+
+    return new SvLibSetInfoCommand(
+        option.keyword().getText(), attributeValue, fileLocationFromContext(option));
   }
 }

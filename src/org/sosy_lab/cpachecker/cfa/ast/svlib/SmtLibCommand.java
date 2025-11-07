@@ -13,5 +13,6 @@ public sealed interface SmtLibCommand
         SvLibDeclareConstCommand,
         SvLibDeclareFunCommand,
         SvLibDeclareSortCommand,
+        SvLibSetInfoCommand,
         SvLibSetLogicCommand,
         SvLibSetOptionCommand {}

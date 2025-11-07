@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
@@ -96,6 +97,7 @@ public class SvLibParserTest {
         new SvLibScript(
             ImmutableList.of(
                 new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
@@ -173,6 +175,7 @@ public class SvLibParserTest {
         new SvLibScript(
             ImmutableList.of(
                 new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
@@ -261,6 +264,7 @@ public class SvLibParserTest {
         new SvLibScript(
             ImmutableList.of(
                 new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
                     FileLocation.DUMMY,
                     procedureDeclaration,
@@ -412,6 +416,7 @@ public class SvLibParserTest {
                     ":produce-correctness-witnesses", "true", FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
                     ":produce-violation-witnesses", "true", FileLocation.DUMMY),
+                new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibDeclareSortCommand(
                     new SvLibSortDeclaration(
                         FileLocation.DUMMY,

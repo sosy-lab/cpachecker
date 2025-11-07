@@ -10,6 +10,7 @@
 (set-option :witness-output-channel "./output/witness.svlib")
 (set-option :produce-correctness-witnesses true)
 (set-option :produce-violation-witnesses true)
+(set-info :format-version 1.0)
 
 (declare-sort |c#ptr| 1)
 (declare-sort |c#heap| 0)

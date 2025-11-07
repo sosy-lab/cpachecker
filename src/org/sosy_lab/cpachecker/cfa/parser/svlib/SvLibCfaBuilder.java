@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
@@ -380,6 +381,9 @@ class SvLibCfaBuilder {
         case SvLibSelectTraceCommand pSvLibSelectTraceCommand -> {
           throw new SvLibParserException(
               "Select trace commands are not yet supported in CFA parsing.");
+        }
+        case SvLibSetInfoCommand pSvLibSetInfoCommand -> {
+          // we ignore set-info commands for now
         }
       }
     }

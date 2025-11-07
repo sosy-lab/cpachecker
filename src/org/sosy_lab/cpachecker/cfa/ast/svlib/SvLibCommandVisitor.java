@@ -32,4 +32,6 @@ public interface SvLibCommandVisitor<R, X extends Exception> {
   R visit(SvLibVerifyCallCommand pSvLibVerifyCallCommand) throws X;
 
   R visit(SvLibSelectTraceCommand pSvLibSelectTraceCommand) throws X;
+
+  R visit(SvLibSetInfoCommand pSvLibSetInfoCommand) throws X;
 }
