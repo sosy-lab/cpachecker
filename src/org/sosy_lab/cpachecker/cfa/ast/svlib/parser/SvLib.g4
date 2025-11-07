@@ -53,7 +53,7 @@ statement
     | ParOpen 'while' term statement ParClose                         # WhileStatement
     | ParOpen 'break' ParClose                                        # BreakStatement
     | ParOpen 'continue' ParClose                                     # ContinueStatement
-    | ParOpen 'havoc' ParOpen symbol+ ParClose ParClose               # HavocStatement
+    | ParOpen 'havoc' symbol+ ParClose                                # HavocStatement
     | ParOpen 'choice' ParOpen statement+ ParClose ParClose           # ChoiceStatement
     ;
 
