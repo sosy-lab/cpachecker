@@ -141,7 +141,7 @@ public class K3ParserTest {
                     ImmutableList.of(
                         new K3IdTerm(w, FileLocation.DUMMY), new K3IdTerm(z, FileLocation.DUMMY)),
                     FileLocation.DUMMY)));
-    Path filePath = Path.of(examplesPath(), "simple-correct.smt2");
+    Path filePath = Path.of(examplesPath(), "simple-correct.svlib");
 
     testScriptParsing(filePath, output);
   }
@@ -221,7 +221,7 @@ public class K3ParserTest {
                     ImmutableList.of(
                         new K3IdTerm(w, FileLocation.DUMMY), new K3IdTerm(z, FileLocation.DUMMY)),
                     FileLocation.DUMMY)));
-    Path filePath = Path.of(examplesPath(), "simple-incorrect.smt2");
+    Path filePath = Path.of(examplesPath(), "simple-incorrect.svlib");
 
     testScriptParsing(filePath, output);
   }
@@ -373,7 +373,7 @@ public class K3ParserTest {
                     FileLocation.DUMMY),
                 new K3GetWitnessCommand(FileLocation.DUMMY)));
 
-    Path filePath = Path.of(examplesPath(), "loop-add.smt2");
+    Path filePath = Path.of(examplesPath(), "loop-add.svlib");
 
     testScriptParsing(filePath, output);
   }
@@ -543,7 +543,7 @@ public class K3ParserTest {
                     mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
                 new K3GetWitnessCommand(FileLocation.DUMMY)));
 
-    Path filePath = Path.of(examplesPath(), "loop-simple-safe.smt2");
+    Path filePath = Path.of(examplesPath(), "loop-simple-safe.svlib");
 
     testScriptParsing(filePath, expectedOutput);
   }

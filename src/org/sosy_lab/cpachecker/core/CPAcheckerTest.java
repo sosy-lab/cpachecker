@@ -31,10 +31,14 @@ import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-/** Integration tests for CPAchecker. */
+/**
+ * Integration tests for CPAchecker.
+ */
 public class CPAcheckerTest {
 
-  /** The configuration file to use for running CPAchecker. */
+  /**
+   * The configuration file to use for running CPAchecker.
+   */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";
 
   private static final String CONFIGURATION_FILE_K3 = "config/predicateAnalysis-k3.properties";
@@ -53,10 +57,10 @@ public class CPAcheckerTest {
   private static final String SAFE_PROGRAM_C = "doc/examples/example.c";
   private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
 
-  private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.smt2";
-  private static final String SAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-safe.smt2";
-  private static final String UNSAFE_PROGRAM_K3 = "test/programs/k3/simple-incorrect.smt2";
-  private static final String UNSAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-unsafe.smt2";
+  private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.svlib";
+  private static final String SAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-safe.svlib";
+  private static final String UNSAFE_PROGRAM_K3 = "test/programs/k3/simple-incorrect.svlib";
+  private static final String UNSAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-unsafe.svlib";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -65,7 +69,8 @@ public class CPAcheckerTest {
   private static final String SAFE_PROGRAM_JAVA = "Switch_true_assert";
   private static final String UNSAFE_PROGRAM_JAVA = "Switch2_false_assert";
 
-  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   // discard printed statistics; we only care about generation
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
