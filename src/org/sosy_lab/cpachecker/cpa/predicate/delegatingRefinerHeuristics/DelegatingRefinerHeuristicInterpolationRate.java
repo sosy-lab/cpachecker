@@ -132,15 +132,14 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       return false;
     }
 
-    int currentAbstractionLocationCount = 0;
+    // Get the current number of abstraction locations from the delta
+    int currentAbstractionLocationCount =
+        pDeltas.stream().mapToInt(ReachedSetDelta::abstractionLocationsCount).sum();
 
     // Compute the number of interpolants added and their average ratio per refinement
     int numberInterpolants = 0;
 
     for (ReachedSetDelta delta : pDeltas) {
-      // Get the current number of abstraction locations from the delta
-      currentAbstractionLocationCount += delta.abstractionLocationsCount();
-
       for (AbstractState pState : delta.addedStates()) {
 
         PredicateAbstractState predState =

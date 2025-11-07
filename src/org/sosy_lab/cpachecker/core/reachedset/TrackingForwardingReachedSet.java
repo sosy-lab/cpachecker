@@ -65,9 +65,9 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
     for (Pair<AbstractState, Precision> pair : pToAdd) {
       AbstractState pState = pair.getFirst();
       if (pState != null) {
+        addedStates.add(pState);
         if (isAbstractionState(pState)) {
           abstractionCount++;
-          addedStates.add(pState);
         }
       }
     }

@@ -105,12 +105,8 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
     }
 
     // Get the current number of abstraction locations from the delta
-    int currentAbstractionLocationCount = 0;
-
-    for (ReachedSetDelta delta : pDeltas) {
-      // Get the current number of abstraction locations from the delta
-      currentAbstractionLocationCount += delta.abstractionLocationsCount();
-    }
+    int currentAbstractionLocationCount =
+        pDeltas.stream().mapToInt(ReachedSetDelta::abstractionLocationsCount).sum();
 
     if (currentAbstractionLocationCount < abstractionLocationThreshold) {
       return true;
