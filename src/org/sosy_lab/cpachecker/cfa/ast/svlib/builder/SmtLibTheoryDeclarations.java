@@ -111,6 +111,21 @@ public class SmtLibTheoryDeclarations {
         "+");
   }
 
+  /* Non-Linear Integer stuff */
+
+  public static SvLibVariableDeclaration INT_MOD =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
+              SvLibSmtLibType.INT),
+          "mod",
+          "mod",
+          "mod");
+
   /* Boolean stuff */
 
   public static SvLibVariableDeclaration BOOL_NEGATION =

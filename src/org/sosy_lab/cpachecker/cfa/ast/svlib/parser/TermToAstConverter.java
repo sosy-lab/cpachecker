@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.parser;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -69,7 +70,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   private SvLibVariableDeclaration getVariableDeclarationForSymbol(
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
 
-    if (pLogics.contains(SmtLibLogic.LIA)) {
+    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)) {
       switch (pSymbol) {
         case "=" -> {
           return SmtLibTheoryDeclarations.INT_EQUALITY;
@@ -91,6 +92,15 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         }
         case "+" -> {
           return SmtLibTheoryDeclarations.intAddition(pArguments.size());
+        }
+      }
+    }
+
+    // Match Non-Linear Integer Arithmetic logic
+    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsNonLinearIntegerArithmetic)) {
+      switch (pSymbol) {
+        case "mod" -> {
+          return SmtLibTheoryDeclarations.INT_MOD;
         }
       }
     }
