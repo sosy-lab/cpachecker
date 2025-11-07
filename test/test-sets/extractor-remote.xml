@@ -10,7 +10,7 @@
   <option name="10000M" />
   <option name="--option" />
   <option name="log.consoleLevel=SEVERE" />
-  <option name="--testCaseGeneration-valueAnalysis-NoCegar"/>
+  <option name="--testCaseGeneration-valueAnalysis-Extractor"/>
 
   <rundefinition name="Test-Comp25_coverage-branches">
     <propertyfile>../../../sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>

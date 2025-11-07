@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
 
-<benchmark tool="cpachecker"  hardtimelimit="90s" memlimit="6000 MB" limitcores="2">
+<benchmark tool="cpachecker"  hardtimelimit="90s" memlimit="15000 MB" limitcores="4">
 
 
   <option name="--no-output-files"/>
@@ -25,8 +25,8 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition/>  
 
 
-  <tasks name="termination-numeric-e">
-    <includesfile>../../../sv-benchmarks/c/ControlFlow-Termination1.set</includesfile>
+  <tasks name="BitVectors-Termination.set-No-Extractor">
+    <includesfile>../../../sv-benchmarks/c/BitVectors-Termination.set</includesfile>
   </tasks>    
 
   <!--          
