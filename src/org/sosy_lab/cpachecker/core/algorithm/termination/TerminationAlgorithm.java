@@ -145,7 +145,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       description =
           "Consider variables with unsigned types in ranking function synthesis.This can lead to"
               + " unsound results as LassoRanker assumes infinite domain for these variables.")
-  private boolean useRankingFunctionUnsoundHeuristic = false;
+  private boolean ignoreOverflowsForUnsignedVariables = false;
 
   @Option(
       secure = true,
@@ -267,14 +267,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CPAcheckerResult.Result loopTermination =
           proveLoopTermination(pReachedSet, loop, initialLocation);
 
-      if (!useRankingFunctionUnsoundHeuristic && loopTermination == Result.TRUE) {
+      if (!ignoreOverflowsForUnsignedVariables && loopTermination == Result.TRUE) {
         // LassoRanker handles unsigned types incorrectly as it does not account for overflows
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
           if (!cfa.getMachineModel()
               .isSigned((CSimpleType) variable.getType().getCanonicalType())) {
             throw new UnsupportedCodeException(
-                "LassoRanker does not support domains with possible overflows. Encountered in the"
-                    + " loop starting with the edge.",
+                "LassoRanker does not support domains with possible overflows.",
                 loop.getInnerLoopEdges().asList().getFirst());
           }
         }
