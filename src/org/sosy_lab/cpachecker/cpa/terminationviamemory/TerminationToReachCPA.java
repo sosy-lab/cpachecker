@@ -40,12 +40,14 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private PrecisionAdjustment precisionAdjustment;
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
+  private final LogManager logger;
 
   public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     cfa = pCFA;
+    logger = pLogger;
   }
 
   public static CPAFactory factory() {
@@ -57,7 +59,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(solver, statistics, cfa, bfmgr, fmgr);
+        new TerminationToReachPrecisionAdjustment(solver, statistics, logger, cfa, bfmgr, fmgr);
   }
 
   @Override

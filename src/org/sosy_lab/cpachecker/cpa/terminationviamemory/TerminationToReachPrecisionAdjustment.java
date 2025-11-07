@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,10 +42,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final FormulaManagerView fmgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
+  private final LogManager logger;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
       TerminationToReachStatistics pStatistics,
+      LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr) {
@@ -53,6 +56,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
+    logger = plogger;
   }
 
   @Override
@@ -85,6 +89,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
+          logger.logDebugException(e);
           return Optional.of(result);
         }
         if (isTargetStateReachable) {
