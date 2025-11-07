@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -82,11 +83,13 @@ public class PropertyFileParser {
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
 
   public PropertyFileParser(final CharSource pPropertyFile, List<Path> pProgramFiles) {
+    checkArgument(pProgramFiles != null);
     propertyFile = checkNotNull(pPropertyFile);
     programFiles = pProgramFiles;
   }
 
   public PropertyFileParser(final Path pPropertyFile, List<Path> pProgramFiles) {
+    checkArgument(pProgramFiles != null);
     propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
     programFiles = pProgramFiles;
   }

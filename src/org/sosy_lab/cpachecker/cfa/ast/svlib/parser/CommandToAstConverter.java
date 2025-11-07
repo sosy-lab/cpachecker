@@ -15,7 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
@@ -281,8 +281,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   @Override
   public SvLibCommand visitSetInfoCommand(SetInfoCommandContext pContext) {
     AttributeContext option = pContext.cmd_setInfo().attribute();
-    @Nullable
-    String attributeValue =
+    @Nullable String attributeValue =
         option.attribute_value() != null
             ?
             // We may be parsing a string literal here, so we remove the quotes.
