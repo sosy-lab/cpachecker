@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AnnotatedStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssignStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssumeStatementContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AttributeContext;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AttributeSvLibContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.BreakStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ChoiceStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ContinueStatementContext;
@@ -84,10 +84,10 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     return references;
   }
 
-  private void updateTagReferences(List<AttributeContext> pAttributeContexts) {
+  private void updateTagReferences(List<AttributeSvLibContext> pAttributeContexts) {
     ImmutableList.Builder<SvLibTagReference> tagReferencesBuilder = ImmutableList.builder();
     ImmutableList.Builder<SvLibTagProperty> tagAttributeBuilder = ImmutableList.builder();
-    for (AttributeContext attributeContext : pAttributeContexts) {
+    for (AttributeSvLibContext attributeContext : pAttributeContexts) {
       SvLibTagAttribute tagProperty = tagToAstConverter.visit(attributeContext);
       switch (tagProperty) {
         case SvLibTagReference tagReference -> tagReferencesBuilder.add(tagReference);
@@ -116,7 +116,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
 
   @Override
   public SvLibStatement visitAnnotatedStatement(AnnotatedStatementContext ctx) {
-    updateTagReferences(ctx.attribute());
+    updateTagReferences(ctx.attributeSvLib());
     return visit(ctx.statement());
   }
 

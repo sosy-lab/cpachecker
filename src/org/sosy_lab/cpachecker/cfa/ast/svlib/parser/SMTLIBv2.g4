@@ -443,6 +443,10 @@ PK_EnableProductionViolationWitnesses
     : ':produce-violation-witnesses'
     ;
 
+PK_FormatVersion
+    : ':format-version'
+    ;
+
 PK_ErrorBehaviour
     : ':error-behavior'
     ;
@@ -645,6 +649,7 @@ predefSymbol
 
 predefKeyword
     : PK_AllStatistics
+    | PK_FormatVersion
     | PK_AssertionStackLevels
     | PK_Authors
     | PK_Category

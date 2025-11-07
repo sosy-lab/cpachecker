@@ -189,7 +189,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   @Override
   public SvLibCommand visitAnnotateTag(AnnotateTagContext pContext) {
     List<SvLibTagProperty> tags =
-        FluentIterable.from(pContext.attribute())
+        FluentIterable.from(pContext.attributeSvLib())
             .transform(attribute -> tagToAstConverter.visit(attribute))
             .filter(SvLibTagProperty.class)
             .toList();

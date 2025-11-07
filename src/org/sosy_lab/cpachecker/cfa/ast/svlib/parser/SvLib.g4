@@ -25,7 +25,7 @@ commandSvLib
             ParOpen procDeclarationArguments ParClose
                 statement
       ParClose                                                        # DefineProc
-    | ParOpen 'annotate-tag' symbol attribute+ ParClose               # AnnotateTag
+    | ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose               # AnnotateTag
     | ParOpen 'select-trace' trace ParClose                           # SelectTrace
     | ParOpen 'verify-call' symbol
             ParOpen term* ParClose
@@ -40,7 +40,7 @@ statement
             (ParOpen symbol term ParClose)+
       ParClose                                                        # AssignStatement
     | ParOpen 'sequence' statement* ParClose                          # SequenceStatement
-    | ParOpen GRW_Exclamation statement attribute+ ParClose           # AnnotatedStatement
+    | ParOpen GRW_Exclamation statement attributeSvLib+ ParClose           # AnnotatedStatement
     | ParOpen 'call'
             symbol
             ParOpen term* ParClose
@@ -57,7 +57,7 @@ statement
     | ParOpen 'choice' ParOpen statement+ ParClose ParClose           # ChoiceStatement
     ;
 
-attribute
+attributeSvLib
     : ':tag' symbol                                                   # TagAttribute
     | property                                                        # TagProperty
     ;
@@ -79,7 +79,7 @@ trace
     :   (ParOpen 'global' symbol term  ParClose)*
         (ParOpen 'call' symbol (term)* ParClose)
         (step)*
-        (ParOpen 'incorrect-tag' symbol attribute+ ParClose)
+        (ParOpen 'incorrect-tag' symbol attributeSvLib+ ParClose)
     ;
 
 step
