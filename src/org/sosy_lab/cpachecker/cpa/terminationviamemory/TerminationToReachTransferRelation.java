@@ -119,30 +119,34 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      if (state instanceof LocationState locationState) {
-        return locationState;
+      LocationState possibleState =
+          AbstractStates.extractStateByType(state, LocationState.class);
+      if (possibleState != null) {
+        return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires location information.");
+    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
   }
 
   private CallstackState getCallStackState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      Optional<CallstackStateEqualsWrapper> possibleCallStack =
-          AbstractStates.extractOptionalCallstackWraper(state);
-      if (possibleCallStack.isPresent()) {
-        return possibleCallStack.orElseThrow().getState();
+      CallstackState possibleState =
+          AbstractStates.extractStateByType(state, CallstackState.class);
+      if (possibleState != null) {
+        return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires call-stack information.");
+    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
   }
 
   private PredicateAbstractState getPredicateState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      if (state instanceof PredicateAbstractState predicateAbstractState) {
-        return predicateAbstractState;
+      PredicateAbstractState possibleState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (possibleState != null) {
+        return possibleState;
       }
     }
-    throw new UnsupportedOperationException("TransferRelation requires path information.");
+    throw new UnsupportedOperationException("TransferRelation requires information from PredicateCPA.");
   }
 }
