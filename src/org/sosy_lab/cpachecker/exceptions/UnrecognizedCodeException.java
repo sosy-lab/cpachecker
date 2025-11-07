@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -66,7 +66,7 @@ public class UnrecognizedCodeException extends CPATransferException {
     return switch (lang) {
       case C -> "Unrecognized C code";
       case JAVA -> "Unrecognized Java code";
-      case K3 -> "Unrecognized K3 code";
+      case SV_LIB -> "Unrecognized SV-LIB code";
       default -> throw new AssertionError();
     };
   }
@@ -76,8 +76,8 @@ public class UnrecognizedCodeException extends CPATransferException {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
-    } else if (astNode instanceof K3AstNode) {
-      return Language.K3;
+    } else if (astNode instanceof SvLibAstNode) {
+      return Language.SV_LIB;
     }
     throw new AssertionError();
   }

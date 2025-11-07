@@ -1,0 +1,200 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.svlibwitnessexport;
+
+import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibTermBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils;
+import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.FunctionEntryExitPair;
+
+public class ArgToSvLibCorrectnessWitnessExport {
+  private final SvLibCfaMetadata svLibMetadata;
+
+  @SuppressWarnings("unused")
+  private final LogManager logger;
+
+  public ArgToSvLibCorrectnessWitnessExport(CFA pCFA, LogManager pLogger) {
+    Verify.verify(
+        pCFA.getMetadata().getSvLibCfaMetadata().isPresent(),
+        "SV-LIB metadata must be present in CFA in order to export a SV-LIB witness.");
+    svLibMetadata = pCFA.getMetadata().getSvLibCfaMetadata().orElseThrow();
+    logger = pLogger;
+  }
+
+  protected SvLibFinalRelationalTerm getOverapproximationOfStates(
+      Collection<ARGState> pArgStates, SvLibScope pScope)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    FluentIterable<ExpressionTreeReportingState> reportingStates =
+        FluentIterable.from(pArgStates)
+            .transformAndConcat(AbstractStates::asIterable)
+            .filter(ExpressionTreeReportingState.class);
+    ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsPerClass =
+        new ImmutableSet.Builder<>();
+
+    for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
+      ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsMatchingClass =
+          new ImmutableSet.Builder<>();
+      for (ExpressionTreeReportingState state : reportingStates) {
+        if (stateClass.isAssignableFrom(state.getClass())) {
+          expressionsMatchingClass.add(state.asSvLibTerm(pScope));
+        }
+      }
+      SvLibFinalRelationalTerm disjunctionOfClass =
+          SvLibTermBuilder.booleanDisjunction(expressionsMatchingClass.build().asList());
+
+      expressionsPerClass.add(disjunctionOfClass);
+    }
+
+    return SvLibTermBuilder.booleanConjunction(expressionsPerClass.build().asList());
+  }
+
+  @NonNull
+  public SvLibAnnotateTagCommand createRequires(
+      Collection<ARGState> argStates, SvLibTagReference pTag)
+      throws ReportingMethodNotImplementedException, InterruptedException {
+    SvLibFinalRelationalTerm precondition =
+        getOverapproximationOfStates(argStates, pTag.getScope());
+    if (!(precondition instanceof SvLibTerm term)) {
+      throw new AssertionError(
+          "Precondition is not a SV-LIB term, it contains final commands: " + precondition);
+    }
+    return new SvLibAnnotateTagCommand(
+        pTag.getTagName(),
+        ImmutableList.of(new SvLibRequiresTag(term, FileLocation.DUMMY)),
+        FileLocation.DUMMY);
+  }
+
+  @NonNull
+  public SvLibAnnotateTagCommand createEnsures(
+      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag)
+      throws ReportingMethodNotImplementedException, InterruptedException {
+    // Build state for precondition
+    ImmutableSet.Builder<SvLibFinalRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
+    for (FunctionEntryExitPair pair : pArgStates) {
+      SvLibFinalRelationalTerm precondition =
+          getOverapproximationOfStates(ImmutableList.of(pair.entry()), pTag.getScope());
+      SvLibFinalRelationalTerm postcondition =
+          getOverapproximationOfStates(ImmutableList.of(pair.exit()), pTag.getScope());
+
+      // Replace all variables in the postcondition with their final(...) counterparts
+      SvLibIdTermReplacer finalReplacer =
+          new SvLibIdTermReplacer(
+              idTerm -> {
+                if (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
+                    || idTerm.getDeclaration() instanceof SvLibParameterDeclaration) {
+                  return new SvLibFinalTerm(FileLocation.DUMMY, idTerm);
+                }
+                return idTerm;
+              });
+      postcondition = postcondition.accept(finalReplacer);
+
+      ensuresTerms.add(SvLibTermBuilder.implication(precondition, postcondition));
+    }
+
+    return new SvLibAnnotateTagCommand(
+        pTag.getTagName(),
+        ImmutableList.of(
+            new SvLibEnsuresTag(
+                SvLibTermBuilder.booleanConjunction(ensuresTerms.build().asList()),
+                FileLocation.DUMMY)),
+        FileLocation.DUMMY);
+  }
+
+  @NonNull
+  private SvLibAnnotateTagCommand createLoopInvariant(
+      Collection<ARGState> argStates, SvLibTagReference pTag)
+      throws ReportingMethodNotImplementedException, InterruptedException {
+    return new SvLibAnnotateTagCommand(
+        pTag.getTagName(),
+        ImmutableList.of(
+            new SvLibInvariantTag(
+                getOverapproximationOfStates(argStates, pTag.getScope()), FileLocation.DUMMY)),
+        FileLocation.DUMMY);
+  }
+
+  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
+      throws ReportingMethodNotImplementedException, InterruptedException {
+    CollectedARGStates relevantStates = ArgAnalysisUtils.getRelevantStates(pRootState);
+
+    ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
+
+    // First create the loop invariants
+    Multimap<CFANode, ARGState> loopInvariants = relevantStates.loopInvariants;
+    for (CFANode node : loopInvariants.keySet()) {
+      Collection<ARGState> argStates = loopInvariants.get(node);
+      Set<SvLibTagReference> correspondingTag = svLibMetadata.tagReferences().get(node);
+      // We export the loop invariant for each tag reference at the node, to
+      // find errors easier in the export and matching them to the source code
+      for (SvLibTagReference tag : correspondingTag) {
+        SvLibAnnotateTagCommand loopInvariantCommand = createLoopInvariant(argStates, tag);
+        witnessCommands.add(loopInvariantCommand);
+      }
+    }
+
+    // Handle the statement contracts
+    Multimap<FunctionEntryNode, ARGState> functionContractRequires =
+        relevantStates.functionContractRequires;
+    Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
+        relevantStates.functionContractEnsures;
+    for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
+      Set<SvLibTagReference> correspondingTag =
+          svLibMetadata.tagReferences().get(functionEntryNode);
+      // We export the loop invariant for each tag reference at the node, to
+      // find errors easier in the export and matching them to the source code
+      for (SvLibTagReference tag : correspondingTag) {
+        SvLibAnnotateTagCommand requiresCommand = createRequires(requiresArgStates, tag);
+        witnessCommands.add(requiresCommand);
+
+        if (functionEntryNode.getExitNode().isPresent()
+            && functionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
+          Collection<FunctionEntryExitPair> ensuresArgStates =
+              functionContractEnsures.get(functionEntryNode.getExitNode().orElseThrow());
+          SvLibAnnotateTagCommand ensuresCommand = createEnsures(ensuresArgStates, tag);
+          witnessCommands.add(ensuresCommand);
+        }
+      }
+    }
+
+    return witnessCommands.build();
+  }
+}

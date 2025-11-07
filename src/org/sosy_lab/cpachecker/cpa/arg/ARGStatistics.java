@@ -50,8 +50,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -76,8 +76,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.k3witnessexport.ArgToK3CorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
@@ -140,17 +140,17 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
-      name = "k3CorrectnessWitness",
+      name = "svLibCorrectnessWitness",
       description =
           "The file into which to write the correctness "
-              + "witness for K3 programs. If set to 'null', "
+              + "witness for SV-LIB programs. If set to 'null', "
               + "no witness is exported. Be aware that one "
-              + "can also set this option in K3 programs, "
+              + "can also set this option in SV-LIB programs, "
               + "instead of in CPAchecker's configuration."
               + "In case this happens, the option "
               + "will be overriden by the one from the program, and this option ignored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path k3CorrectnessWitnessPath = null;
+  private Path svLibCorrectnessWitnessPath = null;
 
   // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
   // deactivate it in the configs, since when it is 'null' the default value is used, which is not
@@ -248,7 +248,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final ARGToYAMLWitnessExport argToWitnessWriter;
-  private final ArgToK3CorrectnessWitnessExport argToK3WitnessWriter;
+  private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -271,15 +271,15 @@ public class ARGStatistics implements Statistics {
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
-    Optional<K3CfaMetadata> k3Metadata = cfa.getMetadata().getK3CfaMetadata();
-    if (k3Metadata.isPresent() && k3Metadata.orElseThrow().exportCorrectnessWitness()) {
-      argToK3WitnessWriter = new ArgToK3CorrectnessWitnessExport(pCFA, pLogger);
-      k3CorrectnessWitnessPath =
-          k3Metadata.orElseThrow().getExportWitnessPath().orElse(k3CorrectnessWitnessPath);
+    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
+    if (svLibMetadata.isPresent() && svLibMetadata.orElseThrow().exportCorrectnessWitness()) {
+      argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
+      svLibCorrectnessWitnessPath =
+          svLibMetadata.orElseThrow().getExportWitnessPath().orElse(svLibCorrectnessWitnessPath);
     } else {
-      // We do not have K3 metadata, or do not want to export witnesses
-      argToK3WitnessWriter = null;
-      k3CorrectnessWitnessPath = null;
+      // We do not have SV-LIB metadata, or do not want to export witnesses
+      argToSvLibWitnessWriter = null;
+      svLibCorrectnessWitnessPath = null;
     }
 
     if (argFile == null
@@ -290,7 +290,7 @@ public class ARGStatistics implements Statistics {
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
         && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
-        && (k3CorrectnessWitnessPath == null)) {
+        && (svLibCorrectnessWitnessPath == null)) {
       exportARG = false;
     }
 
@@ -303,7 +303,7 @@ public class ARGStatistics implements Statistics {
     }
 
     if (counterexampleOptions.disabledCompletely()
-        && (k3Metadata.isEmpty() || !k3Metadata.orElseThrow().exportViolationWitness())) {
+        && (svLibMetadata.isEmpty() || !svLibMetadata.orElseThrow().exportViolationWitness())) {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
@@ -383,8 +383,8 @@ public class ARGStatistics implements Statistics {
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
     if ((!counterexampleOptions.disabledCompletely()
-            || (cfa.getMetadata().getK3CfaMetadata().isPresent()
-                && cfa.getMetadata().getK3CfaMetadata().orElseThrow().exportViolationWitness()))
+            || (cfa.getMetadata().getSvLibCfaMetadata().isPresent()
+                && cfa.getMetadata().getSvLibCfaMetadata().orElseThrow().exportViolationWitness()))
         && pResult == Result.FALSE
         && !counterexampleOptions.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
@@ -487,13 +487,14 @@ public class ARGStatistics implements Statistics {
               "Cannot export correctness witness in YAML format for languages other than C.");
         }
 
-        // Now export the correctness witnesses for K3 program
-        if (argToK3WitnessWriter != null && k3CorrectnessWitnessPath != null) {
-          List<K3AnnotateTagCommand> witnessCommands = null;
+        // Now export the correctness witnesses for SV-LIB program
+        if (argToSvLibWitnessWriter != null && svLibCorrectnessWitnessPath != null) {
+          List<SvLibAnnotateTagCommand> witnessCommands = null;
           try {
-            witnessCommands = argToK3WitnessWriter.generateWitnessCommands(rootState);
+            witnessCommands = argToSvLibWitnessWriter.generateWitnessCommands(rootState);
           } catch (ReportingMethodNotImplementedException e) {
-            logger.logUserException(Level.WARNING, e, "Could not export K3 correctness witness.");
+            logger.logUserException(
+                Level.WARNING, e, "Could not export SV-LIB correctness witness.");
           }
 
           // The catch block was not triggered, so we can proceed to write the witness
@@ -502,17 +503,17 @@ public class ARGStatistics implements Statistics {
                 Joiner.on(System.lineSeparator())
                     .join(
                         FluentIterable.from(witnessCommands)
-                            .transform(K3AnnotateTagCommand::toASTString));
+                            .transform(SvLibAnnotateTagCommand::toASTString));
             try (Writer writer =
-                IO.openOutputFile(k3CorrectnessWitnessPath, Charset.defaultCharset())) {
+                IO.openOutputFile(svLibCorrectnessWitnessPath, Charset.defaultCharset())) {
               writer.write(witnessContent);
             } catch (IOException e) {
               logger.logUserException(
                   Level.WARNING,
                   e,
-                  "Could not write the K3 correctness witness to file: "
-                      + k3CorrectnessWitnessPath
-                      + ". Therefore no K3 witness will be exported.");
+                  "Could not write the SV-LIB correctness witness to file: "
+                      + svLibCorrectnessWitnessPath
+                      + ". Therefore no SV-LIB witness will be exported.");
             }
           }
         }

@@ -25,7 +25,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -55,7 +55,7 @@ public final class SSAMap implements Serializable {
       new MergeConflictHandler<>() {
         @Override
         public Type resolveConflict(String name, Type type1, Type type2) {
-          if (type1 instanceof K3Type && type2 instanceof K3Type) {
+          if (type1 instanceof SvLibType && type2 instanceof SvLibType) {
             if (type1.equals(type2)) {
               return type1;
             }
@@ -99,8 +99,8 @@ public final class SSAMap implements Serializable {
 
         @Override
         protected boolean doEquivalent(Type a, Type b) {
-          if (a instanceof K3Type pK3TypeA && b instanceof K3Type pK3TypeB) {
-            return pK3TypeA.equals(pK3TypeB);
+          if (a instanceof SvLibType pSvLibTypeA && b instanceof SvLibType pSvLibTypeB) {
+            return pSvLibTypeA.equals(pSvLibTypeB);
           } else if (a instanceof CType pCTypeA && b instanceof CType pCTypeB) {
             return equivalenceCheck.equivalent(pCTypeA, pCTypeB);
           } else {
@@ -110,8 +110,8 @@ public final class SSAMap implements Serializable {
 
         @Override
         protected int doHash(Type t) {
-          if (t instanceof K3Type pK3Type) {
-            return pK3Type.hashCode();
+          if (t instanceof SvLibType pSvLibType) {
+            return pSvLibType.hashCode();
           } else if (t instanceof CType pCType) {
             return equivalenceCheck.hash(pCType);
           } else {
@@ -209,8 +209,8 @@ public final class SSAMap implements Serializable {
         }
         // Then set the index for that type
         return setTypeIndex(name, pCType, idx);
-      } else if (type instanceof K3Type pK3Type) {
-        return setTypeIndex(name, pK3Type, idx);
+      } else if (type instanceof SvLibType pSvLibType) {
+        return setTypeIndex(name, pSvLibType, idx);
       }
 
       throw new IllegalArgumentException("Unsupported type " + type + " for variable " + name);

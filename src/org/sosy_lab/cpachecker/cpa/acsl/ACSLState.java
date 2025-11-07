@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -56,7 +56,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public K3FinalRelationalTerm asK3Term(K3Scope pScope)
+  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope)
       throws ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException("not implemented");
   }

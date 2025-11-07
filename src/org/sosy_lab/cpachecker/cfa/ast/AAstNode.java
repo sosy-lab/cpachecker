@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public interface AAstNode extends Serializable {
 
@@ -65,6 +65,6 @@ public interface AAstNode extends Serializable {
           X1 extends Exception,
           X2 extends Exception,
           X3 extends Exception,
-          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & K3AstNodeVisitor<R3, X3>>
+          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & SvLibAstNodeVisitor<R3, X3>>
       R accept_(V v) throws X1, X2, X3;
 }

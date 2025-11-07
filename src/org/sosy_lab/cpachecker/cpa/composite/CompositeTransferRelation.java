@@ -31,12 +31,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3StatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -247,8 +247,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
               || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
         }
         return (statementEdge.getStatement() instanceof CFunctionCall);
-      } else if (edge instanceof K3StatementEdge k3StatementEdge) {
-        return k3StatementEdge.getStatement() instanceof K3ProcedureCallStatement;
+      } else if (edge instanceof SvLibStatementEdge pSvLibStatementEdge) {
+        return pSvLibStatementEdge.getStatement() instanceof SvLibProcedureCallStatement;
       } else {
         throw new UnsupportedOperationException("Unknown statement edge type: " + edge.getClass());
       }

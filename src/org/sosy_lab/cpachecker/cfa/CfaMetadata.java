@@ -22,7 +22,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -47,7 +47,7 @@ public final class CfaMetadata {
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
-  private final @Nullable K3CfaMetadata k3CfaMetadata;
+  private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -61,7 +61,7 @@ public final class CfaMetadata {
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
-      @Nullable K3CfaMetadata pK3CfaMetadata) {
+      @Nullable SvLibCfaMetadata pSvLibCfaMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -74,7 +74,7 @@ public final class CfaMetadata {
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
-    k3CfaMetadata = pK3CfaMetadata;
+    svLibCfaMetadata = pSvLibCfaMetadata;
   }
 
   /**
@@ -145,7 +145,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -206,7 +206,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -238,7 +238,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -283,30 +283,30 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
-   * Returns the K3-specific CFA metadata, if it's stored in this metadata instance.
+   * Returns the SV-LIB specific CFA metadata, if it's stored in this metadata instance.
    *
-   * @return If this metadata instance contains the K3-specific CFA metadata, an optional containing
-   *     the K3-specific CFA metadata is returned. Otherwise, if this metadata instance doesn't
-   *     contain the K3-specific CFA metadata, an empty optional is returned.
+   * @return If this metadata instance contains the SV-LIB-specific CFA metadata, an optional
+   *     containing the SV-LIB-specific CFA metadata is returned. Otherwise, if this metadata
+   *     instance doesn't contain the SV-LIB-specific CFA metadata, an empty optional is returned.
    */
-  public Optional<K3CfaMetadata> getK3CfaMetadata() {
-    return Optional.ofNullable(k3CfaMetadata);
+  public Optional<SvLibCfaMetadata> getSvLibCfaMetadata() {
+    return Optional.ofNullable(svLibCfaMetadata);
   }
 
   /**
-   * Returns a copy of this metadata instance, but with the specified K3CfaMetadata.
+   * Returns a copy of this metadata instance, but with the specified SvLibCfaMetadata.
    *
-   * @param pK3CfaMetadata the K3CfaMetadata to store in the returned metadata instance (use {@code
-   *     null} to create an instance without K3CfaMetadata)
+   * @param pSvLibCfaMetadata the SvLibCfaMetadata to store in the returned metadata instance (use
+   *     {@code null} to create an instance without SvLibCfaMetadata)
    * @return a copy of this metadata instance, but with the specified AST structure
    */
-  public CfaMetadata withK3CfaMetadata(@Nullable K3CfaMetadata pK3CfaMetadata) {
+  public CfaMetadata withSvLibCfaMetadata(@Nullable SvLibCfaMetadata pSvLibCfaMetadata) {
     Preconditions.checkArgument(
-        inputLanguage == Language.K3 ? pK3CfaMetadata != null : pK3CfaMetadata == null);
+        inputLanguage == Language.SV_LIB ? pSvLibCfaMetadata != null : pSvLibCfaMetadata == null);
     return new CfaMetadata(
         machineModel,
         cfaLanguage,
@@ -319,7 +319,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        pK3CfaMetadata);
+        pSvLibCfaMetadata);
   }
 
   /**
@@ -342,7 +342,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -377,7 +377,7 @@ public final class CfaMetadata {
         pVariableClassification,
         liveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -411,7 +411,7 @@ public final class CfaMetadata {
         variableClassification,
         pLiveVariables,
         edgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   /**
@@ -449,7 +449,7 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         pedgesToAnnotations,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   @Override
@@ -466,7 +466,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         astCFARelation,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   @Override
@@ -486,7 +486,7 @@ public final class CfaMetadata {
         && Objects.equals(liveVariables, other.liveVariables)
         && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
-        && Objects.equals(k3CfaMetadata, other.k3CfaMetadata);
+        && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata);
   }
 
   @Override

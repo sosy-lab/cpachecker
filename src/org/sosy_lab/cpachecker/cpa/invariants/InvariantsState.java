@@ -45,8 +45,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -975,7 +975,7 @@ public class InvariantsState
    *     correctness.
    * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>
-   *     false</code> otherwise.
+   * false</code> otherwise.
    */
   private InvariantsState assumeInternal(
       Collection<? extends BooleanFormula<CompoundInterval>> pAssumptions,
@@ -999,7 +999,7 @@ public class InvariantsState
    *     correctness.
    * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>
-   *     false</code> otherwise.
+   * false</code> otherwise.
    */
   private InvariantsState assumeInternal(
       BooleanFormula<CompoundInterval> pAssumption,
@@ -1225,7 +1225,7 @@ public class InvariantsState
   }
 
   @Override
-  public K3FinalRelationalTerm asK3Term(K3Scope pScope)
+  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope)
       throws ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException("not implemented");
   }

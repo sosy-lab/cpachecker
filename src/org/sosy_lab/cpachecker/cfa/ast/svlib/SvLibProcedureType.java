@@ -1,0 +1,114 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.svlib;
+
+import com.google.common.collect.FluentIterable;
+import java.io.Serial;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.java_smt.api.FormulaType;
+
+public final class SvLibProcedureType implements SvLibType, AFunctionType {
+
+  @Serial private static final long serialVersionUID = 5728816904538462642L;
+  private final FileLocation fileLocation;
+  private final List<SvLibType> inputType;
+  private final List<SvLibType> localVariableTypes;
+  private final List<SvLibType> outputType;
+
+  public SvLibProcedureType(
+      FileLocation pFileLocation,
+      List<SvLibType> pInputType,
+      List<SvLibType> pLocalVariableTypes,
+      List<SvLibType> pOutputType) {
+    fileLocation = pFileLocation;
+    inputType = pInputType;
+    localVariableTypes = pLocalVariableTypes;
+    outputType = pOutputType;
+  }
+
+  public FileLocation getFileLocation() {
+    return fileLocation;
+  }
+
+  public List<SvLibType> getInputType() {
+    return inputType;
+  }
+
+  public List<SvLibType> getLocalVariableTypes() {
+    return localVariableTypes;
+  }
+
+  @Override
+  public FormulaType<?> toFormulaType() {
+    throw new UnsupportedOperationException("JavaSMT does not support custom types");
+  }
+
+  @Override
+  public String toASTString(String declarator) {
+    return declarator
+        + " ("
+        + String.join(
+            "", FluentIterable.from(getInputType()).transform(x -> "(" + x.toASTString("") + ")"))
+        + ") ("
+        + String.join(
+            ", ",
+            FluentIterable.from(getLocalVariableTypes())
+                .transform(x -> "(" + x.toASTString("") + ")"))
+        + ") ("
+        + String.join(
+            ", ",
+            FluentIterable.from(getReturnType().getElementTypes())
+                .transform(x -> "(" + x.toASTString("") + ")"))
+        + ")";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof SvLibProcedureType other
+        && inputType.equals(other.inputType)
+        && localVariableTypes.equals(other.localVariableTypes)
+        && outputType.equals(other.outputType);
+  }
+
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 1;
+    result = prime * result + inputType.hashCode();
+    result = prime * result + localVariableTypes.hashCode();
+    result = prime * result + outputType.hashCode();
+    return result;
+  }
+
+  @Override
+  public SvLibProductType getReturnType() {
+    return new SvLibProductType(outputType);
+  }
+
+  @Override
+  public List<? extends SvLibType> getParameters() {
+    return getInputType();
+  }
+
+  @Override
+  public boolean takesVarArgs() {
+    return false;
+  }
+
+  @Override
+  public SvLibConstantTerm defaultValue() {
+    throw new UnsupportedOperationException("Procedure types do not have a default value");
+  }
+}

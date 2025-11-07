@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -301,8 +301,8 @@ public final class ValueAnalysisState
    * This method returns the value for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public Value getValueFor(MemoryLocation memLoc) {
     return checkNotNull(getValueAndTypeFor(memLoc).getValue());
@@ -312,9 +312,9 @@ public final class ValueAnalysisState
    * This method returns the type for the given memory location.
    *
    * @param memLoc the memory location for which to get the type
+   * @return the type associated with the given memory location
    * @throws NullPointerException - if no type is present in this state for the given memory
    *     location
-   * @return the type associated with the given memory location
    */
   public @Nullable Type getTypeForMemoryLocation(MemoryLocation memLoc) {
     return getValueAndTypeFor(memLoc).getType();
@@ -324,8 +324,8 @@ public final class ValueAnalysisState
    * This method returns the value and type for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value and type associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public ValueAndType getValueAndTypeFor(MemoryLocation memLoc) {
     return checkNotNull(constantsMap.get(memLoc));
@@ -924,7 +924,7 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public K3FinalRelationalTerm asK3Term(K3Scope pScope)
+  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope)
       throws ReportingMethodNotImplementedException {
     throw new ReportingMethodNotImplementedException("not implemented");
   }

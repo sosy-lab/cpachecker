@@ -113,17 +113,17 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
-      name = "k3",
+      name = "svlib",
       description =
           "The file into which to write the violation "
-              + "witness for K3 programs. If set to 'null', "
+              + "witness for SV-LIB programs. If set to 'null', "
               + "no witness is exported. Be aware that one "
-              + "can also set this option in K3 programs, "
+              + "can also set this option in SV-LIB programs, "
               + "instead of in CPAchecker's configuration."
               + "In case this happens, the option "
               + "will be overriden by the one from the program, and this option ignored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path k3ViolationWitnessPath = null;
+  private Path svLibViolationWitnessPath = null;
 
   @Option(
       secure = true,
@@ -254,11 +254,11 @@ public final class CEXExportOptions {
     return exportWitnessV2 ? yamlWitnessOutputFileTemplate : null;
   }
 
-  @Nullable Path getK3ViolationWitnessPath() {
+  @Nullable Path getSvLibViolationWitnessPath() {
     if (!exportErrorPath) {
       return null;
     }
-    return k3ViolationWitnessPath;
+    return svLibViolationWitnessPath;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {

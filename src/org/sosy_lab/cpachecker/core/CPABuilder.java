@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.k3safetyspec.K3SafetySpecCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.svlibsafetyspec.SvLibSafetySpecCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -211,9 +211,9 @@ public class CPABuilder {
         allCpas.size() == allCpaConfigs.size() + cpas.size() - placeholderCount,
         "Number of CPAs in final CPA tree does not match configured CPAs");
     verify(
-        cfa.getLanguage() != Language.K3
-            || FluentIterable.from(allCpas).anyMatch(pCpa -> pCpa instanceof K3SafetySpecCPA),
-        "For verifying K3 programs, a K3SafetySpecCPA must be part of the CPA "
+        cfa.getLanguage() != Language.SV_LIB
+            || FluentIterable.from(allCpas).anyMatch(pCpa -> pCpa instanceof SvLibSafetySpecCPA),
+        "For verifying SV-LIB programs, a SvLibSafetySpecCPA must be part of the CPA "
             + "configuration in order to be able to handle the specification");
 
     return cpa;

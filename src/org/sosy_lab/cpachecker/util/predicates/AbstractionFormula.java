@@ -21,17 +21,17 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
-import org.sosy_lab.cpachecker.util.k3witnessexport.FormulaToK3Visitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -137,8 +137,8 @@ public class AbstractionFormula implements Serializable {
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
-  public K3FinalRelationalTerm asK3Term(K3Scope pScope) {
-    FormulaToK3Visitor visitor = new FormulaToK3Visitor(fMgr, pScope);
+  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope) {
+    FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
     return fMgr.visit(asFormula(), visitor);
   }
 

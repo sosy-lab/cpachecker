@@ -10,27 +10,27 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 
 public final class CFATaggedNode extends CFANode {
-  private final List<K3TagProperty> tagAttributes;
-  private final List<K3TagReference> tagReferences;
+  private final List<SvLibTagProperty> tagAttributes;
+  private final List<SvLibTagReference> tagReferences;
 
   public CFATaggedNode(
       AFunctionDeclaration pFunction,
-      List<K3TagProperty> pTagAttributes,
-      List<K3TagReference> pTagReferences) {
+      List<SvLibTagProperty> pTagAttributes,
+      List<SvLibTagReference> pTagReferences) {
     super(pFunction);
     tagAttributes = pTagAttributes;
     tagReferences = pTagReferences;
   }
 
-  public List<K3TagProperty> getTagAttributes() {
+  public List<SvLibTagProperty> getTagAttributes() {
     return tagAttributes;
   }
 
-  public List<K3TagReference> getTagReferences() {
+  public List<SvLibTagReference> getTagReferences() {
     return tagReferences;
   }
 }

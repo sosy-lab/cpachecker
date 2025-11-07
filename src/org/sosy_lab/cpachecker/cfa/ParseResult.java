@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -47,8 +47,8 @@ public record ParseResult(
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
-    // Only relevant for K3 scripts
-    Optional<K3CfaMetadata> k3CfaMetadata) {
+    // Only relevant for SV-LIB scripts
+    Optional<SvLibCfaMetadata> svLibCfaMetadata) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -93,7 +93,7 @@ public record ParseResult(
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
-      K3CfaMetadata pK3CfaMetadata) {
+      SvLibCfaMetadata pSvLibCfaMetadata) {
     this(
         pFunctions,
         pCfaNodes,
@@ -104,7 +104,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(pK3CfaMetadata));
+        Optional.of(pSvLibCfaMetadata));
   }
 
   public boolean isEmpty() {
@@ -123,7 +123,7 @@ public record ParseResult(
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
@@ -141,7 +141,7 @@ public record ParseResult(
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 
   public ParseResult withFileNames(List<Path> pFileNames) {
@@ -155,6 +155,6 @@ public record ParseResult(
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        k3CfaMetadata);
+        svLibCfaMetadata);
   }
 }

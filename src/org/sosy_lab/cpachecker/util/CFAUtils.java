@@ -100,57 +100,57 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3BooleanConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ChoiceStep;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareFunCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareSortCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3EnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetWitnessCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocVariablesStep;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IncorrectTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IntegerConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3LeapStep;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3LocalVariablesStep;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3RequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SelectTraceCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetOptionCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SortDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Trace;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceEntryCall;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceSetGlobalVariable;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3TraceSetTag;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3VerifyCallCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssumeStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibContinueStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareConstCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareFunCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareSortCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGetWitnessCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocVariablesStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIncorrectTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLeapStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLocalVariablesStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTrace;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceEntryCall;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceSetGlobalVariable;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceSetTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVerifyCallCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1067,319 +1067,331 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3VariableDeclaration pK3VariableDeclaration) {
+    public Iterable<? extends AAstNode> visit(SvLibVariableDeclaration pSvLibVariableDeclaration) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ProcedureDeclaration pK3ProcedureDeclaration) {
-      return FluentIterable.from(pK3ProcedureDeclaration.getParameters())
-          .append(pK3ProcedureDeclaration.getLocalVariables())
-          .append(pK3ProcedureDeclaration.getReturnValues())
+    public Iterable<? extends AAstNode> visit(
+        SvLibProcedureDeclaration pSvLibProcedureDeclaration) {
+      return FluentIterable.from(pSvLibProcedureDeclaration.getParameters())
+          .append(pSvLibProcedureDeclaration.getLocalVariables())
+          .append(pSvLibProcedureDeclaration.getReturnValues())
           .toList();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ParameterDeclaration pK3ParameterDeclaration) {
+    public Iterable<? extends AAstNode> visit(
+        SvLibParameterDeclaration pSvLibParameterDeclaration) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3SortDeclaration pK3SortDeclaration)
+    public Iterable<? extends AAstNode> visit(SvLibSortDeclaration pSvLibSortDeclaration)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3FunctionDeclaration pK3FunctionDeclaration)
+    public Iterable<? extends AAstNode> visit(SvLibFunctionDeclaration pSvLibFunctionDeclaration)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3FinalTerm pK3FinalTerm) throws NoException {
-      return ImmutableList.of(pK3FinalTerm.getTerm());
+    public Iterable<? extends AAstNode> accept(SvLibFinalTerm pSvLibFinalTerm) throws NoException {
+      return ImmutableList.of(pSvLibFinalTerm.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) {
+    public Iterable<? extends AAstNode> accept(
+        SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm) {
       return FluentIterable.concat(
-              pK3SymbolApplicationTerm.getTerms(),
-              ImmutableList.of(pK3SymbolApplicationTerm.getSymbol()))
+              pSvLibSymbolApplicationTerm.getTerms(),
+              ImmutableList.of(pSvLibSymbolApplicationTerm.getSymbol()))
           .toList();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3IdTerm pK3IdTerm) {
-      return ImmutableList.of(pK3IdTerm.getDeclaration());
+    public Iterable<? extends AAstNode> accept(SvLibIdTerm pSvLibIdTerm) {
+      return ImmutableList.of(pSvLibIdTerm.getDeclaration());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3IntegerConstantTerm pK3IntegerConstantTerm)
+    public Iterable<? extends AAstNode> accept(SvLibIntegerConstantTerm pSvLibIntegerConstantTerm)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> accept(
-        K3SymbolApplicationRelationalTerm pK3SymbolApplicationRelationalTerm) throws NoException {
-      return pK3SymbolApplicationRelationalTerm.getTerms();
+        SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
+        throws NoException {
+      return pSvLibSymbolApplicationRelationalTerm.getTerms();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3BooleanConstantTerm pK3BooleanConstantTerm)
+    public Iterable<? extends AAstNode> accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3SequenceStatement pK3SequenceStatement)
+    public Iterable<? extends AAstNode> visit(SvLibSequenceStatement pSvLibSequenceStatement)
         throws NoException {
-      return pK3SequenceStatement.getStatements();
+      return pSvLibSequenceStatement.getStatements();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3AssumeStatement pK3AssumeStatement) {
-      return ImmutableList.of(pK3AssumeStatement.getTerm());
+    public Iterable<? extends AAstNode> visit(SvLibAssumeStatement pSvLibAssumeStatement) {
+      return ImmutableList.of(pSvLibAssumeStatement.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3WhileStatement pK3WhileStatement)
+    public Iterable<? extends AAstNode> visit(SvLibWhileStatement pSvLibWhileStatement)
         throws NoException {
-      ImmutableList.Builder<K3AstNode> builder = ImmutableList.builder();
-      return builder.add(pK3WhileStatement.getCondition()).build();
+      ImmutableList.Builder<SvLibAstNode> builder = ImmutableList.builder();
+      return builder.add(pSvLibWhileStatement.getCondition()).build();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3IfStatement pK3IfStatement) throws NoException {
-      ImmutableList.Builder<K3AstNode> builder = ImmutableList.builder();
-      return builder.add(pK3IfStatement.getCondition()).build();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3BreakStatement pK3BreakStatement)
+    public Iterable<? extends AAstNode> visit(SvLibIfStatement pSvLibIfStatement)
         throws NoException {
-      return ImmutableList.of();
+      ImmutableList.Builder<SvLibAstNode> builder = ImmutableList.builder();
+      return builder.add(pSvLibIfStatement.getCondition()).build();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ContinueStatement pK3ContinueStatement)
+    public Iterable<? extends AAstNode> visit(SvLibBreakStatement pSvLibBreakStatement)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ReturnStatement pK3ReturnStatement)
+    public Iterable<? extends AAstNode> visit(SvLibContinueStatement pSvLibContinueStatement)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3GotoStatement pK3GotoStatement) throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3LabelStatement pK3LabelStatement)
+    public Iterable<? extends AAstNode> visit(SvLibReturnStatement pSvLibReturnStatement)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3AssignmentStatement pK3AssignmentStatement) {
-      return ImmutableList.copyOf(pK3AssignmentStatement.getAssignments().values());
+    public Iterable<? extends AAstNode> visit(SvLibGotoStatement pSvLibGotoStatement)
+        throws NoException {
+      return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ProcedureCallStatement pK3ProcedureCallStatement)
+    public Iterable<? extends AAstNode> visit(SvLibLabelStatement pSvLibLabelStatement)
         throws NoException {
-      ImmutableList.Builder<K3AstNode> builder = ImmutableList.builder();
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibAssignmentStatement pSvLibAssignmentStatement) {
+      return ImmutableList.copyOf(pSvLibAssignmentStatement.getAssignments().values());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        SvLibProcedureCallStatement pSvLibProcedureCallStatement) throws NoException {
+      ImmutableList.Builder<SvLibAstNode> builder = ImmutableList.builder();
       return builder
-          .add(pK3ProcedureCallStatement.getFunctionDeclaration())
-          .addAll(pK3ProcedureCallStatement.getParameterExpressions())
-          .addAll(pK3ProcedureCallStatement.getReturnVariables())
+          .add(pSvLibProcedureCallStatement.getFunctionDeclaration())
+          .addAll(pSvLibProcedureCallStatement.getParameterExpressions())
+          .addAll(pSvLibProcedureCallStatement.getReturnVariables())
           .build();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3HavocStatement pK3HavocStatement)
+    public Iterable<? extends AAstNode> visit(SvLibHavocStatement pSvLibHavocStatement)
         throws NoException {
-      return pK3HavocStatement.getVariables();
+      return pSvLibHavocStatement.getVariables();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3ChoiceStatement pK3ChoiceStatement)
+    public Iterable<? extends AAstNode> visit(SvLibChoiceStatement pSvLibChoiceStatement)
         throws NoException {
-      return ImmutableList.copyOf(pK3ChoiceStatement.getChoices());
+      return ImmutableList.copyOf(pSvLibChoiceStatement.getChoices());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3TagReference pK3TagReference) {
+    public Iterable<? extends AAstNode> accept(SvLibTagReference pSvLibTagReference) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3AssertTag pK3AssertTag) {
-      return ImmutableList.of(pK3AssertTag.getTerm());
+    public Iterable<? extends AAstNode> accept(SvLibAssertTag pSvLibAssertTag) {
+      return ImmutableList.of(pSvLibAssertTag.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3RequiresTag pK3RequiresTag) throws NoException {
-      return ImmutableList.of(pK3RequiresTag.getTerm());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3EnsuresTag pK3EnsuresTag) throws NoException {
-      return ImmutableList.of(pK3EnsuresTag.getTerm());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3InvariantTag pK3InvariantTag) throws NoException {
-      return ImmutableList.of(pK3InvariantTag.getTerm());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3AnnotateTagCommand pK3AnnotateTagCommand)
+    public Iterable<? extends AAstNode> accept(SvLibRequiresTag pSvLibRequiresTag)
         throws NoException {
-      return pK3AnnotateTagCommand.getTags();
+      return ImmutableList.of(pSvLibRequiresTag.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3AssertCommand pK3AssertCommand) throws NoException {
-      return ImmutableList.of(pK3AssertCommand.getTerm());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3DeclareConstCommand pK3DeclareConstCommand)
+    public Iterable<? extends AAstNode> accept(SvLibEnsuresTag pSvLibEnsuresTag)
         throws NoException {
-      return ImmutableList.of(pK3DeclareConstCommand.getVariable());
+      return ImmutableList.of(pSvLibEnsuresTag.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3DeclareFunCommand pK3DeclareFunCommand)
+    public Iterable<? extends AAstNode> accept(SvLibInvariantTag pSvLibInvariantTag)
         throws NoException {
-      return ImmutableList.of(pK3DeclareFunCommand.getFunctionDeclaration());
+      return ImmutableList.of(pSvLibInvariantTag.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3DeclareSortCommand pK3DeclareSortCommand)
+    public Iterable<? extends AAstNode> visit(SvLibAnnotateTagCommand pSvLibAnnotateTagCommand)
         throws NoException {
-      return ImmutableList.of(pK3DeclareSortCommand.getTypeDelaration());
+      return pSvLibAnnotateTagCommand.getTags();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3GetWitnessCommand pK3GetWitnessCommand)
+    public Iterable<? extends AAstNode> visit(SvLibAssertCommand pSvLibAssertCommand)
         throws NoException {
-      return ImmutableList.of();
+      return ImmutableList.of(pSvLibAssertCommand.getTerm());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(
-        K3ProcedureDefinitionCommand pK3ProcedureDefinitionCommand) throws NoException {
-      return ImmutableList.of(
-          pK3ProcedureDefinitionCommand.getProcedureDeclaration(),
-          pK3ProcedureDefinitionCommand.getBody());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3SetLogicCommand pK3SetLogicCommand)
+    public Iterable<? extends AAstNode> visit(SvLibDeclareConstCommand pSvLibDeclareConstCommand)
         throws NoException {
-      return ImmutableList.of();
+      return ImmutableList.of(pSvLibDeclareConstCommand.getVariable());
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(K3SetOptionCommand pK3SetOptionCommand)
+    public Iterable<? extends AAstNode> visit(SvLibDeclareFunCommand pSvLibDeclareFunCommand)
+        throws NoException {
+      return ImmutableList.of(pSvLibDeclareFunCommand.getFunctionDeclaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibDeclareSortCommand pSvLibDeclareSortCommand)
+        throws NoException {
+      return ImmutableList.of(pSvLibDeclareSortCommand.getTypeDelaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibGetWitnessCommand pSvLibGetWitnessCommand)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        K3VariableDeclarationCommand pK3VariableDeclarationCommand) throws NoException {
-      return ImmutableList.of(pK3VariableDeclarationCommand.getVariableDeclaration());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3VerifyCallCommand pK3VerifyCallCommand)
-        throws NoException {
-      return FluentIterable.concat(
-              ImmutableList.of(pK3VerifyCallCommand.getProcedureDeclaration()),
-              pK3VerifyCallCommand.getTerms())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(K3SelectTraceCommand pK3SelectTraceCommand)
-        throws NoException {
-      return ImmutableList.of(pK3SelectTraceCommand.getTrace());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3TraceSetGlobalVariable pK3TraceSetGlobalVariable)
-        throws NoException {
+        SvLibProcedureDefinitionCommand pSvLibProcedureDefinitionCommand) throws NoException {
       return ImmutableList.of(
-          pK3TraceSetGlobalVariable.getSymbol(), pK3TraceSetGlobalVariable.getConstantTerm());
+          pSvLibProcedureDefinitionCommand.getProcedureDeclaration(),
+          pSvLibProcedureDefinitionCommand.getBody());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3TraceEntryCall pK3TraceEntryCall)
+    public Iterable<? extends AAstNode> visit(SvLibSetLogicCommand pSvLibSetLogicCommand)
         throws NoException {
-      return FluentIterable.concat(
-              ImmutableList.of(pK3TraceEntryCall.getDeclaration()),
-              pK3TraceEntryCall.getConstantTerms())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3LocalVariablesStep pK3LocalVariablesStep)
-        throws NoException {
-      return FluentIterable.concat(
-              pK3LocalVariablesStep.getAssignments().keySet(),
-              pK3LocalVariablesStep.getAssignments().values())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3HavocVariablesStep pK3HavocVariablesStep)
-        throws NoException {
-      return FluentIterable.concat(
-              pK3HavocVariablesStep.getAssignments().keySet(),
-              pK3HavocVariablesStep.getAssignments().values())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3ChoiceStep pK3ChoiceStep) throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3LeapStep pK3LeapStep) throws NoException {
-      return FluentIterable.concat(
-              pK3LeapStep.getAssignments().values(), pK3LeapStep.getAssignments().keySet())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3Trace pK3Trace) throws NoException {
-      return FluentIterable.concat(
-              pK3Trace.getSetGlobalVariables(),
-              ImmutableList.of(pK3Trace.getEntryCall()),
-              pK3Trace.getSteps(),
-              ImmutableList.of(pK3Trace.getViolatedProperty()),
-              pK3Trace.getSetTags())
-          .toList();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(K3IncorrectTagProperty pK3IncorrectTagProperty)
+    public Iterable<? extends AAstNode> visit(SvLibSetOptionCommand pSvLibSetOptionCommand)
         throws NoException {
-      return pK3IncorrectTagProperty.getViolatedProperties();
+      return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(K3TraceSetTag pK3TraceSetTag) throws NoException {
-      return pK3TraceSetTag.getAttributes();
+    public Iterable<? extends AAstNode> visit(
+        SvLibVariableDeclarationCommand pSvLibVariableDeclarationCommand) throws NoException {
+      return ImmutableList.of(pSvLibVariableDeclarationCommand.getVariableDeclaration());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibVerifyCallCommand pSvLibVerifyCallCommand)
+        throws NoException {
+      return FluentIterable.concat(
+              ImmutableList.of(pSvLibVerifyCallCommand.getProcedureDeclaration()),
+              pSvLibVerifyCallCommand.getTerms())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(SvLibSelectTraceCommand pSvLibSelectTraceCommand)
+        throws NoException {
+      return ImmutableList.of(pSvLibSelectTraceCommand.getTrace());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibTraceSetGlobalVariable pSvLibTraceSetGlobalVariable) throws NoException {
+      return ImmutableList.of(
+          pSvLibTraceSetGlobalVariable.getSymbol(), pSvLibTraceSetGlobalVariable.getConstantTerm());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibTraceEntryCall pSvLibTraceEntryCall)
+        throws NoException {
+      return FluentIterable.concat(
+              ImmutableList.of(pSvLibTraceEntryCall.getDeclaration()),
+              pSvLibTraceEntryCall.getConstantTerms())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibLocalVariablesStep pSvLibLocalVariablesStep)
+        throws NoException {
+      return FluentIterable.concat(
+              pSvLibLocalVariablesStep.getAssignments().keySet(),
+              pSvLibLocalVariablesStep.getAssignments().values())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibHavocVariablesStep pSvLibHavocVariablesStep)
+        throws NoException {
+      return FluentIterable.concat(
+              pSvLibHavocVariablesStep.getAssignments().keySet(),
+              pSvLibHavocVariablesStep.getAssignments().values())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibChoiceStep pSvLibChoiceStep)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibLeapStep pSvLibLeapStep) throws NoException {
+      return FluentIterable.concat(
+              pSvLibLeapStep.getAssignments().values(), pSvLibLeapStep.getAssignments().keySet())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibTrace pSvLibTrace) throws NoException {
+      return FluentIterable.concat(
+              pSvLibTrace.getSetGlobalVariables(),
+              ImmutableList.of(pSvLibTrace.getEntryCall()),
+              pSvLibTrace.getSteps(),
+              ImmutableList.of(pSvLibTrace.getViolatedProperty()),
+              pSvLibTrace.getSetTags())
+          .toList();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibIncorrectTagProperty pSvLibIncorrectTagProperty)
+        throws NoException {
+      return pSvLibIncorrectTagProperty.getViolatedProperties();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibTraceSetTag pSvLibTraceSetTag)
+        throws NoException {
+      return pSvLibTraceSetTag.getAttributes();
     }
   }
 }

@@ -62,7 +62,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Ignore Antlr-generated files. -->
         <OR>
             <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
-            <Package name="org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated"/>
+            <Package name="org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated"/>
         </OR>
     </Match>
     <Match>

@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -153,7 +153,7 @@ public class CFACheck {
         case 1 -> {
           CFAEdge edge = pNode.getLeavingEdge(0);
           verify(
-              !(edge instanceof AssumeEdge) || edge instanceof K3AssumeEdge,
+              !(edge instanceof AssumeEdge) || edge instanceof SvLibAssumeEdge,
               "AssumeEdge does not appear in pair at node %s",
               debugFormat(pNode));
           verify(

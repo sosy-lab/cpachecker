@@ -68,8 +68,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Declaration;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -82,9 +82,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3DeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
-import org.sosy_lab.cpachecker.cfa.parser.k3.K3ParserException;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibParserException;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -467,8 +467,8 @@ public class CFACreator {
         language = Language.C;
         // After parsing, we will have a CFA representing C code
       }
-      case K3 -> {
-        parser = Parsers.getK3Parser(pLogger, pConfig, machineModel, shutdownNotifier);
+      case SV_LIB -> {
+        parser = Parsers.getSvLibParser(pLogger, pConfig, machineModel, shutdownNotifier);
       }
       default -> throw new AssertionError();
     }
@@ -538,7 +538,7 @@ public class CFACreator {
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
         }
         case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
-        case K3 -> mainFunction = getK3MainFunction(c.functions());
+        case SV_LIB -> mainFunction = getSvLibMainFunction(c.functions());
         default -> throw new AssertionError();
       }
 
@@ -560,8 +560,9 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getK3MainFunction(NavigableMap<String, FunctionEntryNode> pFunctions) {
-    String mainFunctioName = K3ProcedureDeclaration.mainFunctionDeclaration().getOrigName();
+  private FunctionEntryNode getSvLibMainFunction(
+      NavigableMap<String, FunctionEntryNode> pFunctions) {
+    String mainFunctioName = SvLibProcedureDeclaration.mainFunctionDeclaration().getOrigName();
     return pFunctions.get(mainFunctioName);
   }
 
@@ -699,8 +700,8 @@ public class CFACreator {
       cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
-    if (pParseResult.k3CfaMetadata().isPresent()) {
-      cfa.setK3CfaMetadata(pParseResult.k3CfaMetadata().orElseThrow());
+    if (pParseResult.svLibCfaMetadata().isPresent()) {
+      cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
     }
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
@@ -769,10 +770,10 @@ public class CFACreator {
       switch (language) {
         case JAVA -> throw new JParserException("No methods found in program");
         case C -> throw new CParserException("No functions found in program");
-        case K3 ->
-            throw new K3ParserException(
-                "No verification call found in the K3 program. Please check the syntax of your K3"
-                    + " program.");
+        case SV_LIB ->
+            throw new SvLibParserException(
+                "No verification call found in the SV-LIB program. Please check the syntax of your"
+                    + " SV-LIB program.");
         default -> throw new AssertionError();
       }
     }
@@ -1090,13 +1091,13 @@ public class CFACreator {
                 new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
             case JAVA ->
                 new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
-            case K3 ->
-                new K3DeclarationEdge(
+            case SV_LIB ->
+                new SvLibDeclarationEdge(
                     Objects.requireNonNull(rawSignature),
                     d.getFileLocation(),
                     cur,
                     n,
-                    (K3Declaration) d);
+                    (SvLibDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);

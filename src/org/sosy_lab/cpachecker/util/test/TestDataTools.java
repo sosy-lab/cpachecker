@@ -164,7 +164,7 @@ public class TestDataTools {
    *
    * @param pTempFolder The temporary folder to create the program file in.
    * @param pLanguage The programming language of the program.
-   * @return The path to the program file (for C, LLVM, K3)
+   * @return The path to the program file (for C, LLVM, SV-LIB)
    */
   public static String getEmptyProgram(TemporaryFolder pTempFolder, Language pLanguage)
       throws IOException {
@@ -187,8 +187,8 @@ public class TestDataTools {
         fileContent = "define i32 @main() { entry:  ret i32 0}";
         program = tempFile.toString();
       }
-      case K3 -> {
-        tempFile = getTempFile(pTempFolder, "program.k3");
+      case SV_LIB -> {
+        tempFile = getTempFile(pTempFolder, "program.svlib");
         fileContent = "(define-proc f1 () () () (sequence))\n" + "(verify-call f1 ())";
         program = tempFile.toString();
       }

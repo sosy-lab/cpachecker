@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -37,15 +37,16 @@ public class CPAcheckerTest {
   /** The configuration file to use for running CPAchecker. */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";
 
-  private static final String CONFIGURATION_FILE_K3 = "config/predicateAnalysis-k3.properties";
+  private static final String CONFIGURATION_FILE_SvLib =
+      "config/predicateAnalysis-svlib.properties";
   private static final String CONFIGURATION_FILE_LLVM = "config/valueAnalysis-NoCegar.properties";
   private static final String CONFIGURATION_FILE_JAVA =
       "config/valueAnalysis-java-NoCegar.properties";
 
   private static final String SPECIFICATION_C = "config/specification/default.spc";
-  // This is a dummy specification for K3 programs, since the actual specification is inside
+  // This is a dummy specification for SV-LIB programs, since the actual specification is inside
   // the program itself, as annotations.
-  private static final String SPECIFICATION_K3 = "config/specification/correct-tags.spc";
+  private static final String SPECIFICATION_SvLib = "config/specification/correct-tags.spc";
   // labels are removed in LLVM IR and assert_fail is renamed, so we need a different specification
   private static final String SPECIFICATION_LLVM = "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
@@ -53,10 +54,12 @@ public class CPAcheckerTest {
   private static final String SAFE_PROGRAM_C = "doc/examples/example.c";
   private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
 
-  private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.svlib";
-  private static final String SAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-safe.svlib";
-  private static final String UNSAFE_PROGRAM_K3 = "test/programs/k3/simple-incorrect.svlib";
-  private static final String UNSAFE_LOOP_PROGRAM_K3 = "test/programs/k3/loop-simple-unsafe.svlib";
+  private static final String SAFE_PROGRAM_SvLib = "test/programs/sv-lib/simple-correct.svlib";
+  private static final String SAFE_LOOP_PROGRAM_SvLib =
+      "test/programs/sv-lib/loop-simple-safe.svlib";
+  private static final String UNSAFE_PROGRAM_SvLib = "test/programs/sv-lib/simple-incorrect.svlib";
+  private static final String UNSAFE_LOOP_PROGRAM_SvLib =
+      "test/programs/sv-lib/loop-simple-unsafe.svlib";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -87,9 +90,10 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void testRunForSafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
-    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_K3);
+  public void testRunForSafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 
@@ -97,33 +101,34 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void testWitnessExportForSafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
-    TestResults result = CPATestRunner.run(config, SAFE_LOOP_PROGRAM_K3);
+  public void testWitnessExportForSafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    TestResults result = CPATestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
 
-    Optional<K3CfaMetadata> k3CfaMetadataOptional =
-        result.getCheckerResult().getCfa().getMetadata().getK3CfaMetadata();
+    Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
+        result.getCheckerResult().getCfa().getMetadata().getSvLibCfaMetadata();
 
     Verify.verify(
-        k3CfaMetadataOptional.isPresent(),
-        "K3 CFA Metadata should be present for every K3 program");
-    K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
+        svLibCfaMetadataOptional.isPresent(),
+        "SV-LIB CFA Metadata should be present for every SV-LIB program");
+    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
 
     Verify.verify(
-        k3CfaMetadata.exportCorrectnessWitness(),
-        "For the safe K3 program '"
-            + SAFE_LOOP_PROGRAM_K3
+        svLibCfaMetadata.exportCorrectnessWitness(),
+        "For the safe SV-LIB program '"
+            + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness export should be enabled");
 
-    Optional<Path> witnessPath = k3CfaMetadata.getExportWitnessPath();
+    Optional<Path> witnessPath = svLibCfaMetadata.getExportWitnessPath();
     Verify.verify(
         witnessPath.isPresent(),
-        "For the safe K3 program '"
-            + SAFE_LOOP_PROGRAM_K3
+        "For the safe SV-LIB program '"
+            + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness path should be present after exporting the witness");
 
     // Read entire file content as a single string (UTF-8)
@@ -140,9 +145,10 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void testRunForUnsafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
-    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_K3);
+  public void testRunForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 
@@ -150,33 +156,34 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void testWitnessExportForUnsafeK3Program() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, SPECIFICATION_K3);
-    TestResults result = CPATestRunner.run(config, UNSAFE_LOOP_PROGRAM_K3);
+  public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    TestResults result = CPATestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
 
-    Optional<K3CfaMetadata> k3CfaMetadataOptional =
-        result.getCheckerResult().getCfa().getMetadata().getK3CfaMetadata();
+    Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
+        result.getCheckerResult().getCfa().getMetadata().getSvLibCfaMetadata();
 
     Verify.verify(
-        k3CfaMetadataOptional.isPresent(),
-        "K3 CFA Metadata should be present for every K3 program");
-    K3CfaMetadata k3CfaMetadata = k3CfaMetadataOptional.orElseThrow();
+        svLibCfaMetadataOptional.isPresent(),
+        "SV-LIB CFA Metadata should be present for every SV-LIB program");
+    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
 
     Verify.verify(
-        k3CfaMetadata.exportCorrectnessWitness(),
-        "For the safe K3 program '"
-            + SAFE_LOOP_PROGRAM_K3
+        svLibCfaMetadata.exportCorrectnessWitness(),
+        "For the safe SV-LIB program '"
+            + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness export should be enabled");
 
-    Optional<Path> witnessPath = k3CfaMetadata.getExportWitnessPath();
+    Optional<Path> witnessPath = svLibCfaMetadata.getExportWitnessPath();
     Verify.verify(
         witnessPath.isPresent(),
-        "For the safe K3 program '"
-            + SAFE_LOOP_PROGRAM_K3
+        "For the safe SV-LIB program '"
+            + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness path should be present after exporting the witness");
 
     // Read entire file content as a single string (UTF-8)

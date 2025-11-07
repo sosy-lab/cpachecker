@@ -52,9 +52,9 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
     checkArgument(
-        pCfaMetadata.getLanguage() == Language.K3
-            ? pCfaMetadata.getK3CfaMetadata().isPresent()
-            : pCfaMetadata.getK3CfaMetadata().isEmpty());
+        pCfaMetadata.getLanguage() == Language.SV_LIB
+            ? pCfaMetadata.getSvLibCfaMetadata().isPresent()
+            : pCfaMetadata.getSvLibCfaMetadata().isEmpty());
 
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(

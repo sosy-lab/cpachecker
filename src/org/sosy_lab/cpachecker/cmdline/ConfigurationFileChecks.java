@@ -380,8 +380,8 @@ public class ConfigurationFileChecks {
         tempFolder.newFolder(OUTPUT_DIR.toString()).toPath().resolve("AssumptionAutomaton.txt"));
   }
 
-  private static boolean isK3Config(String configFilePath) {
-    return configFilePath.contains("k3");
+  private static boolean isSvLibConfig(String configFilePath) {
+    return configFilePath.contains("svlib");
   }
 
   @Test
@@ -409,8 +409,9 @@ public class ConfigurationFileChecks {
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (isK3Config(basePath.toString())) {
-      // For K3 Programs the specification is inside the program itself, so we do not need to check
+    if (isSvLibConfig(basePath.toString())) {
+      // For SV-LIB Programs the specification is inside the program itself, so we do not need to
+      // check
       // anything
       assertThat(spec).isEqualTo("specification/correct-tags.spc");
     } else if (options.language == Language.JAVA) {
@@ -523,10 +524,10 @@ public class ConfigurationFileChecks {
       configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
       config = configBuilder.build();
     }
-    if (isK3Config(configFile.toString())) {
-      // For K3 Programs we need to set the language to K3
+    if (isSvLibConfig(configFile.toString())) {
+      // For SV-LIB Programs we need to set the language to SV-LIB
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
-      configBuilder.setOption(LANGUAGE_OPTION, "K3");
+      configBuilder.setOption(LANGUAGE_OPTION, Language.SV_LIB.name());
       config = configBuilder.build();
       // We need to change the current language options, but only after we created the config
       // object above

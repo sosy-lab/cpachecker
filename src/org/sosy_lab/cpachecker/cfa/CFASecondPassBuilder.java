@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -56,10 +56,10 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3ProcedureSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -261,23 +261,23 @@ public class CFASecondPassBuilder {
                 (CFunctionCall) functionCall,
                 (CFunctionSummaryEdge) calltoReturnEdge);
       }
-      case K3 -> {
+      case SV_LIB -> {
         calltoReturnEdge =
-            new K3ProcedureSummaryEdge(
+            new SvLibProcedureSummaryEdge(
                 edge.getRawStatement(),
                 fileLocation,
                 predecessorNode,
                 successorNode,
-                (K3ProcedureCallStatement) functionCall,
-                (K3ProcedureEntryNode) fDefNode);
+                (SvLibProcedureCallStatement) functionCall,
+                (SvLibProcedureEntryNode) fDefNode);
 
         callEdge =
-            new K3ProcedureCallEdge(
+            new SvLibProcedureCallEdge(
                 edge.getRawStatement(),
                 fileLocation,
                 predecessorNode,
                 fDefNode,
-                (K3ProcedureCallStatement) functionCall,
+                (SvLibProcedureCallStatement) functionCall,
                 calltoReturnEdge);
       }
       case JAVA -> {
@@ -328,12 +328,12 @@ public class CFASecondPassBuilder {
             case C ->
                 new CFunctionReturnEdge(
                     fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-            case K3 ->
-                new K3ProcedureReturnEdge(
+            case SV_LIB ->
+                new SvLibProcedureReturnEdge(
                     fileLocation,
                     exitNode,
                     successorNode,
-                    (K3ProcedureSummaryEdge) calltoReturnEdge);
+                    (SvLibProcedureSummaryEdge) calltoReturnEdge);
             case JAVA ->
                 new JMethodReturnEdge(
                     fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);

@@ -1240,13 +1240,6 @@ counterexample.export.graphml = "Counterexample.%d.graphml"
 # export test harness to file as code
 counterexample.export.harness = "Counterexample.%d.harness.c"
 
-# The file into which to write the violation witness for K3 programs. If set
-# to 'null', no witness is exported. Be aware that one can also set this
-# option in K3 programs, instead of in CPAchecker's configuration.In case
-# this happens, the option will be overriden by the one from the program, and
-# this option ignored.
-counterexample.export.k3 = no default value
-
 # where to dump the counterexample model in case a specification violation is
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
@@ -1264,6 +1257,13 @@ counterexample.export.report = "Counterexample.%d.html"
 
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
+
+# The file into which to write the violation witness for SV-LIB programs. If
+# set to 'null', no witness is exported. Be aware that one can also set this
+# option in SV-LIB programs, instead of in CPAchecker's configuration.In case
+# this happens, the option will be overriden by the one from the program, and
+# this option ignored.
+counterexample.export.svlib = no default value
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1468,14 +1468,14 @@ cpa.arg.errorPath.graphml = "Counterexample.%d.graphml"
 # deprecated name for counterexample.export.harness
 cpa.arg.errorPath.harness = "Counterexample.%d.harness.c"
 
-# deprecated name for counterexample.export.k3
-cpa.arg.errorPath.k3 = no default value
-
 # deprecated name for counterexample.export.prefixCoverageFile
 cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
 
 # deprecated name for counterexample.export.source
 cpa.arg.errorPath.source = "Counterexample.%d.c"
+
+# deprecated name for counterexample.export.svlib
+cpa.arg.errorPath.svlib = no default value
 
 # deprecated name for counterexample.export.witnessGraph
 cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1523,13 +1523,6 @@ cpa.arg.file = "ARG.dot"
 # must behave differently during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
-# The file into which to write the correctness witness for K3 programs. If
-# set to 'null', no witness is exported. Be aware that one can also set this
-# option in K3 programs, instead of in CPAchecker's configuration.In case
-# this happens, the option will be overriden by the one from the program, and
-# this option ignored.
-cpa.arg.k3CorrectnessWitness = no default value
-
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
@@ -1574,6 +1567,13 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
+# The file into which to write the correctness witness for SV-LIB programs.
+# If set to 'null', no witness is exported. Be aware that one can also set
+# this option in SV-LIB programs, instead of in CPAchecker's configuration.In
+# case this happens, the option will be overriden by the one from the
+# program, and this option ignored.
+cpa.arg.svLibCorrectnessWitness = no default value
 
 # translate final ARG into C program
 cpa.arg.translateToC = false
@@ -4575,11 +4575,11 @@ java.version = JavaCore.VERSION_1_7
 # auto-detection will occur. LLVM IR is currently unsupported as input (cf.
 # https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
-  enum:     [C, JAVA, LLVM, K3]
+  enum:     [C, JAVA, LLVM, SV_LIB]
 language = no default value
-  enum:     [C, JAVA, LLVM, K3]
+  enum:     [C, JAVA, LLVM, SV_LIB]
 language = C
-  enum:     [C, JAVA, LLVM, K3]
+  enum:     [C, JAVA, LLVM, SV_LIB]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)

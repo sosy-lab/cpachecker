@@ -46,7 +46,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   private final ImmutableList<CFAEdgeWithAssumptions> pathWithAssignments;
 
-  // In K3 programs we cannot use terms as statements, since they are completely sepparate things.
+  // In SV-LIB programs we cannot use terms as statements, since they are completely sepparate
+  // things.
   // Therefore, we keep track of the concrete state path as well, since adding terms to the
   // CFAEdgeWithAssumptions seemed like a change which would impact too many other places.
   //

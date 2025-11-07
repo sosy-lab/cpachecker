@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.k3.K3AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -58,11 +58,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.k3toformula.K3ToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -240,9 +240,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         NONDET_FORMULA_TYPE = converter.getFormulaTypeFromType(NONDET_TYPE);
       }
-      case K3 -> {
+      case SV_LIB -> {
         converter =
-            new K3ToFormulaConverter(
+            new SvLibToFormulaConverter(
                 new FormulaEncodingOptions(config),
                 fmgr,
                 pVariableClassification,
@@ -325,10 +325,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pPathFormula, K3FinalRelationalTerm pAssumption)
+  public PathFormula makeAnd(PathFormula pPathFormula, SvLibFinalRelationalTerm pAssumption)
       throws CPATransferException, InterruptedException {
-    K3AssumeEdge fakeEdge =
-        new K3AssumeEdge(
+    SvLibAssumeEdge fakeEdge =
+        new SvLibAssumeEdge(
             pAssumption.toASTString(),
             FileLocation.DUMMY,
             CFANode.newDummyCFANode(),

@@ -34,7 +34,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3FinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -357,11 +357,11 @@ public class PathChecker {
         for (AExpression expr : assumptionState.getAssumptions()) {
           if (expr instanceof CExpression pCExpression) {
             pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
-          } else if (expr instanceof K3FinalRelationalTerm pTerm) {
+          } else if (expr instanceof SvLibFinalRelationalTerm pTerm) {
             pathFormula = pmgr.makeAnd(pathFormula, pTerm);
           } else {
             throw new CPATransferException(
-                "Expected a CExpression or a K3FinalRelationalTerm as assumption!");
+                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
           }
         }
       }
