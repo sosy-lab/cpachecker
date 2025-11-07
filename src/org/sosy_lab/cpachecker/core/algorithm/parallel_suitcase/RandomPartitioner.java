@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -29,7 +30,8 @@ public class RandomPartitioner implements PartitioningStrategy {
 
     // Convert to list and shuffle for random distribution
     List<CFAEdge> shuffledTargets = new ArrayList<>(testTargets);
-    Collections.shuffle(shuffledTargets);
+    // currently fixed seed, might need to be configurable
+    Collections.shuffle(shuffledTargets, new Random(0));
 
     // Initialize partitions
     List<Set<CFAEdge>> partitions = new ArrayList<>(numPartitions);
