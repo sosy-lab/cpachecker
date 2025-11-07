@@ -4656,6 +4656,13 @@ parallelAlgorithm.configFiles = no default value
 # toggle to write all the files also for the unsuccessful analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
+# Number of threads for parallel test generation
+parallelTestGeneration.numberOfThreads = 4
+
+# Partitioning strategy to use (RANDOM or STRATEGY)
+parallelTestGeneration.partitioningStrategy = RANDOM
+  enum:     [RANDOM, STRATEGY]
+
 # The command line for calling the clang preprocessor. May contain binary
 # name and arguments, but won't be expanded by a shell. The source file name
 # will be appended to this string. Clang needs to print the output to stdout.

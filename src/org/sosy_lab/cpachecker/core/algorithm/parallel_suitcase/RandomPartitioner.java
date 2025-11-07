@@ -9,58 +9,49 @@
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/**
- * RandomPartitioner randomly distributes the states in a ReachedSet into multiple partitions for
- * parallel test generation.
- */
+/** Random partitioning strategy that divides test targets into roughly equal subsets */
 public class RandomPartitioner implements PartitioningStrategy {
 
-  private final ReachedSetFactory reachedSetFactory;
-  private final ConfigurableProgramAnalysis cpa;
-  private final Random random;
-  private final LogManager logger;
+  @Override
+  public List<Set<CFAEdge>> partition(Set<CFAEdge> testTargets, int numPartitions) {
+    if (numPartitions <= 0) {
+      throw new IllegalArgumentException("Number of partitions must be positive");
+    }
 
-  /**
-   * Constructor.
-   *
-   * @param pFactory The ReachedSetFactory used to create sub-ReachedSets.
-   * @param pCpa The CPA instance needed to create ReachedSets.
-   * @param seed Random seed for reproducibility.
-   * @param pLogger Logger for status messages.
-   */
-  public RandomPartitioner(
-      ReachedSetFactory pFactory, ConfigurableProgramAnalysis pCpa, long seed, LogManager pLogger) {
-    this.reachedSetFactory = pFactory;
-    this.cpa = pCpa;
-    this.random = new Random(seed);
-    this.logger = pLogger;
+    if (testTargets.isEmpty()) {
+      return createEmptyPartitions(numPartitions);
+    }
+
+    // Convert to list and shuffle for random distribution
+    List<CFAEdge> shuffledTargets = new ArrayList<>(testTargets);
+    Collections.shuffle(shuffledTargets);
+
+    // Initialize partitions
+    List<Set<CFAEdge>> partitions = new ArrayList<>(numPartitions);
+    for (int i = 0; i < numPartitions; i++) {
+      partitions.add(new HashSet<>());
+    }
+
+    // Distribute targets evenly using round-robin
+    for (int i = 0; i < shuffledTargets.size(); i++) {
+      int partitionIndex = i % numPartitions;
+      partitions.get(partitionIndex).add(shuffledTargets.get(i));
+    }
+
+    return partitions;
   }
 
-  @Override
-  public List<ReachedSet> partition(ReachedSet reachedSet, int numPartitions) {
-    List<ReachedSet> partitions = new ArrayList<>();
-
-    // Create empty sub-ReachedSets
+  private List<Set<CFAEdge>> createEmptyPartitions(int numPartitions) {
+    List<Set<CFAEdge>> partitions = new ArrayList<>(numPartitions);
     for (int i = 0; i < numPartitions; i++) {
-      partitions.add(reachedSetFactory.create(cpa));
+      partitions.add(new HashSet<>());
     }
-
-    // Randomly assign each AbstractState to a partition
-    for (AbstractState state : reachedSet) {
-      int index = random.nextInt(numPartitions);
-      partitions.get(index).add(state, reachedSet.getPrecision(state));
-    }
-
-    logger.log(Level.INFO, "Random partitioning finished: created " + numPartitions + " partitions.");
     return partitions;
   }
 }
