@@ -23,9 +23,6 @@ public class TerminationToSafetyUtils {
       throws InvalidConfigurationException {
     checkNotNull(pCpa);
 
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder.clearOption("analysis.algorithm.terminationToSafety");
-
     TerminationToReachCPA terminationCPA =
         CPAs.retrieveCPAOrFail(pCpa, TerminationToReachCPA.class, TerminationToSafetyUtils.class);
     PredicateCPA predicateCPA =
