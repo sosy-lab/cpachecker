@@ -216,6 +216,7 @@ public class CPAMain {
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
   public static final String APPROACH_NAME_OPTION = "analysis.name";
+  public static final String PROGRAMS_OPTION = "analysis.programNames";
 
   @Options
   private static class BootstrapOptions {
@@ -470,7 +471,7 @@ public class CPAMain {
           switch (suffix) {
             case "ll", "bc" -> Language.LLVM;
             case "c", "i", "h" -> Language.C;
-            case "smt2" -> Language.K3;
+            case "svlib" -> Language.K3;
             default -> Language.C;
           };
       Preconditions.checkNotNull(language);
@@ -616,9 +617,16 @@ public class CPAMain {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
     String propertyFile = propertyFiles.getFirst();
+    List<Path> programFiles =
+        Splitter.on(',')
+            .trimResults()
+            .omitEmptyStrings()
+            .splitToStream(cmdLineOptions.getOrDefault(PROGRAMS_OPTION, ""))
+            .map(Path::of)
+            .collect(ImmutableList.toImmutableList());
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
+    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile), programFiles);
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {

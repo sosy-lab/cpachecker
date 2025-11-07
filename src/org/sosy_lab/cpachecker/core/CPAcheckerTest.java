@@ -31,14 +31,10 @@ import org.sosy_lab.cpachecker.cfa.model.k3.K3CfaMetadata;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-/**
- * Integration tests for CPAchecker.
- */
+/** Integration tests for CPAchecker. */
 public class CPAcheckerTest {
 
-  /**
-   * The configuration file to use for running CPAchecker.
-   */
+  /** The configuration file to use for running CPAchecker. */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";
 
   private static final String CONFIGURATION_FILE_K3 = "config/predicateAnalysis-k3.properties";
@@ -69,8 +65,7 @@ public class CPAcheckerTest {
   private static final String SAFE_PROGRAM_JAVA = "Switch_true_assert";
   private static final String UNSAFE_PROGRAM_JAVA = "Switch2_false_assert";
 
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   // discard printed statistics; we only care about generation
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics

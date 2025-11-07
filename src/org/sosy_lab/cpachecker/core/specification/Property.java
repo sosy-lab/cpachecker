@@ -25,7 +25,9 @@ public interface Property {
 
   boolean isVerification();
 
-  /** Return a representation of this property in an unspecified format. */
+  /**
+   * Return a representation of this property in an unspecified format.
+   */
   @Override
   String toString();
 
@@ -85,7 +87,9 @@ public interface Property {
     }
   }
 
-  /** Represents the few commonly used hard-coded verification property used by SV-COMP. */
+  /**
+   * Represents the few commonly used hard-coded verification property used by SV-COMP.
+   */
   public enum CommonVerificationProperty implements Property {
     REACHABILITY_LABEL("G ! label(ERROR)"),
 
@@ -109,8 +113,7 @@ public interface Property {
 
     TERMINATION("F end"),
 
-    ASSERT("G assert"),
-    ;
+    ASSERT("G assert");
 
     private final String representation;
 
@@ -139,7 +142,9 @@ public interface Property {
     }
   }
 
-  /** Represents the few commonly used hard-coded test properties used by Test-Comp. */
+  /**
+   * Represents the few commonly used hard-coded test properties used by Test-Comp.
+   */
   public enum CommonCoverageProperty implements Property {
     COVERAGE_BRANCH("COVER EDGES(@DECISIONEDGE)"),
 
@@ -177,7 +182,9 @@ public interface Property {
     }
   }
 
-  /** Represents a property for covering all calls to a certain function as used by Test-Comp. */
+  /**
+   * Represents a property for covering all calls to a certain function as used by Test-Comp.
+   */
   public static class CoverFunctionCallProperty implements Property {
 
     private static final Pattern COVERAGE_FUNCTION_PATTERN =

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.specification;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -22,6 +23,7 @@ import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,6 +54,7 @@ public class PropertyFileParser {
   }
 
   private final CharSource propertyFile;
+  private final List<Path> programFiles;
 
   private @Nullable String entryFunction;
   private @Nullable ImmutableSet<Property> properties;
@@ -78,12 +81,14 @@ public class PropertyFileParser {
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
 
-  public PropertyFileParser(final CharSource pPropertyFile) {
+  public PropertyFileParser(final CharSource pPropertyFile, List<Path> pProgramFiles) {
     propertyFile = checkNotNull(pPropertyFile);
+    programFiles = pProgramFiles;
   }
 
-  public PropertyFileParser(final Path pPropertyFile) {
+  public PropertyFileParser(final Path pPropertyFile, List<Path> pProgramFiles) {
     propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
+    programFiles = pProgramFiles;
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
@@ -92,12 +97,25 @@ public class PropertyFileParser {
     String rawProperty = null;
     try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
-        if (!rawProperty.isEmpty()) {
+        if (!rawProperty.isEmpty() && !rawProperty.strip().startsWith("#")) {
           propertiesBuilder.add(parsePropertyLine(rawProperty));
         }
       }
     }
     properties = propertiesBuilder.build();
+
+    // In SV-LIB the specification is inside of the file, so it is possible that no property is
+    // specified. Due to this, we remove the check for an empty property, if the file ends with
+    // `.svlib`.
+    if (properties.isEmpty()
+        && FluentIterable.from(programFiles)
+            .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))) {
+      // The entry function is ignored, since the actual entry
+      // function is only set during the CFA construction
+      entryFunction = "";
+      return;
+    }
+
     if (properties.isEmpty()) {
       throw new InvalidPropertyFileException("No property in file.");
     }
