@@ -156,8 +156,8 @@ public class AutomatonWitnessV2ParserUtils {
             e ->
                 (e instanceof ViolationSequenceEntry pViolationEntry
                         && pViolationEntry.getMetadata().getFormatVersion().equals(pVersion))
-                    || ((e instanceof InvariantSetEntry pInvariantEntry
-                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion))));
+                    || (e instanceof InvariantSetEntry pInvariantEntry
+                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
