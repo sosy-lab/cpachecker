@@ -102,12 +102,12 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBreakStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibContinueStatement;
@@ -1225,8 +1225,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(SvLibAssertTag pSvLibAssertTag) {
-      return ImmutableList.of(pSvLibAssertTag.getTerm());
+    public Iterable<? extends AAstNode> accept(SvLibCheckTruetTag pSvLibCheckTruetTag) {
+      return ImmutableList.of(pSvLibCheckTruetTag.getTerm());
     }
 
     @Override

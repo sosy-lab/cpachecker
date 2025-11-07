@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib.parser;
 
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssertPropertyContext;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.CheckTruePropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.EnsuresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.InvariantPropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.RequiresPropertyContext;
@@ -43,9 +43,9 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   }
 
   @Override
-  public SvLibTagAttribute visitAssertProperty(AssertPropertyContext pContext) {
+  public SvLibTagAttribute visitCheckTrueProperty(CheckTruePropertyContext pContext) {
     SvLibFinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
-    return new SvLibAssertTag(term, fileLocationFromContext(pContext));
+    return new SvLibCheckTruetTag(term, fileLocationFromContext(pContext));
   }
 
   @Override

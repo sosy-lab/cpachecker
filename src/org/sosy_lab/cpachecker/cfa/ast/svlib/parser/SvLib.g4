@@ -64,16 +64,14 @@ attribute
 
 // TODO: This currently does not support the LTL tag
 property
-    : ':assert' relationalTerm                                        # AssertProperty
+    : ':check-true' relationalTerm                                    # CheckTrueProperty
     | ':live'                                                         # LiveProperty
     | ':not-live'                                                     # NotLiveProperty
-    | ':ghost' ParOpen symbol+ ParClose                               # GhostProperty
     | ':requires' term                                                # RequiresProperty
     | ':ensures' relationalTerm                                       # EnsuresProperty
     | ':invariant' relationalTerm                                     # InvariantProperty
     | ':decreases' term                                               # DecreasesProperty
-    | ':decreases' ParOpen term+ ParClose                             # DecreasesProperty
-    | ':modifies' ParOpen symbol+ ParClose                            # ModifiesProperty
+    | ':decreases-lex' ParOpen term+ ParClose                         # DecreasesLexProperty
     ;
 
 

@@ -35,7 +35,7 @@
     (if (> c 0) (return))
     (if (>= d 0) (return))
     (if (> e 0) (return))
-    (if (= a 6) (! (sequence) :assert false))
+    (if (= a 6) (! (sequence) :check-true false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 
