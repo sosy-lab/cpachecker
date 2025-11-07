@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -535,7 +534,7 @@ public class TerminationWitnessValidator implements Algorithm {
             formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
             PointerTargetSet.emptyPointerTargetSet());
 
-    Set<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
+    ImmutableSet<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
@@ -545,10 +544,10 @@ public class TerminationWitnessValidator implements Algorithm {
               PointerTargetSet.emptyPointerTargetSet());
       boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
-        Set<LoopStructure.Loop> loopsForEdge =
+        ImmutableSet<LoopStructure.Loop> loopsForEdge =
             AllLoops.stream()
                 .filter(l -> l.getInnerLoopEdges().contains(edge))
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
         if (loopsForEdge.size() <= 1) {
           anotherPath = pfmgr.makeAnd(anotherPath, edge);
           followingDifferentLoop = false;

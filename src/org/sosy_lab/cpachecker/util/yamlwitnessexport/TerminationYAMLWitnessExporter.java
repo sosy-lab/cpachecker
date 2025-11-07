@@ -181,7 +181,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     for (Loop loop : pTerminationArguments.keySet()) {
-      CFANode loopHead = loop.getLoopNodes().first();
+      CFANode loopHead = loop.getLoopNodes().getFirst();
       for (TerminationArgument argument : pTerminationArguments.get(loop)) {
         if (exportSupportingInvariants) {
           // First construct reachability invariants that support the termination argument.
