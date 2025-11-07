@@ -86,6 +86,12 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportWitnessV2",
+      description = "export counterexample as witness/YML file")
+  private boolean exportWitnessV2 = true;
+
+  @Option(
+      secure = true,
       name = "graphml",
       description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -245,7 +251,7 @@ public final class CEXExportOptions {
     if (!exportErrorPath) {
       return null;
     }
-    return yamlWitnessOutputFileTemplate;
+    return exportWitnessV2 ? yamlWitnessOutputFileTemplate : null;
   }
 
   @Nullable Path getK3ViolationWitnessPath() {

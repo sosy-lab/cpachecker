@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
@@ -68,6 +70,10 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   public ImmutableCFA immutableCopy() {
     return this;
+  }
+
+  public static ImmutableCFA copyOf(CFA pCfa, Configuration pConfig, LogManager pLogger) {
+    return MutableCFA.copyOf(pCfa, pConfig, pLogger).immutableCopy();
   }
 
   @Override

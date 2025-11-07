@@ -348,8 +348,7 @@ public class PathChecker {
       throws CPATransferException, InterruptedException {
     if (nextState != null) {
       FluentIterable<AbstractStateWithAssumptions> assumptionStates =
-          AbstractStates.projectToType(
-              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
+          AbstractStates.asIterable(nextState).filter(AbstractStateWithAssumptions.class);
       for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
         if (assumptionState instanceof OverflowState
             && ((OverflowState) assumptionState).hasOverflow()) {
