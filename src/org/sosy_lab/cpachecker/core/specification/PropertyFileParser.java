@@ -42,8 +42,7 @@ public class PropertyFileParser {
 
   public static class InvalidPropertyFileException extends Exception {
 
-    @Serial
-    private static final long serialVersionUID = -5880923544560903123L;
+    @Serial private static final long serialVersionUID = -5880923544560903123L;
 
     public InvalidPropertyFileException(String msg) {
       super(msg);
@@ -98,7 +97,7 @@ public class PropertyFileParser {
     String rawProperty = null;
     boolean parsingSvLibProperty =
         FluentIterable.from(programFiles)
-            .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))
+                .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))
             && !programFiles.isEmpty();
 
     try (BufferedReader br = propertyFile.openBufferedStream()) {
