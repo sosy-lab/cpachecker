@@ -32,9 +32,9 @@ SPDX-License-Identifier: Apache-2.0
     to run all of them with witness generation enabled.
   -->
   <tasks name="SV-LIB.Main">
-    <includesfile>../programs/sv-lib-benchmarks/CTranslated.set</includesfile>
-    <includesfile>../programs/sv-lib-benchmarks/CoreValidation.set</includesfile>
-    <includesfile>../programs/sv-lib-benchmarks/CoreVerification.set</includesfile>
-    <propertyfile>../programs/sv-lib-benchmarks/properties/correct-tags.prp</propertyfile>
+    <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
+    <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
+    <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>
+    <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
   </tasks>
 </benchmark>

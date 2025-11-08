@@ -74,6 +74,7 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 
 # /test/programs/
 /test/programs/benchmarks
+/test/programs/svlib-benchmarks
 /test/programs/java-benchmarks
 /test/programs/ldv-benchmarks
 /test/programs/ldv-klever-benchmarks
