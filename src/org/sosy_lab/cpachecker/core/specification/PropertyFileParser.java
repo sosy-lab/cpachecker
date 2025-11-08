@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -43,7 +42,8 @@ public class PropertyFileParser {
 
   public static class InvalidPropertyFileException extends Exception {
 
-    @Serial private static final long serialVersionUID = -5880923544560903123L;
+    @Serial
+    private static final long serialVersionUID = -5880923544560903123L;
 
     public InvalidPropertyFileException(String msg) {
       super(msg);
@@ -83,15 +83,13 @@ public class PropertyFileParser {
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
 
   public PropertyFileParser(final CharSource pPropertyFile, List<Path> pProgramFiles) {
-    checkArgument(pProgramFiles != null);
     propertyFile = checkNotNull(pPropertyFile);
-    programFiles = pProgramFiles;
+    programFiles = checkNotNull(pProgramFiles);
   }
 
   public PropertyFileParser(final Path pPropertyFile, List<Path> pProgramFiles) {
-    checkArgument(pProgramFiles != null);
     propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
-    programFiles = pProgramFiles;
+    programFiles = checkNotNull(pProgramFiles);
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
@@ -112,7 +110,7 @@ public class PropertyFileParser {
     // `.svlib`.
     if (properties.isEmpty()
         && FluentIterable.from(programFiles)
-            .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))) {
+        .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))) {
       // The entry function is ignored, since the actual entry
       // function is only set during the CFA construction
       entryFunction = "";
