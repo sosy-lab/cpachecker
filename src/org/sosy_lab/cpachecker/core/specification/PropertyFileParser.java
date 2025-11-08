@@ -96,9 +96,17 @@ public class PropertyFileParser {
     checkState(properties == null, "single-use only");
     ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
+    boolean parsingSvLibProperty =
+        FluentIterable.from(programFiles)
+            .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))
+            && !programFiles.isEmpty();
+
     try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
-        if (!rawProperty.isEmpty() && !rawProperty.strip().startsWith("#")) {
+        if (rawProperty.startsWith("#") && parsingSvLibProperty) {
+          continue;
+        }
+        if (!rawProperty.isEmpty()) {
           propertiesBuilder.add(parsePropertyLine(rawProperty));
         }
       }
@@ -108,9 +116,7 @@ public class PropertyFileParser {
     // In SV-LIB the specification is inside of the file, so it is possible that no property is
     // specified. Due to this, we remove the check for an empty property, if the file ends with
     // `.svlib`.
-    if (properties.isEmpty()
-        && FluentIterable.from(programFiles)
-        .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))) {
+    if (properties.isEmpty() && parsingSvLibProperty) {
       // The entry function is ignored, since the actual entry
       // function is only set during the CFA construction
       entryFunction = "";
