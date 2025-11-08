@@ -112,7 +112,8 @@ public class SvLibTermToFormulaConverter {
     }
 
     throw new UnsupportedOperationException(
-        "Conversion of application term not supported: " + pSvLibGeneralSymbolApplicationTerm);
+        "Conversion of application term not supported: "
+            + pSvLibGeneralSymbolApplicationTerm.toASTString());
   }
 
   private static @NonNull Formula convertIntegerApplication(
@@ -154,6 +155,10 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() == 2);
         yield imgr.greaterOrEquals(args.getFirst(), args.get(1));
       }
+      case "mod" -> {
+        Verify.verify(args.size() == 2);
+        yield imgr.modulo(args.getFirst(), args.get(1));
+      }
       default ->
           throw new IllegalStateException(
               "Unexpected value: '"
@@ -178,6 +183,14 @@ public class SvLibTermToFormulaConverter {
       case "not" -> {
         Verify.verify(args.size() == 1);
         return bmgr.not(args.getFirst());
+      }
+      case "and" -> {
+        Verify.verify(args.size() >= 2);
+        return bmgr.and(args);
+      }
+      case "or" -> {
+        Verify.verify(args.size() >= 2);
+        return bmgr.or(args);
       }
       default ->
           throw new IllegalStateException(

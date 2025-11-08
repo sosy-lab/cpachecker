@@ -35,14 +35,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareSortCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGetWitnessCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
@@ -53,6 +59,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVerifyCallCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -196,6 +204,38 @@ class SvLibCfaBuilder {
     return Pair.of(functionEntryNode, allNodesCollector.build());
   }
 
+  private static SvLibTagProperty instantiateTagProperty(
+      SvLibScope pScope, SvLibTagProperty pTagProperty) {
+    SvLibIdTermReplacer variableInstantiation =
+        new SvLibIdTermReplacer(
+            idTerm -> {
+              if (idTerm.getDeclaration().getType().equals(SvLibCustomType.InternalAnyType)) {
+                return new SvLibIdTerm(
+                    pScope.getVariable(idTerm.getDeclaration().getName()), FileLocation.DUMMY);
+              } else {
+                return idTerm;
+              }
+            });
+
+    return switch (pTagProperty) {
+      case SvLibCheckTrueTag pCheckTrueTag ->
+          new SvLibCheckTrueTag(
+              pCheckTrueTag.getTerm().accept(variableInstantiation),
+              pCheckTrueTag.getFileLocation());
+      case SvLibRequiresTag pRequiresTag ->
+          new SvLibRequiresTag(
+              (SvLibTerm) pRequiresTag.getTerm().accept(variableInstantiation),
+              pRequiresTag.getFileLocation());
+      case SvLibEnsuresTag pEnsuresTag ->
+          new SvLibEnsuresTag(
+              pEnsuresTag.getTerm().accept(variableInstantiation), pEnsuresTag.getFileLocation());
+      case SvLibInvariantTag pInvariantTag ->
+          new SvLibInvariantTag(
+              pInvariantTag.getTerm().accept(variableInstantiation),
+              pInvariantTag.getFileLocation());
+    };
+  }
+
   public ParseResult buildCfaFromScript(SvLibScript script) throws SvLibParserException {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
@@ -305,11 +345,15 @@ class SvLibCfaBuilder {
           List<SvLibTagProperty> tagProperties = pSvLibAnnotateTagCommand.getTags();
 
           // TODO: This is highly inefficient!!!
+          //        A bi directional map would be much better here.
           for (Entry<CFANode, SvLibTagReference> entry : nodesToTagReferences.build().entries()) {
             CFANode node = entry.getKey();
             SvLibTagReference tagReference = entry.getValue();
             if (tagReference.getTagName().equals(tagName)) {
-              nodeToTagAnnotations.putAll(node, tagProperties);
+              for (SvLibTagProperty tagProperty : tagProperties) {
+                nodeToTagAnnotations.put(
+                    node, instantiateTagProperty(tagReference.getScope(), tagProperty));
+              }
             }
           }
           tagReferencesToAnnotations.putAll(tagName, tagProperties);

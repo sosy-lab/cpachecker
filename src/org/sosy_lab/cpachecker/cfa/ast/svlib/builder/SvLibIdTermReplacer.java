@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Function;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
@@ -57,10 +58,10 @@ public class SvLibIdTermReplacer
 
     List<SvLibFinalRelationalTerm> argsReplacedTerms =
         transformedImmutableListCopy(pSvLibSymbolApplicationTerm.getTerms(), t -> t.accept(this));
-    if (argsReplacedTerms.stream().anyMatch(t -> !(t instanceof SvLibIdTerm))) {
+    if (!argsReplacedTerms.stream().allMatch(t -> t instanceof SvLibTerm)) {
       throw new IllegalStateException(
-          "Using a non-id term as argument in SvLibSymbolApplicationTerm is not supported: "
-              + argsReplacedTerms);
+          "The handling of (final) relational terms as arguments is not yet implemented for: "
+              + argsReplacedTerms.stream().map(AAstNode::toASTString).toList());
     }
 
     List<SvLibTerm> argsAsTerms =

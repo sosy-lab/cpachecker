@@ -12,7 +12,7 @@ public interface SvLibTagAttributeVisitor<R, X extends Exception> {
 
   R accept(SvLibTagReference pSvLibTagReference) throws X;
 
-  R accept(SvLibCheckTruetTag pSvLibCheckTruetTag) throws X;
+  R accept(SvLibCheckTrueTag pSvLibCheckTrueTag) throws X;
 
   R accept(SvLibRequiresTag pSvLibRequiresTag) throws X;
 

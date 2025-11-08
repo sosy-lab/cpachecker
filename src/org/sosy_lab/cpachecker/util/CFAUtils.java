@@ -107,7 +107,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBreakStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibContinueStatement;
@@ -1226,8 +1226,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(SvLibCheckTruetTag pSvLibCheckTruetTag) {
-      return ImmutableList.of(pSvLibCheckTruetTag.getTerm());
+    public Iterable<? extends AAstNode> accept(SvLibCheckTrueTag pSvLibCheckTrueTag) {
+      return ImmutableList.of(pSvLibCheckTrueTag.getTerm());
     }
 
     @Override

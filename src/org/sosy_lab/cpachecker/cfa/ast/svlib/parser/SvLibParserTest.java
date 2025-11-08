@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclareFunCommand;
@@ -126,7 +126,7 @@ public class SvLibParserTest {
                                         new SvLibIdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
-                                    new SvLibCheckTruetTag(
+                                    new SvLibCheckTrueTag(
                                         new SvLibSymbolApplicationTerm(
                                             new SvLibIdTerm(
                                                 SmtLibTheoryDeclarations.INT_EQUALITY,
@@ -204,7 +204,7 @@ public class SvLibParserTest {
                                         new SvLibIdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
-                                    new SvLibCheckTruetTag(
+                                    new SvLibCheckTrueTag(
                                         new SvLibSymbolApplicationTerm(
                                             new SvLibIdTerm(
                                                 SmtLibTheoryDeclarations.BOOL_NEGATION,
@@ -537,7 +537,7 @@ public class SvLibParserTest {
                                     ImmutableList.of(),
                                     FileLocation.DUMMY,
                                     ImmutableList.of(
-                                        new SvLibCheckTruetTag(
+                                        new SvLibCheckTrueTag(
                                             new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
                                             FileLocation.DUMMY)),
                                     ImmutableList.of())),

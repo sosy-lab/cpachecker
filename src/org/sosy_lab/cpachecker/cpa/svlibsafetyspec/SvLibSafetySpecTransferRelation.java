@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
@@ -65,7 +65,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     for (SvLibTagProperty property : propertiesToProof) {
       SvLibSafetySpecState successorState =
           switch (property) {
-            case SvLibCheckTruetTag pSvLibCheckTruetTag ->
+            case SvLibCheckTrueTag pSvLibCheckTruetTag ->
                 new SvLibSafetySpecState(
                     ImmutableSet.of(
                         SvLibTermBuilder.booleanNegation(pSvLibCheckTruetTag.getTerm())),

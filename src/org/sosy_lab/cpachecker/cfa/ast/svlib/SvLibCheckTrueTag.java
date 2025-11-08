@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibCheckTruetTag implements SvLibTagProperty {
+public final class SvLibCheckTrueTag implements SvLibTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final SvLibFinalRelationalTerm term;
   private final FileLocation fileLocation;
 
-  public SvLibCheckTruetTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
+  public SvLibCheckTrueTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -51,7 +51,7 @@ public final class SvLibCheckTruetTag implements SvLibTagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof SvLibCheckTruetTag other && term.equals(other.term);
+    return pO instanceof SvLibCheckTrueTag other && term.equals(other.term);
   }
 
   @Override

@@ -46,7 +46,7 @@ public abstract class SvLibScope {
 
   abstract void leaveProcedure();
 
-  abstract SvLibSimpleDeclaration getVariable(String pText);
+  public abstract SvLibSimpleDeclaration getVariable(String pText);
 
   public abstract SvLibSimpleDeclaration getVariableForQualifiedName(String pQualifiedName);
 

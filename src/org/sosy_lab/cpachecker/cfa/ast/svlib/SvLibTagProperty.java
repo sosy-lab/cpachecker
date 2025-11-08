@@ -9,4 +9,4 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 public sealed interface SvLibTagProperty extends SvLibTagAttribute
-    permits SvLibCheckTruetTag, SvLibEnsuresTag, SvLibInvariantTag, SvLibRequiresTag {}
+    permits SvLibCheckTrueTag, SvLibEnsuresTag, SvLibInvariantTag, SvLibRequiresTag {}

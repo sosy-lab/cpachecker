@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib.parser;
 
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTruetTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
@@ -45,7 +45,7 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   @Override
   public SvLibTagAttribute visitCheckTrueProperty(CheckTruePropertyContext pContext) {
     SvLibFinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
-    return new SvLibCheckTruetTag(term, fileLocationFromContext(pContext));
+    return new SvLibCheckTrueTag(term, fileLocationFromContext(pContext));
   }
 
   @Override
