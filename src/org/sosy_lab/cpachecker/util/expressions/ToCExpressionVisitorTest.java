@@ -8,40 +8,41 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
-import com.google.common.io.MoreFiles;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import org.apache.commons.io.IOUtils;
+import static com.google.common.truth.Truth.assertThat;
+
+import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ToCExpressionVisitorTest {
 
   final LogManager logger = LogManager.createTestLogManager();
 
-  ToCExpressionVisitor expressionTreeVisitor;
+  ToCExpressionVisitor expressionTreeVisitor =
+      new ToCExpressionVisitor(MachineModel.LINUX64, logger);
 
   final CBinaryExpressionBuilder builder =
       new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
@@ -50,18 +51,9 @@ public class ToCExpressionVisitorTest {
   public void testCacheMissAnd()
       throws UnrecognizedCodeException,
           InvalidConfigurationException,
-          IOException,
-          ParserException,
-          InterruptedException {
+          InterruptedException,
+          SolverException {
 
-    // Option 1: construct CFA from c file
-    Path program_path = Path.of("test/programs/tocexpressionvisitor_test/boolvsbinaryand.c");
-    CFA cfa =
-        TestDataTools.makeCFA(
-            IOUtils.toString(
-                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
-
-    // Option 2: construct CExpression by hand
     ExpressionTree<AExpression> left =
         LeafExpression.of(
             builder.buildBinaryExpression(
@@ -82,7 +74,6 @@ public class ToCExpressionVisitorTest {
     Solver smtSolver =
         Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
-    BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 
     Configuration config = TestDataTools.configurationForTest().build();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
@@ -92,24 +83,32 @@ public class ToCExpressionVisitorTest {
             options,
             formulaManager,
             MachineModel.LINUX64,
-            cfa.getVarClassification(),
+            Optional.empty(),
             logger,
             ShutdownNotifier.createDummy(),
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    // TODO: how do I get from a CExpression to a Formula the Solver can evaluate?
-    // Or if I have the CFA, what is the best way to use it?
-    // converter.makePredicate(result, )
+    CAssumeEdge myAssumeEdge =
+        new CAssumeEdge(
+            "",
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            result,
+            true);
+    BooleanFormula bf = converter.makePredicate(result, myAssumeEdge, "", null);
 
-    // assert that the result of the evaluated expression is true or that the c example never
-    // reaches the else case
+    assertThat(smtSolver.isUnsat(bf)).isFalse();
   }
 
   @Test
-  public void testCacheMissOr() throws UnrecognizedCodeException {
-
-    // TODO similar to test above
+  public void testCacheMissOr()
+      throws UnrecognizedCodeException,
+          InvalidConfigurationException,
+          InterruptedException,
+          SolverException {
+    // TODO is this really a good way to test this?
 
     ExpressionTree<AExpression> left =
         LeafExpression.of(
@@ -127,5 +126,35 @@ public class ToCExpressionVisitorTest {
 
     ExpressionTree<AExpression> orExpression = Or.of(left, right);
     CExpression result = orExpression.accept(expressionTreeVisitor);
+
+    Solver smtSolver =
+        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+    FormulaManagerView formulaManager = smtSolver.getFormulaManager();
+
+    Configuration config = TestDataTools.configurationForTest().build();
+    FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, MachineModel.LINUX64);
+    CtoFormulaConverter converter =
+        new CtoFormulaConverter(
+            options,
+            formulaManager,
+            MachineModel.LINUX64,
+            Optional.empty(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            typeHandler,
+            AnalysisDirection.FORWARD);
+
+    CAssumeEdge myAssumeEdge =
+        new CAssumeEdge(
+            "",
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            result,
+            true);
+    BooleanFormula bf = converter.makePredicate(result, myAssumeEdge, "", null);
+
+    assertThat(smtSolver.isUnsat(bf)).isFalse();
   }
 }
