@@ -2805,12 +2805,14 @@ class ASTConverter {
           getWayToInnerField(compositeType, fieldName, fileLoc, new ArrayList<>());
       Preconditions.checkState(!wayToField.isEmpty());
 
-      designators = new ArrayList<>(wayToField.size());
+      ImmutableList.Builder<CFieldDesignator> listBuilder =
+          ImmutableList.builderWithExpectedSize(wayToField.size());
       for (Pair<String, CType> wayToFieldPair : wayToField) {
         String name = wayToFieldPair.getFirst();
-        designators.add(new CFieldDesignator(fileLoc, name));
+        listBuilder.add(new CFieldDesignator(fileLoc, name));
         currentOwnerType = wayToFieldPair.getSecondNotNull();
       }
+      designators = listBuilder.build();
 
     } else {
       designators = ImmutableList.of(new CFieldDesignator(fileLoc, fieldName));
