@@ -2818,16 +2818,6 @@ class ASTConverter {
     return new DesignatorsAndLastType(designators, currentOwnerType);
   }
 
-  /** Find the direct member type for a field of a composite type (no anonymous traversal). */
-  private static Optional<CType> findDirectMemberType(CCompositeType owner, String fieldName) {
-    for (CCompositeTypeMemberDeclaration m : owner.getMembers()) {
-      if (m.getName().equals(fieldName)) {
-        return Optional.of(m.getType().getCanonicalType());
-      }
-    }
-    return Optional.empty();
-  }
-
   private CInitializer convert(
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
