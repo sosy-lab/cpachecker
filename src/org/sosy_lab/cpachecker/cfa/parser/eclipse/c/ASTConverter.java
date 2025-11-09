@@ -2832,12 +2832,8 @@ class ASTConverter {
       }
     }
 
-    // TODO: we might need do to something similar for more types
-    if (type instanceof CArrayType) {
-      type = ((CArrayType) type).getType();
-    }
-
-    // An initializer list inside the considered initializer list is syntactic sugar
+    // If we are looking at the initializer for a struct or union,
+    // a nested initializer list is syntactic sugar
     // to mark an anonymous complex type. Example:
     // struct s {
     //   char a;
@@ -2853,8 +2849,17 @@ class ASTConverter {
     // Semantically, both are equivalent.
     // We simplify any nested list to a flat list, because this is easier to handle
     // than nested lists.
-    List<IASTInitializerClause> flattenedInitializerClauses =
-        flattenInitializerClauses(iList.getClauses());
+    final List<IASTInitializerClause> flattenedInitializerClauses;
+    if (type instanceof CComplexType) {
+      flattenedInitializerClauses = flattenInitializerClauses(iList.getClauses());
+    } else {
+      flattenedInitializerClauses = Arrays.asList(iList.getClauses());
+    }
+    // TODO: we might need do to something similar for more types
+    if (type instanceof CArrayType) {
+      type = ((CArrayType) type).getType();
+    }
+
     for (IASTInitializerClause i : flattenedInitializerClauses) {
       CInitializer newI = convert(i, type, declaration);
       if (newI != null) {
