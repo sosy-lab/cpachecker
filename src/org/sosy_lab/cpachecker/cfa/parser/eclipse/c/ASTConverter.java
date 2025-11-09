@@ -2847,7 +2847,25 @@ class ASTConverter {
       type = ((CArrayType) type).getType();
     }
 
-    for (IASTInitializerClause i : iList.getClauses()) {
+    // An initializer list inside the considered initializer list is syntactic sugar
+    // to mark an anonymous complex type. Example:
+    // struct s {
+    //   char a;
+    //   struct {
+    //     char b;
+    //     char c;
+    //   }
+    // }
+    // Can be initialized through:
+    // struct s init = { .a = 5, { .b = 6, .c = 7 } }
+    // or through:
+    // struct s init = { .a = 5, .b = 6, .c = 7 }
+    // Semantically, both are equivalent.
+    // We simplify any nested list to a flat list, because this is easier to handle
+    // than nested lists.
+    List<IASTInitializerClause> flattenedInitializerClauses =
+        flattenInitializerClauses(iList.getClauses());
+    for (IASTInitializerClause i : flattenedInitializerClauses) {
       CInitializer newI = convert(i, type, declaration);
       if (newI != null) {
         initializerList.add(newI);
@@ -2855,6 +2873,18 @@ class ASTConverter {
     }
 
     return new CInitializerList(getLocation(iList), initializerList);
+  }
+
+  private List<IASTInitializerClause> flattenInitializerClauses(IASTInitializerClause[] clauses) {
+    List<IASTInitializerClause> flattened = new ArrayList<>();
+    for (IASTInitializerClause clause : clauses) {
+      if (clause instanceof IASTInitializerList innerList) {
+        flattened.addAll(flattenInitializerClauses(innerList.getClauses()));
+      } else {
+        flattened.add(clause);
+      }
+    }
+    return flattened;
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
