@@ -2813,7 +2813,7 @@ class ASTConverter {
       }
 
     } else {
-      designators = List.of(new CFieldDesignator(fileLoc, fieldName));
+      designators = ImmutableList.of(new CFieldDesignator(fileLoc, fieldName));
     }
     return new DesignatorsAndLastType(designators, currentOwnerType);
   }
