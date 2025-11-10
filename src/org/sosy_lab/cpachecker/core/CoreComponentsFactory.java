@@ -352,7 +352,9 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.MPOR",
-      description = "use MPOR algorithm for sequentializing a parallel C program")
+      description =
+          "use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a parallel C"
+              + " program")
   private boolean useMPOR = false;
 
   @Option(
@@ -805,7 +807,8 @@ public class CoreComponentsFactory {
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
-        || useRandomTestCaseGeneratorAlgorithm) {
+        || useRandomTestCaseGeneratorAlgorithm
+        || useMPOR) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
