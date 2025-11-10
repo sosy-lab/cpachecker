@@ -2756,68 +2756,77 @@ class ASTConverter {
 
     // convert all designators
     for (ICASTDesignator designator : desInit) {
-      if (designator instanceof ICASTFieldDesignator iCASTFieldDesignator) {
-        // Special case: One field designator in the C code may be
-        // resolved to multiple designators internally, because CPAchecker represents anonymous
-        // types explicitly by name (.a may become .some_anon_name1.some_anon_name_n.a)
-        DesignatorsAndLastType resolvedDesignators =
-            resolveFieldDesignator(
-                fileLoc, currentOwnerType, convert(iCASTFieldDesignator.getName()));
-        designators.addAll(resolvedDesignators.designators());
-        currentOwnerType = resolvedDesignators.lastOwnerType();
-
-      } else {
-        CDesignator resolvedDesignator =
-            switch (designator) {
-              case ICASTArrayDesignator iCASTArrayDesignator -> {
-                // If an array designator is applied to an array type,
-                // we assume that the array type was not yet resolved to the type of its elements,
-                // and we do this here.
-                if (currentOwnerType instanceof CArrayType arrayType) {
-                  currentOwnerType = arrayType.getType().getCanonicalType();
-                }
-                yield new CArrayDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iCASTArrayDesignator.getSubscriptExpression()));
-              }
-              case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator -> {
-                // If an array range designator is applied to an array type,
-                // we assume that the array type was not yet resolved to the type of its elements,
-                // and we do this here.
-                if (currentOwnerType instanceof CArrayType arrayType) {
-                  currentOwnerType = arrayType.getType().getCanonicalType();
-                }
-                yield new CArrayRangeDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeFloor()),
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeCeiling()));
-              }
-              default -> throw parseContext.parseError("Unsupported Designator", designator);
-            };
-        designators.add(resolvedDesignator);
-      }
+      DesignatorsAndLastType resolvedDesignator =
+          switch (designator) {
+            case ICASTFieldDesignator fieldDesignator ->
+                resolveFieldDesignator(fileLoc, currentOwnerType, fieldDesignator);
+            case ICASTArrayDesignator arrayDesignator ->
+                resolveArrayDesignator(fileLoc, currentOwnerType, arrayDesignator);
+            case IGCCASTArrayRangeDesignator arrayRangeDesignator ->
+                resolveArrayRangeDesignator(fileLoc, currentOwnerType, arrayRangeDesignator);
+            default -> throw parseContext.parseError("Unsupported Designator", designator);
+          };
+      designators.addAll(resolvedDesignator.designators());
+      currentOwnerType = resolvedDesignator.lastOwnerType();
     }
     CInitializer cInit = convert(init.getOperand(), currentOwnerType, declaration);
 
     return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
-  private record DesignatorsAndLastType(List<CFieldDesignator> designators, CType lastOwnerType) {}
+  private record DesignatorsAndLastType(List<CDesignator> designators, CType lastOwnerType) {}
+
+  private DesignatorsAndLastType resolveArrayDesignator(
+      FileLocation fileLoc, CType ownerType, ICASTArrayDesignator arrayDesignator) {
+
+    final CType elementType;
+    if (ownerType instanceof CArrayType arrayType) {
+      elementType = arrayType.getType().getCanonicalType();
+    } else {
+      // If an array designator is applied to a type different from array,
+      // we assume that the array type was already resolved by a parent initializer list.
+      elementType = ownerType;
+    }
+
+    CExpression subscriptExpression =
+        convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression());
+    CDesignator designator = new CArrayDesignator(fileLoc, subscriptExpression);
+    return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
+  }
+
+  private DesignatorsAndLastType resolveArrayRangeDesignator(
+      FileLocation fileLoc, CType ownerType, IGCCASTArrayRangeDesignator rangeDesignator) {
+
+    final CType elementType;
+    if (ownerType instanceof CArrayType arrayType) {
+      elementType = arrayType.getType().getCanonicalType();
+    } else {
+      // If an array designator is applied to a type different from array,
+      // we assume that the array type was already resolved by a parent initializer list.
+      elementType = ownerType;
+    }
+
+    CExpression rangeFloor = convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor());
+    CExpression rangeCeiling =
+        convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling());
+
+    CDesignator designator = new CArrayRangeDesignator(fileLoc, rangeFloor, rangeCeiling);
+    return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
+  }
 
   private DesignatorsAndLastType resolveFieldDesignator(
-      FileLocation fileLoc, CType ownerType, String fieldName) {
+      FileLocation fileLoc, CType ownerType, ICASTFieldDesignator fieldDesignator) {
 
-    final List<CFieldDesignator> designators;
+    String targetFieldName = convert(fieldDesignator.getName());
+
+    final List<CDesignator> designators;
     CType currentOwnerType = ownerType;
     if (ownerType instanceof CCompositeType compositeType) {
       List<Pair<String, CType>> wayToField =
-          getWayToInnerField(compositeType, fieldName, fileLoc, new ArrayList<>());
+          getWayToInnerField(compositeType, targetFieldName, fileLoc, new ArrayList<>());
       Preconditions.checkState(!wayToField.isEmpty());
 
-      ImmutableList.Builder<CFieldDesignator> listBuilder =
+      ImmutableList.Builder<CDesignator> listBuilder =
           ImmutableList.builderWithExpectedSize(wayToField.size());
       for (Pair<String, CType> wayToFieldPair : wayToField) {
         String name = wayToFieldPair.getFirst();
@@ -2827,7 +2836,7 @@ class ASTConverter {
       designators = listBuilder.build();
 
     } else {
-      designators = ImmutableList.of(new CFieldDesignator(fileLoc, fieldName));
+      designators = ImmutableList.of(new CFieldDesignator(fileLoc, targetFieldName));
     }
     return new DesignatorsAndLastType(designators, currentOwnerType);
   }
