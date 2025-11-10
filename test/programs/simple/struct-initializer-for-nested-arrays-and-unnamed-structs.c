@@ -33,7 +33,14 @@ struct AllPatterns {
       struct {
         int b[2];
       };
-    } uniArray[2];
+    } multipleArrays[2];
+
+    struct {
+      int g;
+      struct {
+        int h;
+      };
+    } otherStructArray[5];
 };
 
 int main(void) {
@@ -48,7 +55,8 @@ int main(void) {
         .pointArray[2] = {{.x = 55, 56}, {60, {61}}},
         .pointArray[3] = {{.x = 65, {66}}, {70, {.nestedy = 71}}},
         .pointArray[4] = {{.x = 75, { .nestedy = 76 }}, {.x = 80, .nestedy = 81}},
-        .uniArray = {{{100, 101}, {102, 103}}, {.a = {115, 116}, {{117, 118}}}},
+        .multipleArrays = {{{100, 101}, {102, 103}}, {.a = {115, 116}, {{117, 118}}}},
+        .otherStructArray = { [0 ... 2] = {.g = 130, {.h = 131}}, [3 ... 4] = {.g = 135, .h = 136}},
     };
 
     if (data1.nestedPointx != 20) { goto ERROR; }
@@ -78,14 +86,24 @@ int main(void) {
     if (data1.pointArray[4][0].nestedy != 76) { goto ERROR; }
     if (data1.pointArray[4][1].x != 80) { goto ERROR; }
     if (data1.pointArray[4][1].nestedy != 81) { goto ERROR; }
-    if (data1.uniArray[0].a[0] != 100) { goto ERROR; }
-    if (data1.uniArray[0].a[1] != 101) { goto ERROR; }
-    if (data1.uniArray[0].b[0] != 102) { goto ERROR; }
-    if (data1.uniArray[0].b[1] != 103) { goto ERROR; }
-    if (data1.uniArray[1].a[0] != 115) { goto ERROR; }
-    if (data1.uniArray[1].a[1] != 116) { goto ERROR; }
-    if (data1.uniArray[1].b[0] != 117) { goto ERROR; }
-    if (data1.uniArray[1].b[1] != 118) { goto ERROR; }
+    if (data1.multipleArrays[0].a[0] != 100) { goto ERROR; }
+    if (data1.multipleArrays[0].a[1] != 101) { goto ERROR; }
+    if (data1.multipleArrays[0].b[0] != 102) { goto ERROR; }
+    if (data1.multipleArrays[0].b[1] != 103) { goto ERROR; }
+    if (data1.multipleArrays[1].a[0] != 115) { goto ERROR; }
+    if (data1.multipleArrays[1].a[1] != 116) { goto ERROR; }
+    if (data1.multipleArrays[1].b[0] != 117) { goto ERROR; }
+    if (data1.multipleArrays[1].b[1] != 118) { goto ERROR; }
+    if (data1.otherStructArray[0].g != 130) { goto ERROR; }
+    if (data1.otherStructArray[0].h != 131) { goto ERROR; }
+    if (data1.otherStructArray[1].g != 130) { goto ERROR; }
+    if (data1.otherStructArray[1].h != 131) { goto ERROR; }
+    if (data1.otherStructArray[2].g != 130) { goto ERROR; }
+    if (data1.otherStructArray[2].h != 131) { goto ERROR; }
+    if (data1.otherStructArray[3].g != 135) { goto ERROR; }
+    if (data1.otherStructArray[3].h != 136) { goto ERROR; }
+    if (data1.otherStructArray[4].g != 135) { goto ERROR; }
+    if (data1.otherStructArray[4].h != 136) { goto ERROR; }
 
     return 0;
 
