@@ -19,6 +19,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 
@@ -27,17 +28,15 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   @Serial private static final long serialVersionUID = -8910967707373729034L;
-  private final @Nullable String functionName;
+  private final Optional<String> functionName;
   private final String identifier;
-  private final @Nullable Long offset;
+  private final Optional<Long> offset;
 
   private MemoryLocation(
-      @Nullable String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
-    checkNotNull(pIdentifier);
-
-    functionName = pFunctionName;
-    identifier = pIdentifier;
-    offset = pOffset;
+      Optional<String> pFunctionName, String pIdentifier, Optional<Long> pOffset) {
+    functionName = checkNotNull(pFunctionName);
+    identifier = checkNotNull(pIdentifier);
+    offset = checkNotNull(pOffset);
   }
 
   @Override
@@ -69,7 +68,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * should be used for global variables.
    */
   public static MemoryLocation forIdentifier(String pIdentifier) {
-    return new MemoryLocation(null, pIdentifier, null);
+    return new MemoryLocation(Optional.empty(), pIdentifier, Optional.empty());
   }
 
   /**
@@ -77,19 +76,31 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * Typically, this should be used for global variables.
    */
   public static MemoryLocation forIdentifier(String pIdentifier, long pOffset) {
-    return new MemoryLocation(null, pIdentifier, pOffset);
+    return new MemoryLocation(Optional.empty(), pIdentifier, Optional.of(pOffset));
   }
 
   public static MemoryLocation forLocalVariable(String pFunctionName, String pIdentifier) {
-    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, null);
+    return new MemoryLocation(Optional.of(pFunctionName), pIdentifier, Optional.empty());
   }
 
   public static MemoryLocation forLocalVariable(
       String pFunctionName, String pIdentifier, long pOffset) {
-    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, pOffset);
+    return new MemoryLocation(Optional.of(pFunctionName), pIdentifier, Optional.of(pOffset));
   }
 
-  private static MemoryLocation fromQualifiedName(String pIdentifier, @Nullable Long pOffset) {
+  /**
+   * Create an instance using a qualified name of a declaration as returned by {@link
+   * ASimpleDeclaration#getQualifiedName()}.
+   */
+  public static MemoryLocation fromQualifiedName(String pIdentifier, long pOffset) {
+    return fromQualifiedName(pIdentifier).withAddedOffset(pOffset);
+  }
+
+  /**
+   * Create an instance using a qualified name of a declaration as returned by {@link
+   * ASimpleDeclaration#getQualifiedName()}.
+   */
+  public static MemoryLocation fromQualifiedName(String pIdentifier) {
     String functionName;
     String identifier;
     int separatorIndex = pIdentifier.indexOf("::");
@@ -101,23 +112,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       functionName = null;
       identifier = pIdentifier;
     }
-    return new MemoryLocation(functionName, identifier, pOffset);
-  }
-
-  /**
-   * Create an instance using a qualified name of a declaration as returned by {@link
-   * ASimpleDeclaration#getQualifiedName()}.
-   */
-  public static MemoryLocation fromQualifiedName(String pIdentifier) {
-    return fromQualifiedName(pIdentifier, null);
-  }
-
-  /**
-   * Create an instance using a qualified name of a declaration as returned by {@link
-   * ASimpleDeclaration#getQualifiedName()}.
-   */
-  public static MemoryLocation fromQualifiedName(String pIdentifier, long pOffset) {
-    return fromQualifiedName(pIdentifier, Long.valueOf(pOffset));
+    return new MemoryLocation(Optional.ofNullable(functionName), identifier, Optional.empty());
   }
 
   /** Create an instance from a string that was produced by {@link #getExtendedQualifiedName()}. */
@@ -137,14 +132,15 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(functionName, varName, offset);
+      return new MemoryLocation(Optional.of(functionName), varName, Optional.ofNullable(offset));
 
     } else {
       String varName = nameParts.getFirst();
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
+      return new MemoryLocation(
+          Optional.empty(), varName.replace("/" + offset, ""), Optional.ofNullable(offset));
     }
   }
 
@@ -154,7 +150,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    */
   public String getExtendedQualifiedName() {
     String variableName = getQualifiedName();
-    if (offset == null) {
+    if (offset.isEmpty()) {
       return variableName;
     }
     return variableName + "/" + offset;
@@ -167,19 +163,20 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * @return a String representing the qualified name consisting of function name and identifier.
    */
   public String getQualifiedName() {
-    return isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
+    return isOnFunctionStack() ? (functionName.orElseThrow() + "::" + identifier) : identifier;
   }
 
   public boolean isOnFunctionStack() {
-    return functionName != null;
+    return functionName.isPresent();
   }
 
   public boolean isOnFunctionStack(String pFunctionName) {
-    return functionName != null && pFunctionName.equals(functionName);
+    return isOnFunctionStack() && pFunctionName.equals(functionName.orElseThrow());
   }
 
+  /** Returns the name of the function . Throws for global variables. */
   public String getFunctionName() {
-    return checkNotNull(functionName);
+    return functionName.orElseThrow();
   }
 
   public String getIdentifier() {
@@ -187,7 +184,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   public boolean isReference() {
-    return offset != null;
+    return offset.isPresent();
   }
 
   /**
@@ -197,19 +194,19 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * @return the offset of a reference.
    */
   public long getOffset() {
-    checkState(offset != null, "memory location '%s' has no offset", this);
-    return offset;
+    checkState(offset.isPresent(), "memory location '%s' has no offset", this);
+    return offset.orElseThrow();
   }
 
   /** Return new instance without offset. */
   public MemoryLocation getReferenceStart() {
     checkState(isReference(), "Memory location is no reference: %s", this);
-    return new MemoryLocation(functionName, identifier, null);
+    return new MemoryLocation(functionName, identifier, Optional.empty());
   }
 
   /** Return a new instance with replaced offset. */
   public MemoryLocation withOffset(long pNewOffset) {
-    return new MemoryLocation(functionName, identifier, pNewOffset);
+    return new MemoryLocation(functionName, identifier, Optional.of(pNewOffset));
   }
 
   /**
@@ -217,8 +214,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * offset is not set, 0 is used as its value.
    */
   public MemoryLocation withAddedOffset(long pAddToOffset) {
-    long oldOffset = offset == null ? 0 : offset;
-    return new MemoryLocation(functionName, identifier, oldOffset + pAddToOffset);
+    long oldOffset = offset.isEmpty() ? 0 : offset.orElseThrow();
+    return new MemoryLocation(functionName, identifier, Optional.of(oldOffset + pAddToOffset));
   }
 
   @Override
@@ -229,9 +226,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   @Override
   public int compareTo(MemoryLocation other) {
     return ComparisonChain.start()
-        .compare(functionName, other.functionName, Ordering.natural().nullsFirst())
+        .compare(
+            functionName.orElse(null),
+            other.functionName.orElse(null),
+            Ordering.natural().nullsFirst())
         .compare(identifier, other.identifier)
-        .compare(offset, other.offset, Ordering.natural().nullsFirst())
+        .compare(offset.orElse(null), other.offset.orElse(null), Ordering.natural().nullsFirst())
         .result();
   }
 }
