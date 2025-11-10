@@ -19,12 +19,6 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--smgSymbolicExecution"/>
   </rundefinition>
 
-  <resultfiles>**/witness*.*</resultfiles>
-  <option name="--option">cpa.arg.compressWitness=true</option>
-  <option name="--option">counterexample.export.compressWitness=true</option>
-  <option name="--option">counterexample.export.graphml=witness.graphml</option>
-  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-
   <option name="--no-output-files"/>
   <option name="--heap">6000M</option>
 
