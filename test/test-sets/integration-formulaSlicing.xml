@@ -17,6 +17,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <option name="--formula-slicing"/>
     <option name="--option">cpa.reportFalseAsUnknown=true</option>
+    <option name="--preprocess"/>
 
     <rundefinition>
         <tasks>
