@@ -216,18 +216,18 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors.
    */
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
-    if (!(value instanceof AddressExpression address1)) {
+    if (!(value instanceof AddressExpression addressExpr)) {
       return ValueAndSMGState.of(value, state);
     }
 
-    Value offsetValue = address1.getOffset();
+    Value offsetValue = addressExpr.getOffset();
     if (offsetValue.isNumericValue()
         && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
-      return ValueAndSMGState.of(address1.getMemoryAddress(), state);
+      return ValueAndSMGState.of(addressExpr.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
       Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTargetAndOffset =
-          state.getPointsToTarget(address1.getMemoryAddress());
+          state.getPointsToTarget(addressExpr.getMemoryAddress());
       if (maybeTargetAndOffset.isEmpty()) {
         return ValueAndSMGState.ofUnknownValue(
             state, "Returned unknown value due to unknown target or offset in address evaluated.");
@@ -370,7 +370,7 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * This creates or finds and returns the address Value for the underyling expression. This also
+   * This creates or finds and returns the address Value for the underlying expression. This also
    * creates the pointers in the SMG if not yet created. Throws the exception only if either there
    * is no object or if nonsensical addresses are requested; i.e. &3; Used with the & operator for
    * example.
