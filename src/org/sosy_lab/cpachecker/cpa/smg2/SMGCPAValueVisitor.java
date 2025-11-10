@@ -573,6 +573,14 @@ public class SMGCPAValueVisitor
       boolean rightIsNumeric = rightValue instanceof NumericValue;
       checkState(!(leftIsNumeric && rightIsNumeric));
 
+      ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
+      leftValue = leftValueAndState.getValue();
+      ValueAndSMGState rightValueAndState =
+          evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
+      rightValue = rightValueAndState.getValue();
+      currentState = rightValueAndState.getState();
+      // From this pointer forward, there is no AddressExpressions anymore
+
       switch (binaryOperator) {
         case EQUALS -> {
           // address == address or address == not address
@@ -593,26 +601,7 @@ public class SMGCPAValueVisitor
         }
 
         case PLUS, MINUS -> {
-          Value leftAddrExpr = nonConstLeftValue;
-          if (!(nonConstLeftValue instanceof AddressExpression)
-              && evaluator.isPointerValue(nonConstLeftValue, currentState)
-              && !leftAddrExpr.isExplicitlyKnown()) {
-            leftAddrExpr =
-                AddressExpression.withZeroOffset(
-                    nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
-          }
-          Value rightAddrExpr = nonConstRightValue;
-          if (!(nonConstRightValue instanceof AddressExpression)
-              && evaluator.isPointerValue(nonConstRightValue, currentState)
-              && !rightAddrExpr.isExplicitlyKnown()) {
-            rightAddrExpr =
-                AddressExpression.withZeroOffset(
-                    nonConstRightValue,
-                    SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
-          }
-          // Pointer arithmetics case and fall through (handled inside the method)
-          // i.e. address + 3
-          // (This only handles address +- value!)
+          // TODO: make sure this handled normal pointers only (no addressExpr)!
           return calculatePointerArithmetics(
               leftAddrExpr,
               rightAddrExpr,
@@ -625,25 +614,7 @@ public class SMGCPAValueVisitor
         }
 
         case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
-          // < <= > >=
-          // For the same memory, we can check < etc.
-          // First check that left and right point to the SAME memory region
-          // Check that both Values are truly addresses
-          ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-          leftValue = leftValueAndState.getValue();
-          ValueAndSMGState rightValueAndState =
-              evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-          rightValue = rightValueAndState.getValue();
-          currentState = rightValueAndState.getState();
-          if (!evaluator.isPointerValue(rightValue, currentState)
-              || !evaluator.isPointerValue(leftValue, currentState)) {
-            return ImmutableList.of(
-                ValueAndSMGState.ofUnknownValue(
-                    currentState,
-                    "Returned unknown value due to non-address value in binary pointer comparison"
-                        + " expression in ",
-                    cfaEdge));
-          }
+          // TODO: this is wrong for abstracted targets! Fix!
           if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
             // This is undefined behavior in C99/C11
             // But since we don't really handle this we just return unknown :D
@@ -2782,6 +2753,7 @@ public class SMGCPAValueVisitor
     CType rightType = expr.getOperand2().getExpressionType().getCanonicalType();
     BinaryOperator op = expr.getOperator();
 
+    // Filter out non-pointer arithmetic operators
     if (!op.isLogicalOperator() && op != PLUS && op != BinaryOperator.MINUS) {
       return false;
     }
@@ -2812,10 +2784,37 @@ public class SMGCPAValueVisitor
     }
 
     if (op.isLogicalOperator()) {
-      // Both need to be pointers!
+      // Both need to be pointers with the same type!
       // TODO: comparison by types OK?
-      if (!(leftIsPointer && rightIsPointer
-          || (leftType instanceof CPointerType && rightType instanceof CPointerType))) {
+      if (!(leftType instanceof CPointerType leftPtrType
+          && rightType instanceof CPointerType rightPtrType)) {
+        if (leftType instanceof CArrayType && rightType instanceof CArrayType) {
+          // TODO: do they count?
+          logger.logf(
+              Level.WARNING,
+              "Binary comparison with operator %s, left-hand type %s, and right-hand type %s not"
+                  + " recognized as pointer arithmetics in %s",
+              op,
+              leftType,
+              rightType,
+              cfaEdge);
+        }
+        return false;
+      }
+      if (!leftPtrType
+          .getType()
+          .getCanonicalType()
+          .equals(rightPtrType.getType().getCanonicalType())) {
+        if (rightIsPointer && leftIsPointer) {
+          logger.logf(
+              Level.WARNING,
+              "Binary comparison with 2 pointer values, operator %s, left-hand type %s, and"
+                  + " right-hand type %s not recognized as pointer arithmetics in %s",
+              op,
+              leftType,
+              rightType,
+              cfaEdge);
+        }
         return false;
       }
     }
