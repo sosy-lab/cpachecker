@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -73,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -217,6 +220,9 @@ public class SMGCPAExpressionEvaluator {
    */
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
     if (!(value instanceof AddressExpression addressExpr)) {
+      checkState(
+          value instanceof ConstantSymbolicExpression constValue
+              && !(constValue.getValue() instanceof AddressExpression));
       return ValueAndSMGState.of(value, state);
     }
 
