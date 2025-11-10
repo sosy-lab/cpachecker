@@ -527,9 +527,10 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
-    final CExpression lVarInBinaryExp = e.getOperand1();
-    final CExpression rVarInBinaryExp = e.getOperand2();
-    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
+
+    if (leftValue.isUnknown() && rightValue.isUnknown()) {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+    }
 
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
@@ -553,6 +554,15 @@ public class SMGCPAValueVisitor
     }
 
     if (isPointerArithmetics(leftValue, rightValue, e, currentState)) {
+      // At least one value is a pointer.
+      // This pointer may not be numeric (0).
+      // If both are pointers, they may not be both numeric (0).
+      // Non-pointers may be numeric, symbolic or unknown.
+
+      if (leftValue.isUnknown() || rightValue.isUnknown()) {
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+      }
+      // Values might still be symbolic non-pointers!
 
       // It is possible that addresses get cast to int or smth like it
       // Then the SymbolicIdentifier is returned not in an AddressExpression
@@ -569,56 +579,55 @@ public class SMGCPAValueVisitor
           && currentState.isPointer(constLeft.getValue())) {
         nonConstLeftValue = constLeft.getValue();
       }
-      boolean leftIsNumeric = leftValue instanceof NumericValue;
-      boolean rightIsNumeric = rightValue instanceof NumericValue;
-      checkState(!(leftIsNumeric && rightIsNumeric));
 
-      ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-      leftValue = leftValueAndState.getValue();
+      ValueAndSMGState leftValueAndState =
+          evaluator.unpackAddressExpression(nonConstLeftValue, state);
+      nonConstLeftValue = leftValueAndState.getValue();
       ValueAndSMGState rightValueAndState =
-          evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-      rightValue = rightValueAndState.getValue();
+          evaluator.unpackAddressExpression(nonConstRightValue, leftValueAndState.getState());
+      nonConstRightValue = rightValueAndState.getValue();
       currentState = rightValueAndState.getState();
       // From this pointer forward, there is no AddressExpressions anymore
 
-      switch (binaryOperator) {
-        case EQUALS -> {
-          // address == address or address == not address
-          return ImmutableList.of(
-              ValueAndSMGState.of(
-                  evaluator.checkEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
-                  currentState));
-        }
+      boolean leftIsNumeric = nonConstLeftValue instanceof NumericValue;
+      boolean rightIsNumeric = nonConstRightValue instanceof NumericValue;
+      Preconditions.checkState(!(leftIsNumeric && rightIsNumeric));
 
-        case NOT_EQUALS -> {
-          // address != address or address != not address
-          return ImmutableList.of(
-              ValueAndSMGState.of(
-                  evaluator.checkNonEqualityForAddresses(
-                      nonConstLeftValue, nonConstRightValue, currentState),
-                  currentState));
-        }
+      return switch (binaryOperator) {
+        case EQUALS ->
+            // address == address or address == not address
+            ImmutableList.of(
+                ValueAndSMGState.of(
+                    evaluator.checkEqualityForAddresses(
+                        nonConstLeftValue, nonConstRightValue, currentState),
+                    currentState));
 
-        case PLUS, MINUS -> {
-          // TODO: make sure this handled normal pointers only (no addressExpr)!
-          return calculatePointerArithmetics(
-              leftAddrExpr,
-              rightAddrExpr,
-              binaryOperator,
-              e.getExpressionType(),
-              calculationType,
-              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
-              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-              currentState);
-        }
+        case NOT_EQUALS ->
+            // address != address or address != not address
+            ImmutableList.of(
+                ValueAndSMGState.of(
+                    evaluator.checkNonEqualityForAddresses(
+                        nonConstLeftValue, nonConstRightValue, currentState),
+                    currentState));
+
+        case PLUS, MINUS ->
+            // TODO: make sure this handled normal pointers only (no addressExpr)!
+            calculatePointerArithmetics(
+                nonConstLeftValue,
+                nonConstRightValue,
+                binaryOperator,
+                e.getExpressionType(),
+                calculationType,
+                SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
+                SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
+                currentState);
 
         case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
           // TODO: this is wrong for abstracted targets! Fix!
-          if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
+          if (!currentState.pointsToSameMemoryRegion(nonConstLeftValue, nonConstRightValue)) {
             // This is undefined behavior in C99/C11
             // But since we don't really handle this we just return unknown :D
-            return ImmutableList.of(
+            yield ImmutableList.of(
                 ValueAndSMGState.ofUnknownValue(
                     currentState,
                     "Returned unknown value due to address values in binary pointer comparison"
@@ -627,10 +636,10 @@ public class SMGCPAValueVisitor
           }
 
           // Then get the offsets
-          Value offsetLeft = currentState.getPointerOffset(leftValue);
-          Value offsetRight = currentState.getPointerOffset(rightValue);
+          Value offsetLeft = currentState.getPointerOffset(nonConstLeftValue);
+          Value offsetRight = currentState.getPointerOffset(nonConstRightValue);
           if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-            return ImmutableList.of(
+            yield ImmutableList.of(
                 ValueAndSMGState.ofUnknownValue(
                     currentState,
                     "Returned unknown value due to unknown offset value(s) in binary pointer"
@@ -639,9 +648,14 @@ public class SMGCPAValueVisitor
           }
 
           // Create binary expr with offsets and restart this with it
-          return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+          yield handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
         }
-      }
+
+        // Can never happen
+        default ->
+            throw new IllegalStateException(
+                "Unexpected binary operator " + binaryOperator + " for pointer arithmetics");
+      };
     }
 
     // TODO: export
@@ -1901,7 +1915,10 @@ public class SMGCPAValueVisitor
       throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
-    checkState(binaryOperator == PLUS || binaryOperator == BinaryOperator.MINUS);
+    Preconditions.checkState(binaryOperator == PLUS || binaryOperator == MINUS);
+    boolean leftIsPointer = currentState.isPointer(leftValue);
+    boolean rightIsPointer = currentState.isPointer(rightValue);
+    Preconditions.checkState(leftIsPointer || rightIsPointer);
 
     // The canonical type is the return type of the pointer expression!
     CType canonicalReturnType = expressionType.getCanonicalType();
@@ -1972,7 +1989,7 @@ public class SMGCPAValueVisitor
       Value addressOffset = addressValue.getOffset();
       if (!leftValue.isNumericValue()
           || !addressOffset.isNumericValue()
-          || binaryOperator == BinaryOperator.MINUS) {
+          || binaryOperator == MINUS) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -2029,7 +2046,7 @@ public class SMGCPAValueVisitor
       // This fails if the underlying structure is not the same!
       // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
       // are not equal but refer to the same structure!
-      if (binaryOperator != BinaryOperator.MINUS
+      if (binaryOperator != MINUS
           || !rightOffset.isNumericValue()
           || !leftOffset.isNumericValue()) {
         // TODO: symbolic values if possible
@@ -2163,7 +2180,7 @@ public class SMGCPAValueVisitor
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
-      CBinaryExpression.BinaryOperator pOperator,
+      BinaryOperator pOperator,
       CType pExpressionType,
       CType pCalculationType)
       throws SMGException {
@@ -2182,8 +2199,7 @@ public class SMGCPAValueVisitor
     // TODO Move this code to the methods in SymbolicValueFactory?
     if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().hasFloatType()) {
       FloatValue leftNum = pLeftValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(
-                  PLUS, BinaryOperator.MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
+      if (ImmutableList.of(PLUS, MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
               .contains(pOperator)
           && leftNum.isNan()) {
         return pLeftValue;
@@ -2191,8 +2207,7 @@ public class SMGCPAValueVisitor
     }
     if (pRightValue.isNumericValue() && pRightValue.asNumericValue().hasFloatType()) {
       FloatValue rightNum = pRightValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(
-                  PLUS, BinaryOperator.MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
+      if (ImmutableList.of(PLUS, MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
               .contains(pOperator)
           && rightNum.isNan()) {
         return pRightValue;
@@ -2208,7 +2223,7 @@ public class SMGCPAValueVisitor
           return factory.cast(rightOperand, pExpressionType);
         }
         return rightOperand;
-      } else if (pOperator == BinaryOperator.MINUS && leftNum.equals(BigInteger.ZERO)) {
+      } else if (pOperator == MINUS && leftNum.equals(BigInteger.ZERO)) {
         return factory.negate(rightOperand, pExpressionType);
       } else if ((pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
@@ -2219,7 +2234,7 @@ public class SMGCPAValueVisitor
       BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
       if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == PLUS && rightNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
+          || (pOperator == MINUS && rightNum.equals(BigInteger.ZERO))) {
         if (!pLeftType.equals(pExpressionType)) {
           return factory.cast(leftOperand, pExpressionType);
         }
@@ -2785,11 +2800,11 @@ public class SMGCPAValueVisitor
 
     if (op.isLogicalOperator()) {
       // Both need to be pointers with the same type!
-      // TODO: comparison by types OK?
       if (!(leftType instanceof CPointerType leftPtrType
           && rightType instanceof CPointerType rightPtrType)) {
         if (leftType instanceof CArrayType && rightType instanceof CArrayType) {
-          // TODO: do they count?
+          // Arrays do not count towards pointer arithmetics, but I want to see whether we encounter
+          // this case and we missed something!
           logger.logf(
               Level.WARNING,
               "Binary comparison with operator %s, left-hand type %s, and right-hand type %s not"
