@@ -71,8 +71,8 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>) super.getParameters();
+  public ImmutableList<CParameterDeclaration> getParameters() {
+    return (ImmutableList<CParameterDeclaration>) super.getParameters();
   }
 
   @Override

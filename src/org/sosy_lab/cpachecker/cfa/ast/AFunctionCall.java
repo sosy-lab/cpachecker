@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 public interface AFunctionCall extends AStatement {
 
@@ -18,7 +18,7 @@ public interface AFunctionCall extends AStatement {
     return getFunctionCallExpression().getDeclaration();
   }
 
-  default List<? extends AExpression> getParameterExpressions() {
+  default ImmutableList<? extends AExpression> getParameterExpressions() {
     return getFunctionCallExpression().getParameterExpressions();
   }
 }
