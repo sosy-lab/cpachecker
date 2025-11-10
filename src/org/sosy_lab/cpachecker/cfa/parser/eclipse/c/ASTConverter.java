@@ -2770,16 +2770,24 @@ class ASTConverter {
         CDesignator resolvedDesignator =
             switch (designator) {
               case ICASTArrayDesignator iCASTArrayDesignator -> {
-                Preconditions.checkState(currentOwnerType instanceof CArrayType);
-                currentOwnerType = ((CArrayType) currentOwnerType).getType().getCanonicalType();
+                // If an array designator is applied to an array type,
+                // we assume that the array type was not yet resolved to the type of its elements,
+                // and we do this here.
+                if (currentOwnerType instanceof CArrayType arrayType) {
+                  currentOwnerType = arrayType.getType().getCanonicalType();
+                }
                 yield new CArrayDesignator(
                     fileLoc,
                     convertExpressionWithoutSideEffects(
                         iCASTArrayDesignator.getSubscriptExpression()));
               }
               case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator -> {
-                Preconditions.checkState(currentOwnerType instanceof CArrayType);
-                currentOwnerType = ((CArrayType) currentOwnerType).getType().getCanonicalType();
+                // If an array range designator is applied to an array type,
+                // we assume that the array type was not yet resolved to the type of its elements,
+                // and we do this here.
+                if (currentOwnerType instanceof CArrayType arrayType) {
+                  currentOwnerType = arrayType.getType().getCanonicalType();
+                }
                 yield new CArrayRangeDesignator(
                     fileLoc,
                     convertExpressionWithoutSideEffects(
