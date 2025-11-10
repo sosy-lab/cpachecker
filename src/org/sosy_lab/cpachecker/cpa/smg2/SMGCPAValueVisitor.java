@@ -494,40 +494,25 @@ public class SMGCPAValueVisitor
 
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
-    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
+    return handleBinaryOperation(lVarInBinaryExp, rVarInBinaryExp, e);
+  }
+
+  private List<ValueAndSMGState> handleBinaryOperation(
+      CExpression lVarInBinaryExp, CExpression rVarInBinaryExp, CBinaryExpression e)
+      throws CPATransferException {
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
       Value leftValue = leftValueAndState.getValue();
       SMGState currentState = leftValueAndState.getState();
-      // We can't work with unknowns
-      // Return the unknown value directly and not a new one! The mapping to the Value
-      // object is important!
-      if (leftValue.isUnknown()) {
-        resultBuilder.add(
-            ValueAndSMGState.ofUnknownValue(
-                currentState,
-                "Returned unknown value due unknown left value in binary expression in ",
-                cfaEdge));
-        continue;
-      }
 
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(
-                  evaluator, leftValueAndState.getState(), cfaEdge, logger, options))) {
+              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options))) {
 
         currentState = rightValueAndState.getState();
-
         Value rightValue = rightValueAndState.getValue();
-        if (rightValue.isUnknown()) {
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due unknown right value in binary expression in ",
-                  cfaEdge));
-          continue;
-        }
-
         resultBuilder.addAll(handleBinaryOperation(leftValue, rightValue, e, currentState));
       }
     }
@@ -542,8 +527,6 @@ public class SMGCPAValueVisitor
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
     final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
-    Preconditions.checkArgument(!leftValue.isUnknown());
-    Preconditions.checkArgument(!rightValue.isUnknown());
 
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
