@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -20,8 +21,8 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
   @Serial private static final long serialVersionUID = -2879361994769890189L;
 
   private final SvLibProcedureDeclaration procedureDeclaration;
-  private final List<SvLibTerm> arguments;
-  private final List<SvLibVariableDeclaration> returnVariables;
+  private final ImmutableList<SvLibTerm> arguments;
+  private final ImmutableList<SvLibVariableDeclaration> returnVariables;
 
   public SvLibProcedureCallStatement(
       FileLocation pFileLocation,
@@ -32,8 +33,8 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
       List<SvLibVariableDeclaration> pReturnVariables) {
     super(pFileLocation, pTagAttributes, pTagReferences);
     procedureDeclaration = pProcedureDeclaration;
-    arguments = pArguments;
-    returnVariables = pReturnVariables;
+    arguments = ImmutableList.copyOf(pArguments);
+    returnVariables = ImmutableList.copyOf(pReturnVariables);
   }
 
   public SvLibProcedureDeclaration getProcedureDeclaration() {
@@ -79,7 +80,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public List<SvLibVariableDeclaration> getReturnVariables() {
+  public ImmutableList<SvLibVariableDeclaration> getReturnVariables() {
     return returnVariables;
   }
 
@@ -97,7 +98,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
   }
 
   @Override
-  public List<SvLibTerm> getParameterExpressions() {
+  public ImmutableList<SvLibTerm> getParameterExpressions() {
     return arguments;
   }
 

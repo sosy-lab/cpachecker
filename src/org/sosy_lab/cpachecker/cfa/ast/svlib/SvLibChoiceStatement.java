@@ -9,13 +9,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 6120083959916315980L;
-  private final List<SvLibStatement> choices;
+  private final ImmutableList<SvLibStatement> choices;
 
   public SvLibChoiceStatement(
       List<SvLibStatement> pChoices,
@@ -23,7 +24,7 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    choices = pChoices;
+    choices = ImmutableList.copyOf(pChoices);
   }
 
   @Override
@@ -48,7 +49,7 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public List<SvLibStatement> getChoices() {
+  public ImmutableList<SvLibStatement> getChoices() {
     return choices;
   }
 

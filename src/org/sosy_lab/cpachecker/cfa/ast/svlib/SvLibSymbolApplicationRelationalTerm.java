@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,8 +24,8 @@ public final class SvLibSymbolApplicationRelationalTerm extends SvLibGeneralSymb
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<SvLibFinalRelationalTerm> getTerms() {
-    return (List<SvLibFinalRelationalTerm>) super.getTerms();
+  public ImmutableList<SvLibFinalRelationalTerm> getTerms() {
+    return (ImmutableList<SvLibFinalRelationalTerm>) ImmutableList.copyOf(super.getTerms());
   }
 
   @Override

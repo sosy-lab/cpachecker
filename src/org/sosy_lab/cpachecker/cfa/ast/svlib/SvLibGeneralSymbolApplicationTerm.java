@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -21,14 +22,14 @@ public abstract sealed class SvLibGeneralSymbolApplicationTerm implements SvLibF
   @Serial private static final long serialVersionUID = -1896197197042124013L;
 
   private final SvLibIdTerm symbol;
-  private final List<? extends SvLibFinalRelationalTerm> terms;
+  private final ImmutableList<? extends SvLibFinalRelationalTerm> terms;
   private final FileLocation fileLocation;
 
   protected SvLibGeneralSymbolApplicationTerm(
       SvLibIdTerm pSymbol,
       List<? extends SvLibFinalRelationalTerm> pTerms,
       FileLocation pFileLocation) {
-    terms = pTerms;
+    terms = ImmutableList.copyOf(pTerms);
     fileLocation = pFileLocation;
     symbol = pSymbol;
     Verify.verify(SvLibGeneralSymbolApplicationTerm.wellFormedTerms(symbol, terms));
@@ -47,7 +48,7 @@ public abstract sealed class SvLibGeneralSymbolApplicationTerm implements SvLibF
     return type;
   }
 
-  public @NonNull List<? extends SvLibFinalRelationalTerm> getTerms() {
+  public @NonNull ImmutableList<? extends SvLibFinalRelationalTerm> getTerms() {
     return terms;
   }
 

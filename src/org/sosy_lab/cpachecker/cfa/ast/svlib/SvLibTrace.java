@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,11 +17,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class SvLibTrace extends SvLibSelectTraceComponent {
 
   @Serial private static final long serialVersionUID = 6210509388439561283L;
-  private final List<SvLibTraceSetGlobalVariable> setGlobalVariables;
+  private final ImmutableList<SvLibTraceSetGlobalVariable> setGlobalVariables;
   private final SvLibTraceEntryCall entryCall;
-  private final List<SvLibTraceStep> steps;
+  private final ImmutableList<SvLibTraceStep> steps;
   private final SvLibViolatedProperty violatedProperty;
-  private final List<SvLibTraceSetTag> setTags;
+  private final ImmutableList<SvLibTraceSetTag> setTags;
 
   public SvLibTrace(
       List<SvLibTraceSetGlobalVariable> pSetGlobalVariables,
@@ -30,11 +31,11 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
       List<SvLibTraceSetTag> pSetTags,
       FileLocation pFileLocation) {
     super(pFileLocation);
-    setGlobalVariables = pSetGlobalVariables;
+    setGlobalVariables = ImmutableList.copyOf(pSetGlobalVariables);
     entryCall = pEntryCall;
-    steps = pSteps;
+    steps = ImmutableList.copyOf(pSteps);
     violatedProperty = pViolatedProperty;
-    setTags = pSetTags;
+    setTags = ImmutableList.copyOf(pSetTags);
   }
 
   @Override
@@ -64,7 +65,7 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public List<SvLibTraceSetGlobalVariable> getSetGlobalVariables() {
+  public ImmutableList<SvLibTraceSetGlobalVariable> getSetGlobalVariables() {
     return setGlobalVariables;
   }
 
@@ -72,7 +73,7 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     return entryCall;
   }
 
-  public List<SvLibTraceStep> getSteps() {
+  public ImmutableList<SvLibTraceStep> getSteps() {
     return steps;
   }
 
@@ -80,7 +81,7 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     return violatedProperty;
   }
 
-  public List<SvLibTraceSetTag> getSetTags() {
+  public ImmutableList<SvLibTraceSetTag> getSetTags() {
     return setTags;
   }
 

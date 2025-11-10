@@ -8,17 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class SvLibScript {
 
-  private final List<SvLibCommand> commands;
+  private final ImmutableList<SvLibCommand> commands;
 
   public SvLibScript(List<SvLibCommand> pCommands) {
-    commands = pCommands;
+    commands = ImmutableList.copyOf(pCommands);
   }
 
-  public List<SvLibCommand> getCommands() {
+  public ImmutableList<SvLibCommand> getCommands() {
     return commands;
   }
 

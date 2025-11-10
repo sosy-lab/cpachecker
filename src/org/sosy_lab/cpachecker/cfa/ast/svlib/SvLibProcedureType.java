@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,9 +20,9 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
 
   @Serial private static final long serialVersionUID = 5728816904538462642L;
   private final FileLocation fileLocation;
-  private final List<SvLibType> inputType;
-  private final List<SvLibType> localVariableTypes;
-  private final List<SvLibType> outputType;
+  private final ImmutableList<SvLibType> inputType;
+  private final ImmutableList<SvLibType> localVariableTypes;
+  private final ImmutableList<SvLibType> outputType;
 
   public SvLibProcedureType(
       FileLocation pFileLocation,
@@ -29,20 +30,20 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
       List<SvLibType> pLocalVariableTypes,
       List<SvLibType> pOutputType) {
     fileLocation = pFileLocation;
-    inputType = pInputType;
-    localVariableTypes = pLocalVariableTypes;
-    outputType = pOutputType;
+    inputType = ImmutableList.copyOf(pInputType);
+    localVariableTypes = ImmutableList.copyOf(pLocalVariableTypes);
+    outputType = ImmutableList.copyOf(pOutputType);
   }
 
   public FileLocation getFileLocation() {
     return fileLocation;
   }
 
-  public List<SvLibType> getInputType() {
+  public ImmutableList<SvLibType> getInputType() {
     return inputType;
   }
 
-  public List<SvLibType> getLocalVariableTypes() {
+  public ImmutableList<SvLibType> getLocalVariableTypes() {
     return localVariableTypes;
   }
 
@@ -98,7 +99,7 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   }
 
   @Override
-  public List<? extends SvLibType> getParameters() {
+  public ImmutableList<? extends SvLibType> getParameters() {
     return getInputType();
   }
 

@@ -9,13 +9,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 8121014592707608414L;
-  private final List<SvLibStatement> statements;
+  private final ImmutableList<SvLibStatement> statements;
   private final FileLocation fileLocation;
 
   public SvLibSequenceStatement(
@@ -24,11 +25,11 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    statements = pStatements;
+    statements = ImmutableList.copyOf(pStatements);
     fileLocation = pFileLocation;
   }
 
-  public List<SvLibStatement> getStatements() {
+  public ImmutableList<SvLibStatement> getStatements() {
     return statements;
   }
 

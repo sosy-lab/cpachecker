@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,13 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
   private final String tagName;
-  private final List<SvLibTagProperty> attributes;
+  private final ImmutableList<SvLibTagProperty> attributes;
 
   public SvLibTraceSetTag(
       FileLocation pFileLocation, String pTagName, List<SvLibTagProperty> pAttributes) {
     super(pFileLocation);
     tagName = pTagName;
-    attributes = pAttributes;
+    attributes = ImmutableList.copyOf(pAttributes);
   }
 
   @Override
@@ -53,7 +54,7 @@ public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
     return tagName;
   }
 
-  public List<SvLibTagProperty> getAttributes() {
+  public ImmutableList<SvLibTagProperty> getAttributes() {
     return attributes;
   }
 

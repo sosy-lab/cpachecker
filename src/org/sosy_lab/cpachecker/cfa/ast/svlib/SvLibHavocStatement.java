@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStatementVisitor;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class SvLibHavocStatement extends SvLibCfaEdgeStatement {
   @Serial private static final long serialVersionUID = 3102375106958425786L;
-  private final List<SvLibSimpleDeclaration> variables;
+  private final ImmutableList<SvLibSimpleDeclaration> variables;
 
   public SvLibHavocStatement(
       FileLocation pFileLocation,
@@ -24,10 +25,10 @@ public final class SvLibHavocStatement extends SvLibCfaEdgeStatement {
       List<SvLibTagReference> pTagReferences,
       List<SvLibSimpleDeclaration> pVariables) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    variables = pVariables;
+    variables = ImmutableList.copyOf(pVariables);
   }
 
-  public List<SvLibSimpleDeclaration> getVariables() {
+  public ImmutableList<SvLibSimpleDeclaration> getVariables() {
     return variables;
   }
 

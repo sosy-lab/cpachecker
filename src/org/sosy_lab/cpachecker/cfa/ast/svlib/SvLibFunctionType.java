@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,13 +20,13 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
   @Serial private static final long serialVersionUID = -6676402211597555266L;
 
   private final FileLocation fileLocation;
-  private final List<SvLibType> inputType;
+  private final ImmutableList<SvLibType> inputType;
   private final SvLibType outputType;
 
   public SvLibFunctionType(
       FileLocation pFileLocation, List<SvLibType> pInputType, SvLibType pOutputType) {
     fileLocation = pFileLocation;
-    inputType = pInputType;
+    inputType = ImmutableList.copyOf(pInputType);
     outputType = pOutputType;
   }
 
@@ -33,7 +34,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
     return fileLocation;
   }
 
-  public List<SvLibType> getInputType() {
+  public ImmutableList<SvLibType> getInputType() {
     return inputType;
   }
 
@@ -79,7 +80,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
   }
 
   @Override
-  public List<SvLibType> getParameters() {
+  public ImmutableList<SvLibType> getParameters() {
     return getInputType();
   }
 

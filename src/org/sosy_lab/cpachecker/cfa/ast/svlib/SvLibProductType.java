@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
-import java.util.List;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibProductType implements SvLibType {
 
   @Serial private static final long serialVersionUID = 265032494258079236L;
-  private final List<SvLibType> elementTypes;
+  private final ImmutableList<SvLibType> elementTypes;
 
-  public SvLibProductType(List<SvLibType> pElementTypes) {
-    elementTypes = pElementTypes;
+  public SvLibProductType(ImmutableList<SvLibType> pElementTypes) {
+    elementTypes = ImmutableList.copyOf(pElementTypes);
   }
 
   @Override
@@ -34,7 +34,7 @@ public final class SvLibProductType implements SvLibType {
         + "]";
   }
 
-  public List<SvLibType> getElementTypes() {
+  public ImmutableList<SvLibType> getElementTypes() {
     return elementTypes;
   }
 

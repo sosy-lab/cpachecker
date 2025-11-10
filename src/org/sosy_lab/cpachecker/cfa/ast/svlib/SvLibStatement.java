@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -18,23 +19,23 @@ public abstract sealed class SvLibStatement implements SvLibAstNode
 
   @Serial private static final long serialVersionUID = -2682818218051235918L;
   private final FileLocation fileLocation;
-  private final List<SvLibTagProperty> tagAttributes;
-  private final List<SvLibTagReference> tagReferences;
+  private final ImmutableList<SvLibTagProperty> tagAttributes;
+  private final ImmutableList<SvLibTagReference> tagReferences;
 
   protected SvLibStatement(
       FileLocation pFileLocation,
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
     fileLocation = pFileLocation;
-    tagAttributes = pTagAttributes;
-    tagReferences = pTagReferences;
+    tagAttributes = ImmutableList.copyOf(pTagAttributes);
+    tagReferences = ImmutableList.copyOf(pTagReferences);
   }
 
-  public List<SvLibTagProperty> getTagAttributes() {
+  public ImmutableList<SvLibTagProperty> getTagAttributes() {
     return tagAttributes;
   }
 
-  public @NonNull List<@NonNull SvLibTagReference> getTagReferences() {
+  public @NonNull ImmutableList<@NonNull SvLibTagReference> getTagReferences() {
     return tagReferences;
   }
 

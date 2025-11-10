@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,7 +17,7 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
 
   @Serial private static final long serialVersionUID = 3913861771262171193L;
   private final SvLibProcedureDeclaration procedureDeclaration;
-  private final List<SvLibTerm> terms;
+  private final ImmutableList<SvLibTerm> terms;
   private final FileLocation fileLocation;
 
   public SvLibVerifyCallCommand(
@@ -24,7 +25,7 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
       List<SvLibTerm> pTerms,
       FileLocation pFileLocation) {
     procedureDeclaration = pProcedureDeclaration;
-    terms = pTerms;
+    terms = ImmutableList.copyOf(pTerms);
     fileLocation = pFileLocation;
   }
 
@@ -32,7 +33,7 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
     return procedureDeclaration;
   }
 
-  public List<SvLibTerm> getTerms() {
+  public ImmutableList<SvLibTerm> getTerms() {
     return terms;
   }
 

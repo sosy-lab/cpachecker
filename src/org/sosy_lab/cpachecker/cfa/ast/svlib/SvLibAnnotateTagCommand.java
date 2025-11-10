@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,13 +19,13 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
   @Serial private static final long serialVersionUID = 5333102692293273124L;
 
   private final String tagName;
-  private final List<SvLibTagProperty> tags;
+  private final ImmutableList<SvLibTagProperty> tags;
   private final FileLocation fileLocation;
 
   public SvLibAnnotateTagCommand(
       String pTagName, List<SvLibTagProperty> pTags, FileLocation pFileLocation) {
     tagName = pTagName;
-    tags = pTags;
+    tags = ImmutableList.copyOf(pTags);
     fileLocation = pFileLocation;
   }
 
@@ -32,7 +33,7 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
     return tagName;
   }
 
-  public List<SvLibTagProperty> getTags() {
+  public ImmutableList<SvLibTagProperty> getTags() {
     return tags;
   }
 

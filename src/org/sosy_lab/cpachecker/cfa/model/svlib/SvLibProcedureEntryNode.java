@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -31,7 +31,7 @@ public class SvLibProcedureEntryNode extends FunctionEntryNode {
   }
 
   @Override
-  public List<SvLibParameterDeclaration> getFunctionParameters() {
+  public ImmutableList<SvLibParameterDeclaration> getFunctionParameters() {
     return getFunctionDefinition().getParameters();
   }
 }

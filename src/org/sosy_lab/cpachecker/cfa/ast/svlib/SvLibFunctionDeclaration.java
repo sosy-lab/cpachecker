@@ -61,7 +61,7 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
   }
 
   @Override
-  public List<SvLibParameterDeclaration> getParameters() {
+  public ImmutableList<SvLibParameterDeclaration> getParameters() {
     throw new UnsupportedOperationException(
         "SvLibFunctionDeclaration has no parameters, since it is a "
             + "mathematical function declaration.");

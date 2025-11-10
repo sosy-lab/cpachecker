@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class SvLibProcedureDeclaration extends AFunctionDeclaration
     implements SvLibDeclaration {
   @Serial private static final long serialVersionUID = 5272479408537906183L;
-  private List<SvLibParameterDeclaration> parameters;
-  private List<SvLibParameterDeclaration> localVariables;
-  private List<SvLibParameterDeclaration> returnValues;
+  private ImmutableList<SvLibParameterDeclaration> parameters;
+  private ImmutableList<SvLibParameterDeclaration> localVariables;
+  private ImmutableList<SvLibParameterDeclaration> returnValues;
 
   public SvLibProcedureDeclaration(
       FileLocation pFileLocation,
@@ -42,9 +42,9 @@ public final class SvLibProcedureDeclaration extends AFunctionDeclaration
         pName,
         pName,
         pParameters);
-    parameters = pParameters;
-    localVariables = pLocalVariables;
-    returnValues = pReturnValues;
+    parameters = ImmutableList.copyOf(pParameters);
+    localVariables = ImmutableList.copyOf(pLocalVariables);
+    returnValues = ImmutableList.copyOf(pReturnValues);
   }
 
   public static SvLibProcedureDeclaration mainFunctionDeclaration() {
@@ -77,15 +77,15 @@ public final class SvLibProcedureDeclaration extends AFunctionDeclaration
   }
 
   @Override
-  public List<SvLibParameterDeclaration> getParameters() {
+  public ImmutableList<SvLibParameterDeclaration> getParameters() {
     return parameters;
   }
 
-  public List<SvLibParameterDeclaration> getLocalVariables() {
+  public ImmutableList<SvLibParameterDeclaration> getLocalVariables() {
     return localVariables;
   }
 
-  public @NonNull List<@NonNull SvLibParameterDeclaration> getReturnValues() {
+  public @NonNull ImmutableList<@NonNull SvLibParameterDeclaration> getReturnValues() {
     return returnValues;
   }
 
