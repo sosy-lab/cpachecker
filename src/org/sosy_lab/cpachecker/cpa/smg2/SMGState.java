@@ -2259,23 +2259,27 @@ public class SMGState
   }
 
   /**
-   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN if
-   * some error happens.
+   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN
+   * for non-pointers or if some error happens.
    *
-   * @param pValue some {@link Value} that may be a pointer.
+   * @param pValue some {@link Value} that may be a pointer. Do not enter {@link AddressExpression}s or wrapped pointers of any kind!
    * @return UNKNOWN or a {@link NumericValue} that is the offset.
    */
   public Value getPointerOffset(Value pValue) {
+    // Those 2 are disallowed from being entered!
+    checkState(!(pValue instanceof ConstantSymbolicExpression constExpr && isPointer(constExpr.getValue())));
+    checkState(!(pValue instanceof AddressExpression));
+
     if (!memoryModel.isPointer(pValue)) {
       return UnknownValue.getInstance();
     }
 
-    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue);
-    if (maybeSmgValue1.isEmpty()) {
+    Optional<SMGValue> maybeSmgValue = memoryModel.getSMGValueFromValue(pValue);
+    if (maybeSmgValue.isEmpty()) {
       return UnknownValue.getInstance();
     }
 
-    SMGValue smgValue = maybeSmgValue1.orElseThrow();
+    SMGValue smgValue = maybeSmgValue.orElseThrow();
     SMGPointsToEdge targetEdge = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow();
     return targetEdge.getOffset();
   }
