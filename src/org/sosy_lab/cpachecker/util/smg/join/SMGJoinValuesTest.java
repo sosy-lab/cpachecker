@@ -50,7 +50,7 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
         new SMGJoinValues(
             SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value1, 0);
     assertThat(jv.isDefined()).isTrue();
-    assertThat(SMGJoinStatus.EQUAL).isEqualTo(jv.getStatus());
+    assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getMapping1()).isEqualTo(new NodeMapping());
     assertThat(jv.getMapping2()).isEqualTo(new NodeMapping());
     assertThat(value1).isEqualTo(jv.getValue());
