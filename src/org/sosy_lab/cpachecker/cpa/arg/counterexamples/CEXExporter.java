@@ -203,7 +203,7 @@ public class CEXExporter {
     checkNotNull(targetState);
     checkNotNull(counterexample);
 
-    // Now export the correctness witnesses for SV-LIB program
+    // Now export the violation witnesses for SV-LIB program
     // SV-LIB witnesses have their own export behavior, which overrides CPAchecker settings
     if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
       List<SvLibCommand> witnessCommands =

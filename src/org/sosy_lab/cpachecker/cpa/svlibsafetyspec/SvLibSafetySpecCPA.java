@@ -14,9 +14,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -44,5 +46,10 @@ public class SvLibSafetySpecCPA extends AbstractCPA implements ConfigurableProgr
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new SvLibSafetySpecState(ImmutableSet.of(), false);
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new BreakOnTargetsPrecisionAdjustment(1, -1);
   }
 }

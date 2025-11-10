@@ -21,10 +21,11 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SvLibSafetySpecState
-    implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
+    implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState, Targetable {
 
   private final ImmutableSet<@NonNull SvLibFinalRelationalTerm> assumptions;
   private final boolean hasPropertyViolation;
@@ -96,5 +97,17 @@ public class SvLibSafetySpecState
     // If we are verifying a SV-LIB safety specification, this is the CPA
     // responsible for reporting property violations.
     return hasPropertyViolation;
+  }
+
+  @Override
+  public boolean isTarget() {
+    return hasPropertyViolation;
+  }
+
+  @Override
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    // TODO: Implement once we also support statement contracts and invariants such that we have
+    // some relevant infomration to export
+    return Set.of();
   }
 }

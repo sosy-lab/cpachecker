@@ -17,6 +17,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
@@ -62,14 +63,17 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             .get(cfaEdge.getPredecessor());
 
     // First construct one successor per property we need to proof
+    ImmutableList.Builder<SvLibFinalRelationalTerm> assumptionsBuilder =
+        ImmutableList.builderWithExpectedSize(propertiesToProof.size());
     for (SvLibTagProperty property : propertiesToProof) {
       SvLibSafetySpecState successorState =
           switch (property) {
-            case SvLibCheckTrueTag pSvLibCheckTruetTag ->
-                new SvLibSafetySpecState(
-                    ImmutableSet.of(
-                        SvLibTermBuilder.booleanNegation(pSvLibCheckTruetTag.getTerm())),
-                    true);
+            case SvLibCheckTrueTag pSvLibCheckTrueTag -> {
+              assumptionsBuilder.add(pSvLibCheckTrueTag.getTerm());
+              yield new SvLibSafetySpecState(
+                  ImmutableSet.of(SvLibTermBuilder.booleanNegation(pSvLibCheckTrueTag.getTerm())),
+                  true);
+            }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
                 throw new UnsupportedCodeException(
                     "Ensures tags are not supported in safety specifications.", cfaEdge);
@@ -85,8 +89,10 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
 
     // Second add the continuation of the original program, where we assume that everything could
     // be proven correct
-    // TODO: Actually fill this in with the assumptions
-    outStates.add(new SvLibSafetySpecState(ImmutableSet.of(), false));
+    outStates.add(
+        new SvLibSafetySpecState(
+            ImmutableSet.of(SvLibTermBuilder.booleanConjunction(assumptionsBuilder.build())),
+            state.hasPropertyViolation()));
 
     return outStates.build();
   }
