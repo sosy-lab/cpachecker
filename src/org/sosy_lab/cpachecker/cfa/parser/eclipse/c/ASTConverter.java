@@ -2856,7 +2856,7 @@ class ASTConverter {
     // We simplify any nested list to a flat list, because this is easier to handle
     // than nested lists.
     final List<IASTInitializerClause> flattenedInitializerClauses;
-    if (type instanceof CComplexType) {
+    if (type.getCanonicalType() instanceof CComplexType) {
       flattenedInitializerClauses = flattenInitializerClauses(iList.getClauses());
     } else {
       flattenedInitializerClauses = Arrays.asList(iList.getClauses());
