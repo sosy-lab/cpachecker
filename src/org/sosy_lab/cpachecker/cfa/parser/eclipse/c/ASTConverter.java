@@ -2749,12 +2749,9 @@ class ASTConverter {
       ICASTDesignatedInitializer init, CType type, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializer cInit = convert(init.getOperand(), type, declaration);
-
-    FileLocation fileLoc = cInit.getFileLocation();
+    FileLocation fileLoc = getLocation(init);
 
     List<CDesignator> designators = new ArrayList<>(desInit.length);
-
     CType currentOwnerType = type.getCanonicalType();
 
     // convert all designators
@@ -2772,23 +2769,30 @@ class ASTConverter {
       } else {
         CDesignator resolvedDesignator =
             switch (designator) {
-              case ICASTArrayDesignator iCASTArrayDesignator ->
-                  new CArrayDesignator(
-                      fileLoc,
-                      convertExpressionWithoutSideEffects(
-                          iCASTArrayDesignator.getSubscriptExpression()));
-              case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator ->
-                  new CArrayRangeDesignator(
-                      fileLoc,
-                      convertExpressionWithoutSideEffects(
-                          iGCCASTArrayRangeDesignator.getRangeFloor()),
-                      convertExpressionWithoutSideEffects(
-                          iGCCASTArrayRangeDesignator.getRangeCeiling()));
+              case ICASTArrayDesignator iCASTArrayDesignator -> {
+                Preconditions.checkState(currentOwnerType instanceof CArrayType);
+                currentOwnerType = ((CArrayType) currentOwnerType).getType().getCanonicalType();
+                yield new CArrayDesignator(
+                    fileLoc,
+                    convertExpressionWithoutSideEffects(
+                        iCASTArrayDesignator.getSubscriptExpression()));
+              }
+              case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator -> {
+                Preconditions.checkState(currentOwnerType instanceof CArrayType);
+                currentOwnerType = ((CArrayType) currentOwnerType).getType().getCanonicalType();
+                yield new CArrayRangeDesignator(
+                    fileLoc,
+                    convertExpressionWithoutSideEffects(
+                        iGCCASTArrayRangeDesignator.getRangeFloor()),
+                    convertExpressionWithoutSideEffects(
+                        iGCCASTArrayRangeDesignator.getRangeCeiling()));
+              }
               default -> throw parseContext.parseError("Unsupported Designator", designator);
             };
         designators.add(resolvedDesignator);
       }
     }
+    CInitializer cInit = convert(init.getOperand(), currentOwnerType, declaration);
 
     return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
