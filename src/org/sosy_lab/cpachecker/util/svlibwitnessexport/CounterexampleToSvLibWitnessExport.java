@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIncorrectTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLocalVariablesStep;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -144,6 +146,21 @@ public class CounterexampleToSvLibWitnessExport {
         functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
+  private SvLibHavocVariablesStep setHavocVariablesForFunctionCall(
+      ConcreteState pConcreteState, SvLibHavocStatement pStatement) {
+    ImmutableMap.Builder<SvLibIdTerm, SvLibConstantTerm> havocedVariablesBuilder =
+        ImmutableMap.builder();
+    for (SvLibSimpleDeclaration varTerm : pStatement.getVariables()) {
+      SvLibConstantTerm assignedValue =
+          getValueOrDefault(
+              pConcreteState, varTerm.getName(), varTerm.getProcedureName(), varTerm.getType());
+
+      SvLibIdTerm idTerm = new SvLibIdTerm(varTerm, FileLocation.DUMMY);
+      havocedVariablesBuilder.put(idTerm, assignedValue);
+    }
+    return new SvLibHavocVariablesStep(havocedVariablesBuilder.build(), FileLocation.DUMMY);
+  }
+
   private SvLibTraceSetGlobalVariable handleGlobalVariableAssignment(
       ConcreteState pConcreteState, SvLibDeclaration pDeclaration) {
     checkState(
@@ -247,10 +264,9 @@ public class CounterexampleToSvLibWitnessExport {
             setLocalVariablesForFunctionCall(
                 concreteState, pCallEdge.getFunctionCall().getProcedureDeclaration()));
       } else if (edge instanceof SvLibStatementEdge pStatementEdge
-          && pStatementEdge.getStatement() instanceof SvLibHavocStatement) {
+          && pStatementEdge.getStatement() instanceof SvLibHavocStatement pSvLibHavocStatement) {
         // Handle havoc statements as trace steps
-        throw new UnsupportedOperationException(
-            "Havoc statements are not yet supported in SV-LIB witness export.");
+        stepsBuilder.add(setHavocVariablesForFunctionCall(concreteState, pSvLibHavocStatement));
       } else if (edge instanceof SvLibBlankChoiceEdge pChoiceEdge) {
         // Handle choice statements as trace steps
         stepsBuilder.add(new SvLibChoiceStep(pChoiceEdge.getChoiceIndex(), FileLocation.DUMMY));

@@ -23,6 +23,7 @@ public final class SvLibParameterDeclaration extends AParameterDeclaration
     procedureName = pProcedureName;
   }
 
+  @Override
   public String getProcedureName() {
     return procedureName;
   }

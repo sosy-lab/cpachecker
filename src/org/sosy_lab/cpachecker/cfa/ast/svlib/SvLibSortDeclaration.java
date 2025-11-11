@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.io.Serial;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -31,6 +32,12 @@ public final class SvLibSortDeclaration extends AVariableDeclaration implements 
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in SV-LIB */);
+  }
+
+  @Override
+  @Nullable
+  public String getProcedureName() {
+    return null;
   }
 
   @Override

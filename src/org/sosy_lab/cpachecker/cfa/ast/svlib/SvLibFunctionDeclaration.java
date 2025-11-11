@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -38,6 +39,12 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
         // Functions are declared anonymously in SMT-LIB, so there are no parameters
         // only from the function definition do we get the parameters
         ImmutableList.of());
+  }
+
+  @Override
+  @Nullable
+  public String getProcedureName() {
+    return null;
   }
 
   @Override

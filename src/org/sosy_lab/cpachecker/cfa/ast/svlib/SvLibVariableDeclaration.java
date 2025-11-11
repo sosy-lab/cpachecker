@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.base.Splitter;
 import java.io.Serial;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -69,6 +71,16 @@ public final class SvLibVariableDeclaration extends AVariableDeclaration
         pName,
         pName,
         true);
+  }
+
+  @Override
+  @Nullable
+  public String getProcedureName() {
+    if (getQualifiedName().contains("::")) {
+      return Splitter.on("::").splitToList(getQualifiedName()).getFirst();
+    } else {
+      return null;
+    }
   }
 
   @Override

@@ -60,9 +60,7 @@ public class SvLibStatementToFormulaConverter {
   }
 
   private static @NonNull BooleanFormula handleHavoc(
-      SvLibHavocStatement pSvLibHavocStatement,
-      SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      SvLibHavocStatement pSvLibHavocStatement, SSAMapBuilder ssa, FormulaManagerView fmgr) {
     for (SvLibSimpleDeclaration variableToHavoc : pSvLibHavocStatement.getVariables()) {
       // In JavaSMT, we cannot directly express "havoc", so we assign a fresh variable without
       // any constraints.

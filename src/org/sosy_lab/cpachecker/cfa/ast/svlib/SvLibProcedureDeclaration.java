@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -54,6 +55,12 @@ public final class SvLibProcedureDeclaration extends AFunctionDeclaration
         ImmutableList.of(),
         ImmutableList.of(),
         ImmutableList.of());
+  }
+
+  @Override
+  @Nullable
+  public String getProcedureName() {
+    return null;
   }
 
   @Override
