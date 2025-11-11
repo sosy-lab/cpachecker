@@ -15,7 +15,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
  * short) for common C primitive types like {@code int}, {@code char}, and {@code float} .
  *
  * <p>Note: This class explicitly deals only with scalar CSimpleTypes and does not include derived
- * types such as arrays, pointers, or structures, which are available in {@link CDerivedTypes}.
+ * types such as arrays, pointers, or structures.
  */
 public final class CNumericTypes {
 

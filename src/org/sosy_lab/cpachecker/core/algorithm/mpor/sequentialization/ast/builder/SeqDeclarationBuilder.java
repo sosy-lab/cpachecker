@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDerivedTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -107,7 +107,7 @@ public class SeqDeclarationBuilder {
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              CDerivedTypes.UNSIGNED_INT_ARRAY,
+              CArrayType.UNSIGNED_INT_ARRAY,
               SeqToken.PROGRAM_COUNTER_VARIABLE,
               initializerList));
     }
