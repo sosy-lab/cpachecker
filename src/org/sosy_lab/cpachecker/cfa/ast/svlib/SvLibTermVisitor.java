@@ -21,4 +21,6 @@ public interface SvLibTermVisitor<R, X extends Exception> {
   R accept(SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm) throws X;
 
   R accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm) throws X;
+
+  R accept(SvLibRealConstantTerm pSvLibRealConstantTerm) throws X;
 }

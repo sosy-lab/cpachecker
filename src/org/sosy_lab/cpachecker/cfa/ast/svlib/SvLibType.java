@@ -23,10 +23,16 @@ public sealed interface SvLibType extends Type
 
   SvLibConstantTerm defaultValue();
 
-  static boolean compatibleTypes(SvLibType t1, SvLibType t2) {
+  static boolean canBeCastTo(SvLibType t1, SvLibType t2) {
     if (t1.equals(SvLibCustomType.InternalAnyType) || t2.equals(SvLibCustomType.InternalAnyType)) {
       return true;
     }
+    // TODO: This may need to be refactored into a more general subtyping mechanism
+    //        At least MathSat can cast Int into Real implicitly
+    if (t1.equals(SvLibSmtLibType.REAL) && t2.equals(SvLibSmtLibType.INT)) {
+      return true;
+    }
+
     return t1.equals(t2);
   }
 

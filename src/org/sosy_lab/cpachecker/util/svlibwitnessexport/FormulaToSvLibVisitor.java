@@ -12,11 +12,13 @@ import com.google.common.collect.FluentIterable;
 import java.math.BigInteger;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
@@ -46,6 +48,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
       return SvLibSmtLibType.BOOL;
     } else if (formulaType.equals(FormulaType.IntegerType)) {
       return SvLibSmtLibType.INT;
+    } else if (formulaType.equals(FormulaType.RationalType)) {
+      return SvLibSmtLibType.REAL;
     }
 
     throw new AssertionError("Unsupported formula type: " + formulaType);
@@ -59,7 +63,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             // Remove backticks from the name
             .replace("`", "")
             // Remove type suffixes from overloaded operators, like '_int'
-            .replace("_int", "");
+            .replace("_int", "")
+            .replace("_rat", "");
     if (pReturnType == SvLibSmtLibType.BOOL
         && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.BOOL))) {
       return switch (actualName) {
@@ -92,6 +97,23 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
+    } else if (pReturnType == SvLibSmtLibType.REAL
+        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.REAL))) {
+      return switch (actualName) {
+        case "+" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.realAddition(pArgTypes.size()), FileLocation.DUMMY);
+        case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MINUS, FileLocation.DUMMY);
+        case "*" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
+        default -> throw new AssertionError("Unknown formula type: " + pName);
+      };
+    } else if (pReturnType == SvLibSmtLibType.INT
+        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.REAL))) {
+      return switch (actualName) {
+        case "floor" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_FLOOR, FileLocation.DUMMY);
+        default -> throw new AssertionError("Unknown formula type: " + pName);
+      };
     }
 
     throw new AssertionError("Unknown formula type: " + pName);
@@ -109,8 +131,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
       return new SvLibBooleanConstantTerm(pBoolean, FileLocation.DUMMY);
     } else if (pO instanceof BigInteger pInteger) {
       return new SvLibIntegerConstantTerm(pInteger, FileLocation.DUMMY);
+    } else if (pO instanceof Rational pRational) {
+      return new SvLibRealConstantTerm(pRational, FileLocation.DUMMY);
     }
-
     throw new AssertionError("Unsupported constant type: " + pO);
   }
 

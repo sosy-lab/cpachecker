@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -104,5 +105,11 @@ public class SvLibIdTermReplacer
   public SvLibFinalRelationalTerm accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
       throws NoException {
     return pSvLibBooleanConstantTerm;
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
+      throws NoException {
+    return pSvLibRealConstantTerm;
   }
 }

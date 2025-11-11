@@ -12,7 +12,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public sealed interface SvLibConstantTerm extends SvLibTerm
-    permits SvLibBooleanConstantTerm, SvLibIntegerConstantTerm {
+    permits SvLibBooleanConstantTerm, SvLibIntegerConstantTerm, SvLibRealConstantTerm {
 
   Object getValue();
 

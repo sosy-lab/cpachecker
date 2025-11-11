@@ -133,6 +133,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
@@ -1133,6 +1134,12 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
         throws NoException {
       return ImmutableList.of();
     }

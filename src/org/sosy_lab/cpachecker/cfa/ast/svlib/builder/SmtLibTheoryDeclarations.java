@@ -193,4 +193,56 @@ public class SmtLibTheoryDeclarations {
         "=>",
         "=>");
   }
+
+  /** Real stuff */
+  public static SvLibVariableDeclaration REAL_FLOOR =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY, ImmutableList.of(SvLibSmtLibType.REAL), SvLibSmtLibType.INT),
+          "floor",
+          "floor",
+          "floor");
+
+  public static SvLibVariableDeclaration REAL_MINUS =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibType.REAL, SvLibSmtLibType.REAL),
+              SvLibSmtLibType.REAL),
+          "-",
+          "-",
+          "-");
+
+  public static SvLibVariableDeclaration REAL_MULTIPLICATION =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibType.REAL, SvLibSmtLibType.REAL),
+              SvLibSmtLibType.REAL),
+          "*",
+          "*",
+          "*");
+
+  public static SvLibVariableDeclaration realAddition(int amountArguments) {
+    return new SvLibVariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new SvLibFunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.REAL)),
+            SvLibSmtLibType.REAL),
+        "+",
+        "+",
+        "+");
+  }
 }

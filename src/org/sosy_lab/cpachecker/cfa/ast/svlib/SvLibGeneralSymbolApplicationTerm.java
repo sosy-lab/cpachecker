@@ -99,7 +99,7 @@ public abstract sealed class SvLibGeneralSymbolApplicationTerm implements SvLibF
         return false;
       }
       for (int i = 0; i < parameterTypes.size(); i++) {
-        if (!SvLibType.compatibleTypes(parameterTypes.get(i), pTerms.get(i).getExpressionType())) {
+        if (!SvLibType.canBeCastTo(parameterTypes.get(i), pTerms.get(i).getExpressionType())) {
           return false;
         }
       }
