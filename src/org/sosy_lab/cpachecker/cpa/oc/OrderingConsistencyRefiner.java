@@ -46,8 +46,6 @@ public class OrderingConsistencyRefiner implements Refiner {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    ExecutionData executionData = extractExecutionData(pReached);
-    
     OrderingConsistencyCPA ocCPA = CPAs.retrieveCPA(cpa, OrderingConsistencyCPA.class);
     OrderingConsistencyTransferRelation transferRelation = 
         (OrderingConsistencyTransferRelation) ocCPA.getTransferRelation();
@@ -57,11 +55,11 @@ public class OrderingConsistencyRefiner implements Refiner {
       
       FormulaEncoder encoder = new FormulaEncoder(
           transferRelation.getSolver().getFormulaManager(),
-          executionData.allEvents);
+          pReached);
       
       encodeMemoryModel(prover, encoder);
-      encodeProgramOrder(prover, encoder, executionData);
-      encodeTargetReachability(prover, encoder, executionData);
+      encodeProgramOrder(prover, encoder);
+      encodeTargetReachability(prover, encoder);
       
       boolean isUnsat = prover.isUnsat();
       System.err.printf("Unsat?: %s%n", isUnsat);
@@ -69,43 +67,6 @@ public class OrderingConsistencyRefiner implements Refiner {
       
     } catch (SolverException e) {
       throw new RuntimeException(e);
-    }
-  }
-
-  private ExecutionData extractExecutionData(ReachedSet pReached) {
-    Map<MemoryEvent, Set<MemoryEvent>> programOrder = new HashMap<>();
-    Set<BooleanFormula> targetFormulae = new HashSet<>();
-    Set<MemoryEvent> allEvents = new HashSet<>();
-    
-    for (AbstractState abstractState : pReached.asCollection()) {
-      OrderingConsistencyState ocState =
-          AbstractStates.extractStateByType(abstractState, OrderingConsistencyState.class);
-      
-      if (ocState != null) {
-        ocState.pid().ifPresent(pid -> {
-          ImmutableList<MemoryEvent> memoryEvents = 
-              ImmutableList.copyOf(ocState.waitingThreads().get(pid).pMemoryEvents());
-          
-          buildProgramOrder(programOrder, memoryEvents);
-          allEvents.addAll(memoryEvents);
-          
-          if (abstractState instanceof ARGState argState && argState.isTarget()) {
-            targetFormulae.add(ocState.waitingThreads().get(pid).pPathFormula().getFormula());
-          }
-        });
-      }
-    }
-    
-    return new ExecutionData(programOrder, targetFormulae, allEvents);
-  }
-
-  private void buildProgramOrder(
-      Map<MemoryEvent, Set<MemoryEvent>> programOrder, 
-      ImmutableList<MemoryEvent> memoryEvents) {
-    for (int i = 0; i < memoryEvents.size() - 1; i++) {
-      MemoryEvent current = memoryEvents.get(i);
-      MemoryEvent next = memoryEvents.get(i + 1);
-      programOrder.computeIfAbsent(current, k -> new HashSet<>()).add(next);
     }
   }
 
@@ -183,10 +144,9 @@ public class OrderingConsistencyRefiner implements Refiner {
 
   private void encodeProgramOrder(
       ProverEnvironment prover,
-      FormulaEncoder encoder,
-      ExecutionData data) throws InterruptedException {
+      FormulaEncoder encoder) throws InterruptedException {
     
-    for (Entry<MemoryEvent, Set<MemoryEvent>> entry : data.programOrder.entrySet()) {
+    for (Entry<MemoryEvent, Set<MemoryEvent>> entry : encoder.programOrder.entrySet()) {
       MemoryEvent before = entry.getKey();
       for (MemoryEvent after : entry.getValue()) {
         addConstraint(prover, 
@@ -197,24 +157,15 @@ public class OrderingConsistencyRefiner implements Refiner {
 
   private void encodeTargetReachability(
       ProverEnvironment prover,
-      FormulaEncoder encoder,
-      ExecutionData data) throws InterruptedException {
+      FormulaEncoder encoder) throws InterruptedException {
     
-    addConstraint(prover, encoder.bmgr.or(data.targetFormulae));
+    addConstraint(prover, encoder.bmgr.or(encoder.targetFormulae));
   }
 
   private void addConstraint(ProverEnvironment prover, BooleanFormula formula)
       throws InterruptedException {
     prover.addConstraint(formula);
   }
-
-  /**
-   * Holds the execution data extracted from the reached set.
-   */
-  private record ExecutionData(
-      Map<MemoryEvent, Set<MemoryEvent>> programOrder,
-      Set<BooleanFormula> targetFormulae,
-      Set<MemoryEvent> allEvents) {}
 
   /**
    * Encodes memory events and their relationships into SMT formulas.
@@ -228,8 +179,10 @@ public class OrderingConsistencyRefiner implements Refiner {
     final Map<MemoryLocation, Set<MemoryEvent>> writes;
     final Map<MemoryLocation, Set<MemoryEvent>> reads;
     final Map<MemoryEvent, Formula> cssaValues;
+    final Map<MemoryEvent, Set<MemoryEvent>> programOrder;
+    final Set<BooleanFormula> targetFormulae;
 
-    FormulaEncoder(FormulaManagerView formulaManager, Set<MemoryEvent> allEvents) {
+    FormulaEncoder(FormulaManagerView formulaManager, ReachedSet pReached) {
       this.fmgr = formulaManager;
       this.imgr = formulaManager.getIntegerFormulaManager();
       this.bmgr = formulaManager.getBooleanFormulaManager();
@@ -238,31 +191,72 @@ public class OrderingConsistencyRefiner implements Refiner {
       this.writes = new HashMap<>();
       this.reads = new HashMap<>();
       this.cssaValues = new HashMap<>();
+      this.programOrder = new HashMap<>();
+      this.targetFormulae = new HashSet<>();
       
-      initializeFormulas(allEvents);
+      extractAndInitialize(pReached);
     }
 
-    private void initializeFormulas(Set<MemoryEvent> allEvents) {
-      // Extract all CSSA variables from guards
+    private void extractAndInitialize(ReachedSet pReached) {
+      // Extract all CSSA variables from guards first
       Map<String, Formula> allVariables = new HashMap<>();
-      for (MemoryEvent event : allEvents) {
-        allVariables.putAll(fmgr.extractVariables(event.guard().get().getFormula()));
-      }
       
-      // Create formulas for each event
-      for (MemoryEvent event : allEvents) {
-        // Create a clock variable for ordering
-        clocks.put(event, imgr.makeVariable("clk_%d".formatted(event.id())));
+      for (AbstractState abstractState : pReached.asCollection()) {
+        OrderingConsistencyState ocState =
+            AbstractStates.extractStateByType(abstractState, OrderingConsistencyState.class);
         
-        // Classify as read or write
-        Map<MemoryLocation, Set<MemoryEvent>> targetMap = 
-            event.eventType() == WRITE ? writes : reads;
-        targetMap.computeIfAbsent(event.memoryLocation(), k -> new HashSet<>()).add(event);
-        
-        // Get the CSSA value
+        if (ocState != null) {
+          ocState.pid().ifPresent(pid -> {
+            ImmutableList<MemoryEvent> memoryEvents = 
+                ImmutableList.copyOf(ocState.waitingThreads().get(pid).pMemoryEvents());
+            
+            // Extract variables from all events
+            for (MemoryEvent event : memoryEvents) {
+              allVariables.putAll(fmgr.extractVariables(event.guard().get().getFormula()));
+            }
+            
+            // Filter valid events and build program order with bridging
+            processMemoryEvents(memoryEvents, allVariables);
+            
+            // Collect target formulas
+            if (abstractState instanceof ARGState argState && argState.isTarget()) {
+              targetFormulae.add(ocState.waitingThreads().get(pid).pPathFormula().getFormula());
+            }
+          });
+        }
+      }
+    }
+
+    private void processMemoryEvents(
+        ImmutableList<MemoryEvent> memoryEvents, 
+        Map<String, Formula> allVariables) {
+      
+      MemoryEvent lastValidEvent = null;
+      
+      for (MemoryEvent event : memoryEvents) {
+        // Check if this event has a valid CSSA variable
         int ssaIndex = event.eventType() == WRITE ? 2 : 1;
         String cssaName = event.cssaQualifiedName() + INDEX_SEPARATOR + ssaIndex;
-        cssaValues.put(event, allVariables.get(cssaName));
+        
+        if (allVariables.containsKey(cssaName)) {
+          // Valid event - add to our data structures
+          clocks.put(event, imgr.makeVariable("clk_%d".formatted(event.id())));
+          
+          Map<MemoryLocation, Set<MemoryEvent>> targetMap =
+              event.eventType() == WRITE ? writes : reads;
+          targetMap.computeIfAbsent(event.memoryLocation(), k -> new HashSet<>()).add(event);
+          
+          cssaValues.put(event, allVariables.get(cssaName));
+          
+          // Bridge program order: connect to the last valid event
+          if (lastValidEvent != null) {
+            programOrder.computeIfAbsent(lastValidEvent, k -> new HashSet<>()).add(event);
+          }
+          
+          lastValidEvent = event;
+        } /*else {
+           Invalid event - skip it but maintain program order bridging
+        } */
       }
     }
   }
