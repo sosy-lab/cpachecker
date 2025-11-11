@@ -30,7 +30,7 @@ public final class SvLibIntegerConstantTerm implements SvLibConstantTerm {
 
   @Override
   public SvLibType getExpressionType() {
-    return SvLibSmtLibType.INT;
+    return SvLibSmtLibPredefinedType.INT;
   }
 
   @Override

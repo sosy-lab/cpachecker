@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.parser;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -20,8 +21,10 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -70,24 +73,31 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   private SvLibVariableDeclaration getVariableDeclarationForSymbol(
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
 
+    // Match Integer Arithmetic logic
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)) {
       switch (pSymbol) {
         case "=" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_EQUALITY;
         }
         case "<" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_LESS_THAN;
         }
         case "<=" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN;
         }
         case ">" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_GREATER_THAN;
         }
         case ">=" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN;
         }
         case "-" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MINUS;
         }
         case "+" -> {
@@ -100,6 +110,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsNonLinearIntegerArithmetic)) {
       switch (pSymbol) {
         case "mod" -> {
+          Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MOD;
         }
       }
@@ -108,6 +119,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // Match the core logic of SMT-LIB
     switch (pSymbol) {
       case "not" -> {
+        Verify.verify(pArguments.size() == 1);
         return SmtLibTheoryDeclarations.BOOL_NEGATION;
       }
       case "and" -> {
@@ -118,6 +130,33 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       }
       case "=>" -> {
         return SmtLibTheoryDeclarations.boolImplication(pArguments.size());
+      }
+    }
+
+    // Match all array stuff
+    switch (pSymbol) {
+      case "select" -> {
+        Verify.verify(pArguments.size() == 2);
+        if (pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibArrayType arrayType) {
+
+          return SmtLibTheoryDeclarations.arraySelect(
+              arrayType.getKeysType(), arrayType.getValuesType());
+        } else if (pArguments
+            .getFirst()
+            .getExpressionType()
+            .equals(SvLibCustomType.InternalAnyType)) {
+          return SmtLibTheoryDeclarations.arraySelect(
+              SvLibCustomType.InternalAnyType, SvLibCustomType.InternalAnyType);
+        }
+
+        throw new IllegalArgumentException(
+            "The first argument of 'select' must be of array type, but was: "
+                + pArguments.getFirst().getExpressionType());
+      }
+      case "store" -> {
+        Verify.verify(pArguments.size() == 3);
+        return SmtLibTheoryDeclarations.arrayStore(
+            pArguments.get(1).getExpressionType(), pArguments.get(2).getExpressionType());
       }
     }
 

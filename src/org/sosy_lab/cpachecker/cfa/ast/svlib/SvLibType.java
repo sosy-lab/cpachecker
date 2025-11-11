@@ -12,6 +12,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.java_smt.api.FormulaType;
 
+// TODO: This needs to be refactored into actual SMT-LIB types, and those which
+//    can only appear in SV-LIB
 public sealed interface SvLibType extends Type
     permits SvLibCustomType,
         SvLibFunctionType,
@@ -29,8 +31,13 @@ public sealed interface SvLibType extends Type
     }
     // TODO: This may need to be refactored into a more general subtyping mechanism
     //        At least MathSat can cast Int into Real implicitly
-    if (t1.equals(SvLibSmtLibType.REAL) && t2.equals(SvLibSmtLibType.INT)) {
+    if (t1.equals(SvLibSmtLibPredefinedType.REAL) && t2.equals(SvLibSmtLibPredefinedType.INT)) {
       return true;
+    }
+
+    if (t1 instanceof SvLibSmtLibArrayType arr1 && t2 instanceof SvLibSmtLibArrayType arr2) {
+      return canBeCastTo(arr1.getKeysType(), arr2.getKeysType())
+          && canBeCastTo(arr1.getValuesType(), arr2.getValuesType());
     }
 
     return t1.equals(t2);
@@ -39,10 +46,10 @@ public sealed interface SvLibType extends Type
   static Optional<SvLibType> getTypeForString(String pType) {
     return Optional.ofNullable(
         switch (pType) {
-          case "Int" -> SvLibSmtLibType.INT;
-          case "Bool" -> SvLibSmtLibType.BOOL;
-          case "String" -> SvLibSmtLibType.STRING;
-          case "Real" -> SvLibSmtLibType.REAL;
+          case "Int" -> SvLibSmtLibPredefinedType.INT;
+          case "Bool" -> SvLibSmtLibPredefinedType.BOOL;
+          case "String" -> SvLibSmtLibPredefinedType.STRING;
+          case "Real" -> SvLibSmtLibPredefinedType.REAL;
           default -> null;
         });
   }

@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSetOptionCommand;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
@@ -76,9 +76,9 @@ public class SvLibParserTest {
   @Test
   public void parseSimpleCorrectProgram() throws SvLibAstParseException {
     SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "x", "f1");
+        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
     SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "y", "f1");
+        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
             FileLocation.DUMMY,
@@ -88,10 +88,10 @@ public class SvLibParserTest {
             ImmutableList.of());
     SvLibVariableDeclaration w =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, false, SvLibSmtLibType.INT, "w", "w", "w");
+            FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "w", "w", "w");
     SvLibVariableDeclaration z =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, false, SvLibSmtLibType.INT, "z", "z", "z");
+            FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "z", "z", "z");
 
     SvLibScript output =
         new SvLibScript(
@@ -154,9 +154,9 @@ public class SvLibParserTest {
   @Test
   public void parseSimpleIncorrectProgram() throws SvLibAstParseException {
     SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "x", "f1");
+        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
     SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "y", "f1");
+        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
             FileLocation.DUMMY,
@@ -166,10 +166,10 @@ public class SvLibParserTest {
             ImmutableList.of());
     SvLibVariableDeclaration w =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, false, SvLibSmtLibType.INT, "w", "w", "w");
+            FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "w", "w", "w");
     SvLibVariableDeclaration z =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, false, SvLibSmtLibType.INT, "z", "z", "z");
+            FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "z", "z", "z");
 
     SvLibScript output =
         new SvLibScript(
@@ -239,19 +239,23 @@ public class SvLibParserTest {
   public void parseLoopAdd() throws SvLibAstParseException {
 
     SvLibParameterDeclaration x0 =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "x0", "add");
+        new SvLibParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x0", "add");
     SvLibParameterDeclaration y0 =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "y0", "add");
+        new SvLibParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y0", "add");
     SvLibVariableDeclaration w0Const =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, true, SvLibSmtLibType.INT, "w0", "w0", "w0");
+            FileLocation.DUMMY, true, true, SvLibSmtLibPredefinedType.INT, "w0", "w0", "w0");
     SvLibVariableDeclaration z0Const =
         new SvLibVariableDeclaration(
-            FileLocation.DUMMY, true, true, SvLibSmtLibType.INT, "z0", "z0", "z0");
+            FileLocation.DUMMY, true, true, SvLibSmtLibPredefinedType.INT, "z0", "z0", "z0");
     SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "x", "add");
+        new SvLibParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "add");
     SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "y", "add");
+        new SvLibParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "add");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
             FileLocation.DUMMY,
@@ -394,9 +398,10 @@ public class SvLibParserTest {
 
     SvLibParameterDeclaration resultVar =
         new SvLibParameterDeclaration(
-            FileLocation.DUMMY, SvLibSmtLibType.INT, "|c#result|", "main");
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "|c#result|", "main");
     SvLibParameterDeclaration a =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibType.INT, "a", "main");
+        new SvLibParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "a", "main");
 
     SvLibProcedureDeclaration mainProcedureDeclaration =
         new SvLibProcedureDeclaration(
@@ -449,22 +454,25 @@ public class SvLibParserTest {
                     new SvLibFunctionDeclaration(
                         FileLocation.DUMMY,
                         "|c#bitxor|",
-                        ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-                        SvLibSmtLibType.INT),
+                        ImmutableList.of(
+                            SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+                        SvLibSmtLibPredefinedType.INT),
                     FileLocation.DUMMY),
                 new SvLibDeclareFunCommand(
                     new SvLibFunctionDeclaration(
                         FileLocation.DUMMY,
                         "|c#bitand|",
-                        ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-                        SvLibSmtLibType.INT),
+                        ImmutableList.of(
+                            SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+                        SvLibSmtLibPredefinedType.INT),
                     FileLocation.DUMMY),
                 new SvLibDeclareFunCommand(
                     new SvLibFunctionDeclaration(
                         FileLocation.DUMMY,
                         "|c#bitor|",
-                        ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-                        SvLibSmtLibType.INT),
+                        ImmutableList.of(
+                            SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+                        SvLibSmtLibPredefinedType.INT),
                     FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
                     FileLocation.DUMMY,

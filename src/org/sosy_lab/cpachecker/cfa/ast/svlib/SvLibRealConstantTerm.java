@@ -30,7 +30,7 @@ public final class SvLibRealConstantTerm implements SvLibConstantTerm {
 
   @Override
   public SvLibType getExpressionType() {
-    return SvLibSmtLibType.REAL;
+    return SvLibSmtLibPredefinedType.REAL;
   }
 
   @Override

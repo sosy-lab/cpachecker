@@ -12,7 +12,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 
 public class SmtLibTheoryDeclarations {
@@ -26,8 +28,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.BOOL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.BOOL),
           "=",
           "=",
           "=");
@@ -39,8 +41,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.BOOL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.BOOL),
           "<",
           "<",
           "<");
@@ -52,8 +54,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.BOOL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.BOOL),
           "<=",
           "<=",
           "<=");
@@ -65,8 +67,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.BOOL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.BOOL),
           ">",
           ">",
           ">");
@@ -78,8 +80,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.BOOL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.BOOL),
           ">=",
           ">=",
           ">=");
@@ -91,8 +93,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.INT),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.INT),
           "-",
           "-",
           "-");
@@ -104,8 +106,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.INT),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.INT),
           "*",
           "*",
           "*");
@@ -117,8 +119,9 @@ public class SmtLibTheoryDeclarations {
         true,
         new SvLibFunctionType(
             FileLocation.DUMMY,
-            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.INT)),
-            SvLibSmtLibType.INT),
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.INT)),
+            SvLibSmtLibPredefinedType.INT),
         "+",
         "+",
         "+");
@@ -133,8 +136,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
-              SvLibSmtLibType.INT),
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.INT),
           "mod",
           "mod",
           "mod");
@@ -147,7 +150,9 @@ public class SmtLibTheoryDeclarations {
           true,
           true,
           new SvLibFunctionType(
-              FileLocation.DUMMY, ImmutableList.of(SvLibSmtLibType.BOOL), SvLibSmtLibType.BOOL),
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibPredefinedType.BOOL),
+              SvLibSmtLibPredefinedType.BOOL),
           "not",
           "not",
           "not");
@@ -159,8 +164,9 @@ public class SmtLibTheoryDeclarations {
         true,
         new SvLibFunctionType(
             FileLocation.DUMMY,
-            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.BOOL)),
-            SvLibSmtLibType.BOOL),
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.BOOL)),
+            SvLibSmtLibPredefinedType.BOOL),
         "or",
         "or",
         "or");
@@ -173,8 +179,9 @@ public class SmtLibTheoryDeclarations {
         true,
         new SvLibFunctionType(
             FileLocation.DUMMY,
-            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.BOOL)),
-            SvLibSmtLibType.BOOL),
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.BOOL)),
+            SvLibSmtLibPredefinedType.BOOL),
         "and",
         "and",
         "and");
@@ -187,8 +194,9 @@ public class SmtLibTheoryDeclarations {
         true,
         new SvLibFunctionType(
             FileLocation.DUMMY,
-            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.BOOL)),
-            SvLibSmtLibType.BOOL),
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.BOOL)),
+            SvLibSmtLibPredefinedType.BOOL),
         "=>",
         "=>",
         "=>");
@@ -201,7 +209,9 @@ public class SmtLibTheoryDeclarations {
           true,
           true,
           new SvLibFunctionType(
-              FileLocation.DUMMY, ImmutableList.of(SvLibSmtLibType.REAL), SvLibSmtLibType.INT),
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibPredefinedType.REAL),
+              SvLibSmtLibPredefinedType.INT),
           "floor",
           "floor",
           "floor");
@@ -213,8 +223,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.REAL, SvLibSmtLibType.REAL),
-              SvLibSmtLibType.REAL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
+              SvLibSmtLibPredefinedType.REAL),
           "-",
           "-",
           "-");
@@ -226,8 +236,8 @@ public class SmtLibTheoryDeclarations {
           true,
           new SvLibFunctionType(
               FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibType.REAL, SvLibSmtLibType.REAL),
-              SvLibSmtLibType.REAL),
+              ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
+              SvLibSmtLibPredefinedType.REAL),
           "*",
           "*",
           "*");
@@ -239,10 +249,41 @@ public class SmtLibTheoryDeclarations {
         true,
         new SvLibFunctionType(
             FileLocation.DUMMY,
-            ImmutableList.copyOf(Collections.nCopies(amountArguments, SvLibSmtLibType.REAL)),
-            SvLibSmtLibType.REAL),
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.REAL)),
+            SvLibSmtLibPredefinedType.REAL),
         "+",
         "+",
         "+");
+  }
+
+  /** Array stuff */
+  public static SvLibVariableDeclaration arraySelect(SvLibType indexType, SvLibType elementType) {
+    return new SvLibVariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new SvLibFunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.of(new SvLibSmtLibArrayType(indexType, elementType), indexType),
+            elementType),
+        "select",
+        "select",
+        "select");
+  }
+
+  public static SvLibVariableDeclaration arrayStore(SvLibType indexType, SvLibType elementType) {
+    return new SvLibVariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new SvLibFunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.of(
+                new SvLibSmtLibArrayType(indexType, elementType), indexType, elementType),
+            new SvLibSmtLibArrayType(indexType, elementType)),
+        "store",
+        "store",
+        "store");
   }
 }

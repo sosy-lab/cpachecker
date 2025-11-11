@@ -22,14 +22,18 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGeneralSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -57,6 +61,8 @@ public class SvLibTermToFormulaConverter {
           fmgr.getIntegerFormulaManager().makeNumber(pSvLibIntegerConstantTerm.getValue());
       case SvLibBooleanConstantTerm pSvLibBooleanConstantTerm ->
           fmgr.getBooleanFormulaManager().makeBoolean(pSvLibBooleanConstantTerm.getValue());
+      case SvLibRealConstantTerm pSvLibRealConstantTerm ->
+          fmgr.getRationalFormulaManager().makeNumber(pSvLibRealConstantTerm.getValue());
     };
   }
 
@@ -103,12 +109,15 @@ public class SvLibTermToFormulaConverter {
       FormulaManagerView fmgr) {
     if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibFinalRelationalTerm::getExpressionType)
-        .allMatch(type -> type.equals(SvLibSmtLibType.INT))) {
+        .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
       return convertIntegerApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibFinalRelationalTerm::getExpressionType)
-        .allMatch(type -> type.equals(SvLibSmtLibType.BOOL))) {
+        .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.BOOL))) {
       return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
+    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && isArrayAccess(pTerm)) {
+      return convertArrayAccess(pTerm, ssa, fmgr);
     }
 
     throw new UnsupportedOperationException(
@@ -197,6 +206,46 @@ public class SvLibTermToFormulaConverter {
               "Unexpected value: '"
                   + functionName
                   + "' when converting from a boolean term into a formula.");
+    }
+  }
+
+  private static @NonNull <T1 extends Formula, T2 extends Formula> Formula convertArrayAccess(
+      SvLibSymbolApplicationTerm pTerm, SSAMapBuilder pSsa, FormulaManagerView pFmgr) {
+    if (pTerm.getSymbol().getName().equals("select")) {
+      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr);
+      ArrayFormula<T1, T2> arrayFormula =
+          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr);
+      return pFmgr.getArrayFormulaManager().select(arrayFormula, indexFormula);
+    } else if (pTerm.getSymbol().getName().equals("store")) {
+      ArrayFormula<T1, T2> arrayFormula =
+          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr);
+      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr);
+      T2 valueFormula = (T2) convertTerm(pTerm.getTerms().get(2), pSsa, pFmgr);
+      return pFmgr.getArrayFormulaManager().store(arrayFormula, indexFormula, valueFormula);
+    } else {
+      throw new IllegalStateException(
+          "Unexpected array access operation: " + pTerm.getSymbol().getName());
+    }
+  }
+
+  private static boolean isArrayAccess(SvLibSymbolApplicationTerm pTerm) {
+    if (pTerm.getSymbol().getName().equals("select")) {
+      return pTerm.getTerms().size() == 2
+          && SvLibType.canBeCastTo(
+              pTerm.getTerms().getFirst().getExpressionType(),
+              new SvLibSmtLibArrayType(
+                  pTerm.getTerms().get(1).getExpressionType(), pTerm.getExpressionType()));
+    } else if (pTerm.getSymbol().getName().equals("store")) {
+      return pTerm.getTerms().size() == 3
+          && SvLibType.canBeCastTo(
+              pTerm.getTerms().getFirst().getExpressionType(),
+              new SvLibSmtLibArrayType(
+                  pTerm.getTerms().get(1).getExpressionType(),
+                  pTerm.getTerms().get(2).getExpressionType()))
+          && SvLibType.canBeCastTo(
+              pTerm.getExpressionType(), pTerm.getTerms().getFirst().getExpressionType());
+    } else {
+      return false;
     }
   }
 }

@@ -29,7 +29,7 @@ public final class SvLibBooleanConstantTerm implements SvLibConstantTerm {
 
   @Override
   public SvLibType getExpressionType() {
-    return SvLibSmtLibType.BOOL;
+    return SvLibSmtLibPredefinedType.BOOL;
   }
 
   @Override

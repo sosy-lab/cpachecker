@@ -17,14 +17,14 @@ public sealed interface SvLibConstantTerm extends SvLibTerm
   Object getValue();
 
   static SvLibConstantTerm of(Object pValue, SvLibType pType) {
-    if (pType instanceof SvLibSmtLibType pSvLibSmtLibType) {
-      return switch (pSvLibSmtLibType) {
+    if (pType instanceof SvLibSmtLibPredefinedType pSvLibSmtLibPredefinedType) {
+      return switch (pSvLibSmtLibPredefinedType) {
         case BOOL -> {
           if (pValue instanceof Boolean b) {
             yield new SvLibBooleanConstantTerm(b, FileLocation.DUMMY);
           } else {
             throw new IllegalArgumentException(
-                "Expected Boolean value for SvLibSmtLibType.BOOL, but got: " + pValue);
+                "Expected Boolean value for SvLibSmtLibPredefinedType.BOOL, but got: " + pValue);
           }
         }
         case INT -> {
@@ -35,13 +35,13 @@ public sealed interface SvLibConstantTerm extends SvLibTerm
             i = bigInt;
           } else {
             throw new IllegalArgumentException(
-                "Expected Integer value for SvLibSmtLibType.INT, but got: " + pValue);
+                "Expected Integer value for SvLibSmtLibPredefinedType.INT, but got: " + pValue);
           }
           yield new SvLibIntegerConstantTerm(i, FileLocation.DUMMY);
         }
         default ->
             throw new UnsupportedOperationException(
-                "Cannot create constant expression for type: " + pSvLibSmtLibType);
+                "Cannot create constant expression for type: " + pSvLibSmtLibPredefinedType);
       };
     }
 

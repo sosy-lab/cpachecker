@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib.parser;
 
 import java.nio.file.Path;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ParametricSortContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SimpleSortContext;
@@ -30,6 +31,12 @@ public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvL
 
   @Override
   public SvLibType visitParametricSort(ParametricSortContext pContext) {
+    if (pContext.sort().size() == 2 && pContext.identifier().getText().equals("Array")) {
+      SvLibType indexType = visit(pContext.sort(0));
+      SvLibType elementType = visit(pContext.sort(1));
+      return new SvLibSmtLibArrayType(indexType, elementType);
+    }
+
     throw new UnsupportedOperationException("Parametric sorts are not supported yet.");
   }
 }

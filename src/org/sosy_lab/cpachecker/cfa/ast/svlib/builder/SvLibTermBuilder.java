@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
 
 public class SvLibTermBuilder {
 
   public static SvLibFinalRelationalTerm booleanNegation(SvLibFinalRelationalTerm pTerm) {
-    checkArgument(pTerm.getExpressionType().equals(SvLibSmtLibType.BOOL));
+    checkArgument(pTerm.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL));
     return new SvLibSymbolApplicationRelationalTerm(
         new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
         ImmutableList.of(pTerm),
@@ -33,7 +33,7 @@ public class SvLibTermBuilder {
   public static SvLibFinalRelationalTerm booleanDisjunction(List<SvLibFinalRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
-            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibType.BOOL)));
+            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)));
 
     // Some simplifications
     if (pTerms.isEmpty()) {
@@ -54,7 +54,7 @@ public class SvLibTermBuilder {
   public static SvLibFinalRelationalTerm booleanConjunction(List<SvLibFinalRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
-            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibType.BOOL)));
+            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)));
     // Some simplifications
     if (pTerms.isEmpty()) {
       // Return false for empty disjunction
@@ -74,8 +74,8 @@ public class SvLibTermBuilder {
   public static SvLibFinalRelationalTerm implication(
       SvLibFinalRelationalTerm pAssumption, SvLibFinalRelationalTerm pConclusion) {
     checkArgument(
-        pAssumption.getExpressionType().equals(SvLibSmtLibType.BOOL)
-            && pConclusion.getExpressionType().equals(SvLibSmtLibType.BOOL));
+        pAssumption.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)
+            && pConclusion.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL));
     return new SvLibSymbolApplicationRelationalTerm(
         new SvLibIdTerm(SmtLibTheoryDeclarations.boolImplication(2), FileLocation.DUMMY),
         ImmutableList.of(pAssumption, pConclusion),

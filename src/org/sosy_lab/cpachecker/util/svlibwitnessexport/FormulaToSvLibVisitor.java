@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
@@ -45,11 +45,11 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
 
   private SvLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
     if (formulaType.equals(FormulaType.BooleanType)) {
-      return SvLibSmtLibType.BOOL;
+      return SvLibSmtLibPredefinedType.BOOL;
     } else if (formulaType.equals(FormulaType.IntegerType)) {
-      return SvLibSmtLibType.INT;
+      return SvLibSmtLibPredefinedType.INT;
     } else if (formulaType.equals(FormulaType.RationalType)) {
-      return SvLibSmtLibType.REAL;
+      return SvLibSmtLibPredefinedType.REAL;
     }
 
     throw new AssertionError("Unsupported formula type: " + formulaType);
@@ -65,8 +65,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             // Remove type suffixes from overloaded operators, like '_int'
             .replace("_int", "")
             .replace("_rat", "");
-    if (pReturnType == SvLibSmtLibType.BOOL
-        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.BOOL))) {
+    if (pReturnType == SvLibSmtLibPredefinedType.BOOL
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.BOOL))) {
       return switch (actualName) {
         case "and" ->
             new SvLibIdTerm(
@@ -77,8 +78,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         case "not" -> new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
-    } else if (pReturnType == SvLibSmtLibType.BOOL
-        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.INT))) {
+    } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.INT))) {
       return switch (actualName) {
         case "=" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY);
         case "<" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_THAN, FileLocation.DUMMY);
@@ -86,8 +88,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
-    } else if (pReturnType == SvLibSmtLibType.INT
-        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.INT))) {
+    } else if (pReturnType == SvLibSmtLibPredefinedType.INT
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.INT))) {
       return switch (actualName) {
         case "+" ->
             new SvLibIdTerm(
@@ -97,8 +100,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
-    } else if (pReturnType == SvLibSmtLibType.REAL
-        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.REAL))) {
+    } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.REAL))) {
       return switch (actualName) {
         case "+" ->
             new SvLibIdTerm(
@@ -108,8 +112,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
-    } else if (pReturnType == SvLibSmtLibType.INT
-        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.REAL))) {
+    } else if (pReturnType == SvLibSmtLibPredefinedType.INT
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.REAL))) {
       return switch (actualName) {
         case "floor" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_FLOOR, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
