@@ -218,6 +218,9 @@ public class SvLibTermToFormulaConverter {
     }
   }
 
+  // We can do the casts safely since all terms are well-typed, which guarantees that the types
+  // match.
+  @SuppressWarnings("unchecked")
   private static @NonNull <T1 extends Formula, T2 extends Formula> Formula convertArrayAccess(
       SvLibSymbolApplicationTerm pTerm, SSAMapBuilder pSsa, FormulaManagerView pFmgr) {
     if (pTerm.getSymbol().getName().equals("select")) {
