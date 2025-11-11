@@ -179,10 +179,11 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() == 2);
         yield imgr.multiply(args.getFirst(), args.get(1));
       }
-      default -> throw new IllegalStateException(
-          "Unexpected value: '"
-              + functionName
-              + "' when converting from an integer term into a formula.");
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from an integer term into a formula.");
     };
   }
 
@@ -211,10 +212,11 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() >= 2);
         return bmgr.or(args);
       }
-      default -> throw new IllegalStateException(
-          "Unexpected value: '"
-              + functionName
-              + "' when converting from a boolean term into a formula.");
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from a boolean term into a formula.");
     }
   }
 
@@ -244,18 +246,18 @@ public class SvLibTermToFormulaConverter {
     if (pTerm.getSymbol().getName().equals("select")) {
       return pTerm.getTerms().size() == 2
           && SvLibType.canBeCastTo(
-          pTerm.getTerms().getFirst().getExpressionType(),
-          new SvLibSmtLibArrayType(
-              pTerm.getTerms().get(1).getExpressionType(), pTerm.getExpressionType()));
+              pTerm.getTerms().getFirst().getExpressionType(),
+              new SvLibSmtLibArrayType(
+                  pTerm.getTerms().get(1).getExpressionType(), pTerm.getExpressionType()));
     } else if (pTerm.getSymbol().getName().equals("store")) {
       return pTerm.getTerms().size() == 3
           && SvLibType.canBeCastTo(
-          pTerm.getTerms().getFirst().getExpressionType(),
-          new SvLibSmtLibArrayType(
-              pTerm.getTerms().get(1).getExpressionType(),
-              pTerm.getTerms().get(2).getExpressionType()))
+              pTerm.getTerms().getFirst().getExpressionType(),
+              new SvLibSmtLibArrayType(
+                  pTerm.getTerms().get(1).getExpressionType(),
+                  pTerm.getTerms().get(2).getExpressionType()))
           && SvLibType.canBeCastTo(
-          pTerm.getExpressionType(), pTerm.getTerms().getFirst().getExpressionType());
+              pTerm.getExpressionType(), pTerm.getTerms().getFirst().getExpressionType());
     } else {
       return false;
     }

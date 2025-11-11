@@ -219,9 +219,7 @@ public class SmtLibTheoryDeclarations {
         "=>");
   }
 
-  /**
-   * Real stuff
-   */
+  /** Real stuff */
   public static SvLibVariableDeclaration REAL_FLOOR =
       new SvLibVariableDeclaration(
           FileLocation.DUMMY,
@@ -276,9 +274,7 @@ public class SmtLibTheoryDeclarations {
         "+");
   }
 
-  /**
-   * Array stuff
-   */
+  /** Array stuff */
   public static SvLibVariableDeclaration arraySelect(SvLibType indexType, SvLibType elementType) {
     return new SvLibVariableDeclaration(
         FileLocation.DUMMY,
