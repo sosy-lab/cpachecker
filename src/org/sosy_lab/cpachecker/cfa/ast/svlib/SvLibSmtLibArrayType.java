@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import java.io.Serial;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibSmtLibArrayType implements SvLibSmtLibType {
 
+  @Serial
+  private static final long serialVersionUID = -6428452921599985756L;
   private final SvLibType keysType;
   private final SvLibType valuesType;
 
