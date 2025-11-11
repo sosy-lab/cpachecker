@@ -108,6 +108,6 @@ public class SvLibSafetySpecState
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     // TODO: Implement once we also support statement contracts and invariants such that we have
     // some relevant infomration to export
-    return Set.of();
+    return ImmutableSet.of();
   }
 }
