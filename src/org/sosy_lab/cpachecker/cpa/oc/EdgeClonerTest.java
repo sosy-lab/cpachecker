@@ -147,7 +147,7 @@ public class EdgeClonerTest {
     for (CFAEdge e : edges) {
       if (e instanceof CStatementEdge se) {
         CStatement st = se.getStatement();
-        if (st instanceof CExpressionAssignmentStatement a) {
+        if (st instanceof CExpressionAssignmentStatement) {
           assignEdge = e;
           break;
         }

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Helper class to clone C ASTs and expressions. Package-private and used by EdgeCloner.
@@ -107,7 +108,7 @@ class AstCloner {
 
     final FileLocation loc = ast.getFileLocation();
 
-  if (ast instanceof CRightHandSide rhs) {
+  if (ast instanceof CRightHandSide) {
 
       if (ast instanceof CExpression expr) {
         return expr.accept(new CExpressionCloner());
@@ -121,7 +122,7 @@ class AstCloner {
             cloneAst(func.getDeclaration()));
       }
 
-  } else if (ast instanceof CInitializer init) {
+  } else if (ast instanceof CInitializer) {
 
       if (ast instanceof CInitializerExpression initExp) {
         return new CInitializerExpression(loc, cloneAstRightSide(initExp.getExpression()));
@@ -134,7 +135,7 @@ class AstCloner {
             loc, cloneAstList(di.getDesignators()), cloneAstRightSide(di.getRightHandSide()));
       }
 
-  } else if (ast instanceof CSimpleDeclaration simpleDecl) {
+  } else if (ast instanceof CSimpleDeclaration) {
 
       if (ast instanceof CVariableDeclaration decl) {
         CVariableDeclaration newDecl = (CVariableDeclaration) createNewDeclaration(decl);
@@ -166,7 +167,7 @@ class AstCloner {
         return new CEnumerator(loc, decl.getName(), decl.getQualifiedName(), decl.getValue());
       }
 
-  } else if (ast instanceof CStatement stmt) {
+  } else if (ast instanceof CStatement) {
 
       if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return new CFunctionCallAssignmentStatement(
@@ -198,7 +199,7 @@ class AstCloner {
       }
       return new CReturnStatement(loc, returnExp, returnAssignment);
 
-  } else if (ast instanceof CDesignator designator) {
+  } else if (ast instanceof CDesignator) {
 
       if (ast instanceof CArrayDesignator arr) {
         return new CArrayDesignator(loc, cloneAstRightSide(arr.getSubscriptExpression()));
@@ -231,7 +232,7 @@ class AstCloner {
       if (decl.isGlobal()) {
         final var type = isLhs ? WRITE : READ;
         final var id = ++mutableUniqueCounter;
-        memoryEvents.add(new MemoryEvent(id, decl, newDecl, Optional.empty(), type));
+        memoryEvents.add(new MemoryEvent(id, MemoryLocation.forDeclaration(decl), newDecl.getQualifiedName(), Optional.empty(), type));
       }
       return newDecl;
     } else {
@@ -306,7 +307,7 @@ class AstCloner {
 
     @Override
     public CExpression visit(CIdExpression exp) {
-      if (exp.getExpressionType() instanceof CFunctionType fType) {
+      if (exp.getExpressionType() instanceof CFunctionType) {
         return new CIdExpression(
             exp.getFileLocation(),
             exp.getExpressionType(),

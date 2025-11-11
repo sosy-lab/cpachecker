@@ -73,7 +73,6 @@ final class EdgeCloner {
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final Map<EdgeIdentifier, EdgeCloner> cache = new HashMap<>();
   private static final Map<CFAEdge, EdgeCloner> reverseCache = new HashMap<>();
-  private static int mutableUniqueCounter = 0;
 
   static CFAEdge clone(final CFAEdge pCFAEdge, final int pid, final AbstractState pState) {
     final EdgeCloner edgeCloner = cache
@@ -92,10 +91,8 @@ final class EdgeCloner {
 
   private CFAEdge mappedEdge;
   private final AstCloner astCloner;
-  private final int threadId;
 
   private EdgeCloner(final int idx, final CFAEdge pCFAEdge) {
-    this.threadId = idx;
     this.astCloner = new AstCloner(idx, new ArrayList<>());
     this.mappedEdge = cloneEdgeDirect(pCFAEdge);
   }
@@ -112,7 +109,7 @@ final class EdgeCloner {
       case DeclarationEdge -> cloneDeclarationEdge(edge, rawStatement, loc, start, end);
       case ReturnStatementEdge -> cloneReturnStatementEdge(edge, rawStatement, loc, start, end);
       case FunctionCallEdge -> cloneFunctionCallEdge(edge, rawStatement, loc, start, end);
-      case FunctionReturnEdge -> cloneFunctionReturnEdge(edge, rawStatement, loc, start, end);
+      case FunctionReturnEdge -> cloneFunctionReturnEdge(edge, loc, start, end);
       case CallToReturnEdge -> cloneCallToReturnEdge(edge, rawStatement, loc, start, end);
     };
   }
@@ -221,7 +218,7 @@ final class EdgeCloner {
   }
 
   private CFAEdge cloneFunctionReturnEdge(
-      final CFAEdge edge, final String rawStatement, final FileLocation loc, final CFANode start, final CFANode end) {
+      final CFAEdge edge, final FileLocation loc, final CFANode start, final CFANode end) {
     if (edge instanceof CFunctionReturnEdge pCFunctionReturnEdge) {
       final var newEdge = (CFunctionSummaryEdge) cloneEdgeDirect(pCFunctionReturnEdge.getSummaryEdge());
       if (newEdge.equals(pCFunctionReturnEdge.getSummaryEdge())) {

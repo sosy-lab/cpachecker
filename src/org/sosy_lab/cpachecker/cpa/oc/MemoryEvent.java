@@ -9,17 +9,17 @@
 package org.sosy_lab.cpachecker.cpa.oc;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public record MemoryEvent(
     int id,
-    CVariableDeclaration declaration,
-    CVariableDeclaration cssaDeclaration,
+    MemoryLocation memoryLocation,
+    String cssaQualifiedName,
     Optional<PathFormula> guard,
     EventType eventType
 ) {
   public MemoryEvent withGuard(PathFormula pf) {
-    return new MemoryEvent(id, declaration, cssaDeclaration, Optional.of(pf), eventType);
+    return new MemoryEvent(id, memoryLocation, cssaQualifiedName, Optional.of(pf), eventType);
   }
 }

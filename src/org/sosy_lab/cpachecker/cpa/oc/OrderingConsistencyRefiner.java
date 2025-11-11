@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.oc.EventType.WRITE;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.INDEX_SEPARATOR;
 
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -51,7 +52,7 @@ public class OrderingConsistencyRefiner implements Refiner {
 
   private void addAndLog(ProverEnvironment prover, BooleanFormula formula)
       throws InterruptedException {
-    System.err.println(formula);
+    //System.err.println(formula);
     prover.addConstraint(formula);
   }
 
@@ -100,20 +101,20 @@ public class OrderingConsistencyRefiner implements Refiner {
     }
 
     final Map<MemoryEvent, IntegerFormula> clk = new HashMap<>();
-    final Map<CVariableDeclaration, Set<MemoryEvent>> writes = new HashMap<>();
-    final Map<CVariableDeclaration, Set<MemoryEvent>> reads = new HashMap<>();
+    final Map<MemoryLocation, Set<MemoryEvent>> writes = new HashMap<>();
+    final Map<MemoryLocation, Set<MemoryEvent>> reads = new HashMap<>();
     final Map<MemoryEvent, Formula> cssa = new HashMap<>();
     for (MemoryEvent e : allEvents) {
       clk.put(e, imgr.makeVariable("clk_%d".formatted(e.id())));
       final var map = e.eventType() == WRITE ? writes : reads;
-      map.computeIfAbsent(e.declaration(), j -> new HashSet<>()).add(e);
-      cssa.put(e, consts.get(e.cssaDeclaration().getQualifiedName() + INDEX_SEPARATOR + (e.eventType() == WRITE ? 2 : 1)));
+      map.computeIfAbsent(e.memoryLocation(), j -> new HashSet<>()).add(e);
+      cssa.put(e, consts.get(e.cssaQualifiedName() + INDEX_SEPARATOR + (e.eventType() == WRITE ? 2 : 1)));
     }
 //    guards.values().stream().flatMap(e -> solver)
 
     // write->read
-    final Map<Pair<MemoryEvent, MemoryEvent>, BooleanFormula> rf = new HashMap<>();
-    for (Entry<CVariableDeclaration, Set<MemoryEvent>> entry : reads.entrySet()) {
+    // final Map<Pair<MemoryEvent, MemoryEvent>, BooleanFormula> rf = new HashMap<>();
+    for (Entry<MemoryLocation, Set<MemoryEvent>> entry : reads.entrySet()) {
       final var var = entry.getKey();
       for (MemoryEvent read : entry.getValue()) {
         final Set<BooleanFormula> allRf = new HashSet<>();
@@ -121,9 +122,9 @@ public class OrderingConsistencyRefiner implements Refiner {
           BooleanFormula rfConst =
               bmgr.makeVariable("rf_%d_%d".formatted(write.id(), read.id()));
           allRf.add(rfConst);
-          rf.put(Pair.of(write, read), rfConst);
-          final var w = cssa.get(write);
-          final var r = cssa.get(read);
+          // rf.put(Pair.of(write, read), rfConst);
+          final var w = checkNotNull(cssa.get(write));
+          final var r = checkNotNull(cssa.get(read));
 
           addAndLog(prover, bmgr.implication(rfConst, fmgr.makeEqual(w, r)));
           addAndLog(prover, bmgr.implication(rfConst, write.guard().get().getFormula()));
@@ -151,10 +152,9 @@ public class OrderingConsistencyRefiner implements Refiner {
       addAndLog(prover, bmgr.or(targetFormulae));
       final var unsat = prover.isUnsat();
       System.err.printf("Unsat?: %s%n", unsat);
+      return unsat;
     } catch (SolverException pE) {
       throw new RuntimeException(pE);
     }
-
-    return false;
   }
 }

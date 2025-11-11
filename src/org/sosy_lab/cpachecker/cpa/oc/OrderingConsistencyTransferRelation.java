@@ -90,8 +90,8 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
                       "Malformed pthread_create (not 4 params): %s",
                       pAFunctionCall);
                   checkState(
-                      params.get(2) instanceof CUnaryExpression
-                          && ((CUnaryExpression) params.get(2)).getOperator()
+                      params.get(2) instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator()
                               == UnaryOperator.AMPER,
                       "Malformed pthread_create (Thread not unary expression with reference): %s",
                       params.get(2));
