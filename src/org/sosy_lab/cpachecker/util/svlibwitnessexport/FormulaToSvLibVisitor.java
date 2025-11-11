@@ -81,6 +81,17 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);
       };
+    } else if (pReturnType == SvLibSmtLibType.INT
+        && FluentIterable.from(pArgTypes).allMatch(type -> type.equals(SvLibSmtLibType.INT))) {
+      return switch (actualName) {
+        case "+" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.intAddition(pArgTypes.size()), FileLocation.DUMMY);
+        case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MINUS, FileLocation.DUMMY);
+        case "*" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
+        default -> throw new AssertionError("Unknown formula type: " + pName);
+      };
     }
 
     throw new AssertionError("Unknown formula type: " + pName);

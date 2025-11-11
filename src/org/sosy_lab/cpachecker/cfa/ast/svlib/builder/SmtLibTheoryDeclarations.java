@@ -97,6 +97,19 @@ public class SmtLibTheoryDeclarations {
           "-",
           "-");
 
+  public static SvLibVariableDeclaration INT_MULTIPLICATION =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibType.INT, SvLibSmtLibType.INT),
+              SvLibSmtLibType.INT),
+          "*",
+          "*",
+          "*");
+
   public static SvLibVariableDeclaration intAddition(int amountArguments) {
     return new SvLibVariableDeclaration(
         FileLocation.DUMMY,
