@@ -99,7 +99,9 @@ public class ToCExpressionVisitorTest {
           InvalidConfigurationException,
           InterruptedException,
           SolverException {
-
+    // The left and right operands of the And expression need to be binary expressions instead of
+    // plain literals, otherwise LeafExpression.of() will simplify into an Expression tree that is
+    // just true
     ExpressionTree<AExpression> left = createLeftTree();
     ExpressionTree<AExpression> right = createRightTree();
     ExpressionTree<AExpression> andExpression = And.of(left, right);
