@@ -30,7 +30,7 @@ public class SvLibStatementToFormulaConverter {
     return switch (pSvLibCfaEdgeStatement) {
       case SvLibAssignmentStatement pSvLibAssignmentStatement ->
           handleAssignment(pSvLibAssignmentStatement, ssa, fmgr);
-      case SvLibHavocStatement pSvLibHavocStatement -> null;
+      case SvLibHavocStatement pSvLibHavocStatement -> handleHavoc(pSvLibHavocStatement, ssa, fmgr);
       case SvLibProcedureCallStatement pSvLibProcedureCallStatement -> null;
     };
   }
@@ -57,5 +57,24 @@ public class SvLibStatementToFormulaConverter {
     }
 
     return result;
+  }
+
+  private static @NonNull BooleanFormula handleHavoc(
+      SvLibHavocStatement pSvLibHavocStatement,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr) {
+    for (SvLibSimpleDeclaration variableToHavoc : pSvLibHavocStatement.getVariables()) {
+      // In JavaSMT, we cannot directly express "havoc", so we assign a fresh variable without
+      // any constraints.
+      // This is effectively equivalent to havoc in the context of SSA.
+      // Therefore, we do not need to add any additional constraints to the result formula.
+      SSAHandler.makeFreshVariable(
+          cleanVariableNameForJavaSMT(variableToHavoc.getQualifiedName()),
+          variableToHavoc.getType(),
+          ssa,
+          fmgr);
+    }
+
+    return fmgr.getBooleanFormulaManager().makeTrue();
   }
 }
