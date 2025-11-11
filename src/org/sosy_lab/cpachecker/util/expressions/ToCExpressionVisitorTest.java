@@ -63,7 +63,15 @@ public class ToCExpressionVisitorTest {
             BinaryOperator.BINARY_AND));
   }
 
-  private BooleanFormula convertCExprressionToBooleanFormula(
+  private ExpressionTree<AExpression> createTreeOnlyFalse() throws UnrecognizedCodeException {
+    return LeafExpression.of(
+        builder.buildBinaryExpression(
+            CIntegerLiteralExpression.createDummyLiteral(0b00, CNumericTypes.INT),
+            CIntegerLiteralExpression.createDummyLiteral(0b00, CNumericTypes.INT),
+            BinaryOperator.BINARY_AND));
+  }
+
+  private BooleanFormula convertCExpressionToBooleanFormula(
       CExpression pResult, Configuration config, Solver smtSolver)
       throws InvalidConfigurationException, UnrecognizedCodeException, InterruptedException {
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
@@ -111,7 +119,7 @@ public class ToCExpressionVisitorTest {
     Configuration config = TestDataTools.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
-    BooleanFormula bf = convertCExprressionToBooleanFormula(result, config, smtSolver);
+    BooleanFormula bf = convertCExpressionToBooleanFormula(result, config, smtSolver);
     assertThat(smtSolver.isUnsat(bf)).isFalse();
   }
 
@@ -131,7 +139,29 @@ public class ToCExpressionVisitorTest {
     Configuration config = TestDataTools.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
-    BooleanFormula bf = convertCExprressionToBooleanFormula(result, config, smtSolver);
+    BooleanFormula bf = convertCExpressionToBooleanFormula(result, config, smtSolver);
     assertThat(smtSolver.isUnsat(bf)).isFalse();
+  }
+
+  @Test
+  public void testFalseExpressions()
+      throws UnrecognizedCodeException,
+          InvalidConfigurationException,
+          InterruptedException,
+          SolverException {
+    ExpressionTree<AExpression> andExpression = And.of(createLeftTree(), createTreeOnlyFalse());
+    ExpressionTree<AExpression> orExpression = Or.of(createTreeOnlyFalse(), createTreeOnlyFalse());
+
+    CExpression resultAnd = andExpression.accept(expressionTreeVisitor);
+    CExpression resultOr = orExpression.accept(expressionTreeVisitor);
+
+    Configuration config = TestDataTools.configurationForTest().build();
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
+
+    BooleanFormula bfAnd = convertCExpressionToBooleanFormula(resultAnd, config, smtSolver);
+    BooleanFormula bfOr = convertCExpressionToBooleanFormula(resultOr, config, smtSolver);
+
+    assertThat(smtSolver.isUnsat(bfAnd)).isTrue();
+    assertThat(smtSolver.isUnsat(bfOr)).isTrue();
   }
 }
