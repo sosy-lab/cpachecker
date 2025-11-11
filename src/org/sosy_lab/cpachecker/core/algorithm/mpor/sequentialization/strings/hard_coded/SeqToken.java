@@ -53,8 +53,7 @@ public class SeqToken {
 
   public static final String CASE_KEYWORD = "case";
 
-  /** cnt for count */
-  public static final String THREAD_COUNT_VARIABLE = "cnt";
+  public static final String THREAD_COUNT_VARIABLE = "thread_count";
 
   public static final String COND_KEYWORD_ASSUME = "cond";
 

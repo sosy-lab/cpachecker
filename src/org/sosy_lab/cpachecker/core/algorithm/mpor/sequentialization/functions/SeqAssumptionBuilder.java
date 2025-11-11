@@ -95,7 +95,9 @@ public class SeqAssumptionBuilder {
     // assume(cnt > 0);
     CBinaryExpression countGreaterZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.CNT, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.GREATER_THAN);
+            SeqIdExpressions.THREAD_COUNT,
+            SeqIntegerLiteralExpressions.INT_0,
+            BinaryOperator.GREATER_THAN);
     return buildAssumption(countGreaterZeroExpression);
   }
 }

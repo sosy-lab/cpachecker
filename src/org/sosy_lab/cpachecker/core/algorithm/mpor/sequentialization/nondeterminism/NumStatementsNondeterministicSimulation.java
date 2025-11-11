@@ -277,7 +277,7 @@ public class NumStatementsNondeterministicSimulation {
     if (pStatement instanceof SeqThreadCreationStatement) {
       CExpressionAssignmentStatement countIncrement =
           SeqStatementBuilder.buildIncrementStatement(
-              SeqIdExpressions.CNT, pBinaryExpressionBuilder);
+              SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
       SeqCountUpdateStatement countIncrementStatement = new SeqCountUpdateStatement(countIncrement);
       return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
           pStatement, countIncrementStatement);
@@ -287,7 +287,7 @@ public class NumStatementsNondeterministicSimulation {
       if (targetPc == Sequentialization.EXIT_PC) {
         CExpressionAssignmentStatement countDecrement =
             SeqStatementBuilder.buildDecrementStatement(
-                SeqIdExpressions.CNT, pBinaryExpressionBuilder);
+                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
         SeqCountUpdateStatement countDecrementStatement =
             new SeqCountUpdateStatement(countDecrement);
         return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(

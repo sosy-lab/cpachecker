@@ -63,7 +63,7 @@ public final class SeqAssumeFunction extends SeqFunction {
   @Override
   public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
-    rParameters.add(SeqParameterDeclarations.COND);
+    rParameters.add(SeqParameterDeclarations.COND_PARAMETER_ASSUME);
     return rParameters.build();
   }
 }

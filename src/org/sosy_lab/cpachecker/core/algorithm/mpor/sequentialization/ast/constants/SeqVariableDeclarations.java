@@ -42,7 +42,7 @@ public class SeqVariableDeclarations {
 
   // cnt (thread count)
 
-  public static final CVariableDeclaration CNT =
+  public static final CVariableDeclaration THREAD_COUNT =
       buildVariableDeclaration(
           false, CNumericTypes.UNSIGNED_INT, SeqToken.THREAD_COUNT_VARIABLE, SeqInitializers.INT_1);
 

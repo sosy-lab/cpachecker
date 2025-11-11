@@ -49,9 +49,9 @@ public class SeqFunctionDeclarations {
           SeqFunctionTypes.REACH_ERROR,
           SeqToken.REACH_ERROR_FUNCTION_NAME,
           ImmutableList.of(
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
+              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
   public static final CFunctionDeclaration ASSERT_FAIL =
@@ -60,10 +60,10 @@ public class SeqFunctionDeclarations {
           SeqFunctionTypes.ASSERT_FAIL,
           SeqToken.ASSERT_FAIL_FUNCTION_NAME,
           ImmutableList.of(
-              SeqParameterDeclarations.ASSERTION,
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
+              SeqParameterDeclarations.ASSERTION_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
   public static final CFunctionDeclaration ASSUME =
@@ -71,7 +71,7 @@ public class SeqFunctionDeclarations {
           FileLocation.DUMMY,
           SeqFunctionTypes.ASSUME,
           SeqNameUtil.buildFunctionName(SeqToken.ASSUME_FUNCTION_NAME),
-          ImmutableList.of(SeqParameterDeclarations.COND),
+          ImmutableList.of(SeqParameterDeclarations.COND_PARAMETER_ASSUME),
           ImmutableSet.of());
 
   public static final CFunctionDeclaration MAIN =
@@ -87,6 +87,6 @@ public class SeqFunctionDeclarations {
           FileLocation.DUMMY,
           SeqFunctionTypes.MALLOC,
           SeqToken.MALLOC_FUNCTION_KEYWORD,
-          ImmutableList.of(SeqParameterDeclarations.SIZE),
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
           ImmutableSet.of());
 }

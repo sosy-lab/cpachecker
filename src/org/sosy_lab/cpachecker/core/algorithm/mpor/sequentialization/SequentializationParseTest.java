@@ -406,7 +406,7 @@ public class SequentializationParseTest {
   private void testEqualOutput(String pStringA, String pStringB) {
     ImmutableList<String> linesA = SeqStringUtil.splitOnNewline(pStringA);
     ImmutableList<String> linesB = SeqStringUtil.splitOnNewline(pStringB);
-    assertThat(linesA.size()).isEqualTo(linesB.size());
+    assertThat(linesA).hasSize(linesB.size());
     for (int i = 0; i < linesA.size(); i++) {
       String lineA = linesA.get(i);
       String lineB = linesB.get(i);

@@ -306,7 +306,9 @@ public class SequentializationBuilder {
         pUtils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.COND, SeqIntegerLiteralExpressions.INT_0, BinaryOperator.EQUALS);
+                SeqIdExpressions.COND_PARAMETER_ASSUME,
+                SeqIntegerLiteralExpressions.INT_0,
+                BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rDefinitions.add(assume.buildDefinition());
     // create separate thread simulation functions, if enabled
@@ -370,7 +372,7 @@ public class SequentializationBuilder {
 
     // active_thread_count / cnt
     if (pOptions.isThreadCountRequired()) {
-      rDeclarations.add(SeqVariableDeclarations.CNT.toASTString());
+      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
     }
 
     // if enabled: round_max and round

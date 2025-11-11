@@ -15,13 +15,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 public class SeqIdExpressions {
   // parameters:
 
-  public static final CIdExpression COND = buildIdExpression(SeqParameterDeclarations.COND);
+  public static final CIdExpression COND_PARAMETER_ASSUME =
+      buildIdExpression(SeqParameterDeclarations.COND_PARAMETER_ASSUME);
 
-  public static final CIdExpression FILE = buildIdExpression(SeqParameterDeclarations.FILE);
+  public static final CIdExpression FILE_PARAMETER_ASSERT_FAIL =
+      buildIdExpression(SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL);
 
-  public static final CIdExpression LINE = buildIdExpression(SeqParameterDeclarations.LINE);
+  public static final CIdExpression LINE_PARAMETER_ASSERT_FAIL =
+      buildIdExpression(SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL);
 
-  public static final CIdExpression FUNCTION = buildIdExpression(SeqParameterDeclarations.FUNCTION);
+  public static final CIdExpression FUNCTION_PARAMETER_ASSERT_FAIL =
+      buildIdExpression(SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL);
 
   // variables:
 
@@ -34,7 +38,8 @@ public class SeqIdExpressions {
   public static final CIdExpression NEXT_THREAD =
       buildIdExpression(SeqVariableDeclarations.NEXT_THREAD_DUMMY);
 
-  public static final CIdExpression CNT = buildIdExpression(SeqVariableDeclarations.CNT);
+  public static final CIdExpression THREAD_COUNT =
+      buildIdExpression(SeqVariableDeclarations.THREAD_COUNT);
 
   public static final CIdExpression ROUND_MAX =
       buildIdExpression(SeqVariableDeclarations.ROUND_MAX_DUMMY);

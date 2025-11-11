@@ -30,29 +30,31 @@ public class SeqFunctionTypes {
       new CFunctionTypeWithNames(
           CVoidType.VOID,
           ImmutableList.of(
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
+              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
           false);
 
   public static final CFunctionTypeWithNames ASSERT_FAIL =
       new CFunctionTypeWithNames(
           CVoidType.VOID,
           ImmutableList.of(
-              SeqParameterDeclarations.ASSERTION,
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
+              SeqParameterDeclarations.ASSERTION_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
+              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
           false);
 
   public static final CFunctionTypeWithNames ASSUME =
       new CFunctionTypeWithNames(
-          CVoidType.VOID, ImmutableList.of(SeqParameterDeclarations.COND), false);
+          CVoidType.VOID, ImmutableList.of(SeqParameterDeclarations.COND_PARAMETER_ASSUME), false);
 
   public static final CFunctionType MAIN =
       new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
 
   public static final CFunctionTypeWithNames MALLOC =
       new CFunctionTypeWithNames(
-          CPointerType.POINTER_TO_VOID, ImmutableList.of(SeqParameterDeclarations.SIZE), false);
+          CPointerType.POINTER_TO_VOID,
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
+          false);
 }

@@ -30,9 +30,9 @@ public final class SeqReachErrorFunction extends SeqFunction {
           SeqIdExpressions.ASSERT_FAIL,
           ImmutableList.of(
               SeqStringLiteralExpressions.STRING_0,
-              SeqIdExpressions.FILE,
-              SeqIdExpressions.LINE,
-              SeqIdExpressions.FUNCTION),
+              SeqIdExpressions.FILE_PARAMETER_ASSERT_FAIL,
+              SeqIdExpressions.LINE_PARAMETER_ASSERT_FAIL,
+              SeqIdExpressions.FUNCTION_PARAMETER_ASSERT_FAIL),
           SeqFunctionDeclarations.ASSERT_FAIL);
 
   private static final CFunctionCallStatement assertFailFunctionCallStatement =
@@ -57,9 +57,9 @@ public final class SeqReachErrorFunction extends SeqFunction {
   public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
     rParameters.add(
-        SeqParameterDeclarations.FILE,
-        SeqParameterDeclarations.LINE,
-        SeqParameterDeclarations.FUNCTION);
+        SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
+        SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
+        SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL);
     return rParameters.build();
   }
 }
