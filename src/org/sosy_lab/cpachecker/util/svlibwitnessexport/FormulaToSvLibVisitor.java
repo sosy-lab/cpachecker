@@ -95,7 +95,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         case "+" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.intAddition(pArgTypes.size()), FileLocation.DUMMY);
-        case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MINUS, FileLocation.DUMMY);
+        case "-" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.intSubtraction(pArgTypes.size()), FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
         default -> throw new AssertionError("Unknown formula type: " + pName);

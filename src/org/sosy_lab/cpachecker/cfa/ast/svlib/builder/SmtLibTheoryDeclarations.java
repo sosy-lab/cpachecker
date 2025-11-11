@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib.builder;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -86,18 +87,21 @@ public class SmtLibTheoryDeclarations {
           ">=",
           ">=");
 
-  public static SvLibVariableDeclaration INT_MINUS =
-      new SvLibVariableDeclaration(
-          FileLocation.DUMMY,
-          true,
-          true,
-          new SvLibFunctionType(
-              FileLocation.DUMMY,
-              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
-              SvLibSmtLibPredefinedType.INT),
-          "-",
-          "-",
-          "-");
+  public static SvLibVariableDeclaration intSubtraction(int amountArguments) {
+    Verify.verify(amountArguments == 1 || amountArguments == 2);
+    return new SvLibVariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        true,
+        new SvLibFunctionType(
+            FileLocation.DUMMY,
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.INT)),
+            SvLibSmtLibPredefinedType.INT),
+        "-",
+        "-",
+        "-");
+  }
 
   public static SvLibVariableDeclaration INT_MULTIPLICATION =
       new SvLibVariableDeclaration(
@@ -215,7 +219,9 @@ public class SmtLibTheoryDeclarations {
         "=>");
   }
 
-  /** Real stuff */
+  /**
+   * Real stuff
+   */
   public static SvLibVariableDeclaration REAL_FLOOR =
       new SvLibVariableDeclaration(
           FileLocation.DUMMY,
@@ -270,7 +276,9 @@ public class SmtLibTheoryDeclarations {
         "+");
   }
 
-  /** Array stuff */
+  /**
+   * Array stuff
+   */
   public static SvLibVariableDeclaration arraySelect(SvLibType indexType, SvLibType elementType) {
     return new SvLibVariableDeclaration(
         FileLocation.DUMMY,

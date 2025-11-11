@@ -307,7 +307,7 @@ public class SvLibParserTest {
                                         y,
                                         new SvLibSymbolApplicationTerm(
                                             new SvLibIdTerm(
-                                                SmtLibTheoryDeclarations.INT_MINUS,
+                                                SmtLibTheoryDeclarations.intSubtraction(2),
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
                                                 new SvLibIdTerm(y, FileLocation.DUMMY),

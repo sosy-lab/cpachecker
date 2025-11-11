@@ -97,8 +97,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN;
         }
         case "-" -> {
-          Verify.verify(pArguments.size() == 2);
-          return SmtLibTheoryDeclarations.INT_MINUS;
+          return SmtLibTheoryDeclarations.intSubtraction(pArguments.size());
         }
         case "+" -> {
           return SmtLibTheoryDeclarations.intAddition(pArguments.size());
