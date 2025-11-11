@@ -21,6 +21,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--smgSymbolicExecution"/>
   </rundefinition>
 
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
