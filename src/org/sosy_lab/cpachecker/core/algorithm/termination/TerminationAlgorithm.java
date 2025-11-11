@@ -272,9 +272,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
           if (variable.getType().getCanonicalType() instanceof CSimpleType pType
               && !cfa.getMachineModel().isSigned(pType)) {
-            throw new UnsupportedCodeException(
-                "LassoRanker does not support domains with possible overflows.",
-                loop.getInnerLoopEdges().asList().getFirst());
+            status = status.withSound(false);
           }
         }
       }
