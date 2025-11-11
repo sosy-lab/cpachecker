@@ -27,13 +27,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -47,18 +45,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Helper class to clone C ASTs and expressions. Package-private and used by EdgeCloner.
- */
+/** Helper class to clone C ASTs and expressions. Package-private and used by EdgeCloner. */
 class AstCloner {
 
   private static int mutableUniqueCounter = 0;
@@ -108,7 +103,7 @@ class AstCloner {
 
     final FileLocation loc = ast.getFileLocation();
 
-  if (ast instanceof CRightHandSide) {
+    if (ast instanceof CRightHandSide) {
 
       if (ast instanceof CExpression expr) {
         return expr.accept(new CExpressionCloner());
@@ -122,7 +117,7 @@ class AstCloner {
             cloneAst(func.getDeclaration()));
       }
 
-  } else if (ast instanceof CInitializer) {
+    } else if (ast instanceof CInitializer) {
 
       if (ast instanceof CInitializerExpression initExp) {
         return new CInitializerExpression(loc, cloneAstRightSide(initExp.getExpression()));
@@ -135,7 +130,7 @@ class AstCloner {
             loc, cloneAstList(di.getDesignators()), cloneAstRightSide(di.getRightHandSide()));
       }
 
-  } else if (ast instanceof CSimpleDeclaration) {
+    } else if (ast instanceof CSimpleDeclaration) {
 
       if (ast instanceof CVariableDeclaration decl) {
         CVariableDeclaration newDecl = (CVariableDeclaration) createNewDeclaration(decl);
@@ -167,7 +162,7 @@ class AstCloner {
         return new CEnumerator(loc, decl.getName(), decl.getQualifiedName(), decl.getValue());
       }
 
-  } else if (ast instanceof CStatement) {
+    } else if (ast instanceof CStatement) {
 
       if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return new CFunctionCallAssignmentStatement(
@@ -182,7 +177,8 @@ class AstCloner {
             cloneAstRightSide(stat.getRightHandSide()));
 
       } else if (ast instanceof CFunctionCallStatement funcCallStmt) {
-        return new CFunctionCallStatement(loc, cloneAstRightSide(funcCallStmt.getFunctionCallExpression()));
+        return new CFunctionCallStatement(
+            loc, cloneAstRightSide(funcCallStmt.getFunctionCallExpression()));
 
       } else if (ast instanceof CExpressionStatement exprStmt) {
         return new CExpressionStatement(loc, cloneAstRightSide(exprStmt.getExpression()));
@@ -199,14 +195,16 @@ class AstCloner {
       }
       return new CReturnStatement(loc, returnExp, returnAssignment);
 
-  } else if (ast instanceof CDesignator) {
+    } else if (ast instanceof CDesignator) {
 
       if (ast instanceof CArrayDesignator arr) {
         return new CArrayDesignator(loc, cloneAstRightSide(arr.getSubscriptExpression()));
 
       } else if (ast instanceof CArrayRangeDesignator range) {
         return new CArrayRangeDesignator(
-            loc, cloneAstRightSide(range.getFloorExpression()), cloneAstRightSide(range.getCeilExpression()));
+            loc,
+            cloneAstRightSide(range.getFloorExpression()),
+            cloneAstRightSide(range.getCeilExpression()));
 
       } else if (ast instanceof CFieldDesignator field) {
         return new CFieldDesignator(loc, field.getFieldName());
@@ -232,7 +230,13 @@ class AstCloner {
       if (decl.isGlobal()) {
         final var type = isLhs ? WRITE : READ;
         final var id = ++mutableUniqueCounter;
-        memoryEvents.add(new MemoryEvent(id, MemoryLocation.forDeclaration(decl), newDecl.getQualifiedName(), Optional.empty(), type));
+        memoryEvents.add(
+            new MemoryEvent(
+                id,
+                MemoryLocation.forDeclaration(decl),
+                newDecl.getQualifiedName(),
+                Optional.empty(),
+                type));
       }
       return newDecl;
     } else {

@@ -18,8 +18,7 @@ public record OrderingConsistencyThreadState(
     LocationState pLocationState,
     CallstackState pCallstackState,
     PathFormula pPathFormula,
-    List<MemoryEvent> pMemoryEvents
-    ) {
+    List<MemoryEvent> pMemoryEvents) {
   @Override
   public String toString() {
     return "(loc=%s, callstack=%s, pathFormula=%s, memoryEvents=%s)"
@@ -29,8 +28,9 @@ public record OrderingConsistencyThreadState(
   @Override
   public boolean equals(Object pO) {
     if (!(pO instanceof OrderingConsistencyThreadState that)) return false;
-    return Objects.equals(pPathFormula, that.pPathFormula) && Objects.equals(pLocationState,
-        that.pLocationState) && Objects.equals(pCallstackState, that.pCallstackState);
+    return Objects.equals(pPathFormula, that.pPathFormula)
+        && Objects.equals(pLocationState, that.pLocationState)
+        && Objects.equals(pCallstackState, that.pCallstackState);
   }
 
   @Override

@@ -17,8 +17,7 @@ public record MemoryEvent(
     MemoryLocation memoryLocation,
     String cssaQualifiedName,
     Optional<PathFormula> guard,
-    EventType eventType
-) {
+    EventType eventType) {
   public MemoryEvent withGuard(PathFormula pf) {
     return new MemoryEvent(id, memoryLocation, cssaQualifiedName, Optional.of(pf), eventType);
   }

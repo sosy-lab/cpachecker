@@ -12,8 +12,10 @@ import static com.google.common.truth.Truth.assertThat;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -21,27 +23,25 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.Pair;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
- * End-to-end tests that parse C snippets into CFA edges, clone edges and assert memory events
- * and declaration renaming behavior.
+ * End-to-end tests that parse C snippets into CFA edges, clone edges and assert memory events and
+ * declaration renaming behavior.
  */
 public class EdgeClonerTest {
 
@@ -81,7 +81,11 @@ public class EdgeClonerTest {
       if (decl instanceof CVariableDeclaration vd && vd.getName().equals("g")) {
         CDeclarationEdge de =
             new CDeclarationEdge(
-                vd.toASTString(), FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), vd);
+                vd.toASTString(),
+                FileLocation.DUMMY,
+                CFANode.newDummyCFANode(),
+                CFANode.newDummyCFANode(),
+                vd);
         CFAEdge cloned = EdgeCloner.clone(de, 1, null);
         List<MemoryEvent> events = EdgeCloner.getAccesses(cloned);
         assertThat(events).isNotEmpty();
@@ -205,14 +209,13 @@ public class EdgeClonerTest {
         "x;",
         "foo(x);",
         "x + x;",
-//        "if(x == x){};", // why does this disappear?
+        //        "if(x == x){};", // why does this disappear?
         "if (x) { x = x; }",
         "if (x) x = x;",
         "for (int i=0;i<1;i++) x = x;",
         "while (x) { x = x; break; }",
         "do { x = x; } while(0);",
-        "switch(x) { case 0: x = x; break; default: ; }"
-    );
+        "switch(x) { case 0: x = x; break; default: ; }");
   }
 
   private void assertRenamingBehavior(String code, boolean isLocal) throws Exception {
@@ -225,7 +228,8 @@ public class EdgeClonerTest {
     assertThat(cloned).isNotNull();
     assertThat(cloned instanceof CStatementEdge).isTrue();
 
-    Set<Pair<String, String>> names = getNameAndQualifiedNameOfX(((CStatementEdge) cloned).getStatement());
+    Set<Pair<String, String>> names =
+        getNameAndQualifiedNameOfX(((CStatementEdge) cloned).getStatement());
     Set<String> originalNames = names.stream().map(Pair::getFirst).collect(Collectors.toSet());
     Set<String> qualifiedNames = names.stream().map(Pair::getSecond).collect(Collectors.toSet());
 

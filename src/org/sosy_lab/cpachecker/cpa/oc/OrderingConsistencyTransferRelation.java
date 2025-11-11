@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.oc;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -91,23 +90,25 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
                       pAFunctionCall);
                   checkState(
                       params.get(2) instanceof CUnaryExpression cUnaryExpression
-                          && cUnaryExpression.getOperator()
-                              == UnaryOperator.AMPER,
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
                       "Malformed pthread_create (Thread not unary expression with reference): %s",
                       params.get(2));
                   checkState(
                       ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
                       "Malformed pthread_create (Thread not CIdExpression): %s",
                       ((CUnaryExpression) params.get(2)).getOperand());
-                  final var eventList = prevState.waitingThreads().get(prevState.nextThreadToStep().map(i -> i.getFirstNotNull()).orElse(0)).pMemoryEvents();
+                  final var eventList =
+                      prevState
+                          .waitingThreads()
+                          .get(prevState.nextThreadToStep().map(i -> i.getFirstNotNull()).orElse(0))
+                          .pMemoryEvents();
                   final var lastEvent = eventList.get(eventList.size() - 1);
                   prevState =
                       addNewThread(
                           prevState,
                           ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
                               .getName(),
-                          Optional.of(lastEvent)
-                          );
+                          Optional.of(lastEvent));
                 }
                 default -> {
                   // nothing to do
@@ -136,9 +137,13 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
                 .getTransferRelation()
                 .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
         final var nextFormula = pathFormulaManager.makeAnd(pathFormula, cfaEdge);
-        final var nextAccesses = ImmutableList.copyOf(Iterables.concat(accesses, EdgeCloner.getAccesses(cfaEdge).stream().map(pMemoryEvent ->
-          pMemoryEvent.withGuard(nextFormula)
-        ).toList()));
+        final var nextAccesses =
+            ImmutableList.copyOf(
+                Iterables.concat(
+                    accesses,
+                    EdgeCloner.getAccesses(cfaEdge).stream()
+                        .map(pMemoryEvent -> pMemoryEvent.withGuard(nextFormula))
+                        .toList()));
 
         final var nextStates =
             nextLocs.stream()
@@ -165,7 +170,9 @@ public class OrderingConsistencyTransferRelation extends SingleEdgeTransferRelat
   }
 
   OrderingConsistencyState addNewThread(
-      final OrderingConsistencyState old, final String functionName, final Optional<MemoryEvent> hbBeforeEvent) {
+      final OrderingConsistencyState old,
+      final String functionName,
+      final Optional<MemoryEvent> hbBeforeEvent) {
     CFANode functioncallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '" + functionName + "' was not found.");

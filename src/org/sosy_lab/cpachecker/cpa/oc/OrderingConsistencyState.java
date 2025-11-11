@@ -27,8 +27,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public record OrderingConsistencyState(
-    Optional<Integer> pid,
-    ImmutableMap<Integer, OrderingConsistencyThreadState> waitingThreads)
+    Optional<Integer> pid, ImmutableMap<Integer, OrderingConsistencyThreadState> waitingThreads)
     implements AbstractState, AbstractStateWithLocations, Graphable {
   static OrderingConsistencyState empty() {
     return new OrderingConsistencyState(Optional.empty(), ImmutableMap.of());
@@ -58,17 +57,22 @@ public record OrderingConsistencyState(
   }
 
   OrderingConsistencyState addNewThread(
-      LocationState pInitialLoc, CallstackState pInitialStack, PathFormula pEmptyFormula,
+      LocationState pInitialLoc,
+      CallstackState pInitialStack,
+      PathFormula pEmptyFormula,
       Optional<MemoryEvent> pHbBeforeEvent) {
     final int newPid = waitingThreads.size();
-    final List<MemoryEvent>
-        eventList = pHbBeforeEvent.map(pMemoryEvent -> ImmutableList.of(pMemoryEvent)).orElse(ImmutableList.of());
+    final List<MemoryEvent> eventList =
+        pHbBeforeEvent
+            .map(pMemoryEvent -> ImmutableList.of(pMemoryEvent))
+            .orElse(ImmutableList.of());
     final ImmutableMap<Integer, OrderingConsistencyThreadState> newWaiting =
         ImmutableMap.<Integer, OrderingConsistencyThreadState>builder()
             .putAll(waitingThreads)
             .put(
                 newPid,
-                new OrderingConsistencyThreadState(pInitialLoc, pInitialStack, pEmptyFormula, eventList))
+                new OrderingConsistencyThreadState(
+                    pInitialLoc, pInitialStack, pEmptyFormula, eventList))
             .buildKeepingLast();
     return new OrderingConsistencyState(pid, newWaiting);
   }
@@ -83,11 +87,12 @@ public record OrderingConsistencyState(
     boolean removeCurrent = pid.map(it -> it != pPid).orElse(false);
     final Builder<Integer, OrderingConsistencyThreadState> newWaiting = ImmutableMap.builder();
     for (Entry<Integer, OrderingConsistencyThreadState> entry : waitingThreads.entrySet()) {
-      if(!removeCurrent || !Objects.equals(entry.getKey(), pid.get())) {
+      if (!removeCurrent || !Objects.equals(entry.getKey(), pid.get())) {
         newWaiting.put(entry.getKey(), entry.getValue());
       }
     }
-    newWaiting.put(pPid, new OrderingConsistencyThreadState(pNextLoc, pNextStack, pNextFormula, pAccesses));
+    newWaiting.put(
+        pPid, new OrderingConsistencyThreadState(pNextLoc, pNextStack, pNextFormula, pAccesses));
     return new OrderingConsistencyState(Optional.of(pPid), newWaiting.buildKeepingLast());
   }
 

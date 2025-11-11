@@ -27,9 +27,13 @@ public class OrderingConsistencyCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(OrderingConsistencyCPA.class);
   }
 
-  public OrderingConsistencyCPA(Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
+  public OrderingConsistencyCPA(
+      Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super("sep", "sep", new OrderingConsistencyTransferRelation(config, pCfa, pLogger, pShutdownNotifier));
+    super(
+        "sep",
+        "sep",
+        new OrderingConsistencyTransferRelation(config, pCfa, pLogger, pShutdownNotifier));
   }
 
   @Override
