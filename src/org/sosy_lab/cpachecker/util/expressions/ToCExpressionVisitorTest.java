@@ -47,37 +47,29 @@ public class ToCExpressionVisitorTest {
   final CBinaryExpressionBuilder builder =
       new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
 
-  @Test
-  public void testCacheMissAnd()
-      throws UnrecognizedCodeException,
-          InvalidConfigurationException,
-          InterruptedException,
-          SolverException {
+  private ExpressionTree<AExpression> createLeftTree() throws UnrecognizedCodeException {
+    return LeafExpression.of(
+        builder.buildBinaryExpression(
+            CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
+            CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
+            BinaryOperator.BINARY_AND));
+  }
 
-    ExpressionTree<AExpression> left =
-        LeafExpression.of(
-            builder.buildBinaryExpression(
-                CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
-                CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
-                BinaryOperator.BINARY_AND));
+  private ExpressionTree<AExpression> createRightTree() throws UnrecognizedCodeException {
+    return LeafExpression.of(
+        builder.buildBinaryExpression(
+            CIntegerLiteralExpression.createDummyLiteral(0b10, CNumericTypes.INT),
+            CIntegerLiteralExpression.createDummyLiteral(0b11, CNumericTypes.INT),
+            BinaryOperator.BINARY_AND));
+  }
 
-    ExpressionTree<AExpression> right =
-        LeafExpression.of(
-            builder.buildBinaryExpression(
-                CIntegerLiteralExpression.createDummyLiteral(0b10, CNumericTypes.INT),
-                CIntegerLiteralExpression.createDummyLiteral(0b11, CNumericTypes.INT),
-                BinaryOperator.BINARY_AND));
-
-    ExpressionTree<AExpression> andExpression = And.of(left, right);
-    CExpression result = andExpression.accept(expressionTreeVisitor);
-
-    Solver smtSolver =
-        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
+  private BooleanFormula convertCExprressionToBooleanFormula(
+      CExpression pResult, Configuration config, Solver smtSolver)
+      throws InvalidConfigurationException, UnrecognizedCodeException, InterruptedException {
     FormulaManagerView formulaManager = smtSolver.getFormulaManager();
-
-    Configuration config = TestDataTools.configurationForTest().build();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, MachineModel.LINUX64);
+
     CtoFormulaConverter converter =
         new CtoFormulaConverter(
             options,
@@ -95,10 +87,29 @@ public class ToCExpressionVisitorTest {
             FileLocation.DUMMY,
             CFANode.newDummyCFANode(),
             CFANode.newDummyCFANode(),
-            result,
+            pResult,
             true);
-    BooleanFormula bf = converter.makePredicate(result, myAssumeEdge, "", null);
 
+    return converter.makePredicate(pResult, myAssumeEdge, "", null);
+  }
+
+  @Test
+  public void testCacheMissAnd()
+      throws UnrecognizedCodeException,
+          InvalidConfigurationException,
+          InterruptedException,
+          SolverException {
+
+    ExpressionTree<AExpression> left = createLeftTree();
+    ExpressionTree<AExpression> right = createRightTree();
+    ExpressionTree<AExpression> andExpression = And.of(left, right);
+
+    CExpression result = andExpression.accept(expressionTreeVisitor);
+
+    Configuration config = TestDataTools.configurationForTest().build();
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
+
+    BooleanFormula bf = convertCExprressionToBooleanFormula(result, config, smtSolver);
     assertThat(smtSolver.isUnsat(bf)).isFalse();
   }
 
@@ -108,53 +119,17 @@ public class ToCExpressionVisitorTest {
           InvalidConfigurationException,
           InterruptedException,
           SolverException {
-    // TODO is this really a good way to test this?
 
-    ExpressionTree<AExpression> left =
-        LeafExpression.of(
-            builder.buildBinaryExpression(
-                CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
-                CIntegerLiteralExpression.createDummyLiteral(0b01, CNumericTypes.INT),
-                BinaryOperator.BINARY_AND));
-
-    ExpressionTree<AExpression> right =
-        LeafExpression.of(
-            builder.buildBinaryExpression(
-                CIntegerLiteralExpression.createDummyLiteral(0b10, CNumericTypes.INT),
-                CIntegerLiteralExpression.createDummyLiteral(0b11, CNumericTypes.INT),
-                BinaryOperator.BINARY_AND));
-
+    ExpressionTree<AExpression> left = createLeftTree();
+    ExpressionTree<AExpression> right = createRightTree();
     ExpressionTree<AExpression> orExpression = Or.of(left, right);
+
     CExpression result = orExpression.accept(expressionTreeVisitor);
 
-    Solver smtSolver =
-        Solver.create(Configuration.defaultConfiguration(), logger, ShutdownNotifier.createDummy());
-    FormulaManagerView formulaManager = smtSolver.getFormulaManager();
-
     Configuration config = TestDataTools.configurationForTest().build();
-    FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, MachineModel.LINUX64);
-    CtoFormulaConverter converter =
-        new CtoFormulaConverter(
-            options,
-            formulaManager,
-            MachineModel.LINUX64,
-            Optional.empty(),
-            logger,
-            ShutdownNotifier.createDummy(),
-            typeHandler,
-            AnalysisDirection.FORWARD);
+    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
-    CAssumeEdge myAssumeEdge =
-        new CAssumeEdge(
-            "",
-            FileLocation.DUMMY,
-            CFANode.newDummyCFANode(),
-            CFANode.newDummyCFANode(),
-            result,
-            true);
-    BooleanFormula bf = converter.makePredicate(result, myAssumeEdge, "", null);
-
+    BooleanFormula bf = convertCExprressionToBooleanFormula(result, config, smtSolver);
     assertThat(smtSolver.isUnsat(bf)).isFalse();
   }
 }
