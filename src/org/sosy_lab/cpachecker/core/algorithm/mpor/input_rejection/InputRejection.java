@@ -42,7 +42,8 @@ public class InputRejection {
         "MPOR expects concurrent C program with at least one pthread_create call", false),
     NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
     POINTER_WRITE(
-        "MPOR does not support writing pointers (when bit vectors are enabled) in line ", true),
+        "allowPointerWrites is disabled, but the input program contains a pointer write in line ",
+        true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
     PTHREAD_RETURN_VALUE(

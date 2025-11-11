@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -77,6 +78,8 @@ public class MemoryModelStartRoutineArgTest {
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
+
+  public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {

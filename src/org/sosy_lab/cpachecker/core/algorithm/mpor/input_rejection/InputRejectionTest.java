@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -26,12 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class InputRejectionTest {
 
@@ -153,41 +150,20 @@ public class InputRejectionTest {
   @Test
   public void testRejectPointerWrite() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
-    MPOROptions customOptions =
-        MPOROptions.testInstance(
-            // do not allow pointer writes
-            false,
-            BitVectorEncoding.DECIMAL,
-            false,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.NONE,
-            false,
-            false,
-            false,
-            0,
-            false,
-            false,
-            false,
-            false,
-            NondeterminismSource.NUM_STATEMENTS,
-            false,
-            false,
-            false,
-            // enable reductions, so that pointers are rejected
-            true,
-            true,
-            true,
-            ReductionMode.ACCESS_ONLY,
-            ReductionOrder.NONE,
-            false,
-            false,
-            false);
+
+    // create test config and MPOROptions instance
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.allowPointerWrites", "false")
+            .build();
+    MPOROptions customOptions = new MPOROptions(config, LogManager.createTestLogManager());
 
     // create cfa for test program pFileName
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     LogManager logger = LogManager.createTestLogManager();
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
+
     // test if MPORAlgorithm rejects program with correct error message
     RuntimeException throwable =
         assertThrows(

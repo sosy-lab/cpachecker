@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -157,8 +158,10 @@ public class MemoryModelTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
+  public MemoryModelTest() throws InvalidConfigurationException {}
+
   @Test
-  public void test_memory_location_equals() {
+  public void test_memory_location_equals() throws InvalidConfigurationException {
     // create new MemoryLocation with the same parameters
     SeqMemoryLocation int_pointer_a_memory_location_alt =
         SeqMemoryLocation.of(
