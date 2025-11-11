@@ -265,7 +265,7 @@ analysis.algorithm.IMC = false
 analysis.algorithm.MPI = false
 
 # use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a
-# parallel C program
+# concurrent C program
 analysis.algorithm.MPOR = false
 
 # allow input programs that write pointer variables?

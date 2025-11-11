@@ -353,7 +353,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.MPOR",
       description =
-          "use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a parallel C"
+          "use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a concurrent C"
               + " program")
   private boolean useMPOR = false;
 

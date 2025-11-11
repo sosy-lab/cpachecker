@@ -487,7 +487,6 @@ public class ConfigurationFileChecks {
           .containsNoneOf(
               Path.of("includes"),
               Path.of("pcc"),
-              Path.of("mpor.properties"),
               Path.of("witnessValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
@@ -540,6 +539,9 @@ public class ConfigurationFileChecks {
               // a timeout. If the analysis is improved such that already
               // seen paths are not considered twice, this test can be re-enabled.
               Path.of("describerr-portfolio.properties"),
+              // The MPOR config rejectes the default empty program used in this test, it requires a
+              // concurrent C program with at least one call to pthread_create
+              Path.of("mpor.properties"),
               Path.of("parallel-randomSampling.properties"),
               Path.of("randomSampling.properties"),
               Path.of("randomTesting.properties"));
