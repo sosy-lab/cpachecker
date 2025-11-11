@@ -1,11 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.oc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -29,9 +21,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -50,111 +44,226 @@ public class OrderingConsistencyRefiner implements Refiner {
     return new OrderingConsistencyRefiner(pCpa);
   }
 
-  private void addAndLog(ProverEnvironment prover, BooleanFormula formula)
+  @Override
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    ExecutionData executionData = extractExecutionData(pReached);
+    
+    OrderingConsistencyCPA ocCPA = CPAs.retrieveCPA(cpa, OrderingConsistencyCPA.class);
+    OrderingConsistencyTransferRelation transferRelation = 
+        (OrderingConsistencyTransferRelation) ocCPA.getTransferRelation();
+    
+    try (ProverEnvironment prover = 
+        transferRelation.getSolver().newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      
+      FormulaEncoder encoder = new FormulaEncoder(
+          transferRelation.getSolver().getFormulaManager(),
+          executionData.allEvents);
+      
+      encodeMemoryModel(prover, encoder);
+      encodeProgramOrder(prover, encoder, executionData);
+      encodeTargetReachability(prover, encoder, executionData);
+      
+      boolean isUnsat = prover.isUnsat();
+      System.err.printf("Unsat?: %s%n", isUnsat);
+      return isUnsat;
+      
+    } catch (SolverException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private ExecutionData extractExecutionData(ReachedSet pReached) {
+    Map<MemoryEvent, Set<MemoryEvent>> programOrder = new HashMap<>();
+    Set<BooleanFormula> targetFormulae = new HashSet<>();
+    Set<MemoryEvent> allEvents = new HashSet<>();
+    
+    for (AbstractState abstractState : pReached.asCollection()) {
+      OrderingConsistencyState ocState =
+          AbstractStates.extractStateByType(abstractState, OrderingConsistencyState.class);
+      
+      if (ocState != null) {
+        ocState.pid().ifPresent(pid -> {
+          ImmutableList<MemoryEvent> memoryEvents = 
+              ImmutableList.copyOf(ocState.waitingThreads().get(pid).pMemoryEvents());
+          
+          buildProgramOrder(programOrder, memoryEvents);
+          allEvents.addAll(memoryEvents);
+          
+          if (abstractState instanceof ARGState argState && argState.isTarget()) {
+            targetFormulae.add(ocState.waitingThreads().get(pid).pPathFormula().getFormula());
+          }
+        });
+      }
+    }
+    
+    return new ExecutionData(programOrder, targetFormulae, allEvents);
+  }
+
+  private void buildProgramOrder(
+      Map<MemoryEvent, Set<MemoryEvent>> programOrder, 
+      ImmutableList<MemoryEvent> memoryEvents) {
+    for (int i = 0; i < memoryEvents.size() - 1; i++) {
+      MemoryEvent current = memoryEvents.get(i);
+      MemoryEvent next = memoryEvents.get(i + 1);
+      programOrder.computeIfAbsent(current, k -> new HashSet<>()).add(next);
+    }
+  }
+
+  private void encodeMemoryModel(
+      ProverEnvironment prover,
+      FormulaEncoder encoder) throws InterruptedException {
+    
+    for (Entry<MemoryLocation, Set<MemoryEvent>> entry : encoder.reads.entrySet()) {
+      MemoryLocation variable = entry.getKey();
+      
+      for (MemoryEvent read : entry.getValue()) {
+        encodeReadFromRelation(prover, encoder, variable, read);
+      }
+    }
+  }
+
+  private void encodeReadFromRelation(
+      ProverEnvironment prover,
+      FormulaEncoder encoder,
+      MemoryLocation variable,
+      MemoryEvent read) throws InterruptedException {
+    
+    Set<BooleanFormula> readFromCandidates = new HashSet<>();
+    Set<MemoryEvent> writesForVariable = encoder.writes.getOrDefault(variable, ImmutableSet.of());
+    
+    for (MemoryEvent write : writesForVariable) {
+      BooleanFormula rfRelation = encoder.bmgr.makeVariable(
+          "rf_%d_%d".formatted(write.id(), read.id()));
+      readFromCandidates.add(rfRelation);
+      
+      encodeReadFromConstraints(prover, encoder, write, read, rfRelation, writesForVariable);
+    }
+    
+    // Each read must read from exactly one write
+    addConstraint(prover, 
+        encoder.bmgr.implication(
+            read.guard().get().getFormula(), 
+            encoder.bmgr.or(readFromCandidates)));
+  }
+
+  private void encodeReadFromConstraints(
+      ProverEnvironment prover,
+      FormulaEncoder encoder,
+      MemoryEvent write,
+      MemoryEvent read,
+      BooleanFormula rfRelation,
+      Set<MemoryEvent> allWritesToSameVariable) throws InterruptedException {
+    
+    Formula writeValue = checkNotNull(encoder.cssaValues.get(write));
+    Formula readValue = checkNotNull(encoder.cssaValues.get(read));
+    
+    // If rf holds, values must match
+    addConstraint(prover, encoder.bmgr.implication(rfRelation, 
+        encoder.fmgr.makeEqual(writeValue, readValue)));
+    
+    // If rf holds, both guards must be satisfied
+    addConstraint(prover, encoder.bmgr.implication(rfRelation, 
+        write.guard().get().getFormula()));
+    addConstraint(prover, encoder.bmgr.implication(rfRelation, 
+        read.guard().get().getFormula()));
+    
+    // If rf holds, write must happen before read
+    addConstraint(prover, encoder.bmgr.implication(rfRelation, 
+        encoder.imgr.lessThan(encoder.clocks.get(write), encoder.clocks.get(read))));
+    
+    // Coherence: no write can happen between the rf-related write and read
+    for (MemoryEvent intermediateWrite : allWritesToSameVariable) {
+      addConstraint(prover, encoder.bmgr.implication(
+          encoder.bmgr.and(
+              rfRelation,
+              encoder.imgr.lessThan(encoder.clocks.get(write), encoder.clocks.get(intermediateWrite))),
+          encoder.imgr.lessThan(encoder.clocks.get(read), encoder.clocks.get(intermediateWrite))));
+    }
+  }
+
+  private void encodeProgramOrder(
+      ProverEnvironment prover,
+      FormulaEncoder encoder,
+      ExecutionData data) throws InterruptedException {
+    
+    for (Entry<MemoryEvent, Set<MemoryEvent>> entry : data.programOrder.entrySet()) {
+      MemoryEvent before = entry.getKey();
+      for (MemoryEvent after : entry.getValue()) {
+        addConstraint(prover, 
+            encoder.imgr.lessThan(encoder.clocks.get(before), encoder.clocks.get(after)));
+      }
+    }
+  }
+
+  private void encodeTargetReachability(
+      ProverEnvironment prover,
+      FormulaEncoder encoder,
+      ExecutionData data) throws InterruptedException {
+    
+    addConstraint(prover, encoder.bmgr.or(data.targetFormulae));
+  }
+
+  private void addConstraint(ProverEnvironment prover, BooleanFormula formula)
       throws InterruptedException {
-    //System.err.println(formula);
     prover.addConstraint(formula);
   }
 
-  @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-//    final Map<Integer, Set<MemoryEvent>> threads = new HashMap<>();
-    final Map<MemoryEvent, Set<MemoryEvent>> programOrder = new HashMap<>();
-    final Set<BooleanFormula> targetFormulae = new HashSet<>();
-    final Set<MemoryEvent> allEvents = new HashSet<>();
-    for (AbstractState abstractState : pReached.asCollection()) {
-      OrderingConsistencyState orderingConsistencyState =
-          AbstractStates.extractStateByType(abstractState, OrderingConsistencyState.class);
-      if (orderingConsistencyState != null) {
-        orderingConsistencyState
-            .pid()
-            .ifPresent(
-                pid -> {
-                  final var memoryEvents = ImmutableList.copyOf(orderingConsistencyState.waitingThreads().get(pid).pMemoryEvents());
-                  for (int i = 0; i < memoryEvents.size() - 1; i++) {
-                    final var event = memoryEvents.get(i);
-                    final var nextEvent = memoryEvents.get(i + 1);
-                    programOrder.computeIfAbsent(event, j -> new HashSet<>()).add(nextEvent);
-                  }
-                  allEvents.addAll(memoryEvents);
-                  if(abstractState instanceof ARGState pARGState) {
-                    if(pARGState.isTarget()) {
-                      targetFormulae.add(orderingConsistencyState.waitingThreads().get(pid).pPathFormula().getFormula());
-                    }
-                  }
-//                  threads.computeIfAbsent(pid, k -> new HashSet<>()).addAll(memoryEvents);
-                });
+  /**
+   * Holds the execution data extracted from the reached set.
+   */
+  private record ExecutionData(
+      Map<MemoryEvent, Set<MemoryEvent>> programOrder,
+      Set<BooleanFormula> targetFormulae,
+      Set<MemoryEvent> allEvents) {}
+
+  /**
+   * Encodes memory events and their relationships into SMT formulas.
+   */
+  private static class FormulaEncoder {
+    final FormulaManagerView fmgr;
+    final IntegerFormulaManager imgr;
+    final BooleanFormulaManager bmgr;
+    
+    final Map<MemoryEvent, IntegerFormula> clocks;
+    final Map<MemoryLocation, Set<MemoryEvent>> writes;
+    final Map<MemoryLocation, Set<MemoryEvent>> reads;
+    final Map<MemoryEvent, Formula> cssaValues;
+
+    FormulaEncoder(FormulaManagerView formulaManager, Set<MemoryEvent> allEvents) {
+      this.fmgr = formulaManager;
+      this.imgr = formulaManager.getIntegerFormulaManager();
+      this.bmgr = formulaManager.getBooleanFormulaManager();
+      
+      this.clocks = new HashMap<>();
+      this.writes = new HashMap<>();
+      this.reads = new HashMap<>();
+      this.cssaValues = new HashMap<>();
+      
+      initializeFormulas(allEvents);
+    }
+
+    private void initializeFormulas(Set<MemoryEvent> allEvents) {
+      // Extract all CSSA variables from guards
+      Map<String, Formula> allVariables = new HashMap<>();
+      for (MemoryEvent event : allEvents) {
+        allVariables.putAll(fmgr.extractVariables(event.guard().get().getFormula()));
       }
-    }
-
-    final var pCPA = CPAs.retrieveCPA(cpa, OrderingConsistencyCPA.class);
-    final var solver = ((OrderingConsistencyTransferRelation)pCPA.getTransferRelation()).getSolver();
-    final var prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-    final var fmgr = solver.getFormulaManager();
-    final var imgr = solver.getFormulaManager().getIntegerFormulaManager();
-    final var bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-
-
-    final HashMap<String, Formula> consts = new HashMap<>();
-    for (MemoryEvent allEvent : allEvents) {
-      consts.putAll(fmgr.extractVariables(allEvent.guard().get().getFormula()));
-    }
-
-    final Map<MemoryEvent, IntegerFormula> clk = new HashMap<>();
-    final Map<MemoryLocation, Set<MemoryEvent>> writes = new HashMap<>();
-    final Map<MemoryLocation, Set<MemoryEvent>> reads = new HashMap<>();
-    final Map<MemoryEvent, Formula> cssa = new HashMap<>();
-    for (MemoryEvent e : allEvents) {
-      clk.put(e, imgr.makeVariable("clk_%d".formatted(e.id())));
-      final var map = e.eventType() == WRITE ? writes : reads;
-      map.computeIfAbsent(e.memoryLocation(), j -> new HashSet<>()).add(e);
-      cssa.put(e, consts.get(e.cssaQualifiedName() + INDEX_SEPARATOR + (e.eventType() == WRITE ? 2 : 1)));
-    }
-//    guards.values().stream().flatMap(e -> solver)
-
-    // write->read
-    // final Map<Pair<MemoryEvent, MemoryEvent>, BooleanFormula> rf = new HashMap<>();
-    for (Entry<MemoryLocation, Set<MemoryEvent>> entry : reads.entrySet()) {
-      final var var = entry.getKey();
-      for (MemoryEvent read : entry.getValue()) {
-        final Set<BooleanFormula> allRf = new HashSet<>();
-        for (MemoryEvent write : writes.getOrDefault(var, ImmutableSet.of())) {
-          BooleanFormula rfConst =
-              bmgr.makeVariable("rf_%d_%d".formatted(write.id(), read.id()));
-          allRf.add(rfConst);
-          // rf.put(Pair.of(write, read), rfConst);
-          final var w = checkNotNull(cssa.get(write));
-          final var r = checkNotNull(cssa.get(read));
-
-          addAndLog(prover, bmgr.implication(rfConst, fmgr.makeEqual(w, r)));
-          addAndLog(prover, bmgr.implication(rfConst, write.guard().get().getFormula()));
-          addAndLog(prover, bmgr.implication(rfConst, read.guard().get().getFormula()));
-          addAndLog(prover, bmgr.implication(rfConst, imgr.lessThan(clk.get(write), clk.get(read))));
-
-          for (MemoryEvent write2 : writes.getOrDefault(var, ImmutableSet.of())) {
-            addAndLog(
-                prover,
-                bmgr.implication(bmgr.and(rfConst, imgr.lessThan(clk.get(write), clk.get(write2))), imgr.lessThan(clk.get(read), clk.get(write2))));
-          }
-
-        }
-        addAndLog(prover, bmgr.implication(read.guard().get().getFormula(), bmgr.or(allRf)));
+      
+      // Create formulas for each event
+      for (MemoryEvent event : allEvents) {
+        // Create a clock variable for ordering
+        clocks.put(event, imgr.makeVariable("clk_%d".formatted(event.id())));
+        
+        // Classify as read or write
+        Map<MemoryLocation, Set<MemoryEvent>> targetMap = 
+            event.eventType() == WRITE ? writes : reads;
+        targetMap.computeIfAbsent(event.memoryLocation(), k -> new HashSet<>()).add(event);
+        
+        // Get the CSSA value
+        int ssaIndex = event.eventType() == WRITE ? 2 : 1;
+        String cssaName = event.cssaQualifiedName() + INDEX_SEPARATOR + ssaIndex;
+        cssaValues.put(event, allVariables.get(cssaName));
       }
-    }
-
-    for (Entry<MemoryEvent, Set<MemoryEvent>> value : programOrder.entrySet()) {
-      for (MemoryEvent memoryEvent : value.getValue()) {
-        addAndLog(prover, imgr.lessThan(clk.get(value.getKey()), clk.get(memoryEvent)));
-      }
-    }
-
-    try {
-      addAndLog(prover, bmgr.or(targetFormulae));
-      final var unsat = prover.isUnsat();
-      System.err.printf("Unsat?: %s%n", unsat);
-      return unsat;
-    } catch (SolverException pE) {
-      throw new RuntimeException(pE);
     }
   }
 }
