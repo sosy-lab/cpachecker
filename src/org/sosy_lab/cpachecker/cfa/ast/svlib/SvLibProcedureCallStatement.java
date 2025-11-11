@@ -22,7 +22,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
 
   private final SvLibProcedureDeclaration procedureDeclaration;
   private final ImmutableList<SvLibTerm> arguments;
-  private final ImmutableList<SvLibVariableDeclaration> returnVariables;
+  private final ImmutableList<SvLibSimpleDeclaration> returnVariables;
 
   public SvLibProcedureCallStatement(
       FileLocation pFileLocation,
@@ -30,7 +30,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
       List<SvLibTagReference> pTagReferences,
       SvLibProcedureDeclaration pProcedureDeclaration,
       List<SvLibTerm> pArguments,
-      List<SvLibVariableDeclaration> pReturnVariables) {
+      List<SvLibSimpleDeclaration> pReturnVariables) {
     super(pFileLocation, pTagAttributes, pTagReferences);
     procedureDeclaration = pProcedureDeclaration;
     arguments = ImmutableList.copyOf(pArguments);
@@ -80,7 +80,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public ImmutableList<SvLibVariableDeclaration> getReturnVariables() {
+  public ImmutableList<SvLibSimpleDeclaration> getReturnVariables() {
     return returnVariables;
   }
 

@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGotoStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Assign
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssumeStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AttributeSvLibContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.BreakStatementContext;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.CallStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ChoiceStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ContinueStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.GotoStatementContext;
@@ -248,5 +251,28 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
 
     return new SvLibChoiceStatement(
         optionsBuilder.build(), fileLocationFromContext(pContext), properties, references);
+  }
+
+  @Override
+  public SvLibStatement visitCallStatement(CallStatementContext pContext) {
+    List<SvLibTagProperty> properties = getTagAttributes();
+    List<SvLibTagReference> references = getTagReferences();
+    SvLibProcedureDeclaration procedureDeclaration =
+        scope.getProcedureDeclaration(pContext.symbol().getFirst().getText());
+    List<SvLibTerm> arguments =
+        transformedImmutableListCopy(
+            pContext.term(), termContext -> termToAstConverter.visit(termContext));
+    List<SvLibSimpleDeclaration> returnVariables =
+        transformedImmutableListCopy(
+            pContext.symbol().subList(1, pContext.symbol().size()),
+            symbolContext -> scope.getVariable(Objects.requireNonNull(symbolContext).getText()));
+
+    return new SvLibProcedureCallStatement(
+        fileLocationFromContext(pContext),
+        properties,
+        references,
+        procedureDeclaration,
+        arguments,
+        returnVariables);
   }
 }
