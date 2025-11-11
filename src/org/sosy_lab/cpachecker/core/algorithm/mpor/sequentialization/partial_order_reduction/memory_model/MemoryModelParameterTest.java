@@ -248,8 +248,8 @@ public class MemoryModelParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test
@@ -277,8 +277,8 @@ public class MemoryModelParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test
@@ -344,7 +344,7 @@ public class MemoryModelParameterTest {
             ImmutableMap.of(),
             pointerParameterAssignments);
 
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(LOCAL_Z_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(LOCAL_Z_MEMORY_LOCATION);
   }
 }

@@ -406,7 +406,7 @@ public class SequentializationParseTest {
   private void testEqualOutput(String pStringA, String pStringB) {
     ImmutableList<String> linesA = SeqStringUtil.splitOnNewline(pStringA);
     ImmutableList<String> linesB = SeqStringUtil.splitOnNewline(pStringB);
-    assertThat(linesA.size() == linesB.size()).isTrue();
+    assertThat(linesA.size()).isEqualTo(linesB.size());
     for (int i = 0; i < linesA.size(); i++) {
       String lineA = linesA.get(i);
       String lineB = linesB.get(i);
@@ -427,16 +427,16 @@ public class SequentializationParseTest {
       String pSequentialization, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    assertThat(pSequentialization.isEmpty()).isFalse();
+    assertThat(pSequentialization).isNotEmpty();
 
     // test that seq can be parsed and cfa created -> code compiles
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(pLogger, pShutdownNotifier);
     CFA seqCfa = cfaCreator.parseSourceAndCreateCFA(pSequentialization);
-    assertThat(seqCfa != null).isTrue();
+    assertThat(seqCfa).isNotNull();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
     String faultySeq = pSequentialization.substring(0, pSequentialization.length() - 100);
-    assertThat(faultySeq.isEmpty()).isFalse();
+    assertThat(faultySeq).isNotEmpty();
 
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;
@@ -445,6 +445,9 @@ public class SequentializationParseTest {
     } catch (Exception exception) {
       fail = true;
     }
-    assertThat(fail).isTrue();
+    assertWithMessage(
+            "Expected CPAchecker to fail while parsing a faulty program, but it succeeded.")
+        .that(fail)
+        .isTrue();
   }
 }

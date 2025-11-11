@@ -346,8 +346,8 @@ public class MemoryModelStructParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'outer' should be associated with deref of 'param_ptr_outer'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(OUTER_STRUCT_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(OUTER_STRUCT_MEMORY_LOCATION);
   }
 
   @Test
@@ -378,11 +378,11 @@ public class MemoryModelStructParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'outer.member' should be associated with deref of 'param_ptr_P1'
-    assertThat(memoryLocationsP1.size() == 1).isTrue();
-    assertThat(memoryLocationsP1.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocationsP1).hasSize(1);
+    assertThat(memoryLocationsP1).contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION);
     // memory location of 'outer.inner.member' should be associated with deref of 'param_ptr_P2'
-    assertThat(memoryLocationsP2.size() == 1).isTrue();
-    assertThat(memoryLocationsP2.contains(INNER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocationsP2).hasSize(1);
+    assertThat(memoryLocationsP2).contains(INNER_STRUCT_MEMBER_MEMORY_LOCATION);
   }
 
   @Test
@@ -418,9 +418,9 @@ public class MemoryModelStructParameterTest {
             pointerParameterAssignments);
 
     // assert that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
-    assertThat(memoryLocationsP1.size() == 1).isTrue();
-    assertThat(memoryLocationsP1.contains(LOCAL_L1_MEMORY_LOCATION)).isTrue();
-    assertThat(memoryLocationsP2.size() == 1).isTrue();
-    assertThat(memoryLocationsP2.contains(GLOBAL_G1_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocationsP1).hasSize(1);
+    assertThat(memoryLocationsP1).contains(LOCAL_L1_MEMORY_LOCATION);
+    assertThat(memoryLocationsP2).hasSize(1);
+    assertThat(memoryLocationsP2).contains(GLOBAL_G1_MEMORY_LOCATION);
   }
 }

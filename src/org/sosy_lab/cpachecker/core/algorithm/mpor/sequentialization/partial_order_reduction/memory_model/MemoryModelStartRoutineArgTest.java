@@ -92,7 +92,7 @@ public class MemoryModelStartRoutineArgTest {
         MemoryModelBuilder.extractPointerParameters(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
-    assertThat(pointerParameterAssignments.size() == 1).isTrue();
+    assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
     assertThat(LOCAL_L1_MEMORY_LOCATION.isExplicitGlobal()).isFalse();

@@ -69,7 +69,7 @@ public class InputRejectionTest {
     String program = Files.readString(inputFilePath);
     CParserException exception =
         assertThrows(CParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(program));
-    assertThat(exception != null).isTrue();
+    assertThat(exception).isNotNull();
   }
 
   @Test
@@ -172,6 +172,6 @@ public class InputRejectionTest {
                 Sequentialization.tryBuildProgramString(
                     customOptions, cfa, "test", logger, shutdownNotifier));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
-    assertThat(throwable.getMessage().contains(expectedMessage)).isTrue();
+    assertThat(throwable.getMessage()).contains(expectedMessage);
   }
 }

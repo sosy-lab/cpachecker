@@ -72,7 +72,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerAssignments.size()).isEqualTo(1);
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     // access(*p); is a deref of p
-    assertThat(memoryModel.pointerDereferences.size()).isEqualTo(1);
+    assertThat(memoryModel.pointerDereferences).hasSize(1);
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
     assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(1);
     // the main thread should always have id 0
@@ -249,7 +249,7 @@ public class SequentializationFieldsTest {
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
     assertThat(memoryModel.pointerParameterAssignments.size()).isEqualTo(6);
-    assertThat(memoryModel.pointerDereferences.size()).isEqualTo(17);
+    assertThat(memoryModel.pointerDereferences).hasSize(17);
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(2);
     // the main thread should always have id 0
@@ -316,7 +316,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     // v[0] counts as pointer dereference, but only once (same declaration)
-    assertThat(memoryModel.pointerDereferences.size()).isEqualTo(1);
+    assertThat(memoryModel.pointerDereferences).hasSize(1);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
@@ -339,7 +339,7 @@ public class SequentializationFieldsTest {
     // counts as pointer parameter assignments
     assertThat(memoryModel.pointerParameterAssignments.size()).isEqualTo(2);
     // stack[get_top()] count as pointer dereferences
-    assertThat(memoryModel.pointerDereferences.size()).isEqualTo(2);
+    assertThat(memoryModel.pointerDereferences).hasSize(2);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
