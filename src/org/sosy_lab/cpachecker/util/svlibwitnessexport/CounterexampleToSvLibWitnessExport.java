@@ -158,7 +158,7 @@ public class CounterexampleToSvLibWitnessExport {
       SvLibIdTerm idTerm = new SvLibIdTerm(varTerm, FileLocation.DUMMY);
       havocedVariablesBuilder.put(idTerm, assignedValue);
     }
-    return new SvLibHavocVariablesStep(havocedVariablesBuilder.build(), FileLocation.DUMMY);
+    return new SvLibHavocVariablesStep(havocedVariablesBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
   private SvLibTraceSetGlobalVariable handleGlobalVariableAssignment(
