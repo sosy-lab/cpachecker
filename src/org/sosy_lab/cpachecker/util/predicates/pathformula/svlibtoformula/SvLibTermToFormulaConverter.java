@@ -168,6 +168,14 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() == 2);
         yield imgr.modulo(args.getFirst(), args.get(1));
       }
+      case "div" -> {
+        Verify.verify(args.size() == 2);
+        yield imgr.divide(args.getFirst(), args.get(1));
+      }
+      case "*" -> {
+        Verify.verify(args.size() == 2);
+        yield imgr.multiply(args.getFirst(), args.get(1));
+      }
       default ->
           throw new IllegalStateException(
               "Unexpected value: '"

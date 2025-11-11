@@ -103,6 +103,13 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         case "+" -> {
           return SmtLibTheoryDeclarations.intAddition(pArguments.size());
         }
+        case "*" -> {
+          // Only a special case of multiplication is actually supported in LIA
+          // but we do not care, because we either way use all theories together.
+          // In case this becomes a problem, we can introduce a separate check for LIA here.
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.INT_MULTIPLICATION;
+        }
       }
     }
 
@@ -112,6 +119,10 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         case "mod" -> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.INT_MOD;
+        }
+        case "div" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.INT_DIV;
         }
       }
     }

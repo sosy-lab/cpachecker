@@ -127,6 +127,19 @@ public class SmtLibTheoryDeclarations {
         "+");
   }
 
+  public static SvLibVariableDeclaration INT_DIV =
+      new SvLibVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          true,
+          new SvLibFunctionType(
+              FileLocation.DUMMY,
+              ImmutableList.of(SvLibSmtLibPredefinedType.INT, SvLibSmtLibPredefinedType.INT),
+              SvLibSmtLibPredefinedType.INT),
+          "div",
+          "div",
+          "div");
+
   /* Non-Linear Integer stuff */
 
   public static SvLibVariableDeclaration INT_MOD =
