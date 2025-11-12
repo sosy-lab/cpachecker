@@ -43,8 +43,7 @@ class MetadataWriter {
 
     if (pOptions.outputMetadata()) {
       try {
-        Path metadataPath =
-            MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML, pLogger);
+        Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
         YAMLMapper yamlMapper = new YAMLMapper();
         RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions);
         yamlMapper.writeValue(metadataPath.toFile(), yamlRoot);

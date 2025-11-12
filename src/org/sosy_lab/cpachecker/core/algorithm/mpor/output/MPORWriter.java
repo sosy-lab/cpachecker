@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
@@ -64,7 +63,7 @@ public class MPORWriter {
           SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
 
       // write output program
-      Path programPath = buildOutputPath(pOptions, programName, FileExtension.I, pLogger);
+      Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
       try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
         writer.write(pOutputProgram);
         pLogger.log(
@@ -82,27 +81,9 @@ public class MPORWriter {
   }
 
   static Path buildOutputPath(
-      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension, LogManager pLogger) {
+      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension) {
 
     String templateWithExtension = pOptions.outputPath().getTemplate() + pFileExtension.getSuffix();
-    Path rOutputPath = PathTemplate.ofFormatString(templateWithExtension).getPath(pProgramName);
-    handleOverwriting(pOptions, rOutputPath, pLogger);
-    return rOutputPath;
-  }
-
-  /**
-   * Throws an {@link AssertionError} if {@code pOutputProgramPath} exists already and overwriting
-   * is not allowed in {@code pOptions}.
-   */
-  private static void handleOverwriting(
-      MPOROptions pOptions, Path pOutputProgramPath, LogManager pLogger) {
-
-    if (!pOptions.overwriteFiles()) {
-      if (Files.exists(pOutputProgramPath)) {
-        pLogger.log(Level.SEVERE, OutputMessage.OVERWRITE_ERROR.getMessage(), pOutputProgramPath);
-        // assertion error is required to stop execution and prevent any overwriting
-        throw new AssertionError();
-      }
-    }
+    return PathTemplate.ofFormatString(templateWithExtension).getPath(pProgramName);
   }
 }

@@ -162,11 +162,6 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "overwrite files in the ./output directory when creating sequentializations?")
-  private boolean overwriteFiles = true;
-
-  @Option(
-      secure = true,
       description =
           "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
               + " if it is known that the left hand side in an & expression is 0, then the entire"
@@ -513,10 +508,6 @@ public class MPOROptions {
 
   public boolean outputProgram() {
     return outputProgram;
-  }
-
-  public boolean overwriteFiles() {
-    return overwriteFiles;
   }
 
   public boolean pruneBitVectorEvaluations() {
