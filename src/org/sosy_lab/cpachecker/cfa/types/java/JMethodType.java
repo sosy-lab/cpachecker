@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
@@ -34,8 +35,8 @@ public sealed class JMethodType extends AbstractFunctionType implements JType
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JType> getParameters() {
-    return (List<JType>) super.getParameters();
+  public ImmutableList<JType> getParameters() {
+    return (ImmutableList<JType>) super.getParameters();
   }
 
   @Override

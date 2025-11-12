@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 import java.io.Closeable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 
+/** Communication infrastructure for {@link DssMessage} exchange between DSS workers. */
 public interface DssConnection extends Closeable {
 
   /**
@@ -28,7 +29,7 @@ public interface DssConnection extends Closeable {
    * Since the method is probably used frequently, the calculation should be cheap (preferably in
    * O(1)).
    *
-   * @return true, if no pending messages exist, false otherwise
+   * @return whether pending messages exist
    */
   boolean hasPendingMessages();
 

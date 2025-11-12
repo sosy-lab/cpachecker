@@ -309,7 +309,7 @@ public class PathChecker {
 
     PathIterator pathIt = pPath.fullPathIterator();
 
-    // for recursion we need to update SSA-indices after returning from a function call,
+    // For recursion, we need to update SSA-indices after returning from a function call,
     // in non-recursive cases this should not change anything.
     Deque<PathFormula> callstack = new ArrayDeque<>();
 
@@ -347,8 +347,7 @@ public class PathChecker {
       throws CPATransferException, InterruptedException {
     if (nextState != null) {
       FluentIterable<AbstractStateWithAssumptions> assumptionStates =
-          AbstractStates.projectToType(
-              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
+          AbstractStates.asIterable(nextState).filter(AbstractStateWithAssumptions.class);
       for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
         if (assumptionState instanceof OverflowState
             && ((OverflowState) assumptionState).hasOverflow()) {

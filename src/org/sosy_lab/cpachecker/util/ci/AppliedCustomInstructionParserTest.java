@@ -185,8 +185,8 @@ public class AppliedCustomInstructionParserTest {
   private List<CFALabelNode> getLabelNodes(CFA pCfa) {
     List<CFALabelNode> result = new ArrayList<>();
     for (CFANode n : pCfa.nodes()) {
-      if (n instanceof CFALabelNode) {
-        result.add((CFALabelNode) n);
+      if (n instanceof CFALabelNode cFALabelNode) {
+        result.add(cFALabelNode);
       }
     }
     return result;
@@ -280,7 +280,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -307,7 +307,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -334,7 +334,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -361,7 +361,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);

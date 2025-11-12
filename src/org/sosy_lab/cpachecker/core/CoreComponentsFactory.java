@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import java.util.logging.Level;
@@ -20,6 +21,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RandomSamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -69,7 +73,10 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -82,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
@@ -235,6 +243,15 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationToSafety",
+      description =
+          "Use termination-to-safety algorithm to prove (non-)termination. This needs the"
+              + " TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the"
+              + " CompositeCPA.")
+  private boolean useTerminationToSafetyAlgorithm = false;
+
+  @Option(
+      secure = true,
       name = "useArrayAbstraction",
       description = "Use array abstraction by program transformation.")
   private boolean useArrayAbstraction = false;
@@ -251,7 +268,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "split.program",
-      description = "Split program in subprograms which can be analyzed separately afterwards")
+      description = "Split program in subprograms which can be analyzed separately afterward")
   private boolean splitProgram = false;
 
   @Option(
@@ -264,7 +281,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.analysisWithEnabler",
       description =
-          "use a analysis which proves if the program satisfies a specified property"
+          "use an analysis which proves if the program satisfies a specified property"
               + " with the help of an enabler CPA to separate differnt program paths")
   private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
@@ -385,6 +402,29 @@ public class CoreComponentsFactory {
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.useSamplingAlgorithm",
+      description =
+          "Generate samples using the provided algorithm. Currently this "
+              + "only works using the configuration "
+              + "'config/valueAnalysis-NoCegar.properties' as an algorithm."
+              + "Ideally never use this option directly, but only through "
+              + "a configuration")
+  private boolean useSamplingAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.copyCFA",
+      description =
+          "Everything constructed in the CoreComponentsFactory is done on a copy of the original"
+              + " CFA, if the option is set to true. One of the possible use-cases are"
+              + " modifications of the CFA by the algorithm. For example, if we run algorithms in"
+              + " parallel or in sequence, they are expected to get the CFA corresponding to the"
+              + " original program. Hence, to prevent these modifications from influencing other"
+              + " algorithms, each algorithm can claim  a copy of the original CFA to modify.")
+  private boolean copyCFA = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -392,6 +432,8 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
+  private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
@@ -402,12 +444,20 @@ public class CoreComponentsFactory {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CFA pCFA)
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 
     config.inject(this);
+    oldCfa = checkNotNull(pCFA);
+
+    if (copyCFA) {
+      cfa = ImmutableCFA.copyOf(checkNotNull(pCFA), pConfig, logger);
+    } else {
+      cfa = checkNotNull(pCFA);
+    }
 
     if (analysisNeedsShutdownManager()) {
       shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -446,11 +496,20 @@ public class CoreComponentsFactory {
         && (useBMC || useIMC || useDAR);
   }
 
+  /**
+   * This method can be used in case the factory constructs a new copy of cfa on which it operates.
+   * This way, caller algorithms can get hold of this copy.
+   *
+   * @return cfa used in this instance of the factory
+   */
+  public CFA getCfa() {
+    return cfa;
+  }
+
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
+      final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
-
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
     }
@@ -517,6 +576,10 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
+      if (useTerminationToSafetyAlgorithm) {
+        TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
+      }
+
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {
@@ -667,11 +730,11 @@ public class CoreComponentsFactory {
       }
 
       if (usePropertyCheckingAlgorithm) {
-        if (!(cpa instanceof PropertyCheckerCPA)) {
+        if (!(cpa instanceof PropertyCheckerCPA propertyCheckerCPA)) {
           throw new InvalidConfigurationException(
               "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
         }
-        algorithm = new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
+        algorithm = new AlgorithmWithPropertyCheck(algorithm, logger, propertyCheckerCPA);
       }
 
       if (useResultCheckAlgorithm) {
@@ -713,7 +776,6 @@ public class CoreComponentsFactory {
                 ShutdownManager.createWithParent(shutdownNotifier),
                 specification);
       }
-
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
@@ -724,13 +786,20 @@ public class CoreComponentsFactory {
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
+
+      if (useSamplingAlgorithm) {
+        algorithm =
+            new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
+      }
     }
 
     return algorithm;
   }
 
   /**
-   * Creates an instance of a {@link ReachedSet}.
+   * Creates an instance of a {@link ReachedSet}. The better way to construct reached set is to use
+   * createInitializedReachedSet ! If this method needs to be used, use initializeReachedSet
+   * afterward to initialize it.
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
@@ -759,7 +828,44 @@ public class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA. The better way
+   * to construct and initialize a reached set is to use createInitializedReachedSet !
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public void initializeReachedSet(
+      ReachedSet pReachedSet, CFANode pInitialNode, ConfigurableProgramAnalysis cpa)
+      throws InterruptedException, CPAException {
+    if (copyCFA) {
+      if (!oldCfa.getMainFunction().equals(pInitialNode)) {
+        throw new CPAException(
+            "If the copying of CFA is set, the analysis can only start from the initial state of"
+                + " the CFA");
+      }
+      pInitialNode = cfa.getMainFunction();
+    }
+    AbstractState initialState =
+        cpa.getInitialState(pInitialNode, StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision =
+        cpa.getInitialPrecision(pInitialNode, StateSpacePartition.getDefaultPartition());
+    pReachedSet.add(initialState, initialPrecision);
+  }
+
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createInitializedReachedSet(
+      ConfigurableProgramAnalysis cpa, CFANode pInitialNode)
+      throws InterruptedException, CPAException {
+    ReachedSet reachedSet = createReachedSet(cpa);
+    initializeReachedSet(reachedSet, pInitialNode, cpa);
+    return reachedSet;
+  }
+
+  public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 

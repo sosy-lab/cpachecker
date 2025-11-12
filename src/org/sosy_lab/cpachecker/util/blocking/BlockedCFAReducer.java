@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
 @Options(prefix = "blockreducer")
@@ -70,7 +69,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Option(
       secure = true,
       name = "reducedCfaFile",
-      description = "write the reduced cfa to the specified file.")
+      description = "write the reduced CFA to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 
@@ -248,7 +247,7 @@ public class BlockedCFAReducer implements BlockComputer {
     private final Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
     private int functionCallId;
 
-    public ReducedNode getWrapper(CFANode pNode) {
+    ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
         boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
@@ -259,7 +258,7 @@ public class BlockedCFAReducer implements BlockComputer {
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
+    FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
       functionCallId = pFunctionCallId;
       cfa = pCfa;
     }
@@ -291,7 +290,7 @@ public class BlockedCFAReducer implements BlockComputer {
       ReducedNode uSn = openEndpoints.removeFirst();
 
       // Look at all leaving edges.
-      for (CFAEdge e : CFAUtils.leavingEdges(uSn.getWrapped())) {
+      for (CFAEdge e : uSn.getWrapped().getLeavingEdges()) {
         if (!traversed.add(e)) {
           continue;
         }

@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;

@@ -59,11 +59,12 @@ public class DssBlockAnalysisFactory {
             globalConfig,
             singleLogger,
             singleShutdownManager.getNotifier(),
-            AggregatedReachedSets.empty());
+            AggregatedReachedSets.empty(),
+            cfa);
 
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
-    Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
     ReachedSet reached =
         createInitialReachedSet(cpa, node.getInitialLocation(), coreComponents, singleLogger);
 

@@ -12,7 +12,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -46,6 +45,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -237,14 +238,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       PathFormula pOldFormula, final CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-    PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
-
-    return Pair.of(pf, errorConditions);
+    try {
+      PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
+      return Pair.of(pf, errorConditions);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
   }
 
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -299,7 +303,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
-    return makeAnd(pOldFormula, pEdge, errorConditions);
+    try {
+      return makeAnd(pOldFormula, pEdge, errorConditions);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
   }
 
   @Override
@@ -309,7 +317,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
     int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
-    PathFormula last = Iterables.getLast(pPathFormulas);
+    PathFormula last = pPathFormulas.getLast();
     return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
   }
 

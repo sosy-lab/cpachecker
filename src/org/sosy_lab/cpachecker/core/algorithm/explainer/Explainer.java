@@ -287,7 +287,7 @@ public class Explainer extends NestingAlgorithm {
     private static final int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public ExplainerAlgorithmStatistics(LogManager pLogger) {
+    ExplainerAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
     }
 

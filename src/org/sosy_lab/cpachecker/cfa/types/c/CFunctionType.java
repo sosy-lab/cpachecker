@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,8 +55,8 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<CType> getParameters() {
-    return (List<CType>) super.getParameters();
+  public ImmutableList<CType> getParameters() {
+    return (ImmutableList<CType>) super.getParameters();
   }
 
   @Override
@@ -92,13 +94,8 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
   }
 
   @Override
-  public boolean isConst() {
-    return false;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return false;
+  public CTypeQualifiers getQualifiers() {
+    return CTypeQualifiers.NONE;
   }
 
   @Override
@@ -137,14 +134,16 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
 
   @Override
   public CFunctionType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    // We ignore pForceConst and pForceVolatile.
-    // const and volatile functions are undefined according to C11 §6.7.3 (9),
+  public CFunctionType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    checkNotNull(pQualifiersToAdd);
+    // We ignore pQualifiersToAdd.
+    // Qualified function types are undefined according to C11 §6.7.3 (9),
     // so we used to throw an exception here, but ignoring it does not hurt.
+    // Atomic is also not allowed (§6.7.3 (3)).
     // Probably no compiler does something else than ignoring these qualifiers as well.
 
     ImmutableList.Builder<CType> newParameterTypes = ImmutableList.builder();
@@ -153,5 +152,13 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
     }
     return new CFunctionType(
         getReturnType().getCanonicalType(), newParameterTypes.build(), takesVarArgs());
+  }
+
+  @Override
+  @DoNotCall
+  public final CFunctionType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    checkArgument(
+        pNewQualifiers.isEmpty(), "Cannot create qualified function types, this is undefined");
+    return this;
   }
 }

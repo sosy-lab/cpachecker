@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cpa.statistics.StatisticsProvider;
 /**
  * The SimpleIntProvider is a basic implementation for StatisticsProvider where the state is
  * basically a single Integer. To use this Api you only have to define how to calculate the next
- * state given the current state and an CFAEdge. (implementing SimpleIntProviderImplementation) And
+ * state given the current state and a CFAEdge. (implementing SimpleIntProviderImplementation) And
  * defining your merge strategy by implementing IntMerger. The interfaces are separated so you can
  * implement multiple merge strategies for a calculateNext-strategy.
  */
@@ -23,7 +23,7 @@ public class SimpleIntProvider implements StatisticsProvider {
   public interface SimpleIntProviderImplementation {
     String getPropertyName();
 
-    /** Calculate the next state given the current state and an CFAEdge */
+    /** Calculate the next state given the current state and a CFAEdge */
     int calculateNext(int current, CFAEdge edge);
   }
 

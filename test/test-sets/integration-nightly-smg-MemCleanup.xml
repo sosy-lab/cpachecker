@@ -13,11 +13,11 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
 
-  <rundefinition>
-    <option name="--smg"/>
-  </rundefinition>
+  <option name="--preprocess"/>
 
-  <resultfiles>**.graphml*</resultfiles>
+  <rundefinition>
+    <option name="--smgSymbolicExecution"/>
+  </rundefinition>
 
   <option name="--no-output-files"/>
   <option name="--heap">6000M</option>
