@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.hb;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -89,9 +88,8 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
                       "Malformed pthread_create (not 4 params): %s",
                       pAFunctionCall);
                   checkState(
-                      params.get(2) instanceof CUnaryExpression
-                          && ((CUnaryExpression) params.get(2)).getOperator()
-                              == UnaryOperator.AMPER,
+                      params.get(2) instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
                       "Malformed pthread_create (Thread not unary expression with reference): %s",
                       params.get(2));
                   checkState(
@@ -188,7 +186,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   private int firstCanExecute(Map<Integer, Pair<LocationState, CallstackState>> pThreads) {
     for (Map.Entry<Integer, Pair<LocationState, CallstackState>> entry : pThreads.entrySet()) {
-      if (!allLeavingEdges(entry.getValue().getFirstNotNull().getLocationNode()).isEmpty()) {
+      if (!entry.getValue().getFirstNotNull().getLocationNode().getAllLeavingEdges().isEmpty()) {
         return entry.getKey();
       }
     }

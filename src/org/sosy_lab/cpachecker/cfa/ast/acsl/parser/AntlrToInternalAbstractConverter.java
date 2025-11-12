@@ -107,7 +107,7 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
     if (expressionType instanceof AcslCType pCType) {
       CType cType = pCType.getType();
       if (operator == AcslUnaryTermOperator.ADDRESS_OF) {
-        resultType = new AcslCType(new CPointerType(cType.isConst(), cType.isVolatile(), cType));
+        resultType = new AcslCType(new CPointerType(cType.getQualifiers(), cType));
       } else if (cType instanceof CArrayType pArrayType) {
         if (operator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
           // We need to get the type of the element

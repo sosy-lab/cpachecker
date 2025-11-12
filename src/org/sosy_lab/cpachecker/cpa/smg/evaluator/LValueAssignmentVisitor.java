@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This visitor evaluates the address of a LValue. It is predominantly used to evaluate the left
- * hand side of a Assignment.
+ * hand side of an Assignment.
  */
 public class LValueAssignmentVisitor extends AddressVisitor {
 

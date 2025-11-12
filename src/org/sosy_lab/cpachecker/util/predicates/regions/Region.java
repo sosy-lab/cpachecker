@@ -17,14 +17,14 @@ public interface Region {
   /**
    * checks whether f represents "true"
    *
-   * @return true if f represents logical truth, false otherwise
+   * @return whether f represents logical truth
    */
   boolean isTrue();
 
   /**
    * checks whether f represents "false"
    *
-   * @return true if f represents logical falsity, false otherwise
+   * @return whether f represents logical falsity
    */
   boolean isFalse();
 }

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
@@ -78,7 +79,7 @@ public class BlockGraph {
           CFAUtils.existsPath(
               blockNode.getInitialLocation(),
               blockNode.getFinalLocation(),
-              node -> CFAUtils.allLeavingEdges(node).toSet(),
+              node -> node.getAllLeavingEdges().toSet(),
               pShutdownNotifier),
           "pNodesInBlock (%s) "
               + "must list all nodes but misses either the root node (%s) "
@@ -105,12 +106,12 @@ public class BlockGraph {
   private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
-    Set<CFANode> covered = new LinkedHashSet<>();
+    SequencedSet<CFANode> covered = new LinkedHashSet<>();
     int count = 0;
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(curr)) {
+      for (CFAEdge leavingEdge : curr.getAllLeavingEdges()) {
         if (pEdgesInBlock.contains(leavingEdge)) {
           if (covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());

@@ -324,10 +324,10 @@ public class IntervalAnalysisTransferRelation
   private IntervalAnalysisState addInterval(
       IntervalAnalysisState newState, CExpression lhs, Interval interval) {
     // we currently only handle IdExpressions and ignore more complex Expressions
-    if (lhs instanceof CIdExpression) {
+    if (lhs instanceof CIdExpression cIdExpression) {
       newState =
           newState.addInterval(
-              ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
+              cIdExpression.getDeclaration().getQualifiedName(), interval, threshold);
     }
     return newState;
   }
@@ -356,8 +356,8 @@ public class IntervalAnalysisTransferRelation
       CInitializer init = decl.getInitializer();
 
       // variable may be initialized explicitly on the spot ...
-      if (init instanceof CInitializerExpression) {
-        CExpression exp = ((CInitializerExpression) init).getExpression();
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        CExpression exp = cInitializerExpression.getExpression();
         interval = evaluateInterval(state, exp, declarationEdge);
       } else {
         interval = Interval.UNBOUND;

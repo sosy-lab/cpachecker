@@ -55,12 +55,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class AcslParserPredicateTest {
 
   private CSimpleType basicInt() {
     return new CSimpleType(
-        false, false, CBasicType.INT, false, false, true, false, false, false, false);
+        CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
   }
 
   private CProgramScope getCProgramScope() {

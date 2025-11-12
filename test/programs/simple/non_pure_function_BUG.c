@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// this test case checks wether external functions with side-effects are handled correctly
+// this test case checks wether external functions with side effects are handled correctly
 int main() {
 	int* p;
 	int* q;

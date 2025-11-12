@@ -58,7 +58,7 @@ public class ImportDecomposition implements DssBlockDecomposition {
       ImmutableSet<CFANode> cfaNodes =
           edges.transformAndConcat(e -> e).transform(nodeIdMap::get).toSet();
       ImmutableSet<CFAEdge> cfaEdges =
-          edges.transform(e -> edgeIdsMap.get(e.get(0) + " " + e.get(1))).toSet();
+          edges.transform(e -> edgeIdsMap.get(e.getFirst() + " " + e.get(1))).toSet();
       nodes.add(
           new BlockNodeWithoutGraphInformation(
               importedBlock.getKey(),

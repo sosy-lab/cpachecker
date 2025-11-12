@@ -43,7 +43,7 @@ public final class EdgeSet implements Iterable<CFAEdge> {
   }
 
   /**
-   * Removes a edge from the set of edges
+   * Removes an edge from the set of edges
    *
    * @param pEdge CFAedge that will be removed
    */
@@ -55,7 +55,7 @@ public final class EdgeSet implements Iterable<CFAEdge> {
   }
 
   /**
-   * Selects a edge for later retrieval by {@link EdgeSet#choose()}.
+   * Selects an edge for later retrieval by {@link EdgeSet#choose()}.
    *
    * @param pEdge the edge to be selected
    */

@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -99,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -140,6 +143,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   @Option(
       secure = true,
       description =
+          "Consider variables with unsigned types in ranking function synthesis.This can lead to"
+              + " unsound results as LassoRanker assumes infinite domain for these variables.")
+  private boolean ignoreOverflowsForUnsignedVariables = false;
+
+  @Option(
+      secure = true,
+      description =
           "consider counterexamples for loops for which only pointer variables are relevant or"
               + " which check that pointer is unequal to null pointer to be imprecise")
   private boolean useCexImpreciseHeuristic = false;
@@ -177,13 +187,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     cfa = checkNotNull(pCfa);
-    reachedSetFactory = checkNotNull(pReachedSetFactory);
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
+    reachedSetFactory = checkNotNull(pReachedSetFactory);
 
     TerminationCPA terminationCpa =
-        CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
+        CPAs.retrieveCPAOrFail(safetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
@@ -201,8 +211,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
-    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+    lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
   @Override
@@ -221,7 +231,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     statistics.algorithmStarted();
     try {
       return run0(pReachedSet);
-
     } finally {
       statistics.algorithmFinished();
     }
@@ -258,6 +267,18 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CPAcheckerResult.Result loopTermination =
           proveLoopTermination(pReachedSet, loop, initialLocation);
 
+      if (!ignoreOverflowsForUnsignedVariables && loopTermination == Result.TRUE) {
+        // LassoRanker handles unsigned types incorrectly as it does not account for overflows
+        for (CVariableDeclaration variable : getRelevantVariables(loop)) {
+          if (variable.getType().getCanonicalType() instanceof CSimpleType pType
+              && !cfa.getMachineModel().isSigned(pType)) {
+            throw new UnsupportedCodeException(
+                "LassoRanker does not support domains with possible overflows.",
+                loop.getInnerLoopEdges().asList().getFirst());
+          }
+        }
+      }
+
       if (loopTermination == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -285,7 +306,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAException, InterruptedException {
 
-    logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
+    logger.logf(Level.FINE, "Proving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
@@ -393,8 +414,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
-          if (edge instanceof CAssumeEdge
-              && possiblyNotEqualsNullPointer(((CAssumeEdge) edge).getExpression())) {
+          if (edge instanceof CAssumeEdge cAssumeEdge
+              && possiblyNotEqualsNullPointer(cAssumeEdge.getExpression())) {
             return Result.UNKNOWN;
           }
         }
@@ -475,8 +496,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
-    if (pExpression instanceof CIdExpression) {
-      if (!pFactors.add((CIdExpression) pExpression)) {
+    if (pExpression instanceof CIdExpression cIdExpression) {
+      if (!pFactors.add(cIdExpression)) {
         // The expression was not added to the set because there is already one that is equal
         return true;
       }
@@ -509,9 +530,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
     if (expr instanceof CBinaryExpression binExpr) {
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
-          && binExpr.getOperand2() instanceof CCastExpression
+          && binExpr.getOperand2() instanceof CCastExpression cCastExpression
           && binExpr.getOperand2().getExpressionType() instanceof CPointerType
-          && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
+          && cCastExpression.getOperand() instanceof CLiteralExpression) {
         return true;
       }
     }
@@ -545,7 +566,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     private final FormulaManagerView fmgr;
     private final BooleanFormula invariant;
 
-    public TerminationInvariantSupplierState(
+    TerminationInvariantSupplierState(
         CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFmgr) {
       location = checkNotNull(pLocation);
       invariant = checkNotNull(pInvariant);
@@ -728,7 +749,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
       case REMOVE_LOOP -> removeLoop(pReachedSet, pTargetState);
       case RESET -> resetReachedSet(pReachedSet, pInitialLocation);
-      default -> throw new AssertionError(resetReachedSetStrategy);
     }
   }
 
@@ -798,7 +818,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
+    private final SequencedSet<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();
@@ -806,10 +826,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
 
-      if (pNode instanceof CFunctionEntryNode) {
+      if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
-        List<CParameterDeclaration> parameters =
-            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        List<CParameterDeclaration> parameters = cFunctionEntryNode.getFunctionParameters();
         parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
@@ -820,8 +839,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);

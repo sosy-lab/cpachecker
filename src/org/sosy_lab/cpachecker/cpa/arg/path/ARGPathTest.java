@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -34,7 +35,7 @@ public class ARGPathTest {
 
   // for the full path and path iterator tests
   private List<CFAEdge> edges;
-  private List<CFAEdge> innerEdges;
+  private List<@Nullable CFAEdge> innerEdges;
   private static final int STATE_POS_1 = 0; // position of first ARGState in ARGPath
   private static final int STATE_POS_2 = 1; // position of second ARGState in ARGPath
   private static final int STATE_POS_3 = 4; // position of third ARGState in ARGPath
@@ -59,7 +60,7 @@ public class ARGPathTest {
 
     // setup for the full path and path iterator tests
 
-    // Build a cfa-path, this is simply a chain of 10 edges
+    // Build a CFA-path, this is simply a chain of 10 edges
     edges = new ArrayList<>();
     CFANode firstNode = newDummyCFANode("test");
 
@@ -88,10 +89,9 @@ public class ARGPathTest {
 
     // last ARGState is the end of the CFA-path we created before
     LocationState lastState = Mockito.mock(LocationState.class);
-    Mockito.when(lastState.getLocationNode())
-        .thenReturn(edges.get(edges.size() - 1).getSuccessor());
+    Mockito.when(lastState.getLocationNode()).thenReturn(edges.getLast().getSuccessor());
     Mockito.when(lastState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(edges.size() - 1).getSuccessor()));
+        .thenReturn(Collections.singleton(edges.getLast().getSuccessor()));
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();
@@ -199,7 +199,7 @@ public class ARGPathTest {
     PathIterator it = path.pathIterator();
     it.advance();
     assertThat(it.getPrefixInclusive())
-        .isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
+        .isEqualTo(ARGPath.builder().add(firstARGState, edges.getFirst()).build(secondARGState));
   }
 
   @Test

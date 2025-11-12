@@ -4,7 +4,7 @@
 <!-- a tool for configurable software verification: -->
 <!-- https://cpachecker.sosy-lab.org -->
 <!-- -->
-<!-- SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
 <!-- -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
@@ -28,12 +28,10 @@
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
-    <rundefinition name="svcomp25">
-        <option name="--svcomp25--termination"/>
+    <rundefinition name="svcomp26">
+        <option name="--svcomp26--termination"/>
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
-
-    <resultfiles>**.graphml*</resultfiles>
 
     <tasks>
         <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>

@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -43,8 +42,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2d0Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -220,23 +219,21 @@ public final class Specification {
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
       CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
-      CFAWithACSLAnnotations annotatedCFA;
+      CFA annotatedCFA;
       try {
-        annotatedCFA =
-            (CFAWithACSLAnnotations)
-                cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
+        annotatedCFA = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
       } catch (ParserException | IOException e) {
         throw new InvalidConfigurationException(
             "Could not load automaton from file: " + e.getMessage(), e);
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated progra m differ, "
+          : "CFAs of task program and annotated program differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
-      AutomatonWitnessV2Parser yamlParser =
-          new AutomatonWitnessV2Parser(config, logger, pShutdownNotifier, cfa);
+      AutomatonWitnessV2d0Parser yamlParser =
+          new AutomatonWitnessV2d0Parser(config, logger, pShutdownNotifier, cfa);
       automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =

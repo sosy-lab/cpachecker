@@ -152,7 +152,6 @@ public class StateSimplifier {
             }
           }
         }
-        default -> throw new AssertionError("Unhandled activity type: " + s.getActivity());
       }
     }
 
@@ -206,7 +205,6 @@ public class StateSimplifier {
             t.markDeleted();
           }
         }
-        default -> throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
       }
     }
 
@@ -316,27 +314,27 @@ public class StateSimplifier {
       usingConstraints.add(pConstraint);
     }
 
-    public SymbolicIdentifier getIdentifier() {
+    SymbolicIdentifier getIdentifier() {
       return identifier;
     }
 
-    public Set<Constraint> getUsingConstraints() {
+    Set<Constraint> getUsingConstraints() {
       return usingConstraints;
     }
 
-    public Activity getActivity() {
+    Activity getActivity() {
       return activity;
     }
 
-    public void disable() {
+    void disable() {
       activity = Activity.UNUSED;
     }
 
-    public void enable() {
+    void enable() {
       activity = Activity.ACTIVE;
     }
 
-    public void markDeleted() {
+    void markDeleted() {
       activity = Activity.DELETED;
     }
 

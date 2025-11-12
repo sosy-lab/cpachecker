@@ -14,7 +14,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.projectToType;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -113,7 +113,7 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
-    Set<AbstractState> toRemove = new LinkedHashSet<>();
+    SequencedSet<AbstractState> toRemove = new LinkedHashSet<>();
     for (AbstractState s : pReachedSet) {
       LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
       if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
@@ -127,7 +127,7 @@ public class LoopBoundCPA extends AbstractCPA
       return;
     }
 
-    Set<AbstractState> waitlist = new LinkedHashSet<>();
+    SequencedSet<AbstractState> waitlist = new LinkedHashSet<>();
     for (ARGState s : projectToType(toRemove, ARGState.class)) {
       waitlist.addAll(s.getParents());
     }

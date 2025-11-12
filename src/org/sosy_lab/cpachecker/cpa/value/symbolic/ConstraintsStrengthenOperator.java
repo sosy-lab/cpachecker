@@ -119,11 +119,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
       Value currV = e.getValue().getValue();
       Type valueType = e.getValue().getType();
 
-      if (!(currV instanceof SymbolicValue) || isSimpleSymbolicValue((SymbolicValue) currV)) {
+      if (!(currV instanceof SymbolicValue castVal) || isSimpleSymbolicValue(castVal)) {
         continue;
       }
 
-      SymbolicValue castVal = (SymbolicValue) currV;
       MemoryLocation currLoc = e.getKey();
 
       if (isIndependentInValueState(castVal, currLoc, pValueState)

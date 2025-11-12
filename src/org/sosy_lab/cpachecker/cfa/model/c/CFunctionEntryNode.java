@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,7 +35,7 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
   }
 
   @Override
-  public List<CParameterDeclaration> getFunctionParameters() {
+  public ImmutableList<CParameterDeclaration> getFunctionParameters() {
     return getFunctionDefinition().getParameters();
   }
 

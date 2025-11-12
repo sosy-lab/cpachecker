@@ -161,7 +161,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // This is for actually forcing a termination when CPAchecker
-    // fails to shutdown within some time.
+    // fails to shut down within some time.
     ShutdownRequestListener forcedExitOnShutdown =
         ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
     shutdownNotifier.register(forcedExitOnShutdown);
@@ -223,8 +223,9 @@ public class CPAMain {
         secure = true,
         name = "memorysafety.config",
         description =
-            "When checking for memory safety properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory safety properties, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
@@ -232,8 +233,9 @@ public class CPAMain {
         secure = true,
         name = "memorycleanup.config",
         description =
-            "When checking for memory cleanup properties, "
-                + "use this configuration file instead of the current one.")
+            "When checking for memory cleanup properties, use this configuration file instead of"
+                + " the current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memcleanupConfig = null;
 
@@ -241,8 +243,9 @@ public class CPAMain {
         secure = true,
         name = "overflow.config",
         description =
-            "When checking for the overflow property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the overflow property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
@@ -250,8 +253,9 @@ public class CPAMain {
         secure = true,
         name = "datarace.config",
         description =
-            "When checking for the data race property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the data race property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path dataraceConfig = null;
 
@@ -259,8 +263,9 @@ public class CPAMain {
         secure = true,
         name = "termination.config",
         description =
-            "When checking for the termination property, "
-                + "use this configuration file instead of the current one.")
+            "When checking for the termination property, use this configuration file instead of the"
+                + " current one, i.e. all previously set config options are void, except for"
+                + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 
@@ -284,9 +289,11 @@ public class CPAMain {
     @Option(
         secure = true,
         description =
-            "Programming language of the input program. If not given explicitly, "
-                + "auto-detection will occur")
-    // keep option name in sync with {@link CFACreator#language}, value might differ
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+    // keep option name in sync with {@link CPAMain#language} and {@link
+    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
     private Language language = null;
 
     @Option(
@@ -332,11 +339,12 @@ public class CPAMain {
           CommonVerificationProperty.VALID_MEMTRACK);
 
   /**
-   * Parse the command line, read the configuration file, and setup the program-wide base paths.
+   * Parse the command line, read the configuration file, and set up the program-wide base paths.
    *
    * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Config createConfiguration(String[] args)
+  @VisibleForTesting
+  public static Config createConfiguration(String[] args)
       throws InvalidConfigurationException,
           InvalidCmdlineArgumentException,
           IOException,
@@ -372,7 +380,7 @@ public class CPAMain {
 
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
-    // add it to our Configuration object and to the the map of default converters.
+    // add it to our Configuration object and to the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
     FileTypeConverter fileTypeConverter =
@@ -606,7 +614,7 @@ public class CPAMain {
     if (propertyFiles.size() > 1) {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
-    String propertyFile = propertyFiles.get(0);
+    String propertyFile = propertyFiles.getFirst();
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
@@ -825,7 +833,7 @@ public class CPAMain {
       LogManager logManager)
       throws IOException {
 
-    // setup output streams
+    // set up output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
     @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
@@ -890,8 +898,8 @@ public class CPAMain {
       justification = "Default encoding is the correct one for stdout.")
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+    if (stream instanceof PrintStream printStream) {
+      return printStream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -901,15 +909,5 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  private static class Config {
-
-    private final Configuration configuration;
-
-    private final String outputPath;
-
-    public Config(Configuration pConfiguration, String pOutputPath) {
-      configuration = pConfiguration;
-      outputPath = pOutputPath;
-    }
-  }
+  public record Config(Configuration configuration, String outputPath) {}
 }

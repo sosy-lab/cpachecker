@@ -16,15 +16,14 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import java.io.Serial;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -75,6 +74,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -330,10 +330,10 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method checks whether or not the given Memory Location is contained in this state.
+   * This method checks whether the given Memory Location is contained in this state.
    *
    * @param pMemoryLocation the location in the Memory to check for
-   * @return true, if the variable is contained, else false
+   * @return whether the variable is contained
    */
   public boolean contains(MemoryLocation pMemoryLocation) {
     return constantsMap.containsKey(pMemoryLocation);
@@ -527,17 +527,18 @@ public final class ValueAnalysisState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+      ValueAndType val =
+          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.getFirst()));
       if (val == null) {
         return false;
       }
-      Long value = val.getValue().asLong(CNumericTypes.INT);
+      OptionalLong value = val.getValue().asLong(CNumericTypes.INT);
 
-      if (value == null) {
+      if (value.isEmpty()) {
         return false;
       } else {
         try {
-          return value == Long.parseLong(parts.get(1));
+          return value.orElseThrow() == Long.parseLong(parts.get(1));
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to
           // compare the variable p to the variable cmd (nearest in scope)
@@ -596,7 +597,7 @@ public final class ValueAnalysisState
                   + pModification
                   + "\" is invalid. Could not split the property string correctly.");
         } else {
-          String varName = assignmentParts.get(0);
+          String varName = assignmentParts.getFirst();
           try {
             Value newValue = new NumericValue(Long.parseLong(assignmentParts.get(1)));
             this.assignConstant(varName, newValue);
@@ -667,8 +668,8 @@ public final class ValueAnalysisState
 
               Number value = num.getNumber();
               final BitvectorFormula val;
-              if (value instanceof BigInteger) {
-                val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+              if (value instanceof BigInteger bigInteger) {
+                val = bitvectorFMGR.makeBitvector(bitSize, bigInteger);
               } else {
                 val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
               }
@@ -734,7 +735,7 @@ public final class ValueAnalysisState
   }
 
   public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
-    return Collections.unmodifiableSet(constantsMap.entrySet());
+    return constantsMap.entrySet();
   }
 
   /**
@@ -822,12 +823,10 @@ public final class ValueAnalysisState
         BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
-        double value = pNum.getNumber().doubleValue();
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-          // Cannot represent this here
-          return Optional.empty();
-        }
-        val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
+        val =
+            new CFloatLiteralExpression(
+                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }
@@ -854,8 +853,8 @@ public final class ValueAnalysisState
   }
 
   private BigInteger getBigIntFromIntegerNumber(Number pNum) {
-    if (pNum instanceof BigInteger) {
-      return (BigInteger) pNum;
+    if (pNum instanceof BigInteger bigInteger) {
+      return bigInteger;
     } else {
       return BigInteger.valueOf(pNum.longValue());
     }

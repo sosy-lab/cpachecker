@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -41,8 +43,8 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
   @Override
   @SuppressWarnings(
       "unchecked") // This is always correct per construction, but checkstyle complains
-  public List<AcslTerm> getParameterExpressions() {
-    return (List<AcslTerm>) super.getParameterExpressions();
+  public ImmutableList<? extends AExpression> getParameterExpressions() {
+    return (ImmutableList<? extends AExpression>) super.getParameterExpressions();
   }
 
   @Override

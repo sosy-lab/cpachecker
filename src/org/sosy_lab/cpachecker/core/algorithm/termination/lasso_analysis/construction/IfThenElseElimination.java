@@ -64,7 +64,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
       additionalAxioms = new ArrayList<>();
     }
 
-    public Collection<BooleanFormula> getAdditionalAxioms() {
+    Collection<BooleanFormula> getAdditionalAxioms() {
       return additionalAxioms;
     }
 
@@ -81,7 +81,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
       if (pFunctionDeclaration.getKind().equals(ITE)
           || pFunctionDeclaration.getName().equalsIgnoreCase("ite")) {
         return transformIfThenElse(
-            newArgs.get(0), newArgs.get(1), newArgs.get(2), pFunctionDeclaration.getType());
+            newArgs.getFirst(), newArgs.get(1), newArgs.get(2), pFunctionDeclaration.getType());
 
       } else {
         return fmgr.makeApplication(pFunctionDeclaration, newArgs);

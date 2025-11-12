@@ -55,10 +55,12 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     // empty pending messages (non blocking)
     while (!queue.isEmpty()) {
       DssMessage message = queue.take();
-      switch (message.getType()) {
-        case STATISTICS, FOUND_RESULT, ERROR -> highestPriority.add(message);
-        case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next.add(message);
-      }
+      Deque<DssMessage> queueForMessage =
+          switch (message.getType()) {
+            case STATISTICS, FOUND_RESULT, ERROR -> highestPriority;
+            case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next;
+          };
+      queueForMessage.add(message);
     }
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();

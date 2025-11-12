@@ -164,7 +164,7 @@ public class PredicateOperatorUtil {
                 pFormulaManagerView.getFormulaType(formula), pUniqueIndexProvider.extend(name)));
         continue;
       }
-      name = nameAndIndex.get(0);
+      name = nameAndIndex.getFirst();
       int index = Integer.parseInt(nameAndIndex.get(1));
       int highestIndex = ssaMap.getIndex(name);
       if (index != highestIndex) {

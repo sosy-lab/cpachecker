@@ -111,7 +111,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
       return new Builder();
     }
 
-    public static class Builder implements GraphLevel.Builder<ARGState> {
+    static class Builder implements GraphLevel.Builder<ARGState> {
 
       private int width = 0;
       private final ImmutableIntArray.Builder targets = ImmutableIntArray.builder();

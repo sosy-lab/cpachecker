@@ -221,8 +221,8 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

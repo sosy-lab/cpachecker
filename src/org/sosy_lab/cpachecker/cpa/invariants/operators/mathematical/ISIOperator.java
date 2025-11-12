@@ -268,7 +268,7 @@ enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval>
           }
           BigInteger posPartLength = posPart.size();
           /*
-           * If length of the non-negative part is less than the the divisor,
+           * If length of the non-negative part is less than the divisor,
            * not all values from zero to (divisor-1) are possible results.
            */
           if (posPartLength.compareTo(pSecondOperand) < 0) {

@@ -24,6 +24,21 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * Observer worker that detects termination conditions based on the received messages.
+ *
+ * <p>DssObserverWorker detects a termination condition when:
+ *
+ * <ul>
+ *   <li>All blocks report that no violations are reachable (SAFE verdict)
+ *   <li>A root block reports a reachable violation (UNSAFE verdict)
+ *   <li>An exception occurs during analysis
+ * </ul>
+ *
+ * To function correctly, this DssObserverWorker must receive the messages of all analysis workers.
+ *
+ * <p>The observer also collects statistics from all workers for analysis reporting.
+ */
 public class DssObserverWorker extends DssWorker {
 
   private final DssConnection connection;
@@ -69,7 +84,6 @@ public class DssObserverWorker extends DssWorker {
         stats.put(pMessage.getBlockId(), ((DssStatisticsMessage) pMessage).getStats());
         shutdown = stats.size() == numberOfBlocks;
       }
-      default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
     }
     return ImmutableList.of();
   }

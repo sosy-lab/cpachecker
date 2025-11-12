@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Visitor that get's the interval from an expression, */
+/** Visitor that gets the interval from an expression, */
 class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 
@@ -153,8 +153,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CIdExpression identifier) {
-    if (identifier.getDeclaration() instanceof CEnumerator) {
-      BigInteger enumConstant = ((CEnumerator) identifier.getDeclaration()).getValue();
+    if (identifier.getDeclaration() instanceof CEnumerator cEnumerator) {
+      BigInteger enumConstant = cEnumerator.getValue();
       return getIntervalFor(enumConstant);
     }
 
