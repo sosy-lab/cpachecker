@@ -107,9 +107,4 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   public boolean takesVarArgs() {
     return false;
   }
-
-  @Override
-  public SvLibConstantTerm defaultValue() {
-    throw new UnsupportedOperationException("Procedure types do not have a default value");
-  }
 }

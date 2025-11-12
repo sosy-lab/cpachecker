@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Ascii;
-import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
@@ -26,16 +24,6 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
       case BOOL -> FormulaType.BooleanType;
       case STRING -> FormulaType.BooleanType;
       case REAL -> FormulaType.RationalType;
-    };
-  }
-
-  @Override
-  public SvLibConstantTerm defaultValue() {
-    return switch (this) {
-      case INT -> new SvLibIntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY);
-      case BOOL -> new SvLibBooleanConstantTerm(false, FileLocation.DUMMY);
-      default ->
-          throw new UnsupportedOperationException("Default value not supported for type " + name());
     };
   }
 

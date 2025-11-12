@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -105,21 +106,17 @@ public class CounterexampleToSvLibWitnessExport {
     }
   }
 
-  private SvLibConstantTerm getValueOrDefault(
+  private Optional<SvLibConstantTerm> getValue(
       ConcreteState pState, String pVarName, @Nullable String pProcedureName, SvLibType pType) {
     // Variable declarations can only be global
     IDExpression idExpr = new IDExpression(pVarName, pProcedureName);
     if (pState.hasValueForLeftHandSide(idExpr)) {
       // Transform the value into a SvLibConstantTerm
       Object value = pState.getVariableValue(idExpr);
-      return SvLibConstantTerm.of(value, pType);
-    } else {
-      // Return a default value for the variable type
-      // not all variables have necessarily been added to the SMT
-      // solver (e.g. unused variables), so we need to return
-      // a default value here.
-      return pType.defaultValue();
+      return Optional.of(SvLibConstantTerm.of(value, pType));
     }
+
+    return Optional.empty();
   }
 
   private SvLibLocalVariablesStep setLocalVariablesForFunctionCall(
@@ -132,15 +129,17 @@ public class CounterexampleToSvLibWitnessExport {
             pProcedureDeclaration.getLocalVariables(),
             pProcedureDeclaration.getReturnValues())) {
 
-      SvLibConstantTerm assignedValue =
-          getValueOrDefault(
+      Optional<SvLibConstantTerm> assignedValue =
+          getValue(
               pConcreteState,
               paramDecl.getName(),
               paramDecl.getProcedureName(),
               paramDecl.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(paramDecl, FileLocation.DUMMY);
-      functionCallAssignmentsBuilder.put(idTerm, assignedValue);
+      if (assignedValue.isPresent()) {
+        functionCallAssignmentsBuilder.put(idTerm, assignedValue.orElseThrow());
+      }
     }
     return new SvLibLocalVariablesStep(
         functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
@@ -151,12 +150,14 @@ public class CounterexampleToSvLibWitnessExport {
     ImmutableMap.Builder<SvLibIdTerm, SvLibConstantTerm> havocedVariablesBuilder =
         ImmutableMap.builder();
     for (SvLibSimpleDeclaration varTerm : pStatement.getVariables()) {
-      SvLibConstantTerm assignedValue =
-          getValueOrDefault(
+      Optional<SvLibConstantTerm> assignedValue =
+          getValue(
               pConcreteState, varTerm.getName(), varTerm.getProcedureName(), varTerm.getType());
 
       SvLibIdTerm idTerm = new SvLibIdTerm(varTerm, FileLocation.DUMMY);
-      havocedVariablesBuilder.put(idTerm, assignedValue);
+      if (assignedValue.isPresent()) {
+        havocedVariablesBuilder.put(idTerm, assignedValue.orElseThrow());
+      }
     }
     return new SvLibHavocVariablesStep(havocedVariablesBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
@@ -168,11 +169,13 @@ public class CounterexampleToSvLibWitnessExport {
         "Expected only variable or constant declarations in the global declaration phase.");
 
     SvLibVariableDeclaration pVarDecl = (SvLibVariableDeclaration) pDeclaration;
-    SvLibConstantTerm assignedValue =
-        getValueOrDefault(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
+    Optional<SvLibConstantTerm> assignedValue =
+        getValue(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
 
     return new SvLibTraceSetGlobalVariable(
-        new SvLibIdTerm(pVarDecl, FileLocation.DUMMY), assignedValue, FileLocation.DUMMY);
+        new SvLibIdTerm(pVarDecl, FileLocation.DUMMY),
+        assignedValue.orElseThrow(),
+        FileLocation.DUMMY);
   }
 
   private SvLibTraceEntryCall handleTraceEntryCall(
@@ -184,9 +187,12 @@ public class CounterexampleToSvLibWitnessExport {
     for (SvLibTerm argumentExpr : procedureCallStatement.getParameterExpressions()) {
       if (argumentExpr instanceof SvLibIdTerm pIdTerm
           && pIdTerm.getDeclaration() instanceof SvLibVariableDeclaration varDecl) {
-        SvLibConstantTerm argValue =
-            getValueOrDefault(pConcreteState, varDecl.getName(), null, varDecl.getType());
-        argumentValuesBuilder.add(argValue);
+        Optional<SvLibConstantTerm> argValue =
+            getValue(pConcreteState, varDecl.getName(), null, varDecl.getType());
+        if (argValue.isPresent()) {
+          argumentValuesBuilder.add(argValue.orElseThrow());
+        }
+
       } else if (argumentExpr instanceof SvLibConstantTerm pConstTerm) {
         argumentValuesBuilder.add(pConstTerm);
       } else {

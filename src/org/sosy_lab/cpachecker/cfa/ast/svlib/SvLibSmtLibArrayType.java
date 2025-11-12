@@ -36,14 +36,6 @@ public final class SvLibSmtLibArrayType implements SvLibSmtLibType {
   }
 
   @Override
-  public SvLibConstantTerm defaultValue() {
-    // TODO: This is not a problem, since we now no longer need the default
-    //  value function, due to changes in the format which no longer
-    //  require all variables to have an explicit value in CEXs.
-    throw new UnsupportedOperationException("Arrays do not have a default value");
-  }
-
-  @Override
   public String toASTString(String declarator) {
     return declarator
         + " : (Array "

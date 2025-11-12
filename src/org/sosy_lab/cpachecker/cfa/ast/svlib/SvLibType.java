@@ -23,8 +23,6 @@ public sealed interface SvLibType extends Type
 
   FormulaType<?> toFormulaType();
 
-  SvLibConstantTerm defaultValue();
-
   static boolean canBeCastTo(SvLibType t1, SvLibType t2) {
     if (t1.equals(SvLibCustomType.InternalAnyType) || t2.equals(SvLibCustomType.InternalAnyType)) {
       return true;

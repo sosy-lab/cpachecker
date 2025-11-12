@@ -50,11 +50,6 @@ public final class SvLibCustomType implements SvLibType {
   }
 
   @Override
-  public SvLibConstantTerm defaultValue() {
-    throw new UnsupportedOperationException("Custom types do not have a default value");
-  }
-
-  @Override
   public int hashCode() {
     return Objects.hashCode(type);
   }

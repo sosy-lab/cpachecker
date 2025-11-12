@@ -88,9 +88,4 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
   public boolean takesVarArgs() {
     return false;
   }
-
-  @Override
-  public SvLibConstantTerm defaultValue() {
-    throw new UnsupportedOperationException("Function types do not have a default value");
-  }
 }

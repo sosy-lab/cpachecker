@@ -37,9 +37,4 @@ public final class SvLibProductType implements SvLibType {
   public ImmutableList<SvLibType> getElementTypes() {
     return elementTypes;
   }
-
-  @Override
-  public SvLibConstantTerm defaultValue() {
-    throw new UnsupportedOperationException("Product types do not have a default value");
-  }
 }
