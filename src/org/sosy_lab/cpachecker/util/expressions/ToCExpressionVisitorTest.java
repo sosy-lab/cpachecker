@@ -37,6 +37,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * Tests for {@link ToCExpressionVisitor}. Verify that the visitor correctly converts Expression
+ * trees into CExpressions (And/Or behave like Boolean and not like Binary operations).
+ */
 public class ToCExpressionVisitorTest {
 
   final LogManager logger = LogManager.createTestLogManager();
@@ -102,7 +106,7 @@ public class ToCExpressionVisitorTest {
   }
 
   @Test
-  public void testCacheMissAnd()
+  public void testNonZeroExpressionsAreTrue()
       throws UnrecognizedCodeException,
           InvalidConfigurationException,
           InterruptedException,
@@ -113,34 +117,19 @@ public class ToCExpressionVisitorTest {
     ExpressionTree<AExpression> left = createLeftTree();
     ExpressionTree<AExpression> right = createRightTree();
     ExpressionTree<AExpression> andExpression = And.of(left, right);
-
-    CExpression result = andExpression.accept(expressionTreeVisitor);
-
-    Configuration config = TestDataTools.configurationForTest().build();
-    Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
-
-    BooleanFormula bf = convertCExpressionToBooleanFormula(result, config, smtSolver);
-    assertThat(smtSolver.isUnsat(bf)).isFalse();
-  }
-
-  @Test
-  public void testCacheMissOr()
-      throws UnrecognizedCodeException,
-          InvalidConfigurationException,
-          InterruptedException,
-          SolverException {
-
-    ExpressionTree<AExpression> left = createLeftTree();
-    ExpressionTree<AExpression> right = createRightTree();
     ExpressionTree<AExpression> orExpression = Or.of(left, right);
 
-    CExpression result = orExpression.accept(expressionTreeVisitor);
+    CExpression resultAnd = andExpression.accept(expressionTreeVisitor);
+    CExpression resultOr = orExpression.accept(expressionTreeVisitor);
 
     Configuration config = TestDataTools.configurationForTest().build();
     Solver smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
 
-    BooleanFormula bf = convertCExpressionToBooleanFormula(result, config, smtSolver);
-    assertThat(smtSolver.isUnsat(bf)).isFalse();
+    BooleanFormula bfAnd = convertCExpressionToBooleanFormula(resultAnd, config, smtSolver);
+    BooleanFormula bfOr = convertCExpressionToBooleanFormula(resultOr, config, smtSolver);
+
+    assertThat(smtSolver.isUnsat(bfAnd)).isFalse();
+    assertThat(smtSolver.isUnsat(bfOr)).isFalse();
   }
 
   @Test

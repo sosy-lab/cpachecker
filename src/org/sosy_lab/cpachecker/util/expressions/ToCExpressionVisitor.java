@@ -44,7 +44,7 @@ public class ToCExpressionVisitor
     for (CExpression expr : Iterables.skip(elements, 1)) {
       // This is needed, since the result of a binary AND operation must not
       //   be the same as a boolean AND, e.g. 01 & 10 = 00, but 01 && 10 = true.
-      //   To map any non-zero value to 01 we use expr != 0 here
+      //   To map any non-zero value to 1 we use expr != 0 here
 
       CExpression boolExpr =
           builder.buildBinaryExpression(
