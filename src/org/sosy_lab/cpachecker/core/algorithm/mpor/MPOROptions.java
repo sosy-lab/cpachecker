@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import com.google.common.collect.ImmutableMap;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -265,20 +263,6 @@ public class MPOROptions {
   public static MPOROptions getDefaultTestInstance() throws InvalidConfigurationException {
     return new MPOROptions(
         TestDataTools.configurationForTest().build(), LogManager.createTestLogManager());
-  }
-
-  /**
-   * Maps all {@link Option} field names in this class to their actual values. Can be used to export
-   * to {@code .yml}.
-   */
-  public ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
-      throws IllegalAccessException {
-
-    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
-    for (Field field : pOptions.getClass().getDeclaredFields()) {
-      rMap.put(field.getName(), field.get(pOptions));
-    }
-    return rMap.buildOrThrow();
   }
 
   // Rejection =====================================================================================

@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -157,14 +158,12 @@ public class NumStatementsNondeterministicSimulation {
     // ensure that thread is not at a thread sync location: !sync && !conflict
     CIdExpression syncFlag = pGhostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync = binaryExpressionBuilder.negateExpressionAndSimplify(syncFlag);
+    ImmutableList<String> stringList =
+        ImmutableList.of(
+            notSync.toASTString(),
+            bitVectorEvaluationExpression.orElseThrow().toNegatedASTString());
     ExpressionTree<String> notSyncAndNotConflict =
-        And.of(
-            FluentIterable.from(
-                    ImmutableList.of(
-                        notSync.toASTString(),
-                        bitVectorEvaluationExpression.orElseThrow().toNegatedASTString()))
-                .transform(LeafExpression::of)
-                .toList());
+        And.of(transformedImmutableListCopy(stringList, LeafExpression::of));
     // the usual bit vector expression is true if there is a conflict
     //  -> negate (we want no conflict if we ignore round_max == 0)
     return Or.of(LeafExpression.of(roundMaxGreaterZero.toASTString()), notSyncAndNotConflict)
