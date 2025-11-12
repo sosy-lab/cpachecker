@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 class BitVectorAccessEvaluationBuilder {
@@ -170,7 +170,9 @@ class BitVectorAccessEvaluationBuilder {
           // simplify A && (B || C || ...) to just (B || C || ...)
           ExpressionTree<CExpression> logicalDisjunction =
               BitVectorEvaluationUtil.logicalDisjunction(
-                  ExpressionTrees.toExpressionTree(pSparseBitVectorMap.get(memoryLocation)));
+                  FluentIterable.from(pSparseBitVectorMap.get(memoryLocation))
+                      .transform(LeafExpression::of)
+                      .toList());
           sparseExpressions.add(logicalDisjunction);
         }
       }
@@ -248,7 +250,7 @@ class BitVectorAccessEvaluationBuilder {
     }
     ExpressionTree<CExpression> disjunction =
         BitVectorEvaluationUtil.logicalDisjunction(
-            ExpressionTrees.toExpressionTree(sparseBitVectors));
+            FluentIterable.from(sparseBitVectors).transform(LeafExpression::of).toList());
     // create logical and -> (A && (B || C || ...))
     return And.of(LeafExpression.of(pDirectBitVector), disjunction);
   }
