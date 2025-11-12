@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
