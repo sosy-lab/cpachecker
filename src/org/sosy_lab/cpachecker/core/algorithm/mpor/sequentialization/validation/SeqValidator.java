@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -156,14 +158,10 @@ public class SeqValidator {
       ImmutableCollection<SeqThreadStatementBlock> pBlocksB) {
 
     // short circuit: check for equal length
-    if (pBlocksA.size() != pBlocksB.size()) {
-      throw new IllegalStateException("pBlocksA and pBlocksB length differ");
-    }
+    checkState(pBlocksA.size() == pBlocksB.size(), "pBlocksA and pBlocksB length differ");
     // otherwise check if B contains all elements from A
     for (SeqThreadStatementBlock blockA : pBlocksA) {
-      if (!pBlocksB.contains(blockA)) {
-        throw new IllegalStateException("pBlocksB does not contain all blocks from pBlocksA");
-      }
+      checkState(pBlocksB.contains(blockA), "pBlocksB does not contain all blocks from pBlocksA");
     }
   }
 

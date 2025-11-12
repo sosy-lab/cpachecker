@@ -20,12 +20,10 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
@@ -33,10 +31,31 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
  * state space. Sequentializations can be given to any verifier capable of verifying sequential C
  * programs, hence modular.
  */
-@SuppressWarnings("unused") // this is necessary because we don't use the cpa and config
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final MPOROptions options;
+
+  private final LogManager logger;
+
+  private final ShutdownNotifier shutdownNotifier;
+
+  private final CFA cfa;
+
+  public MPORAlgorithm(
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pInputCfa,
+      @Nullable MPOROptions pOptions)
+      throws InvalidConfigurationException, UnsupportedCodeException {
+
+    // the options are not null when unit testing
+    options = pOptions != null ? pOptions : new MPOROptions(pConfiguration);
+    logger = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pInputCfa;
+    InputRejection.handleRejections(cfa);
+  }
 
   @CanIgnoreReturnValue
   @Override
@@ -52,57 +71,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String inputFileName = firstInputFilePath.toString();
     return Sequentialization.tryBuildProgramString(
         options, cfa, inputFileName, logger, shutdownNotifier);
-  }
-
-  private final ConfigurableProgramAnalysis cpa;
-
-  private final LogManager logger;
-
-  private final Configuration config;
-
-  private final ShutdownNotifier shutdownNotifier;
-
-  private final CFA cfa;
-
-  public MPORAlgorithm(
-      @Nullable ConfigurableProgramAnalysis pCpa,
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pInputCfa,
-      @Nullable MPOROptions pOptions)
-      throws InvalidConfigurationException, UnsupportedCodeException {
-
-    // the options are not null when unit testing
-    options = pOptions != null ? pOptions : new MPOROptions(pConfiguration);
-
-    cpa = pCpa;
-    config = pConfiguration;
-    logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
-    cfa = pInputCfa;
-
-    InputRejection.handleRejections(cfa);
-  }
-
-  public static MPORAlgorithm testInstance(
-      LogManager pLogManager, CFA pInputCfa, MPOROptions pOptions)
-      throws InvalidConfigurationException, UnsupportedCodeException {
-
-    return new MPORAlgorithm(
-        null,
-        TestDataTools.configurationForTest().build(),
-        pLogManager,
-        ShutdownNotifier.createDummy(),
-        pInputCfa,
-        pOptions);
-  }
-
-  public static MPORAlgorithm testInstanceWithConfig(
-      Configuration pConfig, LogManager pLogManager, CFA pInputCfa, MPOROptions pOptions)
-      throws InvalidConfigurationException, UnsupportedCodeException {
-
-    return new MPORAlgorithm(
-        null, pConfig, pLogManager, ShutdownNotifier.createDummy(), pInputCfa, pOptions);
   }
 }

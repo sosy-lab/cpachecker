@@ -725,7 +725,7 @@ public class CoreComponentsFactory {
       }
 
       if (useMPOR) {
-        algorithm = new MPORAlgorithm(cpa, config, logger, shutdownNotifier, cfa, null);
+        algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, null);
       }
 
       if (useMPV) {

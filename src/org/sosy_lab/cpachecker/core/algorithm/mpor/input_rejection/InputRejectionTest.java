@@ -44,6 +44,7 @@ public class InputRejectionTest {
       throws Exception {
 
     // create cfa for test program pFileName
+    Configuration testConfig = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
@@ -52,7 +53,8 @@ public class InputRejectionTest {
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     T throwable =
         assertThrows(
-            pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, pOptions));
+            pExpectedThrowable,
+            () -> new MPORAlgorithm(testConfig, logger, shutdownNotifier, inputCfa, pOptions));
     assertThat(throwable.getMessage()).contains(pExpected.message);
   }
 
