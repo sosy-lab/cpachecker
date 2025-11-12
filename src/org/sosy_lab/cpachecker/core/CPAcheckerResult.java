@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
@@ -144,6 +145,10 @@ public class CPAcheckerResult {
         return "UNKNOWN, incomplete analysis.";
       }
       case FALSE -> {
+        if (cfa != null && cfa.getLanguage() == Language.SV_LIB) {
+          return "INCORRECT. Property violation found by chosen configuration.";
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
         if (!targetDescription.isEmpty()) {
@@ -153,6 +158,9 @@ public class CPAcheckerResult {
         return sb.toString();
       }
       case TRUE -> {
+        if (cfa != null && cfa.getLanguage() == Language.SV_LIB) {
+          return "CORRECT. No property violation found by chosen configuration.";
+        }
         return "TRUE. No property violation found by chosen configuration.";
       }
       default -> throw new AssertionError(result);
