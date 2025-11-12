@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -305,7 +304,7 @@ public class SeqThreadStatementClauseUtil {
   // No Backward Goto ==============================================================================
 
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
         ImmutableListMultimap.builder();
@@ -317,7 +316,7 @@ public class SeqThreadStatementClauseUtil {
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
-      SeqValidator.validateEqualBlocks(allBlocks, reorderedBlocks, pLogger);
+      SeqValidator.validateEqualBlocks(allBlocks, reorderedBlocks);
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
     return rNoBackwardGoto.build();

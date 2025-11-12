@@ -99,7 +99,7 @@ public class SequentializationBuilder {
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalDeclarations();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      if (!PthreadUtil.isPthreadObjectType(globalDeclaration.getType())) {
+      if (!PthreadUtil.isAnyPthreadObjectType(globalDeclaration.getType())) {
         rDeclarations.add(globalDeclaration.toASTString());
       }
     }
@@ -134,7 +134,7 @@ public class SequentializationBuilder {
       return tryBuildInputConstLocalVariableDeclaration(pLocalVariableDeclaration);
     }
     // otherwise, for non-const variables
-    if (!PthreadUtil.isPthreadObjectType(pLocalVariableDeclaration.getType())) {
+    if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
       CInitializer initializer = pLocalVariableDeclaration.getInitializer();
       if (initializer == null) {
         // no initializer -> add declaration as is
@@ -192,7 +192,7 @@ public class SequentializationBuilder {
       ImmutableList<CParameterDeclaration> parameterDeclarations =
           substitution.getSubstituteParameterDeclarations();
       for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
-        if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
+        if (!PthreadUtil.isAnyPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
           rDeclarations.add(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON);
         }
@@ -229,7 +229,7 @@ public class SequentializationBuilder {
         pMainThreadSubstitution.getSubstituteStartRoutineArgDeclarations();
     for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
-      if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
+      if (!PthreadUtil.isAnyPthreadObjectType(startRoutineArgDeclaration.getType())) {
         // add trailing ; as CParameterDeclaration is without semicolons
         rDeclarations.add(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
       }

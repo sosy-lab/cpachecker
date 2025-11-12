@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionStatementBuilder {
@@ -44,7 +45,8 @@ public class FunctionStatementBuilder {
   public static ImmutableMap<MPORThread, FunctionStatements> buildFunctionStatements(
       ImmutableList<MPORThread> pThreads,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, FunctionStatements> rFunctionStatements =
         ImmutableMap.builder();
@@ -62,7 +64,8 @@ public class FunctionStatementBuilder {
   private static FunctionStatements buildFunctionStatements(
       MPORThread pThread,
       MPORSubstitution pSubstitution,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges)
+      throws UnrecognizedCodeException {
 
     return new FunctionStatements(
         buildParameterAssignments(pSubstitution),
@@ -82,7 +85,7 @@ public class FunctionStatementBuilder {
    * MPORSubstitution#parameterSubstitutes}.
    */
   private static ImmutableListMultimap<CFAEdgeForThread, FunctionParameterAssignment>
-      buildParameterAssignments(MPORSubstitution pSubstitution) {
+      buildParameterAssignments(MPORSubstitution pSubstitution) throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
@@ -121,7 +124,8 @@ public class FunctionStatementBuilder {
   }
 
   private static ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
-      buildStartRoutineArgAssignments(MPORSubstitution pSubstitution) {
+      buildStartRoutineArgAssignments(MPORSubstitution pSubstitution)
+          throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();

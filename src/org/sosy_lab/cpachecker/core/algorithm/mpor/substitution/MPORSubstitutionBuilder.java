@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class MPORSubstitutionBuilder {
@@ -49,7 +50,8 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
-      SequentializationUtils pUtils) {
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
     MPORThread mainThread = MPORThreadUtil.extractMainThread(pThreads);
@@ -99,7 +101,8 @@ public class MPORSubstitutionBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      SequentializationUtils pUtils) {
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
     checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
@@ -323,7 +326,8 @@ public class MPORSubstitutionBuilder {
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
               pLocalVariableDeclarations,
-          SequentializationUtils pUtils) {
+          SequentializationUtils pUtils)
+          throws UnrecognizedCodeException {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableTable<

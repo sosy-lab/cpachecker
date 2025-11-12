@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -149,7 +150,7 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableList<CExpression> expressionList =
           ImmutableList.of(leftHandSide.orElseThrow(), rightHandSide.orElseThrow());
       ExpressionTree<CExpression> logicalOr =
-          Or.of(FluentIterable.from(expressionList).transform(LeafExpression::of).toList());
+          Or.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
       return Optional.of(new BitVectorEvaluationExpression(logicalOr));
     } else if (leftHandSide.isPresent()) {
       ExpressionTree<CExpression> binaryLhs = LeafExpression.of(leftHandSide.orElseThrow());
@@ -269,7 +270,7 @@ class BitVectorReadWriteEvaluationBuilder {
     // (R & (W' | W'' | ...)) || (W & (A' | A'' | ...))
     ImmutableList<CExpression> expressionList = ImmutableList.of(leftHandSide, rightHandSide);
     ExpressionTree<CExpression> logicalOr =
-        Or.of(FluentIterable.from(expressionList).transform(LeafExpression::of).toList());
+        Or.of(transformedImmutableListCopy(expressionList, LeafExpression::of));
     return new BitVectorEvaluationExpression(logicalOr);
   }
 
@@ -354,7 +355,7 @@ class BitVectorReadWriteEvaluationBuilder {
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
     return BitVectorEvaluationUtil.tryLogicalDisjunction(
-        FluentIterable.from(pOtherWriteVariables).transform(LeafExpression::of).toList());
+        transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of));
   }
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
@@ -369,7 +370,7 @@ class BitVectorReadWriteEvaluationBuilder {
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
     return BitVectorEvaluationUtil.tryLogicalDisjunction(
-        FluentIterable.from(pOtherAccessVariables).transform(LeafExpression::of).toList());
+        transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of));
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
@@ -458,7 +459,7 @@ class BitVectorReadWriteEvaluationBuilder {
     return And.of(
         LeafExpression.of(pActiveReadValue),
         BitVectorEvaluationUtil.logicalDisjunction(
-            FluentIterable.from(pOtherWriteVariables).transform(LeafExpression::of).toList()));
+            transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of)));
   }
 
   private static ExpressionTree<CExpression> buildFullSparseSingleVariableRightHandSide(
@@ -478,7 +479,7 @@ class BitVectorReadWriteEvaluationBuilder {
     return And.of(
         LeafExpression.of(pActiveWriteValue),
         BitVectorEvaluationUtil.logicalDisjunction(
-            FluentIterable.from(pOtherAccessVariables).transform(LeafExpression::of).toList()));
+            transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of)));
   }
 
   private static ExpressionTree<CExpression> buildFullSparseSingleVariableEvaluation(

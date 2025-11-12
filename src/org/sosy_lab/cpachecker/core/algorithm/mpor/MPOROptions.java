@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import com.google.common.collect.ImmutableMap;
-import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -19,7 +16,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
@@ -255,30 +251,14 @@ public class MPOROptions {
    * Returns an instance of {@link MPOROptions} with the {@link Option}s set based on {@code
    * pConfig}.
    */
-  public MPOROptions(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
+  public MPOROptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    handleOptionRejections(pLogger);
+    handleOptionRejections();
   }
 
   /** Returns an instance of {@link MPOROptions} with all standard {@link Option}s. */
   public static MPOROptions getDefaultTestInstance() throws InvalidConfigurationException {
-    return new MPOROptions(
-        TestDataTools.configurationForTest().build(), LogManager.createTestLogManager());
-  }
-
-  /**
-   * Maps all {@link Option} field names in this class to their actual values. Can be used to export
-   * to {@code .yml}.
-   */
-  public ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
-      throws IllegalAccessException {
-
-    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
-    for (Field field : pOptions.getClass().getDeclaredFields()) {
-      rMap.put(field.getName(), field.get(pOptions));
-    }
-    return rMap.buildOrThrow();
+    return new MPOROptions(TestDataTools.configurationForTest().build());
   }
 
   // Rejection =====================================================================================
@@ -287,59 +267,53 @@ public class MPOROptions {
    * Rejects specific option values or combinations of option values that are not allowed. Throws an
    * {@link AssertionError} if a rejection occurs.
    */
-  private void handleOptionRejections(LogManager pLogger) {
+  private void handleOptionRejections() throws InvalidConfigurationException {
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
       handleOptionRejection(
-          pLogger, "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE);
+          "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE);
     }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "bitVectorEncoding cannot be set when linkReduction is disabled.");
+        handleOptionRejection("bitVectorEncoding cannot be set when linkReduction is disabled.");
       }
       if (reduceLastThreadOrder) {
         handleOptionRejection(
-            pLogger, "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
+            "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
       }
       if (reduceUntilConflict) {
         handleOptionRejection(
-            pLogger, "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
+            "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
       }
     }
     if (loopIterations < 0) {
-      handleOptionRejection(
-          pLogger, "loopIterations must be 0 or greater, cannot be %s", loopIterations);
+      handleOptionRejection("loopIterations must be 0 or greater, cannot be %s", loopIterations);
     }
     if (loopIterations == 0) {
       if (loopUnrolling) {
-        handleOptionRejection(pLogger, "loopUnrolling can only be enabled when loopIterations > 0");
+        handleOptionRejection("loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
     if (reduceLastThreadOrder && reduceUntilConflict) {
       if (!reductionOrder.isEnabled()) {
         handleOptionRejection(
-            pLogger,
             "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
                 + " is specified.");
       }
     }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
-        handleOptionRejection(
-            pLogger, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
+        handleOptionRejection("validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (controlEncodingThread.isEnabled()) {
         handleOptionRejection(
-            pLogger,
             "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
     if (!nondeterminismSource.isNumStatementsNondeterministic()) {
       if (reduceIgnoreSleep) {
         handleOptionRejection(
-            pLogger,
             "reduceIgnoreSleep cannot be enabled when nondeterminismSource does not contain"
                 + " NUM_STATEMENTS");
       }
@@ -347,57 +321,52 @@ public class MPOROptions {
     if (pruneBitVectorEvaluations) {
       if (!isAnyReductionEnabled()) {
         handleOptionRejection(
-            pLogger, "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
+            "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
       }
       if (!bitVectorEncoding.isEnabled()) {
         handleOptionRejection(
-            pLogger, "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
+            "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
       }
     }
     if (pruneSparseBitVectors) {
       if (!bitVectorEncoding.isSparse) {
         handleOptionRejection(
-            pLogger, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+            "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
       }
       if (reduceIgnoreSleep) {
         handleOptionRejection(
-            pLogger, "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
+            "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
       }
       if (reduceLastThreadOrder) {
         handleOptionRejection(
-            pLogger,
             "pruneSparseBitVectors cannot be enabled when reduceLastThreadOrder is enabled.");
       }
     }
     if (pruneSparseBitVectorWrites) {
       if (!bitVectorEncoding.isSparse) {
         handleOptionRejection(
-            pLogger, "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
+            "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
     if (isAnyReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "a reduce* option is enabled, but reductionMode is not set.");
+        handleOptionRejection("a reduce* option is enabled, but reductionMode is not set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "a reduce* option is enabled, but bitVectorEncoding is not set.");
+        handleOptionRejection("a reduce* option is enabled, but bitVectorEncoding is not set.");
       }
     } else {
       if (reductionMode.isEnabled()) {
-        handleOptionRejection(pLogger, "reductionMode is set, but no reduce* option is enabled");
+        handleOptionRejection("reductionMode is set, but no reduce* option is enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "bitVectorEncoding is set, but no reduce* option is enabled");
+        handleOptionRejection("bitVectorEncoding is set, but no reduce* option is enabled");
       }
     }
   }
 
-  private void handleOptionRejection(LogManager pLogger, Object... pMessage) {
-    pLogger.log(Level.SEVERE, pMessage);
-    throw new AssertionError(Arrays.toString(pMessage));
+  private void handleOptionRejection(Object... pMessage) throws InvalidConfigurationException {
+    throw new InvalidConfigurationException(Arrays.toString(pMessage));
   }
 
   // boolean helpers ===============================================================================

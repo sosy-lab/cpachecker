@@ -57,45 +57,41 @@ public class Sequentialization {
       CFA pCfa,
       String pInputFileName,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier)
+      throws UnrecognizedCodeException {
 
-    try {
-      SequentializationUtils utils =
-          SequentializationUtils.of(pCfa.getMachineModel(), pLogger, pShutdownNotifier);
-      SequentializationFields fields = new SequentializationFields(pOptions, pCfa, utils);
-      return buildProgramString(pOptions, pInputFileName, fields, utils);
-    } catch (UnrecognizedCodeException e) {
-      // we convert to RuntimeExceptions for unit tests
-      throw new RuntimeException(e);
-    }
+    SequentializationUtils utils =
+        SequentializationUtils.of(pCfa.getMachineModel(), pLogger, pShutdownNotifier);
+    SequentializationFields fields = new SequentializationFields(pOptions, pCfa, utils);
+    return buildProgramString(pOptions, pInputFileName, fields, utils);
   }
 
   private static String buildProgramString(
       MPOROptions pOptions,
       String pInputFileName,
       SequentializationFields pFields,
-      SequentializationUtils pUtils) {
+      SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
-    try {
-      String initProgram = initProgram(pOptions, pFields, pUtils);
-      String formattedProgram =
-          pOptions.clangFormatStyle().isEnabled()
-              ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle(), pUtils.logger())
-              : initProgram;
-      // replace dummy reach_errors after formatting so that line numbers are exact
-      String finalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
-      return pOptions.validateParse() && pOptions.inputTypeDeclarations()
-          ? SeqValidator.validateProgramParsing(finalProgram, pUtils)
-          : finalProgram;
+    String initProgram = initProgram(pOptions, pFields, pUtils);
+    String formattedProgram =
+        pOptions.clangFormatStyle().isEnabled()
+            ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle(), pUtils.logger())
+            : initProgram;
+    // replace dummy reach_errors after formatting so that line numbers are exact
+    String rFinalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
 
-    } catch (UnrecognizedCodeException
-        | InvalidConfigurationException
-        | ParserException
-        | InterruptedException e) {
-      // we convert to RuntimeExceptions for unit tests
-      pUtils.logger().log(Level.SEVERE, e);
-      throw new RuntimeException(e);
+    if (pOptions.validateParse()) {
+      try {
+        return SeqValidator.validateProgramParsing(rFinalProgram, pUtils);
+      } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
+        pUtils
+            .logger()
+            .logUserException(
+                Level.WARNING, e, "An exception occurred while parsing the sequentialization.");
+      }
     }
+    return rFinalProgram;
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */

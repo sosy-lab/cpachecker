@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -170,9 +171,8 @@ class BitVectorAccessEvaluationBuilder {
           // simplify A && (B || C || ...) to just (B || C || ...)
           ExpressionTree<CExpression> logicalDisjunction =
               BitVectorEvaluationUtil.logicalDisjunction(
-                  FluentIterable.from(pSparseBitVectorMap.get(memoryLocation))
-                      .transform(LeafExpression::of)
-                      .toList());
+                  transformedImmutableListCopy(
+                      pSparseBitVectorMap.get(memoryLocation), LeafExpression::of));
           sparseExpressions.add(logicalDisjunction);
         }
       }
@@ -250,7 +250,7 @@ class BitVectorAccessEvaluationBuilder {
     }
     ExpressionTree<CExpression> disjunction =
         BitVectorEvaluationUtil.logicalDisjunction(
-            FluentIterable.from(sparseBitVectors).transform(LeafExpression::of).toList());
+            transformedImmutableListCopy(sparseBitVectors, LeafExpression::of));
     // create logical and -> (A && (B || C || ...))
     return And.of(LeafExpression.of(pDirectBitVector), disjunction);
   }

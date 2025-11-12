@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -28,13 +27,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class InputRejectionTest {
 
   /**
-   * Tests for pInputFilePath if it throws an {@link RuntimeException} with the message
-   * pErrorMessage in it.
+   * Tests if {@link MPORAlgorithm} throws an exception of type {@code pExpectedThrowable} when
+   * invoked with the program in {@code pInputFilePath}.
    */
   private <T extends Throwable> void testExpectedRejection(
       MPOROptions pOptions,
@@ -53,11 +53,7 @@ public class InputRejectionTest {
     T throwable =
         assertThrows(
             pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, pOptions));
-    assertWithMessage(
-            "Expected throwable message to contain '%s' but was '%s'",
-            pExpected.message, throwable.getMessage())
-        .that(throwable.getMessage())
-        .contains(pExpected.message);
+    assertThat(throwable.getMessage()).contains(pExpected.message);
   }
 
   @Test
@@ -78,7 +74,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        IllegalArgumentException.class,
         InputRejectionMessage.NOT_CONCURRENT);
   }
 
@@ -89,7 +85,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        UnsupportedCodeException.class,
         InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
@@ -99,7 +95,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        UnsupportedCodeException.class,
         InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
@@ -110,7 +106,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        IllegalArgumentException.class,
         InputRejectionMessage.PTHREAD_RETURN_VALUE);
   }
 
@@ -121,7 +117,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        UnsupportedCodeException.class,
         InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
@@ -132,7 +128,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        IllegalArgumentException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
@@ -143,7 +139,7 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        RuntimeException.class,
+        IllegalArgumentException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
@@ -156,7 +152,7 @@ public class InputRejectionTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.allowPointerWrites", "false")
             .build();
-    MPOROptions customOptions = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions customOptions = new MPOROptions(config);
 
     // create cfa for test program pFileName
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
@@ -165,9 +161,9 @@ public class InputRejectionTest {
     CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
 
     // test if MPORAlgorithm rejects program with correct error message
-    RuntimeException throwable =
+    IllegalArgumentException throwable =
         assertThrows(
-            RuntimeException.class,
+            IllegalArgumentException.class,
             () ->
                 Sequentialization.tryBuildProgramString(
                     customOptions, cfa, "test", logger, shutdownNotifier));

@@ -19,7 +19,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
@@ -36,9 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqPruner {
 
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pruneClauses(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger)
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rPruned =
@@ -64,7 +61,7 @@ public class SeqPruner {
         }
       }
     }
-    SeqValidator.tryValidateNoBlankClauses(pOptions, rPruned.build(), pLogger);
+    SeqValidator.tryValidateNoBlankClauses(pOptions, rPruned.build());
     return rPruned.build();
   }
 

@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -84,8 +83,6 @@ public class MPORSubstitution {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  private final LogManager logger;
-
   public MPORSubstitution(
       boolean pIsDummy,
       MPOROptions pOptions,
@@ -109,7 +106,6 @@ public class MPORSubstitution {
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
     binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
-    logger = pUtils.logger();
   }
 
   // Substitute Functions ==========================================================================
@@ -126,7 +122,8 @@ public class MPORSubstitution {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
@@ -143,13 +140,7 @@ public class MPORSubstitution {
         CSimpleDeclaration declaration = idExpression.getDeclaration();
         if (SubstituteUtil.isSubstitutable(declaration)) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
-              options,
-              idExpression,
-              pIsWrite,
-              pIsPointerDereference,
-              pIsFieldReference,
-              pTracker,
-              logger);
+              options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
           return getVariableSubstitute(
               idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
         }
@@ -178,12 +169,7 @@ public class MPORSubstitution {
                 pTracker);
         // only create a new expression if any operand was substituted (compare references)
         if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
-          try {
-            return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
-          } catch (UnrecognizedCodeException e) {
-            // "convert" exception -> no UnrecognizedCodeException in signature
-            throw new RuntimeException(e);
-          }
+          return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
         }
       }
       case CArraySubscriptExpression arraySubscript -> {
@@ -279,7 +265,8 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
@@ -347,7 +334,8 @@ public class MPORSubstitution {
   CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
@@ -377,7 +365,8 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute

@@ -176,7 +176,7 @@ public class PthreadUtil {
 
   // boolean helpers ===============================================================================
 
-  public static boolean isPthreadObjectType(CType pType) {
+  public static boolean isAnyPthreadObjectType(CType pType) {
     String typeName = SeqStringUtil.getTypeName(pType);
     for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
       if (typeName.equals(pthreadObjectType.name)) {

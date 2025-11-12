@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -65,7 +66,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -88,7 +89,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -109,7 +110,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -136,7 +137,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -164,7 +165,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionOrder", "CONFLICT_THEN_LAST_THREAD")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -185,7 +186,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -211,7 +212,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -233,7 +234,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -258,7 +259,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -287,7 +288,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -312,7 +313,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -335,7 +336,7 @@ public class SequentializationParseTest {
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -358,7 +359,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
             .build();
-    MPOROptions options = new MPOROptions(config, LogManager.createTestLogManager());
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -439,15 +440,6 @@ public class SequentializationParseTest {
     assertThat(faultySeq).isNotEmpty();
 
     // test that we get an exception while parsing the new "faulty" program
-    boolean fail = false;
-    try {
-      cfaCreator.parseSourceAndCreateCFA(faultySeq);
-    } catch (Exception exception) {
-      fail = true;
-    }
-    assertWithMessage(
-            "Expected CPAchecker to fail while parsing a faulty program, but it succeeded.")
-        .that(fail)
-        .isTrue();
+    assertThrows(ParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(faultySeq));
   }
 }

@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -60,11 +59,11 @@ public class SeqThreadStatementClauseBuilder {
 
     // initialize clauses from ThreadCFAs
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses =
-        initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements, pUtils.logger());
+        initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements);
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         pOptions.pruneEmptyStatements()
-            ? SeqPruner.pruneClauses(pOptions, initialClauses, pUtils.logger())
+            ? SeqPruner.pruneClauses(pOptions, initialClauses)
             : initialClauses;
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
@@ -76,7 +75,7 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, ensure that no backward goto exist
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         pOptions.noBackwardGoto()
-            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses, pUtils.logger())
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses)
             : reducedClauses;
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
@@ -84,7 +83,7 @@ public class SeqThreadStatementClauseBuilder {
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
     // validate clauses based on pOptions
-    SeqValidator.tryValidateClauses(pOptions, consecutiveLabels, pUtils.logger());
+    SeqValidator.tryValidateClauses(pOptions, consecutiveLabels);
     return consecutiveLabels;
   }
 
@@ -93,8 +92,7 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostElements,
-      LogManager pLogger)
+      GhostElements pGhostElements)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
@@ -110,7 +108,7 @@ public class SeqThreadStatementClauseBuilder {
       rClauses.putAll(thread, clauses.build());
     }
     // only check pc validation, since clauses are not reordered at this point
-    SeqValidator.tryValidateProgramCounters(pOptions, rClauses.build(), pLogger);
+    SeqValidator.tryValidateProgramCounters(pOptions, rClauses.build());
     return reorderClauses(rClauses.build());
   }
 

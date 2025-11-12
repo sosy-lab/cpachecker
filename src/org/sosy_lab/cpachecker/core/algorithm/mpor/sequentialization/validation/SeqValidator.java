@@ -16,9 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -63,13 +61,11 @@ public class SeqValidator {
    * pOptions}.
    */
   public static void tryValidateClauses(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    tryValidateProgramCounters(pOptions, pClauses, pLogger);
-    tryValidateNoBackwardGoto(pOptions, pClauses, pLogger);
-    tryValidateNoBlankClauses(pOptions, pClauses, pLogger);
+    tryValidateProgramCounters(pOptions, pClauses);
+    tryValidateNoBackwardGoto(pOptions, pClauses);
+    tryValidateNoBlankClauses(pOptions, pClauses);
   }
 
   // Program Counter (pc) ==========================================================================
@@ -81,9 +77,7 @@ public class SeqValidator {
    * <p>Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
   public static void tryValidateProgramCounters(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     if (pOptions.validatePc()) {
       for (MPORThread thread : pClauses.keySet()) {
@@ -95,9 +89,8 @@ public class SeqValidator {
         ImmutableSet<Integer> allTargetPcs =
             pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
         for (var pcEntry : pcMap.entrySet()) {
-          validateLabelPcAsTargetPc(
-              pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.id(), pLogger);
-          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id(), pLogger);
+          validateLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.id());
+          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id());
         }
       }
     }
@@ -122,8 +115,7 @@ public class SeqValidator {
       int pLabelPc,
       ImmutableSet<Integer> pAllTargetPc,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      int pThreadId,
-      LogManager pLogger)
+      int pThreadId)
       throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
@@ -133,29 +125,24 @@ public class SeqValidator {
         // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
         SeqThreadStatementClause clause = pLabelClauseMap.get(pLabelPc);
         assert clause != null;
-        handleValidationException(
+        throw new IllegalStateException(
             String.format(
-                "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
-            pLogger);
+                "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId));
       }
     }
   }
 
   private static void validateTargetPcAsLabelPc(
-      ImmutableSet<Integer> pTargetPcs,
-      ImmutableSet<Integer> pLabelPcs,
-      int pThreadId,
-      LogManager pLogger)
+      ImmutableSet<Integer> pTargetPcs, ImmutableSet<Integer> pLabelPcs, int pThreadId)
       throws IllegalArgumentException {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
       if (targetPc != Sequentialization.EXIT_PC) {
         if (!pLabelPcs.contains(targetPc)) {
-          handleValidationException(
+          throw new IllegalStateException(
               String.format(
-                  "target pc %s does not exist as label pc in thread %s", targetPc, pThreadId),
-              pLogger);
+                  "target pc %s does not exist as label pc in thread %s", targetPc, pThreadId));
         }
       }
     }
@@ -166,17 +153,16 @@ public class SeqValidator {
   /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
   public static void validateEqualBlocks(
       ImmutableCollection<SeqThreadStatementBlock> pBlocksA,
-      ImmutableCollection<SeqThreadStatementBlock> pBlocksB,
-      LogManager pLogger) {
+      ImmutableCollection<SeqThreadStatementBlock> pBlocksB) {
 
     // short circuit: check for equal length
     if (pBlocksA.size() != pBlocksB.size()) {
-      handleValidationException("pBlocksA and pBlocksB length differ", pLogger);
+      throw new IllegalStateException("pBlocksA and pBlocksB length differ");
     }
     // otherwise check if B contains all elements from A
     for (SeqThreadStatementBlock blockA : pBlocksA) {
       if (!pBlocksB.contains(blockA)) {
-        handleValidationException("pBlocksB does not contain all blocks from pBlocksA", pLogger);
+        throw new IllegalStateException("pBlocksB does not contain all blocks from pBlocksA");
       }
     }
   }
@@ -186,15 +172,13 @@ public class SeqValidator {
    * location.
    */
   public static void tryValidateNoBackwardGoto(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     if (pOptions.validateNoBackwardGoto()) {
       for (MPORThread thread : pClauses.keySet()) {
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
-        validateBlockLabelLessThanTargetLabel(pOptions, thread, labelBlockMap, pLogger);
+        validateBlockLabelLessThanTargetLabel(pOptions, thread, labelBlockMap);
       }
     }
   }
@@ -202,8 +186,7 @@ public class SeqValidator {
   private static void validateBlockLabelLessThanTargetLabel(
       MPOROptions pOptions,
       MPORThread pThread,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      LogManager pLogger) {
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
       for (CSeqThreadStatement statement : block.getStatements()) {
@@ -215,11 +198,10 @@ public class SeqValidator {
                 Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
             // ignore backward jump, if it is to a loop start and enabled in options
             if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto()) {
-              handleValidationException(
+              throw new IllegalStateException(
                   String.format(
                       "block number %s is greater than target number %s in thread %s",
-                      blockNumber, targetNumber, pThread.id()),
-                  pLogger);
+                      blockNumber, targetNumber, pThread.id()));
             }
           }
         }
@@ -231,9 +213,7 @@ public class SeqValidator {
 
   /** Checks that no clause is blank, when {@link MPOROptions#pruneEmptyStatements()} is enabled. */
   public static void tryValidateNoBlankClauses(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      MPOROptions pOptions, ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     if (pOptions.pruneEmptyStatements()) {
       for (MPORThread thread : pClauses.keySet()) {
@@ -244,18 +224,10 @@ public class SeqValidator {
               return;
             }
           }
-          handleValidationException(
-              String.format("thread %s contains a blank statement after pruning", thread.id()),
-              pLogger);
+          throw new IllegalStateException(
+              String.format("thread %s contains a blank statement after pruning", thread.id()));
         }
       }
     }
-  }
-
-  // Helper ========================================================================================
-
-  private static void handleValidationException(String pMessage, LogManager pLogger) {
-    pLogger.log(Level.SEVERE, pMessage);
-    throw new IllegalArgumentException(pMessage);
   }
 }

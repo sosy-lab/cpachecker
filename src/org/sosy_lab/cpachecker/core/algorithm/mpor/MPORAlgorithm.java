@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
@@ -44,7 +46,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  public String buildSequentializedProgram() {
+  public String buildSequentializedProgram() throws UnrecognizedCodeException {
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
@@ -69,10 +71,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa,
       @Nullable MPOROptions pOptions)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, UnsupportedCodeException {
 
     // the options are not null when unit testing
-    options = pOptions != null ? pOptions : new MPOROptions(pConfiguration, pLogManager);
+    options = pOptions != null ? pOptions : new MPOROptions(pConfiguration);
 
     cpa = pCpa;
     config = pConfiguration;
@@ -80,12 +82,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     cfa = pInputCfa;
 
-    InputRejection.handleRejections(logger, cfa);
+    InputRejection.handleRejections(cfa);
   }
 
   public static MPORAlgorithm testInstance(
       LogManager pLogManager, CFA pInputCfa, MPOROptions pOptions)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, UnsupportedCodeException {
 
     return new MPORAlgorithm(
         null,
@@ -98,7 +100,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   public static MPORAlgorithm testInstanceWithConfig(
       Configuration pConfig, LogManager pLogManager, CFA pInputCfa, MPOROptions pOptions)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, UnsupportedCodeException {
 
     return new MPORAlgorithm(
         null, pConfig, pLogManager, ShutdownNotifier.createDummy(), pInputCfa, pOptions);

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import java.util.Map.Entry;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -106,11 +105,10 @@ public class MPORSubstitutionTrackerUtil {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker,
-      LogManager pLogger) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     // writing pointers (aliasing) may not be allowed -> reject program
-    InputRejection.checkPointerWrite(pIsWrite, pOptions, pIdExpression, pLogger);
+    InputRejection.checkPointerWrite(pIsWrite, pOptions, pIdExpression);
 
     // exclude field references, we track field members separately. field owner is tracked via the
     // CIdExpression, e.g. if we assign struct_a = struct_b without any field reference.

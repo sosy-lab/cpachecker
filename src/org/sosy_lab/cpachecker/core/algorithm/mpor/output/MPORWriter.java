@@ -38,46 +38,28 @@ public class MPORWriter {
     }
   }
 
-  private enum OutputMessage {
-    IO_ERROR("An IO error occurred while writing the output program."),
-    OVERWRITE_ERROR("File exists already:"),
-    SEQUENTIALIZATION_CREATED("Sequentialization created in:");
-
-    private final String message;
-
-    OutputMessage(String pMessage) {
-      message = pMessage;
-    }
-
-    private String getMessage() {
-      return message;
-    }
-  }
-
   public static void write(
       MPOROptions pOptions, String pOutputProgram, List<Path> pInputFilePaths, LogManager pLogger) {
 
+    // use first input file name as output program name
+    String programName =
+        SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
+    // write output program
+    Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
     try {
-      // use first input file name as output program name
-      String programName =
-          SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
-
-      // write output program
-      Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
       try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
         writer.write(pOutputProgram);
-        pLogger.log(
-            Level.INFO,
-            OutputMessage.SEQUENTIALIZATION_CREATED.getMessage(),
-            programPath.toString());
+        pLogger.log(Level.INFO, "Sequentialization created in: ", programPath.toString());
       }
-
-      // if enabled: write metadata file
-      MetadataWriter.tryWrite(pOptions, programName, pInputFilePaths, pLogger);
-
     } catch (IOException e) {
-      pLogger.logUserException(Level.SEVERE, e, OutputMessage.IO_ERROR.getMessage());
+      pLogger.logUserException(
+          Level.WARNING,
+          e,
+          "An IO error occurred while writing the output program. Sequentialization was not"
+              + " created.");
     }
+    // if enabled: write metadata file
+    MetadataWriter.tryWrite(pOptions, programName, pInputFilePaths, pLogger);
   }
 
   static Path buildOutputPath(
