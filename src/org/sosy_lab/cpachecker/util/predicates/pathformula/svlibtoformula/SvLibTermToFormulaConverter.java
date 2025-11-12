@@ -107,7 +107,10 @@ public class SvLibTermToFormulaConverter {
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
       SSAMapBuilder ssa,
       FormulaManagerView fmgr) {
-    if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
+    if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && isArrayAccess(pTerm)) {
+      return convertArrayAccess(pTerm, ssa, fmgr);
+    } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibFinalRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
       return convertIntegerApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
@@ -115,9 +118,6 @@ public class SvLibTermToFormulaConverter {
         .transform(SvLibFinalRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.BOOL))) {
       return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
-    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
-        && isArrayAccess(pTerm)) {
-      return convertArrayAccess(pTerm, ssa, fmgr);
     }
 
     throw new UnsupportedOperationException(

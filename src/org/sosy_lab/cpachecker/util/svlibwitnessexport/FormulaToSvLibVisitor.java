@@ -13,6 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -70,7 +71,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         pName
             // Remove type suffixes from overloaded operators, like '_int'
             .replace("_int", "")
-            .replace("_rat", "");
+            .replace("_rat", "")
+            .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), "");
     if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && FluentIterable.from(pArgTypes)
             .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.BOOL))) {
