@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
@@ -50,9 +52,13 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
       return SvLibSmtLibPredefinedType.INT;
     } else if (formulaType.equals(FormulaType.RationalType)) {
       return SvLibSmtLibPredefinedType.REAL;
+    } else if (formulaType instanceof ArrayFormulaType<?, ?> pFormulaType) {
+      SvLibType indexType = formulaTypeToSvLibType(pFormulaType.getIndexType());
+      SvLibType elementType = formulaTypeToSvLibType(pFormulaType.getElementType());
+      return new SvLibSmtLibArrayType(indexType, elementType);
     }
 
-    throw new AssertionError("Unsupported formula type: " + formulaType);
+    throw new UnsupportedOperationException("Unsupported formula type: " + formulaType);
   }
 
   private SvLibIdTerm functionToIdTerm(
@@ -76,7 +82,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.boolDisjunction(pArgTypes.size()), FileLocation.DUMMY);
         case "not" -> new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY);
-        default -> throw new AssertionError("Unknown formula type: " + pName);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && FluentIterable.from(pArgTypes)
@@ -86,7 +92,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         case "<" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_THAN, FileLocation.DUMMY);
         case "<=" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY);
-        default -> throw new AssertionError("Unknown formula type: " + pName);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.INT
         && FluentIterable.from(pArgTypes)
@@ -100,7 +106,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
                 SmtLibTheoryDeclarations.intSubtraction(pArgTypes.size()), FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MULTIPLICATION, FileLocation.DUMMY);
-        default -> throw new AssertionError("Unknown formula type: " + pName);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
         && FluentIterable.from(pArgTypes)
@@ -112,18 +118,36 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MINUS, FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
-        default -> throw new AssertionError("Unknown formula type: " + pName);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.INT
         && FluentIterable.from(pArgTypes)
             .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.REAL))) {
       return switch (actualName) {
         case "floor" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_FLOOR, FileLocation.DUMMY);
-        default -> throw new AssertionError("Unknown formula type: " + pName);
+        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
+    } else if (pArgTypes.size() == 2
+        && pArgTypes.getFirst() instanceof SvLibSmtLibArrayType pArrayType
+        && pArrayType.getKeysType().equals(pArgTypes.get(1))
+        && pArrayType.getValuesType().equals(pReturnType)
+        && actualName.equals("read")) {
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.arraySelect(
+              pArrayType.getKeysType(), pArrayType.getValuesType()),
+          FileLocation.DUMMY);
+    } else if (pArgTypes.size() == 3
+        && pArgTypes.getFirst() instanceof SvLibSmtLibArrayType pArrayType
+        && pArrayType.getKeysType().equals(pArgTypes.get(1))
+        && pArrayType.getValuesType().equals(pArgTypes.get(2))
+        && pReturnType.equals(pArrayType)
+        && actualName.equals("write")) {
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
+          FileLocation.DUMMY);
     }
 
-    throw new AssertionError("Unknown formula type: " + pName);
+    throw new UnsupportedOperationException("Unknown formula type: " + pName);
   }
 
   @Override
@@ -141,7 +165,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
     } else if (pO instanceof Rational pRational) {
       return new SvLibRealConstantTerm(pRational, FileLocation.DUMMY);
     }
-    throw new AssertionError("Unsupported constant type: " + pO);
+    throw new UnsupportedOperationException("Unsupported constant type: " + pO);
   }
 
   @Override
@@ -167,7 +191,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
       Quantifier pQuantifier,
       List<Formula> pList,
       BooleanFormula pBooleanFormula1) {
-    throw new AssertionError(
+    throw new UnsupportedOperationException(
         "The conversion of quantified formulas back into SV-LIB is not supported.");
   }
 }
