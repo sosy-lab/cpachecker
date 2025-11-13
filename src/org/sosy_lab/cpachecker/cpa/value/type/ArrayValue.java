@@ -265,11 +265,6 @@ public final class ArrayValue implements Value {
   }
 
   @Override
-  public NumericValue asNumericValue() {
-    return null;
-  }
-
-  @Override
   public OptionalLong asLong(CType type) {
     return OptionalLong.empty();
   }

@@ -12,8 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Optional;
 import java.util.OptionalLong;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -54,10 +54,14 @@ public interface Value extends Serializable {
   }
 
   /**
-   * Returns the NumericValue if the stored value can be explicitly represented by a numeric value,
-   * null otherwise.
+   * Returns the NumericValue if the stored value can be explicitly represented by a {@link
+   * NumericValue}, empty otherwise.
    */
-  @Nullable NumericValue asNumericValue();
+  default Optional<NumericValue> asNumericValue() {
+    // TODO: this should be COMPLETELY removed (together with isNumericValue())! And replaced by
+    //  instanceof checks!
+    return Optional.empty();
+  }
 
   /** Return the long value if this is a long value. */
   OptionalLong asLong(CType type);
@@ -77,11 +81,6 @@ public interface Value extends Serializable {
 
     public static UnknownValue getInstance() {
       return instance;
-    }
-
-    @Override
-    public @Nullable NumericValue asNumericValue() {
-      return null;
     }
 
     @Override

@@ -21,11 +21,6 @@ public record FunctionValue(String name) implements Value {
   }
 
   @Override
-  public NumericValue asNumericValue() {
-    return null;
-  }
-
-  @Override
   public OptionalLong asLong(CType pType) {
     return OptionalLong.empty();
   }

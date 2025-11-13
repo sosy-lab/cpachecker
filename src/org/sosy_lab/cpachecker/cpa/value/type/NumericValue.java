@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.math.BigInteger;
+import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -202,8 +203,8 @@ public record NumericValue(Number number) implements Value {
   }
 
   @Override
-  public NumericValue asNumericValue() {
-    return this;
+  public Optional<NumericValue> asNumericValue() {
+    return Optional.of(this);
   }
 
   @Override

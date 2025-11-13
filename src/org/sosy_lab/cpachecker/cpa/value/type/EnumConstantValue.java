@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import java.io.Serial;
+import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -42,7 +43,7 @@ public record EnumConstantValue(String fullyQualifiedName) implements Value {
    * can't be represented by a number.
    */
   @Override
-  public NumericValue asNumericValue() {
+  public Optional<NumericValue> asNumericValue() {
     throw new AssertionError("Enum constant cannot be represented as NumericValue");
   }
 

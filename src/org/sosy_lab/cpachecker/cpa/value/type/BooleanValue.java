@@ -102,7 +102,8 @@ public enum BooleanValue implements Value {
    */
   @Override
   public boolean isNumericValue() {
-    // TODO: this does not hold for C! We should make a clear distinction between Java and C!
+    // TODO: this does not hold for C! We should make a clear distinction between Java and C! We
+    //  even return a numeric below.... this should be a sub-type of numeric!
     return false;
   }
 
@@ -125,12 +126,8 @@ public enum BooleanValue implements Value {
    *     value is <code>true</code>. Returns an object with value <code>0</code> otherwise.
    */
   @Override
-  public NumericValue asNumericValue() {
-    if (value) {
-      return new NumericValue(1L);
-    } else {
-      return new NumericValue(0L);
-    }
+  public Optional<NumericValue> asNumericValue() {
+    return Optional.of(new NumericValue(value ? 1L : 0L));
   }
 
   /**

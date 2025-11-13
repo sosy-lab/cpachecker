@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -99,11 +98,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   @Override
   public String toString() {
     return "SymbolicIdentifier[" + id + "]";
-  }
-
-  @Override
-  public NumericValue asNumericValue() {
-    return null;
   }
 
   @Override
