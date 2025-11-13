@@ -102,17 +102,7 @@ public enum BooleanValue implements Value {
    */
   @Override
   public boolean isNumericValue() {
-    return false;
-  }
-
-  /**
-   * Always returns <code>false</code>. <code>BooleanValue</code> always stores either <code>true
-   * </code> or <code>false</code> and never an unknown value.
-   *
-   * @return always <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
+    // TODO: this does not hold for C! We should make a clear distinction between Java and C!
     return false;
   }
 

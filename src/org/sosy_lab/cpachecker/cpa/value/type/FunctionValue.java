@@ -21,21 +21,6 @@ public record FunctionValue(String name) implements Value {
   }
 
   @Override
-  public boolean isNumericValue() {
-    return false;
-  }
-
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
-
-  @Override
-  public boolean isExplicitlyKnown() {
-    return false;
-  }
-
-  @Override
   public NumericValue asNumericValue() {
     return null;
   }

@@ -27,27 +27,6 @@ public record EnumConstantValue(String fullyQualifiedName) implements Value {
   }
 
   /**
-   * Always returns <code>false</code> since enum constants are no numbers.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isNumericValue() {
-    return false;
-  }
-
-  /**
-   * Always returns <code>false</code> since every <code>EnumConstantValue</code> has to represent a
-   * specific value.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
-
-  /**
    * Always returns <code>true</code> since every <code>EnumConstantValue</code> represents one
    * specific value.
    *

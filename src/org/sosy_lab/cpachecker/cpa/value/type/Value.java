@@ -23,13 +23,35 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * floats, symbolic values, and SMG nodes should also be supported.
  */
 public interface Value extends Serializable {
-  boolean isNumericValue();
 
-  /** True if we have no idea about this value(can not track it), false otherwise. */
-  boolean isUnknown();
+  /**
+   * Returns true for values who's numeric value is concretely known, i.e. of the type {@link
+   * NumericValue}. It is safe to interpret them (and only them!) as numeric values using {@link
+   * #asNumericValue()}. False else. (Note: {@link NullValue}, as well as others are Java types and
+   * do not return a numeric value!)
+   */
+  default boolean isNumericValue() {
+    return false;
+  }
 
-  /** True if we deterministically know the actual value, false otherwise. */
-  boolean isExplicitlyKnown();
+  /**
+   * True if we do not have any information about the value, and we do not track it currently (as
+   * tracked unknown values are {@link
+   * org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue}s), false otherwise. Values that
+   * return true are always of the {@link UnknownValue} type!
+   */
+  default boolean isUnknown() {
+    return false;
+  }
+
+  /**
+   * True if we deterministically know the actual value, false otherwise. Explicitly known are (at
+   * least) the following types: {@link NumericValue}s, {@link ArrayValue}s, {@link BooleanValue}s,
+   * {@link EnumConstantValue}s, and {@link NullValue}s.
+   */
+  default boolean isExplicitlyKnown() {
+    return false;
+  }
 
   /**
    * Returns the NumericValue if the stored value can be explicitly represented by a numeric value,
@@ -43,7 +65,7 @@ public interface Value extends Serializable {
   <T> T accept(ValueVisitor<T> pVisitor);
 
   /** Singleton class used to signal that the value is unknown (could be anything). */
-  public static final class UnknownValue implements Value, Serializable {
+  final class UnknownValue implements Value, Serializable {
 
     @Serial private static final long serialVersionUID = -300842115868319184L;
     private static final UnknownValue instance = new UnknownValue();
@@ -55,11 +77,6 @@ public interface Value extends Serializable {
 
     public static UnknownValue getInstance() {
       return instance;
-    }
-
-    @Override
-    public boolean isNumericValue() {
-      return false;
     }
 
     @Override
@@ -81,11 +98,6 @@ public interface Value extends Serializable {
     @Override
     public boolean isUnknown() {
       return true;
-    }
-
-    @Override
-    public boolean isExplicitlyKnown() {
-      return false;
     }
 
     @Serial

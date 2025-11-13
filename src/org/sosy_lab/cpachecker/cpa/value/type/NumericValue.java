@@ -227,16 +227,6 @@ public record NumericValue(Number number) implements Value {
   }
 
   /**
-   * Always returns <code>false</code> as each <code>NumericValue</code> holds one specific value.
-   *
-   * @return always <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
-
-  /**
    * Always returns <code>true</code> as each <code>NumericValue</code> holds one specific value.
    *
    * @return always <code>true</code>

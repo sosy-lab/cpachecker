@@ -31,16 +31,7 @@ public enum NullValue implements Value {
    */
   @Override
   public boolean isNumericValue() {
-    return false;
-  }
-
-  /**
-   * Always returns <code>false</code> since <code>null</code> is a specific value.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
+    // TODO: this does not hold for C! Make a clear distinction between Java and C!
     return false;
   }
 

@@ -260,16 +260,6 @@ public final class ArrayValue implements Value {
   }
 
   @Override
-  public boolean isNumericValue() {
-    return false;
-  }
-
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
-
-  @Override
   public boolean isExplicitlyKnown() {
     return true;
   }
