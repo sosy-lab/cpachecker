@@ -528,6 +528,7 @@ public class SMGCPAValueVisitor
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
 
+    // TODO: remove this!
     if (leftValue.isUnknown() && rightValue.isUnknown()) {
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     }
@@ -679,6 +680,8 @@ public class SMGCPAValueVisitor
               calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
     }
 
+    // TODO: remove this, and allow handling of arithmetic operations such that UNKNOWN can be
+    //  handled as well!
     if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
       logger.logf(
           Level.FINE,
@@ -771,6 +774,7 @@ public class SMGCPAValueVisitor
     }
 
     if (!value.isExplicitlyKnown()) {
+      // TODO: Unknowns end up here, NOT below!
       return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
     }
 
