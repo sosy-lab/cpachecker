@@ -754,22 +754,17 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global, without
-   * duplicates.
+   * Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global, including
+   * duplicates, e.g. {@code int x; int x = 0;}.
    */
   public static ImmutableList<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    Set<CVariableDeclaration> visited = new HashSet<>();
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (declaration.isGlobal()) {
-          // exclude CFunctionDeclaration and CTypeDeclaration (e.g. for structs)
           if (declaration instanceof CVariableDeclaration variableDeclaration) {
-            // the same variable declaration may be present twice, e.g.: 'int z;' and 'int z = 0;'
-            if (visited.add(variableDeclaration)) {
-              rGlobalVariables.add(variableDeclaration);
-            }
+            rGlobalVariables.add(variableDeclaration);
           }
         }
       }

@@ -103,7 +103,7 @@ public class FunctionStatementBuilder {
         CExpression rightHandSide =
             functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
         CIdExpression parameterSubstitute =
-            pSubstitution.getSubstituteParameterDeclarationByCallContext(
+            pSubstitution.getParameterDeclarationSubstituteByCallContext(
                 callContext, parameterDeclaration);
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(

@@ -7,7 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <pthread.h>
-int x = 0;
+int x;
+int x = 1;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 void *task1(void *arg) {
     int hello = 42;
@@ -24,6 +25,10 @@ void *task2(void *arg) {
     x++;
 }
 int main() {
+    if (x != 1) {
+      __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
+    }
+    x = 0;
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);

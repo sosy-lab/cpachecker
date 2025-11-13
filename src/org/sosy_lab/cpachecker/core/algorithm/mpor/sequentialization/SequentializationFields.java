@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseBuilder;
@@ -40,6 +41,8 @@ public class SequentializationFields {
 
   /** The list of threads in the program, including the main thread and all pthreads. */
   public final ImmutableList<MPORThread> threads;
+
+  public final ImmutableList<CVariableDeclaration> allGlobalVariableDeclarations;
 
   /**
    * The list of thread specific variable declaration substitutions. The substitution for the main
@@ -69,9 +72,10 @@ public class SequentializationFields {
     resetStaticFields();
     threads = MPORThreadBuilder.createThreads(pOptions, pInputCfa);
     numThreads = threads.size();
+    allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
-            pOptions, CFAUtils.getGlobalVariableDeclarations(pInputCfa), threads, pUtils);
+            pOptions, allGlobalVariableDeclarations, threads, pUtils);
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
     memoryModel =

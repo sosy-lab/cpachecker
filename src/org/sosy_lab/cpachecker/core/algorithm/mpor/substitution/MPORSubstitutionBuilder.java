@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableTable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -55,7 +56,7 @@ public class MPORSubstitutionBuilder {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
     MPORThread mainThread = MPORThreadUtil.extractMainThread(pThreads);
-    ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes =
+    ImmutableList<Entry<CVariableDeclaration, CIdExpression>> globalVariableSubstitutes =
         buildGlobalVariableSubstitutes(pOptions, mainThread, pGlobalVariableDeclarations, pUtils);
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
         getMainFunctionArgSubstitutes(pOptions, mainThread);
@@ -97,17 +98,18 @@ public class MPORSubstitutionBuilder {
     return rSubstitutions.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> buildGlobalVariableSubstitutes(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      SequentializationUtils pUtils)
-      throws UnrecognizedCodeException {
+  private static ImmutableList<Entry<CVariableDeclaration, CIdExpression>>
+      buildGlobalVariableSubstitutes(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
+          SequentializationUtils pUtils)
+          throws UnrecognizedCodeException {
 
     checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
-    ImmutableMap<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
+    ImmutableList<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
         initGlobalSubstitutes(pOptions, pGlobalVariableDeclarations);
 
     // create dummy substitution. we can use empty maps for local and parameter substitutions
@@ -125,13 +127,12 @@ public class MPORSubstitutionBuilder {
             pUtils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
-    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
-        ImmutableMap.builder();
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> rFinalSubstitutes =
+        ImmutableList.builder();
 
-    for (var entry : dummyGlobalSubstitutes.entrySet()) {
+    for (Entry<CVariableDeclaration, CIdExpression> entry : dummyGlobalSubstitutes) {
       CVariableDeclaration variableDeclaration = entry.getKey();
       CIdExpression idExpression = entry.getValue();
-      assert idExpression.getDeclaration() instanceof CVariableDeclaration;
       CInitializer initializer = variableDeclaration.getInitializer();
       // TODO handle CInitializerList
       if (initializer instanceof CInitializerExpression initializerExpression) {
@@ -153,19 +154,19 @@ public class MPORSubstitutionBuilder {
                 substituteInitializerExpression);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newSubstituteDeclaration);
-        rFinalSubstitutes.put(variableDeclaration, newIdExpression);
+        rFinalSubstitutes.add(Map.entry(variableDeclaration, newIdExpression));
       } else {
-        rFinalSubstitutes.put(variableDeclaration, idExpression);
+        rFinalSubstitutes.add(Map.entry(variableDeclaration, idExpression));
       }
     }
-    return rFinalSubstitutes.buildOrThrow();
+    return rFinalSubstitutes.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> initGlobalSubstitutes(
+  private static ImmutableList<Entry<CVariableDeclaration, CIdExpression>> initGlobalSubstitutes(
       MPOROptions pOptions, ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations) {
 
-    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
-        ImmutableMap.builder();
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
+        ImmutableList.builder();
     for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
       CStorageClass storageClass = variableDeclaration.getCStorageClass();
       // if type declarations are not included, the storage class cannot be extern
@@ -174,10 +175,10 @@ public class MPORSubstitutionBuilder {
         CVariableDeclaration substitute =
             substituteVariableDeclaration(variableDeclaration, substituteName);
         CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
-        dummyGlobalSubstitutes.put(variableDeclaration, substituteExpression);
+        dummyGlobalSubstitutes.add(Map.entry(variableDeclaration, substituteExpression));
       }
     }
-    return dummyGlobalSubstitutes.buildOrThrow();
+    return dummyGlobalSubstitutes.build();
   }
 
   // Parameter =====================================================================================
@@ -317,7 +318,7 @@ public class MPORSubstitutionBuilder {
       buildVariableDeclarationSubstitutes(
           MPOROptions pOptions,
           MPORThread pThread,
-          ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
+          ImmutableList<Entry<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
           ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
               pParameterSubstitutes,
           ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
