@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import java.util.Arrays;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -269,104 +268,109 @@ public class MPOROptions {
    */
   private void handleOptionRejections() throws InvalidConfigurationException {
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
-      handleOptionRejection(
-          "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE);
+      throw new InvalidConfigurationException(
+          String.format(
+              "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE));
     }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection("bitVectorEncoding cannot be set when linkReduction is disabled.");
+        throw new InvalidConfigurationException(
+            "bitVectorEncoding cannot be set when linkReduction is disabled.");
       }
       if (reduceLastThreadOrder) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
       }
       if (reduceUntilConflict) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
       }
     }
     if (loopIterations < 0) {
-      handleOptionRejection("loopIterations must be 0 or greater, cannot be %s", loopIterations);
+      throw new InvalidConfigurationException(
+          String.format("loopIterations must be 0 or greater, cannot be %s", loopIterations));
     }
     if (loopIterations == 0) {
       if (loopUnrolling) {
-        handleOptionRejection("loopUnrolling can only be enabled when loopIterations > 0");
+        throw new InvalidConfigurationException(
+            "loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
     if (reduceLastThreadOrder && reduceUntilConflict) {
       if (!reductionOrder.isEnabled()) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
                 + " is specified.");
       }
     }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
-        handleOptionRejection("validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
+        throw new InvalidConfigurationException(
+            "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (controlEncodingThread.isEnabled()) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
     if (!nondeterminismSource.isNumStatementsNondeterministic()) {
       if (reduceIgnoreSleep) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "reduceIgnoreSleep cannot be enabled when nondeterminismSource does not contain"
                 + " NUM_STATEMENTS");
       }
     }
     if (pruneBitVectorEvaluations) {
       if (!isAnyReductionEnabled()) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
       }
       if (!bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
       }
     }
     if (pruneSparseBitVectors) {
       if (!bitVectorEncoding.isSparse) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
       }
       if (reduceIgnoreSleep) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
       }
       if (reduceLastThreadOrder) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneSparseBitVectors cannot be enabled when reduceLastThreadOrder is enabled.");
       }
     }
     if (pruneSparseBitVectorWrites) {
       if (!bitVectorEncoding.isSparse) {
-        handleOptionRejection(
+        throw new InvalidConfigurationException(
             "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
     if (isAnyReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
-        handleOptionRejection("a reduce* option is enabled, but reductionMode is not set.");
+        throw new InvalidConfigurationException(
+            "a reduce* option is enabled, but reductionMode is not set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
-        handleOptionRejection("a reduce* option is enabled, but bitVectorEncoding is not set.");
+        throw new InvalidConfigurationException(
+            "a reduce* option is enabled, but bitVectorEncoding is not set.");
       }
     } else {
       if (reductionMode.isEnabled()) {
-        handleOptionRejection("reductionMode is set, but no reduce* option is enabled");
+        throw new InvalidConfigurationException(
+            "reductionMode is set, but no reduce* option is enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection("bitVectorEncoding is set, but no reduce* option is enabled");
+        throw new InvalidConfigurationException(
+            "bitVectorEncoding is set, but no reduce* option is enabled");
       }
     }
-  }
-
-  private void handleOptionRejection(Object... pMessage) throws InvalidConfigurationException {
-    throw new InvalidConfigurationException(Arrays.toString(pMessage));
   }
 
   // boolean helpers ===============================================================================
