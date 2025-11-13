@@ -65,6 +65,7 @@ public enum BooleanValue implements Value {
     }
   }
 
+  // TODO: this is wrong for C!
   private static Optional<BooleanValue> valueOf(NumericValue pValue) {
     if (pValue.equals(new NumericValue(0L))) {
       return Optional.of(valueOf(false));
@@ -103,7 +104,8 @@ public enum BooleanValue implements Value {
   @Override
   public boolean isNumericValue() {
     // TODO: this does not hold for C! We should make a clear distinction between Java and C! We
-    //  even return a numeric below.... this should be a sub-type of numeric!
+    //  even return a numeric below.... this should be a sub-type of numeric if it really is! Or
+    // rename!
     return false;
   }
 
