@@ -169,7 +169,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           if ((v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget)
               || v1 instanceof NullTarget
               || v2 instanceof NullTarget) {
-            boolean result = (op == BinaryOperator.EQUALS) ? v1.equals(v2) : !v1.equals(v2);
+            boolean result =
+                (op == BinaryOperator.EQUALS) == FunctionPointerTarget.maybeEqual(v1, v2);
             if (result != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge", a);
               return false; // should not go by this edge
