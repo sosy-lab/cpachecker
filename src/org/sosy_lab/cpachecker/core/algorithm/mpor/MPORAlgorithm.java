@@ -59,13 +59,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @CanIgnoreReturnValue
   @Override
-  public AlgorithmStatus run(@Nullable ReachedSet pReachedSet) throws CPAException {
+  public AlgorithmStatus run(@Nullable ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
+
     String sequentializedProgram = buildSequentializedProgram();
     MPORWriter.write(options, sequentializedProgram, cfa.getFileNames(), logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  public String buildSequentializedProgram() throws UnrecognizedCodeException {
+  public String buildSequentializedProgram()
+      throws UnrecognizedCodeException, InterruptedException {
+
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();

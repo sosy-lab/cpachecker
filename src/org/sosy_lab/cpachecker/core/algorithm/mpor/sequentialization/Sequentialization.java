@@ -58,7 +58,7 @@ public class Sequentialization {
       String pInputFileName,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     SequentializationUtils utils =
         SequentializationUtils.of(pCfa.getMachineModel(), pLogger, pShutdownNotifier);
@@ -71,7 +71,7 @@ public class Sequentialization {
       String pInputFileName,
       SequentializationFields pFields,
       SequentializationUtils pUtils)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
     String formattedProgram =

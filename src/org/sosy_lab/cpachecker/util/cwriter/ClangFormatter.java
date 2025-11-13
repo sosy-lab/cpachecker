@@ -8,13 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.util.logging.Level;
+import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.log.LogManager;
 
 /** A formatter for C code. Requires {@code clang-format} to be installed and in system PATH. */
@@ -22,58 +18,43 @@ public class ClangFormatter {
 
   private static final String CLANG_FORMAT = "clang-format";
 
-  private static final Charset charset = Charset.defaultCharset();
-
   /**
    * Tries to format and return the C code given in {@code pCode} using {@code clang}. If it fails,
    * returns {@code pCode} as is.
    */
-  public static String tryFormat(String pCode, ClangFormatStyle pStyle, LogManager pLogger) {
+  public static String tryFormat(String pCode, ClangFormatStyle pStyle, LogManager pLogger)
+      throws InterruptedException {
+
     try {
-      return format(pCode, pStyle);
-    } catch (IOException | InterruptedException e) {
+      return format(pCode, pStyle, pLogger);
+    } catch (IOException e) {
       pLogger.logfUserException(
-          Level.SEVERE,
+          Level.WARNING,
           e,
-          CLANG_FORMAT + " failed due to an error. returning unformatted code instead.");
+          CLANG_FORMAT + " failed due to an error. Returning unformatted code instead.");
     }
     return pCode;
   }
 
-  private static String format(String pCode, ClangFormatStyle pStyle)
+  private static String format(String pCode, ClangFormatStyle pStyle, LogManager pLogger)
       throws IOException, InterruptedException {
-    ProcessBuilder pb = new ProcessBuilder(CLANG_FORMAT, pStyle.getCommand());
-    Process process = pb.start();
-    // send code to clang-format stdin
-    try (BufferedWriter writer =
-        new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), charset))) {
-      writer.write(pCode);
-      writer.flush();
-    }
-    // read formatted code from stdout
-    StringBuilder formattedCode = new StringBuilder();
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(process.getInputStream(), charset))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        formattedCode.append(line).append(System.lineSeparator());
-      }
-    }
-    // wait for process to complete
-    int exitCode = process.waitFor();
+
+    ProcessExecutor<IOException> executor =
+        new ProcessExecutor<>(pLogger, IOException.class, CLANG_FORMAT, pStyle.getCommand());
+
+    // send code to clang-format via stdin
+    executor.print(pCode);
+    executor.sendEOF();
+    // wait for clang-format to finish
+    int exitCode = executor.join();
+
     if (exitCode != 0) {
-      // read stderr if something went wrong
-      StringBuilder errorOutput = new StringBuilder();
-      try (BufferedReader errorReader =
-          new BufferedReader(new InputStreamReader(process.getErrorStream(), charset))) {
-        String line;
-        while ((line = errorReader.readLine()) != null) {
-          errorOutput.append(line).append(System.lineSeparator());
-        }
-      }
+      String errorOutput = String.join(System.lineSeparator(), executor.getErrorOutput());
       throw new IOException(
-          CLANG_FORMAT + " failed with exit code " + exitCode + ":\n" + errorOutput);
+          String.format("%s failed with exit code %d:%n%s", CLANG_FORMAT, exitCode, errorOutput));
     }
-    return formattedCode.toString();
+
+    // collect and return formatted output
+    return String.join(System.lineSeparator(), executor.getOutput()) + System.lineSeparator();
   }
 }
