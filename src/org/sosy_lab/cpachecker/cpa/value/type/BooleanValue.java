@@ -139,6 +139,7 @@ public enum BooleanValue implements Value {
    */
   @Override
   public OptionalLong asLong(CType pType) {
+    // TODO: again, wrong for C...
     throw new AssertionError("This method is not implemented");
   }
 

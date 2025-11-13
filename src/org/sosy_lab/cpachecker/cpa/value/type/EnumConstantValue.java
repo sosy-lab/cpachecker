@@ -47,14 +47,6 @@ public record EnumConstantValue(String fullyQualifiedName) implements Value {
     throw new AssertionError("Enum constant cannot be represented as NumericValue");
   }
 
-  /**
-   * This method always returns an empty optional. Enum constants can't be represented by a number.
-   */
-  @Override
-  public OptionalLong asLong(CType pType) {
-    return OptionalLong.empty();
-  }
-
   @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);

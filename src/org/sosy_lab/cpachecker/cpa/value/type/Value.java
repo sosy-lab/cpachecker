@@ -64,7 +64,9 @@ public interface Value extends Serializable {
   }
 
   /** Return the long value if this is a long value. */
-  OptionalLong asLong(CType type);
+  default OptionalLong asLong(CType type) {
+    return OptionalLong.empty();
+  }
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
@@ -81,12 +83,6 @@ public interface Value extends Serializable {
 
     public static UnknownValue getInstance() {
       return instance;
-    }
-
-    @Override
-    public OptionalLong asLong(CType type) {
-      checkNotNull(type);
-      return OptionalLong.empty();
     }
 
     @Override

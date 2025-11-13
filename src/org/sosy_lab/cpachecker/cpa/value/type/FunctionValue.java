@@ -21,11 +21,6 @@ public record FunctionValue(String name) implements Value {
   }
 
   @Override
-  public OptionalLong asLong(CType pType) {
-    return OptionalLong.empty();
-  }
-
-  @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }

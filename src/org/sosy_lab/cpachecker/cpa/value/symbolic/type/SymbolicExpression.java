@@ -93,11 +93,6 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   }
 
   @Override
-  public OptionalLong asLong(CType type) {
-    return OptionalLong.empty();
-  }
-
-  @Override
   public int hashCode() {
     // TODO: for all values this needs to be overridden with new hashcodes based on value + state
     return Objects.hashCode(representedLocation);

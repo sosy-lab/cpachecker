@@ -265,11 +265,6 @@ public final class ArrayValue implements Value {
   }
 
   @Override
-  public OptionalLong asLong(CType type) {
-    return OptionalLong.empty();
-  }
-
-  @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }

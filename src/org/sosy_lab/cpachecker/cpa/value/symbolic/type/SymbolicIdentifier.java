@@ -101,11 +101,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   }
 
   @Override
-  public OptionalLong asLong(CType type) {
-    return OptionalLong.empty();
-  }
-
-  @Override
   public int compareTo(SymbolicIdentifier o) {
     return Long.compare(getId(), o.getId());
   }
