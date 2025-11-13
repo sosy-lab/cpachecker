@@ -1,8 +1,7 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
+// This file is part of the SV-Benchmarks collection of verification tasks:
+// https://github.com/sosy-lab/sv-benchmarks
 //
-// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
 //
 // SPDX-License-Identifier: Apache-2.0
 

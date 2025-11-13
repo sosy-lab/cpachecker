@@ -6,6 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <stdio.h>
 #include <pthread.h>
 
 // empty struct (no members)
@@ -30,6 +31,12 @@ void field_member_parameter_test_ptr(int * param) {
 }
 void field_owner_parameter_test_ptr(Inner * param_inner) {
   param_inner->inner_member = 42;
+}
+void * start_routine(void *arg)
+{
+  int *ultimate_question = malloc(sizeof(int));
+   *ultimate_question = 42;
+   pthread_exit((void*)ultimate_question);
 }
 int main(void) {
   outer_A.inner.inner_member = 42;
@@ -58,5 +65,10 @@ int main(void) {
   field_member_parameter_test_ptr(&outer_A.inner.inner_member);
   // pass the address of the inner struct as parameter
   field_owner_parameter_test_ptr(&outer_A.inner);
+
+  pthread_t id1;
+  pthread_create(&id, NULL, start_routine, NULL);
+  void *retval;
+  pthread_join(id, &retval);
 }
 

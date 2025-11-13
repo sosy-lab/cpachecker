@@ -23,8 +23,12 @@ void *task1(void *arg) {
 void *task2(void *arg) {
     x++;
     x++;
+    const int y;
+    y = 42;
 }
+const int global_const = 0;
 int main() {
+    const int local_const = 7;
     if (x != 1) {
       __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
     }
@@ -48,5 +52,14 @@ int main() {
             j++;
         }
     }
+    int top;
+    __VERIFIER_atomic_begin();
+    if (top == 0) {
+      __VERIFIER_atomic_end();
+    } else {
+      top = 1;
+      __VERIFIER_atomic_end();
+    }
+    top = 42;
     return 0;
 }

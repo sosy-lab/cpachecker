@@ -6,14 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef SVC_H
-#define SVC_H
+#include <pthread.h>
 
-void abort(void); 
-#include <assert.h>
-void reach_error() { assert(0); }
+void * start_routine(void *arg)
+{
+  const int x = 42;
+}
+int main(void)
+{
+  for (int i = 0; i < 42; i++)
+  {
+    pthread_t id1;
+    pthread_create(&id1, NULL, start_routine, NULL);
+  }
+}
 
-#undef assert
-#define assert( X ) (!(X) ? reach_error() : (void)0)
-
-#endif // SVC_H

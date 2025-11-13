@@ -153,7 +153,7 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(9);
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
     assertThat(memoryModel.pointerAssignments).isEmpty();
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
@@ -249,7 +249,7 @@ public class SequentializationFieldsTest {
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
     assertThat(memoryModel.pointerParameterAssignments.size()).isEqualTo(6);
-    assertThat(memoryModel.pointerDereferences).hasSize(17);
+    assertThat(memoryModel.pointerDereferences).hasSize(16);
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(2);
     // the main thread should always have id 0

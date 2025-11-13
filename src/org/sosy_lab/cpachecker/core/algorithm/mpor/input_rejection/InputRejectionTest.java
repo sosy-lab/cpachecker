@@ -72,7 +72,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectNotParallel() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/relax-1.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -83,7 +83,8 @@ public class InputRejectionTest {
   @Test
   public void testRejectUnsupportedFunction() throws Exception {
     // this program uses pthread_getspecific
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/tls_basic.c");
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/unsupported-function-pthread_key_create.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -93,7 +94,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indexer-no-pthread-exit.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -104,7 +105,8 @@ public class InputRejectionTest {
   @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/twostage_3.c");
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -114,8 +116,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/queue_longest-pthread-create-loop.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread-create-loop.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -125,8 +126,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/queue_longest-direct-recursion.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/direct-recursion.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
@@ -136,8 +136,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor/input_rejections/queue_longest-indirect-recursion.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indirect-recursion.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
