@@ -22,8 +22,8 @@ public enum BooleanValue implements Value {
 
   private final boolean value;
 
-  BooleanValue(boolean value) {
-    this.value = value;
+  BooleanValue(boolean pValue) {
+    this.value = pValue;
   }
 
   /**
