@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
@@ -38,5 +38,5 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    *
    * @return A (possibly empty list) of expressions.
    */
-  ImmutableList<AExpression> getAssumptions();
+  List<AExpression> getAssumptions();
 }
