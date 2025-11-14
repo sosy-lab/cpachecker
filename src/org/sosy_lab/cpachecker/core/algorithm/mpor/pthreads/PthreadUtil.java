@@ -36,7 +36,8 @@ public class PthreadUtil {
   public static PthreadFunctionType getPthreadFunctionType(CFAEdge pCfaEdge) {
     if (pCfaEdge.getRawAST().isPresent()) {
       if (pCfaEdge.getRawAST().orElseThrow() instanceof CFunctionCall functionCall) {
-        String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
+        String functionName =
+            functionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
         for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
           if (functionType.name.equals(functionName)) {
             return functionType;
@@ -134,6 +135,17 @@ public class PthreadUtil {
         "could not extract start_routine from pCfaEdge: " + pCfaEdge.getCode());
   }
 
+  public static CExpression extractStartRoutineArg(CFAEdge pCfaEdge) {
+    checkArgument(
+        isCallToAnyPthreadFunctionWithObjectType(
+            pCfaEdge, PthreadObjectType.START_ROUTINE_ARGUMENT),
+        "pEdge must be a call to a pthread method with a start_routine parameter");
+
+    PthreadFunctionType functionType = getPthreadFunctionType(pCfaEdge);
+    int returnValueIndex = functionType.getParameterIndex(PthreadObjectType.START_ROUTINE_ARGUMENT);
+    return CFAUtils.tryGetParameterAtIndex(pCfaEdge, returnValueIndex).orElseThrow();
+  }
+
   // RETURN_VALUE ==================================================================================
 
   public static CExpression extractExitReturnValue(CFAEdge pEdge) {
@@ -210,8 +222,11 @@ public class PthreadUtil {
 
     if (pCfaEdge.getRawAST().isPresent()) {
       if (pCfaEdge.getRawAST().orElseThrow() instanceof CFunctionCall functionCall) {
-        String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
-        return functionName.equals(pFunctionType.name);
+        return functionCall
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionType.name);
       }
     }
     return false;
