@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class CSourceOriginMapping {
 
@@ -46,7 +45,7 @@ public class CSourceOriginMapping {
 
     Range<Integer> lineRange =
         Range.closedOpen(pFromAnalysisCodeLineNumber, pToAnalysisCodeLineNumber);
-    fileMapping.put(lineRange, CodePosition.of(pOriginFileName, pLineDeltaToOrigin));
+    fileMapping.put(lineRange, new CodePosition(pOriginFileName, pLineDeltaToOrigin));
   }
 
   /**
@@ -90,7 +89,7 @@ public class CSourceOriginMapping {
         return originFileAndLineDelta.addToLineNumber(pAnalysisCodeLine);
       }
     }
-    return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
+    return new CodePosition(pAnalysisFileName, pAnalysisCodeLine);
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
@@ -124,50 +123,14 @@ public class CSourceOriginMapping {
   }
 
   /** Code position in terms of file name and absolute or relative line number. */
-  public static class CodePosition {
-
-    private final Path fileName;
-
-    private final int lineNumber;
-
-    private CodePosition(Path pFileName, int pLineNumber) {
-      fileName = pFileName;
-      lineNumber = pLineNumber;
-    }
-
-    public Path getFileName() {
-      return fileName;
-    }
-
-    public int getLineNumber() {
-      return lineNumber;
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      return pObj instanceof CodePosition other
-          && lineNumber == other.lineNumber
-          && fileName.equals(other.fileName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(fileName, lineNumber);
-    }
+  public record CodePosition(Path fileName, int lineNumber) {
 
     public CodePosition withFileName(Path pFileName) {
-      return of(pFileName, lineNumber);
+      return new CodePosition(pFileName, lineNumber);
     }
 
     public CodePosition addToLineNumber(int pDelta) {
-      return of(fileName, lineNumber + pDelta);
-    }
-
-    public static CodePosition of(Path pFileName, int pLineNumber) {
-      return new CodePosition(pFileName, pLineNumber);
+      return new CodePosition(fileName, lineNumber + pDelta);
     }
   }
 }
