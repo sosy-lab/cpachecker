@@ -544,7 +544,7 @@ public class CFACreator {
           logger.log(
               Level.WARNING,
               "Parsing failed with the primary parser, trying backup parser: " + e.getMessage());
-          c = backupParser.get().parseFiles(sourceFiles);
+          c = backupParser.orElseThrow().parseFiles(sourceFiles);
         } else {
           throw e;
         }
