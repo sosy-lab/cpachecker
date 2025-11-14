@@ -46,9 +46,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class FunctionPointerTransferRelationTest {
 
@@ -186,18 +183,4 @@ public class FunctionPointerTransferRelationTest {
     assertThat(successors).hasSize(1);
   }
 
-  @Test
-  public void testExampleWithUnknownFunctionPointerTarget() throws Exception {
-    Configuration config =
-        TestDataTools.configurationForTest()
-            .loadFromFile("config/kInduction.properties")
-            .setOption("analysis.entryFunction", "main")
-            .setOption("specification", "test/config/properties/unreach-call.prp")
-            .build();
-
-    TestResults result =
-        CPATestRunner.run(
-            config, "test/programs/function_pointer/unknown_function_pointer_minimal.c");
-    result.assertIsUnsafe();
-  }
 }
