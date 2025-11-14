@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * </pre>
  *
  * Operand1 is the left operand. Operand2 the right operand. The possible Operators are represented
- * by the enum {@link JBinaryExpression.BinaryOperator}
+ * by the enum {@link BinaryOperator}
  *
  * <p>Some expression in Java, like the postfix increment, will be transformed into an infix
  * expression in the CFA and also be represented by this class.
@@ -65,7 +65,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     return (BinaryOperator) super.getOperator();
   }
 
-  public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
+  public enum BinaryOperator implements ABinaryOperator {
     MULTIPLY("*"),
     DIVIDE("/"),
     MODULO("%"),
@@ -106,8 +106,31 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     @Override
     public boolean isLogicalOperator() {
       return switch (this) {
-        case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
-        default -> throw new UnsupportedOperationException("Implement me");
+        case STRING_CONCATENATION,
+            MULTIPLY,
+            DIVIDE,
+            MODULO,
+            PLUS,
+            MINUS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT_SIGNED,
+            SHIFT_RIGHT_UNSIGNED,
+            BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR ->
+            false;
+        case LESS_EQUAL,
+            LESS_THAN,
+            GREATER_EQUAL,
+            GREATER_THAN,
+            EQUALS,
+            NOT_EQUALS,
+            CONDITIONAL_AND,
+            CONDITIONAL_OR,
+            LOGICAL_XOR, // TODO: is this (and OR/AND) ONLY logical? I.e. boolean. Or also bitwise?
+            LOGICAL_OR,
+            LOGICAL_AND ->
+            true;
       };
     }
   }
