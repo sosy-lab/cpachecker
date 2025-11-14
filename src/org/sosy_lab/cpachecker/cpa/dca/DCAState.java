@@ -81,7 +81,7 @@ public class DCAState
   }
 
   @Override
-  public List<AExpression> getAssumptions() {
+  public ImmutableList<AExpression> getAssumptions() {
     return productStates.stream()
         .flatMap(x -> x.getAssumptions().stream())
         .distinct()
