@@ -19,6 +19,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class SeqThreadStatementBuilder {
 
@@ -238,11 +238,12 @@ public final class SeqThreadStatementBuilder {
         return buildLocalVariableDeclarationWithInitializerStatement(
             pOptions, declarationEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
-      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge) {
+      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
         return buildFunctionCallStatement(
             pOptions,
             pThread,
             pThreadEdge,
+            functionCallEdge,
             pSubstituteEdge,
             targetPc,
             pGhostElements.getPcVariables(),
@@ -318,28 +319,32 @@ public final class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       CFAEdgeForThread pThreadEdge,
+      CFunctionCallEdge pFunctionCallEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       ProgramCounterVariables pProgramCounterVariables,
       FunctionStatements pFunctionStatements) {
 
     CLeftHandSide pcLeftHandSide = pProgramCounterVariables.getPcLeftHandSide(pThread.id());
+
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(
           pOptions, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
-    }
-    if (pFunctionStatements.parameterAssignments().containsKey(pThreadEdge)) {
+
+    } else if (pFunctionStatements.parameterAssignments().containsKey(pThreadEdge)) {
       // handle function with parameters
       ImmutableList<FunctionParameterAssignment> assignments =
           pFunctionStatements.parameterAssignments().get(pThreadEdge);
-      assert !assignments.isEmpty() : "function has no parameters";
       return new SeqParameterAssignmentStatements(
           pOptions, assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+
     } else {
       // handle function without parameters
-      assert CFAUtils.getParameterDeclarationsFromCfaEdge(pThreadEdge.cfaEdge).isEmpty()
+      CFunctionDeclaration functionDeclaration =
+          pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
+      assert functionDeclaration.getParameters().isEmpty()
           : "function has parameters, but they are not present in pFunctionStatements";
       return new SeqBlankStatement(pOptions, pcLeftHandSide, pTargetPc);
     }

@@ -89,8 +89,9 @@ public class MPORThreadUtil {
 
     PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);
     CExpression pthreadTParameter =
-        CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
+        CFAUtils.tryGetParameterAtIndex(
+                pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T))
+            .orElseThrow();
 
     return getThreadByObject(
         pThreads,

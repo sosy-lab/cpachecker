@@ -98,8 +98,7 @@ public class MPORThreadBuilder {
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
         MPORThread newThread =
-            createThread(
-                pOptions, Optional.ofNullable(pthreadT), Optional.of(threadEdge), entryNode);
+            createThread(pOptions, Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
         recursivelyFindThreadCreations(pOptions, pCfa, newThread, pFoundThreads);
         pFoundThreads.add(newThread);
       }

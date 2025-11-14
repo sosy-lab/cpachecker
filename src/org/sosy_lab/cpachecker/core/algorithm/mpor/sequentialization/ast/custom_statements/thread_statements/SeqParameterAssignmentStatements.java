@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -43,6 +45,7 @@ public final class SeqParameterAssignmentStatements extends CSeqThreadStatement 
         Optional.of(pTargetPc),
         Optional.empty(),
         ImmutableList.of());
+    checkArgument(!pAssignments.isEmpty(), "pAssignments cannot be empty");
     assignments = pAssignments;
   }
 

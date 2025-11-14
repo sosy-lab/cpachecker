@@ -393,7 +393,8 @@ public class MemoryModelBuilder {
         int index =
             PthreadFunctionType.PTHREAD_CREATE.getParameterIndex(
                 PthreadObjectType.START_ROUTINE_ARGUMENT);
-        CExpression startRoutineArg = CFAUtils.getParameterAtIndex(original, index);
+        CExpression startRoutineArg =
+            CFAUtils.tryGetParameterAtIndex(original, index).orElseThrow();
         Optional<SeqMemoryLocation> rhsMemoryLocation =
             extractMemoryLocation(pOptions, callContext, startRoutineArg, pInitialMemoryLocations);
         if (rhsMemoryLocation.isPresent()) {

@@ -95,7 +95,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
       int index =
           PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
       CExpression returnValueParameter =
-          CFAUtils.getParameterAtIndex(substituteEdge.cfaEdge, index);
+          CFAUtils.tryGetParameterAtIndex(substituteEdge.cfaEdge, index).orElseThrow();
       if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
         // extract retval from unary expression &retval
         if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {

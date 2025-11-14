@@ -78,23 +78,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -122,7 +118,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -763,83 +758,49 @@ public class CFAUtils {
     Queue<CFAEdge> waitList = new ArrayDeque<>(pCfa.getMainFunction().getLeavingEdges().toList());
     while (!waitList.isEmpty()) {
       CFAEdge currentEdge = waitList.poll();
-      CFANode successor = currentEdge.getSuccessor();
-      // if declaration edge, check for global CVariableDeclarations
-      if (currentEdge instanceof CDeclarationEdge declarationEdge) {
-        CDeclaration declaration = declarationEdge.getDeclaration();
-        if (declaration.isGlobal()) {
-          if (declaration instanceof CVariableDeclaration variableDeclaration) {
-            rGlobalVariables.add(variableDeclaration);
-          }
-        }
-      }
-      // continue only if currentEdge is declaration or blank, since all global variables
+      // consider only if currentEdge is declaration or blank, since all global variables
       // declarations are before any actual statement
       if (currentEdge instanceof CDeclarationEdge || currentEdge instanceof BlankEdge) {
-        waitList.addAll(successor.getLeavingEdges().toList());
+        // if declaration edge, check for global CVariableDeclarations
+        if (currentEdge instanceof CDeclarationEdge declarationEdge) {
+          CDeclaration declaration = declarationEdge.getDeclaration();
+          if (declaration.isGlobal()) {
+            if (declaration instanceof CVariableDeclaration variableDeclaration) {
+              rGlobalVariables.add(variableDeclaration);
+            }
+          }
+        }
+        currentEdge.getSuccessor().getLeavingEdges().copyInto(waitList);
       }
     }
     return rGlobalVariables.build();
   }
 
   /**
-   * Extracts the name of the function being called from {@code pCfaEdge} based on its {@link
-   * CFunctionCall}.
-   *
-   * @param pCfaEdge The {@link CFAEdge} from which to extract the function name.
-   * @return A {@code String} representing the function name (e.g., "main").
-   * @throws IllegalArgumentException if {@code pCfaEdge} is not a {@link CFunctionCall}.
-   */
-  public static String getFunctionNameFromCfaEdge(CFAEdge pCfaEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pCfaEdge), "pCfaEdge must be a CFunctionCall");
-    return CFAUtils.getCFunctionCallFromCfaEdge(pCfaEdge)
-        .getFunctionCallExpression()
-        .getFunctionNameExpression()
-        .toASTString();
-  }
-
-  /** Returns true if the given {@link CFAEdge} contains a {@link CFunctionCall}. */
-  public static boolean isCfaEdgeCFunctionCall(CFAEdge pCfaEdge) {
-    checkNotNull(pCfaEdge);
-    Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
-    return aAstNode.isPresent() && aAstNode.orElseThrow() instanceof CFunctionCall;
-  }
-
-  /**
-   * Extracts the parameter at pIndex from the function call in pCfaEdge.
+   * Tries to extract the parameter expression at pIndex from the function call in pCfaEdge.
    *
    * @param pCfaEdge CFAEdge that must be a CFunctionCallStatement
-   * @param pIndex the position of the parameter to be extracted (starting at 0)
-   * @return the CExpression of the parameter at pIndex
-   * @throws IllegalArgumentException if pCfaEdge cannot be cast accordingly
+   * @param pIndex the position of the parameter to be extracted (must be {@code >= 0})
+   * @return the CExpression of the parameter at pIndex, or {@link Optional#empty()} if {@code
+   *     pCfaEdge} cannot be cast accordingly
+   * @throws IllegalArgumentException if pCfaEdge is a function call, but pIndex is out of bounds
    */
-  public static CExpression getParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
-    if (isCfaEdgeCFunctionCall(pCfaEdge)) {
+  public static Optional<CExpression> tryGetParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
+    checkArgument(pIndex >= 0, "pIndex must be greater or equal to 0");
+    if (pCfaEdge.getRawAST().isPresent()) {
       AAstNode aAstNode = pCfaEdge.getRawAST().orElseThrow();
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
-      List<CExpression> cExpressions =
-          cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
-      return cExpressions.get(pIndex);
+      if (aAstNode instanceof CFunctionCallStatement functionCallStatement) {
+        List<CExpression> parameterExpressions =
+            functionCallStatement.getFunctionCallExpression().getParameterExpressions();
+        checkArgument(
+            pIndex < parameterExpressions.size(),
+            "Parameter index %s is out of bounds: there are only %s parameter(s)",
+            pIndex,
+            parameterExpressions.size());
+        return Optional.of(parameterExpressions.get(pIndex));
+      }
     }
-    throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
-  }
-
-  /**
-   * Retrieves the {@link CFunctionDeclaration} from the {@link CFunctionCallStatement} of {@code
-   * pStatementEdge}.
-   *
-   * @param pStatementEdge The {@link CStatementEdge} to analyze.
-   * @return The {@link CFunctionDeclaration} of the function being called.
-   * @throws IllegalArgumentException If the statement in {@code pStatementEdge} is not a {@link
-   *     CFunctionCallStatement}.
-   */
-  public static CFunctionDeclaration getFunctionDeclarationByStatementEdge(
-      CStatementEdge pStatementEdge) {
-
-    if (pStatementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement) {
-      return functionCallStatement.getFunctionCallExpression().getDeclaration();
-    }
-    throw new IllegalArgumentException("pStatementEdge has no function call statement");
+    return Optional.empty();
   }
 
   /**
@@ -861,7 +822,6 @@ public class CFAUtils {
     ImmutableSet.Builder<CFunctionCallEdge> rFunctionCallEdges = ImmutableSet.builder();
     FunctionEntryNode functionEntryNode = pReturnStatementEdge.getSuccessor().getEntryNode();
     for (CFAEdge enteringEdge : functionEntryNode.getEnteringCallEdges()) {
-      assert enteringEdge instanceof CFunctionCallEdge;
       rFunctionCallEdges.add((CFunctionCallEdge) enteringEdge);
     }
     return rFunctionCallEdges.build();
@@ -888,61 +848,6 @@ public class CFAUtils {
     }
     throw new IllegalArgumentException(
         "the given CFA does not contain a FunctionEntryNode for the given pCFunctionType");
-  }
-
-  /**
-   * Extracts and returns the {@link CFunctionType} of pCExpression which points to a function and
-   * throws an {@link IllegalArgumentException} if it can't be extracted.
-   */
-  public static CFunctionType getCFunctionTypeFromCExpression(CExpression pCExpression) {
-    if (pCExpression instanceof CUnaryExpression cUnaryExpression) {
-      if (cUnaryExpression.getExpressionType() instanceof CPointerType) {
-        if (cUnaryExpression.getOperand() instanceof CIdExpression cIdExpression) {
-          if (cIdExpression.getExpressionType() instanceof CFunctionType cFunctionType) {
-            return cFunctionType;
-          }
-        }
-      }
-    }
-    throw new IllegalArgumentException("pCExpression is not a pointer to a function");
-  }
-
-  /**
-   * This function does not check if pCfaEdge actually is a {@link CFunctionCall}. Best use in
-   * combination with {@link CFAUtils#isCfaEdgeCFunctionCall(CFAEdge)}.
-   */
-  public static CFunctionCall getCFunctionCallFromCfaEdge(CFAEdge pCfaEdge) {
-    checkNotNull(pCfaEdge);
-    return (CFunctionCall) pCfaEdge.getRawAST().orElseThrow();
-  }
-
-  /**
-   * Retrieves the {@link CFunctionDeclaration} from the {@link CFunctionCall} represented by the
-   * given {@link CFAEdge}.
-   *
-   * @param pCfaEdge The {@link CFAEdge} representing a function call.
-   * @return The {@link CFunctionDeclaration} of the function being called.
-   * @throws RuntimeException If the edge is not a {@link CFunctionCall}.
-   */
-  public static CFunctionDeclaration getCFunctionDeclarationFromCFaEdge(CFAEdge pCfaEdge) {
-    CFunctionCall functionCall = getCFunctionCallFromCfaEdge(pCfaEdge);
-    return functionCall.getFunctionCallExpression().getDeclaration();
-  }
-
-  /**
-   * Retrieves the parameter declarations of the function being called through the given {@link
-   * CFAEdge}.
-   *
-   * @param pCfaEdge The {@link CFAEdge} representing a C function call.
-   * @return An {@link ImmutableList} of {@link CParameterDeclaration}s for the function being
-   *     called.
-   * @throws RuntimeException If the edge is not a {@link CFunctionCall}.
-   */
-  public static ImmutableList<CParameterDeclaration> getParameterDeclarationsFromCfaEdge(
-      CFAEdge pCfaEdge) {
-
-    CFunctionDeclaration functionDeclaration = getCFunctionDeclarationFromCFaEdge(pCfaEdge);
-    return ImmutableList.copyOf(functionDeclaration.getParameters());
   }
 
   /**

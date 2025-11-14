@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class MPORSubstitutionBuilder {
 
@@ -432,16 +432,21 @@ public class MPORSubstitutionBuilder {
 
   private static Optional<String> getFunctionNameByCallContext(
       Optional<CFAEdgeForThread> pCallContext) {
+
     if (pCallContext.isPresent()) {
       CFAEdge callContext = pCallContext.orElseThrow().cfaEdge;
+
       if (callContext instanceof CFunctionCallEdge functionCallEdge) {
         CFunctionDeclaration functionDeclaration =
             functionCallEdge.getFunctionCallExpression().getDeclaration();
         return Optional.of(functionDeclaration.getOrigName());
+
       } else if (callContext instanceof CStatementEdge statementEdge) {
-        CFunctionDeclaration functionDeclaration =
-            CFAUtils.getFunctionDeclarationByStatementEdge(statementEdge);
-        return Optional.of(functionDeclaration.getOrigName());
+        if (statementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement) {
+          CFunctionDeclaration functionDeclaration =
+              functionCallStatement.getFunctionCallExpression().getDeclaration();
+          return Optional.of(functionDeclaration.getOrigName());
+        }
       }
       throw new IllegalArgumentException(
           "call context must be CFunctionCallEdge or CStatementEdge");

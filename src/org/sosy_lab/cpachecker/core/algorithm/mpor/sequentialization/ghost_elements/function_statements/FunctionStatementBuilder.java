@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -137,7 +138,9 @@ public class FunctionStatementBuilder {
         // only the thread calling pthread_create assigns the start_routine arg
         if (pSubstitution.thread.id() == callContext.threadId) {
           CIdExpression leftHandSide = cell.getValue();
-          CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
+          CExpression rightHandSide =
+              PthreadUtil.extractPthreadObject(
+                  callContext.cfaEdge, PthreadObjectType.START_ROUTINE_ARGUMENT);
           FunctionParameterAssignment startRoutineArgAssignment =
               new FunctionParameterAssignment(
                   callContext,
