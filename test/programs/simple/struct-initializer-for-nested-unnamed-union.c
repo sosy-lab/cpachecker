@@ -22,8 +22,10 @@ int main() {
     goto ERROR;
   }
   if (t.a != 0) {
-ERROR:
-    reach_error();
+    goto ERROR;
   }
   return 0;
+ERROR:
+    reach_error();
+    return 1;
 }

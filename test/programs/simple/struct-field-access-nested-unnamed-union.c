@@ -19,8 +19,10 @@ int main() {
   union_in_struct_t s;
   s.b = 512;
   if (s.a != 0) {
-ERROR:
-    reach_error();
+    goto ERROR;
   }
   return 0;
+ERROR:
+  reach_error();
+  return 1;
 }
