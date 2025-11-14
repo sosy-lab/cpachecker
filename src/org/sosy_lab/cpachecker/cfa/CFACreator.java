@@ -135,6 +135,18 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "parser.autoPreprocessorDetection",
+      description =
+          "For C files, detect whether preprocessing is necessary "
+              + "(e.g., presence of #include or #define directives) "
+              + "and enable the preprocessor automatically in this case. "
+              + "In case this is not necessary proceed with the normal "
+              + "parsing. For this option to work the "
+              + "option parser.usePreprocessor must be enabled.")
+  private boolean detectPreprocessorUsage = false;
+
+  @Option(
+      secure = true,
       name = "parser.useClang",
       description =
           "For C files, convert to LLVM IR with clang first and then use the LLVM parser (currently"
@@ -334,6 +346,8 @@ public class CFACreator {
 
   private final LogManager logger;
   private final Parser parser;
+  // Contains a parser that is used as a backup in case the main parser failed.
+  private Optional<Parser> backupParser = Optional.empty();
   private final ShutdownNotifier shutdownNotifier;
   private static final String EXAMPLE_JAVA_METHOD_NAME =
       """
@@ -443,7 +457,13 @@ public class CFACreator {
 
         if (usePreprocessor) {
           CPreprocessor preprocessor = new CPreprocessor(config, logger);
-          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+          CParserWithPreprocessor parserWithPreprocessor =
+              new CParserWithPreprocessor(outerParser, preprocessor);
+          if (detectPreprocessorUsage) {
+            backupParser = Optional.of(parserWithPreprocessor);
+          } else {
+            outerParser = parserWithPreprocessor;
+          }
         }
 
         if (useClang) {
@@ -516,8 +536,20 @@ public class CFACreator {
     try {
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
-
-      final ParseResult c = parseToCFAs(sourceFiles);
+      ParseResult c;
+      try {
+       c = parseToCFAs(sourceFiles);
+       } catch (ParserException e) {
+        if (backupParser.isPresent()) {
+          logger.log(
+              Level.WARNING,
+              "Parsing failed with the primary parser, trying backup parser: "
+                  + e.getMessage());
+          c = backupParser.get().parseFiles(sourceFiles);
+        } else {
+          throw e;
+        }
+      }
 
       logger.log(Level.FINE, "Parser Finished");
 
