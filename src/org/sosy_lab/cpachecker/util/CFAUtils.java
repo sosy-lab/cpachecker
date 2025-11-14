@@ -759,14 +759,24 @@ public class CFAUtils {
    */
   public static ImmutableList<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
-      if (edge instanceof CDeclarationEdge declarationEdge) {
+
+    Queue<CFAEdge> waitList = new ArrayDeque<>(pCfa.getMainFunction().getLeavingEdges().toList());
+    while (!waitList.isEmpty()) {
+      CFAEdge currentEdge = waitList.poll();
+      CFANode successor = currentEdge.getSuccessor();
+      // if declaration edge, check for global CVariableDeclarations
+      if (currentEdge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (declaration.isGlobal()) {
           if (declaration instanceof CVariableDeclaration variableDeclaration) {
             rGlobalVariables.add(variableDeclaration);
           }
         }
+      }
+      // continue only if currentEdge is declaration or blank, since all global variables
+      // declarations are before any actual statement
+      if (currentEdge instanceof CDeclarationEdge || currentEdge instanceof BlankEdge) {
+        waitList.addAll(successor.getLeavingEdges().toList());
       }
     }
     return rGlobalVariables.build();
