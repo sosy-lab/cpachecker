@@ -271,6 +271,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
           if (variable.getType().getCanonicalType() instanceof CSimpleType pType
               && !cfa.getMachineModel().isSigned(pType)) {
+            // We cannot determine the loop terminating because it contains unsigned integers and
+            // the analysis is possibly unsound.
+            logger.log(
+                WARNING,
+                "The program contains variables with unsigned type, so, the program cannot be"
+                    + " proven terminating.");
             status = status.withSound(false);
           }
         }
