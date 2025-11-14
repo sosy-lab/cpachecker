@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -53,6 +54,70 @@ public class FunctionPointerTransferRelationTest {
   private final Precision precision = SingletonPrecision.getInstance();
   private final FunctionPointerState initialState = FunctionPointerState.createEmptyState();
 
+  private final CElaboratedType struct =
+      new CElaboratedType(
+          CTypeQualifiers.CONST,
+          ComplexTypeKind.STRUCT,
+          "allocator",
+          "allocator",
+          new CCompositeType(
+              CTypeQualifiers.NONE,
+              ComplexTypeKind.STRUCT,
+              ImmutableList.of(
+                  new CCompositeTypeMemberDeclaration(
+                      new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID), "die")),
+              "allocator",
+              "allocator"));
+
+  private final CInitializerExpression initializer =
+      new CInitializerExpression(
+          FileLocation.DUMMY,
+          new CCastExpression(
+              FileLocation.DUMMY,
+              new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID),
+              new CIntegerLiteralExpression(
+                  FileLocation.DUMMY, CNumericTypes.SIGNED_INT, BigInteger.ZERO)));
+
+  private final CVariableDeclaration voidPointerDecl =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          CStorageClass.AUTO,
+          struct,
+          "stdlib_allocator",
+          "stdlib_allocator",
+          "stdlib_allocator",
+          new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)));
+
+  private final CIdExpression libAllocator =
+      new CIdExpression(FileLocation.DUMMY, struct, "stdlib_allocator", voidPointerDecl);
+
+  private final CTypedefType sizeT =
+      new CTypedefType(
+          CTypeQualifiers.NONE,
+          "size_t",
+          new CTypedefType(CTypeQualifiers.NONE, "size_t", CNumericTypes.UNSIGNED_LONG_INT));
+
+  private final CFunctionTypeWithNames functionType =
+      new CFunctionTypeWithNames(
+          CVoidType.VOID,
+          ImmutableList.of(new CParameterDeclaration(FileLocation.DUMMY, sizeT, "")),
+          false);
+
+  private final CFieldReference fieldReference =
+      new CFieldReference(
+          FileLocation.DUMMY,
+          new CPointerType(CTypeQualifiers.NONE, functionType),
+          "die",
+          libAllocator,
+          false);
+
+  private final CIntegerLiteralExpression zeroLiteral =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.SIGNED_INT, BigInteger.ZERO);
+
+  private final CIntegerLiteralExpression oneLiteral =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.SIGNED_INT, BigInteger.ONE);
+
   @Before
   public void init() throws InvalidConfigurationException {
     Configuration config = Configuration.defaultConfiguration();
@@ -60,67 +125,10 @@ public class FunctionPointerTransferRelationTest {
     relation = new FunctionPointerTransferRelation(manager, config);
   }
 
-  private CAssumeEdge createAssumeEdge(BinaryOperator operator, boolean truthAssumption) {
-    CElaboratedType struct =
-        new CElaboratedType(
-            CTypeQualifiers.CONST,
-            ComplexTypeKind.STRUCT,
-            "allocator",
-            "allocator",
-            new CCompositeType(
-                CTypeQualifiers.NONE,
-                ComplexTypeKind.STRUCT,
-                ImmutableList.of(
-                    new CCompositeTypeMemberDeclaration(
-                        new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID), "die")),
-                "allocator",
-                "allocator"));
-
-    CInitializerExpression initializer =
-        new CInitializerExpression(
-            FileLocation.DUMMY,
-            new CCastExpression(
-                FileLocation.DUMMY,
-                new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID),
-                new CIntegerLiteralExpression(
-                    FileLocation.DUMMY, CNumericTypes.SIGNED_INT, BigInteger.ZERO)));
-
-    CVariableDeclaration voidPointerDecl =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            struct,
-            "stdlib_allocator",
-            "stdlib_allocator",
-            "stdlib_allocator",
-            new CInitializerList(FileLocation.DUMMY, ImmutableList.of(initializer)));
-
-    CIdExpression libAllocator =
-        new CIdExpression(FileLocation.DUMMY, struct, "stdlib_allocator", voidPointerDecl);
-
-    CTypedefType sizeT =
-        new CTypedefType(
-            CTypeQualifiers.NONE,
-            "size_t",
-            new CTypedefType(CTypeQualifiers.NONE, "size_t", CNumericTypes.UNSIGNED_LONG_INT));
-
-    CFunctionTypeWithNames functionType =
-        new CFunctionTypeWithNames(
-            CVoidType.VOID,
-            ImmutableList.of(new CParameterDeclaration(FileLocation.DUMMY, sizeT, "")),
-            false);
-
-    CFieldReference fieldReference =
-        new CFieldReference(
-            FileLocation.DUMMY,
-            new CPointerType(CTypeQualifiers.NONE, functionType),
-            "die",
-            libAllocator,
-            false);
-
+  private CAssumeEdge createAssumeEdge(
+      BinaryOperator operator, boolean truthAssumption, CExpression lhs, CExpression rhs) {
     return new CAssumeEdge(
-        "",
+        "stdlib_allocator.die == 0",
         FileLocation.DUMMY,
         CFANode.newDummyCFANode("main"),
         CFANode.newDummyCFANode("main"),
@@ -128,59 +136,249 @@ public class FunctionPointerTransferRelationTest {
             FileLocation.DUMMY,
             CNumericTypes.SIGNED_INT,
             new CPointerType(CTypeQualifiers.NONE, functionType),
-            fieldReference,
-            new CIntegerLiteralExpression(
-                FileLocation.DUMMY, CNumericTypes.SIGNED_INT, BigInteger.ZERO),
+            lhs,
+            rhs,
             operator),
         truthAssumption);
   }
 
   @Test
-  public void equalsThenBranchTest() throws CPATransferException {
+  public void equalsThenFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.EQUALS, true));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, true, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
   @Test
-  public void equalsElseBranchTest() throws CPATransferException {
+  public void equalsElseFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.EQUALS, false));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, false, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
   @Test
-  public void unequalsThenBranchTest() throws CPATransferException {
+  public void unequalsThenFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.NOT_EQUALS, true));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, true, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
   @Test
-  public void unequalsElseBranchTest() throws CPATransferException {
+  public void unequalsElseFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.NOT_EQUALS, false));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, false, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
   @Test
-  public void lessThenBranchTest() throws CPATransferException {
+  public void lessThenFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.LESS_EQUAL, true));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.LESS_EQUAL, true, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
   @Test
-  public void lessElseBranchTest() throws CPATransferException {
+  public void lessElseFieldReferenceConstantTest() throws CPATransferException {
     Collection<? extends AbstractState> successors =
         relation.getAbstractSuccessorsForEdge(
-            initialState, precision, createAssumeEdge(BinaryOperator.LESS_EQUAL, false));
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.LESS_EQUAL, false, fieldReference, zeroLiteral));
     assertThat(successors).hasSize(1);
   }
 
+  @Test
+  public void equalsThenBranchSameConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, true, zeroLiteral, zeroLiteral));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void equalsElseBranchSameConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, false, zeroLiteral, zeroLiteral));
+    assertThat(successors).isEmpty();
+  }
+
+  @Test
+  public void equalsThenBranchDifferentConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, true, zeroLiteral, oneLiteral));
+    assertThat(successors).isEmpty();
+  }
+
+  @Test
+  public void equalsElseBranchDifferentConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, false, oneLiteral, zeroLiteral));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsThenBranchSameConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, true, zeroLiteral, zeroLiteral));
+    assertThat(successors).isEmpty();
+  }
+
+  @Test
+  public void unequalsElseBranchSameConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, false, zeroLiteral, zeroLiteral));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsThenBranchDifferentConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, true, zeroLiteral, oneLiteral));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsElseBranchDifferentConstantsTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, false, oneLiteral, zeroLiteral));
+    assertThat(successors).isEmpty();
+  }
+
+  @Test
+  public void equalsThenConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, true, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void equalsElseConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, false, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsThenConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, true, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsElseConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, false, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void lessThenConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.LESS_EQUAL, true, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void lessElseConstantFieldReferenceTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.LESS_EQUAL, false, oneLiteral, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void equalsThenSameUnknownFieldReferencesTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, true, fieldReference, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsThenSameUnknownFieldReferencesTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, true, fieldReference, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void equalsElseSameUnknownFieldReferencesTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.EQUALS, false, fieldReference, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
+
+  @Test
+  public void unequalsElseSameUnknownFieldReferencesTest() throws CPATransferException {
+    Collection<? extends AbstractState> successors =
+        relation.getAbstractSuccessorsForEdge(
+            initialState,
+            precision,
+            createAssumeEdge(BinaryOperator.NOT_EQUALS, false, fieldReference, fieldReference));
+    assertThat(successors).hasSize(1);
+  }
 }
