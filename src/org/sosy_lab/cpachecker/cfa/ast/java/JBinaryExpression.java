@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * </pre>
  *
  * Operand1 is the left operand. Operand2 the right operand. The possible Operators are represented
- * by the enum {@link BinaryOperator}
+ * by the enum {@link ABinaryExpression.ABinaryOperator}
  *
  * <p>Some expression in Java, like the postfix increment, will be transformed into an infix
  * expression in the CFA and also be represented by this class.
@@ -65,7 +65,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
     return (BinaryOperator) super.getOperator();
   }
 
-  public enum BinaryOperator implements ABinaryOperator {
+  public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
     MULTIPLY("*"),
     DIVIDE("/"),
     MODULO("%"),
