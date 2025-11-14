@@ -162,7 +162,7 @@ public class CounterexampleToSvLibWitnessExport {
     return new SvLibHavocVariablesStep(havocedVariablesBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
-  private SvLibTraceSetGlobalVariable handleGlobalVariableAssignment(
+  private Optional<SvLibTraceSetGlobalVariable> handleGlobalVariableAssignment(
       ConcreteState pConcreteState, SvLibDeclaration pDeclaration) {
     checkState(
         (pDeclaration instanceof SvLibVariableDeclaration),
@@ -172,10 +172,14 @@ public class CounterexampleToSvLibWitnessExport {
     Optional<SvLibConstantTerm> assignedValue =
         getValue(pConcreteState, pVarDecl.getName(), null, pVarDecl.getType());
 
-    return new SvLibTraceSetGlobalVariable(
-        new SvLibIdTerm(pVarDecl, FileLocation.DUMMY),
-        assignedValue.orElseThrow(),
-        FileLocation.DUMMY);
+    if (assignedValue.isPresent()) {
+      return Optional.of(
+          new SvLibTraceSetGlobalVariable(
+              new SvLibIdTerm(pVarDecl, FileLocation.DUMMY),
+              assignedValue.orElseThrow(),
+              FileLocation.DUMMY));
+    }
+    return Optional.empty();
   }
 
   private SvLibTraceEntryCall handleTraceEntryCall(
@@ -260,9 +264,13 @@ public class CounterexampleToSvLibWitnessExport {
             "Expected global declaration edges in the global declaration phase of SV-LIB witness"
                 + " export.");
 
-        globalVariableAssignmentBuilder.add(
+        Optional<SvLibTraceSetGlobalVariable> globalVarAssignment =
             handleGlobalVariableAssignment(
-                concreteState, ((SvLibDeclarationEdge) edge).getDeclaration()));
+                concreteState, ((SvLibDeclarationEdge) edge).getDeclaration());
+
+        if (globalVarAssignment.isPresent()) {
+          globalVariableAssignmentBuilder.add(globalVarAssignment.orElseThrow());
+        }
 
       } else if (edge instanceof SvLibProcedureCallEdge pCallEdge) {
         // Initialize all the local variables of the called procedure
