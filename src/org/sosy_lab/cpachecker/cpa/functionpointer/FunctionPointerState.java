@@ -36,6 +36,12 @@ public class FunctionPointerState
           || pValue.equals(UnknownTarget.getInstance())
           || pOtherValue.equals(UnknownTarget.getInstance());
     }
+
+    static boolean maybeUnequal(FunctionPointerTarget pValue, FunctionPointerTarget pOtherValue) {
+      return !pValue.equals(pOtherValue)
+          || pValue.equals(UnknownTarget.getInstance())
+          || pOtherValue.equals(UnknownTarget.getInstance());
+    }
   }
 
   public static final class UnknownTarget implements FunctionPointerTarget {
