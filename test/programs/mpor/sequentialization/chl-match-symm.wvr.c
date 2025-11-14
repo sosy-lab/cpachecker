@@ -4,7 +4,7 @@
 // SPDX-FileCopyrightText: 2021 F. Schuessele <schuessf@informatik.uni-freiburg.de>
 // SPDX-FileCopyrightText: 2021 D. Klumpp <klumpp@informatik.uni-freiburg.de>
 //
-// SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-BSD-3-Clause-Attribution-Vandikas
 
 typedef unsigned long int pthread_t;
 
