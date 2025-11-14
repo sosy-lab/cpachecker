@@ -2728,7 +2728,7 @@ class ASTConverter {
             default -> throw parseContext.parseError("Unsupported Designator", designator);
           };
       designators.addAll(resolvedDesignator.designators());
-      currentOwnerType = resolvedDesignator.lastOwnerType();
+      currentOwnerType = resolvedDesignator.lastOwnerType().getCanonicalType();
     }
     CInitializer cInit = convert(init.getOperand(), currentOwnerType, declaration);
 
