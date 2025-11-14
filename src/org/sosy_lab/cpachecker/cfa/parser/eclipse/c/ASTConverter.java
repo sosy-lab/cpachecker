@@ -1076,9 +1076,9 @@ class ASTConverter {
               fieldName,
               owner,
               e.isPointerDereference());
-    } else if (ownerType instanceof CCompositeType) {
+    } else if (ownerType instanceof CCompositeType compositeType) {
       wayToInnerField =
-          getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
+          PositionInComposite.getWayToInnerField(compositeType, fieldName, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         CExpression current = owner;
         boolean isPointerDereference = e.isPointerDereference();
@@ -1171,45 +1171,6 @@ class ASTConverter {
     }
 
     return fullFieldReference;
-  }
-
-  /**
-   * This method creates a list of all necessary field access for finding the searched field.
-   * Besides the case that the searched field is directly in the struct, there is the case that the
-   * field is in an anonymous struct or union inside the "owner" struct. This anonymous structs /
-   * unions are then the "way" to the searched field.
-   *
-   * @param allReferences an empty list
-   * @return the fields (including the searched one) in the right order
-   */
-  private static List<Pair<String, CType>> getWayToInnerField(
-      CCompositeType owner,
-      String fieldName,
-      FileLocation loc,
-      List<Pair<String, CType>> allReferences) {
-    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
-      if (member.getName().equals(fieldName)) {
-        allReferences.add(Pair.of(member.getName(), member.getType()));
-        return ImmutableList.copyOf(allReferences);
-      }
-    }
-
-    // no field found in current struct, so proceed to the structs/unions which are
-    // fields inside the current struct
-    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
-      CType memberType = member.getType().getCanonicalType();
-      if (memberType instanceof CCompositeType cCompositeType
-          && member.getName().contains("__anon_type_member_")) {
-        List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
-        tmp.add(Pair.of(member.getName(), member.getType()));
-        tmp = getWayToInnerField(cCompositeType, fieldName, loc, tmp);
-        if (!tmp.isEmpty()) {
-          return ImmutableList.copyOf(tmp);
-        }
-      }
-    }
-
-    return ImmutableList.of();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
@@ -2823,7 +2784,7 @@ class ASTConverter {
     CType currentOwnerType = ownerType;
     if (ownerType instanceof CCompositeType compositeType) {
       List<Pair<String, CType>> wayToField =
-          getWayToInnerField(compositeType, targetFieldName, fileLoc, new ArrayList<>());
+          PositionInComposite.getWayToInnerField(compositeType, targetFieldName, new ArrayList<>());
       Preconditions.checkState(!wayToField.isEmpty());
 
       ImmutableList.Builder<CDesignator> listBuilder =
@@ -2841,10 +2802,95 @@ class ASTConverter {
     return new DesignatorsAndLastType(designators, currentOwnerType);
   }
 
+  /**
+   * Convert an initializer list for an array or scalar type. Any excess elements are still
+   * converted as if they fit the assigned type.
+   *
+   * <p>Example: For the below code, value '1' is used to initialize x.i == 1 and y[0],
+   * respectively. The values 2 and 3 are ignored in both initializations. But this method still
+   * returns an initializer that lists all three values: 1, 2, and 3.
+   *
+   * <pre>
+   *   struct {
+   *     int i;
+   *   } x = {1, 2, 3};
+   *   int y[1] = {1, 2, 3};
+   * </pre>
+   *
+   * <p>The provided initializer list may contain nested lists, and the provided assignment type may
+   * be an array of a composite type; but this method expects that the outer-most assignment type
+   * and initializer list is for a non-composite type.
+   */
+  private CInitializer convertInitializerListForNonCompositeType(
+      IASTInitializerList iList, CType assignmentType, @Nullable CVariableDeclaration declaration) {
+    if (assignmentType.getCanonicalType() instanceof CCompositeType) {
+      throw new IllegalArgumentException(
+          "Given type is resolved to composite type, expected array or scalar: " + assignmentType);
+    }
+    final CType elementType =
+        switch (assignmentType.getCanonicalType()) {
+          case CCompositeType ignored ->
+              throw new IllegalArgumentException(
+                  "Given type is resolved to composite type, expected array or scalar: "
+                      + assignmentType);
+          case CArrayType arrayType -> arrayType.getType();
+          default -> assignmentType.getCanonicalType();
+        };
+    List<CInitializer> initializerList = new ArrayList<>();
+    for (IASTInitializerClause clause : iList.getClauses()) {
+      CInitializer newI = convert(clause, elementType, declaration);
+      if (newI != null) {
+        initializerList.add(newI);
+      }
+    }
+    return new CInitializerList(getLocation(iList), initializerList);
+  }
+
+  /** Convert an initializer list for a composite type (struct/union). */
+  private CInitializer convertInitializerListForCompositeType(
+      IASTInitializerList iList,
+      CCompositeType compositeType,
+      @Nullable CVariableDeclaration declaration) {
+    List<CInitializer> initializerList = new ArrayList<>();
+
+    PositionInComposite positionInComposite = new PositionInComposite(compositeType);
+
+    for (IASTInitializerClause clause : iList.getClauses()) {
+      CInitializer newI =
+          switch (clause) {
+            case IASTExpression expr -> {
+              positionInComposite.advanceToScalar();
+              CInitializer result =
+                  new CInitializerExpression(
+                      getLocation(expr), convertExpressionWithoutSideEffects(expr));
+              positionInComposite.advanceToNextElement();
+              yield result;
+            }
+            case IASTInitializerList nestedList -> {
+              CType targetType = positionInComposite.getCurrentType();
+              CInitializer result = convert(nestedList, targetType, declaration);
+              positionInComposite.advanceToNextElement();
+              yield result;
+            }
+            case ICASTDesignatedInitializer designatedInit -> {
+              CInitializer result = convert(designatedInit, compositeType, declaration);
+              positionInComposite.jumpToPositionAfterDesignator(designatedInit, compositeType);
+              yield result;
+            }
+            default ->
+                throw parseContext.parseError(
+                    "unknown initializer clause: " + clause.getClass().getSimpleName(), clause);
+          };
+      if (newI != null) {
+        initializerList.add(newI);
+      }
+    }
+
+    return new CInitializerList(getLocation(iList), initializerList);
+  }
+
   private CInitializer convert(
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
-
-    List<CInitializer> initializerList = new ArrayList<>();
 
     if (declaration != null && iList.getSize() == 1) {
       if (type instanceof CSimpleType || type instanceof CPointerType) {
@@ -2855,54 +2901,12 @@ class ASTConverter {
       }
     }
 
-    // If we are looking at the initializer for a struct or union,
-    // a nested initializer list is syntactic sugar
-    // to mark an anonymous complex type. Example:
-    // struct s {
-    //   char a;
-    //   struct {
-    //     char b;
-    //     char c;
-    //   }
-    // }
-    // Can be initialized through:
-    // struct s init = { .a = 5, { .b = 6, .c = 7 } }
-    // or through:
-    // struct s init = { .a = 5, .b = 6, .c = 7 }
-    // Semantically, both are equivalent.
-    // We simplify any nested list to a flat list, because this is easier to handle
-    // than nested lists.
-    final List<IASTInitializerClause> flattenedInitializerClauses;
-    if (type.getCanonicalType() instanceof CComplexType) {
-      flattenedInitializerClauses = flattenInitializerClauses(iList.getClauses());
+    CType canonicalParentType = type.getCanonicalType();
+    if (canonicalParentType instanceof CCompositeType compositeType) {
+      return convertInitializerListForCompositeType(iList, compositeType, declaration);
     } else {
-      flattenedInitializerClauses = Arrays.asList(iList.getClauses());
+      return convertInitializerListForNonCompositeType(iList, type, declaration);
     }
-    // TODO: we might need do to something similar for more types
-    if (type instanceof CArrayType) {
-      type = ((CArrayType) type).getType();
-    }
-
-    for (IASTInitializerClause i : flattenedInitializerClauses) {
-      CInitializer newI = convert(i, type, declaration);
-      if (newI != null) {
-        initializerList.add(newI);
-      }
-    }
-
-    return new CInitializerList(getLocation(iList), initializerList);
-  }
-
-  private List<IASTInitializerClause> flattenInitializerClauses(IASTInitializerClause[] clauses) {
-    List<IASTInitializerClause> flattened = new ArrayList<>();
-    for (IASTInitializerClause clause : clauses) {
-      if (clause instanceof IASTInitializerList innerList) {
-        flattened.addAll(flattenInitializerClauses(innerList.getClauses()));
-      } else {
-        flattened.add(clause);
-      }
-    }
-    return flattened;
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {

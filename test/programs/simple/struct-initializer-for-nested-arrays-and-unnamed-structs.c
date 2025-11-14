@@ -41,6 +41,24 @@ struct AllPatterns {
         int h;
       };
     } otherStructArray[5];
+
+    // Test Bug 1: Array designator in middle of field chain
+    struct {
+      struct {
+        int value;
+      } items[3];
+      int trailing;
+    } arrayInMiddle;
+
+    // Test Bug 2: Sequential initialization with nested struct
+    struct {
+      int a;
+      struct {
+        int x;
+        int y;
+      } nested;
+      int c;
+    } sequentialNested;
 };
 
 int main(void) {
@@ -57,6 +75,15 @@ int main(void) {
         .pointArray[4] = {{.x = 75, { .nestedy = 76 }}, {.x = 80, .nestedy = 81}},
         .multipleArrays = {{{100, 101}, {102, 103}}, {.a = {115, 116}, {{117, 118}}}},
         .otherStructArray = { [0 ... 2] = {.g = 130, {.h = 131}}, [3 ... 4] = {.g = 135, .h = 136}},
+
+        // Bug 1: Designator with array subscript in the middle
+        // After processing .arrayInMiddle.items[1].value, cursor should advance to .trailing
+        .arrayInMiddle.items[1].value = 200,
+        .arrayInMiddle.trailing = 201,
+
+        // Bug 2: Sequential initialization should descend into nested struct
+        // 300 initializes .a, then 301 should initialize .nested.x (not .nested itself)
+        .sequentialNested = {300, 301, 302, 303}
     };
 
     if (data1.nestedPointx != 20) { goto ERROR; }
@@ -104,6 +131,16 @@ int main(void) {
     if (data1.otherStructArray[3].h != 136) { goto ERROR; }
     if (data1.otherStructArray[4].g != 135) { goto ERROR; }
     if (data1.otherStructArray[4].h != 136) { goto ERROR; }
+
+    // Bug 1: Array designator in middle - verify items[1] was set and trailing was set
+    if (data1.arrayInMiddle.items[1].value != 200) { goto ERROR; }
+    if (data1.arrayInMiddle.trailing != 201) { goto ERROR; }
+
+    // Bug 2: Sequential initialization with nested struct
+    if (data1.sequentialNested.a != 300) { goto ERROR; }
+    if (data1.sequentialNested.nested.x != 301) { goto ERROR; }
+    if (data1.sequentialNested.nested.y != 302) { goto ERROR; }
+    if (data1.sequentialNested.c != 303) { goto ERROR; }
 
     return 0;
 

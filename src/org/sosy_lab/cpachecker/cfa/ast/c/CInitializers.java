@@ -153,6 +153,10 @@ public final class CInitializers {
             "Unexpected initializer for " + currentType + " that is not fully defined",
             edge,
             initializerList);
+      } else if (initializerList.getInitializers().isEmpty()) {
+        // mark that the initializer list was empty. This is possible for scalar values as well,
+        // not only arrays and composite types.
+        successful = false;
       } else {
         throw new UnrecognizedCodeException(
             "Unexpected initializer list for " + currentObject + " with type " + currentType,
