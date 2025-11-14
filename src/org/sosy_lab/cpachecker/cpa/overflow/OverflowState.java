@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public final class OverflowState
     implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
-  private final ImmutableSet<AExpression> assumptions;
+  private final ImmutableSet<? extends AExpression> assumptions;
   private final OverflowState parent;
   private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
@@ -52,7 +52,7 @@ public final class OverflowState
   }
 
   @Override
-  public List<AExpression> getAssumptions() {
+  public List<? extends AExpression> getAssumptions() {
     return assumptions.asList();
   }
 

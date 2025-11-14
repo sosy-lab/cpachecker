@@ -125,7 +125,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   }
 
   @Override
-  public List<AExpression> getAssumptions() {
+  public List<? extends AExpression> getAssumptions() {
     try {
       @SuppressWarnings("unchecked")
       ExpressionTree<AExpression> exp =

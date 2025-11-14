@@ -38,5 +38,5 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    *
    * @return A (possibly empty list) of expressions.
    */
-  List<AExpression> getAssumptions();
+  List<? extends AExpression> getAssumptions();
 }
