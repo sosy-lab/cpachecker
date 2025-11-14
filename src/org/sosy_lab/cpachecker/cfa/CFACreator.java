@@ -538,13 +538,12 @@ public class CFACreator {
       logger.log(Level.FINE, "Starting parsing of file(s)");
       ParseResult c;
       try {
-       c = parseToCFAs(sourceFiles);
-       } catch (ParserException e) {
+        c = parseToCFAs(sourceFiles);
+      } catch (ParserException e) {
         if (backupParser.isPresent()) {
           logger.log(
               Level.WARNING,
-              "Parsing failed with the primary parser, trying backup parser: "
-                  + e.getMessage());
+              "Parsing failed with the primary parser, trying backup parser: " + e.getMessage());
           c = backupParser.get().parseFiles(sourceFiles);
         } else {
           throw e;
