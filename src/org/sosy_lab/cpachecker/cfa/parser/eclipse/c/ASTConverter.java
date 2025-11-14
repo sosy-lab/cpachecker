@@ -2817,9 +2817,8 @@ class ASTConverter {
    *   int y[1] = {1, 2, 3};
    * </pre>
    *
-   * <p>The provided initializer list may contain nested lists, and the provided assignment type may
-   * be an array of a composite type; but this method expects that the outer-most assignment type
-   * and initializer list is for a non-composite type.
+   * <p>The provided assignment type must be a non-composite type, but it may contain nested
+   * composite types (for example an array of structs).
    */
   private CInitializer convertInitializerListForNonCompositeType(
       IASTInitializerList iList, CType assignmentType, @Nullable CVariableDeclaration declaration) {
