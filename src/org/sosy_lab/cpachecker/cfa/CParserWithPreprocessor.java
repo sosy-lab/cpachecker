@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,16 +54,28 @@ class CParserWithPreprocessor implements CParser {
   public ParseResult parseFiles(List<String> pFilenames)
       throws ParserException, InterruptedException {
 
+    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
+
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
       Path path = Path.of(f);
-      String programCode = preprocessor.preprocess(path);
+      String programCode;
+      try {
+        programCode = Files.readString(path);
+      } catch (IOException pE) {
+        throw new CParserException("Error reading file " + f, pE);
+      }
+      if (programCode.contains("#include")) {
+        programCode = preprocessor.preprocess(path);
+        sourceOriginMapping.locationDifferenceExists();
+      }
+
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
       programs.add(new FileContentToParse(path, programCode));
     }
-    return realParser.parseString(programs, new CSourceOriginMapping());
+    return realParser.parseString(programs, sourceOriginMapping);
   }
 
   @Override

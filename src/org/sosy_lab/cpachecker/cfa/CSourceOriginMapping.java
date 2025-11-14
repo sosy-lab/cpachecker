@@ -32,6 +32,8 @@ public class CSourceOriginMapping {
 
   private final ListMultimap<Path, Integer> lineNumberToStartingColumn = ArrayListMultimap.create();
 
+  private boolean mapsIdenticalLocations = true;
+
   void mapInputLineRangeToDelta(
       Path pAnalysisFileName,
       Path pOriginFileName,
@@ -120,7 +122,11 @@ public class CSourceOriginMapping {
    * number will be mapped to its identical value.
    */
   public boolean isMappingToIdenticalLineNumbers() {
-    return mapping.isEmpty();
+    return mapsIdenticalLocations;
+  }
+
+  public void locationDifferenceExists() {
+    mapsIdenticalLocations = false;
   }
 
   /** Code position in terms of file name and absolute or relative line number. */
