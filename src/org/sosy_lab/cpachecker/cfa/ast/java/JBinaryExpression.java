@@ -127,7 +127,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
             NOT_EQUALS,
             CONDITIONAL_AND,
             CONDITIONAL_OR,
-            LOGICAL_XOR, // TODO: is this (and OR/AND) ONLY logical? I.e. boolean. Or also bitwise?
+            LOGICAL_XOR,
             LOGICAL_OR,
             LOGICAL_AND ->
             true;
