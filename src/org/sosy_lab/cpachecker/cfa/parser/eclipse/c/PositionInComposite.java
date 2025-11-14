@@ -33,15 +33,15 @@ import org.sosy_lab.cpachecker.util.Pair;
  *
  * <pre>
  *   struct {
- *     union { <--- potential cursor position
- *       int a; <--- potential cursor position
- *       struct { <- potential cursor position
- *         int b; <- potential cursor position
+ *     union { <--- potential position
+ *       int a; <--- potential position
+ *       struct { <- potential position
+ *         int b; <- potential position
  *       }
  *     };
- *     int c; <----- potential cursor position
- *     struct { <--- potential cursor position
- *       int d; <--- potential cursor position
+ *     int c; <----- potential position
+ *     struct { <--- potential position
+ *       int d; <--- potential position
  *     }
  *   }
  * </pre>
@@ -114,7 +114,7 @@ public class PositionInComposite {
 
         if (memberIndex < 0 || memberIndex >= members.size()) {
           throw new IndexOutOfBoundsException(
-              "Cursor position out of bounds: index "
+              "Position out of bounds: index "
                   + memberIndex
                   + ", but type "
                   + compositeType
@@ -140,7 +140,7 @@ public class PositionInComposite {
   }
 
   /**
-   * Advance the cursor to the next element position, following the semantics of C11 positional
+   * Advance the position to the next element, following the semantics of C11 positional
    * initializers.
    *
    * <p>For structs, the position moves to the next sibling member at the current nesting level. If
@@ -243,8 +243,8 @@ public class PositionInComposite {
    * </pre>
    *
    * <ul>
-   *   <li>If cursor is at 'a', stays at 'a'.
-   *   <li>If cursor is at 'n', advance to 'n.m.x'
+   *   <li>At 'a' stays at 'a'.
+   *   <li>At 'n' advances to 'n.m.x'
    * </ul>
    *
    * @see #advanceToNextElement()
@@ -260,7 +260,7 @@ public class PositionInComposite {
   }
 
   /**
-   * Jump the cursor to the next position after the given designated initializer.
+   * Jump to the next position after the given designated initializer.
    *
    * @param designatedInit the designated initializer
    * @param parentType the composite type that contains the designator
