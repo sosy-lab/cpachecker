@@ -92,7 +92,7 @@ public class CSourceOriginMapping {
         return originFileAndLineDelta.addToLineNumber(pAnalysisCodeLine);
       }
     }
-    return CodePosition.of(normalizedPath, pAnalysisCodeLine);
+    return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
