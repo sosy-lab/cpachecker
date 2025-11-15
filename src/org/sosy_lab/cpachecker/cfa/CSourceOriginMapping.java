@@ -38,10 +38,11 @@ public class CSourceOriginMapping {
       int pFromAnalysisCodeLineNumber,
       int pToAnalysisCodeLineNumber,
       int pLineDeltaToOrigin) {
-    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
+    Path normalizedAnalysisFileName = pAnalysisFileName.normalize();
+    RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedAnalysisFileName);
     if (fileMapping == null) {
       fileMapping = TreeRangeMap.create();
-      mapping.put(pAnalysisFileName, fileMapping);
+      mapping.put(normalizedAnalysisFileName, fileMapping);
     }
 
     Range<Integer> lineRange =
@@ -81,7 +82,8 @@ public class CSourceOriginMapping {
    */
   public CodePosition getOriginLineFromAnalysisCodeLine(
       Path pAnalysisFileName, int pAnalysisCodeLine) {
-    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
+    Path normalizedPath = pAnalysisFileName.normalize();
+    RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedPath);
 
     if (fileMapping != null) {
       CodePosition originFileAndLineDelta = fileMapping.get(pAnalysisCodeLine);
@@ -90,7 +92,7 @@ public class CSourceOriginMapping {
         return originFileAndLineDelta.addToLineNumber(pAnalysisCodeLine);
       }
     }
-    return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
+    return CodePosition.of(normalizedPath, pAnalysisCodeLine);
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
