@@ -539,12 +539,16 @@ public class ConfigurationFileChecks {
               // a timeout. If the analysis is improved such that already
               // seen paths are not considered twice, this test can be re-enabled.
               Path.of("describerr-portfolio.properties"),
-              // The MPOR config rejects the default empty program used in this test, it requires a
-              // concurrent C program with at least one call to pthread_create
-              Path.of("mpor.properties"),
               Path.of("parallel-randomSampling.properties"),
               Path.of("randomSampling.properties"),
-              Path.of("randomTesting.properties"));
+              Path.of("randomTesting.properties"),
+              // All configurations based on sequentialization reject the default empty
+              // program used in this test, they requires a
+              // concurrent C program with at least one call to pthread_create
+              Path.of("mpor.properties"),
+              Path.of("sequentialization-concurrency--memsafety.properties"),
+              Path.of("sequentialization-concurrency--overflow.properties"),
+              Path.of("sequentialization-concurrency.properties"));
     }
 
     CPAcheckerResult result;
