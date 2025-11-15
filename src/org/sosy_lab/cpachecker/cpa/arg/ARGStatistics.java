@@ -45,6 +45,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -342,6 +344,21 @@ public class ARGStatistics implements Statistics {
             || counterexampleOptions.dumpErrorPathImmediately())
         && !exportARG
         && !translateARG) {
+      return;
+    }
+
+    CfaTransformationMetadata transformationMetadata =
+        cfa.getMetadata().getTransformationMetadata();
+    if (transformationMetadata != null
+        && transformationMetadata
+            .transformation()
+            .equals(ProgramTransformation.SEQUENTIALIZATION)) {
+      logger.log(
+          Level.INFO,
+          "The program analyzed by sequentializing the original program and verifying the"
+              + " sequentialized version. Currently there is no way to map the result for the"
+              + " sequentialized program back to the original program, therefore no output will be"
+              + " exported.");
       return;
     }
 
