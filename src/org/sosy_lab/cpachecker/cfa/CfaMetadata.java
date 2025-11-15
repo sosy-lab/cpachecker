@@ -46,6 +46,8 @@ public final class CfaMetadata {
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
 
+  private final @Nullable CfaTransformationMetadata transformationMetadata;
+
   private CfaMetadata(
       MachineModel pMachineModel,
       Language pCFALanguage,
@@ -57,7 +59,8 @@ public final class CfaMetadata {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
-      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -70,6 +73,8 @@ public final class CfaMetadata {
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
+
+    transformationMetadata = pCfaTransformationMetadata;
   }
 
   /**
@@ -106,6 +111,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -138,7 +144,26 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
+  }
+
+  public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
+    CfaMetadata newMetadata =
+        new CfaMetadata(
+            machineModel,
+            cfaLanguage,
+            inputLanguage,
+            fileNames,
+            mainFunctionEntry,
+            connectedness,
+            astCFARelation,
+            loopStructure,
+            variableClassification,
+            liveVariables,
+            edgesToAnnotations,
+            pTransformationMetadata);
+    return newMetadata;
   }
 
   /**
@@ -166,6 +191,10 @@ public final class CfaMetadata {
    */
   public ImmutableList<Path> getFileNames() {
     return fileNames;
+  }
+
+  public @Nullable CfaTransformationMetadata getTransformationMetadata() {
+    return transformationMetadata;
   }
 
   /**
@@ -198,7 +227,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -229,7 +259,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -273,7 +304,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -295,7 +327,8 @@ public final class CfaMetadata {
         pLoopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -329,7 +362,8 @@ public final class CfaMetadata {
         loopStructure,
         pVariableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -362,7 +396,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         pLiveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   /**
@@ -399,7 +434,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        pedgesToAnnotations);
+        pedgesToAnnotations,
+        transformationMetadata);
   }
 
   @Override
@@ -414,7 +450,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        transformationMetadata);
   }
 
   @Override
@@ -432,7 +469,8 @@ public final class CfaMetadata {
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
         && Objects.equals(liveVariables, other.liveVariables)
-        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations);
+        && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
+        && Objects.equals(transformationMetadata, other.transformationMetadata);
   }
 
   @Override
@@ -448,6 +486,7 @@ public final class CfaMetadata {
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
         .add("edgesToAnnotations", edgesToAnnotations)
+        .add("transformationMetadata", transformationMetadata)
         .toString();
   }
 }

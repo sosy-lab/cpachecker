@@ -102,7 +102,7 @@ public class BlockGraphModification {
     if (adjustedLoopStructure.isPresent()) {
       metadata = metadata.withLoopStructure(adjustedLoopStructure.orElseThrow());
     }
-    mutableCfa.setMetadata(metadata);
+    mutableCfa = mutableCfa.copyWithMetadata(metadata);
 
     return new Modification(mutableCfa.immutableCopy(), adjustedBlockGraph, modificationMetadata);
   }

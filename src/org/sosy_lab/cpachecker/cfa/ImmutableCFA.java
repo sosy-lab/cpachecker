@@ -58,6 +58,19 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
     allEdges = ImmutableSet.copyOf(super.edges());
   }
 
+  private ImmutableCFA(
+      ImmutableSortedMap<String, FunctionEntryNode> pFunctions,
+      ImmutableSortedSet<CFANode> pAllNodes,
+      ImmutableSet<CFAEdge> pAllEdges,
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata) {
+    functions = pFunctions;
+    allNodes = pAllNodes;
+    metadata = pCfaMetadata;
+    network = pCfaNetwork;
+    allEdges = pAllEdges;
+  }
+
   @Override
   public Set<CFAEdge> edges() {
     return allEdges;
@@ -75,6 +88,11 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   protected CfaNetwork delegate() {
     return network;
+  }
+
+  @Override
+  public ImmutableCFA copyWithMetadata(CfaMetadata pMetadata) {
+    return new ImmutableCFA(functions, allNodes, allEdges, network, pMetadata);
   }
 
   @Override

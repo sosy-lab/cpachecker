@@ -21,6 +21,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -92,6 +95,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
 @Options(prefix = "analysis")
@@ -370,8 +375,30 @@ public class CoreComponentsFactory {
       name = "algorithm.MPOR",
       description =
           "use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a concurrent C"
-              + " program")
-  private boolean useMPOR = false;
+              + " program. This algorithm transforms the input program into a sequential program"
+              + " that preserves the properties of the original concurrent program. The"
+              + " sequentialized program is outputted, but not analyzed inside of CPAchecker. Use"
+              + " this option whenever you want to continue the analysis of the sequentialized"
+              + " program externally. In case you want to analyze the sequentialized program inside"
+              + " of CPAchecker, use the preprocessing.MPOR option instead.")
+  private boolean useMporAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "preprocessing.MPOR",
+      description =
+          "use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a concurrent C"
+              + " program. When this option is enabled, the MPOR sequentialization is performed as"
+              + " a preprocessing step before the main analysis begins. The input concurrent"
+              + " program is transformed into a sequential program that preserves the properties of"
+              + " the original concurrent program. The sequentialized program is then analyzed by"
+              + " the CPAchecker analysis given. Note that the CFA is transformed at the beginning"
+              + " of the analysis, so all (sub-)analyses will also operate on the sequentialized"
+              + " CFA. In particular this means that if you use a parallel or sequential"
+              + " composition of analyses, all of them will analyze the sequentialized CFA.In case"
+              + " you want to only sequentialize the program without analyzing it inside of"
+              + " CPAchecker, use the algorithm.MPOR option instead.")
+  private boolean useMporPreprocessing = true;
 
   @Option(
       secure = true,
@@ -437,11 +464,11 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
-  private final Configuration config;
+  private Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfa;
+  private CFA cfa;
   private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -455,7 +482,7 @@ public class CoreComponentsFactory {
       ShutdownNotifier pShutdownNotifier,
       AggregatedReachedSets pAggregatedReachedSets,
       CFA pCFA)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     config = pConfig;
     logger = pLogger;
 
@@ -476,6 +503,31 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
+    // Only sequentialize if not already done and requested.
+    if (useMporPreprocessing) {
+      // We replace the CFA for its sequentialized version.
+      if (alreadySequentialized(cfa)) {
+        logger.log(
+            Level.INFO,
+            "The CFA is already sequentialized. "
+                + "The sequentialization will be ignored. "
+                + "If this is part of a parallel algorithm, this may be expected.");
+      } else {
+        try {
+          cfa = preprocessCfaUsingSequentialization(config, logger, shutdownNotifier, cfa);
+        } catch (UnrecognizedCodeException | ParserException e) {
+          throw new UnsupportedOperationException(e);
+        }
+      }
+    } else {
+      // This can happen if the parallel algorithm requires a sequentialized CFA,
+      // but one of the inner analyses does not require it, and overwrote the option.
+      // In this case we revert to the original CFA.
+      if (alreadySequentialized(cfa)) {
+        cfa = verifyNotNull(cfa.getMetadata().getTransformationMetadata()).originalCfa();
+      }
+    }
+
     if (useTerminationAlgorithm) {
       aggregatedReachedSetManager = new AggregatedReachedSetManager();
       aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
@@ -491,6 +543,35 @@ public class CoreComponentsFactory {
     if (checkCounterexamplesWithBDDCPARestriction) {
       checkCounterexamples = true;
     }
+  }
+
+  private boolean alreadySequentialized(CFA pCFA) {
+    CfaTransformationMetadata transformationMetadata =
+        pCFA.getMetadata().getTransformationMetadata();
+    return transformationMetadata != null
+        && transformationMetadata.transformation().equals(ProgramTransformation.SEQUENTIALIZATION);
+  }
+
+  private static CFA preprocessCfaUsingSequentialization(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      throws UnrecognizedCodeException,
+          InterruptedException,
+          ParserException,
+          InvalidConfigurationException {
+    CFA originalCfa = pCFA;
+    MPORAlgorithm algorithm = new MPORAlgorithm(pConfig, pLogger, pShutdownNotifier, pCFA, null);
+    String sequentializedCode = algorithm.buildSequentializedProgram();
+    pCFA =
+        new CFACreator(pConfig, pLogger, pShutdownNotifier)
+            .parseSourceAndCreateCFA(sequentializedCode);
+
+    pCFA =
+        pCFA.copyWithMetadata(
+            pCFA.getMetadata()
+                .withTransformationMetadata(
+                    new CfaTransformationMetadata(
+                        originalCfa, ProgramTransformation.SEQUENTIALIZATION)));
+    return pCFA;
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -772,10 +853,6 @@ public class CoreComponentsFactory {
             new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
       }
 
-      if (useMPOR) {
-        algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, null);
-      }
-
       if (useMPV) {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
@@ -895,7 +972,7 @@ public class CoreComponentsFactory {
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
         || useRandomTestCaseGeneratorAlgorithm
-        || useMPOR) {
+        || useMporAlgorithm) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

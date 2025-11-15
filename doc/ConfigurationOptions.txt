@@ -265,7 +265,13 @@ analysis.algorithm.IMC = false
 analysis.algorithm.MPI = false
 
 # use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a
-# concurrent C program
+# concurrent C program. This algorithm transforms the input program into a
+# sequential program that preserves the properties of the original concurrent
+# program. The sequentialized program is outputted, but not analyzed inside
+# of CPAchecker. Use this option whenever you want to continue the analysis
+# of the sequentialized program externally. In case you want to analyze the
+# sequentialized program inside of CPAchecker, use the preprocessing.MPOR
+# option instead.
 analysis.algorithm.MPOR = false
 
 # allow input programs that write pointer variables?
@@ -597,6 +603,20 @@ analysis.name = no default value
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
+
+# use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a
+# concurrent C program. When this option is enabled, the MPOR
+# sequentialization is performed as a preprocessing step before the main
+# analysis begins. The input concurrent program is transformed into a
+# sequential program that preserves the properties of the original concurrent
+# program. The sequentialized program is then analyzed by the CPAchecker
+# analysis given. Note that the CFA is transformed at the beginning of the
+# analysis, so all (sub-)analyses will also operate on the sequentialized
+# CFA. In particular this means that if you use a parallel or sequential
+# composition of analyses, all of them will analyze the sequentialized CFA.In
+# case you want to only sequentialize the program without analyzing it inside
+# of CPAchecker, use the algorithm.MPOR option instead.
+analysis.preprocessing.MPOR = true
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = []

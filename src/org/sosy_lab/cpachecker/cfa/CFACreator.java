@@ -647,7 +647,7 @@ public class CFACreator {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
-      cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
+      cfa = cfa.copyWithMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
     }
 
     // FIFTH, do post-processings on the supergraph
