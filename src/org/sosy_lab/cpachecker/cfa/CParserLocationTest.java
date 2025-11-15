@@ -34,10 +34,10 @@ public class CParserLocationTest {
   @Parameters(name = "{0}")
   public static List<Object[]> testcases() {
     return ImmutableList.of(
-        new Object[] {"test.c", "./test.c"},
-        new Object[] {"./test.c", "./test.c"},
+        new Object[] {"test.c", "test.c"},
+        new Object[] {"./test.c", "test.c"},
         new Object[] {"dir/test.c", "dir/test.c"},
-        new Object[] {"./dir/test.c", "./dir/test.c"},
+        new Object[] {"./dir/test.c", "dir/test.c"},
         new Object[] {"/dir/test.c", "/dir/test.c"});
   }
 
