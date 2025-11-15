@@ -616,7 +616,7 @@ analysis.partitionInitialStates = false
 # composition of analyses, all of them will analyze the sequentialized CFA.In
 # case you want to only sequentialize the program without analyzing it inside
 # of CPAchecker, use the algorithm.MPOR option instead.
-analysis.preprocessing.MPOR = true
+analysis.preprocessing.MPOR = false
 
 # A String, denoting the programs to be analyzed
 analysis.programNames = []

@@ -398,7 +398,7 @@ public class CoreComponentsFactory {
               + " composition of analyses, all of them will analyze the sequentialized CFA.In case"
               + " you want to only sequentialize the program without analyzing it inside of"
               + " CPAchecker, use the algorithm.MPOR option instead.")
-  private boolean useMporPreprocessing = true;
+  private boolean useMporPreprocessing = false;
 
   @Option(
       secure = true,
