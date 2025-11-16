@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -221,8 +223,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (reachedSet.wasTargetReached()) {
         return false;
       }
-    } catch (Exception e) {
-      throw new CPAException(e.toString());
+    } catch (InvalidConfigurationException | IOException | ParserException e) {
+      throw new CPAException(
+          "The termination algorithm failed to verify the overapproximating program reducing"
+              + " well-foundedness!");
     }
     return true;
   }
