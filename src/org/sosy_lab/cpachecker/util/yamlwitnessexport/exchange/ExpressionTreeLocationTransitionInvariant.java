@@ -34,4 +34,20 @@ public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLoc
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapCurrentVarsToPrev() {
     return mapCurrentVarsToPrev;
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+
+    return pObj instanceof ExpressionTreeLocationTransitionInvariant other
+        && super.equals(other)
+        && other.mapCurrentVarsToPrev.equals(this.mapCurrentVarsToPrev);
+  }
 }

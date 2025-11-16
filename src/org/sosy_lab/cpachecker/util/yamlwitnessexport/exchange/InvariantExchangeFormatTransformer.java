@@ -212,7 +212,7 @@ public class InvariantExchangeFormatTransformer {
                   prevDeclaration));
       mapCurrToPrev.put(currDeclaration, prevDeclaration);
     }
-    return mapCurrToPrev.build();
+    return mapCurrToPrev.buildOrThrow();
   }
 
   private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
