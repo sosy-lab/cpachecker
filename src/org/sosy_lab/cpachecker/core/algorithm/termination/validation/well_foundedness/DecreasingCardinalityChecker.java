@@ -256,6 +256,21 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   private boolean isTheFormulaSimplyWellFounded(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException, CPAException {
+    pFormula = buildSameStateComparisonFormula(pFormula, pSupportingInvariants);
+
+    try {
+      // Checks well-foundedness as
+      if (solver.isUnsat(pFormula)) {
+        return true;
+      }
+    } catch (SolverException e) {
+      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
+    }
+    return false;
+  }
+
+  private BooleanFormula buildSameStateComparisonFormula(
+      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants) {
     pFormula =
         fmgr.instantiate(
             pFormula,
@@ -269,15 +284,6 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       sameState = bfmgr.and(sameState, fmgr.instantiate(supportingInvariant, ssaMap));
     }
     pFormula = bfmgr.and(sameState, pFormula);
-
-    try {
-      // Checks well-foundedness as
-      if (solver.isUnsat(pFormula)) {
-        return true;
-      }
-    } catch (SolverException e) {
-      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
-    }
-    return false;
+    return pFormula;
   }
 }
