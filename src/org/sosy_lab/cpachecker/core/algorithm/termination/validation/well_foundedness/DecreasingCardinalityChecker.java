@@ -72,7 +72,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     BooleanFormula stepFromSPrime = buildStepFromSPrime(pFormula);
 
     // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
-    ImmutableList<Formula> quantifiedVars = collectAllCurrVariables(stepFromS);
+    final ImmutableList<Formula> quantifiedVars = collectAllCurrVariables(stepFromS);
     BooleanFormula middleStep = buildMiddleStepFormula(stepFromS, stepFromSPrime, quantifiedVars);
 
     // T(s,s2), T(s',s2) ∧ I(s2)
@@ -80,7 +80,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     BooleanFormula stepFromSPrime2 = buildSecondStepFromSPrime(pFormula, pSupportingInvariants);
 
     // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
-    ImmutableList<Formula> quantifiedVars2 = collectAllCurrVariables(stepFromSPrime2);
+    final ImmutableList<Formula> quantifiedVars2 = collectAllCurrVariables(stepFromSPrime2);
     BooleanFormula middleStep2 =
         buildSecondMiddleFormula(stepFromS2, stepFromSPrime2, quantifiedVars2);
 
