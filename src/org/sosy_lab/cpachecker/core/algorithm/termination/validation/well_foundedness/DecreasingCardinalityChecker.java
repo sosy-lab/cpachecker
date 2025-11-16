@@ -176,7 +176,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   @Override
   public boolean isDisjunctivelyWellFounded(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 
     for (BooleanFormula candidateInvariant : invariantInDNF) {
@@ -193,7 +193,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    */
   private boolean isTheFormulaSimplyWellFounded(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     pFormula =
         fmgr.instantiate(
             pFormula,
@@ -214,8 +214,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
         return true;
       }
     } catch (SolverException e) {
-      logger.log(Level.WARNING, "Disjunctive well-foundedness check failed !");
-      return true;
+      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
     }
     return false;
   }
