@@ -107,7 +107,6 @@ public class InvariantExchangeFormatTransformer {
    * Parse the invariant string given in an {@link InvariantEntry} into an {@link ExpressionTree}.
    *
    * @param pInvariantEntry The entry whose invariant should be parsed
-   * @param pInvariantString The string representing the invariant
    * @return The parsed invariant as a {@link ExpressionTree}
    * @throws InterruptedException If the parsing is interrupted
    */

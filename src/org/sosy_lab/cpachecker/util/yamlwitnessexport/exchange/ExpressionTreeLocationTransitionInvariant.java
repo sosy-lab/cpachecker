@@ -30,4 +30,8 @@ public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLoc
     super(pGroupId, pLocation, pExpressionTree, pVisitorCache);
     mapCurrentVarsToPrev = pMapCurrentVarsToPrev;
   }
+
+  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapCurrentVarsToPrev() {
+    return mapCurrentVarsToPrev;
+  }
 }
