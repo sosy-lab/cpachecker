@@ -127,7 +127,7 @@ public class TerminationWitnessValidator implements Algorithm {
     }
     if (pWitnessPath.size() != 1) {
       throw new InvalidConfigurationException(
-          "Expect that only violation witness is part of the specification.");
+          "Expect that only one correctness witness is part of specification.");
     }
 
     if (checkWithInfiniteSpace) {
