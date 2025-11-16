@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -36,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -50,42 +47,6 @@ public class SeqExpressionBuilder {
         CArrayType.UNSIGNED_INT_ARRAY,
         SeqIdExpressions.PC_ARRAY_DUMMY,
         pSubscriptExpr);
-  }
-
-  // CBinaryExpression =============================================================================
-
-  /** Returns a list of {@code pc{thread_id} != 0} expressions for all {@code pPcLeftHandSides}. */
-  public static ImmutableList<CBinaryExpression> buildThreadNotActiveExpressions(
-      ImmutableList<CLeftHandSide> pPcLeftHandSides,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<CBinaryExpression> rExpressions = ImmutableList.builder();
-    for (CLeftHandSide pcLeftHandSide : pPcLeftHandSides) {
-      rExpressions.add(buildPcEqualExitPc(pcLeftHandSide, pBinaryExpressionBuilder));
-    }
-    return rExpressions.build();
-  }
-
-  /** Returns {@code pc{thread_id} != 0}. */
-  public static CBinaryExpression buildPcUnequalExitPc(
-      CLeftHandSide pPcLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        pPcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, BinaryOperator.NOT_EQUALS);
-  }
-
-  /**
-   * Returns {@code pc[pThreadId] == -1} for array and {@code pc{pThreadId} == -1} for scalar {@code
-   * pc}.
-   */
-  public static CBinaryExpression buildPcEqualExitPc(
-      CLeftHandSide pPcLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        pPcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, BinaryOperator.EQUALS);
   }
 
   // CFunctionCallExpression =======================================================================

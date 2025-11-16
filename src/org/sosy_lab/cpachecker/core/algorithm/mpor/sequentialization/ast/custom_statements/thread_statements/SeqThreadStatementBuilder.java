@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -68,7 +67,7 @@ public record SeqThreadStatementBuilder(
   public ImmutableList<CSeqThreadStatement> buildStatementsFromThreadNode(
       CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes) {
 
-    Builder<CSeqThreadStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<CSeqThreadStatement> rStatements = ImmutableList.builder();
 
     ImmutableList<CFAEdgeForThread> leavingEdges = pThreadNode.leavingEdges();
     int numLeavingEdges = leavingEdges.size();
@@ -412,7 +411,7 @@ public record SeqThreadStatementBuilder(
         targetThread.startRoutineExitVariable(),
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pcVariables.getThreadNotActiveExpression(targetThread.id()),
+        pcVariables.getThreadInactiveExpression(targetThread.id()),
         pcLeftHandSide);
   }
 

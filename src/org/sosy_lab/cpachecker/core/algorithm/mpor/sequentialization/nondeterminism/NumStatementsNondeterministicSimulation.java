@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -94,9 +93,7 @@ public class NumStatementsNondeterministicSimulation {
 
     // create "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
-        SeqExpressionBuilder.buildPcUnequalExitPc(
-            pGhostElements.getPcVariables().getPcLeftHandSide(pActiveThread.id()),
-            pUtils.binaryExpressionBuilder());
+        pGhostElements.getPcVariables().getThreadActiveExpression(pActiveThread.id());
     ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
@@ -191,7 +188,7 @@ public class NumStatementsNondeterministicSimulation {
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
-            pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
+            pOptions, pcVariables, pThread);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(

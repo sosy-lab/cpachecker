@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -22,40 +23,37 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ProgramCounterVariableBuilder {
+public record ProgramCounterVariableBuilder(
+    MPOROptions options, int numThreads, CBinaryExpressionBuilder binaryExpressionBuilder) {
 
-  // Program Counter Variables =====================================================================
-
-  public static ProgramCounterVariables buildProgramCounterVariables(
-      MPOROptions pOptions, int pNumThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList<CLeftHandSide> pcLeftHandSides = buildPcLeftHandSides(pOptions, pNumThreads);
-    ImmutableList<CBinaryExpression> threadNotActiveExpressions =
-        SeqExpressionBuilder.buildThreadNotActiveExpressions(
-            pcLeftHandSides, pBinaryExpressionBuilder);
-    return new ProgramCounterVariables(pcLeftHandSides, threadNotActiveExpressions);
+  public ProgramCounterVariables buildProgramCounterVariables() throws UnrecognizedCodeException {
+    ImmutableList<CLeftHandSide> pcLeftHandSides = buildPcLeftHandSides();
+    // pc != 0 (thread is at not exit pc i.e. active)
+    ImmutableList<CBinaryExpression> threadActiveExpressions =
+        buildThreadExpressions(pcLeftHandSides, BinaryOperator.NOT_EQUALS);
+    // pc == 0 (thread is at exit pc i.e. inactive)
+    ImmutableList<CBinaryExpression> threadInactiveExpressions =
+        buildThreadExpressions(pcLeftHandSides, BinaryOperator.EQUALS);
+    return new ProgramCounterVariables(
+        pcLeftHandSides, threadActiveExpressions, threadInactiveExpressions);
   }
 
-  private static ImmutableList<CLeftHandSide> buildPcLeftHandSides(
-      MPOROptions pOptions, int pNumThreads) {
-
+  private ImmutableList<CLeftHandSide> buildPcLeftHandSides() {
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     rPcExpressions.addAll(
-        pOptions.scalarPc()
-            ? buildScalarPcExpressions(pNumThreads)
-            : buildArrayPcExpressions(pNumThreads));
+        options.scalarPc() ? buildScalarPcExpressions() : buildArrayPcExpressions());
     return rPcExpressions.build();
   }
 
   // Build Expressions =============================================================================
 
-  private static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
+  private ImmutableList<CIdExpression> buildScalarPcExpressions() {
     ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
-    for (int i = 0; i < pNumThreads; i++) {
+    for (int i = 0; i < numThreads; i++) {
       CInitializer initializer = SeqInitializers.getPcInitializer(i == 0);
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
@@ -65,13 +63,27 @@ public class ProgramCounterVariableBuilder {
     return rScalarPc.build();
   }
 
-  private static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
+  private ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions() {
     ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
-    for (int i = 0; i < pNumThreads; i++) {
+    for (int i = 0; i < numThreads; i++) {
       rArrayPc.add(
           SeqExpressionBuilder.buildPcSubscriptExpression(
               SeqExpressionBuilder.buildIntegerLiteralExpression(i)));
     }
     return rArrayPc.build();
+  }
+
+  /** Returns a list of {@code pc{thread_id} != 0} expressions for all {@code pPcLeftHandSides}. */
+  private ImmutableList<CBinaryExpression> buildThreadExpressions(
+      ImmutableList<CLeftHandSide> pPcLeftHandSides, BinaryOperator pBinaryOperator)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CBinaryExpression> rExpressions = ImmutableList.builder();
+    for (CLeftHandSide pcLeftHandSide : pPcLeftHandSides) {
+      rExpressions.add(
+          binaryExpressionBuilder.buildBinaryExpression(
+              pcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, pBinaryOperator));
+    }
+    return rExpressions.build();
   }
 }

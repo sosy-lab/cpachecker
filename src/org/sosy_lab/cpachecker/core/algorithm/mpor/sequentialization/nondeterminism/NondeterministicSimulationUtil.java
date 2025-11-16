@@ -166,11 +166,7 @@ public class NondeterministicSimulationUtil {
   }
 
   static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
-      MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
-      MPORThread pThread,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, ProgramCounterVariables pPcVariables, MPORThread pThread) {
 
     if (!pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
       // without next_thread, no assumption is required due to if (pc != -1) ... check
@@ -178,8 +174,7 @@ public class NondeterministicSimulationUtil {
     }
     if (pOptions.scalarPc()) {
       CBinaryExpression threadActiveExpression =
-          SeqExpressionBuilder.buildPcUnequalExitPc(
-              pPcVariables.getPcLeftHandSide(pThread.id()), pBinaryExpressionBuilder);
+          pPcVariables.getThreadActiveExpression(pThread.id());
       CFunctionCallStatement assumeCall =
           SeqAssumptionBuilder.buildAssumption(threadActiveExpression);
       return Optional.of(assumeCall);

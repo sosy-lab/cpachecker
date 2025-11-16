@@ -22,18 +22,25 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
  * @param programCounter The list (indexable by thread * IDs) of {@link CLeftHandSide}s for each
  *     thread. This is either an integer {@link CIdExpression} or a {@link
  *     CArraySubscriptExpression} depending on {@link MPOROptions#scalarPc()}.
- * @param threadNotActiveExpressions The list (indexable by thread IDs) of {@link CBinaryExpression}
+ * @param threadActiveExpressions The list (indexable by thread IDs) of {@link CBinaryExpression}
+ *     that is true when a thread is active, e.g. {@code pc0 != 0}.
+ * @param threadInactiveExpressions The list (indexable by thread IDs) of {@link CBinaryExpression}
  *     that is true when a thread is inactive, e.g. {@code pc0 == 0}.
  */
 public record ProgramCounterVariables(
     ImmutableList<CLeftHandSide> programCounter,
-    ImmutableList<CBinaryExpression> threadNotActiveExpressions) {
+    ImmutableList<CBinaryExpression> threadActiveExpressions,
+    ImmutableList<CBinaryExpression> threadInactiveExpressions) {
 
   public CLeftHandSide getPcLeftHandSide(int pThreadId) {
     return programCounter.get(pThreadId);
   }
 
-  public CBinaryExpression getThreadNotActiveExpression(int pThreadId) {
-    return threadNotActiveExpressions.get(pThreadId);
+  public CBinaryExpression getThreadActiveExpression(int pThreadId) {
+    return threadInactiveExpressions.get(pThreadId);
+  }
+
+  public CBinaryExpression getThreadInactiveExpression(int pThreadId) {
+    return threadInactiveExpressions.get(pThreadId);
   }
 }

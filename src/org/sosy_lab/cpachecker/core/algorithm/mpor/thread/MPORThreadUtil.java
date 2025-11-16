@@ -110,7 +110,7 @@ public class MPORThreadUtil {
         return rThread;
       }
     }
-    throw new IllegalArgumentException("no MPORThread with pThreadObject found in pThreads");
+    throw new IllegalArgumentException("no MPORThread with pThreadObject found in threads");
   }
 
   public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
@@ -119,7 +119,7 @@ public class MPORThreadUtil {
         return thread;
       }
     }
-    throw new IllegalArgumentException("no MPORThread with pId found in pThreads");
+    throw new IllegalArgumentException("no MPORThread with pId found in threads");
   }
 
   static int getHighestPc(ImmutableList<CFANodeForThread> pThreadNodes) {

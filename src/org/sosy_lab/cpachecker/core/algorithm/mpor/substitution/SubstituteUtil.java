@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -33,24 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
-
-  public static SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
-      CFAEdge pCfaEdge,
-      Optional<CFAEdgeForThread> pCallContext,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
-
-    for (CFAEdgeForThread threadEdge : pSubstituteEdges.keySet()) {
-      if (threadEdge.cfaEdge.equals(pCfaEdge)) {
-        if (threadEdge.callContext.equals(pCallContext)) {
-          return pSubstituteEdges.get(threadEdge);
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "could not find pCfaEdge of type %s and pCallContext in pSubstituteEdges",
-            pCfaEdge.getEdgeType()));
-  }
 
   /**
    * Whether {@code pSimpleDeclaration} is a {@link CVariableDeclaration} or {@link
@@ -163,7 +144,7 @@ public class SubstituteUtil {
 
   /**
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
-   * {@code pSubstituteEdges}, including both global and local memory locations.
+   * {@code substituteEdges}, including both global and local memory locations.
    */
   public static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
       MPOROptions pOptions,

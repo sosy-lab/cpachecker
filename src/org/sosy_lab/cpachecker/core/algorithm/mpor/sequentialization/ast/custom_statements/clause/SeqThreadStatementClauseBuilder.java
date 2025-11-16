@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableListMultimap.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
@@ -92,7 +91,8 @@ public record SeqThreadStatementClauseBuilder(
   private ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClauses()
       throws UnrecognizedCodeException {
 
-    Builder<MPORThread, SeqThreadStatementClause> rClauses = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
+        ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : substitutions) {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
@@ -114,7 +114,8 @@ public record SeqThreadStatementClauseBuilder(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {
 
-    Builder<MPORThread, SeqThreadStatementClause> rReordered = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rReordered =
+        ImmutableListMultimap.builder();
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =

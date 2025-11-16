@@ -85,14 +85,16 @@ public class SequentializationFields {
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values());
-    ghostElements =
-        GhostElementBuilder.buildGhostElements(
+
+    GhostElementBuilder ghostElementBuilder =
+        new GhostElementBuilder(
             pOptions,
             threads,
             substitutions,
             substituteEdges,
             memoryModel,
             pUtils.binaryExpressionBuilder());
+    ghostElements = ghostElementBuilder.buildGhostElements();
 
     SeqThreadStatementClauseBuilder clauseBuilder =
         new SeqThreadStatementClauseBuilder(

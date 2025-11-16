@@ -323,7 +323,7 @@ public class MPOROptions {
       }
     }
     if (pruneBitVectorEvaluations) {
-      if (!isAnyReductionEnabled()) {
+      if (!isAnyBitVectorReductionEnabled()) {
         throw new InvalidConfigurationException(
             "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
       }
@@ -352,7 +352,7 @@ public class MPOROptions {
             "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
-    if (isAnyReductionEnabled()) {
+    if (isAnyBitVectorReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
             "a reduce* option is enabled, but reductionMode is not set.");
@@ -375,7 +375,7 @@ public class MPOROptions {
 
   // boolean helpers ===============================================================================
 
-  public boolean isAnyReductionEnabled() {
+  public boolean isAnyBitVectorReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 

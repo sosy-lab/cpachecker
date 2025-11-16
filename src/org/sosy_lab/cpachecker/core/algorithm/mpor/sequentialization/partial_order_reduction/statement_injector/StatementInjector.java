@@ -52,7 +52,7 @@ public class StatementInjector {
                   + " locations.");
       return pClauses; // no relevant memory locations -> no bit vectors needed
     }
-    if (!pOptions.isAnyReductionEnabled()) {
+    if (!pOptions.isAnyBitVectorReductionEnabled()) {
       return pClauses;
     }
     // otherwise inject into statements

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -30,46 +31,50 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class GhostElementBuilder {
+public record GhostElementBuilder(
+    MPOROptions options,
+    ImmutableList<MPORThread> pThreads,
+    ImmutableList<MPORSubstitution> pSubstitutions,
+    ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
+    Optional<MemoryModel> pMemoryModel,
+    CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-  public static GhostElements buildGhostElements(
-      MPOROptions pOptions,
-      ImmutableList<MPORThread> pThreads,
-      ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      Optional<MemoryModel> pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
+  public GhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<BitVectorVariables> bitVectorVariables =
-        BitVectorBuilder.buildBitVectorVariables(
-            pOptions, pThreads, pSubstituteEdges, pMemoryModel);
+        options.isAnyBitVectorReductionEnabled()
+            ? new BitVectorBuilder(options, pThreads, pSubstituteEdges, pMemoryModel.orElseThrow())
+                .buildBitVectorVariables()
+            : Optional.empty();
+
+    FunctionStatementBuilder functionStatementBuilder =
+        new FunctionStatementBuilder(pThreads, pSubstitutions, pSubstituteEdges);
     ImmutableMap<MPORThread, FunctionStatements> functionStatements =
-        FunctionStatementBuilder.buildFunctionStatements(
-            pThreads, pSubstitutions, pSubstituteEdges);
+        functionStatementBuilder.buildFunctionStatements();
+
+    ProgramCounterVariableBuilder pcVariableBuilder =
+        new ProgramCounterVariableBuilder(options, pThreads.size(), pBinaryExpressionBuilder);
     ProgramCounterVariables programCounterVariables =
-        ProgramCounterVariableBuilder.buildProgramCounterVariables(
-            pOptions, pThreads.size(), pBinaryExpressionBuilder);
-    ThreadSyncFlags threadSyncFlags =
-        ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
+        pcVariableBuilder.buildProgramCounterVariables();
+
+    ThreadSyncFlagsBuilder threadSyncFlagsBuilder =
+        new ThreadSyncFlagsBuilder(options, pThreads, pBinaryExpressionBuilder);
+    ThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
     return new GhostElements(
         bitVectorVariables,
         functionStatements,
         programCounterVariables,
-        buildThreadLabels(pOptions, pThreads),
+        buildThreadLabels(),
         threadSyncFlags);
   }
 
-  private static ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
-
-    if (!pOptions.isThreadLabelRequired()) {
+  private ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels() {
+    if (!options.isThreadLabelRequired()) {
       return ImmutableMap.of();
     }
-    ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
+    Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.id());
+      String name = SeqNameUtil.buildThreadPrefix(options, thread.id());
       rLabels.put(thread, new SeqThreadLabelStatement(name));
     }
     return rLabels.buildOrThrow();

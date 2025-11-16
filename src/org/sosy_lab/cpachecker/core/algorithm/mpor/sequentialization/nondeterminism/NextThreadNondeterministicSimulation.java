@@ -85,7 +85,7 @@ public class NextThreadNondeterministicSimulation {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
-            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+            pOptions, pPcVariables, pThread);
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
             pOptions, pThread, pBinaryExpressionBuilder);
