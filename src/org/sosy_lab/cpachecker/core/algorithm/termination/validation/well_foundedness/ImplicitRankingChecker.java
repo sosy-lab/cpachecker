@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -96,21 +97,15 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     // Initialize the variables from the transition invariant
     Set<String> alreadyDeclaredVars = new HashSet<>();
     String varDeclaration;
-    for (String variable : cfa.getVarClassification().orElseThrow().getRelevantVariables()) {
-      if (variable.contains("__retval__")) {
-        continue;
-      }
-      String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      varDeclaration =
-          TransitionInvariantUtils.removeFunctionFromVarsName(
-              scope.lookupVariable(variable).toString());
-      if (!varDeclaration.contains(";")) {
-        varDeclaration = varDeclaration + ";";
-      }
+    for (AbstractSimpleDeclaration variable :
+        cfa.getAstCfaRelation()
+            .getVariablesAndParametersInScope(pLoop.getLoopHeads().asList().getFirst())
+            .orElseThrow()) {
+      varDeclaration = variable.toString();
       if (varDeclaration.contains("struct")) {
         continue;
       }
-      if (alreadyDeclaredVars.add(variableName)) {
+      if (alreadyDeclaredVars.add(variable.getName())) {
         builder.add(varDeclaration);
       }
     }
