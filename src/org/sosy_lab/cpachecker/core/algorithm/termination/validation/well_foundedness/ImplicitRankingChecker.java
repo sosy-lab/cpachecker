@@ -29,13 +29,9 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -206,14 +202,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
               overapproximatingCFA);
       ConfigurableProgramAnalysis terminationCpa = coreComponents.createCPA(specification);
       // Reached Set
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-      ReachedSet reachedSet = reachedSetFactory.create(terminationCpa);
-      AbstractState initialState =
-          terminationCpa.getInitialState(mainEntryNode, StateSpacePartition.getDefaultPartition());
-      Precision initialPrecision =
-          terminationCpa.getInitialPrecision(
-              mainEntryNode, StateSpacePartition.getDefaultPartition());
-      reachedSet.add(initialState, initialPrecision);
+      ReachedSet reachedSet =
+          coreComponents.createInitializedReachedSet(terminationCpa, mainEntryNode);
 
       // Running the algorithm
       Algorithm terminationAlgorithm =

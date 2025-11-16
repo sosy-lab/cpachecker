@@ -42,14 +42,9 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.WellFoundednessChecker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -267,16 +262,9 @@ public class TerminationWitnessValidator implements Algorithm {
       Algorithm invariantCheckingAlgorithm =
           coreComponents.createAlgorithm(supportingInvariantsCPA, invariantSpec);
 
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-      ForwardingReachedSet reachedSet =
-          new ForwardingReachedSet(reachedSetFactory.create(supportingInvariantsCPA));
-      AbstractState initialState =
-          supportingInvariantsCPA.getInitialState(
-              cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      Precision initialPrecision =
-          supportingInvariantsCPA.getInitialPrecision(
-              cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      reachedSet.add(initialState, initialPrecision);
+      ReachedSet reachedSet =
+          coreComponents.createInitializedReachedSet(
+              supportingInvariantsCPA, cfa.getMainFunction());
 
       // Running the algorithm
       invariantCheckingAlgorithm.run(reachedSet);
