@@ -47,9 +47,8 @@ public class ClangFormatter {
       logger.logfUserException(
           Level.WARNING,
           e,
-          String.format(
-              "%s failed due to an error. Returning unformatted code instead.",
-              clangFormatVersion));
+          "%s failed due to an error. Returning unformatted code instead.",
+          clangFormatVersion);
     }
     return pCode;
   }
