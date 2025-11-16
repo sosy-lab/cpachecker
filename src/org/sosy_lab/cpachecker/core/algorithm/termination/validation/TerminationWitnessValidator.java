@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -323,7 +324,7 @@ public class TerminationWitnessValidator implements Algorithm {
         if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
           BooleanFormula invariantFormula;
           try {
-            if (invariant.asExpressionTree().toString().equals("true")) {
+            if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
               invariantFormula = bfmgr.makeTrue();
             } else {
               invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
