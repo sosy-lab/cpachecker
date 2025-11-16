@@ -62,8 +62,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.TransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 /**
@@ -271,17 +273,28 @@ public class WitnessInvariantsExtractor {
       }
 
       if (node.isPresent()) {
-        ExpressionTreeLocationInvariant candidateInvariant =
-            new ExpressionTreeLocationInvariant(
-                "Invariant matched at line "
-                    + invariant.getLine()
-                    + " with column "
-                    + invariant.getColumn(),
-                node.orElseThrow(),
-                invariant.getFormula(),
-                toCodeVisitorCache);
-        if (invariant.isTransitionInvariant()) {
-          candidateInvariant.setTransitionInvariant();
+        ExpressionTreeLocationInvariant candidateInvariant;
+        if (invariant instanceof TransitionInvariant pTransitionInvariant) {
+          candidateInvariant =
+              new ExpressionTreeLocationTransitionInvariant(
+                  "Invariant matched at line "
+                      + invariant.getLine()
+                      + " with column "
+                      + invariant.getColumn(),
+                  node.orElseThrow(),
+                  invariant.getFormula(),
+                  toCodeVisitorCache,
+                  pTransitionInvariant.getMapCurrentVarsToPrev());
+        } else {
+          candidateInvariant =
+              new ExpressionTreeLocationInvariant(
+                  "Invariant matched at line "
+                      + invariant.getLine()
+                      + " with column "
+                      + invariant.getColumn(),
+                  node.orElseThrow(),
+                  invariant.getFormula(),
+                  toCodeVisitorCache);
         }
         candidateInvariants.add(candidateInvariant);
       } else {

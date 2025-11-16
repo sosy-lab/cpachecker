@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -75,10 +74,6 @@ public class InvariantExchangeFormatTransformer {
     cfa = pCFA;
     logger = pLogger;
   }
-
-  public record TransitionInvariant(
-      ExpressionTree<AExpression> invariant,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrentVarsToPrevVars) {}
 
   /**
    * Create an {@link ExpressionTree} from a given string.
@@ -121,10 +116,13 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString =
-        pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())
-            ? replacePrevKeywordWithFreshVariables(pInvariantEntry)
-            : pInvariantEntry.getValue();
+    String invariantString = pInvariantEntry.getValue();
+    if (pInvariantEntry
+        .getType()
+        .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+      invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
+      registerThePrevVariables(pInvariantEntry);
+    }
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -136,14 +134,6 @@ public class InvariantExchangeFormatTransformer {
         };
 
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
-  }
-
-  public TransitionInvariant parseTransitionInvariantEntry(InvariantEntry pInvariantEntry)
-      throws InterruptedException, WitnessParseException {
-    ExpressionTree<AExpression> invariantExpressionTree = parseInvariantEntry(pInvariantEntry);
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrToPrevVariables =
-        registerThePrevVariables(pInvariantEntry);
-    return new TransitionInvariant(invariantExpressionTree, mapCurrToPrevVariables);
   }
 
   /**
@@ -180,7 +170,7 @@ public class InvariantExchangeFormatTransformer {
    * @param pInvariantEntry the invariant entry
    */
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
-      InvariantEntry pInvariantEntry) throws WitnessParseException {
+      InvariantEntry pInvariantEntry) {
     String invariantString = pInvariantEntry.getValue();
     Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
     Matcher matcher = pattern.matcher(invariantString);
@@ -197,8 +187,7 @@ public class InvariantExchangeFormatTransformer {
       String prevVariable = matcher.group(1);
       CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
       if (currDeclaration == null) {
-        throw new WitnessParseException(
-            "The following variable is not in the original program: " + prevVariable);
+        continue;
       }
       prevVariable = prevVariable + "__PREV";
 
@@ -272,14 +261,24 @@ public class InvariantExchangeFormatTransformer {
 
             ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
 
-            invariants.add(
-                new Invariant(
-                    invariant,
-                    line,
-                    column,
-                    invariantEntry.getLocation().getFunction(),
-                    isLoopInvariant(invariantEntry),
-                    isTransitionInvariant(invariantEntry)));
+            if (isTransitionInvariant(invariantEntry)) {
+              invariants.add(
+                  new TransitionInvariant(
+                      invariant,
+                      line,
+                      column,
+                      invariantEntry.getLocation().getFunction(),
+                      isLoopInvariant(invariantEntry),
+                      registerThePrevVariables(invariantEntry)));
+            } else {
+              invariants.add(
+                  new Invariant(
+                      invariant,
+                      line,
+                      column,
+                      invariantEntry.getLocation().getFunction(),
+                      isLoopInvariant(invariantEntry)));
+            }
 
             lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
           }

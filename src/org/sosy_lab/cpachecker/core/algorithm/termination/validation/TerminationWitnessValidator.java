@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -286,7 +287,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
       boolean isTrivial = true;
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-        if (!invariant.isTransitionInvariant()) {
+        if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
           if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
             BooleanFormula invariantFormula;
             try {
@@ -317,7 +318,7 @@ public class TerminationWitnessValidator implements Algorithm {
       boolean isTrivial = true;
       PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(loop.getInnerLoopEdges()));
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-        if (!invariant.isTransitionInvariant()) {
+        if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
           continue;
         }
 

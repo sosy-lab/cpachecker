@@ -19,14 +19,15 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer.TransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -82,10 +83,10 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
             // The checks for the entries that contain unsupported entries is done as part of the
             // 2.0 construction
             if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
-              TransitionInvariant transitionInvariant =
-                  transformer.parseTransitionInvariantEntry(invariantEntry);
+              ExpressionTree<AExpression> transitionInvariant =
+                  transformer.parseInvariantEntry(invariantEntry);
 
-              if (transitionInvariant.invariant().equals(ExpressionTrees.getTrue())) {
+              if (transitionInvariant.equals(ExpressionTrees.getTrue())) {
                 continue;
               }
               Optional<IterationElement> optionalIterationStructure =
