@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermi
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -59,13 +60,23 @@ public class NondeterministicSimulationUtil {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
-          NextThreadNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pUtils.binaryExpressionBuilder());
+          new NextThreadNondeterministicSimulation(
+                  pOptions,
+                  pFields.clauses,
+                  pFields.ghostElements,
+                  pUtils.binaryExpressionBuilder())
+              .buildThreadSimulations();
       case NUM_STATEMENTS ->
-          NumStatementsNondeterministicSimulation.buildThreadSimulations(pOptions, pFields, pUtils);
+          new NumStatementsNondeterministicSimulation(
+                  pOptions, pFields.clauses, pFields.ghostElements, pUtils)
+              .buildThreadSimulations();
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pFields, pUtils.binaryExpressionBuilder());
+          new NextThreadAndNumStatementsNondeterministicSimulation(
+                  pOptions,
+                  pFields.clauses,
+                  pFields.ghostElements,
+                  pUtils.binaryExpressionBuilder())
+              .buildThreadSimulations();
     };
   }
 
@@ -74,24 +85,22 @@ public class NondeterministicSimulationUtil {
       GhostElements pGhostElements,
       MPORThread pThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableList<SeqThreadStatementClause> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
-          NextThreadNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions,
-              pGhostElements.getPcVariables(),
-              pThread,
-              pClauses,
-              pUtils.binaryExpressionBuilder());
+          new NextThreadNondeterministicSimulation(
+                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
+              .buildSingleThreadSimulation(pThread);
       case NUM_STATEMENTS ->
-          NumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pUtils);
+          new NumStatementsNondeterministicSimulation(pOptions, pClauses, pGhostElements, pUtils)
+              .buildSingleThreadSimulation(pThread, pOtherThreads);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          NextThreadAndNumStatementsNondeterministicSimulation.buildSingleThreadSimulation(
-              pOptions, pGhostElements, pThread, pClauses, pUtils.binaryExpressionBuilder());
+          new NextThreadAndNumStatementsNondeterministicSimulation(
+                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
+              .buildSingleThreadSimulation(pThread);
     };
   }
 

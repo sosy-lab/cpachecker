@@ -138,8 +138,8 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * Ensures that all {@code int} labels in {@code pClauses} are numbered consecutively, i.e. the
-   * numbers {@code 0} to {@code pClauses.size() - 1} are present (no gaps).
+   * Ensures that all {@code int} labels in {@code clauses} are numbered consecutively, i.e. the
+   * numbers {@code 0} to {@code clauses.size() - 1} are present (no gaps).
    *
    * <p>This function also recursively searches for all target {@code pc} and adjusts them
    * accordingly.

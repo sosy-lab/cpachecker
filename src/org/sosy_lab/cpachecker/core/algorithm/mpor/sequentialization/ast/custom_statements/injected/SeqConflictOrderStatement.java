@@ -49,7 +49,7 @@ public record SeqConflictOrderStatement(
     final String ifBlock;
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
-      ifBlock = SeqFunctionCallExpressions.ABORT.toASTString();
+      ifBlock = SeqFunctionCallExpressions.ABORT.toASTString() + SeqSyntax.SEMICOLON;
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
       ifBlock =

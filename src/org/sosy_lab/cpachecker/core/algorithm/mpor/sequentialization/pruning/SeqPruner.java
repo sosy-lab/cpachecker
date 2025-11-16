@@ -192,7 +192,7 @@ public class SeqPruner {
         }
       }
     }
-    throw new AssertionError("no thread exit found in pClauses");
+    throw new AssertionError("no thread exit found in clauses");
   }
 
   /**

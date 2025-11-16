@@ -272,6 +272,14 @@ public class MPOROptions {
           String.format(
               "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE));
     }
+    if (nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!controlEncodingThread.isEnabled()) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "controlEncodingThread cannot be %s when nondeterminismSource contains NEXT_THREAD",
+                MultiControlStatementEncoding.NONE));
+      }
+    }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(

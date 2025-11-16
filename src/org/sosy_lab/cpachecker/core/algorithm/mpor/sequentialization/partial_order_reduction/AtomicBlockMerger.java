@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class AtomicBlockMerger {
 
   /**
-   * Builds atomic blocks for {@code pClauses} by adding {@code goto} statements when encountering
-   * an atomic_begin, until an atomic_end is encountered.
+   * Builds atomic blocks for {@code clauses} by adding {@code goto} statements when encountering an
+   * atomic_begin, until an atomic_end is encountered.
    */
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> merge(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
@@ -114,7 +114,7 @@ public class AtomicBlockMerger {
         || pClause.getFirstBlock().startsInAtomicBlock()
         // allowed if the next statement starts in an atomic block, regardless of previous statement
         // this can happen e.g. with atomic_ends that are reached conditionally
-        // -> multiple paths that may not be consecutive in pClauses
+        // -> multiple paths that may not be consecutive in clauses
         || (next.isPresent() && next.orElseThrow().getFirstBlock().startsInAtomicBlock());
   }
 

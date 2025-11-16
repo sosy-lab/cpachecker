@@ -59,7 +59,7 @@ public class SeqValidator {
   //  first statement
 
   /**
-   * Validates correctness properties of {@code pClauses} based on the options set in {@code
+   * Validates correctness properties of {@code clauses} based on the options set in {@code
    * pOptions}.
    */
   public static void tryValidateClauses(

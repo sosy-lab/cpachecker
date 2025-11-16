@@ -60,28 +60,36 @@ public record SeqThreadStatementClauseBuilder(
 
     // initialize clauses from ThreadCFAs
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses = initClauses();
+
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         options.pruneEmptyStatements()
             ? SeqPruner.pruneClauses(options, initialClauses)
             : initialClauses;
+
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
         options.atomicBlockMerge() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
+
     // if enabled, apply partial order reduction and reduce number of clauses
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
-        PartialOrderReducer.reduce(
+    PartialOrderReducer partialOrderReducer =
+        new PartialOrderReducer(
             options, atomicBlocks, ghostElements.bitVectorVariables(), memoryModel, utils);
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
+        partialOrderReducer.reduce();
+
     // if enabled, ensure that no backward goto exist
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         options.noBackwardGoto()
             ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses)
             : reducedClauses;
+
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         options.consecutiveLabels()
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
+
     // validate clauses based on pOptions
     SeqValidator.tryValidateClauses(options, consecutiveLabels);
     return consecutiveLabels;
