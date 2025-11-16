@@ -69,11 +69,6 @@ public class PthreadUtil {
         pPthreadObjectType);
 
     PthreadFunctionType functionType = getPthreadFunctionType(pFunctionCall);
-    if (functionType.equals(PthreadFunctionType.PTHREAD_CREATE)) {
-      if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_COND_T)) {
-        System.out.print("");
-      }
-    }
     int parameterIndex = functionType.getParameterIndex(pPthreadObjectType);
     CExpression parameterExpression =
         pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(parameterIndex);
