@@ -72,7 +72,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     BooleanFormula stepFromSPrime = buildStepFromSPrime(pFormula);
 
     // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
-    final ImmutableList<Formula> quantifiedVars = collectAllCurrVariables(stepFromS);
+    final ImmutableList<Formula> quantifiedVars =
+        collectAllCurrVariables(stepFromS, pFormula, 1, 3);
     BooleanFormula middleStep = buildMiddleStepFormula(stepFromS, stepFromSPrime, quantifiedVars);
 
     // T(s,s2), T(s',s2) ∧ I(s2)
@@ -80,7 +81,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     BooleanFormula stepFromSPrime2 = buildSecondStepFromSPrime(pFormula, pSupportingInvariants);
 
     // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
-    final ImmutableList<Formula> quantifiedVars2 = collectAllCurrVariables(stepFromSPrime2);
+    final ImmutableList<Formula> quantifiedVars2 =
+        collectAllCurrVariables(stepFromSPrime2, pFormula, 4, 5);
     BooleanFormula middleStep2 =
         buildSecondMiddleFormula(stepFromS2, stepFromSPrime2, quantifiedVars2);
 
@@ -152,7 +154,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       ImmutableList<Formula> quantifiedVars) {
     BooleanFormula middleStep = fmgr.makeAnd(stepFromS, stepFromSPrime);
     if (!quantifiedVars.isEmpty()) {
-      middleStep = qfmgr.exists(collectAllCurrVariables(stepFromS), middleStep);
+      middleStep = qfmgr.exists(quantifiedVars, middleStep);
     }
     return middleStep;
   }
@@ -208,11 +210,16 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    * @param pFormula containing all the variables
    * @return List of the variables without __PREV suffix.
    */
-  private ImmutableList<Formula> collectAllCurrVariables(Formula pFormula) {
+  private ImmutableList<Formula> collectAllCurrVariables(
+      Formula pFormula, Formula pInitialFormula, int pPrevIndex, int pCurrIndex) {
+    SSAMap ssaMap =
+        TransitionInvariantUtils.setIndicesToDifferentValues(
+            pInitialFormula, pPrevIndex, pCurrIndex, fmgr, scope);
     ImmutableList.Builder<Formula> builder = ImmutableList.builder();
-    Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
+    Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(fmgr.uninstantiate(pFormula));
     for (Map.Entry<String, Formula> entry : mapNamesToVariables.entrySet()) {
-      if (!entry.getKey().contains("__PREV")) {
+      if (ssaMap.containsVariable(entry.getKey())
+          && ssaMap.getIndex(entry.getKey()) == pPrevIndex) {
         builder.add(mapNamesToVariables.get(entry.getKey()));
       }
     }
