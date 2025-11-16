@@ -11,36 +11,47 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.io.IOException;
 import java.util.logging.Level;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 
 /** A formatter for C code. Requires {@code clang-format} to be installed and in system PATH. */
+@Options(prefix = "clangFormatter")
 public class ClangFormatter {
 
-  private static final String CLANG_FORMAT = "clang-format";
+  @Option(
+      secure = false,
+      description = "define the clang-format version to use, e.g. clang-format-18.")
+  private String clangFormatVersion = "clang-format";
+
+  private final LogManager logger;
+
+  public ClangFormatter(LogManager pLogger) {
+    logger = pLogger;
+  }
 
   /**
    * Tries to format and return the C code given in {@code pCode} using {@code clang}. If it fails,
    * returns {@code pCode} as is.
    */
-  public static String tryFormat(String pCode, ClangFormatStyle pStyle, LogManager pLogger)
-      throws InterruptedException {
+  public String tryFormat(String pCode, ClangFormatStyle pStyle) throws InterruptedException {
 
     try {
-      return format(pCode, pStyle, pLogger);
+      return format(pCode, pStyle);
     } catch (IOException e) {
-      pLogger.logfUserException(
+      logger.logfUserException(
           Level.WARNING,
           e,
-          CLANG_FORMAT + " failed due to an error. Returning unformatted code instead.");
+          clangFormatVersion + " failed due to an error. Returning unformatted code instead.");
     }
     return pCode;
   }
 
-  private static String format(String pCode, ClangFormatStyle pStyle, LogManager pLogger)
+  private String format(String pCode, ClangFormatStyle pStyle)
       throws IOException, InterruptedException {
 
     ProcessExecutor<IOException> executor =
-        new ProcessExecutor<>(pLogger, IOException.class, CLANG_FORMAT, pStyle.getCommand());
+        new ProcessExecutor<>(logger, IOException.class, clangFormatVersion, pStyle.getCommand());
 
     // send code to clang-format via stdin
     executor.print(pCode);
@@ -51,7 +62,8 @@ public class ClangFormatter {
     if (exitCode != 0) {
       String errorOutput = String.join(System.lineSeparator(), executor.getErrorOutput());
       throw new IOException(
-          String.format("%s failed with exit code %d:%n%s", CLANG_FORMAT, exitCode, errorOutput));
+          String.format(
+              "%s failed with exit code %d:%n%s", clangFormatVersion, exitCode, errorOutput));
     }
 
     // collect and return formatted output

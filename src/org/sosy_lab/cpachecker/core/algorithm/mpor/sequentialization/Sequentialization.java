@@ -74,10 +74,7 @@ public class Sequentialization {
       throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
-    String formattedProgram =
-        pOptions.clangFormatStyle().isEnabled()
-            ? ClangFormatter.tryFormat(initProgram, pOptions.clangFormatStyle(), pUtils.logger())
-            : initProgram;
+    String formattedProgram = handleProgramFormatting(pOptions, initProgram, pUtils.logger());
     // replace dummy reach_errors after formatting so that line numbers are exact
     String rFinalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
 
@@ -142,6 +139,16 @@ public class Sequentialization {
     rProgram.add(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
 
     return rProgram.toString();
+  }
+
+  private static String handleProgramFormatting(
+      MPOROptions pOptions, String pProgram, LogManager pLogger) throws InterruptedException {
+
+    if (pOptions.clangFormatStyle().isEnabled()) {
+      ClangFormatter clangFormatter = new ClangFormatter(pLogger);
+      return clangFormatter.tryFormat(pProgram, pOptions.clangFormatStyle());
+    }
+    return pProgram;
   }
 
   /**
