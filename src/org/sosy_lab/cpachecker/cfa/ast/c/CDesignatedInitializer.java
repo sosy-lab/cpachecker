@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
   @Serial private static final long serialVersionUID = -2567254248669651550L;
-  private final List<CDesignator> designators;
+  private final ImmutableList<CDesignator> designators;
   private final CInitializer right;
 
   public CDesignatedInitializer(
@@ -44,7 +44,7 @@ public final class CDesignatedInitializer extends AbstractInitializer implements
     return sb.toString();
   }
 
-  public List<CDesignator> getDesignators() {
+  public ImmutableList<CDesignator> getDesignators() {
     return designators;
   }
 

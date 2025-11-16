@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 public sealed interface ACSLAnnotation
     permits ACSLAssertion,
@@ -32,11 +32,11 @@ public sealed interface ACSLAnnotation
   ACSLPredicate getCompletenessPredicate();
 
   /** Returns all behaviors declared in the annotation. */
-  List<Behavior> getDeclaredBehaviors();
+  ImmutableList<Behavior> getDeclaredBehaviors();
 
   /**
    * Returns all behaviors that are referenced by the annotation. The returned list does not contain
    * newly declared behaviors, those can be acquired via {@link #getDeclaredBehaviors()}.
    */
-  List<Behavior> getReferencedBehaviors();
+  ImmutableList<Behavior> getReferencedBehaviors();
 }

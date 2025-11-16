@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
@@ -68,8 +69,8 @@ public sealed class JMethodInvocationExpression extends AFunctionCallExpression
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JExpression> getParameterExpressions() {
-    return (List<JExpression>) super.getParameterExpressions();
+  public ImmutableList<JExpression> getParameterExpressions() {
+    return (ImmutableList<JExpression>) super.getParameterExpressions();
   }
 
   @Override

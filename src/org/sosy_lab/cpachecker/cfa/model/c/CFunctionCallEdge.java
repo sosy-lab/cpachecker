@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -51,7 +51,7 @@ public final class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdg
   }
 
   @Override
-  public List<CExpression> getArguments() {
+  public ImmutableList<CExpression> getArguments() {
     return getFunctionCallExpression().getParameterExpressions();
   }
 

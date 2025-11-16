@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -19,6 +20,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,163 +56,172 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
     DataRaceState state = (DataRaceState) pState;
     Map<String, ThreadInfo> threadInfo = state.getThreadInfo();
-    ImmutableSet.Builder<DataRaceState> strengthenedStates = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
     synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
-    for (ThreadingState threadingState :
-        AbstractStates.projectToType(otherStates, ThreadingState.class)) {
+    ThreadingState threadingState =
+        Iterables.getOnlyElement(AbstractStates.projectToType(otherStates, ThreadingState.class));
 
-      Set<String> threadIds = threadingState.getThreadIds();
-      String activeThread = getActiveThread(cfaEdge, threadingState);
-      assert Objects.equals(activeThread, threadInfo.get(activeThread).getThreadId());
-      ImmutableMap<String, ThreadInfo> newThreadInfo =
-          updateThreadInfo(threadInfo, threadIds, activeThread, synchronizationBuilder);
+    Set<String> threadIds = threadingState.getThreadIds();
+    String activeThread = getActiveThread(cfaEdge, threadingState);
+    assert Objects.equals(activeThread, threadInfo.get(activeThread).getThreadId());
+    ImmutableMap<String, ThreadInfo> newThreadInfo =
+        updateThreadInfo(threadInfo, threadIds, activeThread, synchronizationBuilder);
 
-      if (newThreadInfo.values().stream().filter(ThreadInfo::isRunning).count() == 1) {
-        // No data race possible in sequential part
-        strengthenedStates.add(new DataRaceState(newThreadInfo, state.hasDataRace()));
+    if (newThreadInfo.values().stream().filter(ThreadInfo::isRunning).count() == 1) {
+      // No data race possible in sequential part
+      return ImmutableSet.of(new DataRaceState(newThreadInfo, state.hasDataRace()));
+    }
+
+    // Update locking related info with info from ThreadingCPA
+    Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
+    ImmutableSetMultimap<String, String> heldLocks =
+        updateHeldLocks(state, activeThread, activeThreadLocks);
+    ImmutableSet<LockRelease> lastReleases =
+        updateLastReleases(state, activeThread, activeThreadLocks, threadInfo);
+
+    for (String lock : activeThreadLocks) {
+      if (!state.getLocksForThread(activeThread).contains(lock)) {
+        //  Lock was newly acquired
+        LockRelease lastRelease = state.getLastReleaseForLock(lock);
+        if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
+          // A lock release synchronizes-with the next acquisition of that lock (but
+          // synchronizes-with is unnecessary if acquire and release are done by the same thread)
+          synchronizationBuilder.add(
+              new ThreadSynchronization(
+                  lastRelease.getThreadId(),
+                  activeThread,
+                  lastRelease.getAccessEpoch(),
+                  threadInfo.get(activeThread).getEpoch()));
+        }
+      }
+    }
+
+    // Collect new accesses
+    Set<MemoryAccess> newMemoryAccesses =
+        memoryAccessExtractor.getNewAccesses(
+            threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
+    for (MemoryAccess newAccess : newMemoryAccesses) {
+      if (newAccess.isOverapproximating()) {
+        throw new CPATransferException("DataRaceCPA does not support pointer analysis");
+      }
+    }
+
+    // Update tracked memory accesses
+    ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+    for (MemoryAccess access : state.getMemoryAccesses()) {
+      if (!threadIds.contains(access.getThreadId())) {
+        // If the thread that made the access is no longer running,
+        // then this access can not conflict with any newer accesses.
+        // Therefore, we do not need to track it any longer.
+        continue;
+      }
+      memoryAccessBuilder.add(access);
+
+      for (MemoryAccess newAccess : newMemoryAccesses) {
+        if (!access.mightAccessSameLocationAs(newAccess)) {
+          continue;
+        }
+        if (!newAccess.isWrite()) {
+          if (access.getThreadId().equals(newAccess.getThreadId())) {
+            // Adding synchronizes-with edge between accesses made by the same thread is
+            // unnecessary, because happens-before is established anyway.
+            continue;
+          }
+          if (!Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()) {
+            // Add synchronizes-with edge:
+            // An atomic write operation synchronizes-with an atomic read operation of the same
+            // variable that reads the value written by the former.
+            synchronizationBuilder.add(
+                new ThreadSynchronization(
+                    access.getThreadId(),
+                    newAccess.getThreadId(),
+                    access.getAccessEpoch(),
+                    newAccess.getAccessEpoch()));
+          }
+        }
+      }
+    }
+
+    // Determine whether any of the new accesses constitutes a data race
+    boolean hasDataRace = state.hasDataRace();
+    Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
+    for (MemoryAccess access : memoryAccessBuilder.build()) {
+      if (hasDataRace) {
+        // Already found a data race, no need to continue
+        break;
+      }
+      if (access.getThreadId().equals(activeThread)) {
+        // All new accesses were made by the currently active thread and accesses made by the same
+        // thread are never conflicting.
         continue;
       }
 
-      // Update locking related info with info from ThreadingCPA
-      Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
-      ImmutableSetMultimap<String, String> heldLocks =
-          updateHeldLocks(state, activeThread, activeThreadLocks);
-      ImmutableSet<LockRelease> lastReleases =
-          updateLastReleases(state, activeThread, activeThreadLocks, threadInfo);
-
-      for (String lock : activeThreadLocks) {
-        if (!state.getLocksForThread(activeThread).contains(lock)) {
-          //  Lock was newly acquired
-          LockRelease lastRelease = state.getLastReleaseForLock(lock);
-          if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
-            // A lock release synchronizes-with the next acquisition of that lock (but
-            // synchronizes-with is unnecessary if acquire and release are done by the same thread)
-            synchronizationBuilder.add(
-                new ThreadSynchronization(
-                    lastRelease.getThreadId(),
-                    activeThread,
-                    lastRelease.getAccessEpoch(),
-                    threadInfo.get(activeThread).getEpoch()));
-          }
-        }
-      }
-
-      // Collect new accesses
-      Set<MemoryAccess> newMemoryAccesses =
-          memoryAccessExtractor.getNewAccesses(
-              threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
       for (MemoryAccess newAccess : newMemoryAccesses) {
-        if (newAccess.isOverapproximating()) {
-          throw new CPATransferException("DataRaceCPA does not support pointer analysis");
-        }
-      }
-
-      // Update tracked memory accesses
-      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
-          prepareSubsequentWritesBuilder(state, threadIds);
-      for (MemoryAccess access : state.getMemoryAccesses()) {
-        if (!threadIds.contains(access.getThreadId())) {
-          // If the thread that made the access is no longer running,
-          // then this access can not conflict with any newer accesses.
-          // Therefore, we do not need to track it any longer.
-          continue;
-        }
-        memoryAccessBuilder.add(access);
-
-        // Add new synchronizes-with edges, if possible.
-        // We do this here to avoid looping over all memory accesses a second time.
-        if (!access.isWrite() || state.getAccessesWithSubsequentWrites().contains(access)) {
-          continue;
-        }
-        for (MemoryAccess newAccess : newMemoryAccesses) {
-          if (!access.mightAccessSameLocationAs(newAccess)) {
-            continue;
-          }
-          if (newAccess.isWrite()) {
-            // There is now a more recent write to the same memory location,
-            // so mark the old access accordingly.
-            // Other accesses currently in newMemoryAccesses that read this memory location still
-            // synchronize-with the old access, so no need to break/rollback here.
-            subsequentWritesBuilder.add(access);
-          } else {
-            if (access.getThreadId().equals(newAccess.getThreadId())) {
-              // Adding synchronizes-with edge between accesses made by the same thread is
-              // unnecessary, because happens-before is established anyway.
-              continue;
-            }
-            if (!Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()) {
-              // Add synchronizes-with edge:
-              // An atomic write operation synchronizes-with an atomic read operation of the same
-              // variable that reads the value written by the former.
-              synchronizationBuilder.add(
-                  new ThreadSynchronization(
-                      access.getThreadId(),
-                      newAccess.getThreadId(),
-                      access.getAccessEpoch(),
-                      newAccess.getAccessEpoch()));
-            }
-          }
-        }
-      }
-
-      // Determine whether any of the new accesses constitutes a data race
-      boolean hasDataRace = state.hasDataRace();
-      Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
-      for (MemoryAccess access : memoryAccessBuilder.build()) {
-        if (hasDataRace) {
-          // Already found a data race, no need to continue
+        if (access.mightAccessSameLocationAs(newAccess)
+            && (access.isWrite() || newAccess.isWrite())
+            && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
+            && !access.happensBefore(newAccess, threadSynchronizations)
+            && !(newAccess.memoryLocationIsAtomic() && access.memoryLocationIsAtomic())) {
+          // Two accesses are conflicting if:
+          //   - They access the same memory location
+          //   - They were made by two different threads
+          //   - At least one of them is a write access
+          // Two conflicting accesses constitute a data race unless:
+          //   - Both accesses are performed through atomic operations, or
+          //   - One access happens-before the other
+          hasDataRace = true;
           break;
         }
-        if (access.getThreadId().equals(activeThread)) {
-          // All new accesses were made by the currently active thread and accesses made by the same
-          // thread are never conflicting.
-          continue;
-        }
-        for (MemoryAccess newAccess : newMemoryAccesses) {
-          if (access.mightAccessSameLocationAs(newAccess)
-              && (access.isWrite() || newAccess.isWrite())
-              && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
-              && !access.happensBefore(newAccess, threadSynchronizations)
-              && !(newAccess.memoryLocationIsAtomic() && access.memoryLocationIsAtomic())) {
-            // Two accesses are conflicting if:
-            //   - They access the same memory location
-            //   - They were made by two different threads
-            //   - At least one of them is a write access
-            // Two conflicting accesses constitute a data race unless:
-            //   - Both accesses are performed through atomic operations, or
-            //   - One access happens-before the other
-            hasDataRace = true;
-            break;
-          }
-        }
       }
-
-      strengthenedStates.add(
-          new DataRaceState(
-              memoryAccessBuilder.addAll(newMemoryAccesses).build(),
-              subsequentWritesBuilder.build(),
-              newThreadInfo,
-              threadSynchronizations,
-              heldLocks,
-              lastReleases,
-              hasDataRace));
     }
 
-    return strengthenedStates.build();
+    return ImmutableSet.of(
+        new DataRaceState(
+            determineSuccessorAccessedMemoryLocations(
+                memoryAccessBuilder.build(), newMemoryAccesses, cfaEdge),
+            newThreadInfo,
+            threadSynchronizations,
+            heldLocks,
+            lastReleases,
+            hasDataRace));
   }
 
-  private ImmutableSet.Builder<MemoryAccess> prepareSubsequentWritesBuilder(
-      DataRaceState current, Set<String> threadIds) {
-    ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder = ImmutableSet.builder();
-    for (MemoryAccess access : current.getAccessesWithSubsequentWrites()) {
-      if (threadIds.contains(access.getThreadId())) {
-        subsequentWritesBuilder.add(access);
+  private static Set<MemoryAccess> determineSuccessorAccessedMemoryLocations(
+      Set<MemoryAccess> previousAccesses, Set<MemoryAccess> newAccesses, CFAEdge cfaEdge)
+      throws CPATransferException {
+    // Some edges, are not actually statements which should reset the
+    // tracked accesses (e.g., function call edges, and blank edges).
+    // In this, cases we need to keep the old accesses as well.
+    return switch (cfaEdge.getEdgeType()) {
+      case BlankEdge, FunctionReturnEdge, DeclarationEdge -> previousAccesses;
+      case ReturnStatementEdge -> {
+        // Do nothing, newMemoryAccesses is already correct
+        yield previousAccesses;
       }
-    }
-    return subsequentWritesBuilder;
+      case AssumeEdge, FunctionCallEdge, CallToReturnEdge -> {
+        // A function call, and assume edges, are not a statement and therefore do not invalidate
+        // previously tracked accesses, but they may add new accesses as well, due to
+        // function arguments being passed, or the variables being read in the assume condition.
+        yield FluentIterable.concat(previousAccesses, newAccesses).toSet();
+      }
+      case StatementEdge -> {
+        if (!(cfaEdge instanceof AStatementEdge statementEdge)) {
+          throw new CPATransferException(
+              "Unexpected statement edge type: " + cfaEdge.getClass().getSimpleName());
+        }
+        AStatement statement = statementEdge.getStatement();
+        if (statement instanceof AFunctionCallStatement pCallStatement
+            && ImmutableSet.of("__VERIFIER_atomic_begin", "__VERIFIER_atomic_end")
+                .contains(pCallStatement.getFunctionCallExpression().getDeclaration().getName())) {
+          // Atomic sections do not invalidate tracked accesses
+          // (they are not synchronization operations)
+          yield previousAccesses;
+        } else {
+          yield newAccesses;
+        }
+      }
+    };
   }
 
   private ImmutableSetMultimap<String, String> updateHeldLocks(

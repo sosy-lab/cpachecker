@@ -62,12 +62,12 @@ public final class StatementContract implements ACSLAnnotation {
   }
 
   @Override
-  public List<Behavior> getDeclaredBehaviors() {
+  public ImmutableList<Behavior> getDeclaredBehaviors() {
     return ownBehaviors;
   }
 
   @Override
-  public List<Behavior> getReferencedBehaviors() {
+  public ImmutableList<Behavior> getReferencedBehaviors() {
     return enclosingBehaviors;
   }
 

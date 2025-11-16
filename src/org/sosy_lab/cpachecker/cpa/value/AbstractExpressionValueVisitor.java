@@ -780,8 +780,8 @@ public abstract class AbstractExpressionValueVisitor
       throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
-    // We only handle builtin functions
     if (functionNameExp instanceof CIdExpression cIdExpression) {
+      // We only handle builtin functions
       String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {

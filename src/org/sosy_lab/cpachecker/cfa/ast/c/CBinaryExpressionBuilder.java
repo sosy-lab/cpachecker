@@ -14,8 +14,8 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -68,17 +68,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class CBinaryExpressionBuilder {
 
-  private static final Set<BinaryOperator> shiftOperators =
+  private static final ImmutableSet<BinaryOperator> shiftOperators =
       Sets.immutableEnumSet(BinaryOperator.SHIFT_LEFT, BinaryOperator.SHIFT_RIGHT);
 
-  private static final Set<BinaryOperator> additiveOperators =
+  private static final ImmutableSet<BinaryOperator> additiveOperators =
       Sets.immutableEnumSet(BinaryOperator.PLUS, BinaryOperator.MINUS);
 
   @SuppressWarnings("unused")
-  private static final Set<BinaryOperator> multiplicativeOperators =
+  private static final ImmutableSet<BinaryOperator> multiplicativeOperators =
       Sets.immutableEnumSet(BinaryOperator.MULTIPLY, BinaryOperator.MODULO, BinaryOperator.DIVIDE);
 
-  private static final Set<BinaryOperator> bitwiseOperators =
+  private static final ImmutableSet<BinaryOperator> bitwiseOperators =
       Sets.immutableEnumSet(
           BinaryOperator.BINARY_AND, BinaryOperator.BINARY_OR, BinaryOperator.BINARY_XOR);
 

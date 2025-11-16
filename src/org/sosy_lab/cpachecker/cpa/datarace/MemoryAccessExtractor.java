@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -171,7 +172,17 @@ public class MemoryAccessExtractor {
           default -> {}
         }
       }
-      case FunctionReturnEdge, BlankEdge, CallToReturnEdge -> {}
+      case FunctionReturnEdge -> {
+        FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) edge;
+        if (functionReturnEdge.getSummaryEdge().getExpression()
+            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+
+          readLocationBuilder.addAll(
+              getInvolvedVariableTypes(
+                  functionCallAssignmentStatement.getLeftHandSide(), functionReturnEdge));
+        }
+      }
+      case BlankEdge, CallToReturnEdge -> {}
     }
 
     for (OverapproximatingMemoryLocation possibleLocations : readLocationBuilder) {

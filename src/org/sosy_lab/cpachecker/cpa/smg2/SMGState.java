@@ -4012,19 +4012,8 @@ public class SMGState
       // obj size is no problem here. We just have to be careful to not exceed the symbolic size
       // when assigning concrete values.
       if (!sizeInBits.isNumericValue()) {
-        // TODO: handle with solver to find assignments
-        if (options.isOverapproximateValuesForSymbolicSize()) {
-          // TODO: Delete ALL edges in the target region with an offset greater than the current
-          return ImmutableList.of(
-              currentState.copyAndReplaceMemoryModel(
-                  currentState.memoryModel.copyAndReplaceHVEdgesAt(object, PersistentSet.of())));
-        } else {
-          throw new SMGException(
-              "Stop analysis because the size of the value written in a write operation could not"
-                  + " be determined. Enable the option overapproximateValuesForSymbolicSize if you"
-                  + " want to continue. "
-                  + edge);
-        }
+        return handleSymbolicWriteSizeForWriteOperation(
+            currentState, object, numericOffsetInBits, sizeInBits, edge);
       }
 
     } else {
@@ -4041,11 +4030,8 @@ public class SMGState
       }
     }
     if (!sizeInBits.isNumericValue()) {
-      if (options.isOverapproximateValuesForSymbolicSize()) {
-        // TODO: sizeInBits symbolic, can't write, invalidate the whole obj starting from the
-        // numeric offset
-      }
-      throw new SMGException("Symbolic memory write size found that could not be handled. " + edge);
+      return handleSymbolicWriteSizeForWriteOperation(
+          currentState, object, numericOffsetInBits, sizeInBits, edge);
     }
 
     checkArgument(!(valueToWrite instanceof AddressExpression));
@@ -4057,6 +4043,34 @@ public class SMGState
     return ImmutableList.of(
         currentState.writeValueWithoutChecks(
             object, numericOffsetInBits, sizeInBits.asNumericValue().bigIntegerValue(), smgValue));
+  }
+
+  /**
+   * Handles write operations with a concrete offset but symbolic size (of the write! Not the
+   * object!)
+   */
+  private List<SMGState> handleSymbolicWriteSizeForWriteOperation(
+      SMGState currentState,
+      SMGObject object,
+      BigInteger numericOffsetInBits,
+      Value sizeInBits,
+      @Nullable CFAEdge edge)
+      throws SMGException {
+    // TODO: find all possible values with a solver. This should be a relatively small finite list.
+    // if (options.findConcreteValuesForSymbolicTypeSize()) {}
+
+    if (options.isOverapproximateValuesForSymbolicTypeSize()) {
+      return ImmutableList.of(
+          currentState.copyAndReplaceMemoryModel(
+              memoryModel.copyAndRemoveAllEdgesFrom(object, numericOffsetInBits)));
+    }
+
+    throw new SMGException(
+        "Write to memory with known offset but symbolic size "
+            + sizeInBits
+            + " could not be handled. You can try option overapproximateValuesForSymbolicTypeSize"
+            + " to overapproximate. Encountered at: "
+            + edge);
   }
 
   /**
@@ -4952,20 +4966,29 @@ public class SMGState
    *     completely.
    * @throws SMGException if there is no memory/or pointer for the given Value.
    */
-  public List<SMGState> writeToZero(Value addressToMemory, CType type, CFAEdge edge)
+  public List<SMGState> writeToZero(Value addressToMemory, CFAEdge edge)
       throws SMGException, SMGSolverException {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
-        // Can't write to non existing memory. However, we might not track that memory at the
+        // Can't write to non-existing memory. However, we might not track that memory at the
         // moment!
-        // TODO: log
+        logger.log(
+            Level.WARNING,
+            "Tried to write memory to zero, but no memory found behind address.",
+            edge);
         returnBuilder.add(maybeRegion.getSMGState());
         continue;
       }
 
       SMGState currentState = maybeRegion.getSMGState();
       SMGObject memoryRegion = maybeRegion.getSMGObject();
+      if (!memoryRegion.getSize().isNumericValue()
+          && !options.isEnableZeroingOfSymbolicMemorySize()) {
+        throw new SMGException(
+            "Zeroing of symbolic memory size is disabled. Enable with option"
+                + " enableZeroingOfSymbolicMemorySize");
+      }
       checkArgument(
           maybeRegion
               .getOffsetForObject()
@@ -4978,7 +5001,7 @@ public class SMGState
               maybeRegion.getOffsetForObject(),
               memoryRegion.getSize(),
               new NumericValue(0),
-              type,
+              CNumericTypes.INT,
               edge));
     }
     return returnBuilder.build();

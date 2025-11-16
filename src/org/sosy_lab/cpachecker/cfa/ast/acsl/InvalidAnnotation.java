@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Represents a malformed ACSL annotation. Used for communicating errors discovered by the scanner
@@ -26,12 +26,12 @@ public final class InvalidAnnotation implements ACSLAnnotation {
   }
 
   @Override
-  public List<Behavior> getDeclaredBehaviors() {
+  public ImmutableList<Behavior> getDeclaredBehaviors() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public List<Behavior> getReferencedBehaviors() {
+  public ImmutableList<Behavior> getReferencedBehaviors() {
     throw new UnsupportedOperationException();
   }
 }
