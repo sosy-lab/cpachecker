@@ -308,7 +308,8 @@ public class ValueAnalysisTransferRelation
   @LazyInit private Random randomSampler = null;
 
   // Functions that we know are safe to ignore
-  private final Set<String> ignoredUnsupportedFunctions = ImmutableSet.of("printf", "srand", "abort");
+  private final Set<String> ignoredUnsupportedFunctions =
+      ImmutableSet.of("printf", "srand", "abort", "exit");
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
