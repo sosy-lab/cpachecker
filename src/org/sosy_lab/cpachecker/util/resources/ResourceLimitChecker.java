@@ -48,7 +48,6 @@ public final class ResourceLimitChecker {
   private final List<ResourceLimit> limits;
 
   private static final TimeSpan TIME_LIMIT_INFINITE = TimeSpan.ofNanos(-1);
-  private static boolean processTimeLimitAlreadyLogged = false;
 
   /**
    * Create a new instance with a list of limits to check and a {@link ShutdownNotifier} that gets
@@ -144,30 +143,10 @@ public final class ResourceLimitChecker {
           Joiner.on(", ")
               .join(
                   Lists.transform(
-                      limitsList.stream()
-                          .filter(ResourceLimitChecker::isTotalTimeLimitNotYetLogged)
-                          .collect(ImmutableList.toImmutableList()),
+                      limitsList.stream().collect(ImmutableList.toImmutableList()),
                       ResourceLimit::getName)));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
-  }
-
-  /**
-   * Checks whether the total CPU time-limit has already been printed, and does not print it again.
-   * This is only possible due to us enforcing that if there is more than one CPAchecker total CPU
-   * time-limit, it has to be the same one everywhere. Without this check we print the total-limit
-   * multiple times.
-   */
-  private static boolean isTotalTimeLimitNotYetLogged(ResourceLimit limit) {
-    if (limit instanceof ProcessCpuTimeLimit) {
-      if (processTimeLimitAlreadyLogged) {
-        return false;
-      }
-      processTimeLimitAlreadyLogged = true;
-    }
-    // TODO: Walltime as well?
-    // else if (limit instanceof WalltimeLimit walltimeLimit)
-    return true;
   }
 
   private static String processCpuTimeLimitToString(TimeSpan timeSpanToPrint) {
