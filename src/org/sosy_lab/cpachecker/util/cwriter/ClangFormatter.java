@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import java.io.IOException;
 import java.util.logging.Level;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -26,7 +28,10 @@ public class ClangFormatter {
 
   private final LogManager logger;
 
-  public ClangFormatter(LogManager pLogger) {
+  public ClangFormatter(Configuration pConfiguration, LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    pConfiguration.inject(this);
     logger = pLogger;
   }
 
@@ -42,7 +47,9 @@ public class ClangFormatter {
       logger.logfUserException(
           Level.WARNING,
           e,
-          clangFormatVersion + " failed due to an error. Returning unformatted code instead.");
+          String.format(
+              "%s failed due to an error. Returning unformatted code instead.",
+              clangFormatVersion));
     }
     return pCode;
   }

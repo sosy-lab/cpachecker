@@ -377,22 +377,27 @@ public class SequentializationParseTest {
   private String buildTestOutputProgram(
       MPOROptions pOptions,
       Path pInputFilePath,
+      Configuration pConfiguration,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger)
       throws Exception {
 
     CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
-    return Sequentialization.tryBuildProgramString(
-        pOptions, cfa, "test", pLogger, pShutdownNotifier);
+    SequentializationUtils utils =
+        SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
+    return Sequentialization.tryBuildProgramString(pOptions, cfa, "test", utils);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
+    Configuration configuration = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
     // create two sequentializations A, B of the same input program with the same option
-    String programA = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
-    String programB = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
+    String programA =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
+    String programB =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
 
     // test that the output programs of A, B are equal
     // (this does not imply that our algorithm is deterministic)

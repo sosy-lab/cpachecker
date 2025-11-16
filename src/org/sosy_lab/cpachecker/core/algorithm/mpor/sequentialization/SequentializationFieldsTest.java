@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Tests if {@link SequentializationFields} are expected depending on the input program, e.g. number
@@ -351,12 +353,13 @@ public class SequentializationFieldsTest {
       Path pInputFilePath, MPOROptions pOptions) throws Exception {
 
     // create cfa for test program pInputFilePath
+    Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
     SequentializationUtils utils =
-        SequentializationUtils.of(inputCfa.getMachineModel(), logger, shutdownNotifier);
+        SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier);
     return new SequentializationFields(pOptions, inputCfa, utils);
   }
 }

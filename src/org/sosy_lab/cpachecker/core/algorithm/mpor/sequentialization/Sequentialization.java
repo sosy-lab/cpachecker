@@ -13,9 +13,7 @@ import java.time.Year;
 import java.time.ZoneId;
 import java.util.StringJoiner;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -26,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.ClangFormatter;
 
 public class Sequentialization {
 
@@ -53,17 +50,11 @@ public class Sequentialization {
   public static final int FIRST_LINE = 1;
 
   public static String tryBuildProgramString(
-      MPOROptions pOptions,
-      CFA pCfa,
-      String pInputFileName,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      MPOROptions pOptions, CFA pCfa, String pInputFileName, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
-    SequentializationUtils utils =
-        SequentializationUtils.of(pCfa.getMachineModel(), pLogger, pShutdownNotifier);
-    SequentializationFields fields = new SequentializationFields(pOptions, pCfa, utils);
-    return buildProgramString(pOptions, pInputFileName, fields, utils);
+    SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
+    return buildProgramString(pOptions, pInputFileName, fields, pUtils);
   }
 
   private static String buildProgramString(
@@ -74,7 +65,7 @@ public class Sequentialization {
       throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
-    String formattedProgram = handleProgramFormatting(pOptions, initProgram, pUtils.logger());
+    String formattedProgram = handleProgramFormatting(pOptions, initProgram, pUtils);
     // replace dummy reach_errors after formatting so that line numbers are exact
     String rFinalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
 
@@ -142,11 +133,11 @@ public class Sequentialization {
   }
 
   private static String handleProgramFormatting(
-      MPOROptions pOptions, String pProgram, LogManager pLogger) throws InterruptedException {
+      MPOROptions pOptions, String pProgram, SequentializationUtils pUtils)
+      throws InterruptedException {
 
     if (pOptions.clangFormatStyle().isEnabled()) {
-      ClangFormatter clangFormatter = new ClangFormatter(pLogger);
-      return clangFormatter.tryFormat(pProgram, pOptions.clangFormatStyle());
+      return pUtils.clangFormatter().tryFormat(pProgram, pOptions.clangFormatStyle());
     }
     return pProgram;
   }

@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -161,13 +162,12 @@ public class InputRejectionTest {
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
 
+    SequentializationUtils utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
     // test if MPORAlgorithm rejects program with correct error message
     IllegalArgumentException throwable =
         assertThrows(
             IllegalArgumentException.class,
-            () ->
-                Sequentialization.tryBuildProgramString(
-                    customOptions, cfa, "test", logger, shutdownNotifier));
+            () -> Sequentialization.tryBuildProgramString(customOptions, cfa, "test", utils));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage()).contains(expectedMessage);
   }
