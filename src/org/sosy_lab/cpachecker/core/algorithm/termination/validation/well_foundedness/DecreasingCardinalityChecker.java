@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -60,7 +61,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   @Override
   public boolean isWellFounded(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     SSAMap ssaMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 2, fmgr, scope);
 
@@ -140,9 +141,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     try {
       isWellfounded = solver.isUnsat(wellFoundedness);
     } catch (SolverException e) {
-      logger.log(
-          Level.WARNING,
-          "Well-Foundedness check failed ! Continuing with further division of the formula.");
+      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
     }
 
     return isWellfounded;
