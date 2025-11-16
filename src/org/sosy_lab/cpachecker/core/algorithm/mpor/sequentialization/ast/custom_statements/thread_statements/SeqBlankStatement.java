@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public final class SeqBlankStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
-  SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  public SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     super(
         pOptions,
         ImmutableSet.of(),

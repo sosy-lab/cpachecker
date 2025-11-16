@@ -70,12 +70,14 @@ public class SequentializationFields {
       throws UnrecognizedCodeException {
 
     resetStaticFields();
-    threads = MPORThreadBuilder.createThreads(pOptions, pInputCfa);
+    MPORThreadBuilder threadBuilder = new MPORThreadBuilder(pOptions, pInputCfa);
+    threads = threadBuilder.createThreads();
     numThreads = threads.size();
     allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
-    substitutions =
-        MPORSubstitutionBuilder.buildSubstitutions(
-            pOptions, allGlobalVariableDeclarations, threads, pUtils);
+
+    MPORSubstitutionBuilder substitutionBuilder =
+        new MPORSubstitutionBuilder(pOptions, allGlobalVariableDeclarations, threads, pUtils);
+    substitutions = substitutionBuilder.buildSubstitutions();
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
     memoryModel =
@@ -91,9 +93,11 @@ public class SequentializationFields {
             substituteEdges,
             memoryModel,
             pUtils.binaryExpressionBuilder());
-    clauses =
-        SeqThreadStatementClauseBuilder.buildClauses(
-            pOptions, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
+
+    SeqThreadStatementClauseBuilder clauseBuilder =
+        new SeqThreadStatementClauseBuilder(
+            pOptions, threads, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
+    clauses = clauseBuilder.buildClauses();
     threadSimulationFunctions =
         SeqFunctionBuilder.buildThreadSimulationFunctions(pOptions, ghostElements, clauses, pUtils);
     mainThreadSimulationFunction =
