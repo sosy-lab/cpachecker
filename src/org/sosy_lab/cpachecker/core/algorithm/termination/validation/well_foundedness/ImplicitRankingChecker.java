@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_found
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -94,14 +93,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
     StringJoiner builder = new StringJoiner(System.lineSeparator());
     builder.add("int main() {");
+    CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
 
     // Initialize the variables from the transition invariant
     Set<String> alreadyDeclaredVars = new HashSet<>();
     String varDeclaration;
     for (AbstractSimpleDeclaration variable :
-        cfa.getAstCfaRelation()
-            .getVariablesAndParametersInScope(pLoop.getLoopHeads().asList().getFirst())
-            .orElseThrow()) {
+        cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow()) {
       varDeclaration = variable.toString();
       if (variable.getType() instanceof CComplexType) {
         continue;
@@ -128,14 +126,22 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     } catch (SolverException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
-    List<String> exitConditions =
-        pLoop.getOutgoingEdges().stream()
-            .filter(x -> x instanceof CAssumeEdge)
-            .map(x -> ((CAssumeEdge) x).getExpression().toParenthesizedASTString())
-            .toList();
-    loopCondition = loopCondition + " && " + String.join(" && ", exitConditions);
+    String exitCondition =
+        cfa
+            .getAstCfaRelation()
+            .getTightestIterationStructureForNode(loopHead)
+            .orElseThrow()
+            .getControllingExpression()
+            .orElseThrow()
+            .edges()
+            .stream()
+            .filter(e -> e instanceof CAssumeEdge pE && pE.getTruthAssumption())
+            .map(e -> ((CAssumeEdge) e).getExpression())
+            .collect(ImmutableList.toImmutableList())
+            .getFirst()
+            .toASTString();
+    loopCondition = loopCondition + " && " + exitCondition;
     for (BooleanFormula invariant : pSupportingInvariants) {
-
       try {
         loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
       } catch (SolverException e) {
