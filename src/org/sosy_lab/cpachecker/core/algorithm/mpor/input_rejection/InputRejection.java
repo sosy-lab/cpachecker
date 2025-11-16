@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -111,9 +112,13 @@ public class InputRejection {
   private static void checkIsParallelProgram(CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        isParallel = true;
-        break;
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
+          isParallel = true;
+          break;
+        }
       }
     }
     if (!isParallel) {
@@ -138,11 +143,14 @@ public class InputRejection {
   }
 
   private static void checkUnsupportedFunctions(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-        if (!funcType.isSupported) {
-          if (PthreadUtil.isCallToPthreadFunction(edge, funcType)) {
-            rejectCfaEdge(edge, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
+        if (!functionType.isSupported) {
+          Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+          if (functionCall.isPresent()) {
+            if (PthreadUtil.isCallToPthreadFunction(functionCall.orElseThrow(), functionType)) {
+              rejectCfaEdge(cfaEdge, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+            }
           }
         }
       }
@@ -151,10 +159,13 @@ public class InputRejection {
 
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToAnyPthreadFunction(edge)) {
-        if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          rejectCfaEdge(edge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
+          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+          }
         }
       }
     }
@@ -166,9 +177,13 @@ public class InputRejection {
    */
   private static void checkPthreadCreateLoops(CFA pInputCfa) throws UnsupportedCodeException {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
+          if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+          }
         }
       }
     }

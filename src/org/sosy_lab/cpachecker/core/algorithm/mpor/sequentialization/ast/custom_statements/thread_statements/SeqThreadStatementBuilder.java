@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -384,14 +385,15 @@ public final class SeqThreadStatementBuilder {
       GhostElements pGhostElements) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
-    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
+    CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge).orElseThrow();
+    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(functionCall);
     CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id());
 
     return switch (pthreadFunctionType) {
       case PTHREAD_COND_SIGNAL ->
           buildCondSignalStatement(
               pOptions,
-              pThreadEdge,
+              functionCall,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
@@ -404,6 +406,7 @@ public final class SeqThreadStatementBuilder {
               pOptions,
               pThread,
               pAllThreads,
+              functionCall,
               pThreadEdge,
               pSubstituteEdge,
               pTargetPc,
@@ -419,11 +422,17 @@ public final class SeqThreadStatementBuilder {
               pcLeftHandSide);
       case PTHREAD_JOIN ->
           buildThreadJoinStatement(
-              pOptions, pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostElements);
+              pOptions,
+              pThread,
+              pAllThreads,
+              functionCall,
+              pSubstituteEdge,
+              pTargetPc,
+              pGhostElements);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
               pOptions,
-              pThreadEdge,
+              functionCall,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
@@ -431,6 +440,7 @@ public final class SeqThreadStatementBuilder {
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pOptions,
+              functionCall,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
@@ -438,6 +448,7 @@ public final class SeqThreadStatementBuilder {
       case PTHREAD_RWLOCK_RDLOCK, PTHREAD_RWLOCK_UNLOCK, PTHREAD_RWLOCK_WRLOCK ->
           buildRwLockStatement(
               pOptions,
+              functionCall,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
@@ -455,14 +466,14 @@ public final class SeqThreadStatementBuilder {
 
   private static SeqCondSignalStatement buildCondSignalStatement(
       MPOROptions pOptions,
-      CFAEdgeForThread pThreadEdge,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression pthreadCondT =
-        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_COND_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
     CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(pthreadCondT);
     return new SeqCondSignalStatement(
         pOptions, condSignaledFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
@@ -470,18 +481,18 @@ public final class SeqThreadStatementBuilder {
 
   public static SeqCondWaitStatement buildCondWaitStatement(
       MPOROptions pOptions,
-      CFAEdgeForThread pThreadEdge,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression pthreadCondT =
-        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_COND_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
     CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(pthreadCondT);
 
     CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
     MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
 
     return new SeqCondWaitStatement(
@@ -497,6 +508,7 @@ public final class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
+      CFunctionCall pFunctionCall,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
@@ -509,7 +521,7 @@ public final class SeqThreadStatementBuilder {
         "cfaEdge must be CFunctionCallEdge or CStatementEdge");
 
     CExpression pthreadTObject =
-        PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
         MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
     Optional<FunctionParameterAssignment> startRoutineArgAssignment =
@@ -547,12 +559,12 @@ public final class SeqThreadStatementBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       GhostElements pGhostElements) {
 
-    MPORThread targetThread =
-        MPORThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
+    MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(pAllThreads, pFunctionCall);
     return new SeqThreadJoinStatement(
         pOptions,
         targetThread.startRoutineExitVariable(),
@@ -564,14 +576,14 @@ public final class SeqThreadStatementBuilder {
 
   private static SeqMutexLockStatement buildMutexLockStatement(
       MPOROptions pOptions,
-      CFAEdgeForThread pThreadEdge,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
     MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
     return new SeqMutexLockStatement(
         pOptions, mutexLockedFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
@@ -579,14 +591,14 @@ public final class SeqThreadStatementBuilder {
 
   public static SeqMutexUnlockStatement buildMutexUnlockStatement(
       MPOROptions pOptions,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(
-            pSubstituteEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
     MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
     return new SeqMutexUnlockStatement(
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
@@ -594,6 +606,7 @@ public final class SeqThreadStatementBuilder {
 
   private static CSeqThreadStatement buildRwLockStatement(
       MPOROptions pOptions,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
@@ -601,8 +614,7 @@ public final class SeqThreadStatementBuilder {
       PthreadFunctionType pPthreadFunctionType) {
 
     CIdExpression rwLockT =
-        PthreadUtil.extractPthreadObject(
-            pSubstituteEdge.cfaEdge, PthreadObjectType.PTHREAD_RWLOCK_T);
+        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_RWLOCK_T);
     RwLockNumReadersWritersFlag rwLockFlags = pThreadSyncFlags.getRwLockFlag(rwLockT);
     return switch (pPthreadFunctionType) {
       case PTHREAD_RWLOCK_RDLOCK ->
@@ -676,9 +688,15 @@ public final class SeqThreadStatementBuilder {
       }
       return true;
 
-    } else if (PthreadUtil.isCallToAnyPthreadFunction(pSubstituteEdge.cfaEdge)) {
-      // not explicitly handled PthreadFunc -> empty case code
-      return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
+    } else {
+      Optional<CFunctionCall> functionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
+          // not explicitly handled PthreadFunc -> empty case code
+          return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
+        }
+      }
     }
     return false;
   }

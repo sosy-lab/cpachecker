@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -62,10 +61,12 @@ public class ThreadSyncFlagsBuilder {
     Set<CIdExpression> rIdExpressions = new HashSet<>();
     for (MPORThread thread : pThreads) {
       for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
-        CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
-          rIdExpressions.add(PthreadUtil.extractPthreadObject(cfaEdge, pObjectType));
-        }
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge)
+            .filter(
+                functionCall ->
+                    PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(functionCall, pObjectType))
+            .map(functionCall -> PthreadUtil.extractPthreadObject(functionCall, pObjectType))
+            .ifPresent(rIdExpressions::add);
       }
     }
     return ImmutableSet.copyOf(rIdExpressions);

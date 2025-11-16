@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -278,20 +279,23 @@ public class SeqThreadStatementClauseBuilder {
       int pTargetPc,
       GhostElements pGhostElements) {
 
-    if (PthreadUtil.isCallToPthreadFunction(
-        pThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_COND_WAIT)) {
-
-      return buildCondWaitClauses(
-          pOptions,
-          pThread,
-          pNextThreadLabel,
-          pThreadEdge,
-          pSubstituteEdge,
-          pLabelPc,
-          pTargetPc,
-          pGhostElements);
-    }
-    return ImmutableList.of();
+    return PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge)
+        .filter(
+            functionCall ->
+                PthreadUtil.isCallToPthreadFunction(
+                    functionCall, PthreadFunctionType.PTHREAD_COND_WAIT))
+        .map(
+            functionCall ->
+                buildCondWaitClauses(
+                    pOptions,
+                    pThread,
+                    pNextThreadLabel,
+                    functionCall,
+                    pSubstituteEdge,
+                    pLabelPc,
+                    pTargetPc,
+                    pGhostElements))
+        .orElse(ImmutableList.of());
   }
 
   /**
@@ -304,7 +308,7 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       MPORThread pThread,
       Optional<SeqThreadLabelStatement> pNextThreadLabel,
-      CFAEdgeForThread pThreadEdge,
+      CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
@@ -319,7 +323,7 @@ public class SeqThreadStatementClauseBuilder {
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqMutexUnlockStatement mutexUnlockStatement =
         SeqThreadStatementBuilder.buildMutexUnlockStatement(
-            pOptions, pSubstituteEdge, nextFreePc, pcLeftHandSide, threadSyncFlags);
+            pOptions, pFunctionCall, pSubstituteEdge, nextFreePc, pcLeftHandSide, threadSyncFlags);
     rClauses.add(
         buildClause(
             pOptions, pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
@@ -327,7 +331,7 @@ public class SeqThreadStatementClauseBuilder {
     // step 2: build pthread_cond_t handling statement
     SeqCondWaitStatement condWaitStatement =
         SeqThreadStatementBuilder.buildCondWaitStatement(
-            pOptions, pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, threadSyncFlags);
+            pOptions, pFunctionCall, pSubstituteEdge, pTargetPc, pcLeftHandSide, threadSyncFlags);
     rClauses.add(
         buildClause(
             pOptions, pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));

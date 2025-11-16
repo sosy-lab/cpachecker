@@ -194,8 +194,7 @@ public class SequentializationParseTest {
   public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
     // this program is ... very large
     Path path =
-        Path.of(
-            "./test/programs/mpor/sequentialization/pthread-wmm/mix014_power.oepc_pso.oepc_rmo.oepc.c");
+        Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()

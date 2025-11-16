@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class MPORThreadUtil {
 
@@ -80,18 +80,18 @@ public class MPORThreadUtil {
     return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
   }
 
-  public static MPORThread getThreadByCfaEdge(
-      ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
+  public static MPORThread getThreadByCFunctionCall(
+      ImmutableCollection<MPORThread> pThreads, CFunctionCall pFunctionCall) {
 
     checkArgument(
-        PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
-        "pEdge must be call to a pthread method with a pthread_t param");
+        PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+            pFunctionCall, PthreadObjectType.PTHREAD_T),
+        "pFunctionCall must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);
+    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pFunctionCall);
+    int pthreadTIndex = functionType.getParameterIndex(PthreadObjectType.PTHREAD_T);
     CExpression pthreadTParameter =
-        CFAUtils.tryGetParameterAtIndex(
-                pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T))
-            .orElseThrow();
+        pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(pthreadTIndex);
 
     return getThreadByObject(
         pThreads,

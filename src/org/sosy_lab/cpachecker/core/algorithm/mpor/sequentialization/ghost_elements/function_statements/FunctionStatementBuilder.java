@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -19,11 +19,13 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -36,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionStatementBuilder {
 
@@ -137,21 +138,26 @@ public class FunctionStatementBuilder {
         // only the thread calling pthread_create assigns the start_routine arg
         if (pSubstitution.thread.id() == callContext.threadId) {
           CIdExpression leftHandSide = cell.getValue();
-          CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
-          FunctionParameterAssignment startRoutineArgAssignment =
-              new FunctionParameterAssignment(
-                  callContext,
-                  leftHandSide,
-                  pSubstitution.substitute(
-                      // the inner call context is the context in which pthread_create is called
-                      rightHandSide,
-                      callContext.callContext,
-                      false,
-                      false,
-                      false,
-                      false,
-                      Optional.empty()));
-          rAssignments.put(callContext, startRoutineArgAssignment);
+          Optional<CFunctionCall> functionCall =
+              PthreadUtil.tryGetFunctionCallFromCfaEdge(callContext.cfaEdge);
+          if (functionCall.isPresent()) {
+            CExpression rightHandSide =
+                PthreadUtil.extractStartRoutineArg(functionCall.orElseThrow());
+            FunctionParameterAssignment startRoutineArgAssignment =
+                new FunctionParameterAssignment(
+                    callContext,
+                    leftHandSide,
+                    pSubstitution.substitute(
+                        // the inner call context is the context in which pthread_create is called
+                        rightHandSide,
+                        callContext.callContext,
+                        false,
+                        false,
+                        false,
+                        false,
+                        Optional.empty()));
+            rAssignments.put(callContext, startRoutineArgAssignment);
+          }
         }
       }
     }
@@ -214,9 +220,9 @@ public class FunctionStatementBuilder {
       if (threadEdge.callContext.isPresent()) {
         CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
         if (callContext.equals(pCallContext)) {
-          ImmutableSet<CFunctionCallEdge> functionCallEdges =
-              CFAUtils.getFunctionCallEdgesByReturnStatementEdge(pReturnStatementEdge);
-          for (CFunctionCallEdge functionCallEdge : functionCallEdges) {
+          FluentIterable<FunctionCallEdge> functionCallEdges =
+              pReturnStatementEdge.getSuccessor().getEntryNode().getEnteringCallEdges();
+          for (FunctionCallEdge functionCallEdge : functionCallEdges) {
             if (callContext.cfaEdge.equals(functionCallEdge)) {
               // use the call contexts predecessor, which is used by the functionSummaryEdge
               Optional<CFAEdgeForThread> predecessorCallContext =
@@ -270,19 +276,27 @@ public class FunctionStatementBuilder {
     ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      if (PthreadUtil.isCallToPthreadFunction(
-          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
-        assert pThread.startRoutineExitVariable().isPresent()
-            : "thread calls pthread_exit but has no intermediateExitVariable";
-        SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-        CExpressionAssignmentStatement assignmentStatement =
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                pThread.startRoutineExitVariable().orElseThrow(),
-                PthreadUtil.extractExitReturnValue(substituteEdge.cfaEdge));
-        FunctionReturnValueAssignment assignment =
-            new FunctionReturnValueAssignment(assignmentStatement);
-        rStartRoutineExitAssignments.put(threadEdge, assignment);
-      }
+      PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge)
+          .ifPresent(
+              functionCall -> {
+                if (PthreadUtil.isCallToPthreadFunction(
+                    functionCall, PthreadFunctionType.PTHREAD_EXIT)) {
+                  assert pThread.startRoutineExitVariable().isPresent()
+                      : "thread calls pthread_exit but has no intermediateExitVariable";
+                  SubstituteEdge substituteEdge =
+                      Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+                  CFunctionCall substituteFunctionCall =
+                      PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge)
+                          .orElseThrow();
+                  CExpressionAssignmentStatement assignmentStatement =
+                      SeqStatementBuilder.buildExpressionAssignmentStatement(
+                          pThread.startRoutineExitVariable().orElseThrow(),
+                          PthreadUtil.extractExitReturnValue(substituteFunctionCall));
+                  FunctionReturnValueAssignment assignment =
+                      new FunctionReturnValueAssignment(assignmentStatement);
+                  rStartRoutineExitAssignments.put(threadEdge, assignment);
+                }
+              });
     }
     return rStartRoutineExitAssignments.buildOrThrow();
   }

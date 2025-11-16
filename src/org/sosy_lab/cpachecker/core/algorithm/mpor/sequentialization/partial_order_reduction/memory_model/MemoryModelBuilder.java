@@ -22,6 +22,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class MemoryModelBuilder {
 
@@ -388,26 +388,32 @@ public class MemoryModelBuilder {
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
-      if (PthreadUtil.isCallToPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
-        CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
-        int index =
-            PthreadFunctionType.PTHREAD_CREATE.getParameterIndex(
-                PthreadObjectType.START_ROUTINE_ARGUMENT);
-        CExpression startRoutineArg =
-            CFAUtils.tryGetParameterAtIndex(original, index).orElseThrow();
-        Optional<SeqMemoryLocation> rhsMemoryLocation =
-            extractMemoryLocation(pOptions, callContext, startRoutineArg, pInitialMemoryLocations);
-        if (rhsMemoryLocation.isPresent()) {
-          // use the ID of the created thread for the parameter declaration
-          CFunctionDeclaration functionDeclaration =
-              PthreadUtil.extractStartRoutineDeclaration(original);
-          assert functionDeclaration.getParameters().size() == 1
-              : "start_routine functions can only have a single parameter";
-          CParameterDeclaration parameterDeclaration =
-              functionDeclaration.getParameters().getFirst();
-          rAssignments.put(
-              SeqMemoryLocation.of(pOptions, Optional.of(callContext), parameterDeclaration),
-              rhsMemoryLocation.orElseThrow());
+      Optional<CFunctionCall> optionalFunctionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(original);
+      if (optionalFunctionCall.isPresent()) {
+        CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
+        if (PthreadUtil.isCallToPthreadFunction(functionCall, PthreadFunctionType.PTHREAD_CREATE)) {
+          CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
+          int index =
+              PthreadFunctionType.PTHREAD_CREATE.getParameterIndex(
+                  PthreadObjectType.START_ROUTINE_ARGUMENT);
+          CExpression startRoutineArgExpression =
+              functionCall.getFunctionCallExpression().getParameterExpressions().get(index);
+          Optional<SeqMemoryLocation> rhsMemoryLocation =
+              extractMemoryLocation(
+                  pOptions, callContext, startRoutineArgExpression, pInitialMemoryLocations);
+          if (rhsMemoryLocation.isPresent()) {
+            // use the ID of the created thread for the parameter declaration
+            CFunctionDeclaration functionDeclaration =
+                PthreadUtil.extractStartRoutineDeclaration(functionCall);
+            assert functionDeclaration.getParameters().size() == 1
+                : "start_routine functions can only have a single parameter";
+            CParameterDeclaration parameterDeclaration =
+                functionDeclaration.getParameters().getFirst();
+            rAssignments.put(
+                SeqMemoryLocation.of(pOptions, Optional.of(callContext), parameterDeclaration),
+                rhsMemoryLocation.orElseThrow());
+          }
         }
       }
     }

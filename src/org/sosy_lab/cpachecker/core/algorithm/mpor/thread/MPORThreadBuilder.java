@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -88,19 +89,25 @@ public class MPORThreadBuilder {
 
     for (CFAEdgeForThread threadEdge : pCurrentThread.cfa().threadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
-      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
-        // extract the first parameter of pthread_create, i.e. the pthread_t value
-        CIdExpression pthreadT =
-            PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
-        // extract the third parameter of pthread_create which points to the start_routine function
-        CFunctionType startRoutine = PthreadUtil.extractStartRoutineType(cfaEdge);
-        FunctionEntryNode entryNode =
-            CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        MPORThread newThread =
-            createThread(pOptions, Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
-        recursivelyFindThreadCreations(pOptions, pCfa, newThread, pFoundThreads);
-        pFoundThreads.add(newThread);
+      Optional<CFunctionCall> optionalFunctionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (optionalFunctionCall.isPresent()) {
+        CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
+        if (PthreadUtil.isCallToPthreadFunction(functionCall, PthreadFunctionType.PTHREAD_CREATE)) {
+          assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
+          // extract the first parameter of pthread_create, i.e. the pthread_t value
+          CIdExpression pthreadT =
+              PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
+          // extract the third parameter of pthread_create which points to the start_routine
+          // function
+          CFunctionType startRoutine = PthreadUtil.extractStartRoutineType(functionCall);
+          FunctionEntryNode entryNode =
+              CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
+          MPORThread newThread =
+              createThread(pOptions, Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
+          recursivelyFindThreadCreations(pOptions, pCfa, newThread, pFoundThreads);
+          pFoundThreads.add(newThread);
+        }
       }
     }
   }
@@ -227,11 +234,15 @@ public class MPORThreadBuilder {
 
   /** Checks if, after calling {@code pCfaEdge}, the thread is still/yet in an atomic block. */
   private static boolean updateIsInAtomicBlock(CFAEdge pCfaEdge, boolean pPreviousIsInAtomicBlock) {
-    if (PthreadUtil.isCallToPthreadFunction(pCfaEdge, PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
-      return true;
-    } else if (PthreadUtil.isCallToPthreadFunction(
-        pCfaEdge, PthreadFunctionType.VERIFIER_ATOMIC_END)) {
-      return false;
+    Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge);
+    if (functionCall.isPresent()) {
+      if (PthreadUtil.isCallToPthreadFunction(
+          functionCall.orElseThrow(), PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)) {
+        return true;
+      } else if (PthreadUtil.isCallToPthreadFunction(
+          functionCall.orElseThrow(), PthreadFunctionType.VERIFIER_ATOMIC_END)) {
+        return false;
+      }
     }
     return pPreviousIsInAtomicBlock;
   }
@@ -245,15 +256,20 @@ public class MPORThreadBuilder {
       MPOROptions pOptions, CFAForThread pThreadCFA) {
 
     for (CFAEdgeForThread threadEdge : pThreadCFA.threadEdges) {
-      if (PthreadUtil.isCallToPthreadFunction(
-          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
-        String name = SeqNameUtil.buildStartRoutineExitVariableName(pOptions, pThreadCFA.threadId);
-        CVariableDeclaration declaration =
-            SeqDeclarationBuilder.buildVariableDeclaration(
-                true, CPointerType.POINTER_TO_VOID, name, null);
-        CIdExpression startRoutineExitVariable =
-            SeqExpressionBuilder.buildIdExpression(declaration);
-        return Optional.of(startRoutineExitVariable);
+      Optional<CFunctionCall> functionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+          String name =
+              SeqNameUtil.buildStartRoutineExitVariableName(pOptions, pThreadCFA.threadId);
+          CVariableDeclaration declaration =
+              SeqDeclarationBuilder.buildVariableDeclaration(
+                  true, CPointerType.POINTER_TO_VOID, name, null);
+          CIdExpression startRoutineExitVariable =
+              SeqExpressionBuilder.buildIdExpression(declaration);
+          return Optional.of(startRoutineExitVariable);
+        }
       }
     }
     return Optional.empty();

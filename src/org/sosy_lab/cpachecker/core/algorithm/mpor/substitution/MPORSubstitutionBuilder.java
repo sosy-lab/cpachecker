@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -49,7 +51,7 @@ public class MPORSubstitutionBuilder {
 
   public static ImmutableList<MPORSubstitution> buildSubstitutions(
       MPOROptions pOptions,
-      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
+      ImmutableList<AVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -102,7 +104,7 @@ public class MPORSubstitutionBuilder {
       buildGlobalVariableSubstitutes(
           MPOROptions pOptions,
           MPORThread pThread,
-          ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
+          ImmutableList<AVariableDeclaration> pGlobalVariableDeclarations,
           SequentializationUtils pUtils)
           throws UnrecognizedCodeException {
 
@@ -163,11 +165,12 @@ public class MPORSubstitutionBuilder {
   }
 
   private static ImmutableList<Entry<CVariableDeclaration, CIdExpression>> initGlobalSubstitutes(
-      MPOROptions pOptions, ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations) {
+      MPOROptions pOptions, ImmutableList<AVariableDeclaration> pGlobalVariableDeclarations) {
 
     ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
         ImmutableList.builder();
-    for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
+    for (AVariableDeclaration aVariableDeclaration : pGlobalVariableDeclarations) {
+      CVariableDeclaration variableDeclaration = (CVariableDeclaration) aVariableDeclaration;
       CStorageClass storageClass = variableDeclaration.getCStorageClass();
       // if type declarations are not included, the storage class cannot be extern
       if (pOptions.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
@@ -268,42 +271,60 @@ public class MPORSubstitutionBuilder {
     for (MPORThread thread : pAllThreads) {
       for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-          assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
-          CIdExpression pthreadT =
-              PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
-          MPORThread createdThread =
-              MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-          // pthread_t matches
-          if (pthreadT.equals(createdThread.threadObject().orElseThrow())) {
-            CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(cfaEdge);
-            CFunctionDeclaration startRoutineDeclaration =
-                (CFunctionDeclaration) createdThread.cfa().entryNode.getFunction();
-            // start_routine matches
-            if (startRoutineDeclaration.getType().equals(startRoutineType)) {
-              if (!startRoutineDeclaration.getParameters().isEmpty()) {
-                assert startRoutineDeclaration.getParameters().size() == 1
-                    : "start_routines can have either 0 or 1 arguments";
-                CParameterDeclaration parameterDeclaration =
-                    startRoutineDeclaration.getParameters().getFirst();
-                String varName =
-                    SeqNameUtil.buildStartRoutineArgName(
-                        pOptions,
-                        parameterDeclaration,
-                        createdThread.id(),
-                        startRoutineDeclaration.getOrigName());
-                CParameterDeclaration substituteParameterDeclaration =
-                    substituteParameterDeclaration(parameterDeclaration, varName);
-                CIdExpression substitute =
-                    SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
-                rArgSubstitutes.put(threadEdge, parameterDeclaration, substitute);
-              }
-            }
+        Optional<CFunctionCall> optionalFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+        if (optionalFunctionCall.isPresent()) {
+          CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
+          if (PthreadUtil.isCallToPthreadFunction(
+              functionCall, PthreadFunctionType.PTHREAD_CREATE)) {
+            CIdExpression pthreadT =
+                PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
+            MPORThread createdThread =
+                MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
+            tryBuildStartRoutineArgSubstitute(pOptions, functionCall, pthreadT, createdThread)
+                .ifPresent(
+                    entry -> rArgSubstitutes.put(threadEdge, entry.getKey(), entry.getValue()));
           }
         }
       }
     }
     return rArgSubstitutes.buildOrThrow();
+  }
+
+  private static Optional<Entry<CParameterDeclaration, CIdExpression>>
+      tryBuildStartRoutineArgSubstitute(
+          MPOROptions pOptions,
+          CFunctionCall pFunctionCall,
+          CIdExpression pPthreadT,
+          MPORThread pCreatedThread) {
+
+    // pthread_t matches
+    if (pPthreadT.equals(pCreatedThread.threadObject().orElseThrow())) {
+      CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(pFunctionCall);
+      CFunctionDeclaration startRoutineDeclaration =
+          (CFunctionDeclaration) pCreatedThread.cfa().entryNode.getFunction();
+      // start_routine matches
+      if (startRoutineDeclaration.getType().equals(startRoutineType)) {
+        if (!startRoutineDeclaration.getParameters().isEmpty()) {
+          assert startRoutineDeclaration.getParameters().size() == 1
+              : "start_routines can have either 0 or 1 arguments";
+          CParameterDeclaration parameterDeclaration =
+              startRoutineDeclaration.getParameters().getFirst();
+          String varName =
+              SeqNameUtil.buildStartRoutineArgName(
+                  pOptions,
+                  parameterDeclaration,
+                  pCreatedThread.id(),
+                  startRoutineDeclaration.getOrigName());
+          CParameterDeclaration substituteParameterDeclaration =
+              substituteParameterDeclaration(parameterDeclaration, varName);
+          CIdExpression substitute =
+              SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
+          return Optional.of(Map.entry(parameterDeclaration, substitute));
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   // Variable Declarations =========================================================================
