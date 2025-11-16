@@ -14,6 +14,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer.TransitionInvariant;
 
 /**
  * A transition in the automaton implements one of the pattern matching methods. This determines if
@@ -77,7 +79,7 @@ class AutomatonTransition {
 
   private final ExpressionTree<AExpression> candidateInvariants;
 
-  private final ExpressionTree<AExpression> candidateTransitionInvariants;
+  private final TransitionInvariant candidateTransitionInvariants;
 
   private final boolean areDefaultCandidateInvariants;
 
@@ -103,7 +105,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
-    private ExpressionTree<AExpression> candidateTransitionInvariants;
+    private TransitionInvariant candidateTransitionInvariants;
     private boolean areDefaultCandidateInvariants;
     private @Nullable StringExpression targetInformation;
 
@@ -114,7 +116,8 @@ class AutomatonTransition {
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
       candidateInvariants = ExpressionTrees.getTrue();
-      candidateTransitionInvariants = ExpressionTrees.getTrue();
+      candidateTransitionInvariants =
+          new TransitionInvariant(ExpressionTrees.getTrue(), ImmutableMap.of());
       areDefaultCandidateInvariants = true;
     }
 
@@ -154,8 +157,7 @@ class AutomatonTransition {
     }
 
     @CanIgnoreReturnValue
-    Builder withCandidateTransitionInvariants(
-        ExpressionTree<AExpression> pCandidateTransitionInvariants) {
+    Builder withCandidateTransitionInvariants(TransitionInvariant pCandidateTransitionInvariants) {
       candidateTransitionInvariants = pCandidateTransitionInvariants;
       return this;
     }
@@ -206,7 +208,7 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
-      ExpressionTree<AExpression> pCandidateTransitionInvariants,
+      TransitionInvariant pCandidateTransitionInvariants,
       boolean pAreDefaultCandidateInvariants,
       List<AutomatonAction> pActions,
       String pFollowStateName,
@@ -458,7 +460,7 @@ class AutomatonTransition {
     return candidateInvariants;
   }
 
-  public ExpressionTree<AExpression> getCandidateTransitionInvariants() {
+  public TransitionInvariant getCandidateTransitionInvariants() {
     return candidateTransitionInvariants;
   }
 

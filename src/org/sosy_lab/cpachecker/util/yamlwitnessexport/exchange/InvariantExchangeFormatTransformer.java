@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
@@ -29,12 +30,13 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -74,6 +76,10 @@ public class InvariantExchangeFormatTransformer {
     logger = pLogger;
   }
 
+  public record TransitionInvariant(
+      ExpressionTree<AExpression> invariant,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrentVarsToPrevVars) {}
+
   /**
    * Create an {@link ExpressionTree} from a given string.
    *
@@ -106,6 +112,7 @@ public class InvariantExchangeFormatTransformer {
    * Parse the invariant string given in an {@link InvariantEntry} into an {@link ExpressionTree}.
    *
    * @param pInvariantEntry The entry whose invariant should be parsed
+   * @param pInvariantString The string representing the invariant
    * @return The parsed invariant as a {@link ExpressionTree}
    * @throws InterruptedException If the parsing is interrupted
    */
@@ -114,12 +121,13 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
+    String invariantString =
+        pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())
+            ? replacePrevKeywordWithFreshVariables(pInvariantEntry)
+            : pInvariantEntry.getValue();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
-
-    registerThePrevVariables(invariantString);
 
     Scope scope =
         switch (cfa.getLanguage()) {
@@ -130,55 +138,12 @@ public class InvariantExchangeFormatTransformer {
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
   }
 
-  /**
-   * In case the witness is termination witness, it may contain x__PREV variables. These variables
-   * need to be registered in the scope. We add arbitrary edges into the head of the main with the
-   * declarations of these variables in CFA.
-   *
-   * @param pInvariant the invariant as string
-   */
-  private void registerThePrevVariables(String pInvariant) {
-    Pattern pattern = Pattern.compile("\\b\\w+__PREV\\b");
-    Matcher matcher = pattern.matcher(pInvariant);
-
-    Scope scope =
-        switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
-          default -> DummyScope.getInstance();
-        };
-
-    while (matcher.find()) {
-      String prevVariable = matcher.group();
-      String nameOfTheVariableInProgram =
-          prevVariable.substring(0, prevVariable.lastIndexOf("__PREV"));
-      CDeclaration declaration =
-          new CVariableDeclaration(
-              cfa.getMainFunction().getFileLocation(),
-              false,
-              CStorageClass.AUTO,
-              scope.lookupVariable(nameOfTheVariableInProgram) != null
-                  ? scope.lookupVariable(nameOfTheVariableInProgram).getType()
-                  : CNumericTypes.LONG_LONG_INT,
-              prevVariable,
-              prevVariable,
-              "main::" + prevVariable,
-              null);
-      // TODO: Add also the original variable into the scope?
-      cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(declaration));
-      cfa.getMainFunction()
-          .addLeavingEdge(
-              new CDeclarationEdge(
-                  scope.lookupVariable(nameOfTheVariableInProgram) != null
-                      ? scope.lookupVariable(nameOfTheVariableInProgram).getType()
-                          + " "
-                          + prevVariable
-                          + ";"
-                      : "long long " + prevVariable + ";",
-                  cfa.getMainFunction().getFileLocation(),
-                  cfa.getMainFunction(),
-                  CFANode.newDummyCFANode(),
-                  declaration));
-    }
+  public TransitionInvariant parseTransitionInvariantEntry(InvariantEntry pInvariantEntry)
+      throws InterruptedException, WitnessParseException {
+    ExpressionTree<AExpression> invariantExpressionTree = parseInvariantEntry(pInvariantEntry);
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrToPrevVariables =
+        registerThePrevVariables(pInvariantEntry);
+    return new TransitionInvariant(invariantExpressionTree, mapCurrToPrevVariables);
   }
 
   /**
@@ -205,6 +170,61 @@ public class InvariantExchangeFormatTransformer {
     invariantString = result.toString().replace("\\", "");
 
     return invariantString;
+  }
+
+  /**
+   * In case the witness is termination witness, it may contain x__PREV variables. These variables
+   * need to be registered in the scope. We add arbitrary edges into the head of the main with the
+   * declarations of these variables in CFA.
+   *
+   * @param pInvariantEntry the invariant entry
+   */
+  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
+      InvariantEntry pInvariantEntry) throws WitnessParseException {
+    String invariantString = pInvariantEntry.getValue();
+    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+    Matcher matcher = pattern.matcher(invariantString);
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapCurrToPrev =
+        ImmutableMap.builder();
+
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+
+    while (matcher.find()) {
+      String prevVariable = matcher.group(1);
+      CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
+      if (currDeclaration == null) {
+        throw new WitnessParseException(
+            "The following variable is not in the original program: " + prevVariable);
+      }
+      prevVariable = prevVariable + "__PREV";
+
+      CDeclaration prevDeclaration =
+          new CVariableDeclaration(
+              cfa.getMainFunction().getFileLocation(),
+              false,
+              CStorageClass.AUTO,
+              currDeclaration.getType(),
+              prevVariable,
+              prevVariable,
+              "main::" + prevVariable,
+              null);
+      // TODO: Add also the original variable into the scope?
+      cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(prevDeclaration));
+      cfa.getMainFunction()
+          .addLeavingEdge(
+              new CDeclarationEdge(
+                  currDeclaration.getType() + " " + prevVariable + ";",
+                  cfa.getMainFunction().getFileLocation(),
+                  cfa.getMainFunction(),
+                  CFANode.newDummyCFANode(),
+                  prevDeclaration));
+      mapCurrToPrev.put(currDeclaration, prevDeclaration);
+    }
+    return mapCurrToPrev.build();
   }
 
   private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
