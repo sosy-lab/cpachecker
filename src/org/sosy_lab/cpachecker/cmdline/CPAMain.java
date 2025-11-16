@@ -403,7 +403,7 @@ public class CPAMain {
     config.inject(options);
 
     // Switch to appropriate config depending on property (if necessary)
-    config = handlePropertyOptions(config, options, cmdLineOptions, properties, configFile);
+    config = handlePropertyOptions(config, options, cmdLineOptions, properties);
 
     if (options.printUsedOptions) {
       config.dumpUsedOptionsTo(System.out);
@@ -499,8 +499,7 @@ public class CPAMain {
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<Property> properties,
-      Optional<String> configFileIdentifier)
+      Set<Property> properties)
       throws InvalidConfigurationException, IOException {
 
     final Path alternateConfigFile;
@@ -571,84 +570,21 @@ public class CPAMain {
     }
 
     if (alternateConfigFile != null) {
-      Configuration newConfig =
-          Configuration.builder()
-              .loadFromFile(alternateConfigFile)
-              .setOptions(cmdLineOptions)
-              .clearOption("memorysafety.config")
-              .clearOption("memorycleanup.config")
-              .clearOption("overflow.config")
-              .clearOption("datarace.config")
-              .clearOption("termination.config")
-              .clearOption("output.disable")
-              .clearOption("output.path")
-              .clearOption("rootDirectory")
-              .clearOption("witness.validation.file")
-              .build();
-
-      // Enforce option limit.time.cpu::required is equal in all configs if set
-      newConfig =
-          checkAndSetGlobalProperties(config, configFileIdentifier, newConfig, alternateConfigFile);
-      return newConfig;
+      return Configuration.builder()
+          .loadFromFile(alternateConfigFile)
+          .setOptions(cmdLineOptions)
+          .clearOption("memorysafety.config")
+          .clearOption("memorycleanup.config")
+          .clearOption("overflow.config")
+          .clearOption("datarace.config")
+          .clearOption("termination.config")
+          .clearOption("output.disable")
+          .clearOption("output.path")
+          .clearOption("rootDirectory")
+          .clearOption("witness.validation.file")
+          .build();
     }
     return config;
-  }
-
-  @SuppressWarnings("deprecation")
-  private static Configuration checkAndSetGlobalProperties(
-      Configuration oldConfig,
-      Optional<String> configFile,
-      Configuration newConfig,
-      Path newConfigPath)
-      throws InvalidConfigurationException {
-    // TODO: make const somewhere
-    String globallyEnforcedTimeLimitOption = "limits.time.cpu::required";
-    if (oldConfig.hasProperty(globallyEnforcedTimeLimitOption)
-        || newConfig.hasProperty(globallyEnforcedTimeLimitOption)) {
-      if (!newConfig.hasProperty(globallyEnforcedTimeLimitOption)) {
-        // TODO: warn in logger. But the logger is only created later.
-        // TODO: add this info to the property options texts
-        String optionValue = oldConfig.getProperty(globallyEnforcedTimeLimitOption);
-        String warning =
-            "Warning: option "
-                + globallyEnforcedTimeLimitOption
-                + " with value "
-                + optionValue
-                + ", has been carried over to configuration "
-                + newConfigPath
-                + ", as it did not specify the option.";
-        System.out.println(warning);
-        return Configuration.builder()
-            .copyFrom(newConfig)
-            .setOption(globallyEnforcedTimeLimitOption, optionValue)
-            .build();
-
-      } else if (!oldConfig.hasProperty(globallyEnforcedTimeLimitOption)) {
-        String configLoc =
-            configFile.isPresent() ? configFile.orElseThrow() : "the first configuration used";
-        throw new InvalidConfigurationException(
-            "If option "
-                + globallyEnforcedTimeLimitOption
-                + " is used in any configuration loaded, it has to be used in all"
-                + " configurations, but "
-                + configLoc
-                + " fails to specify the option.");
-      }
-      if (!oldConfig
-          .getProperty(globallyEnforcedTimeLimitOption)
-          .equals(newConfig.getProperty(globallyEnforcedTimeLimitOption))) {
-        throw new InvalidConfigurationException(
-            "Option "
-                + globallyEnforcedTimeLimitOption
-                + " is already set to "
-                + oldConfig.getProperty(globallyEnforcedTimeLimitOption)
-                + ", and needs to be equal in all configurations, but configuration "
-                + newConfigPath
-                + " sets it to "
-                + newConfig.getProperty(globallyEnforcedTimeLimitOption));
-      }
-    }
-    return newConfig;
   }
 
   private static Path check(Path config, String verificationTarget, String optionName)
@@ -843,8 +779,7 @@ public class CPAMain {
                   validationConfig,
                   bootstrapOptions,
                   overrideOptions,
-                  handlePropertyFile(overrideOptions),
-                  Optional.of(validationConfigFile.toString()));
+                  handlePropertyFile(overrideOptions));
           correctnessWitnessConfig.inject(options);
           if (options.validateInvariantsSpecificationAutomaton) {
             appendWitnessToSpecificationOption(options, overrideOptions);

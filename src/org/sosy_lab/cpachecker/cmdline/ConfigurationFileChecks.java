@@ -124,7 +124,7 @@ public class ConfigurationFileChecks {
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
-          "limits.time.cpu.thread.percentageOfTotalCpuTime",
+          "limits.time.cpu.thread.percentageOfCpuTime",
           "log.consoleLevel",
           "log.truncateSize",
           "memorysafety.config",

@@ -289,7 +289,13 @@ public final class ResourceLimitChecker {
         name = "time.cpu",
         description =
             "Limit for cpu time used by CPAchecker (use seconds or specify a unit;"
-                + " TIME_LIMIT_INFINITE for infinite)")
+                + " TIME_LIMIT_INFINITE for infinite). Note: this option is not carried over into"
+                + " new configurations, when switching configurations due to property based"
+                + " configuration-selection (e.g. options:"
+                + " memorysafety.config, memorycleanup.config, overflow.config, datarace.config, or"
+                + " termination.config)! Using this option from the command-line overrides all"
+                + " other usages of this option, even when switching configurations due to property"
+                + " based configuration-selection.")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTime = TIME_LIMIT_INFINITE;
 
@@ -297,10 +303,13 @@ public final class ResourceLimitChecker {
         secure = true,
         name = "time.cpu::required",
         description =
-            "Enforce that the given CPU time limit is set as the value of limits.time.cpu. This"
-                + " option is carried over into new configurations switched to based on property"
-                + " selection (i.e. options: memorysafety.config, memorycleanup.config,"
-                + " overflow.config, datarace.config, and termination.config).")
+            "Enforce that the given CPU time limit is set as the value of limits.time.cpu. Note:"
+                + " this option is not carried over into new configurations, when switching"
+                + " configurations due to property based configuration-selection (e.g. options:"
+                + " memorysafety.config, memorycleanup.config, overflow.config, datarace.config, or"
+                + " termination.config)! Using this option from the command-line overrides all"
+                + " other usages of this option, even when switching configurations due to property"
+                + " based configuration-selection.")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTimeRequired = TIME_LIMIT_INFINITE;
 
@@ -316,9 +325,9 @@ public final class ResourceLimitChecker {
 
     @Option(
         secure = true,
-        name = "time.cpu.thread.percentageOfTotalCpuTime",
+        name = "time.cpu.thread.percentageOfCpuTime",
         description =
-            "Thread time-limit in percent (%) of total CPU time-limit \"limit.time.cpu\" used by"
+            "Thread time-limit in percent (%) of CPU time-limit \"limit.time.cpu\" used by"
                 + " CPAchecker. Example: using this option with value 15.6 leads to 15.6% with 900s"
                 + " for option \"limits.time.cpu\", leads to 140s thread CPU time limit used. The"
                 + " value of this option may not be greater than 100 or less or equal to 0.")
