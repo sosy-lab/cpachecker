@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -30,6 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -158,6 +160,8 @@ public class TerminationWitnessValidator implements Algorithm {
         mapTransitionInvariantsToLoops(loops, invariants);
     ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars =
+        joinAllPrevDeclarationMaps(invariants);
 
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
@@ -188,7 +192,8 @@ public class TerminationWitnessValidator implements Algorithm {
         throw new CPAException("The configuration does not support infinite state spaces.");
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
-      if (wellFoundednessChecker.isWellFounded(invariant, supportingInvariants, loop)
+      if (wellFoundednessChecker.isWellFounded(
+              invariant, supportingInvariants, loop, mapCurrVarsToPrevVars)
           && isCandidateInvariantTransitionInvariant(
               loop,
               loopsToTransitionInvariants.get(loop),
@@ -201,7 +206,8 @@ public class TerminationWitnessValidator implements Algorithm {
       // well-foundedness
       // And hence, we have to do check R^+ => T
       boolean isWellFounded =
-          wellFoundednessChecker.isDisjunctivelyWellFounded(invariant, supportingInvariants, loop);
+          wellFoundednessChecker.isDisjunctivelyWellFounded(
+              invariant, supportingInvariants, loop, mapCurrVarsToPrevVars);
       // Our termination analysis might be unsound with respect to C semantics because it assumes
       // infinite state space.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
@@ -274,6 +280,20 @@ public class TerminationWitnessValidator implements Algorithm {
     } catch (Exception e) {
       throw new CPAException(e.toString());
     }
+  }
+
+  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinAllPrevDeclarationMaps(
+      Set<ExpressionTreeLocationInvariant> pInvariants) {
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> finalMap = ImmutableMap.builder();
+    for (ExpressionTreeLocationInvariant invariant : pInvariants) {
+      if (invariant instanceof ExpressionTreeLocationTransitionInvariant pTransitionInvariant) {
+        for (Entry<CSimpleDeclaration, CSimpleDeclaration> declaration :
+            pTransitionInvariant.getMapCurrentVarsToPrev().entrySet()) {
+          finalMap.put(declaration);
+        }
+      }
+    }
+    return finalMap.buildOrThrow();
   }
 
   private ImmutableMap<Loop, ImmutableList<BooleanFormula>> mapSupportingInvariantsToLoops(

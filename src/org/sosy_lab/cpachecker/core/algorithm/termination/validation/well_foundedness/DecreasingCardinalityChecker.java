@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -55,7 +57,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    */
   @Override
   public boolean isWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException {
     SSAMap ssaMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 2, fmgr, scope);
@@ -233,7 +238,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    */
   @Override
   public boolean isDisjunctivelyWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException {
     Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 

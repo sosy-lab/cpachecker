@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -87,7 +89,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    */
   @Override
   public boolean isWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
     StringJoiner builder = new StringJoiner(System.lineSeparator());
@@ -233,12 +238,15 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    */
   @Override
   public boolean isDisjunctivelyWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException {
     Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 
     for (BooleanFormula candidateInvariant : invariantInDNF) {
-      if (!isWellFounded(candidateInvariant, pSupportingInvariants, pLoop)) {
+      if (!isWellFounded(candidateInvariant, pSupportingInvariants, pLoop, mapCurrVarsToPrevVars)) {
         return false;
       }
     }

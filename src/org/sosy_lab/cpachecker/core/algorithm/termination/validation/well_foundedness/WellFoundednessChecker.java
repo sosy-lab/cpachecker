@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -23,7 +25,10 @@ public interface WellFoundednessChecker {
    * @return true if the formula is well-founded, return false otherwise
    */
   boolean isWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException;
 
   /**
@@ -34,6 +39,9 @@ public interface WellFoundednessChecker {
    * @return true if the formula is disjunctively well-founded, return false otherwise
    */
   boolean isDisjunctivelyWellFounded(
-      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
+      BooleanFormula pFormula,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException;
 }
