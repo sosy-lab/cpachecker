@@ -183,7 +183,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // The loop is not reachable due to prunning in CFA construction
         supportingInvariants = ImmutableList.of();
       }
-      if (!checkWithInfiniteSpace && hasInfiniteSpace(invariant)) {
+      if (!checkWithInfiniteSpace && hasPotentialInfiniteSpace(invariant)) {
         throw new CPAException("The configuration does not support infinite state spaces.");
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
@@ -466,7 +466,7 @@ public class TerminationWitnessValidator implements Algorithm {
     return isTransitionInvariant;
   }
 
-  private boolean hasInfiniteSpace(BooleanFormula pInvariant) {
+  private boolean hasPotentialInfiniteSpace(BooleanFormula pInvariant) {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pInvariant);
     for (Formula variable : mapNamesToVariables.values()) {
       if (fmgr.getFormulaType(variable).isArrayType()) {
