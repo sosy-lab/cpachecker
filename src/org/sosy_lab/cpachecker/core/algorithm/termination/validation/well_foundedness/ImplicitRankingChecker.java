@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -102,7 +103,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
             .getVariablesAndParametersInScope(pLoop.getLoopHeads().asList().getFirst())
             .orElseThrow()) {
       varDeclaration = variable.toString();
-      if (varDeclaration.contains("struct")) {
+      if (variable.getType() instanceof CComplexType) {
         continue;
       }
       if (alreadyDeclaredVars.add(variable.getName())) {
