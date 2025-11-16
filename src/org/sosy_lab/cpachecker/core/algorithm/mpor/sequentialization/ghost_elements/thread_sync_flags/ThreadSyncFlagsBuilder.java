@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -72,7 +71,8 @@ public record ThreadSyncFlagsBuilder(
   private ImmutableMap<CIdExpression, CondSignaledFlag> buildCondSignaledFlags(
       ImmutableSet<CIdExpression> pCondExpressions) throws UnrecognizedCodeException {
 
-    Builder<CIdExpression, CondSignaledFlag> rCondSignaledFlags = ImmutableMap.builder();
+    ImmutableMap.Builder<CIdExpression, CondSignaledFlag> rCondSignaledFlags =
+        ImmutableMap.builder();
     for (CIdExpression condExpression : pCondExpressions) {
       String varName = SeqNameUtil.buildCondSignaledName(condExpression.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
@@ -96,7 +96,7 @@ public record ThreadSyncFlagsBuilder(
   private ImmutableMap<CIdExpression, MutexLockedFlag> buildMutexLockedFlags(
       ImmutableSet<CIdExpression> pMutexExpressions) throws UnrecognizedCodeException {
 
-    Builder<CIdExpression, MutexLockedFlag> rMutexLockedFlags = ImmutableMap.builder();
+    ImmutableMap.Builder<CIdExpression, MutexLockedFlag> rMutexLockedFlags = ImmutableMap.builder();
     for (CIdExpression mutexExpression : pMutexExpressions) {
       String varName = SeqNameUtil.buildMutexLockedName(mutexExpression.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
@@ -119,7 +119,8 @@ public record ThreadSyncFlagsBuilder(
   private ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> buildRwLockFlags(
       ImmutableSet<CIdExpression> pRwLockExpressions) throws UnrecognizedCodeException {
 
-    Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags = ImmutableMap.builder();
+    ImmutableMap.Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags =
+        ImmutableMap.builder();
     for (CIdExpression rwLockExpression : pRwLockExpressions) {
       String readersVarName = SeqNameUtil.buildRwLockReadersName(rwLockExpression.getName());
       String writersVarName = SeqNameUtil.buildRwLockWritersName(rwLockExpression.getName());
@@ -158,7 +159,7 @@ public record ThreadSyncFlagsBuilder(
   }
 
   private ImmutableMap<MPORThread, CIdExpression> buildSyncFlags() {
-    Builder<MPORThread, CIdExpression> rSyncFlags = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CIdExpression> rSyncFlags = ImmutableMap.builder();
     for (MPORThread thread : threads) {
       String name = SeqNameUtil.buildSyncName(options, thread.id());
       // use unsigned char (8 bit), we only need values 0 and 1

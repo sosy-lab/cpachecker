@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -47,7 +46,8 @@ public record FunctionStatementBuilder(
   public ImmutableMap<MPORThread, FunctionStatements> buildFunctionStatements()
       throws UnrecognizedCodeException {
 
-    Builder<MPORThread, FunctionStatements> rFunctionStatements = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, FunctionStatements> rFunctionStatements =
+        ImmutableMap.builder();
     for (MPORSubstitution substitution : substitutions) {
       for (MPORThread thread : threads) {
         if (substitution.thread.equals(thread)) {
@@ -121,7 +121,8 @@ public record FunctionStatementBuilder(
       buildStartRoutineArgAssignments(MPORSubstitution pSubstitution)
           throws UnrecognizedCodeException {
 
-    Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionParameterAssignment> rAssignments =
+        ImmutableMap.builder();
     Set<CFAEdgeForThread> visited = new HashSet<>();
     for (var cell : pSubstitution.startRoutineArgSubstitutes.cellSet()) {
       // this call context is the call to pthread_create
@@ -171,7 +172,7 @@ public record FunctionStatementBuilder(
   private ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment> buildReturnValueAssignments(
       MPORThread pThread) {
 
-    Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rReturnStatements =
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rReturnStatements =
         ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       assert substituteEdges.containsKey(threadEdge)
@@ -262,8 +263,8 @@ public record FunctionStatementBuilder(
   private ImmutableMap<CFAEdgeForThread, FunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(MPORThread pThread) {
 
-    Builder<CFAEdgeForThread, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdgeForThread, FunctionReturnValueAssignment>
+        rStartRoutineExitAssignments = ImmutableMap.builder();
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge)
           .ifPresent(

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableTable;
@@ -65,7 +64,7 @@ public record MPORSubstitutionBuilder(
     ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
         startRoutineArgSubstitutes = buildStartRoutineArgSubstitutes();
 
-    Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
+    ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
 
     // step 2: for each thread, create substitution
     for (MPORThread thread : threads) {
@@ -121,7 +120,8 @@ public record MPORSubstitutionBuilder(
             utils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
-    Builder<Entry<CVariableDeclaration, CIdExpression>> rFinalSubstitutes = ImmutableList.builder();
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> rFinalSubstitutes =
+        ImmutableList.builder();
 
     for (Entry<CVariableDeclaration, CIdExpression> entry : dummyGlobalSubstitutes) {
       CVariableDeclaration variableDeclaration = entry.getKey();
@@ -156,7 +156,7 @@ public record MPORSubstitutionBuilder(
   }
 
   private ImmutableList<Entry<CVariableDeclaration, CIdExpression>> initGlobalSubstitutes() {
-    Builder<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
         ImmutableList.builder();
     for (AVariableDeclaration aVariableDeclaration : globalVariableDeclarations) {
       CVariableDeclaration variableDeclaration = (CVariableDeclaration) aVariableDeclaration;

@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -127,7 +126,7 @@ public record BitVectorBuilder(
     if (!options.bitVectorEncoding().isDense) {
       return Optional.empty();
     }
-    Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : threads) {
       Optional<CIdExpression> directVariable =
           buildDenseBitVector(thread, pAccessType, ReachType.DIRECT);

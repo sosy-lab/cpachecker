@@ -168,40 +168,36 @@ public class StatementInjector {
               pUtils);
     }
     if (pOptions.reduceLastThreadOrder()) {
-      pStatement =
-          ReduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(
+      ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
+          new ReduceLastThreadOrderInjector(
               pOptions,
               pOtherThreads.size() + 1,
-              pStatement,
               pActiveThread,
               pLabelClauseMap,
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
               pUtils);
+      pStatement =
+          reduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(pStatement);
     }
     if (pOptions.reduceIgnoreSleep()) {
       // this needs to be last, it collects the prior injections
-      pStatement =
-          ReduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(
-              pOptions,
-              pActiveThread,
-              pOtherThreads,
-              pStatement,
-              pLabelClauseMap,
-              pBitVectorVariables,
-              pUtils);
+      ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =
+          new ReduceIgnoreSleepInjector(
+              pOptions, pActiveThread, pOtherThreads, pLabelClauseMap, pBitVectorVariables, pUtils);
+      pStatement = reduceIgnoreSleepInjector.injectIgnoreSleepReductionIntoStatement(pStatement);
     }
     // always inject bit vector assignments after evaluations i.e. reductions
-    pStatement =
-        BitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(
+    BitVectorAssignmentInjector bitVectorAssignmentInjector =
+        new BitVectorAssignmentInjector(
             pOptions,
             pActiveThread,
-            pStatement,
             pLabelClauseMap,
             pLabelBlockMap,
             pBitVectorVariables,
             pMemoryModel);
+    pStatement = bitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(pStatement);
     return pStatement;
   }
 

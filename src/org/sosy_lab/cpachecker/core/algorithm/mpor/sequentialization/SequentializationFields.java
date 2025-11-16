@@ -80,11 +80,13 @@ public class SequentializationFields {
     substitutions = substitutionBuilder.buildSubstitutions();
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions);
-    memoryModel =
-        MemoryModelBuilder.tryBuildMemoryModel(
+
+    MemoryModelBuilder memoryModelBuilder =
+        new MemoryModelBuilder(
             pOptions,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values());
+    memoryModel = memoryModelBuilder.tryBuildMemoryModel();
 
     GhostElementBuilder ghostElementBuilder =
         new GhostElementBuilder(

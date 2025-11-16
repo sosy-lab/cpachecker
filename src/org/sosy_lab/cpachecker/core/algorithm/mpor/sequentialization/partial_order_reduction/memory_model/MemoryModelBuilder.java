@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -42,20 +41,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public class MemoryModelBuilder {
+public record MemoryModelBuilder(
+    MPOROptions options,
+    ImmutableList<SeqMemoryLocation> initialMemoryLocations,
+    ImmutableCollection<SubstituteEdge> substituteEdges) {
 
-  public static Optional<MemoryModel> tryBuildMemoryModel(
-      MPOROptions pOptions,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    if (pOptions.linkReduction()) {
+  public Optional<MemoryModel> tryBuildMemoryModel() {
+    if (options.linkReduction()) {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
-          mapStartRoutineArgAssignments(pOptions, pSubstituteEdges, pInitialMemoryLocations);
+          mapStartRoutineArgAssignments();
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-          mapParameterAssignments(pOptions, pSubstituteEdges, pInitialMemoryLocations);
+          mapParameterAssignments();
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-          extractPointerParameters(parameterAssignments);
+          getPointerParameterAssignments(parameterAssignments);
       ImmutableList<SeqMemoryLocation> newMemoryLocations =
           ImmutableList.<SeqMemoryLocation>builder()
               .addAll(parameterAssignments.values())
@@ -65,11 +63,10 @@ public class MemoryModelBuilder {
 
       // use distinct list so that sequentialization is deterministic
       ImmutableList<SeqMemoryLocation> allMemoryLocations =
-          getAllMemoryLocations(pInitialMemoryLocations, newMemoryLocations);
+          getAllMemoryLocations(newMemoryLocations);
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
-          mapPointerAssignments(pSubstituteEdges);
-      ImmutableSet<SeqMemoryLocation> pointerDereferences =
-          getAllPointerDereferences(pSubstituteEdges);
+          mapPointerAssignments();
+      ImmutableSet<SeqMemoryLocation> pointerDereferences = getAllPointerDereferences();
 
       MemoryModel memoryModel =
           buildMemoryModel(
@@ -112,11 +109,10 @@ public class MemoryModelBuilder {
 
   // All Memory Locations ==========================================================================
 
-  private static ImmutableList<SeqMemoryLocation> getAllMemoryLocations(
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations,
+  private ImmutableList<SeqMemoryLocation> getAllMemoryLocations(
       ImmutableList<SeqMemoryLocation> pNewMemoryLocations) {
 
-    List<SeqMemoryLocation> rAllMemoryLocations = new ArrayList<>(pInitialMemoryLocations);
+    List<SeqMemoryLocation> rAllMemoryLocations = new ArrayList<>(initialMemoryLocations);
     rAllMemoryLocations.addAll(pNewMemoryLocations);
     return rAllMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
   }
@@ -365,12 +361,10 @@ public class MemoryModelBuilder {
 
   // Pointer Assignments ===========================================================================
 
-  private static ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
+  private ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments() {
     ImmutableSetMultimap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAllAssignments =
         ImmutableSetMultimap.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : substituteEdges) {
       rAllAssignments.putAll(substituteEdge.pointerAssignments.asMultimap());
     }
     return rAllAssignments.build();
@@ -378,14 +372,10 @@ public class MemoryModelBuilder {
 
   // start_routine arg Assignments =================================================================
 
-  private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments(
-      MPOROptions pOptions,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
-
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments() {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : substituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       Optional<CFunctionCall> optionalFunctionCall =
@@ -400,8 +390,7 @@ public class MemoryModelBuilder {
           CExpression startRoutineArgExpression =
               functionCall.getFunctionCallExpression().getParameterExpressions().get(index);
           Optional<SeqMemoryLocation> rhsMemoryLocation =
-              extractMemoryLocation(
-                  pOptions, callContext, startRoutineArgExpression, pInitialMemoryLocations);
+              extractMemoryLocation(callContext, startRoutineArgExpression);
           if (rhsMemoryLocation.isPresent()) {
             // use the ID of the created thread for the parameter declaration
             CFunctionDeclaration functionDeclaration =
@@ -411,7 +400,7 @@ public class MemoryModelBuilder {
             CParameterDeclaration parameterDeclaration =
                 functionDeclaration.getParameters().getFirst();
             rAssignments.put(
-                SeqMemoryLocation.of(pOptions, Optional.of(callContext), parameterDeclaration),
+                SeqMemoryLocation.of(options, Optional.of(callContext), parameterDeclaration),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -422,31 +411,22 @@ public class MemoryModelBuilder {
 
   // Parameter Assignments =========================================================================
 
-  private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments(
-      MPOROptions pOptions,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
-
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments() {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : substituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (original instanceof CFunctionCallEdge functionCallEdge) {
         CFAEdgeForThread callContext = substituteEdge.getThreadEdge();
-        rAssignments.putAll(
-            buildParameterAssignments(
-                pOptions, callContext, functionCallEdge, pInitialMemoryLocations));
+        rAssignments.putAll(buildParameterAssignments(callContext, functionCallEdge));
       }
     }
     return rAssignments.buildOrThrow();
   }
 
-  private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
-      MPOROptions pOptions,
-      CFAEdgeForThread pCallContext,
-      CFunctionCallEdge pFunctionCallEdge,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
+      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
@@ -459,80 +439,62 @@ public class MemoryModelBuilder {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
       CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
       Optional<SeqMemoryLocation> rhsMemoryLocation =
-          extractMemoryLocation(pOptions, pCallContext, arguments.get(i), pInitialMemoryLocations);
+          extractMemoryLocation(pCallContext, arguments.get(i));
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqMemoryLocation.of(pOptions, Optional.of(pCallContext), leftHandSide),
+            SeqMemoryLocation.of(options, Optional.of(pCallContext), leftHandSide),
             rhsMemoryLocation.orElseThrow());
       }
     }
     return rAssignments.buildOrThrow();
   }
 
-  private static Optional<SeqMemoryLocation> extractMemoryLocation(
-      MPOROptions pOptions,
-      CFAEdgeForThread pCallContext,
-      CExpression pRightHandSide,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
+  private Optional<SeqMemoryLocation> extractMemoryLocation(
+      CFAEdgeForThread pCallContext, CExpression pRightHandSide) {
 
-    if (pRightHandSide instanceof CIdExpression idExpression) {
-      return Optional.of(
-          getMemoryLocationByDeclaration(
-              pOptions, pCallContext, idExpression.getDeclaration(), pInitialMemoryLocations));
-
-    } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      return Optional.of(
-          extractFieldReferenceMemoryLocation(
-              pOptions, pCallContext, fieldReference, pInitialMemoryLocations));
-
-    } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
-      return extractMemoryLocation(
-          pOptions, pCallContext, unaryExpression.getOperand(), pInitialMemoryLocations);
-
-    } else if (pRightHandSide instanceof CCastExpression castExpression) {
-      return extractMemoryLocation(
-          pOptions, pCallContext, castExpression.getOperand(), pInitialMemoryLocations);
-    }
-    // can e.g. occur with 'param = 4' i.e. literal integer expressions
-    return Optional.empty();
+    return switch (pRightHandSide) {
+      case CIdExpression idExpression ->
+          Optional.of(getMemoryLocationByDeclaration(pCallContext, idExpression.getDeclaration()));
+      case CFieldReference fieldReference ->
+          Optional.of(extractFieldReferenceMemoryLocation(pCallContext, fieldReference));
+      case CUnaryExpression unaryExpression ->
+          extractMemoryLocation(pCallContext, unaryExpression.getOperand());
+      case CCastExpression castExpression ->
+          extractMemoryLocation(pCallContext, castExpression.getOperand());
+      default ->
+          // can e.g. occur with 'param = 4' i.e. literal integer expressions
+          Optional.empty();
+    };
   }
 
-  private static SeqMemoryLocation extractFieldReferenceMemoryLocation(
-      MPOROptions pOptions,
-      CFAEdgeForThread pCallContext,
-      CFieldReference pFieldReference,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
+  private SeqMemoryLocation extractFieldReferenceMemoryLocation(
+      CFAEdgeForThread pCallContext, CFieldReference pFieldReference) {
 
     CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
     CCompositeTypeMemberDeclaration fieldMember =
         MPORUtil.recursivelyFindFieldMemberByFieldOwner(
             pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
     return getMemoryLocationByFieldReference(
-        pOptions, pCallContext, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
+        pCallContext, fieldOwner.getDeclaration(), fieldMember);
   }
 
-  private static SeqMemoryLocation getMemoryLocationByDeclaration(
-      MPOROptions pOptions,
-      CFAEdgeForThread pCallContext,
-      CSimpleDeclaration pDeclaration,
-      ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
+  private SeqMemoryLocation getMemoryLocationByDeclaration(
+      CFAEdgeForThread pCallContext, CSimpleDeclaration pDeclaration) {
 
-    for (SeqMemoryLocation memoryLocation : pInitialMemoryLocations) {
+    for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
       if (memoryLocation.declaration.equals(pDeclaration)) {
         return memoryLocation;
       }
     }
-    return SeqMemoryLocation.of(pOptions, Optional.of(pCallContext), pDeclaration);
+    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pDeclaration);
   }
 
-  private static SeqMemoryLocation getMemoryLocationByFieldReference(
-      MPOROptions pOptions,
+  private SeqMemoryLocation getMemoryLocationByFieldReference(
       CFAEdgeForThread pCallContext,
       CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember,
-      ImmutableList<SeqMemoryLocation> pAllMemoryLocations) {
+      CCompositeTypeMemberDeclaration pFieldMember) {
 
-    for (SeqMemoryLocation memoryLocation : pAllMemoryLocations) {
+    for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
       if (memoryLocation.fieldMember.isPresent()) {
         CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember.orElseThrow();
         if (memoryLocation.declaration.equals(pFieldOwner) && fieldMember.equals(pFieldMember)) {
@@ -540,18 +502,23 @@ public class MemoryModelBuilder {
         }
       }
     }
-    if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.isGlobal()) {
-        return SeqMemoryLocation.of(pOptions, Optional.of(pCallContext), pFieldOwner, pFieldMember);
-      }
-    }
-    return SeqMemoryLocation.of(pOptions, Optional.of(pCallContext), pFieldOwner, pFieldMember);
+    return SeqMemoryLocation.of(options, Optional.of(pCallContext), pFieldOwner, pFieldMember);
+  }
+
+  // Pointer Dereferences ==========================================================================
+
+  private ImmutableSet<SeqMemoryLocation> getAllPointerDereferences() {
+    return substituteEdges.stream()
+        .flatMap(
+            substituteEdge ->
+                substituteEdge.getPointerDereferencesByAccessType(MemoryAccessType.ACCESS).stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   // Pointer Parameter Assignments =================================================================
 
   @VisibleForTesting
-  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> extractPointerParameters(
+  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> getPointerParameterAssignments(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointers = ImmutableMap.builder();
@@ -561,17 +528,5 @@ public class MemoryModelBuilder {
       }
     }
     return rPointers.buildOrThrow();
-  }
-
-  // Pointer Dereferences ==========================================================================
-
-  private static ImmutableSet<SeqMemoryLocation> getAllPointerDereferences(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    return pSubstituteEdges.stream()
-        .flatMap(
-            substituteEdge ->
-                substituteEdge.getPointerDereferencesByAccessType(MemoryAccessType.ACCESS).stream())
-        .collect(ImmutableSet.toImmutableSet());
   }
 }

@@ -14,7 +14,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -70,7 +69,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    * the calling context of each thread.
    */
   public ImmutableList<MPORThread> createThreads() {
-    Builder<MPORThread> rThreads = ImmutableList.builder();
+    ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = cfa.getMainFunction();
     MPORThread mainThread = createThread(Optional.empty(), Optional.empty(), mainEntryNode);
@@ -145,7 +144,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     // check if node is present already in a specific calling context
     Multimap<CFANode, Optional<CFAEdgeForThread>> visitedNodes = ArrayListMultimap.create();
-    Builder<CFANodeForThread> threadNodes = ImmutableList.builder();
+    ImmutableList.Builder<CFANodeForThread> threadNodes = ImmutableList.builder();
     // we use an immutable map to preserve ordering (important when declaring types)
     ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> threadEdges = ImmutableMap.builder();
 
@@ -174,7 +173,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   private void buildThreadCfaVariables(
       final int pThreadId,
       Multimap<CFANode, Optional<CFAEdgeForThread>> pVisitedCfaNodes,
-      Builder<CFANodeForThread> pThreadNodes,
+      ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
       boolean pIsInAtomicBlock,

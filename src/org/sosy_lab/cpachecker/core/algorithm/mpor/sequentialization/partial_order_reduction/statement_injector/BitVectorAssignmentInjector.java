@@ -36,76 +36,54 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class BitVectorAssignmentInjector {
+public record BitVectorAssignmentInjector(
+    MPOROptions options,
+    MPORThread activeThread,
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
+    ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
+    BitVectorVariables bitVectorVariables,
+    MemoryModel memoryModel) {
 
-  static CSeqThreadStatement injectBitVectorAssignmentsIntoStatement(
-      MPOROptions pOptions,
-      final MPORThread pActiveThread,
-      CSeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      final BitVectorVariables pBitVectorVariables,
-      final MemoryModel pMemoryModel) {
-
+  CSeqThreadStatement injectBitVectorAssignmentsIntoStatement(CSeqThreadStatement pStatement) {
     // if valid target pc found, inject bit vector write and evaluation statements
-    if (pCurrentStatement.getTargetPc().isPresent()) {
+    if (pStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == Sequentialization.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets =
-            buildBitVectorResets(pOptions, pActiveThread, pBitVectorVariables, pMemoryModel);
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets = buildBitVectorResets();
         newInjected.addAll(bitVectorResets);
         return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pCurrentStatement, newInjected.build());
+            pStatement, newInjected.build());
 
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target block
-        SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+        SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
         // the assignment is injected after the evaluation, it is only needed when commute fails
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignmentsByReduction(
-                pOptions,
-                pActiveThread,
-                newTarget,
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pBitVectorVariables,
-                pMemoryModel);
+            buildBitVectorAssignmentsByReduction(newTarget);
         newInjected.addAll(bitVectorAssignments);
         return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pCurrentStatement, newInjected.build());
+            pStatement, newInjected.build());
       }
     }
     // no injection possible -> return statement as is
-    return pCurrentStatement;
+    return pStatement;
   }
 
   // Bit Vector Resets =============================================================================
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorResets(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel) {
-
+  private ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorResets() {
     checkArgument(
-        !pOptions.reductionMode().equals(ReductionMode.NONE),
+        !options.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(pOptions, accessType, reachType)) {
+        if (BitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           rAssignments.addAll(
-              buildBitVectorAssignmentByEncoding(
-                  pOptions,
-                  pThread,
-                  pBitVectorVariables,
-                  pMemoryModel,
-                  ImmutableSet.of(),
-                  accessType,
-                  reachType));
+              buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
       }
     }
@@ -114,114 +92,79 @@ public class BitVectorAssignmentInjector {
 
   // Bit Vector Assignments ========================================================================
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement>
-      buildBitVectorAssignmentsByReduction(
-          MPOROptions pOptions,
-          MPORThread pActiveThread,
-          SeqThreadStatementClause pTargetClause,
-          ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-          ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-          BitVectorVariables pBitVectorVariables,
-          MemoryModel pMemoryModel) {
+  private ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignmentsByReduction(
+      SeqThreadStatementClause pTargetClause) {
 
     checkArgument(
-        !pOptions.reductionMode().equals(ReductionMode.NONE),
+        !options.reductionMode().equals(ReductionMode.NONE),
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(pOptions, accessType, reachType)) {
+        if (BitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
-                  pLabelClauseMap,
-                  pLabelBlockMap,
+                  labelClauseMap,
+                  labelBlockMap,
                   pTargetClause.getFirstBlock(),
-                  pMemoryModel,
+                  memoryModel,
                   accessType,
                   reachType);
           rAssignments.addAll(
-              buildBitVectorAssignmentByEncoding(
-                  pOptions,
-                  pActiveThread,
-                  pBitVectorVariables,
-                  pMemoryModel,
-                  memoryLocations,
-                  accessType,
-                  reachType));
+              buildBitVectorAssignmentByEncoding(memoryLocations, accessType, reachType));
         }
       }
     }
     return rAssignments.build();
   }
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignmentByEncoding(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
+  private ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignmentByEncoding(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    return switch (pOptions.bitVectorEncoding()) {
+    return switch (options.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build bit vector assignments for encoding NONE");
       case BINARY, DECIMAL, HEXADECIMAL ->
-          buildDenseBitVectorAssignment(
-              pOptions,
-              pThread,
-              pBitVectorVariables,
-              pMemoryModel,
-              pMemoryLocations,
-              pAccessType,
-              pReachType);
-      case SPARSE ->
-          buildSparseBitVectorAssignments(
-              pOptions, pThread, pBitVectorVariables, pMemoryLocations, pAccessType, pReachType);
+          buildDenseBitVectorAssignment(pMemoryLocations, pAccessType, pReachType);
+      case SPARSE -> buildSparseBitVectorAssignments(pMemoryLocations, pAccessType, pReachType);
     };
   }
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement> buildDenseBitVectorAssignment(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
+  private ImmutableList<SeqBitVectorAssignmentStatement> buildDenseBitVectorAssignment(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+    if (!BitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
-        pBitVectorVariables.getDenseBitVector(pThread, pAccessType, pReachType);
+        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
     BitVectorValueExpression bitVectorExpression =
-        BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pMemoryLocations);
+        BitVectorUtil.buildBitVectorExpression(options, memoryModel, pMemoryLocations);
     return ImmutableList.of(
         new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression));
   }
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignments(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      BitVectorVariables pBitVectorVariables,
+  private ImmutableList<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignments(
       ImmutableSet<SeqMemoryLocation> pMemoryLocations,
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(pOptions, pAccessType, pReachType)) {
+    if (!BitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> variables =
+    for (var entry : bitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> sparseVariables =
           entry.getValue().getVariablesByReachType(pReachType);
       Optional<SeqBitVectorAssignmentStatement> assignment =
-          buildSparseBitVectorAssignment(
-              pOptions, entry.getKey(), pMemoryLocations, variables.get(pThread));
+          buildSparseBitVectorAssignment(entry.getKey(), sparseVariables, pMemoryLocations);
       if (assignment.isPresent()) {
         rAssignments.add(assignment.orElseThrow());
       }
@@ -229,22 +172,23 @@ public class BitVectorAssignmentInjector {
     return rAssignments.build();
   }
 
-  private static Optional<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignment(
-      MPOROptions pOptions,
+  private Optional<SeqBitVectorAssignmentStatement> buildSparseBitVectorAssignment(
       SeqMemoryLocation pMemoryLocation,
-      ImmutableSet<SeqMemoryLocation> pMemoryLocations,
-      CIdExpression pVariable) {
+      ImmutableMap<MPORThread, CIdExpression> pSparseVariables,
+      ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
-    if (pVariable == null) {
+    if (!pSparseVariables.containsKey(activeThread)) {
       return Optional.empty();
     }
     // if enabled, consider only 0 writes (the memory location is not reachable anymore)
-    if (pOptions.pruneSparseBitVectorWrites() && pMemoryLocations.contains(pMemoryLocation)) {
+    if (options.pruneSparseBitVectorWrites() && pMemoryLocations.contains(pMemoryLocation)) {
       return Optional.empty();
     }
     boolean value = pMemoryLocations.contains(pMemoryLocation);
     SparseBitVectorValueExpression sparseBitVectorExpression =
         new SparseBitVectorValueExpression(value);
-    return Optional.of(new SeqBitVectorAssignmentStatement(pVariable, sparseBitVectorExpression));
+    CIdExpression sparseVariable = Objects.requireNonNull(pSparseVariables.get(activeThread));
+    return Optional.of(
+        new SeqBitVectorAssignmentStatement(sparseVariable, sparseBitVectorExpression));
   }
 }
