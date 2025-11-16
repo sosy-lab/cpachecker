@@ -135,7 +135,7 @@ public class TerminationWitnessValidator implements Algorithm {
           new ImplicitRankingChecker(
               fmgr, bfmgr, logger, config, shutdownNotifier, pSpecification, scope, cfa);
     } else {
-      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope, logger);
+      wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope);
     }
 
     witnessPath = pWitnessPath.stream().findAny().orElseThrow();

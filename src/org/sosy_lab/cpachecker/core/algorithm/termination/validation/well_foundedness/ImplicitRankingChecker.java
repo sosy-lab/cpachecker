@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -89,8 +90,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants, Loop pLoop)
       throws InterruptedException, CPAException {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
-    StringBuilder builder = new StringBuilder();
-    builder.append("int main() { \n");
+    StringJoiner builder = new StringJoiner(System.lineSeparator());
+    builder.add("int main() {");
 
     // Initialize the variables from the transition invariant
     Set<String> alreadyDeclaredVars = new HashSet<>();
@@ -110,7 +111,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         continue;
       }
       if (alreadyDeclaredVars.add(variableName)) {
-        builder.append(varDeclaration + "\n");
+        builder.add(varDeclaration);
       }
     }
     for (String variable : mapNamesToVariables.keySet()) {
@@ -119,7 +120,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
       if (alreadyDeclaredVars.add(variableName)) {
-        builder.append(varDeclaration + "\n");
+        builder.add(varDeclaration);
       }
     }
 
@@ -151,36 +152,36 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
             TransitionInvariantUtils.removeFunctionFromVarsName(
                 scope.lookupVariable(variable).toString());
         if (alreadyDeclaredVars.add(variableName)) {
-          builder.append(varDeclaration + "\n");
+          builder.add(varDeclaration);
         }
       }
     }
     loopCondition = loopCondition.replace("true", "1");
     loopCondition = loopCondition.replace("false", "0");
-    builder.append("while(" + loopCondition + ") {\n");
+    builder.add("while(" + loopCondition + ") {");
     // Initialize the variables from the transition invariant
     for (String variable : mapNamesToVariables.keySet()) {
       if (variable.contains("__PREV")) {
-        builder.append(
+        builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
                 + TransitionInvariantUtils.removeFunctionFromVarsName(
                     variable.replace("__PREV", ""))
-                + ";\n");
+                + ";");
       }
     }
     // Reset the original variables
     for (String variable : mapNamesToVariables.keySet()) {
       if (!variable.contains("__PREV")) {
-        builder.append(
+        builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
                 + "__VERIFIER_nondet_"
                 + scope.lookupVariable(variable).getType()
-                + "();\n");
+                + "();");
       }
     }
-    builder.append("}}");
+    builder.add("}}");
     String overapproximatingProgam = builder.toString();
 
     try {

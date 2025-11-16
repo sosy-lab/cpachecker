@@ -28,7 +28,6 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
   private final Solver solver;
   private final Scope scope;
-  private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final QuantifiedFormulaManagerView qfmgr;
@@ -37,14 +36,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       final FormulaManagerView pFmgr,
       final BooleanFormulaManagerView pBfmrg,
       final Solver pSolver,
-      final Scope pScope,
-      final LogManager pLogger) {
+      final Scope pScope) {
     solver = pSolver;
     scope = pScope;
     fmgr = pFmgr;
     bfmgr = pBfmrg;
     qfmgr = fmgr.getQuantifiedFormulaManager();
-    logger = pLogger;
   }
 
   /**
