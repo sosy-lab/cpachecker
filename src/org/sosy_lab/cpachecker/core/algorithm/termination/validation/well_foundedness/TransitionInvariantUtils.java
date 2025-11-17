@@ -12,12 +12,15 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class TransitionInvariantUtils {
 
@@ -33,6 +36,22 @@ public class TransitionInvariantUtils {
         .filter(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)))
         .findAny()
         .orElseThrow();
+  }
+
+  public static String transformFormulaToStringWithTrivialReplacement(
+      BooleanFormula pFormula, BooleanFormulaManagerView bfmgr, FormulaManagerView fmgr)
+      throws CPAException {
+    FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
+    if (bfmgr.isTrue(pFormula)) {
+      return "1";
+    } else if (bfmgr.isFalse(pFormula)) {
+      return "0";
+    }
+    try {
+      return converter.formulaToCExpression(pFormula);
+    } catch (SolverException | InterruptedException e) {
+      throw new CPAException("It was not possible to translate invariant to CExpression.");
+    }
   }
 
   /**

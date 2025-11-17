@@ -42,12 +42,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class ImplicitRankingChecker implements WellFoundednessChecker {
 
@@ -126,13 +124,9 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
 
     // Build the loop
-    FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    String loopCondition;
-    try {
-      loopCondition = converter.formulaToCExpression(pFormula);
-    } catch (SolverException e) {
-      throw new CPAException("It was not possible to translate invariant to CExpression.");
-    }
+    String loopCondition =
+        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+            pFormula, bfmgr, fmgr);
     String exitCondition =
         cfa
             .getAstCfaRelation()
@@ -149,12 +143,11 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
             .toASTString();
     loopCondition = loopCondition + " && " + exitCondition;
     for (BooleanFormula invariant : pSupportingInvariants) {
-      try {
-        loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
-      } catch (SolverException e) {
-        throw new CPAException("It was not possible to translate invariant to CExpression.");
-      }
-
+      loopCondition =
+          loopCondition
+              + " && "
+              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                  invariant, bfmgr, fmgr);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
         String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
@@ -165,8 +158,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         }
       }
     }
-    loopCondition = loopCondition.replace("true", "1");
-    loopCondition = loopCondition.replace("false", "0");
     builder.add("while(" + loopCondition + ") {");
     // Initialize the variables from the transition invariant
     for (String variable : mapNamesToVariables.keySet()) {
