@@ -32,7 +32,7 @@ from benchmark import vcloudutil
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
 benchexec.tools.__path__ = [
-     os.path.join(os.path.dirname(__file__), "benchmark", "tools")
+    os.path.join(os.path.dirname(__file__), "benchmark", "tools")
 ] + benchexec.tools.__path__
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -162,7 +162,8 @@ class Benchmark(VcloudBenchmarkBase):
 
             if hasattr(self.config, "container") and self.config.container is False:
                 logging.warning(
-                    "[deprecated] --no-container is ignored: Worker always uses container mode.")
+                    "[deprecated] --no-container is ignored: Worker always uses container mode."
+                )
 
         return executor
 
