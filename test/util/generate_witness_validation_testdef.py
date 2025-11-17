@@ -102,9 +102,9 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
 
     requiredfiles = etree.Element("requiredfiles")
     requiredfiles.text = (
-            os.path.relpath(test_dir, os.path.dirname(testdef_path))
-            + "/results/"
-            + witness_file
+        os.path.relpath(test_dir, os.path.dirname(testdef_path))
+        + "/results/"
+        + witness_file
     )
     rundef.append(requiredfiles)
 
@@ -131,8 +131,8 @@ def _check(path):
         if resultfiles is None:
             sys.exit(
                 (
-                        "The input file {0} does not specify any result files, "
-                        + "so it is guaranteed that it will not yield any witnesses"
+                    "The input file {0} does not specify any result files, "
+                    + "so it is guaranteed that it will not yield any witnesses"
                 ).format(path)
             )
     except etree.ParseError:
