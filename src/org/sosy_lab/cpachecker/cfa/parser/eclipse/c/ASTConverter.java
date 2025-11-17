@@ -3411,20 +3411,6 @@ class ASTConverter {
       return Pair.of(ImmutableList.of(index), nextTypeInDelegatorList);
     }
 
-    private int getArraySize(
-        CType parentType, ICASTArrayDesignator arrayDesignator, CType currentType) {
-      if (!(currentType instanceof CArrayType arrayType)) {
-        throw new AssertionError(
-            "No array type trying to access index " + arrayDesignator + ": " + parentType);
-      }
-      return arrayType
-          .getLengthAsInt()
-          .orElseThrow(
-              () ->
-                  new CFAGenerationRuntimeException(
-                      "Array of flexible size in nested struct. This is forbidden: " + parentType));
-    }
-
     /**
      * Returns the sequence of member indices that represent the named way to a field.
      *
