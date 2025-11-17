@@ -299,11 +299,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       oneStep =
           bfmgr.and(
               TransitionInvariantUtils.makeStatesEquivalent(
-                  oneStep,
-                  oneStep,
-                  bfmgr,
-                  fmgr,
-                  pMapPrevToCurrVars),
+                  oneStep, oneStep, bfmgr, fmgr, pMapPrevToCurrVars),
               oneStep);
     }
     return oneStep;
@@ -400,11 +396,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
                 pMapPrevToCurrVars));
     BooleanFormula sameState =
         TransitionInvariantUtils.makeStatesEquivalent(
-            pFormula,
-            pFormula,
-            bfmgr,
-            fmgr,
-            pMapPrevToCurrVars);
+            pFormula, pFormula, bfmgr, fmgr, pMapPrevToCurrVars);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(

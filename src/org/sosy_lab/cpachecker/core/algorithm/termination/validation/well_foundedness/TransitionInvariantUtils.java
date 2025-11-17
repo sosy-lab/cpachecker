@@ -89,8 +89,6 @@ public class TransitionInvariantUtils {
    *
    * @param pPrevFormula with the previous variables (i.e. variables like x__PREV)
    * @param pCurrFormula with the current variables (i.e. variables like x)
-   * @param prevIndex the index of the variables from the previous state
-   * @param currIndex the index of the current variables
    * @return the formula with terms like x__PREV@1 <==> x@2
    */
   public static BooleanFormula makeStatesEquivalent(

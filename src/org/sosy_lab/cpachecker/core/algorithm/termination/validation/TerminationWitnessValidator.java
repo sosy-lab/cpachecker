@@ -402,14 +402,17 @@ public class TerminationWitnessValidator implements Algorithm {
     PathFormula loopFormula =
         constructPathFormulaForLoop(
             pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1, pLoopsToSupportingInvariants);
-    pCandidateInvariant =
-        fmgr.instantiate(
-            pCandidateInvariant,
-            SSAMap.merge(
-                loopFormula.getSsa(),
-                TransitionInvariantUtils.setIndicesToDifferentValues(
-                    pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars),
-                MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
+    SSAMap fullSSAMap =
+        SSAMap.merge(
+            loopFormula.getSsa(),
+            TransitionInvariantUtils.setIndicesToDifferentValues(
+                pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars),
+            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
+    SSAMap oneStepSSAMap =
+        TransitionInvariantUtils.setIndicesToDifferentValues(
+            pCandidateInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars);
+
+    pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
     // Strengthening the loop formula with the supporting invariants
@@ -430,8 +433,11 @@ public class TerminationWitnessValidator implements Algorithm {
     booleanLoopFormula =
         bfmgr.and(
             booleanLoopFormula,
-            TransitionInvariantUtils.makeStatesEquivalent(
-                pCandidateInvariant, booleanLoopFormula, bfmgr, fmgr, pMapPrevToCurrVars));
+            fmgr.instantiate(
+                fmgr.uninstantiate(
+                    TransitionInvariantUtils.makeStatesEquivalent(
+                        pCandidateInvariant, booleanLoopFormula, bfmgr, fmgr, pMapPrevToCurrVars)),
+                oneStepSSAMap));
 
     boolean isTransitionInvariant;
     try {
