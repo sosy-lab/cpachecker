@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -18,6 +20,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class TransitionInvariantUtils {
+
+  public static boolean isPrevVariable(String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
+    return pMapCurrToPrevVars.values().stream().anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
+  }
 
   /**
    * Constructs a new SSAMap, where the __PREV variables and normal variables are instantiated

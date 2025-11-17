@@ -167,7 +167,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     builder.add("while(" + loopCondition + ") {");
     // Initialize the variables from the transition invariant
     for (String variable : mapNamesToVariables.keySet()) {
-      if (variable.contains("__PREV")) {
+      if (TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
@@ -178,7 +178,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     // Reset the original variables
     for (String variable : mapNamesToVariables.keySet()) {
-      if (!variable.contains("__PREV")) {
+      if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
@@ -189,6 +189,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     builder.add("}}");
     String overapproximatingProgam = builder.toString();
+    System.out.println(overapproximatingProgam);
 
     try {
       // Initialization:
