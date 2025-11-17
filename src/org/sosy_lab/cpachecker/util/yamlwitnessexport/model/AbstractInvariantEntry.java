@@ -59,7 +59,10 @@ public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
     private Class<? extends AbstractInvariantEntry> getClassForType(String type) {
       return switch (type) {
         case "function_contract" -> FunctionContractEntry.class;
-        case "loop_invariant", "location_invariant", "transition_loop_invariant" ->
+        case "loop_invariant",
+            "location_invariant",
+            "transition_loop_invariant",
+            "transition_location_invariant" ->
             InvariantEntry.class;
         default -> throw new IllegalArgumentException("Unknown invariant type: " + type);
       };
