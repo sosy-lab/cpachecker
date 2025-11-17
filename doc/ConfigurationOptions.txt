@@ -4728,13 +4728,6 @@ parallelAlgorithm.configFiles = no default value
 # toggle to write all the files also for the unsuccessful analyses
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
-# For C files, detect whether preprocessing is necessary (e.g., presence of
-# #include or #define directives) and enable the preprocessor automatically
-# in this case. In case this is not necessary proceed with the normal
-# parsing. For this option to work the option parser.usePreprocessor must be
-# enabled.
-parser.autoPreprocessorDetection = false
-
 # The command line for calling the clang preprocessor. May contain binary
 # name and arguments, but won't be expanded by a shell. The source file name
 # will be appended to this string. Clang needs to print the output to stdout.
@@ -4776,8 +4769,11 @@ parser.useClang = false
 
 # For C files, run the preprocessor on them before parsing. Note that all
 # line numbers printed by CPAchecker will refer to the pre-processed file,
-# not the original input file.
-parser.usePreprocessor = false
+# not the original input file. In case auto detection is enabled, the
+# preprocessor will only be used in case the parsing without preprocessor
+# fails.
+parser.usePreprocessor = AUTO
+  enum:     [NO, YES, AUTO]
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR

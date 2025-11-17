@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CParsingFailureRequiringPreprocessingException;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -124,26 +125,21 @@ public class CFACreator {
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; // TODO
 
+  private enum PreprocessorUsage {
+    NO,
+    YES,
+    AUTO
+  }
+
   @Option(
       secure = true,
       name = "parser.usePreprocessor",
       description =
           "For C files, run the preprocessor on them before parsing. Note that all line numbers"
               + " printed by CPAchecker will refer to the pre-processed file, not the original"
-              + " input file.")
-  private boolean usePreprocessor = false;
-
-  @Option(
-      secure = true,
-      name = "parser.autoPreprocessorDetection",
-      description =
-          "For C files, detect whether preprocessing is necessary "
-              + "(e.g., presence of #include or #define directives) "
-              + "and enable the preprocessor automatically in this case. "
-              + "In case this is not necessary proceed with the normal "
-              + "parsing. For this option to work the "
-              + "option parser.usePreprocessor must be enabled.")
-  private boolean detectPreprocessorUsage = false;
+              + " input file. In case auto detection is enabled, the preprocessor will only be used"
+              + " in case the parsing without preprocessor fails.")
+  private PreprocessorUsage usePreprocessor = PreprocessorUsage.AUTO;
 
   @Option(
       secure = true,
@@ -346,8 +342,9 @@ public class CFACreator {
 
   private final LogManager logger;
   private final Parser parser;
-  // Contains a parser that is used as a backup in case the main parser failed.
-  private Optional<Parser> backupParser = Optional.empty();
+  // Contains a parser that is used as a backup in case the main parser failed due to preprocessing
+  // Only applies when verifying C programs with auto-detected preprocessing.
+  private Optional<Parser> backupParserForPreprocessing = Optional.empty();
   private final ShutdownNotifier shutdownNotifier;
   private static final String EXAMPLE_JAVA_METHOD_NAME =
       """
@@ -453,21 +450,24 @@ public class CFACreator {
 
         outerParser =
             new CParserWithLocationMapper(
-                config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
+                config,
+                logger,
+                outerParser,
+                readLineDirectives || (usePreprocessor != PreprocessorUsage.NO) || useClang);
 
-        if (usePreprocessor) {
+        if (usePreprocessor != PreprocessorUsage.NO) {
           CPreprocessor preprocessor = new CPreprocessor(config, logger);
           CParserWithPreprocessor parserWithPreprocessor =
               new CParserWithPreprocessor(outerParser, preprocessor);
-          if (detectPreprocessorUsage) {
-            backupParser = Optional.of(parserWithPreprocessor);
+          if (usePreprocessor == PreprocessorUsage.AUTO) {
+            backupParserForPreprocessing = Optional.of(parserWithPreprocessor);
           } else {
             outerParser = parserWithPreprocessor;
           }
         }
 
         if (useClang) {
-          if (usePreprocessor) {
+          if (usePreprocessor != PreprocessorUsage.NO) {
             logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
@@ -539,12 +539,13 @@ public class CFACreator {
       ParseResult c;
       try {
         c = parseToCFAs(sourceFiles);
-      } catch (ParserException e) {
-        if (backupParser.isPresent()) {
-          logger.log(
-              Level.WARNING,
-              "Parsing failed with the primary parser, trying backup parser: " + e.getMessage());
-          c = backupParser.orElseThrow().parseFiles(sourceFiles);
+      } catch (CParsingFailureRequiringPreprocessingException e) {
+        if (backupParserForPreprocessing.isPresent()) {
+          logger.logDebugException(
+              e,
+              "Parsing failed with preprocessing disabled, trying "
+                  + "backup parser with preprocessing enabled");
+          c = backupParserForPreprocessing.orElseThrow().parseFiles(sourceFiles);
         } else {
           throw e;
         }
