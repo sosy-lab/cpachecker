@@ -49,6 +49,7 @@ public final class SvLibCustomType implements SvLibType {
     throw new UnsupportedOperationException("JavaSMT does not support custom types");
   }
 
+  @Override
   public String toPlainString() {
     return type + (arity >= 0 ? "<" + arity + ">" : "");
   }

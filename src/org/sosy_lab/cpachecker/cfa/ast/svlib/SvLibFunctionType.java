@@ -55,6 +55,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
         + ")";
   }
 
+  @Override
   public String toPlainString() {
     return "(" + Joiner.on(") (").join(inputType) + ") " + outputType;
   }

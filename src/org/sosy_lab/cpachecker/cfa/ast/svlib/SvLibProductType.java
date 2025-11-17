@@ -34,6 +34,7 @@ public final class SvLibProductType implements SvLibType {
         + "]";
   }
 
+  @Override
   public String toPlainString() {
     return "[" + String.join(", ", elementTypes.stream().map(SvLibType::toString).toList()) + "]";
   }

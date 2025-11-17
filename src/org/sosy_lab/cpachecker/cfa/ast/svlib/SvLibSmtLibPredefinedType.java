@@ -32,6 +32,7 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
     return declarator + " : " + Ascii.toLowerCase(name());
   }
 
+  @Override
   public String toPlainString() {
     return switch (this) {
       case INT -> "Int";

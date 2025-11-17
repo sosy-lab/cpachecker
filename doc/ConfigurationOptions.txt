@@ -1263,7 +1263,7 @@ counterexample.export.source = "Counterexample.%d.c"
 # option in SV-LIB programs, instead of in CPAchecker's configuration.In case
 # this happens, the option will be overriden by the one from the program, and
 # this option ignored.
-counterexample.export.svlib = no default value
+counterexample.export.svlib = "witness.svlib"
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1475,7 +1475,7 @@ cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-inf
 cpa.arg.errorPath.source = "Counterexample.%d.c"
 
 # deprecated name for counterexample.export.svlib
-cpa.arg.errorPath.svlib = no default value
+cpa.arg.errorPath.svlib = "witness.svlib"
 
 # deprecated name for counterexample.export.witnessGraph
 cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1573,7 +1573,7 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 # this option in SV-LIB programs, instead of in CPAchecker's configuration.In
 # case this happens, the option will be overriden by the one from the
 # program, and this option ignored.
-cpa.arg.svLibCorrectnessWitness = no default value
+cpa.arg.svLibCorrectnessWitness = "witness.svlib"
 
 # translate final ARG into C program
 cpa.arg.translateToC = false
