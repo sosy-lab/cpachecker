@@ -18,15 +18,20 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition>
     <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
   </rundefinition>
 
   <tasks name="Systems_BusyBox_Overflows">
+    <!-- malloc() is not allowed to fail in those tasks -->
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/busybox-1.22.0/realpath-1.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks name="Overflows-Main">
+    <!-- malloc() is not allowed to fail in those tasks -->
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
@@ -54,10 +59,16 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursive-simple/fibo_7-2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="Overflow-Simple">
+    <!-- malloc() is not allowed to fail in those tasks -->
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
     <includesfile>../programs/simple/overflow/overflow.set</includesfile>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="OverflowWithPointers-Simple">
+    <!-- malloc() is not allowed to fail in those tasks -->
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
+    
     <includesfile>../programs/simple/overflow/overflowWithPointers.set</includesfile>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
   </tasks>
