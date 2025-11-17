@@ -125,6 +125,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -886,6 +887,9 @@ public class ValueAnalysisTransferRelation
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
+        } else if (BuiltinIoFunctions.matchesFscanf(func)) {
+          return handleFunctionAssignment(
+              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge));
         } else {
 
           handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);

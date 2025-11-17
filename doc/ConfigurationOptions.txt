@@ -335,6 +335,11 @@ analysis.algorithm.propertyCheck = false
 # termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
+# Use termination-to-safety algorithm to prove (non-)termination. This needs
+# the TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the
+# CompositeCPA.
+analysis.algorithm.terminationToSafety = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -1207,6 +1212,9 @@ counterexample.export.exportTestCase = false
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
+# export counterexample as witness/YML file
+counterexample.export.exportWitnessV2 = true
+
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
 
@@ -1431,6 +1439,9 @@ cpa.arg.errorPath.exportTestCase = false
 
 # deprecated name for counterexample.export.exportWitness
 cpa.arg.errorPath.exportWitness = true
+
+# deprecated name for counterexample.export.exportWitnessV2
+cpa.arg.errorPath.exportWitnessV2 = true
 
 # deprecated name for counterexample.export.extendedWitnessFile
 cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -2479,9 +2490,6 @@ cpa.predicate.enableBlockreducer = false
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
 
-# Enable to share the information via serialization storage.
-cpa.predicate.enableSharedInformation = false
-
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If
@@ -3425,6 +3433,10 @@ cpa.smg2.enableHeapAbstraction = false
 # If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
+# If true, memory with symbolic size can be zeroed, which allows usage of
+# zeroing allocation functions like calloc().
+cpa.smg2.enableZeroingOfSymbolicMemorySize = false
+
 # Filename format for SMG graph dumps
 cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 
@@ -3540,11 +3552,10 @@ cpa.smg2.optimizeBooleanVariables = true
 # at the same time as option findConcreteValuesForSymbolicOffsets.
 cpa.smg2.overapproximateSymbolicOffsets = false
 
-# If this Option is enabled, all values of a memory region that is written to
-# with a symbolic and non-unique offset in symbolically sized memory are
-# deleted and the value itself is overapproximated to unknown in the memory
-# region.
-cpa.smg2.overapproximateValuesForSymbolicSize = false
+# If this Option is enabled, writing with symbolic sized value types are
+# overapproximated. I.e. the memory region affected is overapproximated,
+# including the value itself, to unknown.
+cpa.smg2.overapproximateValuesForSymbolicTypeSize = false
 
 # with this option enabled, we try to gather information on memory reads from
 # values that are overlapping but not exactly fitting to the read parameters.
@@ -5270,6 +5281,11 @@ termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
+
+# Consider variables with unsigned types in ranking function synthesis.This
+# can lead to unsound results as LassoRanker assumes infinite domain for
+# these variables.
+termination.ignoreOverflowsForUnsignedVariables = false
 
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.

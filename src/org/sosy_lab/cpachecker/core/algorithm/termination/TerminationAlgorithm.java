@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -137,6 +138,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
           "maximal number of repeated ranking functions per loop before stopping analysis")
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
+
+  @Option(
+      secure = true,
+      description =
+          "Consider variables with unsigned types in ranking function synthesis.This can lead to"
+              + " unsound results as LassoRanker assumes infinite domain for these variables.")
+  private boolean ignoreOverflowsForUnsignedVariables = false;
 
   @Option(
       secure = true,
@@ -258,6 +266,22 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CPAcheckerResult.Result loopTermination =
           proveLoopTermination(pReachedSet, loop, initialLocation);
 
+      if (!ignoreOverflowsForUnsignedVariables && loopTermination == Result.TRUE) {
+        // LassoRanker handles unsigned types incorrectly as it does not account for overflows
+        for (CVariableDeclaration variable : getRelevantVariables(loop)) {
+          if (variable.getType().getCanonicalType() instanceof CSimpleType pType
+              && !cfa.getMachineModel().isSigned(pType)) {
+            // We cannot determine the loop terminating because it contains unsigned integers and
+            // the analysis is possibly unsound.
+            logger.log(
+                WARNING,
+                "The program contains variables with unsigned type, so, the program cannot be"
+                    + " proven terminating.");
+            status = status.withSound(false);
+          }
+        }
+      }
+
       if (loopTermination == Result.FALSE) {
         logger.logf(Level.FINE, "Proved non-termination of %s.", loop);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -285,7 +309,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
       throws CPAException, InterruptedException {
 
-    logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
+    logger.logf(Level.FINE, "Proving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = new HashSet<>();
     int totalRepeatedRankingFunctions = 0;
     int repeatedRankingFunctionsSinceSuccessfulIteration = 0;
