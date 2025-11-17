@@ -654,7 +654,12 @@ public class SMGCPATest0 {
                 null);
         currentState = readDataWithoutMaterialization.getState();
         assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigIntegerValue())
+        assertThat(
+                readDataWithoutMaterialization
+                    .getValue()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue())
             .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
       }
     }

@@ -209,7 +209,9 @@ public final class ValueAnalysisState
       if (pValue.isNumericValue()) {
         CIntegerLiteralExpression valueAsExpression =
             new CIntegerLiteralExpression(
-                FileLocation.DUMMY, memLocType, pValue.asNumericValue().bigIntegerValue());
+                FileLocation.DUMMY,
+                memLocType,
+                pValue.asNumericValue().orElseThrow().bigIntegerValue());
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
         } catch (UnrecognizedCodeException e) {
@@ -652,7 +654,7 @@ public final class ValueAnalysisState
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
       if (considerVar.test(memoryLocation)) {
-        NumericValue num = entry.getValue().getValue().asNumericValue();
+        NumericValue num = entry.getValue().getValue().asNumericValue().orElseThrow();
 
         if (num != null) {
           Type type = entry.getValue().getType();
@@ -877,7 +879,7 @@ public final class ValueAnalysisState
       if (valueOfEntry instanceof EnumConstantValue) {
         continue;
       }
-      NumericValue num = valueOfEntry.asNumericValue();
+      NumericValue num = valueOfEntry.asNumericValue().orElseThrow();
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
@@ -973,7 +975,7 @@ public final class ValueAnalysisState
       if (valueOfEntry instanceof EnumConstantValue) {
         continue;
       }
-      NumericValue num = valueOfEntry.asNumericValue();
+      NumericValue num = valueOfEntry.asNumericValue().orElseThrow();
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();

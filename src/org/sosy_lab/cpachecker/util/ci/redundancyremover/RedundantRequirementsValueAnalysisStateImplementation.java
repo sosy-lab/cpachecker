@@ -56,8 +56,8 @@ public class RedundantRequirementsValueAnalysisStateImplementation
     }
 
     return (int)
-        (pO1.asNumericValue().getNumber().doubleValue()
-            - pO2.asNumericValue().getNumber().doubleValue()); // TODO
+        (pO1.asNumericValue().orElseThrow().getNumber().doubleValue()
+            - pO2.asNumericValue().orElseThrow().getNumber().doubleValue()); // TODO
   }
 
   @Override

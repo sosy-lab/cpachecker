@@ -276,8 +276,8 @@ public class BuiltinOverflowFunctions {
             }
 
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
+            BigInteger p1 = firstParameterValue.asNumericValue().orElseThrow().bigIntegerValue();
+            BigInteger p2 = secondParameterValue.asNumericValue().orElseThrow().bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -297,7 +297,11 @@ public class BuiltinOverflowFunctions {
                 AbstractExpressionValueVisitor.castCValue(
                     resultValue, resultType, machineModel, logger);
 
-            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
+            if (resultValue
+                .asNumericValue()
+                .orElseThrow()
+                .bigIntegerValue()
+                .equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
               return new NumericValue(1);

@@ -495,7 +495,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
-      Number lNum = leftValue.asNumericValue().getNumber();
+      Number lNum = leftValue.asNumericValue().orElseThrow().getNumber();
       if (BigInteger.ONE.equals(lNum)) {
         updatedStates =
             rVarInBinaryExp.accept(
@@ -511,7 +511,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigIntegerValue();
+      Number rNum = rightValue.asNumericValue().orElseThrow().bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
         updatedStates =
             lVarInBinaryExp.accept(

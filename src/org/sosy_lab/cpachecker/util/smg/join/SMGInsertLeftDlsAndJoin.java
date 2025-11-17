@@ -74,6 +74,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
                     && dlls1
                         .getSize()
                         .asNumericValue()
+                        .orElseThrow()
                         .bigIntegerValue()
                         .equals(edge.getSizeInBits()));
 
@@ -122,7 +123,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     Optional<SMGValue> resultOptional =
         destSMG.findAddressForEdge(
             freshCopyDLLS1,
-            pToEdge1.getOffset().asNumericValue().bigIntegerValue(),
+            pToEdge1.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
             pToEdge1.targetSpecifier());
     if (resultOptional.isEmpty()) {
       int nestingLvl = inputSMG1.getNestingLevel(pValue1) + pNestingLevelDiff;
@@ -158,7 +159,9 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     // step 11 & 12
     SMGHasValueEdge resultHasValueEdge =
         new SMGHasValueEdge(
-            value, nextFieldOffset, dlls1.getSize().asNumericValue().bigIntegerValue());
+            value,
+            nextFieldOffset,
+            dlls1.getSize().asNumericValue().orElseThrow().bigIntegerValue());
     destSMG = destSMG.copyAndAddHVEdge(resultHasValueEdge, freshCopyDLLS1);
   }
 

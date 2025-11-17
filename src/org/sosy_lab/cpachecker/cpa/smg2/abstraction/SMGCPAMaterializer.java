@@ -577,6 +577,7 @@ public class SMGCPAMaterializer {
                         .orElseThrow()
                         .getOffset()
                         .asNumericValue()
+                        .orElseThrow()
                         .bigIntegerValue()
                         .equals(
                             ((SMGDoublyLinkedListSegment) newAbsListSeg)
@@ -826,8 +827,9 @@ public class SMGCPAMaterializer {
               targetMemoryAndState
                   .getOffsetForObject()
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
-                  .equals(oldOffset.asNumericValue().bigIntegerValue()));
+                  .equals(oldOffset.asNumericValue().orElseThrow().bigIntegerValue()));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
           if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {

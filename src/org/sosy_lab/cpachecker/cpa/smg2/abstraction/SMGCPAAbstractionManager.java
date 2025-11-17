@@ -276,6 +276,7 @@ public class SMGCPAAbstractionManager {
                 .orElseThrow()
                 .getOffset()
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
                 .equals(sllHeapObj.getNextPointerTargetOffset())) {
           // Incorrect or not usable next element, maybe a prev exists though, don't put current in
@@ -289,8 +290,9 @@ public class SMGCPAAbstractionManager {
             && target
                 .getSize()
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
-                .equals(sllHeapObj.getSize().asNumericValue().bigIntegerValue())) {
+                .equals(sllHeapObj.getSize().asNumericValue().orElseThrow().bigIntegerValue())) {
 
           SMGCandidateOrRejectedObject maybeCandidate =
               lookThroughObject(
@@ -319,7 +321,7 @@ public class SMGCPAAbstractionManager {
           // Can't be a list if there is no pointers
           continue;
         }
-        BigInteger heapObjSize = heapObj.getSize().asNumericValue().bigIntegerValue();
+        BigInteger heapObjSize = heapObj.getSize().asNumericValue().orElseThrow().bigIntegerValue();
         SMGCandidateOrRejectedObject maybeCandidate = null;
         // Search through all possible values of the object first, remember to reject the obj if
         // nothing is found
@@ -342,14 +344,19 @@ public class SMGCPAAbstractionManager {
             if (target != heapObj
                 && smg.isValid(target)
                 && target.getSize().isNumericValue()
-                && target.getSize().asNumericValue().bigIntegerValue().equals(heapObjSize)) {
+                && target
+                    .getSize()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue()
+                    .equals(heapObjSize)) {
 
               maybeCandidate =
                   lookThroughObject(
                       heapObj,
                       target,
                       ptrValueOffsetInHeapObj,
-                      pointerTargetOffset.asNumericValue().bigIntegerValue(),
+                      pointerTargetOffset.asNumericValue().orElseThrow().bigIntegerValue(),
                       alreadySeen);
               if (maybeCandidate.isListCandidate()) {
                 SMGCandidate candidate = maybeCandidate.getCandidate();
@@ -482,7 +489,7 @@ public class SMGCPAAbstractionManager {
           Value pteTargetOffsetValue = maybePrevPTE.orElseThrow().getOffset();
           Preconditions.checkArgument(pteTargetOffsetValue.isNumericValue());
           maybePrevPointerTargetOffset =
-              Optional.of(pteTargetOffsetValue.asNumericValue().bigIntegerValue());
+              Optional.of(pteTargetOffsetValue.asNumericValue().orElseThrow().bigIntegerValue());
         }
       }
     }
@@ -713,7 +720,8 @@ public class SMGCPAAbstractionManager {
               // of any value! This has to be the same for all ptrs between list elements!
               Value pteTargetOffset = pointsToEdge.getOffset();
               Preconditions.checkArgument(pteTargetOffset.isNumericValue());
-              BigInteger pointerTargetOffset = pteTargetOffset.asNumericValue().bigIntegerValue();
+              BigInteger pointerTargetOffset =
+                  pteTargetOffset.asNumericValue().orElseThrow().bigIntegerValue();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
                 // viable next pointer and possibly viable next obj
                 return lookThroughNext(
@@ -817,6 +825,7 @@ public class SMGCPAAbstractionManager {
         if (!pte.getOffset().isNumericValue()
             || !pte.getOffset()
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
                 .equals(nextPointerTargetOffset)) {
           continue;
@@ -1246,8 +1255,8 @@ public class SMGCPAAbstractionManager {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
-    BigInteger nextObjConcreteSize = nextObjSize.asNumericValue().bigIntegerValue();
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
+    BigInteger nextObjConcreteSize = nextObjSize.asNumericValue().orElseThrow().bigIntegerValue();
     if (!pState.getMemoryModel().getSmg().isValid(nextObject)
         || rootObjConcreteSize.compareTo(nextObjConcreteSize) != 0) {
       return Optional.empty();
@@ -1457,7 +1466,7 @@ public class SMGCPAAbstractionManager {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -1477,6 +1486,7 @@ public class SMGCPAAbstractionManager {
             || reachedObject
                     .getSize()
                     .asNumericValue()
+                    .orElseThrow()
                     .bigIntegerValue()
                     .compareTo(rootObjConcreteSize)
                 != 0) {
@@ -1501,7 +1511,7 @@ public class SMGCPAAbstractionManager {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().bigIntegerValue();
+    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -1524,6 +1534,7 @@ public class SMGCPAAbstractionManager {
             || reachedObject
                     .getSize()
                     .asNumericValue()
+                    .orElseThrow()
                     .bigIntegerValue()
                     .compareTo(rootObjConcreteSize)
                 != 0) {

@@ -220,6 +220,7 @@ public class SMGCPAValueVisitor
           if (finalReadOffset.isExplicitlyKnown()
               && finalReadOffset
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
                   .equals(linkedListObj.getNextOffset())
               && finalReadOffset.isExplicitlyKnown()) {
@@ -227,7 +228,7 @@ public class SMGCPAValueVisitor
             ValueAndSMGState fieldReadAndState =
                 currentState.readValueWithoutMaterialization(
                     linkedListObj,
-                    finalReadOffset.asNumericValue().bigIntegerValue(),
+                    finalReadOffset.asNumericValue().orElseThrow().bigIntegerValue(),
                     readSize,
                     returnType);
             // This is now the next pointer from the last element of the list (this is the ptr->next
@@ -442,7 +443,8 @@ public class SMGCPAValueVisitor
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
                     .newIdentifier(
-                        memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
+                        memloc.withAddedOffset(
+                            additionalOffset.asNumericValue().orElseThrow().longValue())),
                 newState));
 
       } else if (returnType instanceof CPointerType) {
@@ -1192,7 +1194,11 @@ public class SMGCPAValueVisitor
         // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
-                    && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO))
+                    && value
+                        .asNumericValue()
+                        .orElseThrow()
+                        .bigIntegerValue()
+                        .equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -2092,8 +2098,9 @@ public class SMGCPAValueVisitor
           && leftValue.isNumericValue()
           && rightValue
               .asNumericValue()
+              .orElseThrow()
               .getNumber()
-              .equals(leftValue.asNumericValue().getNumber())) {
+              .equals(leftValue.asNumericValue().orElseThrow().getNumber())) {
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
@@ -2256,8 +2263,8 @@ public class SMGCPAValueVisitor
     // Simplify floating point expressions
     // TODO Add more simplifications
     // TODO Move this code to the methods in SymbolicValueFactory?
-    if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().hasFloatType()) {
-      FloatValue leftNum = pLeftValue.asNumericValue().getFloatValue();
+    if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().orElseThrow().hasFloatType()) {
+      FloatValue leftNum = pLeftValue.asNumericValue().orElseThrow().getFloatValue();
       if (ImmutableList.of(
                   BinaryOperator.PLUS,
                   BinaryOperator.MINUS,
@@ -2268,8 +2275,8 @@ public class SMGCPAValueVisitor
         return pLeftValue;
       }
     }
-    if (pRightValue.isNumericValue() && pRightValue.asNumericValue().hasFloatType()) {
-      FloatValue rightNum = pRightValue.asNumericValue().getFloatValue();
+    if (pRightValue.isNumericValue() && pRightValue.asNumericValue().orElseThrow().hasFloatType()) {
+      FloatValue rightNum = pRightValue.asNumericValue().orElseThrow().getFloatValue();
       if (ImmutableList.of(
                   BinaryOperator.PLUS,
                   BinaryOperator.MINUS,
@@ -2282,7 +2289,7 @@ public class SMGCPAValueVisitor
     }
 
     if (pLeftValue.isNumericValue()) {
-      BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
+      BigInteger leftNum = pLeftValue.asNumericValue().orElseThrow().bigIntegerValue();
       rightOperand = factory.asConstant(pRightValue, pRightType);
       if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
@@ -2298,7 +2305,7 @@ public class SMGCPAValueVisitor
       }
     } else if (pRightValue.isNumericValue()) {
       leftOperand = factory.asConstant(pLeftValue, pLeftType);
-      BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
+      BigInteger rightNum = pRightValue.asNumericValue().orElseThrow().bigIntegerValue();
       if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {

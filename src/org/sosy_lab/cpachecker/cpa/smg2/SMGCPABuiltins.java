@@ -527,6 +527,7 @@ public class SMGCPABuiltins {
               && pAddressExpression
                   .getOffset()
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
                   .equals(BigInteger.ZERO));
       atExitAddressValue = pAddressExpression.getMemoryAddress();
@@ -1446,7 +1447,7 @@ public class SMGCPABuiltins {
     String functionName = functionCall.getFunctionNameExpression().toASTString();
 
     if (sizeInBits.isNumericValue()) {
-      BigInteger numericSizeInBits = sizeInBits.asNumericValue().bigIntegerValue();
+      BigInteger numericSizeInBits = sizeInBits.asNumericValue().orElseThrow().bigIntegerValue();
       if (numericSizeInBits.compareTo(BigInteger.ZERO) == 0) {
         resultBuilder.add(handleAllocZero(pState));
         return resultBuilder.build();
@@ -1737,12 +1738,12 @@ public class SMGCPABuiltins {
           cfaEdge);
     }
 
-    long count = countValue.asNumericValue().longValue();
+    long count = countValue.asNumericValue().orElseThrow().longValue();
 
     // If the char value is unknown, we use a new symbolic value!
     Value bufferMemoryAddress = bufferAddressAndOffset.getMemoryAddress();
     BigInteger bufferOffsetInBits =
-        bufferAddressAndOffset.getOffset().asNumericValue().bigIntegerValue();
+        bufferAddressAndOffset.getOffset().asNumericValue().orElseThrow().bigIntegerValue();
 
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
@@ -2022,7 +2023,7 @@ public class SMGCPABuiltins {
         List<ValueAndSMGState> newTargetPointerAndStates =
             evaluator.findOrcreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
-                targetAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                targetAddressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
                 currentState);
         for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
@@ -2036,7 +2037,11 @@ public class SMGCPABuiltins {
 
             evaluateMemcpySecondStep(
                 newTargetObjAndState.getSMGObject(),
-                newTargetObjAndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newTargetObjAndState
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue(),
                 newTargetObjAndState.getSMGState(),
                 functionCall,
                 cfaEdge,
@@ -2084,7 +2089,7 @@ public class SMGCPABuiltins {
         }
         evaluateMemcpySecondStep(
             targetObj,
-            targetOffset.asNumericValue().bigIntegerValue(),
+            targetOffset.asNumericValue().orElseThrow().bigIntegerValue(),
             currentState,
             functionCall,
             cfaEdge,
@@ -2159,7 +2164,7 @@ public class SMGCPABuiltins {
         List<ValueAndSMGState> newSourcePointerAndStates =
             evaluator.findOrcreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
-                sourceAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                sourceAddressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
                 currentState);
         for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newSourceObjAndState :
@@ -2174,7 +2179,11 @@ public class SMGCPABuiltins {
                 targetObj,
                 targetOffset,
                 newSourceObjAndState.getSMGObject(),
-                newSourceObjAndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newSourceObjAndState
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue(),
                 newSourceObjAndState.getSMGState(),
                 functionCall,
                 pCFAEdge,
@@ -2220,7 +2229,7 @@ public class SMGCPABuiltins {
             targetObj,
             targetOffset,
             sourceObj,
-            sourceOffset.asNumericValue().bigIntegerValue(),
+            sourceOffset.asNumericValue().orElseThrow().bigIntegerValue(),
             currentState,
             functionCall,
             pCFAEdge,
@@ -2332,7 +2341,7 @@ public class SMGCPABuiltins {
         List<ValueAndSMGState> newTargetPointerAndStates =
             evaluator.findOrcreateNewPointer(
                 targetAddressExpr.getMemoryAddress(),
-                targetAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                targetAddressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
                 currentState);
         for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
@@ -2348,7 +2357,11 @@ public class SMGCPABuiltins {
 
             evaluateMemcmpSecondStep(
                 newTargetObjAndState.getSMGObject(),
-                newTargetObjAndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newTargetObjAndState
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue(),
                 newTargetObjAndState.getSMGState(),
                 functionCall,
                 cfaEdge,
@@ -2389,7 +2402,7 @@ public class SMGCPABuiltins {
         }
         evaluateMemcmpSecondStep(
             targetObj,
-            targetOffset.asNumericValue().bigIntegerValue(),
+            targetOffset.asNumericValue().orElseThrow().bigIntegerValue(),
             currentState,
             functionCall,
             cfaEdge,
@@ -2450,7 +2463,7 @@ public class SMGCPABuiltins {
         List<ValueAndSMGState> newSourcePointerAndStates =
             evaluator.findOrcreateNewPointer(
                 sourceAddressExpr.getMemoryAddress(),
-                sourceAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                sourceAddressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
                 currentState);
         for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObj2AndState :
@@ -2467,7 +2480,11 @@ public class SMGCPABuiltins {
                 targetObj1,
                 targetOffset1,
                 newTargetObj2AndState.getSMGObject(),
-                newTargetObj2AndState.getOffsetForObject().asNumericValue().bigIntegerValue(),
+                newTargetObj2AndState
+                    .getOffsetForObject()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue(),
                 newTargetObj2AndState.getSMGState(),
                 functionCall,
                 pCFAEdge,
@@ -2508,7 +2525,7 @@ public class SMGCPABuiltins {
             targetObj1,
             targetOffset1,
             targetObj2,
-            targetOffset2.asNumericValue().bigIntegerValue(),
+            targetOffset2.asNumericValue().orElseThrow().bigIntegerValue(),
             currentState,
             functionCall,
             pCFAEdge,
@@ -2593,7 +2610,7 @@ public class SMGCPABuiltins {
     SMGProveNequality nequalityCheck = new SMGProveNequality(pCurrentState);
 
     BigInteger numericSizeArgumentInBits =
-        pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
+        pSizeValue.asNumericValue().orElseThrow().bigIntegerValue().multiply(BigInteger.valueOf(8));
     BigInteger obj1FullOffset = pTargetOffset1.add(pTargetObj1.getOffset());
     BigInteger obj2FullOffset = pTargetOffset2.add(pTargetObj2.getOffset());
     BigInteger obj1FullOffsetPlusSizeArgInBits = obj1FullOffset.add(numericSizeArgumentInBits);
@@ -2602,6 +2619,7 @@ public class SMGCPABuiltins {
     if (pTargetObj1
             .getSize()
             .asNumericValue()
+            .orElseThrow()
             .bigIntegerValue()
             .subtract(obj1FullOffset)
             .compareTo(numericSizeArgumentInBits)
@@ -2613,6 +2631,7 @@ public class SMGCPABuiltins {
     } else if (pTargetObj2
             .getSize()
             .asNumericValue()
+            .orElseThrow()
             .bigIntegerValue()
             .subtract(obj2FullOffset)
             .compareTo(numericSizeArgumentInBits)
@@ -2717,8 +2736,9 @@ public class SMGCPABuiltins {
         int lexOrder =
             hve1Value
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
-                .compareTo(hve2Value.asNumericValue().bigIntegerValue());
+                .compareTo(hve2Value.asNumericValue().orElseThrow().bigIntegerValue());
         if (lexOrder == 0) {
           // Equal. Remove the blocks, check that all blocks have been removed later.
           offsetToRemoveInBoth.add(offsetToCheck);
@@ -2790,13 +2810,13 @@ public class SMGCPABuiltins {
       throws SMGException {
 
     Preconditions.checkArgument(numOfBytesToCopy instanceof NumericValue);
-    long numOfBytes = numOfBytesToCopy.asNumericValue().bigIntegerValue().longValue();
+    long numOfBytes = numOfBytesToCopy.asNumericValue().orElseThrow().bigIntegerValue().longValue();
     if (numOfBytes < 0) {
       // the argument is unsigned, so we have to transform it into a postive. On most 64bit systems
       // it's an unsigned long (C99 standard)
       numOfBytes =
           Integer.toUnsignedLong(
-              numOfBytesToCopy.asNumericValue().bigIntegerValue().intValueExact());
+              numOfBytesToCopy.asNumericValue().orElseThrow().bigIntegerValue().intValueExact());
     }
 
     BigInteger sizeToCopyInBits =
@@ -2809,8 +2829,10 @@ public class SMGCPABuiltins {
     if (!sourceAddressSize.isNumericValue() || !targetAddressSize.isNumericValue()) {
       throw new SMGException("Symbolic memory size in memset currently not supported.");
     }
-    BigInteger numericSourceAddressSize = sourceAddressSize.asNumericValue().bigIntegerValue();
-    BigInteger numericTargetAddressSize = targetAddressSize.asNumericValue().bigIntegerValue();
+    BigInteger numericSourceAddressSize =
+        sourceAddressSize.asNumericValue().orElseThrow().bigIntegerValue();
+    BigInteger numericTargetAddressSize =
+        targetAddressSize.asNumericValue().orElseThrow().bigIntegerValue();
     // There can be deref errors if the size is to large
     if (numericSourceAddressSize.compareTo(sourceOffset.add(sizeToCopyInBits)) < 0) {
       return ValueAndSMGState.ofUnknownValue(
@@ -2948,9 +2970,9 @@ public class SMGCPABuiltins {
         resultBuilder.add(
             evaluator.stringCompare(
                 firstAddress,
-                firstAddressOffset.asNumericValue().bigIntegerValue(),
+                firstAddressOffset.asNumericValue().orElseThrow().bigIntegerValue(),
                 secondAddressExpr.getMemoryAddress(),
-                secondAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
+                secondAddressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue(),
                 secondValueAndSMGState.getState()));
       }
     }
@@ -3029,7 +3051,12 @@ public class SMGCPABuiltins {
 
     if (pPtrValue instanceof AddressExpression ptrAddrExpr) {
       if (!ptrAddrExpr.getOffset().isNumericValue()
-          || !ptrAddrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          || !ptrAddrExpr
+              .getOffset()
+              .asNumericValue()
+              .orElseThrow()
+              .bigIntegerValue()
+              .equals(BigInteger.ZERO)) {
         throw new SMGException(
             "Realloc with pointers not pointing to their original offset not supported yet. "
                 + pCfaEdge);
@@ -3047,7 +3074,11 @@ public class SMGCPABuiltins {
     if (pSizeValue.isNumericValue()) {
       sizeInBits =
           new NumericValue(
-              pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)));
+              pSizeValue
+                  .asNumericValue()
+                  .orElseThrow()
+                  .bigIntegerValue()
+                  .multiply(BigInteger.valueOf(8)));
 
     } else {
       // Size symbolic
@@ -3082,7 +3113,7 @@ public class SMGCPABuiltins {
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
     if (pSizeValue.isNumericValue()
-        && sizeInBits.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        && sizeInBits.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
       resultBuilder = ImmutableList.builder();
       for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
         resultBuilder.add(handleAllocZero(freedState));
@@ -3118,9 +3149,9 @@ public class SMGCPABuiltins {
               .orElseThrow()
               .getSMGObject();
 
-      BigInteger copySizeInBits = sizeInBits.asNumericValue().bigIntegerValue();
-      if (oldSize.asNumericValue().bigIntegerValue().compareTo(copySizeInBits) < 0) {
-        copySizeInBits = oldSize.asNumericValue().bigIntegerValue();
+      BigInteger copySizeInBits = sizeInBits.asNumericValue().orElseThrow().bigIntegerValue();
+      if (oldSize.asNumericValue().orElseThrow().bigIntegerValue().compareTo(copySizeInBits) < 0) {
+        copySizeInBits = oldSize.asNumericValue().orElseThrow().bigIntegerValue();
       }
       // free old memory
       currentState =
@@ -3174,7 +3205,7 @@ public class SMGCPABuiltins {
       SMGState currentState = evaluatedParamAndState.getState();
 
       if (castParamValue.isNumericValue()) {
-        BigInteger numericParam = castParamValue.asNumericValue().bigIntegerValue();
+        BigInteger numericParam = castParamValue.asNumericValue().orElseThrow().bigIntegerValue();
 
         // Check that the cast function parameter is really unsigned, as defined by the function and
         // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
@@ -3229,7 +3260,7 @@ public class SMGCPABuiltins {
 
   private static boolean isNumericZero(Value value) {
     return value.isNumericValue()
-        && value.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO);
+        && value.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO);
   }
 
   @SuppressWarnings("unused")

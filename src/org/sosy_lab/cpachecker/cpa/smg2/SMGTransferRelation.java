@@ -688,7 +688,12 @@ public class SMGTransferRelation
         // For pointer -> array we get an addressExpr that wraps the pointer
 
         // We don't support symbolic pointer arithmetics yet
-        if (!addrParam.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        if (!addrParam
+            .getOffset()
+            .asNumericValue()
+            .orElseThrow()
+            .bigIntegerValue()
+            .equals(BigInteger.ZERO)) {
           // UNKNOWN as we can't handle symbolic or non-zero offsets right now
           // TODO: implement either a workaround for pointers with offset to a memory region or
           // switch to pointers for arrays per default
@@ -712,6 +717,7 @@ public class SMGTransferRelation
           && knownMemoryAndState
                   .getOffsetForObject()
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
                   .compareTo(BigInteger.ZERO)
               != 0) {
@@ -754,7 +760,7 @@ public class SMGTransferRelation
                   + " moment. "
                   + callEdge);
         }
-        offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
+        offsetSource = offsetForObject.asNumericValue().orElseThrow().bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.getFirst().getSMGObject();
         sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
@@ -948,9 +954,9 @@ public class SMGTransferRelation
 
     } else if (value.isNumericValue()) {
       if (bool) {
-        return value.asNumericValue().longValue() == 1L;
+        return value.asNumericValue().orElseThrow().longValue() == 1L;
       } else {
-        return value.asNumericValue().longValue() == 0L;
+        return value.asNumericValue().orElseThrow().longValue() == 0L;
       }
 
     } else {
@@ -1331,7 +1337,8 @@ public class SMGTransferRelation
                   leftHandSideType,
                   edge));
         }
-        BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigIntegerValue();
+        BigInteger baseOffsetFromPointer =
+            pointerOffset.asNumericValue().orElseThrow().bigIntegerValue();
 
         Value properPointer;
         // We need a true pointer without AddressExpr
@@ -1374,7 +1381,7 @@ public class SMGTransferRelation
         // Genuine pointer that needs to be written
         // Retranslate into a pointer and write the pointer
         if (addressInValue.getOffset().isNumericValue()
-            && addressInValue.getOffset().asNumericValue().longValue() == 0) {
+            && addressInValue.getOffset().asNumericValue().orElseThrow().longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
         } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
@@ -1396,6 +1403,7 @@ public class SMGTransferRelation
             sizeInBits.isNumericValue()
                 && sizeInBits
                         .asNumericValue()
+                        .orElseThrow()
                         .bigIntegerValue()
                         .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
                     == 0);

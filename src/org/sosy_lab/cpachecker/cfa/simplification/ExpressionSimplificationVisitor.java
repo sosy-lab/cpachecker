@@ -86,7 +86,7 @@ public class ExpressionSimplificationVisitor
    */
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
-    NumericValue numericResult = value.asNumericValue();
+    NumericValue numericResult = value.asNumericValue().orElseThrow();
     final CType type = expr.getExpressionType().getCanonicalType();
     if (numericResult != null && type instanceof CSimpleType cSimpleType) {
       CBasicType basicType = cSimpleType.getType();

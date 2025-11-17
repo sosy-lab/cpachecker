@@ -86,7 +86,7 @@ abstract class SpecialOperation {
     }
 
     if (value.isExplicitlyKnown() && value.isNumericValue()) {
-      Number number = value.asNumericValue().getNumber();
+      Number number = value.asNumericValue().orElseThrow().getNumber();
       if (number instanceof BigInteger bigInteger) {
         return Optional.of(bigInteger);
       } else if (number instanceof Byte

@@ -151,7 +151,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       CType pActualType, ValueAndType pValueAndType) {
     if (pActualType instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType) pActualType.getCanonicalType()).getType();
-      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue().orElseThrow();
 
       if (basicType.equals(CBasicType.FLOAT)) {
         float floatValue = numericValue.floatValue();
@@ -172,7 +172,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       CType pReadType, ValueAndType pValueAndType) {
     if (pReadType instanceof CSimpleType) {
       CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
-      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue().orElseThrow();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
         int bits = numericValue.bigIntegerValue().intValue();
@@ -315,7 +315,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
       long subscriptOffset =
-          subscriptValue.asNumericValue().longValue() * typeSize.asNumericValue().longValue();
+          subscriptValue.asNumericValue().orElseThrow().longValue()
+              * typeSize.asNumericValue().orElseThrow().longValue();
 
       return arrayLoc.withAddedOffset(subscriptOffset);
     }

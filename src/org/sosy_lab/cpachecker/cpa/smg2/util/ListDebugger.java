@@ -196,7 +196,8 @@ public class ListDebugger {
 
     SMGPointsToEdge pteList = smg.getPTEdge(edges.getFirst().hasValue()).orElseThrow();
     if (!pteList.getOffset().isNumericValue()
-        || pteList.getOffset().asNumericValue().bigIntegerValue().intValueExact() != 0) {
+        || pteList.getOffset().asNumericValue().orElseThrow().bigIntegerValue().intValueExact()
+            != 0) {
       throw new RuntimeException(
           "Not yet implemented debug case for offset pointer towards list from outside");
     }
@@ -218,7 +219,7 @@ public class ListDebugger {
     ImmutableList.Builder<ListElement> builder = ImmutableList.builder();
     SMG smg = state.getMemoryModel().getSmg();
     Preconditions.checkArgument(
-        size == listElem.getSize().asNumericValue().bigIntegerValue().intValue());
+        size == listElem.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (listElem instanceof SMGSinglyLinkedListSegment sll) {
@@ -254,7 +255,7 @@ public class ListDebugger {
         SMGObject nestedObj = pteNested.pointsTo();
         if (nestedListShape.isPresent()) {
           if (nestedObj.getSize().isNumericValue()
-              && nestedObj.getSize().asNumericValue().bigIntegerValue().intValue()
+              && nestedObj.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue()
                   == nestedListShape.orElseThrow().size) {
             List<ListElement> nestedList =
                 nestedListShape.orElseThrow().addFirstThenRest(nestedObj, state);
@@ -275,7 +276,12 @@ public class ListDebugger {
           if (maybeValue.orElseThrow().isNumericValue()) {
             listItems.put(
                 hve.getOffset().intValue(),
-                maybeValue.orElseThrow().asNumericValue().bigIntegerValue().intValueExact());
+                maybeValue
+                    .orElseThrow()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue()
+                    .intValueExact());
           } else {
             // TODO: Save constraints for this?
             listItems.put(hve.getOffset().intValue(), maybeValue.orElseThrow());
@@ -319,7 +325,7 @@ public class ListDebugger {
         SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
         Preconditions.checkArgument(
             ptePrev.getOffset().isNumericValue()
-                && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
+                && ptePrev.getOffset().asNumericValue().orElseThrow().bigIntegerValue().intValue()
                     == prevPtrTargetOffset.orElseThrow());
         // prevOfRoot = Optional.of(ptePrev.pointsTo());
         throw new RuntimeException("implement me");
@@ -387,7 +393,7 @@ public class ListDebugger {
       return pBuilder.build();
     }
     Preconditions.checkArgument(
-        size == currentObj.getSize().asNumericValue().bigIntegerValue().intValue());
+        size == currentObj.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (currentObj instanceof SMGSinglyLinkedListSegment sll) {
@@ -423,7 +429,7 @@ public class ListDebugger {
         SMGObject nestedObj = pteNested.pointsTo();
         if (nestedListShape.isPresent()) {
           if (nestedObj.getSize().isNumericValue()
-              && nestedObj.getSize().asNumericValue().bigIntegerValue().intValue()
+              && nestedObj.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue()
                   == nestedListShape.orElseThrow().size) {
             List<ListElement> nestedList =
                 nestedListShape.orElseThrow().addFirstThenRest(nestedObj, state);
@@ -444,7 +450,12 @@ public class ListDebugger {
           if (maybeValue.orElseThrow().isNumericValue()) {
             listItems.put(
                 hve.getOffset().intValue(),
-                maybeValue.orElseThrow().asNumericValue().bigIntegerValue().intValueExact());
+                maybeValue
+                    .orElseThrow()
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue()
+                    .intValueExact());
           } else {
             // TODO: Save constraints for this?
             listItems.put(hve.getOffset().intValue(), maybeValue.orElseThrow());
@@ -473,7 +484,7 @@ public class ListDebugger {
       SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
       Preconditions.checkArgument(
           ptePrev.getOffset().isNumericValue()
-              && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
+              && ptePrev.getOffset().asNumericValue().orElseThrow().bigIntegerValue().intValue()
                   == prevPtrTargetOffset.orElseThrow());
       Preconditions.checkArgument(ptePrev.pointsTo().equals(previousObj));
     }

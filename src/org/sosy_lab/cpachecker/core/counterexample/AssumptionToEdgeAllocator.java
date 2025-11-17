@@ -745,7 +745,7 @@ public class AssumptionToEdgeAllocator {
         return null;
       }
 
-      return addressV.asNumericValue().getNumber();
+      return addressV.asNumericValue().orElseThrow().getNumber();
     }
 
     private Address evaluateNumericalValueAsAddress(CExpression exp) {
@@ -1161,10 +1161,10 @@ public class AssumptionToEdgeAllocator {
               yield Value.UnknownValue.getInstance();
             }
 
-            Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+            Number addressValueNumber = addressValueV.asNumericValue().orElseThrow().getNumber();
             BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
             // Because address and offset value may be interchanged, use BigDecimal for both
-            Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+            Number offsetValueNumber = offsetValueV.asNumericValue().orElseThrow().getNumber();
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
@@ -1539,7 +1539,7 @@ public class AssumptionToEdgeAllocator {
           return UnknownValueLiteral.getInstance();
         }
 
-        Number number = castValue.asNumericValue().getNumber();
+        Number number = castValue.asNumericValue().orElseThrow().getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger bigInteger) {
           valueAsBigInt = bigInteger;

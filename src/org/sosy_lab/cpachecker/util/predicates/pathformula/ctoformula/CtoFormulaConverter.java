@@ -1024,7 +1024,7 @@ public class CtoFormulaConverter {
           targetType,
           FloatValue.fromInteger(
               FloatValue.Format.fromCType(machineModel, targetType),
-              floatValue.asNumericValue().bigIntegerValue()));
+              floatValue.asNumericValue().orElseThrow().bigIntegerValue()));
     }
 
     return pExp;

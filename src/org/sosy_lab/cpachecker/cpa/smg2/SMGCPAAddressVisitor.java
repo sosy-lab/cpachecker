@@ -323,7 +323,8 @@ public class SMGCPAAddressVisitor
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
-          && arrayValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
+          && arrayValue.asNumericValue().orElseThrow().bigIntegerValue().compareTo(BigInteger.ZERO)
+              == 0) {
         return ImmutableList.of(
             SMGStateAndOptionalSMGObjectAndOffset.of(
                 SMGObject.nullInstance(), subscriptOffset, pCurrentState));
@@ -451,7 +452,12 @@ public class SMGCPAAddressVisitor
       } else {
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.
         if (structValue.isNumericValue()
-            && structValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
+            && structValue
+                    .asNumericValue()
+                    .orElseThrow()
+                    .bigIntegerValue()
+                    .compareTo(BigInteger.ZERO)
+                == 0) {
           resultBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   SMGObject.nullInstance(), new NumericValue(fieldOffset), currentState));

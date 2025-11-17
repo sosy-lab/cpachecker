@@ -65,6 +65,7 @@ public interface Value extends Serializable {
 
   /** Return the long value if this is a long value. */
   default OptionalLong asLong(CType type) {
+    checkNotNull(type);
     return OptionalLong.empty();
   }
 

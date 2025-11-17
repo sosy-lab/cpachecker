@@ -287,7 +287,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().getNumber();
+      Number value = valueAsValue.asNumericValue().orElseThrow().getNumber();
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);

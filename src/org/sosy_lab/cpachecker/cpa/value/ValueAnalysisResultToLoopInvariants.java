@@ -671,7 +671,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
               new SingleNumericVariableInvariant(
-                  varAndVals.getKey(), val.asNumericValue(), exportEvenVal);
+                  varAndVals.getKey(), val.asNumericValue().orElseThrow(), exportEvenVal);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             numInv.adaptToAdditionalValue(valPlusType.getValue());
           }
@@ -834,9 +834,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             arInv =
                 new TwoVariableArithmeticInvariant(
                     varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
                     varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue());
+                    val2.getFirst().getValue().asNumericValue().orElseThrow());
           } else {
             arInv = null;
           }
@@ -845,18 +845,18 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportBitops
               && type1.getType().isIntegerType()
               && type2.getType().isIntegerType()
-              && (!(val1.getFirst().getValue().asNumericValue().getNumber()
+              && (!(val1.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))
-              && (!(val2.getFirst().getValue().asNumericValue().getNumber()
+              && (!(val2.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))) {
             bitInv =
                 new TwoVariableBitOpsInvariant(
                     varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
                     varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue(),
+                    val2.getFirst().getValue().asNumericValue().orElseThrow(),
                     exportShiftops);
           } else {
             bitInv = null;
@@ -864,18 +864,18 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           TwoVariableRelationInvariant relInv;
           if (exportRelational
-              && (!(val1.getFirst().getValue().asNumericValue().getNumber()
+              && (!(val1.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))
-              && (!(val2.getFirst().getValue().asNumericValue().getNumber()
+              && (!(val2.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
                       instanceof BigInteger bigInteger)
                   || containslongValue(bigInteger))) {
             relInv =
                 new TwoVariableRelationInvariant(
                     varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue(),
+                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
                     varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue());
+                    val2.getFirst().getValue().asNumericValue().orElseThrow());
 
           } else {
             relInv = null;
@@ -1174,7 +1174,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     for (int i = 0; i < eqMatrix.length && linConstraint; i++) {
       Value val = eqVarVals[i].getValue();
       if (val.isNumericValue()) {
-        eqMatrix[i][eqMatrix.length] = val.asNumericValue().getNumber();
+        eqMatrix[i][eqMatrix.length] = val.asNumericValue().orElseThrow().getNumber();
       } else {
         linConstraint = false;
         break;
@@ -1189,7 +1189,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       for (int j = 0; j < varValsWithCoeff.length; j++) {
         val = varValsWithCoeff[j][i].getValue();
         if (val.isNumericValue()) {
-          eqMatrix[i][j] = val.asNumericValue().getNumber();
+          eqMatrix[i][j] = val.asNumericValue().orElseThrow().getNumber();
         } else {
           linConstraint = false;
           break;
@@ -1270,7 +1270,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     @Nullable NumericValue extractNumValue(Value pValue) {
       Preconditions.checkNotNull(pValue);
       if (pValue.isExplicitlyKnown() && pValue.isNumericValue()) {
-        return pValue.asNumericValue();
+        return pValue.asNumericValue().orElseThrow();
       }
       return null;
     }

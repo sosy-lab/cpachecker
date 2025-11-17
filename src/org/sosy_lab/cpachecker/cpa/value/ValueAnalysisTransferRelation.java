@@ -1494,7 +1494,7 @@ public class ValueAnalysisTransferRelation
               throw new AssertionError("unknown righthandside-expression: " + exp);
             }
             if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
+              NumericValue numericValue = value.asNumericValue().orElseThrow();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (paramType.getType().isFloatingPointType()) {

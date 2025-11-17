@@ -95,10 +95,12 @@ public class SMGProveNequality {
       return pToEdge
                   .getOffset()
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
-                  .compareTo(pToEdge.pointsTo().getSize().asNumericValue().bigIntegerValue())
+                  .compareTo(
+                      pToEdge.pointsTo().getSize().asNumericValue().orElseThrow().bigIntegerValue())
               > 0
-          || pToEdge.getOffset().asNumericValue().bigIntegerValue().signum() < 0;
+          || pToEdge.getOffset().asNumericValue().orElseThrow().bigIntegerValue().signum() < 0;
     } else {
       // Use SMT solver
       return state

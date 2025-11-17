@@ -157,7 +157,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       headOffset = ((SMGDoublyLinkedListSegment) obj1).getHeadOffset();
       nextOffset = ((SMGDoublyLinkedListSegment) obj1).getNextOffset();
       prevOffset = ((SMGDoublyLinkedListSegment) obj1).getPrevOffset();
-      pSize = obj1.getSize().asNumericValue().bigIntegerValue();
+      pSize = obj1.getSize().asNumericValue().orElseThrow().bigIntegerValue();
       pOffset = obj1.getOffset();
     }
     if (isDLLS(obj2)) {
@@ -166,7 +166,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         headOffset = ((SMGDoublyLinkedListSegment) obj2).getHeadOffset();
         nextOffset = ((SMGDoublyLinkedListSegment) obj2).getNextOffset();
         prevOffset = ((SMGDoublyLinkedListSegment) obj2).getPrevOffset();
-        pSize = obj2.getSize().asNumericValue().bigIntegerValue();
+        pSize = obj2.getSize().asNumericValue().orElseThrow().bigIntegerValue();
         pOffset = obj2.getOffset();
       }
     }

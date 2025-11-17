@@ -294,7 +294,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      BigInteger bigInteger = value.asNumericValue().bigIntegerValue();
+      BigInteger bigInteger = value.asNumericValue().orElseThrow().bigIntegerValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 

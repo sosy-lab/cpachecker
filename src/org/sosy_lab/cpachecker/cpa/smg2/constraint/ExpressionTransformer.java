@@ -111,7 +111,12 @@ public class ExpressionTransformer
       SymbolicExpression operand1Expression = operand1ExpressionAndState.getSymbolicExpression();
 
       if (operand1Expression instanceof AddressExpression addrExpr) {
-        if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        if (addrExpr
+            .getOffset()
+            .asNumericValue()
+            .orElseThrow()
+            .bigIntegerValue()
+            .equals(BigInteger.ZERO)) {
           // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
           // currently handle this only for concrete values, and that is done by the valueVisitor.
           // So we can't handle it here better.
@@ -131,7 +136,12 @@ public class ExpressionTransformer
         SymbolicExpression operand2Expression = operand2ExpressionAndState.getSymbolicExpression();
 
         if (operand2Expression instanceof AddressExpression addrExpr) {
-          if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          if (addrExpr
+              .getOffset()
+              .asNumericValue()
+              .orElseThrow()
+              .bigIntegerValue()
+              .equals(BigInteger.ZERO)) {
             // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
             // currently handle this only for concrete values, and that is done by the valueVisitor.
             // So we can't handle it better here.

@@ -168,7 +168,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   public String toString() {
     String sizeToPrint = size.toString();
     if (size.isNumericValue()) {
-      sizeToPrint = size.asNumericValue().bigIntegerValue().toString();
+      sizeToPrint = size.asNumericValue().orElseThrow().bigIntegerValue().toString();
     }
     if (name.isEmpty()) {
       return "SMGObject" + id + "[" + offset + ", " + sizeToPrint + ")";

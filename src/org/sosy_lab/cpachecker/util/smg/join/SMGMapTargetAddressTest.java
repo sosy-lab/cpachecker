@@ -116,6 +116,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
 
     assertThat(newEdge.pointsTo()).isSameInstanceAs(destObj);
     assertThat(newEdge.getOffset().isNumericValue()).isTrue();
-    assertThat(newEdge.getOffset().asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
+    assertThat(newEdge.getOffset().asNumericValue().orElseThrow().bigIntegerValue())
+        .isEqualTo(BigInteger.ZERO);
   }
 }

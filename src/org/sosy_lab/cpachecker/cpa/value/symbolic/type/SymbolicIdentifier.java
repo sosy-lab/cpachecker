@@ -13,9 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 

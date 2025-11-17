@@ -123,26 +123,26 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(leftValue.isExplicitlyKnown()
-        && leftValue.asNumericValue().getNumber() instanceof BigInteger bigIntNum
+        && leftValue.asNumericValue().orElseThrow().getNumber() instanceof BigInteger bigIntNum
         && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       leftValue = castCValue(leftValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(rightValue.isExplicitlyKnown()
-        && rightValue.asNumericValue().getNumber() instanceof BigInteger bigIntNum
+        && rightValue.asNumericValue().orElseThrow().getNumber() instanceof BigInteger bigIntNum
         && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       rightValue = castCValue(rightValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     if (isEqualityAssumption(binaryOperator)) {
       if (leftValue.isExplicitlyKnown()) {
-        Number lNum = leftValue.asNumericValue().getNumber();
+        Number lNum = leftValue.asNumericValue().orElseThrow().getNumber();
         if (BigInteger.ONE.equals(lNum)) {
           rVarInBinaryExp.accept(this);
         }
       } else if (rightValue.isExplicitlyKnown()) {
-        Number rNum = rightValue.asNumericValue().getNumber();
+        Number rNum = rightValue.asNumericValue().orElseThrow().getNumber();
         if (BigInteger.ONE.equals(rNum)) {
           lVarInBinaryExp.accept(this);
         }
@@ -229,8 +229,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
           Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger());
           if (downCastVal.isExplicitlyKnown() && downCastVal.asNumericValue() != null) {
-            FloatValue downCastFloatVal = downCastVal.asNumericValue().getFloatValue();
-            FloatValue origFloatVal = pValue.asNumericValue().getFloatValue();
+            FloatValue downCastFloatVal =
+                downCastVal.asNumericValue().orElseThrow().getFloatValue();
+            FloatValue origFloatVal = pValue.asNumericValue().orElseThrow().getFloatValue();
             Preconditions.checkState(
                 origFloatVal.getFormat().isGreaterOrEqual(downCastFloatVal.getFormat()));
             if (downCastFloatVal.withPrecision(origFloatVal.getFormat()).equals(origFloatVal)) {
@@ -284,7 +285,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           return invertCastFromInteger(
               origType,
               castType,
-              pValue.asNumericValue(),
+              pValue.asNumericValue().orElseThrow(),
               !getMachineModel().isSigned(castType) && getMachineModel().isSigned(origType));
         } else {
           return UnknownValue.getInstance();

@@ -178,8 +178,8 @@ public final class ValueAnalysisInterpolant
 
       } else {
         verify(
-            valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
-                == itp.getValue().getValue().asNumericValue().longValue(),
+            valueState.getValueFor(itp.getKey()).asNumericValue().orElseThrow().longValue()
+                == itp.getValue().getValue().asNumericValue().orElseThrow().longValue(),
             "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
                 + " for state %s",
             itp.getKey(),

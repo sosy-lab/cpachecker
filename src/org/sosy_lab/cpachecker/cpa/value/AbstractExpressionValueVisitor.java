@@ -1152,7 +1152,7 @@ public abstract class AbstractExpressionValueVisitor
           && idExpression.getExpressionType().isConst()) {
         Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
         if (lengthValue.isNumericValue()) {
-          return lengthValue.asNumericValue().bigIntegerValue();
+          return lengthValue.asNumericValue().orElseThrow().bigIntegerValue();
         }
       }
 
@@ -1193,7 +1193,11 @@ public abstract class AbstractExpressionValueVisitor
                 machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
             if (offset.isPresent()) {
               yield new NumericValue(
-                  baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+                  baseAddress
+                      .asNumericValue()
+                      .orElseThrow()
+                      .bigIntegerValue()
+                      .add(offset.orElseThrow()));
             }
           }
         }
@@ -2291,7 +2295,7 @@ public abstract class AbstractExpressionValueVisitor
       Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
 
       if (paramValue.isNumericValue()) {
-        BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
+        BigInteger numericParam = paramValue.asNumericValue().orElseThrow().bigIntegerValue();
 
         // Check that the cast function parameter is really unsigned, as defined by the function and
         // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct

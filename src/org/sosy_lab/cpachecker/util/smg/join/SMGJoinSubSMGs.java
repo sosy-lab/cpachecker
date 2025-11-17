@@ -141,7 +141,11 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
    */
   private boolean matchesOffsetAndSize(SMGDoublyLinkedListSegment dlls, SMGHasValueEdge edge) {
     if (dlls.getSize().isNumericValue()
-        && dlls.getSize().asNumericValue().bigIntegerValue().equals(edge.getSizeInBits())) {
+        && dlls.getSize()
+            .asNumericValue()
+            .orElseThrow()
+            .bigIntegerValue()
+            .equals(edge.getSizeInBits())) {
       return !dlls.getNextOffset().equals(edge.getOffset())
           && !dlls.getPrevOffset().equals(edge.getOffset());
     }

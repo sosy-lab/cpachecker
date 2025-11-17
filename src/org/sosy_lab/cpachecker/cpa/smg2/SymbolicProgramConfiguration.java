@@ -357,7 +357,12 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap.putAndCopy(newObject, currentMemoryAssumptionMax);
     currentMemoryAssumptionMax =
         currentMemoryAssumptionMax.add(
-            newObject.getSize().asNumericValue().bigIntegerValue().divide(BigInteger.valueOf(8)));
+            newObject
+                .getSize()
+                .asNumericValue()
+                .orElseThrow()
+                .bigIntegerValue()
+                .divide(BigInteger.valueOf(8)));
     return newMap;
   }
 

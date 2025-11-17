@@ -800,7 +800,8 @@ public class SMGState
     Value expectedValue = valueAndSize.getValue();
     Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
     // Note: asNumericValue() returns null for non numerics
-    return expectedValue.asNumericValue().longValue() == readValue.asNumericValue().longValue();
+    return expectedValue.asNumericValue().orElseThrow().longValue()
+        == readValue.asNumericValue().orElseThrow().longValue();
   }
 
   /* public for debugging purposes in interpolation only! */
@@ -1603,8 +1604,8 @@ public class SMGState
     }
 
     if (thisValue.isNumericValue() && otherValue.isNumericValue()) {
-      Number thisNum = thisValue.asNumericValue().getNumber();
-      Number otherNum = otherValue.asNumericValue().getNumber();
+      Number thisNum = thisValue.asNumericValue().orElseThrow().getNumber();
+      Number otherNum = otherValue.asNumericValue().orElseThrow().getNumber();
       if (thisNum.getClass() != otherNum.getClass()) {
         return false;
       } else if (thisNum instanceof Float f && (f.isNaN() || ((Float) otherNum).isNaN())) {
@@ -2826,8 +2827,8 @@ public class SMGState
     if (readOffset.isNumericValue() && readSize.isNumericValue()) {
       return withOutOfRangeRead(
           objectRead,
-          readOffset.asNumericValue().bigIntegerValue(),
-          readSize.asNumericValue().bigIntegerValue());
+          readOffset.asNumericValue().orElseThrow().bigIntegerValue(),
+          readSize.asNumericValue().orElseThrow().bigIntegerValue());
     }
     String errorMSG =
         "Try reading object "
@@ -2854,7 +2855,8 @@ public class SMGState
     // TODO: extract model for readOffset and print here
     String sizeToPrint = objectRead.getSize().toString();
     if (objectRead.getSize().isNumericValue()) {
-      sizeToPrint = objectRead.getSize().asNumericValue().bigIntegerValue().toString();
+      sizeToPrint =
+          objectRead.getSize().asNumericValue().orElseThrow().bigIntegerValue().toString();
     }
     String errorMSG =
         "Try reading object "
@@ -2880,7 +2882,7 @@ public class SMGState
     // TODO: extract model for readOffset and print here
     if (readOffset.isNumericValue()) {
       return withOutOfRangeRead(
-          objectRead, readOffset.asNumericValue().bigIntegerValue(), readSize);
+          objectRead, readOffset.asNumericValue().orElseThrow().bigIntegerValue(), readSize);
     }
     String errorMSG =
         "Try reading object "
@@ -3089,7 +3091,7 @@ public class SMGState
       Value offsetAddr = addressExprValue.getOffset();
 
       if (offsetAddr.isNumericValue()
-          && offsetAddr.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+          && offsetAddr.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
         return ValueAndSMGState.of(pValue, this);
       }
 
@@ -3438,16 +3440,24 @@ public class SMGState
     // We have a partial read of the value given. We can just shift the value a few times until only
     // the relevant bits are left.
     if (value.isNumericValue()) {
-      if (value.asNumericValue().hasFloatType()) {
-        double floatValue = value.asNumericValue().doubleValue();
+      if (value.asNumericValue().orElseThrow().hasFloatType()) {
+        double floatValue = value.asNumericValue().orElseThrow().doubleValue();
         value = new NumericValue(Double.doubleToLongBits(floatValue));
       }
-      if (value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MAX_VALUE))
+      if (value
+                  .asNumericValue()
+                  .orElseThrow()
+                  .bigIntegerValue()
+                  .compareTo(BigInteger.valueOf(Long.MAX_VALUE))
               <= 0
-          && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MIN_VALUE))
+          && value
+                  .asNumericValue()
+                  .orElseThrow()
+                  .bigIntegerValue()
+                  .compareTo(BigInteger.valueOf(Long.MIN_VALUE))
               >= 0) {
         // long
-        long longValue = value.asNumericValue().bigIntegerValue().longValueExact();
+        long longValue = value.asNumericValue().orElseThrow().bigIntegerValue().longValueExact();
         long mask = getMask(readSizeInBits);
         return new NumericValue(BigInteger.valueOf(((longValue >>> shiftRight) & mask)));
 
@@ -3539,7 +3549,7 @@ public class SMGState
     if (!value.isNumericValue()) {
       return false;
     }
-    Number num = value.asNumericValue().getNumber();
+    Number num = value.asNumericValue().orElseThrow().getNumber();
     return num instanceof Float || num instanceof Double || num instanceof FloatValue;
   }
 
@@ -3575,7 +3585,7 @@ public class SMGState
   }
 
   private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
-    Number numberValue = readValue.asNumericValue().getNumber();
+    Number numberValue = readValue.asNumericValue().orElseThrow().getNumber();
 
     if (numberValue instanceof FloatValue floatValue) {
       if (floatValue.getFormat().equals(FloatValue.Format.Float32)) {
@@ -3609,7 +3619,7 @@ public class SMGState
   private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue) {
     if (pReadType instanceof CSimpleType) {
       CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
-      NumericValue numericValue = readValue.asNumericValue();
+      NumericValue numericValue = readValue.asNumericValue().orElseThrow();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
         int bits = numericValue.bigIntegerValue().intValue();
@@ -3658,12 +3668,16 @@ public class SMGState
         return ImmutableList.of(
             this, withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
       }
-      baseOffset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
+      baseOffset = addressExpr.getOffset().asNumericValue().orElseThrow().bigIntegerValue();
     }
 
     // Value == 0 can happen by user input and is valid!
     if (sanitizedAddressToFree.isNumericValue()
-        && sanitizedAddressToFree.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO)
+        && sanitizedAddressToFree
+                .asNumericValue()
+                .orElseThrow()
+                .bigIntegerValue()
+                .compareTo(BigInteger.ZERO)
             == 0) {
       logger.log(
           Level.FINE,
@@ -3705,7 +3719,8 @@ public class SMGState
             currentState.withInvalidFree("Invalid free of of object is found.", addressToFree));
         continue;
       }
-      BigInteger offsetInBits = baseOffset.add(regionOffset.asNumericValue().bigIntegerValue());
+      BigInteger offsetInBits =
+          baseOffset.add(regionOffset.asNumericValue().orElseThrow().bigIntegerValue());
 
       // free(0) is a nop in C
       if (regionToFree.isZero()) {
@@ -3950,14 +3965,20 @@ public class SMGState
     if (writeOffsetInBits.isNumericValue()
         && objSize.isNumericValue()
         && sizeInBits.isNumericValue()) {
-      numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
+      numericOffsetInBits = writeOffsetInBits.asNumericValue().orElseThrow().bigIntegerValue();
       // Check that the target can hold the value
       if (object.getOffset().compareTo(numericOffsetInBits) > 0
           || object
                   .getSize()
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
-                  .compareTo(sizeInBits.asNumericValue().bigIntegerValue().add(numericOffsetInBits))
+                  .compareTo(
+                      sizeInBits
+                          .asNumericValue()
+                          .orElseThrow()
+                          .bigIntegerValue()
+                          .add(numericOffsetInBits))
               < 0) {
         // Out of range write
         // If object part if heap -> invalid deref
@@ -4005,7 +4026,7 @@ public class SMGState
             currentState);
       } else {
         // offset numeric, but size symbolic, but write range is inside the size, -> write
-        numericOffsetInBits = writeOffsetInBits.asNumericValue().bigIntegerValue();
+        numericOffsetInBits = writeOffsetInBits.asNumericValue().orElseThrow().bigIntegerValue();
       }
 
       // Since we checked with a solver, we know that memsafety is not violated, so symbolic
@@ -4042,7 +4063,10 @@ public class SMGState
     currentState = valueAndState.getSMGState();
     return ImmutableList.of(
         currentState.writeValueWithoutChecks(
-            object, numericOffsetInBits, sizeInBits.asNumericValue().bigIntegerValue(), smgValue));
+            object,
+            numericOffsetInBits,
+            sizeInBits.asNumericValue().orElseThrow().bigIntegerValue(),
+            smgValue));
   }
 
   /**
@@ -4875,7 +4899,13 @@ public class SMGState
     }
     // Check that the target can hold the value
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
-        || returnObject.getSize().asNumericValue().bigIntegerValue().compareTo(sizeInBits) < 0) {
+        || returnObject
+                .getSize()
+                .asNumericValue()
+                .orElseThrow()
+                .bigIntegerValue()
+                .compareTo(sizeInBits)
+            < 0) {
       // Out of range write
       return withOutOfRangeWrite(
           returnObject, new NumericValue(BigInteger.ZERO), sizeInBits, valueToWrite, edge);
@@ -4993,6 +5023,7 @@ public class SMGState
           maybeRegion
               .getOffsetForObject()
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
               .equals(BigInteger.ZERO));
       returnBuilder.add(
@@ -5038,13 +5069,14 @@ public class SMGState
         && copySize.isNumericValue()
         && targetObjSize.isNumericValue()
         && sourceObjSize.isNumericValue()) {
-      BigInteger copySizeInBits = copySize.asNumericValue().bigIntegerValue();
-      BigInteger sourceOffset = sourceStartOffset.asNumericValue().bigIntegerValue();
-      BigInteger targetOffset = targetStartOffset.asNumericValue().bigIntegerValue();
+      BigInteger copySizeInBits = copySize.asNumericValue().orElseThrow().bigIntegerValue();
+      BigInteger sourceOffset = sourceStartOffset.asNumericValue().orElseThrow().bigIntegerValue();
+      BigInteger targetOffset = targetStartOffset.asNumericValue().orElseThrow().bigIntegerValue();
       // Check that we don't read beyond the source size and don't write beyonde the target size
       // and that we don't start before the object begins
       if (sourceObjSize
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
                   .subtract(sourceOffset)
                   .compareTo(copySizeInBits)
@@ -5054,6 +5086,7 @@ public class SMGState
         SMGState currentState = withInvalidRead(sourceObject);
         if (targetObjSize
                     .asNumericValue()
+                    .orElseThrow()
                     .bigIntegerValue()
                     .subtract(targetOffset)
                     .compareTo(copySizeInBits)
@@ -5066,6 +5099,7 @@ public class SMGState
       }
       if (targetObjSize
                   .asNumericValue()
+                  .orElseThrow()
                   .bigIntegerValue()
                   .subtract(targetOffset)
                   .compareTo(copySizeInBits)
@@ -5076,9 +5110,9 @@ public class SMGState
       }
       return copySMGObjectContentToSMGObject(
           sourceObject,
-          sourceStartOffset.asNumericValue().bigIntegerValue(),
+          sourceStartOffset.asNumericValue().orElseThrow().bigIntegerValue(),
           targetObject,
-          targetStartOffset.asNumericValue().bigIntegerValue(),
+          targetStartOffset.asNumericValue().orElseThrow().bigIntegerValue(),
           copySize);
     }
     // Unknown/Symbolic offset Values, we need to check them using an SMT solver
@@ -5120,7 +5154,7 @@ public class SMGState
     }
     SMGState currentState = this;
     BigInteger maxReadOffsetPlusSize =
-        sourceStartOffset.add(copySizeInBits.asNumericValue().bigIntegerValue());
+        sourceStartOffset.add(copySizeInBits.asNumericValue().orElseThrow().bigIntegerValue());
     // Removal of edges in the target is not necessary as the write deletes old overlapping edges
     // Get all source edges and copy them
     Set<SMGHasValueEdge> sourceContents = memoryModel.getSmg().getEdges(sourceObject);
@@ -5266,6 +5300,7 @@ public class SMGState
             ((AddressExpression) valueToWrite)
                     .getOffset()
                     .asNumericValue()
+                    .orElseThrow()
                     .bigIntegerValue()
                     .compareTo(BigInteger.ZERO)
                 == 0);
@@ -5891,6 +5926,7 @@ public class SMGState
         || !nfoPteForHv
             .getOffset()
             .asNumericValue()
+            .orElseThrow()
             .bigIntegerValue()
             .equals(nextPointerTargetOffset)) {
       // Next ptr location/Offset does not match
@@ -5911,6 +5947,7 @@ public class SMGState
             || !pfoPteForHv
                 .getOffset()
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
                 .equals(prevPointerTargetOffset.orElseThrow())) {
           // Prev ptr location does not match
@@ -6685,6 +6722,7 @@ public class SMGState
               .orElseThrow()
               .getOffset()
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
               .equals(pNextPointerTargetOffset)) {
         return true;
@@ -6719,8 +6757,9 @@ public class SMGState
     } else if (!memoryModel.getSmg().isValid(nextObject)
         || rootSize
                 .asNumericValue()
+                .orElseThrow()
                 .bigIntegerValue()
-                .compareTo(nextSize.asNumericValue().bigIntegerValue())
+                .compareTo(nextSize.asNumericValue().orElseThrow().bigIntegerValue())
             != 0) {
       return Optional.empty();
     }
@@ -7016,7 +7055,7 @@ public class SMGState
         new NumericValue(
             memoryModel
                 .getNumericAssumptionForMemoryRegion(target)
-                .add(offset.asNumericValue().bigIntegerValue())));
+                .add(offset.asNumericValue().orElseThrow().bigIntegerValue())));
   }
 
   public boolean isSMGObjectAStackVariable(SMGObject obj) {

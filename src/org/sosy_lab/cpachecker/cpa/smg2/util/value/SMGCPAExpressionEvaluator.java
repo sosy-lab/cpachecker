@@ -139,7 +139,7 @@ public class SMGCPAExpressionEvaluator {
     Value offset = addressExpression.getOffset();
 
     if (offset.isNumericValue()
-        && offset.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        && offset.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
       // offset == 0 -> known pointer
       return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
     } else {
@@ -169,7 +169,8 @@ public class SMGCPAExpressionEvaluator {
     if (isNotEqual.isUnknown()) {
       return isNotEqual;
     }
-    return isNotEqual.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0
+    return isNotEqual.asNumericValue().orElseThrow().bigIntegerValue().compareTo(BigInteger.ZERO)
+            == 0
         ? new NumericValue(1)
         : new NumericValue(0);
   }
@@ -222,7 +223,8 @@ public class SMGCPAExpressionEvaluator {
 
     Value offsetValue = address1.getOffset();
     if (offsetValue.isNumericValue()
-        && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
+        && offsetValue.asNumericValue().orElseThrow().bigIntegerValue().compareTo(BigInteger.ZERO)
+            == 0) {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
@@ -544,8 +546,9 @@ public class SMGCPAExpressionEvaluator {
    */
   public ValueAndSMGState getPointerFromNumeric(Value numericPointer, SMGState state) {
     Preconditions.checkArgument(numericPointer.isNumericValue());
-    if (numericPointer.asNumericValue().bigIntegerValue() != null) {
-      return getPointerFromNumeric(numericPointer.asNumericValue().bigIntegerValue(), state);
+    if (numericPointer.asNumericValue().orElseThrow().bigIntegerValue() != null) {
+      return getPointerFromNumeric(
+          numericPointer.asNumericValue().orElseThrow().bigIntegerValue(), state);
     } else {
       return ValueAndSMGState.ofUnknownValue(state);
     }
@@ -578,7 +581,7 @@ public class SMGCPAExpressionEvaluator {
         continue;
       }
       BigInteger memoryRegionEnd =
-          memoryRegionStart.add(object.getSize().asNumericValue().bigIntegerValue());
+          memoryRegionStart.add(object.getSize().asNumericValue().orElseThrow().bigIntegerValue());
       BigInteger difToZero = memoryRegionStart.subtract(numericPointer);
       BigInteger difToEnd = memoryRegionEnd.subtract(numericPointer);
       if (bestObj == null) {
@@ -897,7 +900,7 @@ public class SMGCPAExpressionEvaluator {
             && pOffsetInBits.isNumericValue()
             && targetAbstrList
                 .getNextOffset()
-                .equals(pOffsetInBits.asNumericValue().bigIntegerValue())) {
+                .equals(pOffsetInBits.asNumericValue().orElseThrow().bigIntegerValue())) {
           // Access to the last list elements next pointer
           return ImmutableList.of(
               SMGStateAndOptionalSMGObjectAndOffset.of(targetObjWOMat, pOffsetInBits, innerState));
@@ -1042,8 +1045,9 @@ public class SMGCPAExpressionEvaluator {
               new NumericValue(
                   leftOffset
                       .asNumericValue()
+                      .orElseThrow()
                       .bigIntegerValue()
-                      .subtract(rightOffset.asNumericValue().bigIntegerValue())
+                      .subtract(rightOffset.asNumericValue().orElseThrow().bigIntegerValue())
                       .intValue());
         }
         returnBuilder.add(ValueAndSMGState.of(distance, state));
@@ -1085,13 +1089,13 @@ public class SMGCPAExpressionEvaluator {
     BigInteger offsetInBits;
     if (offsetValueInBits.isNumericValue() && objectSize.isNumericValue()) {
       // Typical read with known offset
-      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
+      offsetInBits = offsetValueInBits.asNumericValue().orElseThrow().bigIntegerValue();
 
       boolean doesNotFitIntoObject =
           offsetInBits.compareTo(BigInteger.ZERO) < 0
               || offsetInBits
                       .add(sizeInBits)
-                      .compareTo(objectSize.asNumericValue().bigIntegerValue())
+                      .compareTo(objectSize.asNumericValue().orElseThrow().bigIntegerValue())
                   > 0;
 
       if (doesNotFitIntoObject) {
@@ -1138,7 +1142,7 @@ public class SMGCPAExpressionEvaluator {
             object, offsetValueInBits, sizeInBits, exprReading, null, currentState);
       }
       // Symbolic size, but concrete offset, we can actually read
-      offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
+      offsetInBits = offsetValueInBits.asNumericValue().orElseThrow().bigIntegerValue();
 
     } else {
       if (!offsetValueInBits.isNumericValue()) {
@@ -1181,12 +1185,12 @@ public class SMGCPAExpressionEvaluator {
     Value objectSize = object.getSize();
     if (offsetValueInBits.isNumericValue() && objectSize.isNumericValue()) {
       // Typical read with known offset
-      BigInteger offsetInBits = offsetValueInBits.asNumericValue().bigIntegerValue();
+      BigInteger offsetInBits = offsetValueInBits.asNumericValue().orElseThrow().bigIntegerValue();
       boolean doesNotFitIntoObject =
           offsetInBits.compareTo(BigInteger.ZERO) < 0
               || offsetInBits
                       .add(sizeInBits)
-                      .compareTo(objectSize.asNumericValue().bigIntegerValue())
+                      .compareTo(objectSize.asNumericValue().orElseThrow().bigIntegerValue())
                   > 0;
 
       if (doesNotFitIntoObject) {
@@ -1692,8 +1696,10 @@ public class SMGCPAExpressionEvaluator {
         // Note: this is nice to have, but not critical.
         return false;
       }
-      BigInteger finalTargetNumOffset = finalTargetOffset.asNumericValue().bigIntegerValue();
-      BigInteger finalSourceNumOffset = finalSourceOffset.asNumericValue().bigIntegerValue();
+      BigInteger finalTargetNumOffset =
+          finalTargetOffset.asNumericValue().orElseThrow().bigIntegerValue();
+      BigInteger finalSourceNumOffset =
+          finalSourceOffset.asNumericValue().orElseThrow().bigIntegerValue();
       int compareOffsets = finalTargetNumOffset.compareTo(finalSourceNumOffset);
       if (compareOffsets == 0) {
         // overlap
@@ -1853,14 +1859,15 @@ public class SMGCPAExpressionEvaluator {
       int compare =
           value1
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
-              .compareTo(value2.asNumericValue().bigIntegerValue());
+              .compareTo(value2.asNumericValue().orElseThrow().bigIntegerValue());
       if (compare != 0) {
         return ValueAndSMGState.of(new NumericValue(compare), pState);
       }
 
-      if ((value1.isNumericValue() && value1.asNumericValue().longValue() == 0)
-          || (value2.isNumericValue() && value2.asNumericValue().longValue() == 0)) {
+      if ((value1.isNumericValue() && value1.asNumericValue().orElseThrow().longValue() == 0)
+          || (value2.isNumericValue() && value2.asNumericValue().orElseThrow().longValue() == 0)) {
         foundNoStringTerminationChar = false;
       } else {
         firstOffsetInBits = addBitOffsetValues(firstOffsetInBits, sizeOfCharInBits);
@@ -1940,7 +1947,7 @@ public class SMGCPAExpressionEvaluator {
         Value lengthValue = lengthValueAndState.getValue();
         // We simply ignore the State for this as if it's not numeric it does not matter
         if (lengthValue.isNumericValue()) {
-          return lengthValue.asNumericValue().bigIntegerValue();
+          return lengthValue.asNumericValue().orElseThrow().bigIntegerValue();
         } else if (options.isGuessSizeOfUnknownMemorySize()) {
           return options.getGuessSize();
         }
@@ -2133,15 +2140,22 @@ public class SMGCPAExpressionEvaluator {
       // If this triggers, handle the rest symbolic as well
       throw new SMGException("Symbolic size in copy of complete memory structure.");
     }
-    BigInteger concreteLeftHandSideOffset = leftHandSideOffset.asNumericValue().bigIntegerValue();
+    BigInteger concreteLeftHandSideOffset =
+        leftHandSideOffset.asNumericValue().orElseThrow().bigIntegerValue();
     BigInteger copySizeInBits =
         leftHandSideMemory
             .getSize()
             .asNumericValue()
+            .orElseThrow()
             .bigIntegerValue()
             .subtract(concreteLeftHandSideOffset);
     BigInteger sourceCopySize =
-        paramMemory.getSize().asNumericValue().bigIntegerValue().subtract(paramBaseOffset);
+        paramMemory
+            .getSize()
+            .asNumericValue()
+            .orElseThrow()
+            .bigIntegerValue()
+            .subtract(paramBaseOffset);
     if (copySizeInBits.compareTo(sourceCopySize) > 0) {
       copySizeInBits = sourceCopySize;
     }
@@ -2704,7 +2718,7 @@ public class SMGCPAExpressionEvaluator {
         }
         currentState = sourceObjectAndOffsetOrState.getSMGState();
         Preconditions.checkArgument(
-            pOffsetInBits.asNumericValue().bigIntegerValue().intValueExact() == 0);
+            pOffsetInBits.asNumericValue().orElseThrow().bigIntegerValue().intValueExact() == 0);
 
         Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeLeftHandSideVariableObject =
             getTargetObjectAndOffset(currentState, variableName);
@@ -2714,7 +2728,8 @@ public class SMGCPAExpressionEvaluator {
         SMGObject addressToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getSMGObject();
         Value offsetToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getOffsetForObject();
 
-        // The .asNumericValue().bigIntegerValue() might fail at some point, then we need to handle
+        // The .asNumericValue().orElseThrow().bigIntegerValue() might fail at some point, then we
+        // need to handle
         // sizes symbolically as well
         resultStatesBuilder.add(
             currentState.copySMGObjectContentToSMGObject(
@@ -2796,16 +2811,17 @@ public class SMGCPAExpressionEvaluator {
       BigInteger concreteOffset =
           leftValue
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
-              .add(rightValue.asNumericValue().bigIntegerValue());
+              .add(rightValue.asNumericValue().orElseThrow().bigIntegerValue());
       return new NumericValue(concreteOffset);
 
     } else if (leftValue.isNumericValue()
-        && leftValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        && leftValue.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
       return rightValue;
 
     } else if (rightValue.isNumericValue()
-        && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        && rightValue.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
       return leftValue;
 
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
@@ -2870,12 +2886,13 @@ public class SMGCPAExpressionEvaluator {
       BigInteger concreteOffset =
           leftValue
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
-              .subtract(rightValue.asNumericValue().bigIntegerValue());
+              .subtract(rightValue.asNumericValue().orElseThrow().bigIntegerValue());
       return new NumericValue(concreteOffset);
 
     } else if (rightValue.isNumericValue()
-        && rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        && rightValue.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ZERO)) {
       return leftValue;
 
     } else if (!leftValue.isUnknown() && !rightValue.isUnknown()) {
@@ -2904,23 +2921,32 @@ public class SMGCPAExpressionEvaluator {
       BigInteger concreteOffset =
           leftValue
               .asNumericValue()
+              .orElseThrow()
               .bigIntegerValue()
-              .multiply(rightValue.asNumericValue().bigIntegerValue());
+              .multiply(rightValue.asNumericValue().orElseThrow().bigIntegerValue());
       return new NumericValue(concreteOffset);
 
     } else if (rightValue.isNumericValue()) {
 
-      if (rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ONE)) {
+      if (rightValue.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ONE)) {
         return leftValue;
-      } else if (rightValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+      } else if (rightValue
+          .asNumericValue()
+          .orElseThrow()
+          .bigIntegerValue()
+          .equals(BigInteger.ZERO)) {
         return new NumericValue(BigInteger.ZERO);
       }
 
     } else if (leftValue.isNumericValue()) {
 
-      if (leftValue.asNumericValue().bigIntegerValue().equals(BigInteger.ONE)) {
+      if (leftValue.asNumericValue().orElseThrow().bigIntegerValue().equals(BigInteger.ONE)) {
         return rightValue;
-      } else if (leftValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+      } else if (leftValue
+          .asNumericValue()
+          .orElseThrow()
+          .bigIntegerValue()
+          .equals(BigInteger.ZERO)) {
         return new NumericValue(BigInteger.ZERO);
       }
     }

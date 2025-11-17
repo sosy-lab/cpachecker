@@ -212,7 +212,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         } else if (valueForSMGValue.isPresent()) {
           Value valueFromSMGValue = valueForSMGValue.orElseThrow();
           if (valueFromSMGValue.isNumericValue()) {
-            value = valueForSMGValue.orElseThrow().asNumericValue().bigIntegerValue();
+            value = valueForSMGValue.orElseThrow().asNumericValue().orElseThrow().bigIntegerValue();
           } else if (pSMGState.getMemoryModel().isPointer(valueFromSMGValue)) {
             Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
                 pSMGState.dereferencePointerWithoutMaterilization(valueFromSMGValue);
@@ -228,7 +228,9 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             // Pointer to some other obj
             value =
                 calculateAddress(
-                        targetObject, targetOffset.asNumericValue().bigIntegerValue(), pSMGState)
+                        targetObject,
+                        targetOffset.asNumericValue().orElseThrow().bigIntegerValue(),
+                        pSMGState)
                     .getAddressValue();
 
           } else {
@@ -267,7 +269,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         }
                     }*/
       } else {
-        objectSize = pObject.getSize().asNumericValue().bigIntegerValue();
+        objectSize = pObject.getSize().asNumericValue().orElseThrow().bigIntegerValue();
       }
 
       BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.TEN);
