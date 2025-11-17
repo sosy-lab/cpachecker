@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Verify.verify;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
@@ -109,10 +111,11 @@ public class PositionInComposite {
     CType currentType = rootType;
 
     for (int memberIndex : pathToTraverse) {
+      verify(memberIndex >= 0);
       if (currentType instanceof CCompositeType compositeType) {
         List<CCompositeTypeMemberDeclaration> members = compositeType.getMembers();
 
-        if (memberIndex < 0 || memberIndex >= members.size()) {
+        if (memberIndex >= members.size()) {
           throw new IndexOutOfBoundsException(
               "Position out of bounds: index "
                   + memberIndex
@@ -128,7 +131,7 @@ public class PositionInComposite {
         currentType = arrayType.getType().getCanonicalType();
 
       } else {
-        throw new CFAGenerationRuntimeException(
+        throw new AssertionError(
             "Cannot traverse into into non-composite, non-array type at index "
                 + memberIndex
                 + ": "
@@ -277,11 +280,12 @@ public class PositionInComposite {
     List<Pair<String, CType>> wayToLastField = new ArrayList<>();
     CType currentType = parentType.getCanonicalType();
     for (ICASTFieldDesignator fieldDesignator : designatorSequence) {
+      String targetFieldName = fieldDesignator.getName().toString();
       if (!(currentType instanceof CCompositeType compositeType)) {
-        throw new CFAGenerationRuntimeException("No composite type: " + parentType);
+        throw new AssertionError(
+            "No composite type trying to reach " + targetFieldName + ": " + parentType);
       }
 
-      String targetFieldName = fieldDesignator.getName().toString();
       List<Pair<String, CType>> wayToCurrentField =
           getWayToInnerField(compositeType, targetFieldName, new ArrayList<>());
       Preconditions.checkState(!wayToCurrentField.isEmpty());
@@ -344,7 +348,7 @@ public class PositionInComposite {
     for (Pair<String, CType> nextField : wayToField) {
       String fieldName = nextField.getFirst();
       if (!(currentType instanceof CCompositeType currentCompositeType)) {
-        throw new CFAGenerationRuntimeException(
+        throw new AssertionError(
             "Cannot navigate through non-composite type "
                 + currentType
                 + " to reach field "
@@ -371,7 +375,7 @@ public class PositionInComposite {
         return memberIndex;
       }
     }
-    throw new CFAGenerationRuntimeException(
+    throw new AssertionError(
         String.format("Field %s not found in composite type %s", fieldName, currentComposite));
   }
 

@@ -2822,10 +2822,7 @@ class ASTConverter {
    */
   private CInitializer convertInitializerListForNonCompositeType(
       IASTInitializerList iList, CType assignmentType, @Nullable CVariableDeclaration declaration) {
-    if (assignmentType.getCanonicalType() instanceof CCompositeType) {
-      throw new IllegalArgumentException(
-          "Given type is resolved to composite type, expected array or scalar: " + assignmentType);
-    }
+
     final CType elementType =
         switch (assignmentType.getCanonicalType()) {
           case CCompositeType ignored ->
