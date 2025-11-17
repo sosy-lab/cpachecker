@@ -310,7 +310,7 @@ public class ValueAnalysisTransferRelation
 
   // Functions that we know are safe to ignore
   private final Set<String> ignoredUnsupportedFunctions =
-      ImmutableSet.of("printf", "srand", "abort", "exit");
+      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
