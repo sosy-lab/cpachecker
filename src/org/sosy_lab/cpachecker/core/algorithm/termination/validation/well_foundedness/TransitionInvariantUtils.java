@@ -25,14 +25,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class TransitionInvariantUtils {
 
   public static boolean isPrevVariable(
-      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
-    return pMapCurrToPrevVars.keySet().stream()
+      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    return pMapPrevToCurrVars.keySet().stream()
         .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
   }
 
   public static CSimpleDeclaration getPrevDeclaration(
-      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
-    return pMapCurrToPrevVars.keySet().stream()
+      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
+    return pMapPrevToCurrVars.keySet().stream()
         .filter(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)))
         .findAny()
         .orElseThrow();
@@ -64,14 +64,21 @@ public class TransitionInvariantUtils {
    * @return instantiated ssaMap
    */
   public static SSAMap setIndicesToDifferentValues(
-      Formula pFormula, int prevIndex, int currIndex, FormulaManagerView fmgr, Scope scope) {
+      Formula pFormula,
+      int prevIndex,
+      int currIndex,
+      FormulaManagerView fmgr,
+      Scope scope,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (String var : fmgr.extractVariableNames(pFormula)) {
-      if (currIndex < 0 && !var.contains("__PREV")) {
+      if (currIndex < 0 && !isPrevVariable(var, pMapPrevToCurrVars)) {
         continue;
       }
       builder.setIndex(
-          var, scope.lookupVariable(var).getType(), var.contains("__PREV") ? prevIndex : currIndex);
+          var,
+          scope.lookupVariable(var).getType(),
+          isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();
   }

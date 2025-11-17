@@ -160,7 +160,7 @@ public class TerminationWitnessValidator implements Algorithm {
         mapTransitionInvariantsToLoops(loops, invariants);
     ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars =
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
         joinAllPrevDeclarationMaps(invariants);
 
     // Check the supporting invariants first
@@ -193,12 +193,13 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(
-              invariant, supportingInvariants, loop, mapCurrVarsToPrevVars)
+              invariant, supportingInvariants, loop, mapPrevVarsToCurrVars)
           && isCandidateInvariantTransitionInvariant(
               loop,
               loopsToTransitionInvariants.get(loop),
               supportingInvariants,
-              loopsToSupportingInvariants)) {
+              loopsToSupportingInvariants,
+              mapPrevVarsToCurrVars)) {
         continue;
       }
 
@@ -207,7 +208,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // And hence, we have to do check R^+ => T
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, supportingInvariants, loop, mapCurrVarsToPrevVars);
+              invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
       // Our termination analysis might be unsound with respect to C semantics because it assumes
       // infinite state space.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
@@ -218,7 +219,8 @@ public class TerminationWitnessValidator implements Algorithm {
               loop,
               loopsToTransitionInvariants.get(loop),
               supportingInvariants,
-              loopsToSupportingInvariants)) {
+              loopsToSupportingInvariants,
+              mapPrevVarsToCurrVars)) {
         // In this case, we are not sure whether the invariant could be divided otherwise
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
@@ -394,7 +396,8 @@ public class TerminationWitnessValidator implements Algorithm {
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula =
         constructPathFormulaForLoop(
@@ -405,7 +408,7 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.merge(
                 loopFormula.getSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
-                    pCandidateInvariant, 1, -1, fmgr, scope),
+                    pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
@@ -418,7 +421,7 @@ public class TerminationWitnessValidator implements Algorithm {
               fmgr.instantiate(
                   supportingInvariant,
                   TransitionInvariantUtils.setIndicesToDifferentValues(
-                      supportingInvariant, 1, 1, fmgr, scope)));
+                      supportingInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars)));
     }
     booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
 
@@ -456,10 +459,15 @@ public class TerminationWitnessValidator implements Algorithm {
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws InterruptedException, CPATransferException {
     if (!isCandidateInvariantTransitionInvariant(
-        pLoop, pCandidateInvariant, pSupportingInvariants, pLoopsToSupportingInvariants)) {
+        pLoop,
+        pCandidateInvariant,
+        pSupportingInvariants,
+        pLoopsToSupportingInvariants,
+        pMapPrevToCurrVars)) {
       return false;
     }
     PathFormula loopFormula =
@@ -471,7 +479,7 @@ public class TerminationWitnessValidator implements Algorithm {
         fmgr.instantiate(
             pCandidateInvariant,
             TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant, 1, 1, fmgr, scope));
+                pCandidateInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars));
 
     BooleanFormula secondStep =
         fmgr.instantiate(
@@ -479,7 +487,7 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.merge(
                 loopFormula.getSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
-                        pCandidateInvariant, 1, -1, fmgr, scope)
+                        pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars)
                     .withDefault(2),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
     boolean isTransitionInvariant;

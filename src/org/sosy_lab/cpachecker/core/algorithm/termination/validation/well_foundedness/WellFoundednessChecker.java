@@ -28,7 +28,7 @@ public interface WellFoundednessChecker {
       BooleanFormula pFormula,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       Loop pLoop,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars)
       throws InterruptedException, CPAException;
 
   /**
@@ -42,6 +42,6 @@ public interface WellFoundednessChecker {
       BooleanFormula pFormula,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       Loop pLoop,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars)
       throws InterruptedException, CPAException;
 }
