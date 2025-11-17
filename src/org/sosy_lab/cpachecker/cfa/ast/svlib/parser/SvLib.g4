@@ -1,8 +1,7 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
+// This file is part of SV-LIB: A Standard Exchange Format for Software-Verification Tasks
+// https://gitlab.com/sosy-lab/benchmarking/sv-lib
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 The SV-LIB Maintainers
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -65,8 +64,8 @@ attributeSvLib
 // TODO: This currently does not support the LTL tag
 property
     : ':check-true' relationalTerm                                    # CheckTrueProperty
-    | ':live'                                                         # LiveProperty
-    | ':not-live'                                                     # NotLiveProperty
+    | ':recurring'                                                    # RecurringProperty
+    | ':not-recurring'                                                # NotRecurringProperty
     | ':requires' term                                                # RequiresProperty
     | ':ensures' relationalTerm                                       # EnsuresProperty
     | ':invariant' relationalTerm                                     # InvariantProperty
@@ -76,16 +75,28 @@ property
 
 
 trace
-    :   (ParOpen 'global' symbol term  ParClose)*
-        (ParOpen 'call' symbol (term)* ParClose)
-        (step)*
-        (ParOpen 'incorrect-tag' symbol attributeSvLib+ ParClose)
+    :   ParOpen 'model' model_response* ParClose
+        ParOpen 'init-global-vars' (ParOpen symbol term ParClose)*  ParClose
+        (ParOpen 'entry-proc' symbol ParClose)
+        ParOpen 'steps' (step)* ParClose
+        violatedProperty
+        (ParOpen 'using-annotation' symbol attributeSvLib+ ParClose)*
     ;
 
+violatedProperty
+    : ParOpen 'incorrect-annotation' symbol attributeSvLib+ ParClose
+    | ParOpen 'invalid-step' step ParClose
+    ;
+
+
 step
-    : ParOpen 'local' ParOpen (term)* ParClose ParClose               # ChooseLocalVariableValue
-    | ParOpen 'havoc' ParOpen (term)* ParClose ParClose               # ChooseHavocVariableValue
+    : ParOpen 'init-proc-vars' symbol
+        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseLocalVariableValue
+    | ParOpen 'havoc'
+        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseHavocVariableValue
     | ParOpen 'choice' Numeral ParClose                               # ChooseChoiceStatement
+    | ParOpen 'leap' symbol
+        (ParOpen symbol spec_constant ParClose)* ParClose             # LeapStep
     ;
 
 relationalTerm

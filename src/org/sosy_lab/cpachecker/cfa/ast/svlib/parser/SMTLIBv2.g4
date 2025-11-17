@@ -313,6 +313,7 @@ GRW_String
 Numeral
     : '0'
     | [1-9] Digit*
+    | '-' [1-9] Digit*
     ;
 
 Binary
@@ -325,6 +326,7 @@ HexDecimal
 
 Decimal
     : Numeral '.' '0'* Numeral
+    | '-' Numeral '.' '0'* Numeral
     ;
 
 fragment HexDigit
