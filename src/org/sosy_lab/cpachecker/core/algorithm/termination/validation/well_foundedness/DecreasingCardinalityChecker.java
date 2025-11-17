@@ -46,6 +46,30 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   }
 
   /**
+   * Enum representing the SSA indices that we use for different states when constructing formulas.
+   */
+  protected enum StateIndices {
+    PREV_INDEX_S(2),
+    CURR_INDEX_S(3),
+    PREV_INDEX_S_PRIME(4),
+    CURR_INDEX_S_PRIME(5),
+    PREV_INDEX_S1(6),
+    CURR_INDEX_S1(7),
+    PREV_INDEX_S2(8),
+    CURR_INDEX_S2(9);
+
+    private final int index;
+
+    StateIndices(int pIndex) {
+      index = pIndex;
+    }
+
+    public int getIndex() {
+      return index;
+    }
+  }
+
+  /**
    * This method checks whether one concrete subformula from transition invariant is well-founded.
    * It does it using the check T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧
    * [∀s2.T(s',s2) ∧ I(s2) => T(s,s2)] If this holds, it means that the number of states reachable
@@ -64,7 +88,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars)
       throws InterruptedException, CPAException {
     SSAMap ssaMap =
-        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 2, fmgr, scope);
+        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S_PRIME.getIndex(), fmgr, scope);
 
     // T(s,s') ∧ I(s) ∧ I(s')
     BooleanFormula oneStep = buildOneStepFormula(pFormula, ssaMap, pSupportingInvariants);
@@ -75,7 +99,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
     // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
     final ImmutableList<Formula> quantifiedVars =
-        collectAllCurrVariables(stepFromS, pFormula, 1, 3);
+        collectAllCurrVariables(stepFromS, pFormula, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S1.getIndex());
     BooleanFormula middleStep = buildMiddleStepFormula(stepFromS, stepFromSPrime, quantifiedVars);
 
     // T(s,s2), T(s',s2) ∧ I(s2)
@@ -84,7 +108,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
     // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
     final ImmutableList<Formula> quantifiedVars2 =
-        collectAllCurrVariables(stepFromSPrime2, pFormula, 4, 5);
+        collectAllCurrVariables(stepFromSPrime2, pFormula, StateIndices.PREV_INDEX_S_PRIME.getIndex(), StateIndices.CURR_INDEX_S2.getIndex());
     BooleanFormula middleStep2 =
         buildSecondMiddleFormula(stepFromS2, stepFromSPrime2, quantifiedVars2);
 
@@ -133,12 +157,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   private BooleanFormula buildSecondStepFromSPrime(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants) {
     SSAMap ssaMapForSPrime2 =
-        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 4, 5, fmgr, scope);
+        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, StateIndices.PREV_INDEX_S_PRIME.getIndex(), StateIndices.CURR_INDEX_S2.getIndex(), fmgr, scope);
     BooleanFormula stepFromSPrime2 = fmgr.instantiate(pFormula, ssaMapForSPrime2);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
-              supportingInvariant, 1, 5, fmgr, scope);
+              supportingInvariant, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S2.getIndex(), fmgr, scope);
       stepFromSPrime2 = bfmgr.and(stepFromSPrime2, fmgr.instantiate(supportingInvariant, ssaMap));
     }
     return stepFromSPrime2;
@@ -146,7 +170,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
   private BooleanFormula buildSecondStepFromS(BooleanFormula pFormula) {
     SSAMap ssaMapForS2 =
-        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 5, fmgr, scope);
+        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S2.getIndex(), fmgr, scope);
     return fmgr.instantiate(pFormula, ssaMapForS2);
   }
 
@@ -163,7 +187,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
   private BooleanFormula buildStepFromSPrime(BooleanFormula pFormula) {
     SSAMap ssaMapForSPrime =
-        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 4, 3, fmgr, scope);
+        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, StateIndices.PREV_INDEX_S_PRIME.getIndex(), StateIndices.CURR_INDEX_S1.getIndex(), fmgr, scope);
     BooleanFormula stepFromSPrime = fmgr.instantiate(pFormula, ssaMapForSPrime);
     stepFromSPrime = fmgr.makeNot(stepFromSPrime);
     return stepFromSPrime;
@@ -172,12 +196,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   private BooleanFormula buildStepFromS(
       BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants) {
     SSAMap ssaMapForS =
-        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 3, fmgr, scope);
+        TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S1.getIndex(), fmgr, scope);
     BooleanFormula stepFromS = fmgr.instantiate(pFormula, ssaMapForS);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
-              supportingInvariant, 1, 3, fmgr, scope);
+              supportingInvariant, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S1.getIndex(), fmgr, scope);
       stepFromS = bfmgr.and(stepFromS, fmgr.instantiate(supportingInvariant, ssaMap));
     }
     return stepFromS;
@@ -191,16 +215,16 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       pSSAMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
-              supportingInvariant, 1, 2, fmgr, scope);
+              supportingInvariant, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S_PRIME.getIndex(), fmgr, scope);
       oneStep = bfmgr.and(oneStep, fmgr.instantiate(supportingInvariant, pSSAMap));
       pSSAMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
-              supportingInvariant, 1, 6, fmgr, scope);
+              supportingInvariant, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S.getIndex(), fmgr, scope);
       oneStep = bfmgr.and(oneStep, fmgr.instantiate(supportingInvariant, pSSAMap));
 
       oneStep =
           bfmgr.and(
-              TransitionInvariantUtils.makeStatesEquivalent(oneStep, oneStep, 1, 6, bfmgr, fmgr),
+              TransitionInvariantUtils.makeStatesEquivalent(oneStep, oneStep, StateIndices.PREV_INDEX_S.getIndex(), StateIndices.CURR_INDEX_S.getIndex(), bfmgr, fmgr),
               oneStep);
     }
     return oneStep;
