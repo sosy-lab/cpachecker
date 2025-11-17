@@ -43,8 +43,6 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
 
   private final ConcurrentMap<ManagerKey, ToFormulaVisitor> visitorCache;
 
-  private boolean isTransitionInvariant;
-
   public ExpressionTreeLocationInvariant(
       String pGroupId,
       CFANode pLocation,
@@ -55,7 +53,6 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     location = Objects.requireNonNull(pLocation);
     expressionTree = Objects.requireNonNull(pExpressionTree);
     visitorCache = checkNotNull(pVisitorCache);
-    isTransitionInvariant = false;
   }
 
   @Override
@@ -98,14 +95,6 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
 
   public String getGroupId() {
     return groupId;
-  }
-
-  public void setTransitionInvariant() {
-    isTransitionInvariant = true;
-  }
-
-  public boolean isTransitionInvariant() {
-    return isTransitionInvariant;
   }
 
   @Override
