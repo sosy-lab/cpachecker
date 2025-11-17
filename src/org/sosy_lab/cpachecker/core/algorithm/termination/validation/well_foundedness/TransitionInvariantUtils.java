@@ -21,8 +21,18 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class TransitionInvariantUtils {
 
-  public static boolean isPrevVariable(String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
-    return pMapCurrToPrevVars.values().stream().anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
+  public static boolean isPrevVariable(
+      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
+    return pMapCurrToPrevVars.keySet().stream()
+        .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
+  }
+
+  public static CSimpleDeclaration getPrevDeclaration(
+      String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrToPrevVars) {
+    return pMapCurrToPrevVars.keySet().stream()
+        .filter(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)))
+        .findAny()
+        .orElseThrow();
   }
 
   /**

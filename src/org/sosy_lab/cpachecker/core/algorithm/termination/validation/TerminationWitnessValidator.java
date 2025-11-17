@@ -288,7 +288,7 @@ public class TerminationWitnessValidator implements Algorithm {
     for (ExpressionTreeLocationInvariant invariant : pInvariants) {
       if (invariant instanceof ExpressionTreeLocationTransitionInvariant pTransitionInvariant) {
         for (Entry<CSimpleDeclaration, CSimpleDeclaration> declaration :
-            pTransitionInvariant.getMapCurrentVarsToPrev().entrySet()) {
+            pTransitionInvariant.getMapPrevVarsToCurrent().entrySet()) {
           finalMap.put(declaration);
         }
       }

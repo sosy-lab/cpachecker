@@ -24,6 +24,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -168,12 +171,14 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     // Initialize the variables from the transition invariant
     for (String variable : mapNamesToVariables.keySet()) {
       if (TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
-        builder.add(
-            TransitionInvariantUtils.removeFunctionFromVarsName(variable)
-                + " = "
-                + TransitionInvariantUtils.removeFunctionFromVarsName(
-                    variable.replace("__PREV", ""))
-                + ";");
+        CSimpleDeclaration prevDeclaration =
+            TransitionInvariantUtils.getPrevDeclaration(variable, mapCurrVarsToPrevVars);
+        CExpressionAssignmentStatement assignment =
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY,
+                new CIdExpression(FileLocation.DUMMY, prevDeclaration),
+                new CIdExpression(FileLocation.DUMMY, mapCurrVarsToPrevVars.get(prevDeclaration)));
+        builder.add(assignment.toASTString());
       }
     }
     // Reset the original variables
@@ -189,7 +194,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     builder.add("}}");
     String overapproximatingProgam = builder.toString();
-    System.out.println(overapproximatingProgam);
 
     try {
       // Initialization:

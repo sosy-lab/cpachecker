@@ -19,20 +19,20 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 
 public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLocationInvariant {
 
-  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrentVarsToPrev;
+  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurr;
 
   public ExpressionTreeLocationTransitionInvariant(
       String pGroupId,
       CFANode pLocation,
       ExpressionTree<AExpression> pExpressionTree,
       ConcurrentMap<ManagerKey, ToFormulaVisitor> pVisitorCache,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrentVarsToPrev) {
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevVarsToCurr) {
     super(pGroupId, pLocation, pExpressionTree, pVisitorCache);
-    mapCurrentVarsToPrev = pMapCurrentVarsToPrev;
+    mapPrevVarsToCurr = pMapPrevVarsToCurr;
   }
 
-  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapCurrentVarsToPrev() {
-    return mapCurrentVarsToPrev;
+  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapPrevVarsToCurrent() {
+    return mapPrevVarsToCurr;
   }
 
   @Override
@@ -48,6 +48,6 @@ public class ExpressionTreeLocationTransitionInvariant extends ExpressionTreeLoc
 
     return pObj instanceof ExpressionTreeLocationTransitionInvariant other
         && super.equals(other)
-        && other.mapCurrentVarsToPrev.equals(this.mapCurrentVarsToPrev);
+        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr);
   }
 }

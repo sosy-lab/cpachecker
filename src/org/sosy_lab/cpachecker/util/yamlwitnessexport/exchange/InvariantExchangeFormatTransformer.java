@@ -173,7 +173,7 @@ public class InvariantExchangeFormatTransformer {
     String invariantString = pInvariantEntry.getValue();
     Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
     Matcher matcher = pattern.matcher(invariantString);
-    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapCurrToPrev =
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
     Scope scope =
@@ -210,9 +210,9 @@ public class InvariantExchangeFormatTransformer {
                   cfa.getMainFunction(),
                   CFANode.newDummyCFANode(),
                   prevDeclaration));
-      mapCurrToPrev.put(currDeclaration, prevDeclaration);
+      mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
-    return mapCurrToPrev.buildOrThrow();
+    return mapPrevToCurr.buildOrThrow();
   }
 
   private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {

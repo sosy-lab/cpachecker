@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class TransitionInvariant extends Invariant {
 
-  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrentVarsToPrev;
+  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurr;
 
   public TransitionInvariant(
       ExpressionTree<AExpression> pFormula,
@@ -25,11 +25,11 @@ public class TransitionInvariant extends Invariant {
       boolean pIsLoopInvariant,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrentVarsToPrev) {
     super(pFormula, pLine, pColumn, pFunction, pIsLoopInvariant);
-    mapCurrentVarsToPrev = pMapCurrentVarsToPrev;
+    mapPrevVarsToCurr = pMapCurrentVarsToPrev;
   }
 
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapCurrentVarsToPrev() {
-    return mapCurrentVarsToPrev;
+    return mapPrevVarsToCurr;
   }
 
   @Override
@@ -45,6 +45,6 @@ public class TransitionInvariant extends Invariant {
 
     return pObj instanceof TransitionInvariant other
         && super.equals(other)
-        && other.mapCurrentVarsToPrev.equals(this.mapCurrentVarsToPrev);
+        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr);
   }
 }
