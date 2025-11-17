@@ -25,8 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -117,24 +115,6 @@ public class PthreadUtil {
     throw new IllegalArgumentException(
         "could not extract start_routine declaration from pFunctionCall: "
             + pFunctionCall.toASTString());
-  }
-
-  public static CFunctionType extractStartRoutineType(CFunctionCall pFunctionCall) {
-    PthreadFunctionType pthreadFunctionType = getPthreadFunctionType(pFunctionCall);
-    int startRoutineIndex = pthreadFunctionType.getParameterIndex(PthreadObjectType.START_ROUTINE);
-    CExpression parameterExpression =
-        pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(startRoutineIndex);
-    if (parameterExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getExpressionType() instanceof CPointerType) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          if (idExpression.getExpressionType() instanceof CFunctionType functionType) {
-            return functionType;
-          }
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        "could not extract start_routine from pFunctionCall: " + pFunctionCall.toASTString());
   }
 
   public static CExpression extractStartRoutineArg(CFunctionCall pFunctionCall) {

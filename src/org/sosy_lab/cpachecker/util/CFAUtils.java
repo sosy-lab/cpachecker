@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -113,7 +114,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -773,24 +773,26 @@ public class CFAUtils {
   }
 
   /**
-   * Searches pCfa for the FunctionEntryNode of pCFunctionType and returns the FunctionEntryNode.
+   * Iterates over all functions in the given {@link CFA} and returns the {@link FunctionEntryNode}
+   * whose declaration matches the given {@link CFunctionDeclaration}.
    *
    * @param pCfa the CFA to be searched for the FunctionEntryNode
-   * @param pCFunctionType the CFunctionType whose FunctionEntryNode is searched for
-   * @return the unique FunctionEntryNode for pCFunctionType
-   * @throws IllegalArgumentException if no FunctionEntryNode for the CFunctionType is found
+   * @param pCFunctionDeclaration the CFunctionDeclaration whose FunctionEntryNode is searched for
+   * @return the unique FunctionEntryNode for pCFunctionDeclaration
+   * @throws IllegalArgumentException if no FunctionEntryNode for the CFunctionDeclaration is found
    */
-  public static FunctionEntryNode getFunctionEntryNodeFromCFunctionType(
-      CFA pCfa, CFunctionType pCFunctionType) {
+  public static FunctionEntryNode getFunctionEntryNodeFromCFunctionDeclaration(
+      CFA pCfa, CFunctionDeclaration pCFunctionDeclaration) {
 
-    checkNotNull(pCFunctionType);
+    checkNotNull(pCFunctionDeclaration);
     for (FunctionEntryNode functionEntryNode : pCfa.getAllFunctions().values()) {
-      if (functionEntryNode.getFunction().getType().equals(pCFunctionType)) {
+      if (functionEntryNode.getFunctionDefinition().equals(pCFunctionDeclaration)) {
         return functionEntryNode;
       }
     }
     throw new IllegalArgumentException(
-        "the given CFA does not contain a FunctionEntryNode for the given pCFunctionType");
+        "pCfa does not contain a FunctionEntryNode for pCFunctionDeclaration: "
+            + pCFunctionDeclaration.toASTString());
   }
 
   /**

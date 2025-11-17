@@ -422,10 +422,12 @@ public class MPORSubstitution {
         return Objects.requireNonNull(
             startRoutineArgSubstitutes.get(callContext, parameterDeclaration));
       }
-      throw new IllegalArgumentException("parameter declaration could not be found");
+      throw new IllegalArgumentException(
+          "parameter declaration could not be substituted: " + parameterDeclaration.toASTString());
     }
     throw new IllegalArgumentException(
-        "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
+        "pSimpleDeclaration must be variable or parameter declaration, got: "
+            + pSimpleDeclaration.toASTString());
   }
 
   public CIdExpression getParameterDeclarationSubstituteByCallContext(

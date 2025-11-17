@@ -97,11 +97,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           // extract the first parameter of pthread_create, i.e. the pthread_t value
           CIdExpression pthreadT =
               PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
-          // extract the third parameter of pthread_create which points to the start_routine
-          // function
-          CFunctionType startRoutine = PthreadUtil.extractStartRoutineType(functionCall);
+          // extract the 3rd parameter of pthread_create which points to the start_routine function
+          CFunctionDeclaration startRoutineDeclaration =
+              PthreadUtil.extractStartRoutineDeclaration(functionCall);
           FunctionEntryNode entryNode =
-              CFAUtils.getFunctionEntryNodeFromCFunctionType(cfa, startRoutine);
+              CFAUtils.getFunctionEntryNodeFromCFunctionDeclaration(cfa, startRoutineDeclaration);
           MPORThread newThread =
               createThread(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
           recursivelyFindThreadCreations(newThread, pFoundThreads);

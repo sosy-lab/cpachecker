@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -283,11 +282,12 @@ public record MPORSubstitutionBuilder(
 
     // pthread_t matches
     if (pPthreadT.equals(pCreatedThread.threadObject().orElseThrow())) {
-      CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(pFunctionCall);
+      CFunctionDeclaration functionCallDeclaration =
+          PthreadUtil.extractStartRoutineDeclaration(pFunctionCall);
       CFunctionDeclaration startRoutineDeclaration =
-          (CFunctionDeclaration) pCreatedThread.cfa().entryNode.getFunction();
+          (CFunctionDeclaration) pCreatedThread.cfa().entryNode.getFunctionDefinition();
       // start_routine matches
-      if (startRoutineDeclaration.getType().equals(startRoutineType)) {
+      if (startRoutineDeclaration.equals(functionCallDeclaration)) {
         if (!startRoutineDeclaration.getParameters().isEmpty()) {
           assert startRoutineDeclaration.getParameters().size() == 1
               : "start_routines can have either 0 or 1 arguments";
