@@ -28,9 +28,13 @@ public class CSourceOriginMapping {
   // from its lines to the tuple of (originalFile, lineDelta).
   // The full mapping is a map with those RangeMaps as values,
   // one for each input file.
+  // All file paths are always pre-fixed with a `./` in case they are not absolute paths.
   private final Map<Path, RangeMap<Integer, CodePosition>> mapping = new HashMap<>();
 
-  private final ListMultimap<Path, Integer> lineNumberToStartingColumn = ArrayListMultimap.create();
+  // For each file (identified by its path, always pre-fixed with a `./` in case it is not an
+  // absolute path), we store a list of starting offsets for each line. This allows us to compute
+  // the column number for a given offset.
+  private final ListMultimap<Path, Integer> lineNumberToStartingOffset = ArrayListMultimap.create();
 
   void mapInputLineRangeToDelta(
       Path pAnalysisFileName,
@@ -83,7 +87,7 @@ public class CSourceOriginMapping {
       currentOffset += sourceLine.length() + 1;
     }
 
-    lineNumberToStartingColumn.putAll(normalizePathForLookup(pPath), result.build());
+    lineNumberToStartingOffset.putAll(normalizePathForLookup(pPath), result.build());
   }
 
   /**
@@ -114,7 +118,7 @@ public class CSourceOriginMapping {
     Path normalizedPath = normalizePathForLookup(pAnalysisFileName);
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
-    if (!lineNumberToStartingColumn.containsKey(normalizedPath)) {
+    if (!lineNumberToStartingOffset.containsKey(normalizedPath)) {
       Verify.verify(
           // For automata files
           normalizedPath.toString().equals("./fragment")
@@ -125,11 +129,11 @@ public class CSourceOriginMapping {
       return pOffset;
     }
 
-    Verify.verify(lineNumberToStartingColumn.get(normalizedPath).size() >= pAnalysisCodeLine);
+    Verify.verify(lineNumberToStartingOffset.get(normalizedPath).size() >= pAnalysisCodeLine);
 
     // Since the offsets start at 0 there is a one-off difference between the column and the
     // offset
-    return pOffset - lineNumberToStartingColumn.get(normalizedPath).get(pAnalysisCodeLine - 1) + 1;
+    return pOffset - lineNumberToStartingOffset.get(normalizedPath).get(pAnalysisCodeLine - 1) + 1;
   }
 
   /**
