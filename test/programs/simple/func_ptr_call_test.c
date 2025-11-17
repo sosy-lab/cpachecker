@@ -136,6 +136,9 @@ int main() {
 
   // Structs w function pointers
   struct fooStruct * fooPtr = malloc(sizeof(struct fooStruct));
+  if (fooPtr == 0) {
+    return 0;
+  }
   fooPtr->function = &foo;
   sum = fooPtr->function(11, 23);
   // printf("%d\n", sum); // left for debugging
@@ -146,6 +149,9 @@ int main() {
   assert(sum == 37);
 
   struct fooStruct * fooPointa = malloc(sizeof(struct fooStruct));
+  if (fooPointa == 0) {
+    return 0;
+  }
   fooPointa->function = foo;
   sum = fooPointa->function(13, 27);
   // printf("%d\n", sum); // left for debugging
@@ -156,6 +162,9 @@ int main() {
   assert(sum == 43);
 
   struct barStruct * barPtr = malloc(sizeof(struct barStruct));
+  if (barPtr == 0) {
+    return 0;
+  }
   barPtr->bar = fooPtr;
   sum = barPtr->bar->function(15, 31);
   // printf("%d\n", sum); // left for debugging
@@ -166,6 +175,9 @@ int main() {
   assert(sum == 49);
 
   struct barStruct * barPointa = malloc(sizeof(struct barStruct));
+  if (barPointa == 0) {
+    return 0;
+  }
   barPointa->bar = fooPointa;
   sum = barPointa->bar->function(17, 35);
   // printf("%d\n", sum); // left for debugging
@@ -238,6 +250,9 @@ int main() {
 
 
   struct funcDefFooStruct * funcDefFooPtr = malloc(sizeof(renamedFuncDefFooStruct));
+  if (funcDefFooPtr == 0) {
+    return 0;
+  }
   funcDefFooPtr->localFoo = &foo;
   sum = funcDefFooPtr->localFoo(32, 63);
   // printf("%d\n", sum); // left for debugging
