@@ -3119,7 +3119,7 @@ class ASTConverter {
    *   }
    * </pre>
    */
-  private static class PositionInComposite {
+  private class PositionInComposite {
     private final CCompositeType rootType;
 
     /**
@@ -3337,53 +3337,92 @@ class ASTConverter {
     void jumpToPositionAfterDesignator(
         ICASTDesignatedInitializer designatedInit, CType parentType) {
 
-      List<ICASTFieldDesignator> relevantDesignators = getPrefixOfFieldDesignators(designatedInit);
-      jumpToDesignator(relevantDesignators, parentType);
+      jumpToDesignator(designatedInit.getDesignators(), parentType);
       advanceToNextElement();
     }
 
-    private void jumpToDesignator(List<ICASTFieldDesignator> designatorSequence, CType parentType) {
-      List<Pair<String, CType>> wayToLastField = new ArrayList<>();
-      CType currentType = parentType.getCanonicalType();
-      for (ICASTFieldDesignator fieldDesignator : designatorSequence) {
-        String targetFieldName = fieldDesignator.getName().toString();
-        if (!(currentType instanceof CCompositeType compositeType)) {
-          throw new AssertionError(
-              "No composite type trying to reach " + targetFieldName + ": " + parentType);
-        }
-
-        List<Pair<String, CType>> wayToCurrentField =
-            getWayToInnerField(compositeType, targetFieldName, new ArrayList<>());
-        Preconditions.checkState(!wayToCurrentField.isEmpty());
-        wayToLastField.addAll(wayToCurrentField);
-
-        currentType = wayToLastField.getLast().getSecond().getCanonicalType();
-      }
-
-      path = getMemberIndicesToField((CCompositeType) parentType, wayToLastField);
+    private void jumpToDesignator(ICASTDesignator[] designatorSequence, CType parentType) {
+      path = getMemberIndicesToDesignators(Arrays.asList(designatorSequence), parentType);
     }
 
-    /**
-     * Returns the prefix of uninterrupted field designators in a sequence of designators. For
-     * example, for {@code .a.b[0].c}, returns [a, b].
-     */
-    private List<ICASTFieldDesignator> getPrefixOfFieldDesignators(
-        ICASTDesignatedInitializer designatedInit) {
+    private Deque<Integer> getMemberIndicesToDesignators(
+        List<ICASTDesignator> designatorSequence, CType parentType) {
+      ICASTDesignator nextStep = designatorSequence.getFirst();
+      List<ICASTDesignator> remainingSteps =
+          designatorSequence.subList(1, designatorSequence.size());
 
-      ICASTDesignator[] designators = designatedInit.getDesignators();
-      if (designators.length == 0) {
-        throw new IllegalArgumentException("Designators must not be empty: " + designatedInit);
+      Pair<List<Integer>, CType> nextIndexAndType =
+          resolveIndicesOfDesignator(nextStep, parentType);
+      Deque<Integer> indices = new ArrayDeque<>(nextIndexAndType.getFirst());
+      if (!remainingSteps.isEmpty()) {
+        indices.addAll(getMemberIndicesToDesignators(remainingSteps, nextIndexAndType.getSecond()));
       }
+      return indices;
+    }
 
-      List<ICASTFieldDesignator> result = new ArrayList<>();
-      for (ICASTDesignator designator : designators) {
-        if (designator instanceof ICASTFieldDesignator fieldDesignator) {
-          result.add(fieldDesignator);
-        } else {
-          break;
+    private Pair<List<Integer>, CType> resolveIndicesOfDesignator(
+        ICASTDesignator designator, CType parentType) {
+      CType currentType = parentType.getCanonicalType();
+      switch (designator) {
+        case ICASTFieldDesignator fieldDesignator -> {
+          String targetFieldName = fieldDesignator.getName().toString();
+          return resolveIndicesOfFieldDesignator(targetFieldName, currentType);
         }
+
+        case ICASTArrayDesignator arrayDesignator -> {
+          return resolveIndicesOfArraySubscript(
+              arrayDesignator.getSubscriptExpression(), currentType);
+        }
+
+        case IGCCASTArrayRangeDesignator rangeDesignator -> {
+          return resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
+        }
+        case null, default ->
+            throw new AssertionError("Unexpected designator in sequence: " + designator);
       }
-      return result;
+    }
+
+    private Pair<List<Integer>, CType> resolveIndicesOfFieldDesignator(
+        String fieldName, CType parentType) {
+      if (!(parentType instanceof CCompositeType compositeType)) {
+        throw new AssertionError(
+            "No composite type trying to reach " + fieldName + ": " + parentType);
+      }
+
+      List<Pair<String, CType>> wayToCurrentField =
+          getWayToInnerField(compositeType, fieldName, new ArrayList<>());
+      Preconditions.checkState(!wayToCurrentField.isEmpty());
+      CType nextTypeInDelegatorList = wayToCurrentField.getLast().getSecond();
+      List<Integer> indices = getMemberIndicesToField(compositeType, wayToCurrentField);
+      return Pair.of(indices, nextTypeInDelegatorList);
+    }
+
+    private Pair<List<Integer>, CType> resolveIndicesOfArraySubscript(
+        IASTExpression subscriptExpression, CType type) {
+      if (!(type instanceof CArrayType arrayType)) {
+        throw new AssertionError(
+            "Expected array type for array subscript expression "
+                + subscriptExpression
+                + ", but got: "
+                + type);
+      }
+      int index = evaluateIntegerConstantExpression(subscriptExpression).intValueExact();
+      CType nextTypeInDelegatorList = arrayType.getType();
+      return Pair.of(List.of(index), nextTypeInDelegatorList);
+    }
+
+    private int getArraySize(
+        CType parentType, ICASTArrayDesignator arrayDesignator, CType currentType) {
+      if (!(currentType instanceof CArrayType arrayType)) {
+        throw new AssertionError(
+            "No array type trying to access index " + arrayDesignator + ": " + parentType);
+      }
+      return arrayType
+          .getLengthAsInt()
+          .orElseThrow(
+              () ->
+                  new CFAGenerationRuntimeException(
+                      "Array of flexible size in nested struct. This is forbidden: " + parentType));
     }
 
     /**
@@ -3405,10 +3444,10 @@ class ASTConverter {
      *   }
      * </pre>
      */
-    private @NonNull Deque<Integer> getMemberIndicesToField(
+    private @NonNull List<Integer> getMemberIndicesToField(
         CCompositeType compositeType, List<Pair<String, CType>> wayToField) {
 
-      Deque<Integer> indices = new ArrayDeque<>();
+      List<Integer> indices = new ArrayList<>();
       CType currentType = compositeType;
 
       for (Pair<String, CType> nextField : wayToField) {
