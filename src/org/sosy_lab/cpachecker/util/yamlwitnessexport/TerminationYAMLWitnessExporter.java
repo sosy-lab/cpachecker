@@ -45,9 +45,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter {
-  private static String LONG_LONG_CAST = "((long long)";
-  private static String AT_KEYWORD = "\\at(";
-  private static String ANY_PREV_KEYWORD = ", AnyPrev)";
+
   private boolean exportSupportingInvariants;
 
   public TerminationYAMLWitnessExporter(
@@ -68,13 +66,22 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
   // The function replaces variable names with annotation \at(..., AnyPrev), i.e. x -> \at(x,
   // AnyPrev)
-  private String wrapTheVariablesWithAdditionalContext(
+  private String wrapTheVariablesWithAtAnyPrev(
       String pRankingFunction,
-      Iterable<IProgramVar> pVars,
-      String pContextPref,
-      String pContextSuff) {
+      Iterable<IProgramVar> pVars) {
     for (IProgramVar var : pVars) {
-      String newVarName = pContextPref + var + pContextSuff;
+      String newVarName = "((long long)\\at(" + var + ", AnyPrev))";
+      pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
+    }
+    return pRankingFunction;
+  }
+
+  // The function casts the variables into (long long) as we want to prevent overflows in the witness
+  private String wrapTheVariablesWithCastToLongLong(
+      String pRankingFunction,
+      Iterable<IProgramVar> pVars) {
+    for (IProgramVar var : pVars) {
+      String newVarName = "((long long)" + var + ")";
       pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
     }
     return pRankingFunction;
@@ -95,11 +102,9 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
     String invariant =
-        wrapTheVariablesWithAdditionalContext(
+        wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(),
-            pSupportingInvariant.getVariables(),
-            LONG_LONG_CAST,
-            ")");
+            pSupportingInvariant.getVariables());
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
@@ -128,18 +133,14 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         for (AffineFunction nestedRankingFunction : pNestedRankingFunction.getComponents()) {
           String prevRank =
               rightSideOfRankingFunction(
-                  wrapTheVariablesWithAdditionalContext(
+                  wrapTheVariablesWithAtAnyPrev(
                       nestedRankingFunction.toString(),
-                      nestedRankingFunction.getVariables(),
-                      LONG_LONG_CAST + AT_KEYWORD,
-                      ANY_PREV_KEYWORD + ")"));
+                      nestedRankingFunction.getVariables()));
           String currentRank =
               rightSideOfRankingFunction(
-                  wrapTheVariablesWithAdditionalContext(
+                  wrapTheVariablesWithCastToLongLong(
                       nestedRankingFunction.toString(),
-                      nestedRankingFunction.getVariables(),
-                      LONG_LONG_CAST,
-                      ")"));
+                      nestedRankingFunction.getVariables()));
           if (prevRank.contains(TMP_KEYWORD)) {
             transitionInvariants.add("true");
           } else {
@@ -149,18 +150,14 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
       } else {
         String prevRank =
             rightSideOfRankingFunction(
-                wrapTheVariablesWithAdditionalContext(
+                wrapTheVariablesWithAtAnyPrev(
                     rankingFunction.toString(),
-                    rankingFunction.getVariables(),
-                    LONG_LONG_CAST + AT_KEYWORD,
-                    ANY_PREV_KEYWORD + ")"));
+                    rankingFunction.getVariables()));
         String currentRank =
             rightSideOfRankingFunction(
-                wrapTheVariablesWithAdditionalContext(
+                wrapTheVariablesWithCastToLongLong(
                     rankingFunction.toString(),
-                    rankingFunction.getVariables(),
-                    LONG_LONG_CAST,
-                    ")"));
+                    rankingFunction.getVariables()));
         if (prevRank.contains(TMP_KEYWORD)) {
           transitionInvariants.add("true");
         } else {
