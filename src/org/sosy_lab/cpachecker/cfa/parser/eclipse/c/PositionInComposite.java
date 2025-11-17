@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  *   }
  * </pre>
  */
-public class PositionInComposite {
+class PositionInComposite {
   private final CCompositeType rootType;
 
   /**
@@ -74,8 +74,8 @@ public class PositionInComposite {
    *         int b; <- position [0,1,0]
    *       }
    *     };
-   *     int c; <----- position [1]
-   *     struct { <--- position [2]
+   *     int c[5]; <----- position [1]: 'c'. position [1, 0]: c[0]. position [1,3]: c[3]
+   *     union { <--- position [2]
    *       int d; <--- position [2,0]
    *     }
    *   }
@@ -204,7 +204,8 @@ public class PositionInComposite {
         };
 
     if (nextPositionOnSameLevel < numberOfElementsInParents) {
-      path = setLastPosition(path, nextPositionOnSameLevel);
+      path.removeLast();
+      path.addLast(nextPositionOnSameLevel);
     } else {
       // 'pop out' and advance to the next element (to the sibling of the parent of the old
       // position)
@@ -218,12 +219,6 @@ public class PositionInComposite {
   private Deque<Integer> removeLastPosition(Deque<Integer> sequence) {
     Deque<Integer> result = new ArrayDeque<>(sequence);
     result.removeLast();
-    return result;
-  }
-
-  private Deque<Integer> setLastPosition(Deque<Integer> sequence, int newElement) {
-    Deque<Integer> result = removeLastPosition(sequence);
-    result.addLast(newElement);
     return result;
   }
 
