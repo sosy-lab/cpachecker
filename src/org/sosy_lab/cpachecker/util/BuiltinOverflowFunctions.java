@@ -38,67 +38,108 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BuiltinOverflowFunctions {
 
-  // TODO: add missing functions, their handling and doc: __builtin_addc, __builtin_addcl,
-  //  __builtin_addcll, __builtin_subc, __builtin_subcl, __builtin_subcll.
-  //  The addition functions add all 3 unsigned values and set the target of the fourth (pointer)
-  //  argument to 1 if any of the two additions overflowed, otherwise 0. They return the calculated
-  //  sum. The sub functions work in the same way, subtracting the second and third argument from
-  //  the first etc.
   /**
-   * In all overflow functions, the types of the first 2 arguments are promoted to infinite
-   * precision, then the binary operation is performed on them. The result is then cast to the type
-   * of the third argument and stored in the third argument for all functions except the *_p
-   * functions (signaled by having NO side effects). If the cast result is equal to the result in
-   * infinite precision, the functions return false, else true.
+   * All overflow functions including "overflow" in their name promote the types of the first 2
+   * arguments to infinite precision, then the binary operation is performed on them. The result is
+   * then cast to the type of the third argument and stored in the third argument for all functions
+   * except the *_p functions (signaled by having NO return of arithmetic result). If the cast
+   * result is equal to the result in infinite precision, the functions return false, else true. For
+   * functions without arbitrary parameter types, the input needs to be cast to the type of the
+   * parameters first.
+   *
+   * <p>The overflow functions without "overflow" in their name add/subtract the first 3 arguments
+   * with fixed types, then return the arithmetic result, storing 0 in the fourth arguments target
+   * if there was no overflow in none of the arithmetic operations, 1 else.
    */
   private enum BuiltinOverflowFunction {
-    ADD(BinaryOperator.PLUS, null, false),
-    SADD(BinaryOperator.PLUS, CNumericTypes.SIGNED_INT, false),
-    SADDL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_INT, false),
-    SADDLL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
-    UADD(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_INT, false),
-    UADDL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_INT, false),
-    UADDLL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
+    /*
+     * Overflow functions that return the boolean result whether the arithmetic operation
+     * overflowed, as well as the arithmetic result. The arithmetic result is returned as a side
+     * effect in the target of the pointer of the last argument.
+     */
+    ADD(BinaryOperator.PLUS, null, true, false),
+    SADD(BinaryOperator.PLUS, CNumericTypes.SIGNED_INT, true, false),
+    SADDL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_INT, true, false),
+    SADDLL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_LONG_INT, true, false),
+    UADD(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_INT, true, false),
+    UADDL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_INT, true, false),
+    UADDLL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, true, false),
 
-    SUB(BinaryOperator.MINUS, null, false),
-    SSUB(BinaryOperator.MINUS, CNumericTypes.SIGNED_INT, false),
-    SSUBL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_INT, false),
-    SSUBLL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
-    USUB(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_INT, false),
-    USUBL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_INT, false),
-    USUBLL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
+    SUB(BinaryOperator.MINUS, null, true, false),
+    SSUB(BinaryOperator.MINUS, CNumericTypes.SIGNED_INT, true, false),
+    SSUBL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_INT, true, false),
+    SSUBLL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_LONG_INT, true, false),
+    USUB(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_INT, true, false),
+    USUBL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_INT, true, false),
+    USUBLL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, true, false),
 
-    MUL(BinaryOperator.MULTIPLY, null, false),
-    SMUL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_INT, false),
-    SMULL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_INT, false),
-    SMULLL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_LONG_INT, false),
-    UMUL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_INT, false),
-    UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
-    UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
+    MUL(BinaryOperator.MULTIPLY, null, true, false),
+    SMUL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_INT, true, false),
+    SMULL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_INT, true, false),
+    SMULLL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_LONG_INT, true, false),
+    UMUL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_INT, true, false),
+    UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, true, false),
+    UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, true, false),
 
-    ADD_P(BinaryOperator.PLUS, null, true),
-    SUB_P(BinaryOperator.MINUS, null, true),
-    MUL_P(BinaryOperator.MULTIPLY, null, true);
+    /*
+     * Overflow functions that return only the boolean result whether the arithmetic operation
+     * overflowed, but do not return the result of the arithmetic operation (but evaluate the side
+     * effects of the argument used to retrieve the target type to cast to evaluate whether
+     * it overflowed).
+     */
+    ADD_P(BinaryOperator.PLUS, null, false, false),
+    SUB_P(BinaryOperator.MINUS, null, false, false),
+    MUL_P(BinaryOperator.MULTIPLY, null, false, false),
 
-    final BinaryOperator operator;
-    final Optional<CSimpleType> type;
-    final Boolean hasNoSideEffects;
-    final String name;
+    /*
+     * "Carry out" overflow functions, returning the arithmetic result as function return,
+     * storing the result whether the arithmetic operation overflowed in the "carry out"
+     * (last (fourth) argument).
+     * The addition functions add the first 3 unsigned arguments and set the target of the fourth
+     * argument (pointer) to 1 if any of the two additions overflowed, otherwise 0.
+     * These functions calculate in the given types and determine overflow in them,
+     * returning the arithmetic operations result.
+     * The sub functions work in the same way, subtracting the second and third argument from
+     * the first, behaving equally to add above in the rest.
+     */
+    ADDC(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_INT, false, true),
+    ADDCL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_INT, false, true),
+    ADDCLL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false, true),
+
+    SUBC(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_INT, false, true),
+    SUBCL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_INT, false, true),
+    SUBCLL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false, true);
+
+    private final BinaryOperator operator;
+    private final Optional<CSimpleType> type;
+
+    // Function returns the result of the arithmetic calculation as side effect
+    private final Boolean sideEffectArithmeticReturn;
+
+    // Function returns the result of the arithmetic calculation as function return
+    private final Boolean directArithmeticReturn;
+    private final String name;
 
     BuiltinOverflowFunction(
-        BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
+        BinaryOperator pOperator,
+        @Nullable CSimpleType pType,
+        boolean pSideEffectArithmeticReturn,
+        boolean pDirectArithmeticReturn) {
       operator = pOperator;
       type = Optional.ofNullable(pType);
-      hasNoSideEffects = pHasNoSideEffect;
+      sideEffectArithmeticReturn = pSideEffectArithmeticReturn;
+      directArithmeticReturn = pDirectArithmeticReturn;
 
-      StringBuilder sb = new StringBuilder();
-      sb.append("__builtin_")
-          .append(getDataTypePrefix(pType))
-          .append(getOperatorName(pOperator))
-          .append(getDataTypeSuffix(pType))
-          .append("_overflow")
-          .append(pHasNoSideEffect ? "_p" : "");
-      name = sb.toString();
+      String baseName = "__builtin_" + getDataTypePrefix(pType) + getOperatorName(pOperator);
+      if (pDirectArithmeticReturn) {
+        name = baseName + "c" + getDataTypeSuffix(pType);
+      } else {
+        name =
+            baseName
+                + getDataTypeSuffix(pType)
+                + "_overflow"
+                + (pSideEffectArithmeticReturn ? "" : "_p");
+      }
     }
 
     private static String getOperatorName(BinaryOperator pOperator) {
@@ -107,6 +148,7 @@ public class BuiltinOverflowFunctions {
       } else if (pOperator == BinaryOperator.MINUS) {
         return "sub";
       } else {
+        checkState(pOperator == BinaryOperator.MULTIPLY);
         return "mul";
       }
     }
@@ -124,24 +166,22 @@ public class BuiltinOverflowFunctions {
     }
 
     private static String getDataTypeSuffix(@Nullable CSimpleType pType) {
-      if (pType == null) {
-        return "";
-      }
-
-      if (pType.hasLongSpecifier()) {
-        return "l";
-      } else if (pType.hasLongLongSpecifier()) {
-        return "ll";
+      if (pType != null) {
+        if (pType.hasLongSpecifier()) {
+          return "l";
+        } else if (pType.hasLongLongSpecifier()) {
+          return "ll";
+        }
       }
 
       return "";
     }
   }
 
-  private static final Map<String, BuiltinOverflowFunction> functions;
+  private static final Map<String, BuiltinOverflowFunction> allFunctions;
 
   static {
-    functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
+    allFunctions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
 
   /**
@@ -150,23 +190,22 @@ public class BuiltinOverflowFunctions {
    * their input values differ from the used type.
    */
   public static Optional<CSimpleType> getParameterType(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
-    return functions.get(pFunctionName).type;
+    checkState(allFunctions.containsKey(pFunctionName));
+    return allFunctions.get(pFunctionName).type;
   }
 
   public static BinaryOperator getOperator(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
-    return functions.get(pFunctionName).operator;
+    checkState(allFunctions.containsKey(pFunctionName));
+    return allFunctions.get(pFunctionName).operator;
   }
 
-  // TODO: either add the missing functions or add some way of checking for them with this class!
-  // ALL CPAs assume that this class handles ALL builtin overflow functions, which it does not!
   /**
-   * Check whether a given function is a builtin function specific to overflows that can be further
-   * analyzed with this class.
+   * Check whether a given function is a builtin function specific to overflows based on GNU (GCC)
+   * extensions according to <a
+   * href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">...</a>.
    */
   public static boolean isBuiltinOverflowFunction(String pFunctionName) {
-    return functions.containsKey(pFunctionName);
+    return allFunctions.containsKey(pFunctionName);
   }
 
   /**
@@ -174,24 +213,41 @@ public class BuiltinOverflowFunctions {
    * precision.
    */
   public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
-    return !functions.get(pFunctionName).type.isPresent();
+    checkState(allFunctions.containsKey(pFunctionName));
+    return !allFunctions.get(pFunctionName).type.isPresent();
   }
 
-  // TODO: this is false! Even the functions that do not store the result of the arithmetic
-  // calculation into memory pointed to by a pointer evaluate the side-effects of their inputs
-  // (without integral argument promotion on that argument)! Correct would be something like "does
-  // not return arithmetic value".
-  public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
-    return functions.get(pFunctionName).hasNoSideEffects;
+  /**
+   * Returns true if the function given returns a boolean signaling whether the arithmetic operation
+   * performed in the function overflowed or not.
+   */
+  private static boolean functionReturnsBooleanOverflowCheck(String functionName) {
+    return !allFunctions.get(functionName).directArithmeticReturn;
+  }
+
+  /**
+   * Returns true if the function given stores the arithmetic result of the
+   * addition/subtraction/multiplication performed in the function into the target of a pointer
+   * given as parameter (i.e. as side effect).
+   */
+  private static boolean functionStoresArithmeticResultUsingSideEffect(String functionName) {
+    return allFunctions.get(functionName).sideEffectArithmeticReturn;
+  }
+
+  /**
+   * Returns true if the function given returns the arithmetic result of the
+   * addition/subtraction/multiplication performed in the function as function return.
+   */
+  // TODO: useless due to functionReturnsBooleanOverflowCheck?
+  private static boolean functionReturnsArithmeticResult(String functionName) {
+    return allFunctions.get(functionName).directArithmeticReturn;
   }
 
   // TODO: remove this method. Either we don't know the types, or all are equal, with the last being
   // a pointer type towards this equal type.
   public static List<CType> getParameterTypes(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
-    Optional<CSimpleType> type = functions.get(pFunctionName).type;
+    checkState(allFunctions.containsKey(pFunctionName));
+    Optional<CSimpleType> type = allFunctions.get(pFunctionName).type;
 
     if (type.isPresent()) {
       return ImmutableList.of(
@@ -216,7 +272,7 @@ public class BuiltinOverflowFunctions {
       CExpression var3,
       String functionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(functionName));
+    checkState(isBuiltinOverflowFunction(functionName));
     CSimpleType targetType = getTargetType(functionName, var3);
     BinaryOperator operator = getOperator(functionName);
     CExpression castVar1 = var1;
@@ -253,7 +309,7 @@ public class BuiltinOverflowFunctions {
       CExpression var3,
       String functionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(functionName));
+    checkState(isBuiltinOverflowFunction(functionName));
     CSimpleType targetType = getTargetType(functionName, var3);
     BinaryOperator operator = getOperator(functionName);
     CExpression castVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
