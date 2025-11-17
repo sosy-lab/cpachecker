@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -225,6 +224,11 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
     pReachedSet.clear();
+
+    // The analysis might be imprecise due to the usage of cfa.getInnerEdges in the candidate
+    // invariant check,
+    // this might sometimes return also edges that are not really inside the loop. This behaviour is
+    // overapproximating.
     return AlgorithmStatus.SOUND_AND_IMPRECISE;
   }
 
