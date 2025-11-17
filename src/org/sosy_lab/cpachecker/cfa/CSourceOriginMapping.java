@@ -38,7 +38,7 @@ public class CSourceOriginMapping {
       int pFromAnalysisCodeLineNumber,
       int pToAnalysisCodeLineNumber,
       int pLineDeltaToOrigin) {
-    Path normalizedAnalysisFileName = pAnalysisFileName.normalize();
+    Path normalizedAnalysisFileName = normalizePathForLookup(pAnalysisFileName);
     RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedAnalysisFileName);
     if (fileMapping == null) {
       fileMapping = TreeRangeMap.create();
@@ -48,6 +48,21 @@ public class CSourceOriginMapping {
     Range<Integer> lineRange =
         Range.closedOpen(pFromAnalysisCodeLineNumber, pToAnalysisCodeLineNumber);
     fileMapping.put(lineRange, CodePosition.of(pOriginFileName, pLineDeltaToOrigin));
+  }
+
+  /**
+   * Convert paths like "file.c" to "./file.c", and return all other paths unchanged. We need some
+   * type of normalization, since the Eclipse parser returns relative paths without "./", while
+   * other parts of CPAchecker use "./" for relative paths.
+   *
+   * <p>Each time a lookup in a data structure of this class is done with a path, this method should
+   * be applied to the path first.
+   */
+  private static Path normalizePathForLookup(Path path) {
+    if (!path.toString().isEmpty() && !path.isAbsolute() && path.getParent() == null) {
+      return Path.of(".").resolve(path);
+    }
+    return path;
   }
 
   /**
@@ -68,7 +83,7 @@ public class CSourceOriginMapping {
       currentOffset += sourceLine.length() + 1;
     }
 
-    lineNumberToStartingColumn.putAll(pPath.normalize(), result.build());
+    lineNumberToStartingColumn.putAll(normalizePathForLookup(pPath), result.build());
   }
 
   /**
@@ -82,7 +97,7 @@ public class CSourceOriginMapping {
    */
   public CodePosition getOriginLineFromAnalysisCodeLine(
       Path pAnalysisFileName, int pAnalysisCodeLine) {
-    Path normalizedPath = pAnalysisFileName.normalize();
+    Path normalizedPath = normalizePathForLookup(pAnalysisFileName);
     RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedPath);
 
     if (fileMapping != null) {
@@ -96,15 +111,15 @@ public class CSourceOriginMapping {
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
-    Path normalizedPath = pAnalysisFileName.normalize();
+    Path normalizedPath = normalizePathForLookup(pAnalysisFileName);
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
     if (!lineNumberToStartingColumn.containsKey(normalizedPath)) {
       Verify.verify(
           // For automata files
-          normalizedPath.toString().equals("fragment")
+          normalizedPath.toString().equals("./fragment")
               // For parsing expressions stemming from witnesses
-              || normalizedPath.toString().equals("#expr#"));
+              || normalizedPath.toString().equals("./#expr#"));
       // Till now, we only have fragments with one line of code.
       Verify.verify(pAnalysisCodeLine == 1);
       return pOffset;
