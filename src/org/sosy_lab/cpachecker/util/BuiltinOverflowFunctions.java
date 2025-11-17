@@ -37,9 +37,22 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BuiltinOverflowFunctions {
+
+  // TODO: add missing functions, their handling and doc: __builtin_addc, __builtin_addcl,
+  //  __builtin_addcll, __builtin_subc, __builtin_subcl, __builtin_subcll.
+  //  The addition functions add all 3 unsigned values and set the target of the fourth (pointer)
+  //  argument to 1 if any of the two additions overflowed, otherwise 0. They return the calculated
+  //  sum. The sub functions work in the same way, subtracting the second and third argument from
+  //  the first etc.
+  /**
+   * In all overflow functions, the types of the first 2 arguments are promoted to infinite
+   * precision, then the binary operation is performed on them. The result is then cast to the type
+   * of the third argument and stored in the third argument for all functions except the *_p
+   * functions (signaled by having NO side effects). If the cast result is equal to the result in
+   * infinite precision, the functions return false, else true.
+   */
   private enum BuiltinOverflowFunction {
     ADD(BinaryOperator.PLUS, null, false),
-    ADD_P(BinaryOperator.PLUS, null, true),
     SADD(BinaryOperator.PLUS, CNumericTypes.SIGNED_INT, false),
     SADDL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_INT, false),
     SADDLL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
@@ -48,7 +61,6 @@ public class BuiltinOverflowFunctions {
     UADDLL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
 
     SUB(BinaryOperator.MINUS, null, false),
-    SUB_P(BinaryOperator.MINUS, null, true),
     SSUB(BinaryOperator.MINUS, CNumericTypes.SIGNED_INT, false),
     SSUBL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_INT, false),
     SSUBLL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
@@ -57,13 +69,16 @@ public class BuiltinOverflowFunctions {
     USUBLL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
 
     MUL(BinaryOperator.MULTIPLY, null, false),
-    MUL_P(BinaryOperator.MULTIPLY, null, true),
     SMUL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_INT, false),
     SMULL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_INT, false),
     SMULLL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_LONG_INT, false),
     UMUL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_INT, false),
     UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
-    UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false);
+    UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
+
+    ADD_P(BinaryOperator.PLUS, null, true),
+    SUB_P(BinaryOperator.MINUS, null, true),
+    MUL_P(BinaryOperator.MULTIPLY, null, true);
 
     final BinaryOperator operator;
     final Optional<CSimpleType> type;
@@ -130,10 +145,11 @@ public class BuiltinOverflowFunctions {
   }
 
   /**
-   * resolve the type of the built-yin overflow function. This is important since the input
-   * parameters have to be casted in case their type differs
+   * Resolve the expected parameter type (for all numeric parameters) of the built-in overflow
+   * function by function name. This is important since the input parameters have to be cast in case
+   * their input values differ from the used type.
    */
-  public static Optional<CSimpleType> getType(String pFunctionName) {
+  public static Optional<CSimpleType> getParameterType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).type;
   }
@@ -143,6 +159,8 @@ public class BuiltinOverflowFunctions {
     return functions.get(pFunctionName).operator;
   }
 
+  // TODO: either add the missing functions or add some way of checking for them with this class!
+  // ALL CPAs assume that this class handles ALL builtin overflow functions, which it does not!
   /**
    * Check whether a given function is a builtin function specific to overflows that can be further
    * analyzed with this class.
@@ -151,17 +169,26 @@ public class BuiltinOverflowFunctions {
     return functions.containsKey(pFunctionName);
   }
 
-  /* Functions without prefix and suffix have arbitrary argument types */
+  /**
+   * Returns true for functions whose arguments must not be cast before being promoted to infinite
+   * precision.
+   */
   public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return !functions.get(pFunctionName).type.isPresent();
   }
 
+  // TODO: this is false! Even the functions that do not store the result of the arithmetic
+  // calculation into memory pointed to by a pointer evaluate the side-effects of their inputs
+  // (without integral argument promotion on that argument)! Correct would be something like "does
+  // not return arithmetic value".
   public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).hasNoSideEffects;
   }
 
+  // TODO: remove this method. Either we don't know the types, or all are equal, with the last being
+  // a pointer type towards this equal type.
   public static List<CType> getParameterTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     Optional<CSimpleType> type = functions.get(pFunctionName).type;
@@ -182,54 +209,68 @@ public class BuiltinOverflowFunctions {
    *
    * @throws UnrecognizedCodeException when building the result fails due to unrecognized code
    */
-  public static CExpression handleOverflow(
-      OverflowAssumptionManager ofmgr,
+  public static CExpression getOverflowFunctionResult(
+      OverflowAssumptionManager overflowMgr,
       CExpression var1,
       CExpression var2,
       CExpression var3,
-      String pFunctionName)
+      String functionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(pFunctionName));
-    CSimpleType targetType = getTargetType(pFunctionName, var3);
-    BinaryOperator operator = getOperator(pFunctionName);
-    CExpression castedVar1 = var1;
-    CExpression castedVar2 = var2;
-    if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
-      castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
-      castedVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
+    checkState(functions.containsKey(functionName));
+    CSimpleType targetType = getTargetType(functionName, var3);
+    BinaryOperator operator = getOperator(functionName);
+    CExpression castVar1 = var1;
+    CExpression castVar2 = var2;
+    if (!isFunctionWithArbitraryArgumentTypes(functionName)) {
+      castVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
+      castVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
     }
 
     CExpression result;
     if (operator == BinaryOperator.MULTIPLY) {
       result =
-          ofmgr.getConjunctionOfMultiplicationAssumptions(castedVar1, castedVar2, targetType, true);
+          overflowMgr.getConjunctionOfMultiplicationAssumptions(
+              castVar1, castVar2, targetType, true);
     } else {
       result =
-          ofmgr.getConjunctionOfAdditiveAssumptions(
-              castedVar1, castedVar2, operator, targetType, true);
+          overflowMgr.getConjunctionOfAdditiveAssumptions(
+              castVar1, castVar2, operator, targetType, true);
     }
 
     return new CCastExpression(FileLocation.DUMMY, CNumericTypes.BOOL, result);
   }
 
-  public static CExpression handleOverflowSideeffects(
-      OverflowAssumptionManager ofmgr,
+  /**
+   * Returns the {@link CExpression} handling the side effect for all functions with side effects.
+   * E.g. in case the numeric operations result is returned via a pointer, the
+   */
+  // TODO: this is returning the result of the numeric calculation, but should return the
+  //  assignment of this value to the dereferenced pointer!
+  public static CExpression handleOverflowSideEffects(
+      OverflowAssumptionManager overflowMgr,
       CExpression var1,
       CExpression var2,
       CExpression var3,
-      String pFunctionName)
+      String functionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(pFunctionName));
-    CSimpleType targetType = getTargetType(pFunctionName, var3);
-    BinaryOperator operator = getOperator(pFunctionName);
-    CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
-    CExpression castedVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
-    return ofmgr.getResultOfOperation(castedVar1, castedVar2, operator);
+    checkState(functions.containsKey(functionName));
+    CSimpleType targetType = getTargetType(functionName, var3);
+    BinaryOperator operator = getOperator(functionName);
+    CExpression castVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
+    CExpression castVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
+    // TODO: This is WRONG! This does not promote to infinite precision at all!
+    return overflowMgr.getResultOfOperation(castVar1, castVar2, operator);
   }
 
+  /**
+   * Returns the {@link CSimpleType} in which the numerically calculated value is to be cast to and
+   * returned (either as part of the side effect of these functions in case of function with
+   * "overflow" in their names, or as actual function return in case of functions without "overflow"
+   * in their names).
+   */
   private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
-      return getType(pFunctionName).orElseThrow();
+      return getParameterType(pFunctionName).orElseThrow();
     }
 
     CType targetType = thirdArgument.getExpressionType().getCanonicalType();
@@ -239,11 +280,19 @@ public class BuiltinOverflowFunctions {
     return (CSimpleType) targetType;
   }
 
-  /*
-   * Calcualtes the result of a builtin overflow function (e.g. for value analysis). The arguments are converted to respective
-   * types (if necessary), the result of the operation is computed with infinite precision, and the
+  // TODO: add method that does all the handling based on CExpression as the method below for Value
+  //  Analysis, bundling handleOverflowSideEffects() and getOverflowFunctionResult() based on
+  //  generic CExpressions that can be handled by any CPA (that can handle C) and replace the method
+  //  below.
+
+  /**
+   * Evaluates the result value of the numeric operation (addition/subtraction/multiplication) of
+   * the builtin overflow function. The arguments are cast to the functions parameters types (if
+   * necessary), and the result of the numeric operation is computed with infinite precision. The
    * overflow is determined by casting to the type of the third parameter.
    */
+  // TODO: this is missing symbolic handling.
+  // TODO: this UNSOUNDLY ignores side-effects!
   public static Value evaluateFunctionCall(
       CFunctionCallExpression functionCallExpression,
       AbstractExpressionValueVisitor evv,
@@ -297,6 +346,7 @@ public class BuiltinOverflowFunctions {
                 AbstractExpressionValueVisitor.castCValue(
                     resultValue, resultType, machineModel, logger);
 
+            // TODO: this ignores all side-effects!
             if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
@@ -307,6 +357,7 @@ public class BuiltinOverflowFunctions {
       }
     }
 
+    // TODO: this ignores all side-effects!
     return Value.UnknownValue.getInstance();
   }
 }

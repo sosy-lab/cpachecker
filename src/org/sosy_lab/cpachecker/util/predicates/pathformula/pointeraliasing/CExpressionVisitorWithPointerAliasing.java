@@ -742,7 +742,8 @@ class CExpressionVisitorWithPointerAliasing
         CExpression var2 = parameters.get(1);
         CExpression var3 = parameters.get(2);
         Expression overflows =
-            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, var3, functionName)
+            BuiltinOverflowFunctions.getOverflowFunctionResult(
+                    ofmgr, var1, var2, var3, functionName)
                 .accept(this);
         Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
 
@@ -751,7 +752,7 @@ class CExpressionVisitorWithPointerAliasing
               new CPointerExpression(
                   FileLocation.DUMMY, ((CPointerType) var3.getExpressionType()).getType(), var3);
           CRightHandSide rhs =
-              BuiltinOverflowFunctions.handleOverflowSideeffects(
+              BuiltinOverflowFunctions.handleOverflowSideEffects(
                   ofmgr, var1, var2, var3, functionName);
 
           BooleanFormula form = null;
