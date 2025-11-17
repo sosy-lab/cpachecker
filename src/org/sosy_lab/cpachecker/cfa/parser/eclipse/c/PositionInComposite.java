@@ -200,7 +200,7 @@ public class PositionInComposite {
             }
           }
           case CArrayType arrayType -> arrayType.getLengthAsInt().orElse(0);
-          default -> 0;
+          default -> 1;
         };
 
     if (nextPositionOnSameLevel < numberOfElementsInParents) {
