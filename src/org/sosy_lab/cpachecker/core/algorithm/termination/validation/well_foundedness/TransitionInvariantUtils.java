@@ -96,24 +96,32 @@ public class TransitionInvariantUtils {
   public static BooleanFormula makeStatesEquivalent(
       BooleanFormula pPrevFormula,
       BooleanFormula pCurrFormula,
-      int prevIndex,
-      int currIndex,
       BooleanFormulaManagerView bfmgr,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevVarsToCurr) {
+
     BooleanFormula equivalence = bfmgr.makeTrue();
     Map<String, Formula> prevMapNamesToVars = fmgr.extractVariables(pPrevFormula);
     Map<String, Formula> currMapNamesToVars = fmgr.extractVariables(pCurrFormula);
 
     for (Map.Entry<String, Formula> entry : prevMapNamesToVars.entrySet()) {
+      String prevVarPure =
+          removeFunctionFromVarsName(
+              fmgr.extractVariables(fmgr.uninstantiate(entry.getValue())).keySet().stream()
+                  .findAny()
+                  .orElseThrow());
       String prevVar = entry.getKey();
-      if (prevVar.contains("__PREV") && prevVar.contains("@" + prevIndex)) {
-        String prevVarPure = prevVar.replace("__PREV", "");
-        prevVarPure = prevVarPure.replace("@" + prevIndex, "");
-        prevVarPure = removeFunctionFromVarsName(prevVarPure);
-        String currVar = "";
-        for (String var : currMapNamesToVars.keySet()) {
-          if (removeFunctionFromVarsName(var.replace("@" + currIndex, "")).equals(prevVarPure)) {
-            currVar = var;
+      if (isPrevVariable(prevVarPure, pMapPrevVarsToCurr)) {
+        String currVar =
+            pMapPrevVarsToCurr.get(getPrevDeclaration(prevVarPure, pMapPrevVarsToCurr)).getName();
+        for (Map.Entry<String, Formula> entry2 : currMapNamesToVars.entrySet()) {
+          String currVarPure =
+              removeFunctionFromVarsName(
+                  fmgr.extractVariables(fmgr.uninstantiate(entry2.getValue())).keySet().stream()
+                      .findAny()
+                      .orElseThrow());
+          if (currVar.equals(currVarPure)) {
+            currVar = entry2.getKey();
             break;
           }
         }

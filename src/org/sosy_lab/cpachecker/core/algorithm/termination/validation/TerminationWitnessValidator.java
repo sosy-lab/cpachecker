@@ -431,7 +431,7 @@ public class TerminationWitnessValidator implements Algorithm {
         bfmgr.and(
             booleanLoopFormula,
             TransitionInvariantUtils.makeStatesEquivalent(
-                pCandidateInvariant, booleanLoopFormula, 1, 1, bfmgr, fmgr));
+                pCandidateInvariant, booleanLoopFormula, bfmgr, fmgr, pMapPrevToCurrVars));
 
     boolean isTransitionInvariant;
     try {

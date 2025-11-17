@@ -134,7 +134,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     // T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) ∧ I(s1) =>
     // T(s,s2)]
     BooleanFormula wellFoundedness =
-        buildSetDecreasingFormula(middleStep, middleStep2, oneStep, stepFromSPrime);
+        buildSetDecreasingFormula(
+            middleStep, middleStep2, oneStep, stepFromSPrime, mapPrevVarsToCurrVars);
 
     boolean isWellfounded;
     try {
@@ -150,12 +151,13 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       BooleanFormula middleStep,
       BooleanFormula middleStep2,
       BooleanFormula oneStep,
-      BooleanFormula stepFromSPrime) {
+      BooleanFormula stepFromSPrime,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevVarsToCurr) {
     BooleanFormula conclusion = bfmgr.and(middleStep, middleStep2);
     oneStep =
         bfmgr.and(
             TransitionInvariantUtils.makeStatesEquivalent(
-                stepFromSPrime, oneStep, 4, 2, bfmgr, fmgr),
+                stepFromSPrime, oneStep, bfmgr, fmgr, pMapPrevVarsToCurr),
             oneStep);
     BooleanFormula wellFoundedness = bfmgr.implication(oneStep, conclusion);
     wellFoundedness = bfmgr.not(wellFoundedness);
@@ -299,10 +301,9 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
               TransitionInvariantUtils.makeStatesEquivalent(
                   oneStep,
                   oneStep,
-                  StateIndices.PREV_INDEX_S.getIndex(),
-                  StateIndices.CURR_INDEX_S.getIndex(),
                   bfmgr,
-                  fmgr),
+                  fmgr,
+                  pMapPrevToCurrVars),
               oneStep);
     }
     return oneStep;
@@ -401,10 +402,9 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
         TransitionInvariantUtils.makeStatesEquivalent(
             pFormula,
             pFormula,
-            StateIndices.PREV_INDEX_S.getIndex(),
-            StateIndices.CURR_INDEX_S.getIndex(),
             bfmgr,
-            fmgr);
+            fmgr,
+            pMapPrevToCurrVars);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
