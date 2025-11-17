@@ -143,7 +143,7 @@ public final class ResourceLimitChecker {
           Joiner.on(", ")
               .join(
                   Lists.transform(
-                      limitsList.stream().collect(ImmutableList.toImmutableList()),
+                      limitsList,
                       ResourceLimit::getName)));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
