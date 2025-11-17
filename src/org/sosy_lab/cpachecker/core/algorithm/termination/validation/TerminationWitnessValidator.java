@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -224,7 +225,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
     pReachedSet.clear();
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    return AlgorithmStatus.SOUND_AND_IMPRECISE;
   }
 
   private boolean hasSupportingInvariants(
