@@ -140,11 +140,7 @@ public final class ResourceLimitChecker {
       logger.log(
           Level.INFO,
           "Using the following resource limits:",
-          Joiner.on(", ")
-              .join(
-                  Lists.transform(
-                      limitsList,
-                      ResourceLimit::getName)));
+          Joiner.on(", ").join(Lists.transform(limitsList, ResourceLimit::getName)));
     }
     return new ResourceLimitChecker(shutdownManager, limitsList);
   }
