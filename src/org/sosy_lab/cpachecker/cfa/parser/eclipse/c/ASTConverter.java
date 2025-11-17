@@ -3408,7 +3408,7 @@ class ASTConverter {
       }
       int index = evaluateIntegerConstantExpression(subscriptExpression).intValueExact();
       CType nextTypeInDelegatorList = arrayType.getType();
-      return Pair.of(List.of(index), nextTypeInDelegatorList);
+      return Pair.of(ImmutableList.of(index), nextTypeInDelegatorList);
     }
 
     private int getArraySize(
