@@ -8,32 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibTraceEntryCall extends SvLibSelectTraceComponent {
+public final class SvLibTraceEntryProcedure extends SvLibTraceComponent {
   @Serial private static final long serialVersionUID = 5543731065650175240L;
   private final SvLibProcedureDeclaration declaration;
-  private final ImmutableList<SvLibConstantTerm> constantTerms;
 
-  public SvLibTraceEntryCall(
-      SvLibProcedureDeclaration pDeclaration,
-      ImmutableList<SvLibConstantTerm> pConstantTerms,
-      FileLocation pFileLocation) {
+  public SvLibTraceEntryProcedure(
+      SvLibProcedureDeclaration pDeclaration, FileLocation pFileLocation) {
     super(pFileLocation);
     declaration = pDeclaration;
-    constantTerms = pConstantTerms;
   }
 
   public SvLibProcedureDeclaration getDeclaration() {
     return declaration;
-  }
-
-  public ImmutableList<SvLibConstantTerm> getConstantTerms() {
-    return constantTerms;
   }
 
   @Override
@@ -42,18 +31,13 @@ public final class SvLibTraceEntryCall extends SvLibSelectTraceComponent {
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(entry-call "
-        + declaration.getName()
-        + " "
-        + Joiner.on(" ")
-            .join(FluentIterable.from(constantTerms).transform(SvLibConstantTerm::toASTString))
-        + ")";
+    return "(entry-proc " + declaration.getName() + ")";
   }
 
   @Override
@@ -66,7 +50,6 @@ public final class SvLibTraceEntryCall extends SvLibSelectTraceComponent {
     final int prime = 31;
     int result = 1;
     result = prime * result + declaration.hashCode();
-    result = prime * result + constantTerms.hashCode();
     return result;
   }
 
@@ -76,8 +59,6 @@ public final class SvLibTraceEntryCall extends SvLibSelectTraceComponent {
       return true;
     }
 
-    return obj instanceof SvLibTraceEntryCall other
-        && declaration.equals(other.declaration)
-        && constantTerms.equals(other.constantTerms);
+    return obj instanceof SvLibTraceEntryProcedure other && declaration.equals(other.declaration);
   }
 }

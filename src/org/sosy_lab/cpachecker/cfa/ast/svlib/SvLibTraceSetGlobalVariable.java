@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibTraceSetGlobalVariable extends SvLibSelectTraceComponent {
+public final class SvLibTraceSetGlobalVariable extends SvLibTraceComponent {
   @Serial private static final long serialVersionUID = 5543731065650175240L;
   private final SvLibIdTerm declaration;
   private final SvLibConstantTerm constantTerm;
@@ -37,13 +37,13 @@ public final class SvLibTraceSetGlobalVariable extends SvLibSelectTraceComponent
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(global " + declaration.getName() + " " + constantTerm.toASTString() + ")";
+    return "(" + declaration.getName() + " " + constantTerm.toASTString() + ")";
   }
 
   @Override

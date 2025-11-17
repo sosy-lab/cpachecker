@@ -31,4 +31,13 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
   public String toASTString(String declarator) {
     return declarator + " : " + Ascii.toLowerCase(name());
   }
+
+  public String toPlainString() {
+    return switch (this) {
+      case INT -> "Int";
+      case BOOL -> "Bool";
+      case STRING -> "String";
+      case REAL -> "Real";
+    };
+  }
 }

@@ -41,6 +41,8 @@ public sealed interface SvLibType extends Type
     return t1.equals(t2);
   }
 
+  String toPlainString();
+
   static Optional<SvLibType> getTypeForString(String pType) {
     return Optional.ofNullable(
         switch (pType) {

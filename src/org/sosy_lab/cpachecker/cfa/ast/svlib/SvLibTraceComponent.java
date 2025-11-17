@@ -11,17 +11,17 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class SvLibSelectTraceComponent implements SvLibAstNode
-    permits SvLibTrace,
-        SvLibTraceEntryCall,
+public abstract sealed class SvLibTraceComponent implements SvLibAstNode
+    permits SmtLibModel,
+        SvLibTraceEntryProcedure,
         SvLibTraceSetGlobalVariable,
-        SvLibTraceSetTag,
         SvLibTraceStep,
+        SvLibTraceUsingAnnotation,
         SvLibViolatedProperty {
   @Serial private static final long serialVersionUID = -5924055290995494634L;
   private final FileLocation fileLocation;
 
-  SvLibSelectTraceComponent(FileLocation pFileLocation) {
+  SvLibTraceComponent(FileLocation pFileLocation) {
     fileLocation = pFileLocation;
   }
 
@@ -30,5 +30,5 @@ public abstract sealed class SvLibSelectTraceComponent implements SvLibAstNode
     return fileLocation;
   }
 
-  abstract <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X;
+  abstract <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X;
 }

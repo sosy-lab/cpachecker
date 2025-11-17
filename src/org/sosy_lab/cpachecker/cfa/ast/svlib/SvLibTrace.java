@@ -14,28 +14,32 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibTrace extends SvLibSelectTraceComponent {
+public final class SvLibTrace implements SvLibAstNode {
 
   @Serial private static final long serialVersionUID = 6210509388439561283L;
+  private final SmtLibModel model;
   private final ImmutableList<SvLibTraceSetGlobalVariable> setGlobalVariables;
-  private final SvLibTraceEntryCall entryCall;
+  private final SvLibTraceEntryProcedure entryProc;
   private final ImmutableList<SvLibTraceStep> steps;
   private final SvLibViolatedProperty violatedProperty;
-  private final ImmutableList<SvLibTraceSetTag> setTags;
+  private final ImmutableList<SvLibTraceUsingAnnotation> usingAnnotations;
+  private final FileLocation fileLocation;
 
   public SvLibTrace(
+      SmtLibModel pModel,
       List<SvLibTraceSetGlobalVariable> pSetGlobalVariables,
-      SvLibTraceEntryCall pEntryCall,
+      SvLibTraceEntryProcedure pEntryProc,
       List<SvLibTraceStep> pSteps,
       SvLibViolatedProperty pViolatedProperty,
-      List<SvLibTraceSetTag> pSetTags,
+      List<SvLibTraceUsingAnnotation> pUsingAnnotations,
       FileLocation pFileLocation) {
-    super(pFileLocation);
+    model = pModel;
     setGlobalVariables = ImmutableList.copyOf(pSetGlobalVariables);
-    entryCall = pEntryCall;
+    entryProc = pEntryProc;
     steps = ImmutableList.copyOf(pSteps);
     violatedProperty = pViolatedProperty;
-    setTags = ImmutableList.copyOf(pSetTags);
+    usingAnnotations = ImmutableList.copyOf(pUsingAnnotations);
+    fileLocation = pFileLocation;
   }
 
   @Override
@@ -44,20 +48,26 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
-    return v.accept(this);
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return Joiner.on(System.lineSeparator())
         .join(
-            Joiner.on(" ")
-                .join(setGlobalVariables.stream().map(SvLibAstNode::toASTString).toList()),
-            entryCall.toASTString(pAAstNodeRepresentation),
-            Joiner.on(" ").join(steps.stream().map(SvLibAstNode::toASTString).toList()),
+            "(model " + model.toASTString(pAAstNodeRepresentation) + ")",
+            "(init-global-vars "
+                + Joiner.on(" ")
+                    .join(setGlobalVariables.stream().map(SvLibAstNode::toASTString).toList())
+                + ")",
+            entryProc.toASTString(pAAstNodeRepresentation),
+            "(steps "
+                + Joiner.on(" ").join(steps.stream().map(SvLibAstNode::toASTString).toList())
+                + ")",
             violatedProperty.toASTString(pAAstNodeRepresentation),
-            Joiner.on(" ").join(setTags.stream().map(SvLibAstNode::toASTString).toList()));
+            Joiner.on(System.lineSeparator())
+                .join(usingAnnotations.stream().map(SvLibAstNode::toASTString).toList()));
   }
 
   @Override
@@ -69,8 +79,12 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     return setGlobalVariables;
   }
 
-  public SvLibTraceEntryCall getEntryCall() {
-    return entryCall;
+  public SmtLibModel getModel() {
+    return model;
+  }
+
+  public SvLibTraceEntryProcedure getEntryProc() {
+    return entryProc;
   }
 
   public ImmutableList<SvLibTraceStep> getSteps() {
@@ -81,19 +95,20 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     return violatedProperty;
   }
 
-  public ImmutableList<SvLibTraceSetTag> getSetTags() {
-    return setTags;
+  public ImmutableList<SvLibTraceUsingAnnotation> getUsingAnnotations() {
+    return usingAnnotations;
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + model.hashCode();
     result = prime * result + setGlobalVariables.hashCode();
-    result = prime * result + entryCall.hashCode();
+    result = prime * result + entryProc.hashCode();
     result = prime * result + steps.hashCode();
     result = prime * result + violatedProperty.hashCode();
-    result = prime * result + setTags.hashCode();
+    result = prime * result + usingAnnotations.hashCode();
     return result;
   }
 
@@ -104,10 +119,11 @@ public final class SvLibTrace extends SvLibSelectTraceComponent {
     }
 
     return obj instanceof SvLibTrace other
+        && model.equals(other.model)
         && setGlobalVariables.equals(other.setGlobalVariables)
-        && entryCall.equals(other.entryCall)
+        && entryProc.equals(other.entryProc)
         && steps.equals(other.steps)
         && violatedProperty.equals(other.violatedProperty)
-        && setTags.equals(other.setTags);
+        && usingAnnotations.equals(other.usingAnnotations);
   }
 }

@@ -45,6 +45,10 @@ public final class SvLibSmtLibArrayType implements SvLibSmtLibType {
         + ")";
   }
 
+  public String toPlainString() {
+    return "(Array " + keysType.toPlainString() + " " + valuesType.toPlainString() + ")";
+  }
+
   @Override
   public int hashCode() {
     return keysType.hashCode() * 31 + valuesType.hashCode();

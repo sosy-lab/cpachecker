@@ -34,6 +34,10 @@ public final class SvLibProductType implements SvLibType {
         + "]";
   }
 
+  public String toPlainString() {
+    return "[" + String.join(", ", elementTypes.stream().map(SvLibType::toString).toList()) + "]";
+  }
+
   public ImmutableList<SvLibType> getElementTypes() {
     return elementTypes;
   }

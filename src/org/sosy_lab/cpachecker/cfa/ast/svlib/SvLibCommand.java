@@ -11,7 +11,10 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serializable;
 
 public sealed interface SvLibCommand extends Serializable, SvLibAstNode
-    permits SvLibAnnotateTagCommand,
+    permits SmtLibDefineFunCommand,
+        SmtLibDefineFunRecCommand,
+        SmtLibDefineFunsRecCommand,
+        SvLibAnnotateTagCommand,
         SvLibAssertCommand,
         SvLibDeclareConstCommand,
         SvLibDeclareFunCommand,

@@ -34,4 +34,10 @@ public interface SvLibCommandVisitor<R, X extends Exception> {
   R visit(SvLibSelectTraceCommand pSvLibSelectTraceCommand) throws X;
 
   R visit(SvLibSetInfoCommand pSvLibSetInfoCommand) throws X;
+
+  R accept(SmtLibDefineFunCommand pSmtLibDefineFunCommand) throws X;
+
+  R accept(SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand) throws X;
+
+  R accept(SmtLibDefineFunsRecCommand pSmtLibDefineFunsRecCommand) throws X;
 }

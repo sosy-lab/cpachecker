@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class SvLibViolatedProperty extends SvLibSelectTraceComponent
+public abstract sealed class SvLibViolatedProperty extends SvLibTraceComponent
     permits SvLibIncorrectTagProperty {
   @Serial private static final long serialVersionUID = -4859233865865266662L;
 

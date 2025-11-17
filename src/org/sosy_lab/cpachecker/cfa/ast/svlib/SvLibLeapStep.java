@@ -29,7 +29,7 @@ public final class SvLibLeapStep extends SvLibTraceStep {
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 

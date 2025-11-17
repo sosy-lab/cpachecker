@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -52,6 +53,10 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
         + ") ("
         + getReturnType()
         + ")";
+  }
+
+  public String toPlainString() {
+    return "(" + Joiner.on(") (").join(inputType) + ") " + outputType;
   }
 
   @Override

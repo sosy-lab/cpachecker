@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class SvLibTraceStep extends SvLibSelectTraceComponent
-    permits SvLibChoiceStep, SvLibHavocVariablesStep, SvLibLeapStep, SvLibLocalVariablesStep {
+public abstract sealed class SvLibTraceStep extends SvLibTraceComponent
+    permits SvLibChoiceStep, SvLibHavocVariablesStep, SvLibLeapStep, SvLibInitProcVariablesStep {
   @Serial private static final long serialVersionUID = -8454696686234105859L;
 
   SvLibTraceStep(FileLocation pFileLocation) {

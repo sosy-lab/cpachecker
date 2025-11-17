@@ -14,12 +14,12 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
+public final class SvLibTraceUsingAnnotation extends SvLibTraceComponent {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
   private final String tagName;
   private final ImmutableList<SvLibTagProperty> attributes;
 
-  public SvLibTraceSetTag(
+  public SvLibTraceUsingAnnotation(
       FileLocation pFileLocation, String pTagName, List<SvLibTagProperty> pAttributes) {
     super(pFileLocation);
     tagName = pTagName;
@@ -27,7 +27,7 @@ public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -38,7 +38,7 @@ public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(set-tag "
+    return "(using-annotation "
         + tagName
         + " "
         + Joiner.on(" ").join(attributes.stream().map(SvLibAstNode::toASTString).toList())
@@ -73,7 +73,7 @@ public final class SvLibTraceSetTag extends SvLibSelectTraceComponent {
       return true;
     }
 
-    return obj instanceof SvLibTraceSetTag other
+    return obj instanceof SvLibTraceUsingAnnotation other
         && tagName.equals(other.tagName)
         && attributes.equals(other.attributes);
   }

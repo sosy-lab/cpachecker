@@ -38,7 +38,11 @@ public final class SvLibSelectTraceCommand implements SvLibCommand {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(select-trace " + trace.toASTString(pAAstNodeRepresentation) + ")";
+    return "(select-trace "
+        + System.lineSeparator()
+        + trace.toASTString(pAAstNodeRepresentation)
+        + System.lineSeparator()
+        + ")";
   }
 
   public SvLibTrace getTrace() {

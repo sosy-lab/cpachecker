@@ -21,6 +21,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibModel;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
@@ -29,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIncorrectTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibLocalVariablesStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInitProcVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
@@ -39,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTrace;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceEntryCall;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceEntryProcedure;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceSetGlobalVariable;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
@@ -119,7 +120,7 @@ public class CounterexampleToSvLibWitnessExport {
     return Optional.empty();
   }
 
-  private SvLibLocalVariablesStep setLocalVariablesForFunctionCall(
+  private SvLibInitProcVariablesStep setLocalVariablesForFunctionCall(
       ConcreteState pConcreteState, SvLibProcedureDeclaration pProcedureDeclaration) {
     ImmutableMap.Builder<SvLibIdTerm, SvLibConstantTerm> functionCallAssignmentsBuilder =
         ImmutableMap.builder();
@@ -141,7 +142,7 @@ public class CounterexampleToSvLibWitnessExport {
         functionCallAssignmentsBuilder.put(idTerm, assignedValue.orElseThrow());
       }
     }
-    return new SvLibLocalVariablesStep(
+    return new SvLibInitProcVariablesStep(
         functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
@@ -182,7 +183,7 @@ public class CounterexampleToSvLibWitnessExport {
     return Optional.empty();
   }
 
-  private SvLibTraceEntryCall handleTraceEntryCall(
+  private SvLibTraceEntryProcedure handleTraceEntryCall(
       ConcreteState pConcreteState, SvLibProcedureCallEdge pCallEdge) {
     SvLibProcedureCallStatement procedureCallStatement = pCallEdge.getFunctionCall();
 
@@ -208,10 +209,8 @@ public class CounterexampleToSvLibWitnessExport {
       }
     }
 
-    return new SvLibTraceEntryCall(
-        procedureCallStatement.getProcedureDeclaration(),
-        argumentValuesBuilder.build(),
-        pCallEdge.getFileLocation());
+    return new SvLibTraceEntryProcedure(
+        procedureCallStatement.getProcedureDeclaration(), pCallEdge.getFileLocation());
   }
 
   // We need to suppress the warnings, because error-prone says that the continue for the BlankEdge
@@ -223,7 +222,7 @@ public class CounterexampleToSvLibWitnessExport {
         pCounterexample.getCFAPathWithAssignments().getConcreteStatePath().orElseThrow();
     ImmutableList.Builder<SvLibTraceSetGlobalVariable> globalVariableAssignmentBuilder =
         ImmutableList.builder();
-    @Nullable SvLibTraceEntryCall entryCall = null;
+    @Nullable SvLibTraceEntryProcedure entryCall = null;
     ImmutableList.Builder<SvLibTraceStep> stepsBuilder = ImmutableList.builder();
     @Nullable SvLibViolatedProperty violatedProperty = null;
 
@@ -296,6 +295,8 @@ public class CounterexampleToSvLibWitnessExport {
 
     SvLibTrace trace =
         new SvLibTrace(
+            new SmtLibModel(
+                ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), FileLocation.DUMMY),
             globalVariableAssignmentBuilder.build(),
             entryCall,
             stepsBuilder.build(),

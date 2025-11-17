@@ -44,7 +44,7 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -55,7 +55,7 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(incorrect-tag "
+    return "(incorrect-annotation "
         + (svLibTagReference.isPresent()
             ? svLibTagReference.orElseThrow().toASTString(pAAstNodeRepresentation)
             : "")

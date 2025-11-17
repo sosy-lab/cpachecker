@@ -14,7 +14,7 @@ public interface SvLibAstNodeVisitor<R, X extends Exception>
         SvLibTagAttributeVisitor<R, X>,
         SvLibTermVisitor<R, X>,
         SvLibCommandVisitor<R, X>,
-        SvLibTraceElementVisitor<R, X> {
+        SvLibTraceComponentVisitor<R, X> {
   R visit(SvLibVariableDeclaration pSvLibVariableDeclaration) throws X;
 
   R visit(SvLibProcedureDeclaration pSvLibProcedureDeclaration) throws X;
@@ -24,4 +24,6 @@ public interface SvLibAstNodeVisitor<R, X extends Exception>
   R visit(SvLibSortDeclaration pSvLibSortDeclaration) throws X;
 
   R visit(SvLibFunctionDeclaration pSvLibFunctionDeclaration) throws X;
+
+  R accept(SvLibTrace pSvLibTrace) throws X;
 }

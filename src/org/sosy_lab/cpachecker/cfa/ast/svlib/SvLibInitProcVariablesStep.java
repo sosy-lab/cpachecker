@@ -13,18 +13,18 @@ import java.io.Serial;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class SvLibLocalVariablesStep extends SvLibTraceStep {
+public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   @Serial private static final long serialVersionUID = -1341873304472826329L;
   private final Map<SvLibIdTerm, SvLibConstantTerm> assignments;
 
-  public SvLibLocalVariablesStep(
+  public SvLibInitProcVariablesStep(
       Map<SvLibIdTerm, SvLibConstantTerm> pValues, FileLocation pFileLocation) {
     super(pFileLocation);
     assignments = pValues;
   }
 
   @Override
-  <R, X extends Exception> R accept(SvLibTraceElementVisitor<R, X> v) throws X {
+  <R, X extends Exception> R accept(SvLibTraceComponentVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -35,7 +35,7 @@ public final class SvLibLocalVariablesStep extends SvLibTraceStep {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(local "
+    return "(init-proc-vars "
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
@@ -73,6 +73,6 @@ public final class SvLibLocalVariablesStep extends SvLibTraceStep {
       return true;
     }
 
-    return obj instanceof SvLibLocalVariablesStep other && assignments.equals(other.assignments);
+    return obj instanceof SvLibInitProcVariablesStep other && assignments.equals(other.assignments);
   }
 }

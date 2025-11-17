@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-public sealed interface SmtLibCommand
-    permits SvLibAssertCommand,
+public sealed interface SmtLibCommand extends SvLibAstNode
+    permits SmtLibDefineFunCommand,
+        SmtLibDefineFunRecCommand,
+        SmtLibDefineFunsRecCommand,
+        SvLibAssertCommand,
         SvLibDeclareConstCommand,
         SvLibDeclareFunCommand,
         SvLibDeclareSortCommand,

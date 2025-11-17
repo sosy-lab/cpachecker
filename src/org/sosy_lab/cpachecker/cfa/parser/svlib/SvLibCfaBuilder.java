@@ -33,6 +33,9 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibDefineFunCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibDefineFunRecCommand;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibDefineFunsRecCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCheckTrueTag;
@@ -439,6 +442,15 @@ class SvLibCfaBuilder {
         }
         case SvLibSetInfoCommand pSvLibSetInfoCommand -> {
           // we ignore set-info commands for now
+        }
+        case SmtLibDefineFunCommand pSmtLibDefineFunCommand -> {
+          smtLibCommandsBuilder.add(pSmtLibDefineFunCommand);
+        }
+        case SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand -> {
+          smtLibCommandsBuilder.add(pSmtLibDefineFunRecCommand);
+        }
+        case SmtLibDefineFunsRecCommand pSmtLibDefineFunsRecCommand -> {
+          smtLibCommandsBuilder.add(pSmtLibDefineFunsRecCommand);
         }
       }
     }
