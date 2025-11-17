@@ -32,13 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIncorrectTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibInitProcVariablesStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTrace;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceEntryProcedure;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTraceSetGlobalVariable;
@@ -183,36 +181,6 @@ public class CounterexampleToSvLibWitnessExport {
     return Optional.empty();
   }
 
-  private SvLibTraceEntryProcedure handleTraceEntryCall(
-      ConcreteState pConcreteState, SvLibProcedureCallEdge pCallEdge) {
-    SvLibProcedureCallStatement procedureCallStatement = pCallEdge.getFunctionCall();
-
-    // Now build the argument values
-    ImmutableList.Builder<SvLibConstantTerm> argumentValuesBuilder = ImmutableList.builder();
-    for (SvLibTerm argumentExpr : procedureCallStatement.getParameterExpressions()) {
-      if (argumentExpr instanceof SvLibIdTerm pIdTerm
-          && pIdTerm.getDeclaration() instanceof SvLibVariableDeclaration varDecl) {
-        Optional<SvLibConstantTerm> argValue =
-            getValue(pConcreteState, varDecl.getName(), null, varDecl.getType());
-        if (argValue.isPresent()) {
-          argumentValuesBuilder.add(argValue.orElseThrow());
-        }
-
-      } else if (argumentExpr instanceof SvLibConstantTerm pConstTerm) {
-        argumentValuesBuilder.add(pConstTerm);
-      } else {
-        // More complex expressions are currently not supported.
-        // They would require expression evaluation here.
-        throw new UnsupportedOperationException(
-            "Only ID terms and constant terms are supported as procedure call arguments in SV-LIB"
-                + " witness export.");
-      }
-    }
-
-    return new SvLibTraceEntryProcedure(
-        procedureCallStatement.getProcedureDeclaration(), pCallEdge.getFileLocation());
-  }
-
   // We need to suppress the warnings, because error-prone says that the continue for the BlankEdge
   // is misleading, and when I remove it, IntelliJ complains about an empty if body. So I keep it as
   // is.
@@ -252,7 +220,9 @@ public class CounterexampleToSvLibWitnessExport {
       } else if (inGlobalDeclarationPhase && edge instanceof SvLibProcedureCallEdge pCallEdge) {
         // The first procedure call edge is the entry call.
         inGlobalDeclarationPhase = false;
-        entryCall = handleTraceEntryCall(concreteState, pCallEdge);
+        entryCall =
+            new SvLibTraceEntryProcedure(
+                pCallEdge.getFunctionCall().getProcedureDeclaration(), pCallEdge.getFileLocation());
         stepsBuilder.add(
             setLocalVariablesForFunctionCall(
                 concreteState, pCallEdge.getFunctionCall().getProcedureDeclaration()));
