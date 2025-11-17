@@ -101,8 +101,8 @@ public class CSourceOriginMapping {
    */
   public CodePosition getOriginLineFromAnalysisCodeLine(
       Path pAnalysisFileName, int pAnalysisCodeLine) {
-    Path normalizedPath = normalizePathForLookup(pAnalysisFileName);
-    RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedPath);
+    RangeMap<Integer, CodePosition> fileMapping =
+        mapping.get(normalizePathForLookup(pAnalysisFileName));
 
     if (fileMapping != null) {
       CodePosition originFileAndLineDelta = fileMapping.get(pAnalysisCodeLine);
