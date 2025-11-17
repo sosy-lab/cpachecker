@@ -32,8 +32,8 @@ from benchmark import vcloudutil
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
 benchexec.tools.__path__ = [
-    os.path.join(os.path.dirname(__file__), "benchmark", "tools")
-] + benchexec.tools.__path__
+                               os.path.join(os.path.dirname(__file__), "benchmark", "tools")
+                           ] + benchexec.tools.__path__
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -101,6 +101,9 @@ class Benchmark(VcloudBenchmarkBase):
         return "--" + pname
 
     def load_executor(self):
+        if hasattr(self.config, "container") and self.config.container is False:
+            logging.warning("[deprecated] --no-container is ignored: Worker always uses container mode.")
+
         webclient = False
         if getpass.getuser() == "root":
             logging.warning(
@@ -143,12 +146,12 @@ class Benchmark(VcloudBenchmarkBase):
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
                     if (
-                        os.path.exists(build_file)
-                        and subprocess.run(
-                            ["ant", "-q", "jar"],
-                            cwd=base_dir,
-                            shell=vcloudutil.is_windows(),  # noqa: S602
-                        ).returncode
+                            os.path.exists(build_file)
+                            and subprocess.run(
+                        ["ant", "-q", "jar"],
+                        cwd=base_dir,
+                        shell=vcloudutil.is_windows(),  # noqa: S602
+                    ).returncode
                     ):
                         sys.exit(
                             "Failed to build CPAchecker, please fix the build first."
