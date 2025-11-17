@@ -34,7 +34,11 @@ public record SvLibCfaMetadata(
     checkNotNull(tagReferences);
   }
 
-  public Optional<Path> getExportWitnessPath() {
+  // TODO: Currently there is an ongoing discussion on how to handle the witness output path in
+  //  CPAchecker. Once a decision has been made, this method should be adapted accordingly, i.e.,
+  //  either removed or modified to fit the new design.
+  @SuppressWarnings("unused")
+  Optional<Path> getExportWitnessPath() {
     List<SvLibSetOptionCommand> witnessOutputChannelCommands =
         FluentIterable.from(smtLibCommands)
             .filter(SvLibSetOptionCommand.class)

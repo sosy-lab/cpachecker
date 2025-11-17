@@ -150,7 +150,7 @@ public class ARGStatistics implements Statistics {
               + "In case this happens, the option "
               + "will be overriden by the one from the program, and this option ignored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path svLibCorrectnessWitnessPath = null;
+  private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
 
   // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
   // deactivate it in the configs, since when it is 'null' the default value is used, which is not
@@ -272,10 +272,8 @@ public class ARGStatistics implements Statistics {
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
-    if (svLibMetadata.isPresent() && svLibMetadata.orElseThrow().exportCorrectnessWitness()) {
+    if (svLibMetadata.isPresent()) {
       argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
-      svLibCorrectnessWitnessPath =
-          svLibMetadata.orElseThrow().getExportWitnessPath().orElse(svLibCorrectnessWitnessPath);
     } else {
       // We do not have SV-LIB metadata, or do not want to export witnesses
       argToSvLibWitnessWriter = null;

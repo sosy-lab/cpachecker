@@ -100,10 +100,20 @@ public class CPAcheckerTest {
     result.assertIsSafe();
   }
 
+  private Configuration svLibConfigWithWitnessOutput(Path witnessOutputPath)
+      throws InvalidConfigurationException, IOException {
+    return Configuration.builder()
+        .copyFrom(getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib))
+        .setOption("output.path", witnessOutputPath.getParent().toString())
+        .setOption("counterexample.export.svlib", witnessOutputPath.getFileName().toString())
+        .setOption("cpa.arg.svLibCorrectnessWitness", witnessOutputPath.getFileName().toString())
+        .build();
+  }
+
   @Test
   public void testWitnessExportForSafeSvLibProgram() throws Exception {
-    Configuration config =
-        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
+    Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
     TestResults result = CPATestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -124,24 +134,20 @@ public class CPAcheckerTest {
             + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness export should be enabled");
 
-    Optional<Path> witnessPath = svLibCfaMetadata.getExportWitnessPath();
     Verify.verify(
-        witnessPath.isPresent(),
+        Files.exists(witnessOutputPath),
         "For the safe SV-LIB program '"
             + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness path should be present after exporting the witness");
 
     // Read entire file content as a single string (UTF-8)
     // This is safe to do, since the witness files are small.
-    String content = Files.readString(witnessPath.orElseThrow());
+    String content = Files.readString(witnessOutputPath);
     Verify.verify(
         content.contains(":invariant"), "The witness should contain at least one invariant.");
     Verify.verify(
         content.contains("(annotate-tag"),
         "The witness should contain at least one annotate-tag command.");
-
-    // TODO: Should we cleanup after the test by deleting the witness file?
-    //      The other tests do not do this either, so for consistency we leave it as is for now.
   }
 
   @Test
@@ -157,8 +163,8 @@ public class CPAcheckerTest {
 
   @Test
   public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
-    Configuration config =
-        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
+    Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
     TestResults result = CPATestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -179,21 +185,17 @@ public class CPAcheckerTest {
             + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness export should be enabled");
 
-    Optional<Path> witnessPath = svLibCfaMetadata.getExportWitnessPath();
     Verify.verify(
-        witnessPath.isPresent(),
+        Files.exists(witnessOutputPath),
         "For the safe SV-LIB program '"
             + SAFE_LOOP_PROGRAM_SvLib
             + "', the witness path should be present after exporting the witness");
 
     // Read entire file content as a single string (UTF-8)
     // This is safe to do, since the witness files are small.
-    String content = Files.readString(witnessPath.orElseThrow());
+    String content = Files.readString(witnessOutputPath);
 
     Verify.verify(content.contains("(select-trace"), "The witness should contain an error-path.");
-
-    // TODO: Should we cleanup after the test by deleting the witness file?
-    //      The other tests do not do this either, so for consistency we leave it as is for now.
   }
 
   @Test

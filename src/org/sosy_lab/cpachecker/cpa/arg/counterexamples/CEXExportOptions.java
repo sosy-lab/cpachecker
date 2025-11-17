@@ -123,7 +123,7 @@ public final class CEXExportOptions {
               + "In case this happens, the option "
               + "will be overriden by the one from the program, and this option ignored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path svLibViolationWitnessPath = null;
+  private Path svLibViolationWitnessPath = Path.of("witness.svlib");
 
   @Option(
       secure = true,

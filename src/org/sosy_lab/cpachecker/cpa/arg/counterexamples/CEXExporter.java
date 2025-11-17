@@ -139,12 +139,8 @@ public class CEXExporter {
     cfa = pCFA;
 
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
-    if (svLibMetadata.isPresent() && svLibMetadata.orElseThrow().exportViolationWitness()) {
-      svLibWitnessOutputPath =
-          svLibMetadata
-              .orElseThrow()
-              .getExportWitnessPath()
-              .orElse(options.getSvLibViolationWitnessPath());
+    if (svLibMetadata.isPresent()) {
+      svLibWitnessOutputPath = options.getSvLibViolationWitnessPath();
       cexToSvLibWitness = new CounterexampleToSvLibWitnessExport(pLogger, pCFA);
     } else {
       // We do not have SV-LIB metadata, or do not want to export witnesses
@@ -203,8 +199,10 @@ public class CEXExporter {
     checkNotNull(targetState);
     checkNotNull(counterexample);
 
-    // Now export the violation witnesses for SV-LIB program
-    // SV-LIB witnesses have their own export behavior, which overrides CPAchecker settings
+    if (options.disabledCompletely()) {
+      return;
+    }
+
     if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
       List<SvLibCommand> witnessCommands =
           cexToSvLibWitness.generateWitnessCommands(counterexample);
@@ -221,10 +219,6 @@ public class CEXExporter {
                 + svLibWitnessOutputPath
                 + ". Therefore no SV-LIB witness will be exported.");
       }
-    }
-
-    if (options.disabledCompletely()) {
-      return;
     }
 
     if (exportFaults
