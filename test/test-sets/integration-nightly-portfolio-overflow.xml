@@ -69,4 +69,18 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     </tasks>
 
+  <tasks name="Overflow-Simple">
+    <includesfile>../programs/simple/overflow/overflow.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <!-- Some tasks in this set use malloc -->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="OverflowWithPointers-Simple">
+    <includesfile>../programs/simple/overflow/overflowWithPointers.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <!-- Some tasks in this set use malloc -->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">overflow.trackPointers=true</option>
+  </tasks>
+
 </benchmark>
