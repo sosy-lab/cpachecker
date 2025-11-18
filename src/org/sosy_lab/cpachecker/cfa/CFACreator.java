@@ -135,10 +135,14 @@ public class CFACreator {
       secure = true,
       name = "parser.usePreprocessor",
       description =
-          "For C files, run the preprocessor on them before parsing. Note that all line numbers"
+          "For C files, run an external preprocessor on them before parsing. Note that all line numbers"
               + " printed by CPAchecker will refer to the pre-processed file, not the original"
               + " input file. In case auto detection is enabled, the preprocessor will only be used"
-              + " in case the program contains system headers.")
+              + " in case the program contains system headers. "
+              + "Furthermore, note that this option only enables an external pre-processor for C files, "
+              + "whose primary responsibility is resolving system headers and includes."
+              + "We always make use of the built-in pre-processor of the Eclipse CDT parser, "
+              + "which already handles macros and comments.")
   private PreprocessorUsage usePreprocessor = PreprocessorUsage.AUTO;
 
   @Option(
