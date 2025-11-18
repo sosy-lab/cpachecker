@@ -273,7 +273,7 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException(
+            throw new CParsingFailureRequiringPreprocessingException(
                 "File includes system headers, either preprocess it manually or specify"
                     + " --preprocess.");
           } else {

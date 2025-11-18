@@ -4767,10 +4767,16 @@ parser.transformTokensToLines = false
 # the LLVM parser (currently unsupported).
 parser.useClang = false
 
-# For C files, run the preprocessor on them before parsing. Note that all
-# line numbers printed by CPAchecker will refer to the pre-processed file,
-# not the original input file.
-parser.usePreprocessor = false
+# For C files, run an external preprocessor on them before parsing. Note that
+# all line numbers printed by CPAchecker will refer to the pre-processed
+# file, not the original input file. In case auto detection is enabled, the
+# preprocessor will only be used in case the program contains system headers.
+# Furthermore, note that this option only enables an external pre-processor
+# for C files, whose primary responsibility is resolving system headers and
+# includes.We always make use of the built-in pre-processor of the Eclipse
+# CDT parser, which already handles macros and comments.
+parser.usePreprocessor = AUTO
+  enum:     [FALSE, TRUE, AUTO]
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
