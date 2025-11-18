@@ -479,7 +479,7 @@ public class CFACreator {
    *     configuration is not found.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseSourceAndCreateCFA(String program)
+  public ImmutableCFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
@@ -488,9 +488,7 @@ public class CFACreator {
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction);
-
-      return cfa;
+      return createCFA(parseResult, mainFunction);
     } finally {
       stats.totalTime.stop();
     }
@@ -590,7 +588,7 @@ public class CFACreator {
                 "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
+  private ImmutableCFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
       throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
