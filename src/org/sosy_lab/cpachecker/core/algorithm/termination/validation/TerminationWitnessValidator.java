@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -158,7 +159,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
-    ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
+    ImmutableListMultimap<LoopStructure.Loop, BooleanFormula> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
     ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
         joinAllPrevDeclarationMaps(invariants);
@@ -184,10 +185,6 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
-      if (!loopsToSupportingInvariants.containsKey(loop)) {
-        // The loop is not reachable due to prunning in CFA construction
-        supportingInvariants = ImmutableList.of();
-      }
       if (!checkWithInfiniteSpace && hasPotentialInfiniteSpace(invariant)) {
         throw new CPAException("The configuration does not support infinite state spaces.");
       }
@@ -235,12 +232,8 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   private boolean hasSupportingInvariants(
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>>
-          pLoopsToSupportingInvariants) {
-    return !pLoopsToSupportingInvariants.entrySet().stream()
-        .filter(e -> !e.getValue().isEmpty())
-        .toList()
-        .isEmpty();
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants) {
+    return !pLoopsToSupportingInvariants.keys().isEmpty();
   }
 
   private ReachedSet checkSupportingInvariants() throws CPAException {
@@ -303,16 +296,14 @@ public class TerminationWitnessValidator implements Algorithm {
     return finalMap.buildOrThrow();
   }
 
-  private ImmutableMap<Loop, ImmutableList<BooleanFormula>> mapSupportingInvariantsToLoops(
+  private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder =
-        new ImmutableMap.Builder<>();
+    ImmutableListMultimap.Builder<Loop, BooleanFormula> builder =
+        new ImmutableListMultimap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
-      ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
-      boolean isTrivial = true;
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
           if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
@@ -322,16 +313,12 @@ public class TerminationWitnessValidator implements Algorithm {
             } catch (CPATransferException e) {
               invariantFormula = bfmgr.makeTrue();
             }
-            isTrivial = false;
-            builder1.add(invariantFormula);
+            builder.put(loop, invariantFormula);
           }
         }
       }
-      if (!isTrivial) {
-        builder.put(loop, builder1.build());
-      }
     }
-    return builder.buildOrThrow();
+    return builder.build();
   }
 
   private ImmutableMap<LoopStructure.Loop, BooleanFormula> mapTransitionInvariantsToLoops(
@@ -396,7 +383,7 @@ public class TerminationWitnessValidator implements Algorithm {
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants,
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula =
@@ -465,7 +452,7 @@ public class TerminationWitnessValidator implements Algorithm {
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants,
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws InterruptedException, CPATransferException {
     if (!isCandidateInvariantTransitionInvariant(
@@ -520,7 +507,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<CFANode> pLoopHeads,
       int pInitialSSAIndex,
-      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> pLoopsToSupportingInvariants)
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
     for (CFAEdge edge : pEdges) {
