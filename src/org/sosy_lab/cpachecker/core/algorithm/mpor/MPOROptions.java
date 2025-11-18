@@ -527,7 +527,7 @@ public class MPOROptions {
   }
 
   public boolean validateNoBackwardGoto() {
-    return noBackwardGoto;
+    return validateNoBackwardGoto;
   }
 
   public boolean validateParse() {

@@ -37,7 +37,7 @@ public record ProgramCounterVariables(
   }
 
   public CBinaryExpression getThreadActiveExpression(int pThreadId) {
-    return threadInactiveExpressions.get(pThreadId);
+    return threadActiveExpressions.get(pThreadId);
   }
 
   public CBinaryExpression getThreadInactiveExpression(int pThreadId) {
