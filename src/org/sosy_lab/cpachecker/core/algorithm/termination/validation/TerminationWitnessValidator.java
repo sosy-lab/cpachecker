@@ -209,8 +209,8 @@ public class TerminationWitnessValidator implements Algorithm {
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
-      // Our termination analysis might be unsound with respect to C semantics because it assumes
-      // infinite state space.
+      // Our termination analysis might be unsound with respect to C semantics because it uses an
+      // unsound overapproximation of mathematical integers.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
@@ -261,7 +261,7 @@ public class TerminationWitnessValidator implements Algorithm {
               .configuration();
       Specification invariantSpec =
           Specification.fromFiles(
-              Arrays.asList(Path.of(invariantsSpecPath.toString()), witnessPath),
+              ImmutableList.of(Path.of(invariantsSpecPath.toString()), witnessPath),
               cfa,
               generationConfig,
               logger,
