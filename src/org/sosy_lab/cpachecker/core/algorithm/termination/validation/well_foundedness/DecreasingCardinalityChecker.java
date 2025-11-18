@@ -263,10 +263,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   }
 
   /**
-   * Collects all the variables without the __PREV suffix.
+   * Collects all the previous variables.
    *
    * @param pFormula containing all the variables
-   * @return List of the variables without __PREV suffix.
+   * @return List of the previous variables.
    */
   private ImmutableList<Formula> collectAllCurrVariables(
       Formula pFormula,
