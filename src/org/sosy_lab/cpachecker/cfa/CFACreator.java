@@ -479,7 +479,7 @@ public class CFACreator {
    *     configuration is not found.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseSourceAndCreateCFA(String program)
+  public ImmutableCFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
@@ -488,9 +488,7 @@ public class CFACreator {
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction);
-
-      return cfa;
+      return createCFA(parseResult, mainFunction);
     } finally {
       stats.totalTime.stop();
     }
@@ -506,7 +504,7 @@ public class CFACreator {
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
+  public ImmutableCFA parseFileAndCreateCFA(List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(
@@ -532,7 +530,7 @@ public class CFACreator {
         default -> throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction);
+      ImmutableCFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
         SyntacticBlockStructureBuilder blockStructureBuilder =
@@ -590,7 +588,7 @@ public class CFACreator {
                 "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
+  private ImmutableCFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
       throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
