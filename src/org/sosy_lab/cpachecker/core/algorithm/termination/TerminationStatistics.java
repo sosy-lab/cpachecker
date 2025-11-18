@@ -490,7 +490,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       try {
         terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
-        logger.log(SEVERE, "There is a problem reading the task meta-data.");
+        logger.logUserException(WARNING, e, "There is a problem when writing the witness into a file.");
       }
     }
   }
