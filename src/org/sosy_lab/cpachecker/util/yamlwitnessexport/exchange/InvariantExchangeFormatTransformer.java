@@ -153,7 +153,7 @@ public class InvariantExchangeFormatTransformer {
 
     while (matcher.find()) {
       String variable = matcher.group(1);
-      matcher.appendReplacement(result, variable + "__PREV");
+      matcher.appendReplacement(result, "__CPACHECKER_" + variable + "__PREV");
     }
     matcher.appendTail(result);
     invariantString = result.toString().replace("\\", "");
@@ -188,7 +188,7 @@ public class InvariantExchangeFormatTransformer {
       if (currDeclaration == null) {
         continue;
       }
-      prevVariable = prevVariable + "__PREV";
+      prevVariable = "__CPACHECKER_" + prevVariable + "__PREV";
 
       CDeclaration prevDeclaration =
           new CVariableDeclaration(
