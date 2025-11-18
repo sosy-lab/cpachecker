@@ -63,7 +63,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   // The function replaces variable names with annotation \at(..., AnyPrev), i.e. x -> \at(x,
-  // AnyPrev)
+  // AnyPrev) and casts them into a larger type
   private String wrapTheVariablesWithAtAnyPrev(
       String pRankingFunction, Iterable<IProgramVar> pVars) {
     for (IProgramVar var : pVars) {
