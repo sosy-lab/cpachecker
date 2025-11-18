@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -80,12 +79,12 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
               lineToSeenInvariants.get(position).add(lookupKey);
             }
 
-            // The checks for the entries that contain unsupported entries is done as part of the
-            // 2.0 construction
+            // The parsing of normal invariants is done in the parser of 2.0 which is called in the
+            // beginning of this method
             if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
               ExpressionTree<AExpression> transitionInvariant =
                   transformer.parseInvariantEntry(invariantEntry);
-              
+
               Optional<IterationElement> optionalIterationStructure =
                   astCfaRelation.getIterationStructureStartingAtColumn(column, line);
 
