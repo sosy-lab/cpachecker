@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -15,10 +16,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -285,17 +284,13 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinAllPrevDeclarationMaps(
-      Set<ExpressionTreeLocationInvariant> pInvariants) {
-    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> finalMap = ImmutableMap.builder();
-    for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-      if (invariant instanceof ExpressionTreeLocationTransitionInvariant pTransitionInvariant) {
-        for (Entry<CSimpleDeclaration, CSimpleDeclaration> declaration :
-            pTransitionInvariant.getMapPrevVarsToCurrent().entrySet()) {
-          finalMap.put(declaration);
-        }
-      }
-    }
-    return finalMap.buildOrThrow();
+      Set<ExpressionTreeLocationInvariant> invariants) {
+
+    return FluentIterable.from(invariants).stream()
+        .filter(invariant -> invariant instanceof ExpressionTreeLocationTransitionInvariant)
+        .map(ExpressionTreeLocationTransitionInvariant.class::cast)
+        .flatMap(inv -> inv.getMapPrevVarsToCurrent().entrySet().stream())
+        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
