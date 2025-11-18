@@ -104,8 +104,8 @@ public class TransitionInvariantUtils {
    * differently.
    *
    * @param pFormula given on input
-   * @param prevIndex to which should the __PREV variables be instantiated
-   * @param currIndex to which should the normal variables be instantiated
+   * @param prevStateIndex to which should the __PREV variables be instantiated
+   * @param currStateIndex to which should the normal variables be instantiated
    * @return instantiated ssaMap
    */
   public static SSAMap setIndicesToDifferentValues(
