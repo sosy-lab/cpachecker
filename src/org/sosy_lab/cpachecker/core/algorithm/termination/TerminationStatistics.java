@@ -126,7 +126,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @Option(
       secure = true,
       name = "violation.witness.graphml",
-      deprecatedName = "violation.witness",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
