@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -154,9 +153,9 @@ public class MPOROptions {
       secure = true,
       description =
           "the file name for the sequentialization and metadata. uses the first input file name as"
-              + " default.")
+              + " the default prefix.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate outputPath = PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "%s");
+  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
 
   @Option(secure = true, description = "export the sequentialized program in a .i file?")
   private boolean outputProgram = true;

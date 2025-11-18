@@ -354,8 +354,8 @@ analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables = false
 analysis.algorithm.MPOR.outputMetadata = true
 
 # the file name for the sequentialization and metadata. uses the first input
-# file name as default.
-analysis.algorithm.MPOR.outputPath = SeqToken.MPOR_PREFIX + "%s"
+# file name as the default prefix.
+analysis.algorithm.MPOR.outputPath = "%s-sequentialized"
 
 # export the sequentialized program in a .i file?
 analysis.algorithm.MPOR.outputProgram = true
