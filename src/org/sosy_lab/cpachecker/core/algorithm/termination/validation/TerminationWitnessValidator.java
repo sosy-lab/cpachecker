@@ -78,7 +78,11 @@ public class TerminationWitnessValidator implements Algorithm {
   @Option(
       secure = true,
       name = "checkWithInfiniteSpace",
-      description = "toggle to assume possible infinite state space in transition invariant")
+      description =
+          "This option can be set to run an analysis that supports infinite state spaces of"
+              + " programs.The analysis will automatically run the ImplicitRankingChecker to check"
+              + " the well-foundedness of an invariant.If the option is not set, then such analysis"
+              + " is ran only if the infinite state space is detected.")
   private boolean checkWithInfiniteSpace = false;
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
@@ -123,7 +127,7 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    
+
     if (pWitnessPath.size() != 1) {
       throw new InvalidConfigurationException(
           "Expected exactly one correctness witness as input of the algorithm.");
