@@ -56,6 +56,7 @@ public class InvariantExchangeFormatTransformer {
   private final LogManager logger;
 
   private final String AT_ANY_PREV_PATTERN = "\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)";
+  private final int PREV_VARS_GROUP_INDEX = 1;
 
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -154,7 +155,7 @@ public class InvariantExchangeFormatTransformer {
     StringBuilder result = new StringBuilder();
 
     while (matcher.find()) {
-      String variable = matcher.group(1);
+      String variable = matcher.group(PREV_VARS_GROUP_INDEX);
       matcher.appendReplacement(result, "__CPACHECKER_" + variable + "__PREV");
     }
     matcher.appendTail(result);
@@ -185,7 +186,7 @@ public class InvariantExchangeFormatTransformer {
         };
 
     while (matcher.find()) {
-      String prevVariable = matcher.group(1);
+      String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
       CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
       if (currDeclaration == null) {
         continue;
