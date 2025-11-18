@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -490,7 +489,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       try {
         terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
-        logger.logUserException(WARNING, e, "There is a problem when writing the witness into a file.");
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
       }
     }
   }

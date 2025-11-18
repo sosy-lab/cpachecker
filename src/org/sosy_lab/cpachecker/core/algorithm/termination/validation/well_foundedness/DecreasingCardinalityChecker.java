@@ -71,7 +71,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
   /**
    * This method checks whether one concrete subformula from transition invariant is well-founded.
-   * It does it using the check T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧
+   * In the following, the transition invariant is T and, the conjunction of its supporting
+   * invariants is denoted with I. The high-level idea is to check that for every two states s,s',
+   * for which there is a transition with respect to T, we have to find another state s1, that is
+   * in-between. This means that we can get from s to s1 but not from s' to s1. Moreover, all the
+   * reachable states from s with respect to T, must be also reachable from s'. We denote these by
+   * s2. The check is then T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧
    * [∀s2.T(s',s2) ∧ I(s2) => T(s,s2)] If this holds, it means that the number of states reachable
    * from s is decreasing. In other words, the cardinality of the set of reachable states is rank
    * for every state.
