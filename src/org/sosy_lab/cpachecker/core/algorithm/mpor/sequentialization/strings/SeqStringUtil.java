@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -74,7 +72,7 @@ public class SeqStringUtil {
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (pOptions.loopUnrolling()) {
           // with loop unrolling enabled, always return to main()
-          yield SeqToken.RETURN_KEYWORD + SeqSyntax.SEMICOLON;
+          yield "return" + SeqSyntax.SEMICOLON;
         }
         if (pOptions.isThreadLabelRequired()) {
           // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
@@ -83,10 +81,10 @@ public class SeqStringUtil {
             yield gotoStatement.toASTString();
           }
         }
-        yield SeqToken.CONTINUE_KEYWORD + SeqSyntax.SEMICOLON;
+        yield "continue" + SeqSyntax.SEMICOLON;
       }
       // it is best to always use break; for switch cases, tests showed it is more efficient
-      case SWITCH_CASE -> SeqToken.BREAK_KEYWORD + SeqSyntax.SEMICOLON;
+      case SWITCH_CASE -> "break" + SeqSyntax.SEMICOLON;
     };
   }
 
@@ -105,12 +103,6 @@ public class SeqStringUtil {
   /** Returns "(pString)" */
   public static String wrapInBrackets(String pString) {
     return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
-  }
-
-  /** Returns "} pString {" */
-  public static String wrapInCurlyBracketsOutwards(String pString) {
-    return Joiner.on(SeqSyntax.SPACE)
-        .join(SeqSyntax.CURLY_BRACKET_RIGHT, pString, SeqSyntax.CURLY_BRACKET_LEFT);
   }
 
   /** Returns "pString {" */

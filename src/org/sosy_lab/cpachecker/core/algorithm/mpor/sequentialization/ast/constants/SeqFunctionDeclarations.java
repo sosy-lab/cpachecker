@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqFunctionDeclarations {
 
@@ -23,7 +22,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ABORT,
-          SeqToken.ABORT_FUNCTION_NAME,
+          "abort",
           ImmutableList.of(),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
@@ -47,7 +46,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.REACH_ERROR,
-          SeqToken.REACH_ERROR_FUNCTION_NAME,
+          SeqNameUtil.REACH_ERROR_FUNCTION_NAME,
           ImmutableList.of(
               SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
               SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
@@ -58,7 +57,7 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ASSERT_FAIL,
-          SeqToken.ASSERT_FAIL_FUNCTION_NAME,
+          "__assert_fail",
           ImmutableList.of(
               SeqParameterDeclarations.ASSERTION_PARAMETER_ASSERT_FAIL,
               SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
@@ -70,23 +69,19 @@ public class SeqFunctionDeclarations {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.ASSUME,
-          SeqNameUtil.buildFunctionName(SeqToken.ASSUME_FUNCTION_NAME),
+          "__MPOR__assume",
           ImmutableList.of(SeqParameterDeclarations.COND_PARAMETER_ASSUME),
           ImmutableSet.of());
 
   public static final CFunctionDeclaration MAIN =
       new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.MAIN,
-          SeqToken.MAIN_FUNCTION_KEYWORD,
-          ImmutableList.of(),
-          ImmutableSet.of());
+          FileLocation.DUMMY, SeqFunctionTypes.MAIN, "main", ImmutableList.of(), ImmutableSet.of());
 
   public static final CFunctionDeclaration MALLOC =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.MALLOC,
-          SeqToken.MALLOC_FUNCTION_KEYWORD,
+          "malloc",
           ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
           ImmutableSet.of());
 }

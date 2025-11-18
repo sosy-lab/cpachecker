@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -94,9 +95,11 @@ public class SeqExpressionBuilder {
     return new CIdExpression(FileLocation.DUMMY, pDeclaration);
   }
 
-  public static CIdExpression buildThreadSimulationFunctionIdExpression(int pThreadId) {
+  public static CIdExpression buildThreadSimulationFunctionIdExpression(
+      MPOROptions pOptions, int pThreadId) {
+
     CFunctionDeclaration functionDeclaration =
-        SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pThreadId);
+        SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pOptions, pThreadId);
     return SeqExpressionBuilder.buildIdExpression(functionDeclaration);
   }
 

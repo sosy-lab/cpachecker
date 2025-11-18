@@ -38,7 +38,7 @@ public class SeqFunctionBuilder {
       String threadSimulation =
           NondeterministicSimulationUtil.buildSingleThreadSimulationByNondeterminismSource(
               pOptions, pGhostElements, thread, otherThreads, pClauses, pUtils);
-      rFunctions.add(new SeqThreadSimulationFunction(threadSimulation, thread));
+      rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
     }
     return rFunctions.build();
   }

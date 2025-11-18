@@ -11,16 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqGotoStatement(SeqLabelStatement label) implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return SeqToken.GOTO_KEYWORD
-        + SeqSyntax.SPACE
-        + label.toASTStringWithoutColon()
-        + SeqSyntax.SEMICOLON;
+    return "goto" + SeqSyntax.SPACE + label.toASTStringWithoutColon() + SeqSyntax.SEMICOLON;
   }
 }

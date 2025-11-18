@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqDeclarationBuilder {
 
@@ -59,9 +58,11 @@ public class SeqDeclarationBuilder {
         SeqInitializers.INT_0);
   }
 
-  public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
+  public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(
+      MPOROptions pOptions, int pThreadId) {
+
     CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildFunctionName(SeqToken.THREAD + pThreadId);
+    String functionName = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId) + "_sequentialized";
     return buildFunctionDeclarationWithoutParameters(functionType, functionName);
   }
 

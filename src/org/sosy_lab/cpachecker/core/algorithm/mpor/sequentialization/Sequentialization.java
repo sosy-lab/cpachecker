@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -31,9 +30,11 @@ public class Sequentialization {
               + " equivalent",
           "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
 
+  private static final String PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME = "__PRETTY_FUNCTION__";
+
   public static final String inputReachErrorDummy =
       SeqExpressionBuilder.buildReachError(
-                  SeqToken.FILE_NAME_PLACEHOLDER, -1, SeqToken.PRETTY_FUNCTION_KEYWORD)
+                  "__FILE_NAME_PLACEHOLDER__", -1, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME)
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
@@ -155,7 +156,7 @@ public class Sequentialization {
       // reach_error calls from the input program
       CFunctionCallExpression reachErrorCall =
           SeqExpressionBuilder.buildReachError(
-              pInputFileName, pLineNumber, SeqToken.PRETTY_FUNCTION_KEYWORD);
+              pInputFileName, pLineNumber, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
       return pLineOfCode.replace(
           inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
     }

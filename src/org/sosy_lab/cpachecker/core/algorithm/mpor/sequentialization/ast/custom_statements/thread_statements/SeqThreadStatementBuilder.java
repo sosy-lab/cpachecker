@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
@@ -496,7 +496,7 @@ public record SeqThreadStatementBuilder(
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
       return true;
 
-    } else if (pSuccessor.getFunctionName().equals(SeqToken.REACH_ERROR_FUNCTION_NAME)) {
+    } else if (pSuccessor.getFunctionName().equals(SeqNameUtil.REACH_ERROR_FUNCTION_NAME)) {
       // if we enter reach_error, include only call edge (to inject reach_error)
       return !(pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge);
 

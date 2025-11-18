@@ -285,7 +285,7 @@ public class SequentializationBuilder {
     if (pOptions.loopUnrolling()) {
       for (MPORThread thread : pFields.threads) {
         CFunctionDeclaration threadSimulationFunctionDeclaration =
-            SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(thread.id());
+            SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pOptions, thread.id());
         rDeclarations.add(threadSimulationFunctionDeclaration.toASTString());
       }
     }

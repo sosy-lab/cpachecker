@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -80,7 +81,7 @@ public record ThreadSyncFlagsBuilder(
     ImmutableMap.Builder<CIdExpression, CondSignaledFlag> rCondSignaledFlags =
         ImmutableMap.builder();
     for (CIdExpression condExpression : pCondExpressions) {
-      String varName = SeqNameUtil.buildCondSignaledName(condExpression.getName());
+      String varName = buildCondSignaledName(condExpression.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression condSignaled =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -104,7 +105,7 @@ public record ThreadSyncFlagsBuilder(
 
     ImmutableMap.Builder<CIdExpression, MutexLockedFlag> rMutexLockedFlags = ImmutableMap.builder();
     for (CIdExpression mutexExpression : pMutexExpressions) {
-      String varName = SeqNameUtil.buildMutexLockedName(mutexExpression.getName());
+      String varName = buildMutexLockedName(mutexExpression.getName());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression mutexLocked =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -128,8 +129,8 @@ public record ThreadSyncFlagsBuilder(
     ImmutableMap.Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags =
         ImmutableMap.builder();
     for (CIdExpression rwLockExpression : pRwLockExpressions) {
-      String readersVarName = SeqNameUtil.buildRwLockReadersName(rwLockExpression.getName());
-      String writersVarName = SeqNameUtil.buildRwLockWritersName(rwLockExpression.getName());
+      String readersVarName = buildRwLockReadersName(rwLockExpression.getName());
+      String writersVarName = buildRwLockWritersName(rwLockExpression.getName());
       // use int (32 bit), we increment the READERS flag for every rdlock
       CIdExpression readersIdExpression =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -178,7 +179,25 @@ public record ThreadSyncFlagsBuilder(
     return rSyncFlags.buildOrThrow();
   }
 
+  // Name Utility ==================================================================================
+
+  private static String buildCondSignaledName(String pCondName) {
+    return pCondName + SeqSyntax.UNDERSCORE + "SIGNALED";
+  }
+
+  private static String buildMutexLockedName(String pMutexName) {
+    return pMutexName + SeqSyntax.UNDERSCORE + "LOCKED";
+  }
+
+  private static String buildRwLockReadersName(String pRwLockName) {
+    return pRwLockName + SeqSyntax.UNDERSCORE + "NUM_READERS";
+  }
+
+  private static String buildRwLockWritersName(String pRwLockName) {
+    return pRwLockName + SeqSyntax.UNDERSCORE + "NUM_WRITERS";
+  }
+
   private String buildSyncVariableName(int pThreadId) {
-    return SeqNameUtil.buildThreadPrefix(options, pThreadId) + "_SYNC";
+    return SeqNameUtil.buildThreadPrefix(options, pThreadId) + SeqSyntax.UNDERSCORE + "SYNC";
   }
 }
