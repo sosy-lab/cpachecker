@@ -105,7 +105,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     String varDeclaration;
     for (AbstractSimpleDeclaration variable :
         cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow()) {
-      varDeclaration = variable.toString();
+      varDeclaration = variable.toASTString();
       if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType) {
         continue;
       }
