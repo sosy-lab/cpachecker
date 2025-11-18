@@ -8,8 +8,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import os
 import sys
+import os
 from lxml import etree
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
@@ -78,7 +78,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     if yaml_witness:
         witness_file += "${taskdef_name}/output/witness.yml"
     else:
-        witness_file += "${taskdef_name}/output/witness.graphml"
+        witness_file += "${taskdef_name}/output/witness.graphml.gz"
     witness_path = "test/results/" + witness_file
     test_dir = _get_test_directory()
     rundef.set("name", "witnessValidation")
