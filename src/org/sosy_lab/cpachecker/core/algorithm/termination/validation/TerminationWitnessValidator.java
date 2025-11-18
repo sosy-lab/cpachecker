@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -112,7 +111,8 @@ public class TerminationWitnessValidator implements Algorithm {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     if (!cfa.getLanguage().equals(Language.C)) {
-      throw new InvalidConfigurationException("The validation of termination witnesses does not support other language than C.");
+      throw new InvalidConfigurationException(
+          "The validation of termination witnesses does not support other language than C.");
     }
     scope = new CProgramScope(cfa, logger);
 

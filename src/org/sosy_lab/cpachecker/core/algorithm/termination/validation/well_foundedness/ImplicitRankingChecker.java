@@ -162,15 +162,15 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
         if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
-          nondetVerifierCall = "__VERIFIER_nondet_"
-              + scope.lookupVariable(variable).getType()
-              + "();";
+          nondetVerifierCall =
+              "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType() + "();";
         } else {
           nondetVerifierCall = "__VERIFIER_nondet_memory();";
         }
         builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
-                + " = " + nondetVerifierCall);
+                + " = "
+                + nondetVerifierCall);
       }
     }
   }
