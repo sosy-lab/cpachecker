@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
@@ -87,13 +85,9 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   private InvariantEntry processSupportingInvariant(
-      SupportingInvariant pSupportingInvariant, CFANode pLoopHead) {
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(pLoopHead);
-    if (iterationStructure.isEmpty()) {
-      return null;
-    }
-    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+      SupportingInvariant pSupportingInvariant, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
+    // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
+    FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
 
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
@@ -111,14 +105,11 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   private InvariantEntry processRankingFunction(
-      Collection<TerminationArgument> pArguments, CFANode pLoopHead) {
+      Collection<TerminationArgument> pArguments, CFANode pLoopHead, CFAEdge pIncomingLoopEdge) {
     List<String> transitionInvariants = new ArrayList<>();
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(pLoopHead);
-    if (iterationStructure.isEmpty()) {
-      return null;
-    }
-    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+
+    // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
+    FileLocation fileLocation = pIncomingLoopEdge.getFileLocation();
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
@@ -166,11 +157,13 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
     for (Loop loop : pTerminationArguments.keySet()) {
       CFANode loopHead = loop.getLoopNodes().getFirst();
+      CFAEdge incomingLoopEdge = loop.getIncomingEdges().stream().findAny().orElseThrow();
       for (TerminationArgument argument : pTerminationArguments.get(loop)) {
         if (exportSupportingInvariants) {
           // First construct reachability invariants that support the termination argument.
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-            entries.add(processSupportingInvariant(supportingInvariant, loopHead));
+            entries.add(
+                processSupportingInvariant(supportingInvariant, loopHead, incomingLoopEdge));
           }
         }
       }
@@ -179,7 +172,8 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
           processRankingFunction(
               collectArgumentsForNestedLoops(
                   loop, pTerminationArguments.keySet(), pTerminationArguments),
-              loopHead));
+              loopHead,
+              incomingLoopEdge));
     }
     exportEntries(
         new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pPath);
