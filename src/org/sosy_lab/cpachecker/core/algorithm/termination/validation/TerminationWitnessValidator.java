@@ -170,8 +170,7 @@ public class TerminationWitnessValidator implements Algorithm {
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
     if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      ReachedSet reachedSet = checkSupportingInvariants();
-      if (reachedSet.wasTargetReached()) {
+      if (areSupportingInvariantsCorrect()) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
@@ -239,7 +238,7 @@ public class TerminationWitnessValidator implements Algorithm {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
   }
 
-  private ReachedSet checkSupportingInvariants() throws CPAException {
+  private boolean areSupportingInvariantsCorrect() throws CPAException {
     try {
       Path invariantsSpecPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
@@ -279,7 +278,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
       // Running the algorithm
       invariantCheckingAlgorithm.run(reachedSet);
-      return reachedSet;
+      return reachedSet.wasTargetReached();
     } catch (Exception e) {
       throw new CPAException(e.toString());
     }
