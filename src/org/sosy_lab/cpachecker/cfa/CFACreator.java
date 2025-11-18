@@ -504,7 +504,7 @@ public class CFACreator {
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
+  public ImmutableCFA parseFileAndCreateCFA(List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(
@@ -530,7 +530,7 @@ public class CFACreator {
         default -> throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction);
+      ImmutableCFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
         SyntacticBlockStructureBuilder blockStructureBuilder =

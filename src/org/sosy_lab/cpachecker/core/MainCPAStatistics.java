@@ -47,8 +47,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -138,7 +138,7 @@ public final class MainCPAStatistics implements Statistics {
   private long analysisCpuTime = 0;
 
   private @Nullable Statistics cfaCreatorStatistics;
-  private @Nullable CFA cfa;
+  private @Nullable ImmutableCFA cfa;
   private @Nullable ConfigurableProgramAnalysis cpa;
 
   public MainCPAStatistics(
@@ -563,7 +563,7 @@ public final class MainCPAStatistics implements Statistics {
     cfaCreatorStatistics = pCfaCreator.getStatistics();
   }
 
-  public void setCFA(CFA pCfa) {
+  public void setCFA(ImmutableCFA pCfa) {
     Preconditions.checkState(cfa == null);
     cfa = pCfa;
   }
