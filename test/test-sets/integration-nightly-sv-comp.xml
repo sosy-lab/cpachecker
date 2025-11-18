@@ -19,7 +19,6 @@ SPDX-License-Identifier: Apache-2.0
   <!-- For real benchmarks, we would use -benchmark, but for tests we want assertions enabled.
        So only disable output files. -->
   <option name="--no-output-files" />
-  <option name="--preprocess"/>
 
   <rundefinition>
     <option name="--svcomp26"/>
