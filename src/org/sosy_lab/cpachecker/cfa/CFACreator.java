@@ -138,7 +138,7 @@ public class CFACreator {
           "For C files, run the preprocessor on them before parsing. Note that all line numbers"
               + " printed by CPAchecker will refer to the pre-processed file, not the original"
               + " input file. In case auto detection is enabled, the preprocessor will only be used"
-              + " in case the parsing without preprocessor fails.")
+              + " in case the program contains system headers.")
   private PreprocessorUsage usePreprocessor = PreprocessorUsage.AUTO;
 
   @Option(
