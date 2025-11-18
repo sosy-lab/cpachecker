@@ -124,7 +124,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     try {
       isWellfounded = solver.isUnsat(wellFoundedness);
     } catch (SolverException e) {
-      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
+      throw new CPAException("Well-Foundedness check failed due to a solver crash!", e);
     }
 
     return isWellfounded;
@@ -358,7 +358,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
         return true;
       }
     } catch (SolverException e) {
-      throw new CPAException("Well-Foundedness check failed due to a solver crash!");
+      throw new CPAException("Well-Foundedness check failed due to a solver crash!", e);
     }
     return false;
   }
