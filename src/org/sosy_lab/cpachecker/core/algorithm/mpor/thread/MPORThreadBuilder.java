@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
@@ -69,7 +70,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    * <p>This functions needs to be called after functionCallMap was initialized so that we can track
    * the calling context of each thread.
    */
-  public ImmutableList<MPORThread> createThreads() {
+  public ImmutableList<MPORThread> createThreads() throws UnsupportedCodeException {
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = cfa.getMainFunction();
@@ -85,7 +86,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   private void recursivelyFindThreadCreations(
-      MPORThread pCurrentThread, List<MPORThread> pFoundThreads) {
+      MPORThread pCurrentThread, List<MPORThread> pFoundThreads) throws UnsupportedCodeException {
 
     for (CFAEdgeForThread threadEdge : pCurrentThread.cfa().threadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -101,7 +102,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           // extract the 3rd parameter of pthread_create which points to the start_routine function
           CFunctionDeclaration startRoutineDeclaration =
               PthreadUtil.extractStartRoutineDeclaration(functionCall);
-          FunctionEntryNode entryNode = getStartRoutineFunctionEntryNode(startRoutineDeclaration);
+          FunctionEntryNode entryNode =
+              getStartRoutineFunctionEntryNode(startRoutineDeclaration, cfaEdge);
           MPORThread newThread =
               createThread(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
           recursivelyFindThreadCreations(newThread, pFoundThreads);
@@ -304,15 +306,28 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   private FunctionEntryNode getStartRoutineFunctionEntryNode(
-      CFunctionDeclaration pStartRoutineDeclaration) {
+      CFunctionDeclaration pStartRoutineDeclaration, CFAEdge pPthreadCreateEdge)
+      throws UnsupportedCodeException {
 
-    Iterable<FunctionEntryNode> functionEntryNodes =
+    FluentIterable<FunctionEntryNode> functionEntryNodes =
         FluentIterable.from(cfa.getAllFunctions().values())
             .filter(
                 functionEntryNode ->
                     Objects.requireNonNull(functionEntryNode)
                         .getFunctionDefinition()
                         .equals(pStartRoutineDeclaration));
+    if (functionEntryNodes.isEmpty()) {
+      throw new UnsupportedCodeException(
+          "Could not find a FunctionEntryNode for start_routine "
+              + pStartRoutineDeclaration.getName(),
+          pPthreadCreateEdge);
+    }
+    if (functionEntryNodes.size() > 1) {
+      throw new UnsupportedCodeException(
+          "Multiple FunctionEntryNodes found for start_routine "
+              + pStartRoutineDeclaration.getName(),
+          pPthreadCreateEdge);
+    }
     return Objects.requireNonNull(Iterables.getOnlyElement(functionEntryNodes));
   }
 }

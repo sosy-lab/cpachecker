@@ -69,7 +69,7 @@ public class InputRejection {
   }
 
   /**
-   * Handles input program rejections and throws an {@link IllegalArgumentException} if the input
+   * Handles input program rejections and throws a {@link UnsupportedCodeException} if the input
    * program...
    *
    * <ul>
@@ -102,14 +102,14 @@ public class InputRejection {
         pCfaEdge);
   }
 
-  private static void checkLanguageC(CFA pInputCfa) {
+  private static void checkLanguageC(CFA pInputCfa) throws UnsupportedCodeException {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      throw new IllegalArgumentException(InputRejectionMessage.LANGUAGE_NOT_C.message);
+      throw new UnsupportedCodeException(InputRejectionMessage.LANGUAGE_NOT_C.message, null);
     }
   }
 
-  private static void checkIsParallelProgram(CFA pInputCfa) {
+  private static void checkIsParallelProgram(CFA pInputCfa) throws UnsupportedCodeException {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
@@ -122,7 +122,7 @@ public class InputRejection {
       }
     }
     if (!isParallel) {
-      throw new IllegalArgumentException(InputRejectionMessage.NOT_CONCURRENT.message);
+      throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
     }
   }
 
@@ -189,32 +189,35 @@ public class InputRejection {
     }
   }
 
-  private static void checkRecursiveFunctions(CFA pInputCfa) {
+  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
     for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
       Optional<FunctionExitNode> exit = entry.getExitNode();
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw new IllegalArgumentException(
+        throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
                 entry.getFunction().getFileLocation().getStartingLineInOrigin(),
-                entry.getFunctionName()));
+                entry.getFunctionName()),
+            null);
       }
     }
   }
 
   /** Public, because checking is done in {@link MPORSubstitution}. */
   public static void checkPointerWrite(
-      boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable) {
+      boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable)
+      throws UnsupportedCodeException {
 
     if (pIsWrite) {
       if (!pOptions.allowPointerWrites()) {
         if (pWrittenVariable.getExpressionType() instanceof CPointerType) {
-          throw new IllegalArgumentException(
+          throw new UnsupportedCodeException(
               String.format(
                   InputRejectionMessage.POINTER_WRITE.formatMessage(),
                   pWrittenVariable.getFileLocation().getStartingLineInOrigin(),
-                  pWrittenVariable.toASTString()));
+                  pWrittenVariable.toASTString()),
+              null);
         }
       }
     }

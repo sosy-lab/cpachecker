@@ -289,8 +289,8 @@ analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
 analysis.algorithm.MPOR.comments = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
-# the number of statements. disabling may result in first statement being
-# unreachable.
+# the number of statements. disabling may result in the first statement being
+# unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # defines the syntax in which the next statement of a thread simulation is

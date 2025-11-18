@@ -34,15 +34,11 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class InputRejectionTest {
 
   /**
-   * Tests if {@link MPORAlgorithm} throws an exception of type {@code pExpectedThrowable} when
-   * invoked with the program in {@code pInputFilePath}.
+   * Tests if {@link MPORAlgorithm} throws a {@link UnsupportedCodeException} when invoked with the
+   * program in {@code pInputFilePath}.
    */
-  private <T extends Throwable> void testExpectedRejection(
-      MPOROptions pOptions,
-      Path pInputFilePath,
-      Class<T> pExpectedThrowable,
-      InputRejectionMessage pExpected)
-      throws Exception {
+  private void testExpectedRejection(
+      MPOROptions pOptions, Path pInputFilePath, InputRejectionMessage pExpected) throws Exception {
 
     // create cfa for test program pFileName
     Configuration testConfig = TestDataTools.configurationForTest().build();
@@ -52,11 +48,11 @@ public class InputRejectionTest {
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
-    T throwable =
+    UnsupportedCodeException unsupportedCodeException =
         assertThrows(
-            pExpectedThrowable,
+            UnsupportedCodeException.class,
             () -> new MPORAlgorithm(testConfig, logger, shutdownNotifier, inputCfa, pOptions));
-    assertThat(throwable.getMessage()).contains(pExpected.message);
+    assertThat(unsupportedCodeException.getMessage()).contains(pExpected.message);
   }
 
   @Test
@@ -75,10 +71,7 @@ public class InputRejectionTest {
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        IllegalArgumentException.class,
-        InputRejectionMessage.NOT_CONCURRENT);
+        MPOROptions.getDefaultTestInstance(), inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
   }
 
   @Test
@@ -89,7 +82,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        UnsupportedCodeException.class,
         InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
@@ -99,7 +91,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        UnsupportedCodeException.class,
         InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
@@ -111,7 +102,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        IllegalArgumentException.class,
         InputRejectionMessage.PTHREAD_RETURN_VALUE);
   }
 
@@ -121,7 +111,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        UnsupportedCodeException.class,
         InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
@@ -131,7 +120,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        IllegalArgumentException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
@@ -141,7 +129,6 @@ public class InputRejectionTest {
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,
-        IllegalArgumentException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
@@ -164,9 +151,9 @@ public class InputRejectionTest {
 
     SequentializationUtils utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
     // test if MPORAlgorithm rejects program with correct error message
-    IllegalArgumentException throwable =
+    UnsupportedCodeException throwable =
         assertThrows(
-            IllegalArgumentException.class,
+            UnsupportedCodeException.class,
             () -> Sequentialization.tryBuildProgramString(customOptions, cfa, "test", utils));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage()).contains(expectedMessage);

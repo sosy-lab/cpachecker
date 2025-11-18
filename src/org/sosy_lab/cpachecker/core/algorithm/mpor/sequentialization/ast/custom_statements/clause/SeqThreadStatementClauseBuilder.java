@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqThreadStatementClauseBuilder(
     MPOROptions options,
@@ -149,7 +150,7 @@ public record SeqThreadStatementClauseBuilder(
 
   /** Builds the case clauses for the single thread {@code pThread}. */
   private ImmutableList<SeqThreadStatementClause> initClauses(
-      MPORThread pThread, Set<CFANodeForThread> pCoveredNodes) {
+      MPORThread pThread, Set<CFANodeForThread> pCoveredNodes) throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
@@ -180,7 +181,8 @@ public record SeqThreadStatementClauseBuilder(
       MPORThread pThread,
       Set<CFANodeForThread> pCoveredNodes,
       CFANodeForThread pThreadNode,
-      SeqThreadStatementBuilder pStatementBuilder) {
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnsupportedCodeException {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -254,24 +256,26 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder) {
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnsupportedCodeException {
 
-    return PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge)
-        .filter(
-            functionCall ->
-                PthreadUtil.isCallToPthreadFunction(
-                    functionCall, PthreadFunctionType.PTHREAD_COND_WAIT))
-        .map(
-            functionCall ->
-                buildCondWaitClauses(
-                    pThread,
-                    pNextThreadLabel,
-                    functionCall,
-                    pSubstituteEdge,
-                    pLabelPc,
-                    pTargetPc,
-                    pStatementBuilder))
-        .orElse(ImmutableList.of());
+    Optional<CFunctionCall> optionalFunctionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge);
+    if (optionalFunctionCall.isPresent()) {
+      CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
+      if (PthreadUtil.isCallToPthreadFunction(
+          functionCall, PthreadFunctionType.PTHREAD_COND_WAIT)) {
+        return buildCondWaitClauses(
+            pThread,
+            pNextThreadLabel,
+            functionCall,
+            pSubstituteEdge,
+            pLabelPc,
+            pTargetPc,
+            pStatementBuilder);
+      }
+    }
+    return ImmutableList.of();
   }
 
   /**
@@ -287,7 +291,8 @@ public record SeqThreadStatementClauseBuilder(
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
-      SeqThreadStatementBuilder pStatementBuilder) {
+      SeqThreadStatementBuilder pStatementBuilder)
+      throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 

@@ -59,7 +59,8 @@ public class MPOROptions {
       secure = true,
       description =
           "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the number of"
-              + " statements. disabling may result in first statement being unreachable.")
+              + " statements. disabling may result in the first statement being unreachable, but"
+              + " can be useful for debugging.")
   private boolean consecutiveLabels = true;
 
   @Option(

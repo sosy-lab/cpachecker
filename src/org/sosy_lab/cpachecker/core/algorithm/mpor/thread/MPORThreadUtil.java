@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORThreadUtil {
 
@@ -81,7 +82,8 @@ public class MPORThreadUtil {
   }
 
   public static MPORThread getThreadByCFunctionCall(
-      ImmutableCollection<MPORThread> pThreads, CFunctionCall pFunctionCall) {
+      ImmutableCollection<MPORThread> pThreads, CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
 
     checkArgument(
         PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(

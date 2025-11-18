@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqThreadStatementBuilder(
     MPOROptions options,
@@ -65,7 +66,8 @@ public record SeqThreadStatementBuilder(
     ProgramCounterVariables pcVariables) {
 
   public ImmutableList<CSeqThreadStatement> buildStatementsFromThreadNode(
-      CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes) {
+      CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
+      throws UnsupportedCodeException {
 
     ImmutableList.Builder<CSeqThreadStatement> rStatements = ImmutableList.builder();
 
@@ -187,7 +189,8 @@ public record SeqThreadStatementBuilder(
   // Statement build methods =======================================================================
 
   private CSeqThreadStatement buildStatementFromThreadEdge(
-      boolean pFirstEdge, CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge) {
+      boolean pFirstEdge, CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
+      throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
@@ -302,7 +305,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private CSeqThreadStatement buildStatementFromPthreadFunction(
-      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge).orElseThrow();
@@ -332,7 +336,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqCondSignalStatement buildCondSignalStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     CIdExpression pthreadCondT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
@@ -342,7 +347,8 @@ public record SeqThreadStatementBuilder(
   }
 
   public SeqCondWaitStatement buildCondWaitStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     CIdExpression pthreadCondT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
@@ -365,7 +371,8 @@ public record SeqThreadStatementBuilder(
       CFunctionCall pFunctionCall,
       CFAEdgeForThread pThreadEdge,
       SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
+      int pTargetPc)
+      throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     checkArgument(
@@ -403,7 +410,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqThreadJoinStatement buildThreadJoinStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(allThreads, pFunctionCall);
     return new SeqThreadJoinStatement(
@@ -416,7 +424,8 @@ public record SeqThreadStatementBuilder(
   }
 
   private SeqMutexLockStatement buildMutexLockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     CIdExpression pthreadMutexT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
@@ -426,7 +435,8 @@ public record SeqThreadStatementBuilder(
   }
 
   public SeqMutexUnlockStatement buildMutexUnlockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnsupportedCodeException {
 
     CIdExpression pthreadMutexT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
@@ -439,7 +449,8 @@ public record SeqThreadStatementBuilder(
       CFunctionCall pFunctionCall,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      PthreadFunctionType pPthreadFunctionType) {
+      PthreadFunctionType pPthreadFunctionType)
+      throws UnsupportedCodeException {
 
     CIdExpression rwLockT =
         PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_RWLOCK_T);

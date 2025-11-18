@@ -40,13 +40,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MemoryModelBuilder(
     MPOROptions options,
     ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges) {
 
-  public Optional<MemoryModel> tryBuildMemoryModel() {
+  public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
     if (options.linkReduction()) {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
           mapStartRoutineArgAssignments();
@@ -82,13 +83,14 @@ public record MemoryModelBuilder(
     }
   }
 
-  private static MemoryModel buildMemoryModel(
+  private MemoryModel buildMemoryModel(
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
@@ -98,6 +100,7 @@ public record MemoryModelBuilder(
             pPointerParameterAssignments,
             pPointerDereferences);
     return new MemoryModel(
+        options,
         pAllMemoryLocations,
         relevantMemoryLocationIds,
         pPointerAssignments,

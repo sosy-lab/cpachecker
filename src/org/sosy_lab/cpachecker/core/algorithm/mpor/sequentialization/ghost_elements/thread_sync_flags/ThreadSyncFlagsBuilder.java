@@ -12,11 +12,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -31,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record ThreadSyncFlagsBuilder(
     MPOROptions options,
@@ -51,16 +54,19 @@ public record ThreadSyncFlagsBuilder(
         buildSyncFlags());
   }
 
-  private ImmutableSet<CIdExpression> getIdExpressionsByObjectType(PthreadObjectType pObjectType) {
+  private ImmutableSet<CIdExpression> getIdExpressionsByObjectType(PthreadObjectType pObjectType)
+      throws UnsupportedCodeException {
     Set<CIdExpression> rIdExpressions = new HashSet<>();
     for (MPORThread thread : threads) {
       for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge)
-            .filter(
-                functionCall ->
-                    PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(functionCall, pObjectType))
-            .map(functionCall -> PthreadUtil.extractPthreadObject(functionCall, pObjectType))
-            .ifPresent(rIdExpressions::add);
+        Optional<CFunctionCall> functionCallOptional =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
+        if (functionCallOptional.isPresent()) {
+          CFunctionCall functionCall = functionCallOptional.orElseThrow();
+          if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(functionCall, pObjectType)) {
+            rIdExpressions.add(PthreadUtil.extractPthreadObject(functionCall, pObjectType));
+          }
+        }
       }
     }
     return ImmutableSet.copyOf(rIdExpressions);

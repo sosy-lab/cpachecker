@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public final class SeqThreadJoinStatement extends CSeqThreadStatement {
@@ -89,7 +90,8 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
 
   private static Optional<String> buildReturnValueRead(
       Optional<CIdExpression> pJoinedThreadExitVariable,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges) {
+      ImmutableSet<SubstituteEdge> pSubstituteEdges)
+      throws UnsupportedCodeException {
 
     if (pJoinedThreadExitVariable.isPresent()) {
       SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
@@ -109,7 +111,9 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
             return Optional.of(assignment.toASTString());
           } else {
             // just in case
-            throw new IllegalArgumentException("pthread_join retval must be CIdExpression");
+            throw new UnsupportedCodeException(
+                "pthread_join retval must be CIdExpression, got " + unaryExpression.toASTString(),
+                null);
           }
         }
       }

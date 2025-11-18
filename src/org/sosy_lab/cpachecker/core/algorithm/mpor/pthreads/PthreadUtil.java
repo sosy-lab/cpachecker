@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class PthreadUtil {
 
@@ -58,7 +59,8 @@ public class PthreadUtil {
   }
 
   public static CIdExpression extractPthreadObject(
-      CFunctionCall pFunctionCall, PthreadObjectType pPthreadObjectType) {
+      CFunctionCall pFunctionCall, PthreadObjectType pPthreadObjectType)
+      throws UnsupportedCodeException {
 
     checkArgument(
         isCallToAnyPthreadFunctionWithObjectType(pFunctionCall, pPthreadObjectType),

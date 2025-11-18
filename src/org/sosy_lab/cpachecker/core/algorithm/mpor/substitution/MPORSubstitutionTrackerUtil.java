@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
 
@@ -105,7 +106,8 @@ public class MPORSubstitutionTrackerUtil {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     // writing pointers (aliasing) may not be allowed -> reject program
     InputRejection.checkPointerWrite(pIsWrite, pOptions, pIdExpression);

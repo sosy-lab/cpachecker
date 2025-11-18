@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MPORSubstitutionBuilder(
     MPOROptions options,
@@ -249,7 +250,7 @@ public record MPORSubstitutionBuilder(
   // Start Routine Args ============================================================================
 
   private ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
-      buildStartRoutineArgSubstitutes() {
+      buildStartRoutineArgSubstitutes() throws UnsupportedCodeException {
 
     ImmutableTable.Builder<CFAEdgeForThread, CParameterDeclaration, CIdExpression> rArgSubstitutes =
         ImmutableTable.builder();

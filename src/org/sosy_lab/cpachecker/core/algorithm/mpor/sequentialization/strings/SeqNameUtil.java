@@ -158,7 +158,9 @@ public class SeqNameUtil {
       ReachType pReachType) {
 
     return switch (pOptions.bitVectorEncoding()) {
-      case NONE -> throw new IllegalArgumentException();
+      case NONE ->
+          throw new IllegalArgumentException(
+              "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
       case SPARSE ->
@@ -173,7 +175,9 @@ public class SeqNameUtil {
       MemoryAccessType pAccessType) {
 
     return switch (pOptions.bitVectorEncoding()) {
-      case NONE -> throw new IllegalArgumentException();
+      case NONE ->
+          throw new IllegalArgumentException(
+              "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
       case BINARY, DECIMAL, HEXADECIMAL -> buildLastDenseBitVectorName(pOptions, pAccessType);
       case SPARSE ->
           buildLastSparseBitVectorName(pOptions, pMemoryLocation.orElseThrow(), pAccessType);
