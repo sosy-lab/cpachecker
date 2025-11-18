@@ -136,7 +136,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       description = "Export termination counterexample to file in YAML format ")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate violationWitnessYaml =
-      PathTemplate.ofFormatString("nontermination_witness_%s.yml");
+      PathTemplate.ofFormatString("Counterexample.%s.witness-2.1.yml");
 
   @Option(
       secure = true,
