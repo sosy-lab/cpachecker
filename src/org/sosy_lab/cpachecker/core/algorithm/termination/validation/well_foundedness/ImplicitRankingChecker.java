@@ -102,87 +102,17 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
     // Initialize the variables from the transition invariant
     Set<String> alreadyDeclaredVars = new HashSet<>();
-    String varDeclaration;
-    for (AbstractSimpleDeclaration variable :
-        cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow()) {
-      varDeclaration = variable.toASTString();
-      if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType) {
-        continue;
-      }
-      if (alreadyDeclaredVars.add(variable.getName())) {
-        builder.add(varDeclaration);
-      }
-    }
-    for (String variable : mapNamesToVariables.keySet()) {
-      String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-      varDeclaration =
-          TransitionInvariantUtils.removeFunctionFromVarsName(
-              scope.lookupVariable(variable).toString());
-      if (alreadyDeclaredVars.add(variableName)) {
-        builder.add(varDeclaration);
-      }
-    }
+    InitializeVariables(loopHead, alreadyDeclaredVars, builder, mapNamesToVariables);
 
     // Build the loop
-    String loopCondition =
-        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-            pFormula, bfmgr, fmgr);
-    String exitCondition =
-        cfa
-            .getAstCfaRelation()
-            .getTightestIterationStructureForNode(loopHead)
-            .orElseThrow()
-            .getControllingExpression()
-            .orElseThrow()
-            .edges()
-            .stream()
-            .filter(e -> e instanceof CAssumeEdge pE && pE.getTruthAssumption())
-            .map(e -> ((CAssumeEdge) e).getExpression())
-            .collect(ImmutableList.toImmutableList())
-            .getFirst()
-            .toASTString();
-    loopCondition = loopCondition + " && " + exitCondition;
-    for (BooleanFormula invariant : pSupportingInvariants) {
-      loopCondition =
-          loopCondition
-              + " && "
-              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                  invariant, bfmgr, fmgr);
-      for (String variable : fmgr.extractVariables(invariant).keySet()) {
-        String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
-        varDeclaration =
-            TransitionInvariantUtils.removeFunctionFromVarsName(
-                scope.lookupVariable(variable).toString());
-        if (alreadyDeclaredVars.add(variableName)) {
-          builder.add(varDeclaration);
-        }
-      }
-    }
-    builder.add("while(" + loopCondition + ") {");
+    BuildTheLoop(loopHead, pFormula, builder, alreadyDeclaredVars, pSupportingInvariants);
+
     // Initialize the variables from the transition invariant
-    for (String variable : mapNamesToVariables.keySet()) {
-      if (TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
-        CSimpleDeclaration prevDeclaration =
-            TransitionInvariantUtils.getPrevDeclaration(variable, mapCurrVarsToPrevVars);
-        CExpressionAssignmentStatement assignment =
-            new CExpressionAssignmentStatement(
-                FileLocation.DUMMY,
-                new CIdExpression(FileLocation.DUMMY, prevDeclaration),
-                new CIdExpression(FileLocation.DUMMY, mapCurrVarsToPrevVars.get(prevDeclaration)));
-        builder.add(assignment.toASTString());
-      }
-    }
+    ResetVariablesFromTransitionInvariant(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
+
     // Reset the original variables
-    for (String variable : mapNamesToVariables.keySet()) {
-      if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
-        builder.add(
-            TransitionInvariantUtils.removeFunctionFromVarsName(variable)
-                + " = "
-                + "__VERIFIER_nondet_"
-                + scope.lookupVariable(variable).getType()
-                + "();");
-      }
-    }
+    ResetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
+
     builder.add("}}");
     String overapproximatingProgam = builder.toString();
 
@@ -221,6 +151,112 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
               + " well-foundedness!");
     }
     return true;
+  }
+
+  private void ResetVariablesFromProgram(
+      StringJoiner builder,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
+      Map<String, Formula> mapNamesToVariables) {
+    for (String variable : mapNamesToVariables.keySet()) {
+      if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
+        builder.add(
+            TransitionInvariantUtils.removeFunctionFromVarsName(variable)
+                + " = "
+                + "__VERIFIER_nondet_"
+                + scope.lookupVariable(variable).getType()
+                + "();");
+      }
+    }
+  }
+
+  private void ResetVariablesFromTransitionInvariant(
+      StringJoiner builder,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
+      Map<String, Formula> mapNamesToVariables) {
+    for (String variable : mapNamesToVariables.keySet()) {
+      if (TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
+        CSimpleDeclaration prevDeclaration =
+            TransitionInvariantUtils.getPrevDeclaration(variable, mapCurrVarsToPrevVars);
+        CExpressionAssignmentStatement assignment =
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY,
+                new CIdExpression(FileLocation.DUMMY, prevDeclaration),
+                new CIdExpression(FileLocation.DUMMY, mapCurrVarsToPrevVars.get(prevDeclaration)));
+        builder.add(assignment.toASTString());
+      }
+    }
+  }
+
+  private void BuildTheLoop(
+      CFANode loopHead,
+      BooleanFormula pFormula,
+      StringJoiner builder,
+      Set<String> alreadyDeclaredVars,
+      ImmutableList<BooleanFormula> pSupportingInvariants)
+      throws CPAException {
+    String varDeclaration;
+    String loopCondition =
+        TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+            pFormula, bfmgr, fmgr);
+    String exitCondition =
+        cfa
+            .getAstCfaRelation()
+            .getTightestIterationStructureForNode(loopHead)
+            .orElseThrow()
+            .getControllingExpression()
+            .orElseThrow()
+            .edges()
+            .stream()
+            .filter(e -> e instanceof CAssumeEdge pE && pE.getTruthAssumption())
+            .map(e -> ((CAssumeEdge) e).getExpression())
+            .collect(ImmutableList.toImmutableList())
+            .getFirst()
+            .toASTString();
+    loopCondition = loopCondition + " && " + exitCondition;
+    for (BooleanFormula invariant : pSupportingInvariants) {
+      loopCondition =
+          loopCondition
+              + " && "
+              + TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                  invariant, bfmgr, fmgr);
+      for (String variable : fmgr.extractVariables(invariant).keySet()) {
+        String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
+        varDeclaration =
+            TransitionInvariantUtils.removeFunctionFromVarsName(
+                scope.lookupVariable(variable).toString());
+        if (alreadyDeclaredVars.add(variableName)) {
+          builder.add(varDeclaration);
+        }
+      }
+    }
+    builder.add("while(" + loopCondition + ") {");
+  }
+
+  private void InitializeVariables(
+      CFANode loopHead,
+      Set<String> alreadyDeclaredVars,
+      StringJoiner builder,
+      Map<String, Formula> mapNamesToVariables) {
+    String varDeclaration;
+    for (AbstractSimpleDeclaration variable :
+        cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow()) {
+      varDeclaration = variable.toASTString();
+      if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType) {
+        continue;
+      }
+      if (alreadyDeclaredVars.add(variable.getName())) {
+        builder.add(varDeclaration);
+      }
+    }
+    for (String variable : mapNamesToVariables.keySet()) {
+      String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
+      varDeclaration =
+          TransitionInvariantUtils.removeFunctionFromVarsName(
+              scope.lookupVariable(variable).toString());
+      if (alreadyDeclaredVars.add(variableName)) {
+        builder.add(varDeclaration);
+      }
+    }
   }
 
   /**
