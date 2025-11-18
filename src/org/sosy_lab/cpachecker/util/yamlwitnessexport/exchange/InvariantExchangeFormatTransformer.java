@@ -55,6 +55,8 @@ public class InvariantExchangeFormatTransformer {
   private final CFA cfa;
   private final LogManager logger;
 
+  private final String AT_ANY_PREV_PATTERN = "\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)";
+
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
@@ -147,7 +149,7 @@ public class InvariantExchangeFormatTransformer {
     if (!isTransitionInvariant(pInvariantEntry)) {
       return invariantString;
     }
-    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+    Pattern pattern = Pattern.compile(AT_ANY_PREV_PATTERN);
     Matcher matcher = pattern.matcher(invariantString);
     StringBuilder result = new StringBuilder();
 
@@ -171,7 +173,7 @@ public class InvariantExchangeFormatTransformer {
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
       InvariantEntry pInvariantEntry) {
     String invariantString = pInvariantEntry.getValue();
-    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+    Pattern pattern = Pattern.compile(AT_ANY_PREV_PATTERN);
     Matcher matcher = pattern.matcher(invariantString);
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
