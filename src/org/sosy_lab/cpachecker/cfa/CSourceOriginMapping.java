@@ -57,7 +57,7 @@ public class CSourceOriginMapping {
   /**
    * Convert paths like "file.c" to "./file.c", and return all other paths unchanged. We need some
    * type of normalization, since our Eclipse based parser for C programs returns relative paths
-   * without "./", while other parts of CPAchecker use "./" for relative paths.
+   * with "./", while other parts of CPAchecker do not use "./" for relative paths.
    *
    * <p>Each time a lookup in a data structure of this class is done with a path, this method should
    * be applied to the path first.
