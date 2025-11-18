@@ -67,18 +67,18 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   private String wrapTheVariablesWithAtAnyPrev(
       String pRankingFunction, Iterable<IProgramVar> pVars) {
     for (IProgramVar var : pVars) {
-      String newVarName = "((long long)\\at(" + var + ", AnyPrev))";
+      String newVarName = "((__int128)\\at(" + var + ", AnyPrev))";
       pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
     }
     return pRankingFunction;
   }
 
-  // The function casts the variables into (long long) as we want to prevent overflows in the
+  // The function casts the variables into (__int128) as we want to prevent overflows in the
   // witness
   private String wrapTheVariablesWithCastToLongLong(
       String pRankingFunction, Iterable<IProgramVar> pVars) {
     for (IProgramVar var : pVars) {
-      String newVarName = "((long long)" + var + ")";
+      String newVarName = "((__int128)" + var + ")";
       pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
     }
     return pRankingFunction;
