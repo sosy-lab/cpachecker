@@ -126,8 +126,8 @@ public class CFACreator {
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; // TODO
 
   private enum PreprocessorUsage {
-    NO,
-    YES,
+    FALSE,
+    TRUE,
     AUTO
   }
 
@@ -453,9 +453,9 @@ public class CFACreator {
                 config,
                 logger,
                 outerParser,
-                readLineDirectives || (usePreprocessor != PreprocessorUsage.NO) || useClang);
+                readLineDirectives || (usePreprocessor != PreprocessorUsage.FALSE) || useClang);
 
-        if (usePreprocessor != PreprocessorUsage.NO) {
+        if (usePreprocessor != PreprocessorUsage.FALSE) {
           CPreprocessor preprocessor = new CPreprocessor(config, logger);
           CParserWithPreprocessor parserWithPreprocessor =
               new CParserWithPreprocessor(outerParser, preprocessor);
@@ -467,7 +467,7 @@ public class CFACreator {
         }
 
         if (useClang) {
-          if (usePreprocessor != PreprocessorUsage.NO) {
+          if (usePreprocessor != PreprocessorUsage.FALSE) {
             logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
