@@ -240,7 +240,7 @@ public class TerminationWitnessValidator implements Algorithm {
     try {
       Path invariantsSpecPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
-              .resolveSibling("config/properties/unreach-call.prp");
+              .resolveSibling("config/properties/no-overflow.prp");
       Path validationConfigPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
               .resolveSibling("config/witnessValidation.properties");
