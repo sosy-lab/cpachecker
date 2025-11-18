@@ -55,8 +55,9 @@ public class InvariantExchangeFormatTransformer {
   private final CFA cfa;
   private final LogManager logger;
 
-  private final static Pattern AT_ANY_PREV_PATTERN = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
-  private final static int PREV_VARS_GROUP_INDEX = 1;
+  private static final Pattern AT_ANY_PREV_PATTERN =
+      Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+  private static final int PREV_VARS_GROUP_INDEX = 1;
 
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)

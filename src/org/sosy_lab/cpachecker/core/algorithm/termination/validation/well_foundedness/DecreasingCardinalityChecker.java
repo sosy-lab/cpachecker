@@ -169,7 +169,6 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
             PrevStateIndices.INDEX_S_PRIME,
             CurrStateIndices.INDEX_S2,
             pMapPrevToCurrVars);
-    ;
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       supportingInvariant =
           instantiateWithNewIndices(
