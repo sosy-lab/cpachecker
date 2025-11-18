@@ -91,11 +91,6 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "include CPAchecker license header in the sequentialization?")
-  private boolean license = false;
-
-  @Option(
-      secure = true,
       description = "link commuting statements via goto to reduce the state space?")
   private boolean linkReduction = true;
 
@@ -445,10 +440,6 @@ public class MPOROptions {
 
   public boolean inputTypeDeclarations() {
     return inputTypeDeclarations;
-  }
-
-  public boolean license() {
-    return license;
   }
 
   public boolean linkReduction() {

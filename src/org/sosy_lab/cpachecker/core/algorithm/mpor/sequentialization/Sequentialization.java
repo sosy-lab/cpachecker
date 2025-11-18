@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
-import java.time.Year;
-import java.time.ZoneId;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -26,8 +24,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
-
-  private static final String license = "Apache-2.0";
 
   private static final ImmutableList<String> mporHeader =
       ImmutableList.of(
@@ -89,12 +85,6 @@ public class Sequentialization {
 
     StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
 
-    // if enabled, add a license header
-    ImmutableList<String> licenseHeader =
-        buildLicenseHeader(Year.now(ZoneId.systemDefault()).getValue());
-    if (pOptions.license()) {
-      licenseHeader.forEach(line -> rProgram.add(line));
-    }
     if (pOptions.comments()) {
       mporHeader.forEach(line -> rProgram.add(line));
     }
@@ -142,10 +132,7 @@ public class Sequentialization {
     return pProgram;
   }
 
-  /**
-   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
-   * file name and line in {@code reach_error();} dummies with the actual values.
-   */
+  /** Replaces the file name and line in {@code reach_error();} dummies with the actual values. */
   private static String replaceDummyReachErrors(String pInputFileName, String pInitProgram) {
     StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
     int currentLine = FIRST_LINE;
@@ -155,18 +142,6 @@ public class Sequentialization {
       currentLine++;
     }
     return rProgram.toString();
-  }
-
-  private static ImmutableList<String> buildLicenseHeader(int pYear) {
-    return ImmutableList.of(
-        "// This file is part of CPAchecker,",
-        "// a tool for configurable software verification:",
-        "// https://cpachecker.sosy-lab.org",
-        "//",
-        "// SPDX-" + "FileCopyrightText: " + pYear + " Dirk Beyer <https://www.sosy-lab.org>",
-        "//",
-        // splitting this with + so that 'reuse lint' accepts it
-        "// SPDX-" + "License-" + "Identifier: " + license);
   }
 
   /**

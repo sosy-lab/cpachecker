@@ -312,9 +312,6 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# include CPAchecker license header in the sequentialization?
-analysis.algorithm.MPOR.license = false
-
 # link commuting statements via goto to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
 
