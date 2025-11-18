@@ -531,41 +531,15 @@ public class TerminationWitnessValidator implements Algorithm {
       int pInitialSSAIndex,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
-    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
-    for (CFAEdge edge : pEdges) {
-      if (pLoopHeads.contains(edge.getPredecessor())) {
-        listOfAllPaths.add(new ArrayList<>());
-        listOfAllPaths.getLast().add(edge);
-      }
-    }
-    boolean updated = true;
-    while (updated) {
-      updated = false;
-      List<List<CFAEdge>> newPaths = new ArrayList<>();
-      for (List<CFAEdge> path : listOfAllPaths) {
-        CFAEdge lastEdge = path.getLast();
-        List<CFAEdge> succEdges =
-            pEdges.stream()
-                .filter(
-                    e ->
-                        e.getPredecessor().equals(lastEdge.getSuccessor())
-                            && !pLoopHeads.contains(e.getPredecessor()))
-                .toList();
-        if (!succEdges.isEmpty()) {
-          if (succEdges.size() > 1) {
-            for (int i = 1; i < succEdges.size(); i++) {
-              newPaths.add(new ArrayList<>(path));
-              newPaths.getLast().add(succEdges.get(i));
-            }
-          }
-          updated = true;
-          path.add(succEdges.getFirst());
-        }
-      }
-      if (!newPaths.isEmpty()) {
-        listOfAllPaths.addAll(newPaths);
-      }
-    }
+    List<List<CFAEdge>> listOfAllPaths = collectAllThePaths(pEdges, pLoopHeads);
+    return constructFormulaForPaths(pInitialSSAIndex, pLoopsToSupportingInvariants, listOfAllPaths);
+  }
+
+  private PathFormula constructFormulaForPaths(
+      int pInitialSSAIndex,
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
+      List<List<CFAEdge>> listOfAllPaths)
+      throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
     formulaForLoop =
         formulaForLoop.withContext(
@@ -620,5 +594,45 @@ public class TerminationWitnessValidator implements Algorithm {
             formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
             PointerTargetSet.emptyPointerTargetSet());
     return formulaForLoop;
+  }
+
+  private List<List<CFAEdge>> collectAllThePaths(
+      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads) {
+    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
+    for (CFAEdge edge : pEdges) {
+      if (pLoopHeads.contains(edge.getPredecessor())) {
+        listOfAllPaths.add(new ArrayList<>());
+        listOfAllPaths.getLast().add(edge);
+      }
+    }
+    boolean updated = true;
+    while (updated) {
+      updated = false;
+      List<List<CFAEdge>> newPaths = new ArrayList<>();
+      for (List<CFAEdge> path : listOfAllPaths) {
+        CFAEdge lastEdge = path.getLast();
+        List<CFAEdge> succEdges =
+            pEdges.stream()
+                .filter(
+                    e ->
+                        e.getPredecessor().equals(lastEdge.getSuccessor())
+                            && !pLoopHeads.contains(e.getPredecessor()))
+                .toList();
+        if (!succEdges.isEmpty()) {
+          if (succEdges.size() > 1) {
+            for (int i = 1; i < succEdges.size(); i++) {
+              newPaths.add(new ArrayList<>(path));
+              newPaths.getLast().add(succEdges.get(i));
+            }
+          }
+          updated = true;
+          path.add(succEdges.getFirst());
+        }
+      }
+      if (!newPaths.isEmpty()) {
+        listOfAllPaths.addAll(newPaths);
+      }
+    }
+    return listOfAllPaths;
   }
 }
