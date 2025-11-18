@@ -545,11 +545,15 @@ public class CFACreator {
         c = parseToCFAs(sourceFiles);
       } catch (CParsingFailureRequiringPreprocessingException e) {
         if (backupParserForPreprocessing.isPresent()) {
-          logger.logUserException(
-              Level.INFO,
+          logger.logDebugException(
               e,
               "Parsing failed with preprocessing disabled, trying "
                   + "backup parser with preprocessing enabled");
+          logger.log(
+              Level.INFO,
+              "Parsing failed with preprocessing using an external "
+                  + "pre-processor disabled, now trying to parse "
+                  + "the code with usage of an external pre-processor.");
           c = backupParserForPreprocessing.orElseThrow().parseFiles(sourceFiles);
         } else {
           throw e;
