@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CurrStateIndices;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PrevStateIndices;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -46,30 +48,6 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   }
 
   /**
-   * Enum representing the SSA indices that we use for different states when constructing formulas.
-   */
-  protected enum StateIndices {
-    PREV_INDEX_S(2),
-    CURR_INDEX_S(3),
-    PREV_INDEX_S_PRIME(4),
-    CURR_INDEX_S_PRIME(5),
-    PREV_INDEX_S1(6),
-    CURR_INDEX_S1(7),
-    PREV_INDEX_S2(8),
-    CURR_INDEX_S2(9);
-
-    private final int index;
-
-    StateIndices(int pIndex) {
-      index = pIndex;
-    }
-
-    public int getIndex() {
-      return index;
-    }
-  }
-
-  /**
    * This method checks whether one concrete subformula from transition invariant is well-founded.
    * In the following, the transition invariant is T and, the conjunction of its supporting
    * invariants is denoted with I. The high-level idea is to check that for every two states s,s',
@@ -95,8 +73,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pFormula,
-            StateIndices.PREV_INDEX_S.getIndex(),
-            StateIndices.CURR_INDEX_S_PRIME.getIndex(),
+            PrevStateIndices.INDEX_S,
+            CurrStateIndices.INDEX_S_PRIME,
             fmgr,
             scope,
             mapPrevVarsToCurrVars);
@@ -115,8 +93,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
         collectAllCurrVariables(
             stepFromS,
             pFormula,
-            StateIndices.PREV_INDEX_S.getIndex(),
-            StateIndices.CURR_INDEX_S1.getIndex(),
+            PrevStateIndices.INDEX_S,
+            CurrStateIndices.INDEX_S1,
             mapPrevVarsToCurrVars);
     BooleanFormula middleStep = buildMiddleStepFormula(stepFromS, stepFromSPrime, quantifiedVars);
 
@@ -130,8 +108,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
         collectAllCurrVariables(
             stepFromSPrime2,
             pFormula,
-            StateIndices.PREV_INDEX_S_PRIME.getIndex(),
-            StateIndices.CURR_INDEX_S2.getIndex(),
+            PrevStateIndices.INDEX_S_PRIME,
+            CurrStateIndices.INDEX_S2,
             mapPrevVarsToCurrVars);
     BooleanFormula middleStep2 =
         buildSecondMiddleFormula(stepFromS2, stepFromSPrime2, quantifiedVars2);
@@ -187,8 +165,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMapForSPrime2 =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pFormula,
-            StateIndices.PREV_INDEX_S_PRIME.getIndex(),
-            StateIndices.CURR_INDEX_S2.getIndex(),
+            PrevStateIndices.INDEX_S_PRIME,
+            CurrStateIndices.INDEX_S2,
             fmgr,
             scope,
             pMapPrevToCurrVars);
@@ -197,8 +175,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
               supportingInvariant,
-              StateIndices.PREV_INDEX_S.getIndex(),
-              StateIndices.CURR_INDEX_S2.getIndex(),
+              PrevStateIndices.INDEX_S,
+              CurrStateIndices.INDEX_S2,
               fmgr,
               scope,
               pMapPrevToCurrVars);
@@ -213,8 +191,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMapForS2 =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pFormula,
-            StateIndices.PREV_INDEX_S.getIndex(),
-            StateIndices.CURR_INDEX_S2.getIndex(),
+            PrevStateIndices.INDEX_S,
+            CurrStateIndices.INDEX_S2,
             fmgr,
             scope,
             pMapPrevToCurrVars);
@@ -238,8 +216,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMapForSPrime =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pFormula,
-            StateIndices.PREV_INDEX_S_PRIME.getIndex(),
-            StateIndices.CURR_INDEX_S1.getIndex(),
+            PrevStateIndices.INDEX_S_PRIME,
+            CurrStateIndices.INDEX_S1,
             fmgr,
             scope,
             pMapPrevToCurrVars);
@@ -255,8 +233,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMapForS =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pFormula,
-            StateIndices.PREV_INDEX_S.getIndex(),
-            StateIndices.CURR_INDEX_S1.getIndex(),
+            PrevStateIndices.INDEX_S,
+            CurrStateIndices.INDEX_S1,
             fmgr,
             scope,
             pMapPrevToCurrVars);
@@ -265,8 +243,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
               supportingInvariant,
-              StateIndices.PREV_INDEX_S.getIndex(),
-              StateIndices.CURR_INDEX_S1.getIndex(),
+              PrevStateIndices.INDEX_S,
+              CurrStateIndices.INDEX_S1,
               fmgr,
               scope,
               pMapPrevToCurrVars);
@@ -285,8 +263,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       pSSAMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
               supportingInvariant,
-              StateIndices.PREV_INDEX_S.getIndex(),
-              StateIndices.CURR_INDEX_S_PRIME.getIndex(),
+              PrevStateIndices.INDEX_S,
+              CurrStateIndices.INDEX_S_PRIME,
               fmgr,
               scope,
               pMapPrevToCurrVars);
@@ -294,8 +272,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       pSSAMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
               supportingInvariant,
-              StateIndices.PREV_INDEX_S.getIndex(),
-              StateIndices.CURR_INDEX_S.getIndex(),
+              PrevStateIndices.INDEX_S,
+              CurrStateIndices.INDEX_S,
               fmgr,
               scope,
               pMapPrevToCurrVars);
@@ -319,8 +297,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
   private ImmutableList<Formula> collectAllCurrVariables(
       Formula pFormula,
       Formula pInitialFormula,
-      int pPrevIndex,
-      int pCurrIndex,
+      PrevStateIndices pPrevIndex,
+      CurrStateIndices pCurrIndex,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     SSAMap ssaMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(
@@ -329,7 +307,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(fmgr.uninstantiate(pFormula));
     for (Map.Entry<String, Formula> entry : mapNamesToVariables.entrySet()) {
       if (ssaMap.containsVariable(entry.getKey())
-          && ssaMap.getIndex(entry.getKey()) == pPrevIndex) {
+          && ssaMap.getIndex(entry.getKey()) == pPrevIndex.getIndex()) {
         builder.add(mapNamesToVariables.get(entry.getKey()));
       }
     }
@@ -394,8 +372,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
             pFormula,
             TransitionInvariantUtils.setIndicesToDifferentValues(
                 pFormula,
-                StateIndices.PREV_INDEX_S.getIndex(),
-                StateIndices.CURR_INDEX_S.getIndex(),
+                PrevStateIndices.INDEX_S,
+                CurrStateIndices.INDEX_S,
                 fmgr,
                 scope,
                 pMapPrevToCurrVars));
@@ -406,8 +384,8 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
               supportingInvariant,
-              StateIndices.PREV_INDEX_S.getIndex(),
-              StateIndices.CURR_INDEX_S.getIndex(),
+              PrevStateIndices.INDEX_S,
+              CurrStateIndices.INDEX_S,
               fmgr,
               scope,
               pMapPrevToCurrVars);

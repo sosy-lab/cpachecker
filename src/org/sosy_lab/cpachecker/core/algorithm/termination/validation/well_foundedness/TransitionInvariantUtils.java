@@ -24,6 +24,51 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TransitionInvariantUtils {
 
+  /**
+   * Enum representing the SSA indices of the current states that we use for different states when
+   * constructing formulas.
+   */
+  public enum CurrStateIndices {
+    INDEX_LATEST(-1),
+    INDEX_MIDDLE(1),
+    INDEX_S(2),
+    INDEX_S_PRIME(3),
+    INDEX_S1(4),
+    INDEX_S2(5);
+
+    private final int index;
+
+    CurrStateIndices(int pIndex) {
+      index = pIndex;
+    }
+
+    public int getIndex() {
+      return index;
+    }
+  }
+
+  /**
+   * Enum representing the SSA indices of the previous states that we use for different states when
+   * constructing formulas.
+   */
+  public enum PrevStateIndices {
+    INDEX_FIRST(1),
+    INDEX_S(6),
+    INDEX_S_PRIME(7),
+    INDEX_S1(8),
+    INDEX_S2(9);
+
+    private final int index;
+
+    PrevStateIndices(int pIndex) {
+      index = pIndex;
+    }
+
+    public int getIndex() {
+      return index;
+    }
+  }
+
   public static boolean isPrevVariable(
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     return pMapPrevToCurrVars.keySet().stream()
@@ -65,12 +110,15 @@ public class TransitionInvariantUtils {
    */
   public static SSAMap setIndicesToDifferentValues(
       Formula pFormula,
-      int prevIndex,
-      int currIndex,
+      PrevStateIndices prevStateIndex,
+      CurrStateIndices currStateIndex,
       FormulaManagerView fmgr,
       Scope scope,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+    int currIndex = currStateIndex.getIndex();
+    int prevIndex = prevStateIndex.getIndex();
+
     for (String var : fmgr.extractVariableNames(pFormula)) {
       if (currIndex < 0 && !isPrevVariable(var, pMapPrevToCurrVars)) {
         continue;

@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.DecreasingCardinalityChecker;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.ImplicitRankingChecker;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CurrStateIndices;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PrevStateIndices;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.WellFoundednessChecker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -393,11 +395,21 @@ public class TerminationWitnessValidator implements Algorithm {
         SSAMap.merge(
             loopFormula.getSsa(),
             TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars),
+                pCandidateInvariant,
+                PrevStateIndices.INDEX_FIRST,
+                CurrStateIndices.INDEX_LATEST,
+                fmgr,
+                scope,
+                pMapPrevToCurrVars),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     SSAMap oneStepSSAMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(
-            pCandidateInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars);
+            pCandidateInvariant,
+            PrevStateIndices.INDEX_FIRST,
+            CurrStateIndices.INDEX_MIDDLE,
+            fmgr,
+            scope,
+            pMapPrevToCurrVars);
 
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
@@ -411,7 +423,12 @@ public class TerminationWitnessValidator implements Algorithm {
               fmgr.instantiate(
                   supportingInvariant,
                   TransitionInvariantUtils.setIndicesToDifferentValues(
-                      supportingInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars)));
+                      supportingInvariant,
+                      PrevStateIndices.INDEX_FIRST,
+                      CurrStateIndices.INDEX_MIDDLE,
+                      fmgr,
+                      scope,
+                      pMapPrevToCurrVars)));
     }
     booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
 
@@ -472,7 +489,12 @@ public class TerminationWitnessValidator implements Algorithm {
         fmgr.instantiate(
             pCandidateInvariant,
             TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant, 1, 1, fmgr, scope, pMapPrevToCurrVars));
+                pCandidateInvariant,
+                PrevStateIndices.INDEX_FIRST,
+                CurrStateIndices.INDEX_MIDDLE,
+                fmgr,
+                scope,
+                pMapPrevToCurrVars));
 
     BooleanFormula secondStep =
         fmgr.instantiate(
@@ -480,7 +502,12 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.merge(
                 loopFormula.getSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
-                        pCandidateInvariant, 1, -1, fmgr, scope, pMapPrevToCurrVars)
+                        pCandidateInvariant,
+                        PrevStateIndices.INDEX_FIRST,
+                        CurrStateIndices.INDEX_LATEST,
+                        fmgr,
+                        scope,
+                        pMapPrevToCurrVars)
                     .withDefault(2),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
     boolean isTransitionInvariant;
