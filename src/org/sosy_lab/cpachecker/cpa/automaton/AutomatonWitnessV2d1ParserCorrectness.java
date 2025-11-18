@@ -85,10 +85,7 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
             if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
               ExpressionTree<AExpression> transitionInvariant =
                   transformer.parseInvariantEntry(invariantEntry);
-
-              if (transitionInvariant.equals(ExpressionTrees.getTrue())) {
-                continue;
-              }
+              
               Optional<IterationElement> optionalIterationStructure =
                   astCfaRelation.getIterationStructureStartingAtColumn(column, line);
 
