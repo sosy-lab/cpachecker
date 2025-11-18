@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -159,12 +160,17 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       Map<String, Formula> mapNamesToVariables) {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
+        String nondetVerifierCall;
+        if (scope.lookupVariable(variable).getType() instanceof CSimpleType) {
+          nondetVerifierCall = "__VERIFIER_nondet_"
+              + scope.lookupVariable(variable).getType()
+              + "();";
+        } else {
+          nondetVerifierCall = "__VERIFIER_nondet_memory();";
+        }
         builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
-                + " = "
-                + "__VERIFIER_nondet_"
-                + scope.lookupVariable(variable).getType()
-                + "();");
+                + " = " + nondetVerifierCall);
       }
     }
   }
