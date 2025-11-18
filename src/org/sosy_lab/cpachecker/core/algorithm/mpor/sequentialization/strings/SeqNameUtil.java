@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class SeqNameUtil {
 
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
-    return (pOptions.shortVariableNames() ? SeqToken.THREAD_PREFIX : SeqToken.THREAD) + pThreadId;
+    return (pOptions.shortVariableNames() ? "T" : "THREAD") + pThreadId;
   }
 
   public static String buildFunctionName(String pFunctionName) {
@@ -280,15 +280,11 @@ public class SeqNameUtil {
     return Joiner.on(SeqSyntax.UNDERSCORE).join(pRwLockName, SeqToken.RW_LOCK_NUM_WRITERS_SUFFIX);
   }
 
-  public static String buildSyncName(MPOROptions pOptions, int pThreadId) {
-    return buildThreadPrefix(pOptions, pThreadId) + SeqSyntax.UNDERSCORE + SeqToken.SYNC;
-  }
-
   // Other =========================================================================================
 
-  public static String buildDummyQualifiedName(String pVarName) {
+  public static String buildDummyQualifiedName(String pVariableName) {
     // the qualified names are not relevant in the seq, so we just use dummy::
-    return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
+    return SeqToken.DUMMY + SeqSyntax.COLON + SeqSyntax.COLON + pVariableName;
   }
 
   public static String getFileNameWithoutExtension(Path pInputFilePath) {

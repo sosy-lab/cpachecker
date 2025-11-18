@@ -11,10 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.consta
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder.buildStringLiteralExpression;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqStringLiteralExpressions {
 
-  public static final CStringLiteralExpression STRING_0 =
-      buildStringLiteralExpression(SeqToken.ZERO_STRING);
+  private static final String ZERO_STRING = "\"0\"";
+
+  public static final CStringLiteralExpression STRING_0_PARAMETER_ASSERT_FAIL =
+      buildStringLiteralExpression(ZERO_STRING);
 }

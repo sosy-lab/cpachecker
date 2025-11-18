@@ -29,7 +29,7 @@ public final class SeqReachErrorFunction extends SeqFunction {
           CVoidType.VOID,
           SeqIdExpressions.ASSERT_FAIL,
           ImmutableList.of(
-              SeqStringLiteralExpressions.STRING_0,
+              SeqStringLiteralExpressions.STRING_0_PARAMETER_ASSERT_FAIL,
               SeqIdExpressions.FILE_PARAMETER_ASSERT_FAIL,
               SeqIdExpressions.LINE_PARAMETER_ASSERT_FAIL,
               SeqIdExpressions.FUNCTION_PARAMETER_ASSERT_FAIL),

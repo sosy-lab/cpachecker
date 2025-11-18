@@ -77,18 +77,6 @@ public class SeqAssumptionBuilder {
     return rAssumptions.build();
   }
 
-  public static CFunctionCallStatement buildNextThreadActiveAssumption(
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
-
-    // pc array: single assume(pc[next_thread] != -1);
-    CBinaryExpression nextThreadActive =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpressions.NEXT_THREAD),
-            SeqIntegerLiteralExpressions.INT_EXIT_PC,
-            BinaryOperator.NOT_EQUALS);
-    return buildAssumption(nextThreadActive);
-  }
-
   public static CFunctionCallStatement buildCountGreaterZeroAssumption(
       CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
 

@@ -360,7 +360,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.PC_DECLARATION);
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
-        SeqDeclarationBuilder.buildPcDeclarations(pOptions, pFields);
+        pFields.ghostElements.getPcVariables().pcDeclarations();
     for (CVariableDeclaration pcDeclaration : pcDeclarations) {
       rDeclarations.add(pcDeclaration.toASTString());
     }

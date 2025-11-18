@@ -29,9 +29,6 @@ public class SeqIdExpressions {
 
   // variables:
 
-  public static final CIdExpression PC_ARRAY_DUMMY =
-      buildIdExpression(SeqVariableDeclarations.PC_ARRAY_DUMMY);
-
   public static final CIdExpression LAST_THREAD =
       buildIdExpression(SeqVariableDeclarations.LAST_THREAD_DUMMY);
 

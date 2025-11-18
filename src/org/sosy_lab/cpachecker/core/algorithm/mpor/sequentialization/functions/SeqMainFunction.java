@@ -117,8 +117,14 @@ public final class SeqMainFunction extends SeqFunction {
           if (options.comments()) {
             loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
           }
+          CBinaryExpression nextThreadActiveExpression =
+              fields
+                  .ghostElements
+                  .programCounterVariables()
+                  .nextThreadActiveExpression()
+                  .orElseThrow();
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumptionBuilder.buildNextThreadActiveAssumption(utils.binaryExpressionBuilder());
+              SeqAssumptionBuilder.buildAssumption(nextThreadActiveExpression);
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }

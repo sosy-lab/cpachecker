@@ -11,10 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqAstNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 
-public interface BitVectorValueExpression extends SeqAstNode {
+public abstract class BitVectorValueExpression implements SeqAstNode {
 
-  BitVectorEncoding getEncoding();
+  static final String ZERO_BIT = "0";
+
+  static final String ONE_BIT = "1";
+
+  abstract BitVectorEncoding getEncoding();
 
   /** Whether this bit vector is 0, e.g. {@code 0b00000000} or {@code 0x00} or {@code 0}. */
-  boolean isZero();
+  abstract boolean isZero();
 }

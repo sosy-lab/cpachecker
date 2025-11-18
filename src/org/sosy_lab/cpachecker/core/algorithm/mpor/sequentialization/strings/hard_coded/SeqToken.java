@@ -14,16 +14,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.ha
  */
 public class SeqToken {
 
-  public static final String ZERO_BIT = "0";
-
-  public static final String ZERO_STRING = "\"0\"";
-
-  public static final String BINARY_LITERAL = "0b";
-
-  public static final String HEXADECIMAL_LITERAL = "0x";
-
-  public static final String ONE_BIT = "1";
-
   /** a for access */
   public static final String ACCESS_BIT_VECTOR_PREFIX = "a";
 
@@ -118,9 +108,6 @@ public class SeqToken {
 
   public static final String PRETTY_FUNCTION_KEYWORD = "__PRETTY_FUNCTION__";
 
-  /** pc for program counter */
-  public static final String PROGRAM_COUNTER_VARIABLE = "pc";
-
   /** r for reachable. */
   public static final String REACHABLE_BIT_VECTOR_PREFIX = "r";
 
@@ -148,10 +135,6 @@ public class SeqToken {
   public static final String START_ROUTINE_ARG = "START_ROUTINE_ARG";
 
   public static final String START_ROUTINE_ARG_PREFIX = "S";
-
-  public static final String SYNC = "SYNC";
-
-  public static final String THREAD_PREFIX = "T";
 
   public static final String THREAD = "THREAD";
 

@@ -167,7 +167,7 @@ public record ThreadSyncFlagsBuilder(
   private ImmutableMap<MPORThread, CIdExpression> buildSyncFlags() {
     ImmutableMap.Builder<MPORThread, CIdExpression> rSyncFlags = ImmutableMap.builder();
     for (MPORThread thread : threads) {
-      String name = SeqNameUtil.buildSyncName(options, thread.id());
+      String name = buildSyncVariableName(thread.id());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
@@ -176,5 +176,9 @@ public record ThreadSyncFlagsBuilder(
       rSyncFlags.put(thread, sync);
     }
     return rSyncFlags.buildOrThrow();
+  }
+
+  private String buildSyncVariableName(int pThreadId) {
+    return SeqNameUtil.buildThreadPrefix(options, pThreadId) + "_SYNC";
   }
 }
