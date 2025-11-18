@@ -773,29 +773,6 @@ public class CFAUtils {
   }
 
   /**
-   * Iterates over all functions in the given {@link CFA} and returns the {@link FunctionEntryNode}
-   * whose declaration matches the given {@link CFunctionDeclaration}.
-   *
-   * @param pCfa the CFA to be searched for the FunctionEntryNode
-   * @param pCFunctionDeclaration the CFunctionDeclaration whose FunctionEntryNode is searched for
-   * @return the unique FunctionEntryNode for pCFunctionDeclaration
-   * @throws IllegalArgumentException if no FunctionEntryNode for the CFunctionDeclaration is found
-   */
-  public static FunctionEntryNode getFunctionEntryNodeFromCFunctionDeclaration(
-      CFA pCfa, CFunctionDeclaration pCFunctionDeclaration) {
-
-    checkNotNull(pCFunctionDeclaration);
-    for (FunctionEntryNode functionEntryNode : pCfa.getAllFunctions().values()) {
-      if (functionEntryNode.getFunctionDefinition().equals(pCFunctionDeclaration)) {
-        return functionEntryNode;
-      }
-    }
-    throw new IllegalArgumentException(
-        "pCfa does not contain a FunctionEntryNode for pCFunctionDeclaration: "
-            + pCFunctionDeclaration.toASTString());
-  }
-
-  /**
    * Get an iterable that recursively lists AST nodes that occur in a {@link ALeftHandSide} (in
    * pre-order).
    *

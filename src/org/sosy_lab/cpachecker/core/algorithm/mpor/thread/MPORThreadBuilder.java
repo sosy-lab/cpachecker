@@ -16,10 +16,12 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -44,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
@@ -100,8 +101,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           // extract the 3rd parameter of pthread_create which points to the start_routine function
           CFunctionDeclaration startRoutineDeclaration =
               PthreadUtil.extractStartRoutineDeclaration(functionCall);
-          FunctionEntryNode entryNode =
-              CFAUtils.getFunctionEntryNodeFromCFunctionDeclaration(cfa, startRoutineDeclaration);
+          FunctionEntryNode entryNode = getStartRoutineFunctionEntryNode(startRoutineDeclaration);
           MPORThread newThread =
               createThread(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
           recursivelyFindThreadCreations(newThread, pFoundThreads);
@@ -301,5 +301,18 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       rThreadEdges.put(new CFAEdgeForThread(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
     return rThreadEdges.buildOrThrow();
+  }
+
+  private FunctionEntryNode getStartRoutineFunctionEntryNode(
+      CFunctionDeclaration pStartRoutineDeclaration) {
+
+    Iterable<FunctionEntryNode> functionEntryNodes =
+        FluentIterable.from(cfa.getAllFunctions().values())
+            .filter(
+                functionEntryNode ->
+                    Objects.requireNonNull(functionEntryNode)
+                        .getFunctionDefinition()
+                        .equals(pStartRoutineDeclaration));
+    return Objects.requireNonNull(Iterables.getOnlyElement(functionEntryNodes));
   }
 }
