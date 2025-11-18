@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -279,10 +280,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
             pInitialFormula, pPrevIndex, pCurrIndex, fmgr, scope, pMapPrevToCurrVars);
     ImmutableList.Builder<Formula> builder = ImmutableList.builder();
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(fmgr.uninstantiate(pFormula));
-    for (Map.Entry<String, Formula> entry : mapNamesToVariables.entrySet()) {
-      if (ssaMap.containsVariable(entry.getKey())
-          && ssaMap.getIndex(entry.getKey()) == pPrevIndex.getIndex()) {
-        builder.add(mapNamesToVariables.get(entry.getKey()));
+    for (String name : FluentIterable.from(mapNamesToVariables.keySet())) {
+      if (ssaMap.containsVariable(name)
+          && ssaMap.getIndex(name) == pPrevIndex.getIndex()) {
+        builder.add(mapNamesToVariables.get(name));
       }
     }
     return builder.build();
