@@ -91,7 +91,7 @@ class CmdLineArguments {
               .settingProperty("analysis.machineModel", "Linux64")
               .withDescription("set platform to 64-bit x86 Linux (LP64)"),
           new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
-              .settingProperty("parser.usePreprocessor", "yes")
+              .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute an external preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
