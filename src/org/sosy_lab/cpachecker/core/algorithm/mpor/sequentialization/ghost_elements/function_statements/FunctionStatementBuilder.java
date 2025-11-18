@@ -211,7 +211,7 @@ public record FunctionStatementBuilder(
       if (threadEdge.callContext.isPresent()) {
         CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
         if (callContext.equals(pCallContext)) {
-          FluentIterable<FunctionCallEdge> functionCallEdges =
+          FluentIterable<? extends FunctionCallEdge> functionCallEdges =
               pReturnStatementEdge.getSuccessor().getEntryNode().getEnteringCallEdges();
           for (FunctionCallEdge functionCallEdge : functionCallEdges) {
             if (callContext.cfaEdge.equals(functionCallEdge)) {

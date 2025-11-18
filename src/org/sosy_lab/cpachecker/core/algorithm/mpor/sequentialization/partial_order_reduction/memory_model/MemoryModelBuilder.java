@@ -122,7 +122,7 @@ public record MemoryModelBuilder(
 
   // Collection helpers ============================================================================
 
-  private static ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
+  private ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
@@ -144,25 +144,26 @@ public record MemoryModelBuilder(
     return rRelevantIds.buildOrThrow();
   }
 
-  private static boolean isRelevantMemoryLocation(
+  private boolean isRelevantMemoryLocation(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (!pMemoryLocation.isConstCpaCheckerTmp()) {
-      // relevant locations are either explicit or implicit (e.g. through pointers) global
-      if (pMemoryLocation.isExplicitGlobal()
-          || isImplicitGlobal(
-              pMemoryLocation,
-              pPointerAssignments,
-              pStartRoutineArgAssignments,
-              pPointerParameterAssignments,
-              pPointerDereferences)) {
-        return true;
-      }
+    // if enabled, exclude const CPAchecker_TMP, they do not have any effect in the input program
+    if (options.optimizeConstAuxiliaryVariables() && pMemoryLocation.isConstCpaCheckerTmp()) {
+      return false;
+    }
+    // relevant locations are either explicit or implicit (e.g. through pointers) global
+    if (pMemoryLocation.isExplicitGlobal()
+        || isImplicitGlobal(
+            pMemoryLocation,
+            pPointerAssignments,
+            pStartRoutineArgAssignments,
+            pPointerParameterAssignments,
+            pPointerDereferences)) {
+      return true;
     }
     return false;
   }

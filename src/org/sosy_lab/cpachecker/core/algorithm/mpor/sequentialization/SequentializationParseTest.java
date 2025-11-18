@@ -296,6 +296,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables", "true")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")

@@ -117,7 +117,7 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
+        Optional<String> line = tryBuildInputLocalVariableDeclaration(pOptions, localDeclaration);
         if (line.isPresent()) {
           rDeclarations.add(line.orElseThrow());
         }
@@ -127,12 +127,19 @@ public class SequentializationBuilder {
   }
 
   private static Optional<String> tryBuildInputLocalVariableDeclaration(
-      CVariableDeclaration pLocalVariableDeclaration) {
+      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     // try remove const qualifier from variable
     if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
-      return tryBuildInputConstLocalVariableDeclaration(pLocalVariableDeclaration);
+      // if enabled, const CPAchecker_TMP variables are declared and initialized in the statement.
+      // everything else: add declaration without initializer (and assign later in statements)
+      if (pOptions.optimizeConstAuxiliaryVariables()
+          && MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
+        return Optional.empty();
+      } else {
+        return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
+      }
     }
     // otherwise, for non-const variables
     if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
@@ -140,24 +147,20 @@ public class SequentializationBuilder {
       if (initializer == null) {
         // no initializer -> add declaration as is
         return Optional.of(pLocalVariableDeclaration.toASTString());
-
-      } else if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
+      }
+      if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
         // function pointer initializer -> add declaration as is
         return Optional.of(pLocalVariableDeclaration.toASTString());
-
-      } else if (!MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
-        // const CPAchecker_TMP variables are declared and initialized directly in the case.
-        // everything else: add declaration without initializer (and assign later in cases)
-        return Optional.of(
-            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
       }
+      return Optional.of(
+          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+              pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
     }
     return Optional.empty();
   }
 
   private static Optional<String> tryBuildInputConstLocalVariableDeclaration(
-      CVariableDeclaration pLocalVariableDeclaration) {
+      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     checkArgument(
@@ -177,7 +180,7 @@ public class SequentializationBuilder {
             pLocalVariableDeclaration.getOrigName(),
             pLocalVariableDeclaration.getQualifiedName(),
             pLocalVariableDeclaration.getInitializer());
-    return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
+    return tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationWithoutConst);
   }
 
   // Input Parameter Declarations ==================================================================

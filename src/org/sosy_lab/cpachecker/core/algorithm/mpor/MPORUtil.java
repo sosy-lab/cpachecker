@@ -148,12 +148,12 @@ public final class MPORUtil {
 
   // const CPAchecker_TMP ==========================================================================
 
-  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {
-    return pVarDec.getType().isConst()
-        && !pVarDec.isGlobal()
-        && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP_KEYWORD)
+  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVariableDeclaration) {
+    return pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains(SeqToken.CPACHECKER_TMP_KEYWORD)
         // in tests, const CPAchecker_TMP variables always had initializer
-        && pVarDec.getInitializer() != null;
+        && pVariableDeclaration.getInitializer() != null;
   }
 
   public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {

@@ -341,6 +341,14 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
+# some auxiliary variables may introduce additional context switches in the
+# output program, e.g. 'x++;' is transformed into 'const int AUX_VAR = x;
+# {context-switch} x = x + 1; AUX_VAR;' if 'x' is a global variable. with
+# this option enabled, the context switch is removed i.e. the statements
+# treated as atomic. leave disabled if unsure whether the CFA contains these
+# variables.
+analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables = false
+
 # create additional output file with metadata such as input file(s) and
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
