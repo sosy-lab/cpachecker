@@ -61,8 +61,8 @@ public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
         case "function_contract" -> FunctionContractEntry.class;
         case "loop_invariant",
             "location_invariant",
-            "transition_loop_invariant",
-            "transition_location_invariant" ->
+            "loop_transition_invariant",
+            "location_transition_invariant" ->
             InvariantEntry.class;
         default -> throw new IllegalArgumentException("Unknown invariant type: " + type);
       };

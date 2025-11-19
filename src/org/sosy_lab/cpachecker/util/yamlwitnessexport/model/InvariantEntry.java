@@ -62,7 +62,7 @@ public class InvariantEntry extends AbstractInvariantEntry {
 
   public enum InvariantRecordType {
     LOOP_INVARIANT("loop_invariant"),
-    TRANSITION_LOOP_INVARIANT("transition_loop_invariant"),
+    TRANSITION_LOOP_INVARIANT("loop_transition_invariant"),
     LOCATION_INVARIANT("location_invariant"),
     UNKNOWN("unknown");
 
