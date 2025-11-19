@@ -145,7 +145,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     String currentRank =
         rightSideOfRankingFunction(wrapTheVariablesWithCastToLongLong(rankingFunction, variables));
     if (prevRank.contains(TMP_KEYWORD)) {
-      transitionInvariants.add("1");
+      transitionInvariants.add("0");
     } else {
       transitionInvariants.add(prevRank + " > " + currentRank);
     }
