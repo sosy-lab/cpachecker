@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.List;
@@ -52,10 +51,12 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
         + ("("
             + Joiner.on(") (")
                 .join(
-                    transformedImmutableListCopy(
-                        assignments.entrySet(),
-                        entry ->
-                            entry.getKey().getOrigName() + " " + entry.getValue().toASTString()))
+                    FluentIterable.from(assignments.entrySet())
+                        .transform(
+                            entry ->
+                                entry.getKey().getOrigName()
+                                    + " "
+                                    + entry.getValue().toASTString()))
             + ")")
         + ")";
   }
