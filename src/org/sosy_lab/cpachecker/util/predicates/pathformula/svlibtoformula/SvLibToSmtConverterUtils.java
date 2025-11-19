@@ -11,6 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula;
 public class SvLibToSmtConverterUtils {
 
   public static String cleanVariableNameForJavaSMT(String name) {
-    return name.replaceAll("\\|", "__PIPE__");
+    return name.replace("|", "__PIPE__");
   }
 }
