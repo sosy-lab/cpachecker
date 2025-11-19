@@ -133,7 +133,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         TransitionInvariantUtils.removeFunctionFromVarsName(
             String.join(" || ", transitionInvariants)),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
-        YAMLWitnessExpressionType.C,
+        YAMLWitnessExpressionType.EXT_C,
         locationRecord);
   }
 
