@@ -23,8 +23,12 @@ public class ClangFormatter {
 
   @Option(
       secure = false,
-      description = "define the clang-format version to use, e.g. clang-format-18.")
-  private String clangFormatVersion = "clang-format";
+      description =
+          "define the clang-format version to use, e.g. \"-18\" for \"clang-format-18\" or and"
+              + " empty string for the default \"clang-format\".")
+  private String clangFormatVersion = "-18";
+
+  private final String clangFormatCommand;
 
   private final LogManager logger;
 
@@ -32,6 +36,7 @@ public class ClangFormatter {
       throws InvalidConfigurationException {
 
     pConfiguration.inject(this);
+    clangFormatCommand = "clang-format" + clangFormatVersion;
     logger = pLogger;
   }
 
@@ -48,7 +53,7 @@ public class ClangFormatter {
           Level.WARNING,
           e,
           "%s failed due to an error. Returning unformatted code instead.",
-          clangFormatVersion);
+          clangFormatCommand);
     }
     return pCode;
   }
@@ -57,7 +62,7 @@ public class ClangFormatter {
       throws IOException, InterruptedException {
 
     ProcessExecutor<IOException> executor =
-        new ProcessExecutor<>(logger, IOException.class, clangFormatVersion, pStyle.getCommand());
+        new ProcessExecutor<>(logger, IOException.class, clangFormatCommand, pStyle.getCommand());
 
     // send code to clang-format via stdin
     executor.print(pCode);
@@ -69,7 +74,7 @@ public class ClangFormatter {
       String errorOutput = String.join(System.lineSeparator(), executor.getErrorOutput());
       throw new IOException(
           String.format(
-              "%s failed with exit code %d:%n%s", clangFormatVersion, exitCode, errorOutput));
+              "%s failed with exit code %d:%n%s", clangFormatCommand, exitCode, errorOutput));
     }
 
     // collect and return formatted output
