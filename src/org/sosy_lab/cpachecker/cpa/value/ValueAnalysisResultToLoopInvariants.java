@@ -83,9 +83,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -213,7 +213,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     varToType = extractVarsWithType(pCfa);
     c2Formula =
         new CtoFormulaConverter(
-            new FormulaEncodingOptions(pConfig),
+            new CFormulaEncodingOptions(pConfig),
             solver.getFormulaManager(),
             pCfa.getMachineModel(),
             pCfa.getVarClassification(),

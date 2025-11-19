@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -64,11 +63,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-@SuppressWarnings("unused")
 public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   private final FormulaManagerView fmgr;
-  private final FormulaEncodingOptions options;
+  private final SvLibFormulaEncodingOptions options;
   private final Optional<VariableClassification> variableClassification;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView efmgr;
@@ -77,7 +75,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
   private final ShutdownNotifier shutdownNotifier;
 
   public SvLibToFormulaConverter(
-      FormulaEncodingOptions pOptions,
+      SvLibFormulaEncodingOptions pOptions,
       FormulaManagerView pFmgr,
       Optional<VariableClassification> pVariableClassification,
       LogManager pLogger,

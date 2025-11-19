@@ -124,7 +124,7 @@ class AssignmentFormulaHandler {
     }
   }
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView bvmgr;

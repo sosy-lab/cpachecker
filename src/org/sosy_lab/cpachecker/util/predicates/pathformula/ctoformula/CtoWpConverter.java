@@ -57,7 +57,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
   private final ErrorConditions errorConditions;
 
   public CtoWpConverter(
-      FormulaEncodingOptions pOptions,
+      CFormulaEncodingOptions pOptions,
       FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,

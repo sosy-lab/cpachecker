@@ -129,7 +129,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   private MemoryRegionManager regionMgr;
 
   public CToFormulaConverterWithPointerAliasing(
-      final FormulaEncodingWithPointerAliasingOptions pOptions,
+      final CFormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView formulaManagerView,
       final MachineModel pMachineModel,
       final Optional<VariableClassification> pVariableClassification,
@@ -1259,7 +1259,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @SuppressWarnings("hiding") // same instance with narrower type
-  final FormulaEncodingWithPointerAliasingOptions options;
+  final CFormulaEncodingWithPointerAliasingOptions options;
 
   private final Optional<VariableClassification> variableClassification;
 

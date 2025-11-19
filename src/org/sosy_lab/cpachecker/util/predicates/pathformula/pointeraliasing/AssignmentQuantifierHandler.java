@@ -136,7 +136,7 @@ class AssignmentQuantifierHandler {
    */
   private static final UniqueIdGenerator ENCODED_VARIABLE_NUMBER = new UniqueIdGenerator();
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 

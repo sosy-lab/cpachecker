@@ -172,7 +172,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
-  final FormulaEncodingOptions options;
+  final CFormulaEncodingOptions options;
   protected final MachineModel machineModel;
   private final Optional<VariableClassification> variableClassification;
   final CtoFormulaTypeHandler typeHandler;
@@ -189,7 +189,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
-      FormulaEncodingOptions pOptions,
+      CFormulaEncodingOptions pOptions,
       FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,

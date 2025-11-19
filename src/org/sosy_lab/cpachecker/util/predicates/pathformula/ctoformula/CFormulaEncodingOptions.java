@@ -18,7 +18,7 @@ import org.sosy_lab.common.configuration.Options;
 
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
-public class FormulaEncodingOptions {
+public class CFormulaEncodingOptions {
 
   @Option(
       secure = true,
@@ -144,8 +144,8 @@ public class FormulaEncodingOptions {
               + " variables.")
   private boolean useHavocAbstraction = false;
 
-  public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
-    config.inject(this, FormulaEncodingOptions.class);
+  public CFormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
+    config.inject(this, CFormulaEncodingOptions.class);
   }
 
   public boolean handleFieldAccess() {

@@ -54,14 +54,15 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -162,8 +163,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     switch (pLanguage) {
       case C -> {
         if (handlePointerAliasing) {
-          final FormulaEncodingWithPointerAliasingOptions options =
-              new FormulaEncodingWithPointerAliasingOptions(config);
+          final CFormulaEncodingWithPointerAliasingOptions options =
+              new CFormulaEncodingWithPointerAliasingOptions(config);
           if (options.useQuantifiersOnArrays()) {
             try {
               fmgr.getQuantifiedFormulaManager();
@@ -200,7 +201,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           wpConverter = null;
 
         } else {
-          final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
+          final CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
           CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
           converter =
               new CtoFormulaConverter(
@@ -243,7 +244,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       case SVLIB -> {
         converter =
             new SvLibToFormulaConverter(
-                new FormulaEncodingOptions(config),
+                new SvLibFormulaEncodingOptions(config),
                 fmgr,
                 pVariableClassification,
                 logger,
