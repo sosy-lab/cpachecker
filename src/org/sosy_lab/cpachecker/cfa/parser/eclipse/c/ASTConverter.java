@@ -2859,11 +2859,11 @@ class ASTConverter {
       }
 
       final FileLocation loc = getLocation(ic);
-      CExpression initializerExpression;
+      CExpression initializedExpression;
       switch (initializer) {
         case CAssignment cAssignment -> {
           sideAssignmentStack.addPreSideAssignment(initializer);
-          initializerExpression = cAssignment.getLeftHandSide();
+          initializedExpression = cAssignment.getLeftHandSide();
         }
         case CFunctionCallExpression cFunctionCallExpression -> {
           if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
@@ -2881,10 +2881,10 @@ class ASTConverter {
             CIdExpression var = createTemporaryVariableWithTypeOf(e);
             sideAssignmentStack.addPreSideAssignment(
                 new CFunctionCallAssignmentStatement(loc, var, cFunctionCallExpression));
-            initializerExpression = var;
+            initializedExpression = var;
           }
         }
-        case CExpression cExpression -> initializerExpression = cExpression;
+        case CExpression cExpression -> initializedExpression = cExpression;
         default ->
             throw parseContext.parseError(
                 "Initializer is not free of side-effects, it is a "
@@ -2893,30 +2893,30 @@ class ASTConverter {
       }
 
       if (type.getCanonicalType() instanceof CPointerType
-          && initializerExpression.getExpressionType().getCanonicalType()
+          && initializedExpression.getExpressionType().getCanonicalType()
               instanceof CArrayType initializerType) {
         // TODO This is part of #1035 but should probably be handled generally somewhere else and
         // removed here.
         CType elementType = initializerType.getType();
-        initializerExpression =
+        initializedExpression =
             new CUnaryExpression(
                 loc,
                 new CPointerType(initializerType.getQualifiers(), elementType),
                 new CArraySubscriptExpression(
-                    loc, elementType, initializerExpression, CIntegerLiteralExpression.ZERO),
+                    loc, elementType, initializedExpression, CIntegerLiteralExpression.ZERO),
                 CUnaryExpression.UnaryOperator.AMPER);
       }
 
-      if (!areInitializerAssignable(type, initializerExpression)) {
+      if (!areInitializerAssignable(type, initializedExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
-            && CTypes.isIntegerType(initializerExpression.getExpressionType())) {
+            && CTypes.isIntegerType(initializedExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
                 "%s: Initialization of pointer variable %s with integer expression %s.",
-                initializerExpression.getFileLocation(),
+                initializedExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                initializerExpression);
+                initializedExpression);
           }
         } else {
           throw parseContext.parseError(
@@ -2929,7 +2929,7 @@ class ASTConverter {
         }
       }
 
-      return new CInitializerExpression(loc, initializerExpression);
+      return new CInitializerExpression(loc, initializedExpression);
 
     } else if (ic instanceof IASTInitializerList iASTInitializerList) {
       return convert(iASTInitializerList, type, declaration);
