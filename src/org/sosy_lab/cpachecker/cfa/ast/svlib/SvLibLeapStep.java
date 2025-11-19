@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class SvLibLeapStep extends SvLibTraceStep {
 
   @Serial private static final long serialVersionUID = 8365995208626503450L;
-  private final Map<SvLibIdTerm, SvLibConstantTerm> assignments;
+  private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
   private final String leapTag;
 
   SvLibLeapStep(
@@ -24,7 +25,7 @@ public final class SvLibLeapStep extends SvLibTraceStep {
       Map<SvLibIdTerm, SvLibConstantTerm> pAssignments,
       String pLeapTag) {
     super(pFileLocation);
-    assignments = pAssignments;
+    assignments = ImmutableMap.copyOf(pAssignments);
     leapTag = pLeapTag;
   }
 
@@ -82,7 +83,7 @@ public final class SvLibLeapStep extends SvLibTraceStep {
         && assignments.equals(other.assignments);
   }
 
-  public Map<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
+  public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
     return assignments;
   }
 

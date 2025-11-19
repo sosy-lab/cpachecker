@@ -9,18 +9,19 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   @Serial private static final long serialVersionUID = -1341873304472826329L;
-  private final Map<SvLibIdTerm, SvLibConstantTerm> assignments;
+  private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
 
   public SvLibInitProcVariablesStep(
       Map<SvLibIdTerm, SvLibConstantTerm> pValues, FileLocation pFileLocation) {
     super(pFileLocation);
-    assignments = pValues;
+    assignments = ImmutableMap.copyOf(pValues);
   }
 
   @Override
@@ -55,7 +56,7 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public Map<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
+  public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
     return assignments;
   }
 

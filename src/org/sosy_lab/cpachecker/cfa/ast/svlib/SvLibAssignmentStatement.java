@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
   @Serial private static final long serialVersionUID = 5878865332404007544L;
-  private final Map<SvLibSimpleDeclaration, SvLibTerm> assignments;
+  private final ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> assignments;
 
   public SvLibAssignmentStatement(
       Map<SvLibSimpleDeclaration, SvLibTerm> pAssignments,
@@ -27,7 +28,7 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    assignments = pAssignments;
+    assignments = ImmutableMap.copyOf(pAssignments);
   }
 
   @Override
@@ -59,7 +60,7 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public Map<SvLibSimpleDeclaration, SvLibTerm> getAssignments() {
+  public ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> getAssignments() {
     return assignments;
   }
 
