@@ -29,7 +29,8 @@ public class TransitionInvariantUtils {
    * constructing formulas. The indices are used for renaming only with instantiation so the
    * concrete value will not have an impact on the instantiation, as all of them are bigger than 1.
    * (except for -1) The special enum value INDEX_LATEST is used to get the latest SSA index from
-   * path formula.
+   * path formula. The names of the enum values correspond to the names of the states described in
+   * the documentation of DecreasingCardinalityChecker and TerminationWitnessValidator.
    */
   public enum CurrStateIndices {
     INDEX_LATEST(-1), // Used to get the latest indices from the path formula
@@ -52,7 +53,8 @@ public class TransitionInvariantUtils {
 
   /**
    * Enum representing the SSA indices of the previous states that we use for different states when
-   * constructing formulas.
+   * constructing formulas. The names of the enum values correspond to the names of the states
+   * described in the documentation of DecreasingCardinalityChecker and TerminationWitnessValidator.
    */
   public enum PrevStateIndices {
     INDEX_FIRST(1),
