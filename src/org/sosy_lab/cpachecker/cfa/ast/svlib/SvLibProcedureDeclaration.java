@@ -60,7 +60,7 @@ public final class SvLibProcedureDeclaration extends AFunctionDeclaration
   @Override
   @Nullable
   public String getProcedureName() {
-    return null;
+    return getName();
   }
 
   @Override
