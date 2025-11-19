@@ -41,13 +41,7 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     condSignaledFlag = pCondSignaledFlag;
     mutexLockedFlag = pMutexLockedFlag;
   }

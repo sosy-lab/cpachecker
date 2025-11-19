@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -65,6 +67,28 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
 
   final ImmutableList<SeqInjectedStatement> injectedStatements;
 
+  /**
+   * Use this constructor for the initialization, when there is no target goto {@link
+   * SeqBlockLabelStatement} and no {@link SeqInjectedStatement}s.
+   */
+  CSeqThreadStatement(
+      MPOROptions pOptions,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      CLeftHandSide pPcLeftHandSide,
+      Integer pTargetPc) {
+
+    options = pOptions;
+    substituteEdges = pSubstituteEdges;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
+    injectedStatements = ImmutableList.of();
+  }
+
+  /**
+   * Use this constructor to clone with target pc, target goto {@link SeqBlockLabelStatement}, or
+   * {@link SeqInjectedStatement}s.
+   */
   CSeqThreadStatement(
       MPOROptions pOptions,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -73,6 +97,9 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    checkArgument(
+        pTargetPc.isPresent() || pTargetGoto.isPresent(),
+        "Either pTargetPc or pTargetGoto must be present.");
     options = pOptions;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;

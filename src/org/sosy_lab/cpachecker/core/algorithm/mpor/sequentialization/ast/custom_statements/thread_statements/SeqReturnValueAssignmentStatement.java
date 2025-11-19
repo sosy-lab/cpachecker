@@ -36,13 +36,7 @@ public final class SeqReturnValueAssignmentStatement extends CSeqThreadStatement
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     assignment = pAssignment;
   }
 

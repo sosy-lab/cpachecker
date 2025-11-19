@@ -230,12 +230,13 @@ public record SeqThreadStatementBuilder(
   private SeqAssumeStatement buildAssumeStatement(
       boolean pFirstEdge, CAssumeEdge pAssumeEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    return new SeqAssumeStatement(
-        options,
-        pFirstEdge ? Optional.of(pAssumeEdge.getExpression()) : Optional.empty(),
-        pcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
+    ImmutableSet<SubstituteEdge> substituteEdgeSet = ImmutableSet.of(pSubstituteEdge);
+    if (pFirstEdge) {
+      return new SeqAssumeStatement(
+          options, pAssumeEdge.getExpression(), pcLeftHandSide, substituteEdgeSet, pTargetPc);
+    } else {
+      return new SeqAssumeStatement(options, pcLeftHandSide, substituteEdgeSet, pTargetPc);
+    }
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement

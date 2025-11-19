@@ -49,13 +49,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
       CBinaryExpression pJoinedThreadNotActive,
       CLeftHandSide pPcLeftHandSide) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     joinedThreadNotActive = pJoinedThreadNotActive;
   }

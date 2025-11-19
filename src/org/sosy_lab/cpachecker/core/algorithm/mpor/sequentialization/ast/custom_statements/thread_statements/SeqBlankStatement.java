@@ -26,13 +26,7 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
   public SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-    super(
-        pOptions,
-        ImmutableSet.of(),
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pOptions, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
   }
 
   private SeqBlankStatement(

@@ -24,22 +24,27 @@ public final class SeqAssumeStatement extends CSeqThreadStatement {
 
   public final Optional<CExpression> ifExpression;
 
+  /** Use this constructor for the {@code if (expression)} statement. */
   SeqAssumeStatement(
       MPOROptions pOptions,
-      Optional<CExpression> pIfExpression,
+      CExpression pIfExpression,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    ifExpression = Optional.of(pIfExpression);
+  }
 
-    ifExpression = pIfExpression;
+  /** Use this constructor for the {@code else} statement without any expression. */
+  SeqAssumeStatement(
+      MPOROptions pOptions,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
+
+    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    ifExpression = Optional.empty();
   }
 
   private SeqAssumeStatement(
