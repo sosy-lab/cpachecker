@@ -148,7 +148,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               + "Each version replaces the string '%s' "
               + "with its version number.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
+  protected PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
 
   // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
@@ -197,7 +197,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   protected final LogManager logger;
 
   protected final WitnessExporter witnessExporter;
-  private final TerminationYAMLWitnessExporter terminationWitnessExporter;
+  protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
   private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
