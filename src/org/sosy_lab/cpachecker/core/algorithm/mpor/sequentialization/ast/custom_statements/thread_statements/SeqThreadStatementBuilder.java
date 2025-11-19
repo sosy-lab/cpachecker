@@ -198,33 +198,32 @@ public record SeqThreadStatementBuilder(
 
     if (yieldsNoStatement(pSubstituteEdge, successor)) {
       return new SeqBlankStatement(options, pcLeftHandSide, targetPc);
-
-    } else {
-      if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
-        return buildAssumeStatement(pFirstEdge, assumeEdge, pSubstituteEdge, targetPc);
-
-      } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
-        return buildLocalVariableDeclarationWithInitializerStatement(
-            declarationEdge, pSubstituteEdge, targetPc);
-
-      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-        return buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
-
-      } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
-        return buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc);
-
-      } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(cfaEdge)) {
-        return buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
-      }
     }
-    assert pSubstituteEdge.cfaEdge instanceof CStatementEdge
-        : "leftover CFAEdge must be CStatementEdge";
-    return new SeqDefaultStatement(
-        options,
-        (CStatementEdge) pSubstituteEdge.cfaEdge,
-        pcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        targetPc);
+
+    return switch (pSubstituteEdge.cfaEdge) {
+      case CAssumeEdge assumeEdge ->
+          buildAssumeStatement(pFirstEdge, assumeEdge, pSubstituteEdge, targetPc);
+
+      case CDeclarationEdge declarationEdge ->
+          buildLocalVariableDeclarationWithInitializerStatement(
+              declarationEdge, pSubstituteEdge, targetPc);
+
+      case CFunctionCallEdge functionCallEdge ->
+          buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
+
+      case CReturnStatementEdge ignore ->
+          buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc);
+
+      case CFAEdge edge when PthreadUtil.isExplicitlyHandledPthreadFunction(edge) ->
+          buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
+
+      case CStatementEdge statementEdge ->
+          new SeqDefaultStatement(
+              options, statementEdge, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), targetPc);
+
+      default ->
+          throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
+    };
   }
 
   private SeqAssumeStatement buildAssumeStatement(
