@@ -26,10 +26,13 @@ public class TransitionInvariantUtils {
 
   /**
    * Enum representing the SSA indices of the current states that we use for different states when
-   * constructing formulas.
+   * constructing formulas. The indices are used for renaming only with instantiation so the
+   * concrete value will not have an impact on the instantiation, as all of them are bigger than 1.
+   * (except for -1) The special enum value INDEX_LATEST is used to get the latest SSA index from
+   * path formula.
    */
   public enum CurrStateIndices {
-    INDEX_LATEST(-1),
+    INDEX_LATEST(-1), // Used to get the latest indices from the path formula
     INDEX_MIDDLE(1),
     INDEX_S(2),
     INDEX_S_PRIME(3),
