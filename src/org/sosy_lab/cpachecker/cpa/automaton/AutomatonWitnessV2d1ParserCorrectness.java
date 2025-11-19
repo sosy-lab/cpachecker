@@ -42,7 +42,9 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
 
   /**
    * Extends the function from parser for version 2.0 to handle transition invariants in addition to
-   * the normal loop and location invariants.
+   * the normal loop and location invariants. Currently, the validation does not make use of the
+   * automaton structure but this opens possibility of creating a validation technique based on our
+   * CPA analyses.
    *
    * @param entries from the witness
    * @return the transitions containing invariants and transition invariants
