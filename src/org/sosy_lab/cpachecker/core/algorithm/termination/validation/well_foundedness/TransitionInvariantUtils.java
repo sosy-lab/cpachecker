@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -82,10 +84,10 @@ public class TransitionInvariantUtils {
 
   public static CSimpleDeclaration getPrevDeclaration(
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
-    return pMapPrevToCurrVars.keySet().stream()
-        .filter(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)))
-        .findAny()
-        .orElseThrow();
+    return Iterables.getOnlyElement(
+        pMapPrevToCurrVars.keySet().stream()
+            .filter(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)))
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
   public static String transformFormulaToStringWithTrivialReplacement(
