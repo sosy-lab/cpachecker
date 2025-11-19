@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model.svlib;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record SvLibCfaMetadata(
-    List<SmtLibCommand> smtLibCommands,
+    ImmutableList<SmtLibCommand> smtLibCommands,
     ImmutableSetMultimap<CFANode, SvLibTagProperty> tagAnnotations,
     ImmutableSetMultimap<CFANode, SvLibTagReference> tagReferences,
     boolean exportCorrectnessWitness,
