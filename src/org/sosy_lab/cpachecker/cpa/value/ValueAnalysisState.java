@@ -41,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -921,12 +919,6 @@ public final class ValueAnalysisState
       }
     }
     return And.of(result);
-  }
-
-  @Override
-  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope)
-      throws ReportingMethodNotImplementedException {
-    throw new ReportingMethodNotImplementedException("not implemented");
   }
 
   @Override

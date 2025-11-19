@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -53,12 +51,6 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     acslVisitor = pACSLVisitor;
     expressionTreeVisitor = pExpressionTreeVisitor;
     logger = pLogManager;
-  }
-
-  @Override
-  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope)
-      throws ReportingMethodNotImplementedException {
-    throw new ReportingMethodNotImplementedException("not implemented");
   }
 
   @Override

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -61,19 +60,18 @@ public class ArgToSvLibCorrectnessWitnessExport {
   }
 
   protected SvLibFinalRelationalTerm getOverapproximationOfStates(
-      Collection<ARGState> pArgStates, SvLibScope pScope)
-      throws InterruptedException, ReportingMethodNotImplementedException {
-    FluentIterable<ExpressionTreeReportingState> reportingStates =
+      Collection<ARGState> pArgStates, SvLibScope pScope) {
+    FluentIterable<SvLibTermReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
-            .filter(ExpressionTreeReportingState.class);
+            .filter(SvLibTermReportingState.class);
     ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsPerClass =
         new ImmutableSet.Builder<>();
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
       ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsMatchingClass =
           new ImmutableSet.Builder<>();
-      for (ExpressionTreeReportingState state : reportingStates) {
+      for (SvLibTermReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
           expressionsMatchingClass.add(state.asSvLibTerm(pScope));
         }
@@ -89,8 +87,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createRequires(
-      Collection<ARGState> argStates, SvLibTagReference pTag)
-      throws ReportingMethodNotImplementedException, InterruptedException {
+      Collection<ARGState> argStates, SvLibTagReference pTag) {
     SvLibFinalRelationalTerm precondition =
         getOverapproximationOfStates(argStates, pTag.getScope());
     if (!(precondition instanceof SvLibTerm term)) {
@@ -105,8 +102,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createEnsures(
-      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag)
-      throws ReportingMethodNotImplementedException, InterruptedException {
+      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag) {
     // Build state for precondition
     ImmutableSet.Builder<SvLibFinalRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
@@ -141,8 +137,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   private SvLibAnnotateTagCommand createLoopInvariant(
-      Collection<ARGState> argStates, SvLibTagReference pTag)
-      throws ReportingMethodNotImplementedException, InterruptedException {
+      Collection<ARGState> argStates, SvLibTagReference pTag) {
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
         ImmutableList.of(
