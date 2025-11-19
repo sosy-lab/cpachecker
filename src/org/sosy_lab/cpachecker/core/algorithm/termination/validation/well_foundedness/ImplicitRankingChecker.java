@@ -162,7 +162,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private void resetVariablesFromProgram(
       StringJoiner builder,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
-      Map<String, Formula> mapNamesToVariables) {
+      Map<String, Formula> mapNamesToVariables)
+      throws CPAException {
     for (String variable : mapNamesToVariables.keySet()) {
       if (!TransitionInvariantUtils.isPrevVariable(variable, mapCurrVarsToPrevVars)) {
         String nondetVerifierCall;
@@ -170,7 +171,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           nondetVerifierCall =
               "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType() + "();";
         } else {
-          nondetVerifierCall = "__VERIFIER_nondet_memory();";
+          throw new CPAException(
+              "We currently do not support nondeterministic initialization of complex types.");
         }
         builder.add(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
