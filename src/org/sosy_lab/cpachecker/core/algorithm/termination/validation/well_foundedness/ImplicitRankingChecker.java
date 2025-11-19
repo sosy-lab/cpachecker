@@ -67,8 +67,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       final ShutdownNotifier pShutdownNotifier,
       final Specification pSpecification,
       final Scope pScope,
-      final CFA pCFA)
-      throws InvalidConfigurationException {
+      final CFA pCFA) {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     config = pConfig;
