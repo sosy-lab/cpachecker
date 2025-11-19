@@ -108,16 +108,16 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     Set<String> alreadyDeclaredVars = new HashSet<>();
 
     // Initialize the variables from the transition invariant
-    InitializeVariables(loopHead, alreadyDeclaredVars, builder, mapNamesToVariables);
+    initializeVariables(loopHead, alreadyDeclaredVars, builder, mapNamesToVariables);
 
     // Build the loop
-    BuildTheLoop(loopHead, pFormula, builder, alreadyDeclaredVars, pSupportingInvariants);
+    buildTheLoop(loopHead, pFormula, builder, alreadyDeclaredVars, pSupportingInvariants);
 
     // Initialize the variables from the transition invariant
-    ResetVariablesFromTransitionInvariant(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
+    resetVariablesFromTransitionInvariant(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
 
     // Reset the original variables
-    ResetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
+    resetVariablesFromProgram(builder, mapCurrVarsToPrevVars, mapNamesToVariables);
 
     builder.add("}}");
     String overapproximatingProgam = builder.toString();
@@ -159,7 +159,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     return true;
   }
 
-  private void ResetVariablesFromProgram(
+  private void resetVariablesFromProgram(
       StringJoiner builder,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
       Map<String, Formula> mapNamesToVariables) {
@@ -180,7 +180,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
   }
 
-  private void ResetVariablesFromTransitionInvariant(
+  private void resetVariablesFromTransitionInvariant(
       StringJoiner builder,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapCurrVarsToPrevVars,
       Map<String, Formula> mapNamesToVariables) {
@@ -198,7 +198,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
   }
 
-  private void BuildTheLoop(
+  private void buildTheLoop(
       CFANode loopHead,
       BooleanFormula pFormula,
       StringJoiner builder,
@@ -243,7 +243,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     builder.add("while(" + loopCondition + ") {");
   }
 
-  private void InitializeVariables(
+  private void initializeVariables(
       CFANode loopHead,
       Set<String> alreadyDeclaredVars,
       StringJoiner builder,
