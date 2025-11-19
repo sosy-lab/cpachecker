@@ -180,7 +180,8 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
-      if (!loopsToTransitionInvariants.containsKey(loop) && !loopsToSupportingInvariants.containsKey(loop)) {
+      if (!loopsToTransitionInvariants.containsKey(loop)
+          && !loopsToSupportingInvariants.containsKey(loop)) {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
 
