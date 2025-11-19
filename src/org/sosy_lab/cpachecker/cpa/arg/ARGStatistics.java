@@ -484,12 +484,7 @@ public class ARGStatistics implements Statistics {
         // Now export the correctness witnesses for SV-LIB program
         if (argToSvLibWitnessWriter != null && svLibCorrectnessWitnessPath != null) {
           List<SvLibAnnotateTagCommand> witnessCommands = null;
-          try {
-            witnessCommands = argToSvLibWitnessWriter.generateWitnessCommands(rootState);
-          } catch (ReportingMethodNotImplementedException e) {
-            logger.logUserException(
-                Level.WARNING, e, "Could not export SV-LIB correctness witness.");
-          }
+          witnessCommands = argToSvLibWitnessWriter.generateWitnessCommands(rootState);
 
           // The catch block was not triggered, so we can proceed to write the witness
           if (witnessCommands != null) {
