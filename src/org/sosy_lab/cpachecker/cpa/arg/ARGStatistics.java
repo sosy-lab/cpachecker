@@ -143,12 +143,8 @@ public class ARGStatistics implements Statistics {
       name = "svLibCorrectnessWitness",
       description =
           "The file into which to write the correctness "
-              + "witness for SV-LIB programs. If set to 'null', "
-              + "no witness is exported. Be aware that one "
-              + "can also set this option in SV-LIB programs, "
-              + "instead of in CPAchecker's configuration."
-              + "In case this happens, the option "
-              + "will be overriden by the one from the program, and this option ignored.")
+              + "witness for SV-LIB programs. "
+              + "If not set no witness will be exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
 
