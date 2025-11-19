@@ -116,12 +116,8 @@ public final class CEXExportOptions {
       name = "svlib",
       description =
           "The file into which to write the violation "
-              + "witness for SV-LIB programs. If set to 'null', "
-              + "no witness is exported. Be aware that one "
-              + "can also set this option in SV-LIB programs, "
-              + "instead of in CPAchecker's configuration."
-              + "In case this happens, the option "
-              + "will be overriden by the one from the program, and this option ignored.")
+              + "witness for SV-LIB programs. "
+              + "In case no output files are requested ")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path svLibViolationWitnessPath = Path.of("witness.svlib");
 
