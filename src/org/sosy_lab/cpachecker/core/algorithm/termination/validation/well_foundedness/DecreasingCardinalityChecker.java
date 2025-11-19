@@ -86,7 +86,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
     // T(s,s1) ∧ I(s1), ¬T(s',s1)
     BooleanFormula sToS1Step =
-        buildSToS1Step(pFormula, pSupportingInvariants, mapPrevVarsToCurrVars);
+        buildStepFormulaWithInvariants(
+            pFormula,
+            pSupportingInvariants,
+            mapPrevVarsToCurrVars,
+            PrevStateIndices.INDEX_S,
+            CurrStateIndices.INDEX_S1);
     BooleanFormula notSPrimeToS1Step = buildNotSPrimeToS1Step(pFormula, mapPrevVarsToCurrVars);
 
     // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
@@ -103,7 +108,12 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     // T(s,s2), T(s',s2) ∧ I(s2)
     BooleanFormula sToS2Step = buildSToS2Step(pFormula, mapPrevVarsToCurrVars);
     BooleanFormula sPrimeToS2Step =
-        buildSPrimeToS2Step(pFormula, pSupportingInvariants, mapPrevVarsToCurrVars);
+        buildStepFormulaWithInvariants(
+            pFormula,
+            pSupportingInvariants,
+            mapPrevVarsToCurrVars,
+            PrevStateIndices.INDEX_S_PRIME,
+            CurrStateIndices.INDEX_S2);
 
     // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
     final ImmutableList<Formula> quantifiedVars2 =
@@ -164,26 +174,20 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     return middleStep2;
   }
 
-  private BooleanFormula buildSPrimeToS2Step(
+  private BooleanFormula buildStepFormulaWithInvariants(
       BooleanFormula pFormula,
       ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
-    BooleanFormula stepFromSPrime2 =
-        instantiateWithNewIndices(
-            pFormula,
-            PrevStateIndices.INDEX_S_PRIME,
-            CurrStateIndices.INDEX_S2,
-            pMapPrevToCurrVars);
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      PrevStateIndices fromState,
+      CurrStateIndices toState) {
+    BooleanFormula fromStateToStateStep =
+        instantiateWithNewIndices(pFormula, fromState, toState, pMapPrevToCurrVars);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       supportingInvariant =
-          instantiateWithNewIndices(
-              supportingInvariant,
-              PrevStateIndices.INDEX_S,
-              CurrStateIndices.INDEX_S2,
-              pMapPrevToCurrVars);
-      stepFromSPrime2 = bfmgr.and(stepFromSPrime2, supportingInvariant);
+          instantiateWithNewIndices(supportingInvariant, fromState, toState, pMapPrevToCurrVars);
+      fromStateToStateStep = bfmgr.and(fromStateToStateStep, supportingInvariant);
     }
-    return stepFromSPrime2;
+    return fromStateToStateStep;
   }
 
   private BooleanFormula buildSToS2Step(
@@ -215,25 +219,6 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
             pMapPrevToCurrVars);
     stepFromSPrime = fmgr.makeNot(stepFromSPrime);
     return stepFromSPrime;
-  }
-
-  private BooleanFormula buildSToS1Step(
-      BooleanFormula pFormula,
-      ImmutableList<BooleanFormula> pSupportingInvariants,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
-    BooleanFormula stepFromS =
-        instantiateWithNewIndices(
-            pFormula, PrevStateIndices.INDEX_S, CurrStateIndices.INDEX_S1, pMapPrevToCurrVars);
-    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      supportingInvariant =
-          instantiateWithNewIndices(
-              supportingInvariant,
-              PrevStateIndices.INDEX_S,
-              CurrStateIndices.INDEX_S1,
-              pMapPrevToCurrVars);
-      stepFromS = bfmgr.and(stepFromS, supportingInvariant);
-    }
-    return stepFromS;
   }
 
   private BooleanFormula buildSToSPrimeStep(
