@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -49,7 +48,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.svlibsafetyspec.SvLibSafetySpecCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -210,11 +208,6 @@ public class CPABuilder {
     verify(
         allCpas.size() == allCpaConfigs.size() + cpas.size() - placeholderCount,
         "Number of CPAs in final CPA tree does not match configured CPAs");
-    verify(
-        cfa.getLanguage() != Language.SVLIB
-            || FluentIterable.from(allCpas).anyMatch(pCpa -> pCpa instanceof SvLibSafetySpecCPA),
-        "For verifying SV-LIB programs, a SvLibSafetySpecCPA must be part of the CPA "
-            + "configuration in order to be able to handle the specification");
 
     return cpa;
   }
