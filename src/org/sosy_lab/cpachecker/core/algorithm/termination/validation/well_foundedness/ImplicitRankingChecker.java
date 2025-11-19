@@ -52,7 +52,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final CFACreator cfaCreator;
   private final CFA cfa;
   private final Configuration config;
   private final Scope scope;
@@ -76,7 +75,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     scope = pScope;
-    cfaCreator = new CFACreator(config, pLogger, pShutdownNotifier);
     specification = pSpecification;
     cfa = pCFA;
   }
@@ -125,6 +123,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     try {
       // Initialization:
       // CFA
+
+      // CFA creation with preprocessing currently do not support building from string
+      // Therefore, we have to remove the --preprocess from the config
+      Configuration cfaParsingConfig =
+          Configuration.builder().copyFrom(config).clearOption("parser.usePreprocessor").build();
+      CFACreator cfaCreator = new CFACreator(cfaParsingConfig, logger, shutdownNotifier);
+
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
       // CPA
