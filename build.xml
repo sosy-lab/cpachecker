@@ -12,6 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
+         xmlns:unless="ant:unless"
          xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Include a file in which all properties can be overridden.
          This file won't get checked in and can be used to change properties
