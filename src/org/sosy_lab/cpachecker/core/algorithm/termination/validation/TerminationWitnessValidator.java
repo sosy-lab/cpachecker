@@ -186,8 +186,12 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
-      if (!checkWithInfiniteSpace && hasPotentialInfiniteSpace(invariant)) {
-        throw new CPAException("The configuration does not support infinite state spaces.");
+      if (!checkWithInfiniteSpace) {
+        logger.log(
+            Level.INFO,
+            "The chosen configuration does not support infinite state space in the invariant. Make"
+                + " sure the invariant does not contain variables with potential infinite"
+                + " domains.");
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(
@@ -513,16 +517,6 @@ public class TerminationWitnessValidator implements Algorithm {
       return false;
     }
     return isTransitionInvariant;
-  }
-
-  private boolean hasPotentialInfiniteSpace(BooleanFormula pInvariant) {
-    Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pInvariant);
-    for (Formula variable : mapNamesToVariables.values()) {
-      if (fmgr.getFormulaType(variable).isArrayType()) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private PathFormula constructPathFormulaForLoop(
