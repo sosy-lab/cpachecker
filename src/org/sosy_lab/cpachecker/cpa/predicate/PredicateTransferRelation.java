@@ -395,7 +395,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    for (AExpression assumption : from(pAssumeElement.getAssumptions())) {
+    for (AExpression assumption : pAssumeElement.getAssumptions()) {
       if (assumption instanceof CExpression pCExpression) {
         // assumptions do not contain complete type nor scope information
         // hence, not all types can be resolved, so ignore these
