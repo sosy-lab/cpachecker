@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastThreadOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
@@ -73,7 +73,7 @@ record ReduceIgnoreSleepInjector(
       if (injectedStatement instanceof SeqBitVectorEvaluationStatement bitVectorStatement) {
         reductionAssumptions.add(bitVectorStatement);
       }
-      if (injectedStatement instanceof SeqConflictOrderStatement conflictOrderStatement) {
+      if (injectedStatement instanceof SeqLastThreadOrderStatement conflictOrderStatement) {
         reductionAssumptions.add(conflictOrderStatement);
       }
     }
@@ -93,7 +93,7 @@ record ReduceIgnoreSleepInjector(
     newInjected.add(pIgnoreSleepStatements);
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (!(injectedStatement instanceof SeqBitVectorEvaluationStatement)
-          && !(injectedStatement instanceof SeqConflictOrderStatement)) {
+          && !(injectedStatement instanceof SeqLastThreadOrderStatement)) {
         newInjected.add(injectedStatement);
       }
     }

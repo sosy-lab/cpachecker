@@ -26,14 +26,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqConflictOrderStatement(
+public record SeqLastThreadOrderStatement(
     MPORThread activeThread,
     Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation,
     CBinaryExpressionBuilder binaryExpressionBuilder)
     implements SeqInjectedStatement {
 
-  public SeqConflictOrderStatement {
-    checkArgument(!activeThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
+  public SeqLastThreadOrderStatement {
+    checkArgument(
+        !activeThread.isMain(), "cannot build SeqLastThreadOrderStatement for main thread");
   }
 
   @Override

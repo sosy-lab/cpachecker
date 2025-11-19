@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastThreadOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -54,13 +54,13 @@ record ReduceLastThreadOrderInjector(
   CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(CSeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
-    CSeqThreadStatement withConflictOrder = injectConflictOrderIntoStatement(pStatement);
+    CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
     return injectLastUpdatesIntoStatement(withConflictOrder);
   }
 
   // Private =======================================================================================
 
-  private CSeqThreadStatement injectConflictOrderIntoStatement(CSeqThreadStatement pStatement)
+  private CSeqThreadStatement injectLastThreadOrderIntoStatement(CSeqThreadStatement pStatement)
       throws UnrecognizedCodeException {
 
     if (activeThread.isMain()) {
@@ -73,25 +73,24 @@ record ReduceLastThreadOrderInjector(
       assert targetClause != null : "could not find targetPc in pLabelBlockMap";
       if (StatementInjector.isReductionAllowed(options, targetClause)) {
         SeqThreadStatementBlock targetBlock = Objects.requireNonNull(labelBlockMap.get(targetPc));
-        // build conflict order statement (with bit vector evaluations based on targetBlock)
+        // build last thread order statement (with bit vector evaluations based on targetBlock)
         Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
             BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
                 options, labelBlockMap, targetBlock, bitVectorVariables, memoryModel, utils);
-        SeqConflictOrderStatement conflictOrderStatement =
-            new SeqConflictOrderStatement(
+        SeqLastThreadOrderStatement lastThreadOrderStatement =
+            new SeqLastThreadOrderStatement(
                 activeThread, lastBitVectorEvaluation, utils.binaryExpressionBuilder());
         return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, conflictOrderStatement);
+            pStatement, lastThreadOrderStatement);
       }
     }
-    // no conflict order injected
+    // no last thread order injected
     return pStatement;
   }
 
   // Last Updates ==================================================================================
 
   private CSeqThreadStatement injectLastUpdatesIntoStatement(CSeqThreadStatement pStatement) {
-
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == Sequentialization.EXIT_PC) {
