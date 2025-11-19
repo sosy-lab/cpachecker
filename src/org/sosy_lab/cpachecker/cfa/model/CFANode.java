@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public sealed class CFANode implements Comparable<CFANode>
-    permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode, CFATaggedNode {
+    permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
