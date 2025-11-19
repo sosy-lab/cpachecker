@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunction extends SeqFunction {
 
   private final MPOROptions options;
@@ -107,7 +108,7 @@ public final class SeqMainFunction extends SeqFunction {
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         ImmutableList<CFunctionCallStatement> nextThreadAssumption =
-            SeqAssumptionBuilder.buildNextThreadAssumption(
+            SeqAssumptionBuilder.buildNextThreadAssumeCall(
                 options.nondeterminismSigned(), fields, utils.binaryExpressionBuilder());
         nextThreadAssumption.forEach(assumption -> loopBlock.add(assumption.toASTString()));
 
@@ -124,7 +125,7 @@ public final class SeqMainFunction extends SeqFunction {
                   .nextThreadActiveExpression()
                   .orElseThrow();
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumptionBuilder.buildAssumption(nextThreadActiveExpression);
+              SeqAssumptionBuilder.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
@@ -134,8 +135,16 @@ public final class SeqMainFunction extends SeqFunction {
         if (options.comments()) {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
+        // assume(cnt > 0);
+        CBinaryExpression countGreaterZeroExpression =
+            utils
+                .binaryExpressionBuilder()
+                .buildBinaryExpression(
+                    SeqIdExpressions.THREAD_COUNT,
+                    SeqIntegerLiteralExpressions.INT_0,
+                    BinaryOperator.GREATER_THAN);
         CFunctionCallStatement countAssumption =
-            SeqAssumptionBuilder.buildCountGreaterZeroAssumption(utils.binaryExpressionBuilder());
+            SeqAssumptionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
         loopBlock.add(countAssumption.toASTString());
       }
 

@@ -54,7 +54,8 @@ public record SeqLastThreadOrderStatement(
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
       ifBlock =
-          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.orElseThrow().expression());
+          SeqAssumptionBuilder.buildAssumeFunctionCallStatement(
+              lastBitVectorEvaluation.orElseThrow().expression());
     }
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));

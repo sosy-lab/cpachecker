@@ -52,7 +52,7 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumption =
-        SeqAssumptionBuilder.buildAssumption(rwLockFlags.writerEqualsZero());
+        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);

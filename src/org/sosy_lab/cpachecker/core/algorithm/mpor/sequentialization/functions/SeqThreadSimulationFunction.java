@@ -18,6 +18,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
+/**
+ * A (separate) function to simulate a thread in. The thread simulation is usually placed inside the
+ * {@code main()} function, but can also be placed in a separate function, e.g. when {@link
+ * MPOROptions#loopUnrolling()} is enabled.
+ */
 public final class SeqThreadSimulationFunction extends SeqFunction {
 
   public final MPORThread thread;

@@ -71,7 +71,8 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(joinedThreadNotActive);
+    CFunctionCallStatement assumeCall =
+        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(joinedThreadNotActive);
     String returnValueRead =
         buildReturnValueRead(joinedThreadExitVariable, substituteEdges)
             .orElse(SeqSyntax.EMPTY_STRING);

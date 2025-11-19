@@ -17,10 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -63,8 +63,6 @@ public class SequentializationFields {
 
   public final ImmutableList<SeqThreadSimulationFunction> threadSimulationFunctions;
 
-  public final Optional<SeqThreadSimulationFunction> mainThreadSimulationFunction;
-
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -103,12 +101,8 @@ public class SequentializationFields {
             pOptions, threads, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
     clauses = clauseBuilder.buildClauses();
     threadSimulationFunctions =
-        SeqFunctionBuilder.buildThreadSimulationFunctions(pOptions, ghostElements, clauses, pUtils);
-    mainThreadSimulationFunction =
-        pOptions.loopUnrolling()
-            ? Optional.of(
-                SeqFunctionBuilder.getMainThreadSimulationFunction(threadSimulationFunctions))
-            : Optional.empty();
+        NondeterministicSimulationUtil.buildThreadSimulationFunctions(
+            pOptions, ghostElements, clauses, pUtils);
   }
 
   /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */

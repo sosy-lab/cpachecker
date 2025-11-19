@@ -59,9 +59,9 @@ public final class SeqRwLockWrLockStatement extends CSeqThreadStatement {
             rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     CFunctionCallStatement assumptionWriters =
-        SeqAssumptionBuilder.buildAssumption(rwLockFlags.writerEqualsZero());
+        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     CFunctionCallStatement assumptionReaders =
-        SeqAssumptionBuilder.buildAssumption(rwLockFlags.readersEqualsZero());
+        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(rwLockFlags.readersEqualsZero());
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

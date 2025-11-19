@@ -154,7 +154,7 @@ public record NextThreadAndNumStatementsNondeterministicSimulation(
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         SeqStatementBuilder.buildNondetIntegerAssignment(options, SeqIdExpressions.ROUND_MAX);
     CFunctionCallStatement roundMaxGreaterZeroAssumption =
-        SeqAssumptionBuilder.buildAssumption(buildRoundMaxGreaterZero());
+        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(buildRoundMaxGreaterZero());
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
 
     return MultiControlStatementBuilder.buildPrecedingStatements(
