@@ -3012,6 +3012,21 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
 
+# Whether to give up immediately if a very large array is encountered
+# (heuristic, often we would just waste time otherwise)
+cpa.predicate.svlib.abortOnLargeArrays = true
+
+# Ignore variables that are not relevant for reachability properties.
+cpa.predicate.svlib.ignoreIrrelevantVariables = true
+
+# Insert tmp-variables for parameters at function-entries. The variables are
+# similar to return-variables at function-exit.
+cpa.predicate.svlib.useParameterVariables = false
+
+# Insert tmp-parameters for global variables at function-entries. The global
+# variables are also encoded with return-variables at function-exit.
+cpa.predicate.svlib.useParameterVariablesForGlobals = false
+
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
 cpa.predicate.symbolicCoverageCheck = false
