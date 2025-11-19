@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # add new commits on top
+3154b8810c18571e834064ceef9c0dc1d8a03af0 # Refactor structure of SV-LIB AST classes
 4e36402de0cabd6b78ad9d964a3ee5a012177664 # Rename K3 into SV-LIB for the intermediate verification language
 b4c108f78988bdec853771d893f35066267f6c44 # reformat with Google Java Format 1.19
 b4c1a2604a4db6df4732aadfa5a9a392a3831661 # reformat with Google Java Format 1.16
