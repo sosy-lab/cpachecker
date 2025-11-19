@@ -17,7 +17,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.graph.SuccessorsFunction;
 import com.google.common.graph.Traverser;
 import java.util.HashMap;
 import java.util.List;
@@ -127,15 +126,6 @@ public class ArgAnalysisUtils {
     }
   }
 
-  /** How to traverse the ARG */
-  private static class ARGSuccessorFunction implements SuccessorsFunction<ARGState> {
-
-    @Override
-    public Iterable<ARGState> successors(ARGState node) {
-      return node.getChildren();
-    }
-  }
-
   /**
    * Collect the relevant states from the ARG starting at the given root state for the export of a
    * witness
@@ -147,7 +137,7 @@ public class ArgAnalysisUtils {
   public static CollectedARGStates getRelevantStates(ARGState pRootState) {
     RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
     for (ARGState state :
-        Traverser.forGraph(new ARGSuccessorFunction()).depthFirstPreOrder(pRootState)) {
+        Traverser.forGraph(ARGState::getChildren).depthFirstPreOrder(pRootState)) {
       statesCollector.analyze(state);
     }
 
