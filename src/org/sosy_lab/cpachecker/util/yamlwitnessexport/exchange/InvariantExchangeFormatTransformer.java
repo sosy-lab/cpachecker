@@ -178,11 +178,7 @@ public class InvariantExchangeFormatTransformer {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
         ImmutableMap.builder();
 
-    Scope scope =
-        switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
-          default -> DummyScope.getInstance();
-        };
+    Scope scope = new CProgramScope(cfa, logger);
 
     while (matcher.find()) {
       String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
