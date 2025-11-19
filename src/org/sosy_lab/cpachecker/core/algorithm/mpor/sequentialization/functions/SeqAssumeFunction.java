@@ -8,62 +8,162 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqParameterDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public final class SeqAssumeFunction extends SeqFunction {
 
-  private static final CFunctionCallExpression abortFunctionCallExpression =
+  // CParameterDeclaration
+
+  private static final CParameterDeclaration COND_PARAMETER_ASSUME =
+      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, "cond");
+
+  // CFunctionType
+
+  private static final CFunctionTypeWithNames ASSUME_FUNCTION_TYPE =
+      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(COND_PARAMETER_ASSUME), false);
+
+  private static final CFunctionType ABORT_FUNCTION_TYPE =
+      new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
+
+  // CFunctionDeclaration
+
+  private static final CFunctionDeclaration ASSUME_FUNCTION_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          ASSUME_FUNCTION_TYPE,
+          "__MPOR__assume",
+          ImmutableList.of(COND_PARAMETER_ASSUME),
+          ImmutableSet.of());
+
+  public static final CFunctionDeclaration ABORT_FUNCTION_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          ABORT_FUNCTION_TYPE,
+          "abort",
+          ImmutableList.of(),
+          ImmutableSet.of(FunctionAttribute.NO_RETURN));
+
+  // CIdExpression
+
+  public static final CIdExpression COND_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, COND_PARAMETER_ASSUME);
+
+  private static final CIdExpression ASSUME_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, ASSUME_FUNCTION_DECLARATION);
+
+  // CFunctionCallExpression
+
+  private static final CFunctionCallExpression ABORT_FUNCTION_CALL_EXPRESSION =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
           CVoidType.VOID,
-          SeqIdExpressions.ABORT,
+          new CIdExpression(FileLocation.DUMMY, ABORT_FUNCTION_DECLARATION),
           ImmutableList.of(),
-          SeqFunctionDeclarations.ABORT);
+          ABORT_FUNCTION_DECLARATION);
 
-  private static final CFunctionCallStatement abortFunctionCallStatement =
-      new CFunctionCallStatement(FileLocation.DUMMY, abortFunctionCallExpression);
+  // CFunctionCallStatement
 
-  private final CBinaryExpression condEqualsZeroExpression;
+  public static final CFunctionCallStatement ABORT_FUNCTION_CALL_STATEMENT =
+      new CFunctionCallStatement(FileLocation.DUMMY, ABORT_FUNCTION_CALL_EXPRESSION);
 
-  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression) {
-    condEqualsZeroExpression = pCondEqualsZeroExpression;
+  public SeqAssumeFunction(CBinaryExpression pCondEqualsZeroExpression)
+      throws UnrecognizedCodeException {
+
+    super(ASSUME_FUNCTION_DECLARATION, buildBody(pCondEqualsZeroExpression));
   }
 
-  @Override
-  public String buildBody() throws UnrecognizedCodeException {
-    ImmutableList<String> ifBlock = ImmutableList.of(abortFunctionCallStatement.toASTString());
+  private static String buildBody(CBinaryExpression pCondEqualsZeroExpression)
+      throws UnrecognizedCodeException {
+
+    ImmutableList<String> ifBlock = ImmutableList.of(ABORT_FUNCTION_CALL_STATEMENT.toASTString());
     SeqBranchStatement ifStatement =
-        new SeqBranchStatement(condEqualsZeroExpression.toASTString(), ifBlock);
+        new SeqBranchStatement(pCondEqualsZeroExpression.toASTString(), ifBlock);
     return ifStatement.toASTString();
   }
 
-  @Override
-  public CType getReturnType() {
-    return CVoidType.VOID;
+  /**
+   * Returns a {@link CFunctionCallStatement} to the assume function i.e. {@code
+   * assume(pCondition);}.
+   */
+  public static CFunctionCallStatement buildAssumeFunctionCallStatement(CExpression pCondition) {
+    CFunctionCallExpression assumeFunctionCallExpression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            CVoidType.VOID,
+            ASSUME_ID_EXPRESSION,
+            ImmutableList.of(pCondition),
+            ASSUME_FUNCTION_DECLARATION);
+    return new CFunctionCallStatement(FileLocation.DUMMY, assumeFunctionCallExpression);
   }
 
-  @Override
-  public CIdExpression getFunctionName() {
-    return SeqIdExpressions.ASSUME;
+  /**
+   * Returns a {@link String} representation of an assume function call i.e. {@code
+   * assume(pCondition);}.
+   */
+  public static String buildAssumeFunctionCallStatement(ExpressionTree<CExpression> pCondition) {
+    return ASSUME_ID_EXPRESSION.getName()
+        + SeqStringUtil.wrapInBrackets(pCondition.toString())
+        + SeqSyntax.SEMICOLON;
   }
 
-  @Override
-  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
-    ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
-    rParameters.add(SeqParameterDeclarations.COND_PARAMETER_ASSUME);
-    return rParameters.build();
+  /**
+   * Returns the function call to assume as a {@link String} that restricts the nondeterministic
+   * {@code next_thread} variable to an appropriate value, i.e. {@code assume(0 <= next_thread &&
+   * next_thread < NUM_THREADS)} for a signed variable, {@code assume(next_thread < NUM_THREADS)}
+   * for an unsigned variable.
+   */
+  public static String buildNextThreadAssumeCallFunctionCallStatement(
+      boolean pIsSigned, int pNumThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CIntegerLiteralExpression numThreadsExpression =
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads);
+    // ensure that next_thread < NUM_THREADS
+    CBinaryExpression nextThreadLessThanNumThreads =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.NEXT_THREAD, numThreadsExpression, BinaryOperator.LESS_THAN);
+
+    // if next_thread is signed, then we also need to ensure that 0 <= next_thread
+    if (pIsSigned) {
+      CBinaryExpression nextThreadGreaterOrEqualZero =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              SeqIntegerLiteralExpressions.INT_0,
+              SeqIdExpressions.NEXT_THREAD,
+              BinaryOperator.LESS_EQUAL);
+      ImmutableList<CBinaryExpression> expressions =
+          ImmutableList.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero);
+      return buildAssumeFunctionCallStatement(
+          And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
+    }
+    return buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads).toASTString();
   }
 }

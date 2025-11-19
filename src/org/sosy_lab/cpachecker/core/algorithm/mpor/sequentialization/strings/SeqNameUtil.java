@@ -25,8 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
 
-  public static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
-
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
     return (pOptions.shortVariableNames() ? "T" : "THREAD") + pThreadId;
   }

@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -135,21 +135,22 @@ public class NondeterministicSimulationUtil {
     ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
     SeqThreadSimulationFunction mainThreadFunction =
-        Iterables.getOnlyElement(
-            pFields.threadSimulationFunctions.stream()
-                .filter(Objects::nonNull)
-                .filter(f -> f.thread.isMain())
-                .toList());
-    rFunctionCalls.add(Objects.requireNonNull(mainThreadFunction).getFunctionCallStatement());
+        Objects.requireNonNull(
+            Iterables.getOnlyElement(
+                pFields.threadSimulationFunctions.stream()
+                    .filter(Objects::nonNull)
+                    .filter(f -> f.thread.isMain())
+                    .toList()));
+    rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
       for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
-          rFunctionCalls.add(function.getFunctionCallStatement());
+          rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));
         }
       }
       // end on main thread
-      rFunctionCalls.add(mainThreadFunction.getFunctionCallStatement());
+      rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     }
     return rFunctionCalls.build();
   }
@@ -177,7 +178,7 @@ public class NondeterministicSimulationUtil {
             SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
             BinaryOperator.EQUALS);
     CFunctionCallStatement nextThreadAssumption =
-        SeqAssumptionBuilder.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
     return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
   }
 
@@ -212,7 +213,7 @@ public class NondeterministicSimulationUtil {
       CBinaryExpression threadActiveExpression =
           pPcVariables.getThreadActiveExpression(pThread.id());
       CFunctionCallStatement assumeCall =
-          SeqAssumptionBuilder.buildAssumeFunctionCallStatement(threadActiveExpression);
+          SeqAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
       return Optional.of(assumeCall);
     }
     return Optional.empty();

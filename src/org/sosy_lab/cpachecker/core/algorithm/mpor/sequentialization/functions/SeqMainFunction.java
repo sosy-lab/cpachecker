@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -24,8 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -53,43 +56,49 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunction extends SeqFunction {
 
-  private final MPOROptions options;
+  // CFunctionType
 
-  private final SequentializationFields fields;
+  private static final CFunctionType MAIN_FUNCTION_TYPE =
+      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
 
-  private final SequentializationUtils utils;
+  // CFunctionDeclaration
+
+  public static final CFunctionDeclaration MAIN_FUNCTION_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
 
   public SeqMainFunction(
-      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils) {
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
 
-    options = pOptions;
-    fields = pFields;
-    utils = pUtils;
+    super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
   }
 
-  @Override
-  public String buildBody() throws UnrecognizedCodeException {
+  private static String buildBody(
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
     StringBuilder rBody = new StringBuilder();
 
     // add main function argument non-deterministic assignments
     rBody.append(
         buildMainFunctionArgNondetAssignments(
-            fields.mainSubstitution, fields.clauses, utils.logger()));
+            pFields.mainSubstitution, pFields.clauses, pUtils.logger()));
 
-    if (options.loopUnrolling()) {
+    if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
-              options, fields);
+              pOptions, pFields);
       functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
     } else {
       // otherwise include the thread simulations in the main function directly
       ImmutableList.Builder<String> loopBlock = ImmutableList.builder();
 
-      if (options.reduceLastThreadOrder()) {
+      if (pOptions.reduceLastThreadOrder()) {
         // add last_thread = next_thread assignment (before setting next_thread)
-        if (options.nondeterminismSource().isNextThreadNondeterministic()) {
+        if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =
               SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpressions.NEXT_THREAD);
           loopBlock.add(assignment.toASTString());
@@ -97,93 +106,81 @@ public final class SeqMainFunction extends SeqFunction {
       }
 
       // add if next_thread is a non-determinism source
-      if (options.nondeterminismSource().isNextThreadNondeterministic()) {
-        if (options.comments()) {
+      if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
+        if (pOptions.comments()) {
           loopBlock.add(SeqComment.NEXT_THREAD_NONDET);
         }
         // next_thread = __VERIFIER_nondet_...()
         CFunctionCallAssignmentStatement nextThreadAssignment =
-            SeqStatementBuilder.buildNondetIntegerAssignment(options, SeqIdExpressions.NEXT_THREAD);
+            SeqStatementBuilder.buildNondetIntegerAssignment(
+                pOptions, SeqIdExpressions.NEXT_THREAD);
         loopBlock.add(nextThreadAssignment.toASTString());
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        ImmutableList<CFunctionCallStatement> nextThreadAssumption =
-            SeqAssumptionBuilder.buildNextThreadAssumeCall(
-                options.nondeterminismSigned(), fields, utils.binaryExpressionBuilder());
-        nextThreadAssumption.forEach(assumption -> loopBlock.add(assumption.toASTString()));
+        String nextThreadAssumption =
+            SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
+                pOptions.nondeterminismSigned(),
+                pFields.numThreads,
+                pUtils.binaryExpressionBuilder());
+        loopBlock.add(nextThreadAssumption);
 
         // for scalar pc, this is done separately at the start of the respective thread
-        if (!options.scalarPc()) {
+        if (!pOptions.scalarPc()) {
           // assumptions over next_thread being active: pc[next_thread] != 0
-          if (options.comments()) {
+          if (pOptions.comments()) {
             loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
           }
           CBinaryExpression nextThreadActiveExpression =
-              fields
+              pFields
                   .ghostElements
                   .programCounterVariables()
                   .nextThreadActiveExpression()
                   .orElseThrow();
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumptionBuilder.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
+              SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
 
-      if (options.isThreadCountRequired()) {
+      if (pOptions.isThreadCountRequired()) {
         // assumptions that at least one thread is still active: assume(cnt > 0)
-        if (options.comments()) {
+        if (pOptions.comments()) {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
         // assume(cnt > 0);
         CBinaryExpression countGreaterZeroExpression =
-            utils
+            pUtils
                 .binaryExpressionBuilder()
                 .buildBinaryExpression(
                     SeqIdExpressions.THREAD_COUNT,
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN);
         CFunctionCallStatement countAssumption =
-            SeqAssumptionBuilder.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+            SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
         loopBlock.add(countAssumption.toASTString());
       }
 
       // add all thread simulation control flow statements
-      if (options.comments()) {
+      if (pOptions.comments()) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
           NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-              options, fields, utils));
+              pOptions, pFields, pUtils));
 
       // build the loop depending on settings, and include all statements in it
       CSeqLoopStatement loopStatement =
-          buildLoopStatement(options, loopBlock.build(), utils.binaryExpressionBuilder());
+          buildLoopStatement(pOptions, loopBlock.build(), pUtils.binaryExpressionBuilder());
       rBody.append(loopStatement.toASTString());
     }
     return rBody.toString();
-  }
-
-  @Override
-  public CType getReturnType() {
-    return CNumericTypes.INT;
-  }
-
-  @Override
-  public CIdExpression getFunctionName() {
-    return SeqIdExpressions.MAIN;
-  }
-
-  @Override
-  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
-    return ImmutableList.of();
   }
 
   /**
    * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
    * = __VERIFIER_nondet_int;}
    */
-  private String buildMainFunctionArgNondetAssignments(
+  private static String buildMainFunctionArgNondetAssignments(
       MPORSubstitution pMainSubstitution,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {

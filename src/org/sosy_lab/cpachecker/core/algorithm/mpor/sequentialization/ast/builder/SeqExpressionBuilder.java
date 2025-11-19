@@ -11,63 +11,21 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builde
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressionBuilder {
-
-  // CFunctionCallExpression =======================================================================
-
-  /**
-   * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFile}", {pLine},
-   * "{pFunction}")}
-   */
-  public static CFunctionCallExpression buildReachError(String pFile, int pLine, String pFunction) {
-
-    CStringLiteralExpression file =
-        buildStringLiteralExpression(SeqStringUtil.wrapInQuotationMarks(pFile));
-    CIntegerLiteralExpression line = buildIntegerLiteralExpression(pLine);
-    CStringLiteralExpression function =
-        buildStringLiteralExpression(SeqStringUtil.wrapInQuotationMarks(pFunction));
-
-    return buildFunctionCallExpression(
-        CVoidType.VOID,
-        SeqIdExpressions.REACH_ERROR,
-        ImmutableList.of(file, line, function),
-        SeqFunctionDeclarations.REACH_ERROR);
-  }
-
-  public static CFunctionCallExpression buildFunctionCallExpression(
-      CType pType,
-      CExpression pFunctionName,
-      List<CExpression> pParameters,
-      CFunctionDeclaration pDeclaration) {
-
-    return new CFunctionCallExpression(
-        FileLocation.DUMMY, pType, pFunctionName, pParameters, pDeclaration);
-  }
 
   // CIntegerLiteralExpression =====================================================================
 
@@ -93,20 +51,6 @@ public class SeqExpressionBuilder {
 
   public static CIdExpression buildIdExpression(CSimpleDeclaration pDeclaration) {
     return new CIdExpression(FileLocation.DUMMY, pDeclaration);
-  }
-
-  public static CIdExpression buildThreadSimulationFunctionIdExpression(
-      MPOROptions pOptions, int pThreadId) {
-
-    CFunctionDeclaration functionDeclaration =
-        SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pOptions, pThreadId);
-    return SeqExpressionBuilder.buildIdExpression(functionDeclaration);
-  }
-
-  // CStringLiteralExpression ======================================================================
-
-  public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
-    return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
   }
 
   // Helper ========================================================================================

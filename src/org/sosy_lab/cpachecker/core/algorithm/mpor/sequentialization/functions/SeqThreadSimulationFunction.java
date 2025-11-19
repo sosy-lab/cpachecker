@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
@@ -27,42 +27,17 @@ public final class SeqThreadSimulationFunction extends SeqFunction {
 
   public final MPORThread thread;
 
-  private final String functionBody;
-
-  private final CIdExpression functionName;
-
-  private final CFunctionCallStatement functionCallStatement;
-
   public SeqThreadSimulationFunction(
       MPOROptions pOptions, String pFunctionBody, MPORThread pThread) {
-    functionBody = pFunctionBody;
-    functionName =
-        SeqExpressionBuilder.buildThreadSimulationFunctionIdExpression(pOptions, pThread.id());
+
+    super(buildDeclaration(pOptions, pThread.id()), pFunctionBody);
     thread = pThread;
-    functionCallStatement = buildFunctionCallStatement(ImmutableList.of());
   }
 
-  public CFunctionCallStatement getFunctionCallStatement() {
-    return functionCallStatement;
-  }
-
-  @Override
-  String buildBody() {
-    return functionBody;
-  }
-
-  @Override
-  CType getReturnType() {
-    return CVoidType.VOID;
-  }
-
-  @Override
-  CIdExpression getFunctionName() {
-    return functionName;
-  }
-
-  @Override
-  ImmutableList<CParameterDeclaration> getParameterDeclarations() {
-    return ImmutableList.of();
+  private static CFunctionDeclaration buildDeclaration(MPOROptions pOptions, int pThreadId) {
+    CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
+    String functionName = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId) + "_sequentialized";
+    return new CFunctionDeclaration(
+        FileLocation.DUMMY, functionType, functionName, ImmutableList.of(), ImmutableSet.of());
   }
 }

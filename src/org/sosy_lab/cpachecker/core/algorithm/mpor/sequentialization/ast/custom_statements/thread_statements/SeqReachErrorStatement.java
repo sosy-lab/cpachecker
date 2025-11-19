@@ -59,7 +59,9 @@ public final class SeqReachErrorStatement extends CSeqThreadStatement {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + injected;
+    return Sequentialization.REACH_ERROR_FUNCTION_CALL_DUMMY.toASTString()
+        + SeqSyntax.SPACE
+        + injected;
   }
 
   @Override

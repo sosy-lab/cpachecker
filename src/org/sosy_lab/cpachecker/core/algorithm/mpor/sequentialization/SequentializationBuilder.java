@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
@@ -272,10 +271,10 @@ public class SequentializationBuilder {
     } else {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rDeclarations.add(SeqFunctionDeclarations.REACH_ERROR.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ASSERT_FAIL.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ASSUME.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ABORT.toASTString());
+    rDeclarations.add(SeqReachErrorFunction.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqReachErrorFunction.ASSERT_FAIL_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
 
     // malloc is required for valid-memsafety tasks
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
@@ -289,7 +288,7 @@ public class SequentializationBuilder {
       }
     }
     // main should always be duplicate
-    rDeclarations.add(SeqFunctionDeclarations.MAIN.toASTString());
+    rDeclarations.add(SeqMainFunction.MAIN_FUNCTION_DECLARATION.toASTString());
     return rDeclarations.toString();
   }
 
@@ -309,7 +308,7 @@ public class SequentializationBuilder {
         pUtils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.COND_PARAMETER_ASSUME,
+                SeqAssumeFunction.COND_ID_EXPRESSION,
                 SeqIntegerLiteralExpressions.INT_0,
                 BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);

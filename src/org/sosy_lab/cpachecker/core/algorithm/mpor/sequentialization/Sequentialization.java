@@ -13,9 +13,9 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
 
-  private static final ImmutableList<String> mporHeader =
+  private static final ImmutableList<String> MPOR_HEADER =
       ImmutableList.of(
           "// This sequentialization (transformation of a concurrent program into an"
               + " equivalent",
@@ -32,11 +32,9 @@ public class Sequentialization {
 
   private static final String PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME = "__PRETTY_FUNCTION__";
 
-  public static final String inputReachErrorDummy =
-      SeqExpressionBuilder.buildReachError(
-                  "__FILE_NAME_PLACEHOLDER__", -1, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME)
-              .toASTString()
-          + SeqSyntax.SEMICOLON;
+  public static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_DUMMY =
+      SeqReachErrorFunction.buildReachErrorFunctionCallStatement(
+          "__FILE_NAME_PLACEHOLDER__", -1, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
 
   public static final int INIT_PC = 1;
 
@@ -87,7 +85,7 @@ public class Sequentialization {
     StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
 
     if (pOptions.comments()) {
-      mporHeader.forEach(line -> rProgram.add(line));
+      MPOR_HEADER.forEach(line -> rProgram.add(line));
     }
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
@@ -152,13 +150,13 @@ public class Sequentialization {
   private static String replaceReachErrorDummies(
       String pInputFileName, String pLineOfCode, int pLineNumber) {
 
-    if (pLineOfCode.contains(inputReachErrorDummy)) {
+    if (pLineOfCode.contains(REACH_ERROR_FUNCTION_CALL_DUMMY.toASTString())) {
       // reach_error calls from the input program
-      CFunctionCallExpression reachErrorCall =
-          SeqExpressionBuilder.buildReachError(
+      CFunctionCallStatement updatedReachError =
+          SeqReachErrorFunction.buildReachErrorFunctionCallStatement(
               pInputFileName, pLineNumber, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
       return pLineOfCode.replace(
-          inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+          REACH_ERROR_FUNCTION_CALL_DUMMY.toASTString(), updatedReachError.toASTString());
     }
     return pLineOfCode;
   }

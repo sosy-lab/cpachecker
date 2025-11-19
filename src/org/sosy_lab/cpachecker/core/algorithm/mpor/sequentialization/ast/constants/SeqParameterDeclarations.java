@@ -11,26 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.consta
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 public class SeqParameterDeclarations {
-
-  public static final CParameterDeclaration ASSERTION_PARAMETER_ASSERT_FAIL =
-      new CParameterDeclaration(
-          FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, "__assertion");
-
-  public static final CParameterDeclaration COND_PARAMETER_ASSUME =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, "cond");
-
-  public static final CParameterDeclaration FUNCTION_PARAMETER_ASSERT_FAIL =
-      new CParameterDeclaration(
-          FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, "__function");
-
-  public static final CParameterDeclaration FILE_PARAMETER_ASSERT_FAIL =
-      new CParameterDeclaration(FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, "__file");
-
-  public static final CParameterDeclaration LINE_PARAMETER_ASSERT_FAIL =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, "__line");
 
   public static final CParameterDeclaration SIZE_PARAMETER_ASSERT_FAIL =
       new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, "size");
