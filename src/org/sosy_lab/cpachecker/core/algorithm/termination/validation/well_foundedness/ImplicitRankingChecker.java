@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -23,6 +25,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -255,10 +258,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       StringJoiner builder,
       Map<String, Formula> mapNamesToVariables) {
     String varDeclaration;
-    for (AbstractSimpleDeclaration variable :
-        cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow()) {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        cfa.getAstCfaRelation().getVariablesAndParametersInScope(loopHead).orElseThrow();
+    for (AbstractSimpleDeclaration variable : variablesInScope) {
       varDeclaration = variable.toASTString();
-      if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType) {
+      if (((CType) variable.getType()).getCanonicalType() instanceof CComplexType
+          || isGlobalVariableOverwrittenByLocal(variable, variablesInScope)) {
         continue;
       }
       if (alreadyDeclaredVars.add(variable.getName())) {
@@ -274,6 +279,21 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         builder.add(varDeclaration);
       }
     }
+  }
+
+  private boolean isGlobalVariableOverwrittenByLocal(
+      AbstractSimpleDeclaration variable,
+      FluentIterable<AbstractSimpleDeclaration> variablesInScope) {
+    if (cfa.getMetadata().getAstCfaRelation().getGlobalVariables().isEmpty()) {
+      return false;
+    }
+    ImmutableSet<AVariableDeclaration> globalVars =
+        cfa.getMetadata().getAstCfaRelation().getGlobalVariables().orElseThrow();
+
+    return FluentIterable.from(globalVars).anyMatch(globalVar -> globalVar.equals(variable))
+        && variablesInScope.anyMatch(
+            localVar ->
+                !localVar.equals(variable) && localVar.getName().equals(variable.getName()));
   }
 
   /**
