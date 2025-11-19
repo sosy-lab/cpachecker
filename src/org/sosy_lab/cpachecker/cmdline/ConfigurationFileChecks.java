@@ -220,7 +220,6 @@ public class ConfigurationFileChecks {
   }
 
   private static final String SPECIFICATION_OPTION = "specification";
-  private static final String LANGUAGE_OPTION = "language";
   private static final Path CONFIG_DIR = Path.of("config");
   private static final Path SPEC_DIR = CONFIG_DIR.resolve(SPECIFICATION_OPTION);
   private static final Path OUTPUT_DIR = Path.of("output");

@@ -1258,11 +1258,8 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
-# The file into which to write the violation witness for SV-LIB programs. If
-# set to 'null', no witness is exported. Be aware that one can also set this
-# option in SV-LIB programs, instead of in CPAchecker's configuration.In case
-# this happens, the option will be overriden by the one from the program, and
-# this option ignored.
+# The file into which to write the violation witness for SV-LIB programs. In
+# case no output files are requested 
 counterexample.export.svlib = "witness.svlib"
 
 # export counterexample witness as Dot/Graphviz visualization
@@ -1569,10 +1566,7 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
 # The file into which to write the correctness witness for SV-LIB programs.
-# If set to 'null', no witness is exported. Be aware that one can also set
-# this option in SV-LIB programs, instead of in CPAchecker's configuration.In
-# case this happens, the option will be overriden by the one from the
-# program, and this option ignored.
+# If not set no witness will be exported.
 cpa.arg.svLibCorrectnessWitness = "witness.svlib"
 
 # translate final ARG into C program
@@ -4575,11 +4569,11 @@ java.version = JavaCore.VERSION_1_7
 # auto-detection will occur. LLVM IR is currently unsupported as input (cf.
 # https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
-  enum:     [C, JAVA, LLVM, SV_LIB]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = no default value
-  enum:     [C, JAVA, LLVM, SV_LIB]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = C
-  enum:     [C, JAVA, LLVM, SV_LIB]
+  enum:     [C, JAVA, LLVM, SVLIB]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
