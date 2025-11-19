@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.witnesses;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.graph.SuccessorsFunction;
@@ -38,12 +41,26 @@ public class ArgAnalysisUtils {
   public record FunctionEntryExitPair(ARGState entry, ARGState exit) {}
 
   /** A data structure for collecting the relevant information for a witness from an ARG */
-  public static class CollectedARGStates {
-    public Multimap<CFANode, ARGState> loopInvariants = HashMultimap.create();
-    public Multimap<CFANode, ARGState> functionCallInvariants = HashMultimap.create();
-    public Multimap<FunctionEntryNode, ARGState> functionContractRequires = HashMultimap.create();
-    public Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
-        HashMultimap.create();
+  public record CollectedARGStates(
+      Multimap<CFANode, ARGState> loopInvariants,
+      Multimap<CFANode, ARGState> functionCallInvariants,
+      Multimap<FunctionEntryNode, ARGState> functionContractRequires,
+      Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures) {
+
+    public CollectedARGStates {
+      checkNotNull(loopInvariants);
+      checkNotNull(functionCallInvariants);
+      checkNotNull(functionContractRequires);
+      checkNotNull(functionContractEnsures);
+    }
+
+    public CollectedARGStates immutableCopy() {
+      return new CollectedARGStates(
+          ImmutableListMultimap.copyOf(loopInvariants),
+          ImmutableListMultimap.copyOf(functionCallInvariants),
+          ImmutableListMultimap.copyOf(functionContractRequires),
+          ImmutableListMultimap.copyOf(functionContractEnsures));
+    }
   }
 
   /**
@@ -51,7 +68,12 @@ public class ArgAnalysisUtils {
    */
   private static class RelevantARGStateCollector {
 
-    private final CollectedARGStates collectedStates = new CollectedARGStates();
+    private final CollectedARGStates collectedStates =
+        new CollectedARGStates(
+            HashMultimap.create(),
+            HashMultimap.create(),
+            HashMultimap.create(),
+            HashMultimap.create());
 
     // TODO: This needs to be improved once we implement setjump/longjump
     /** The callstack of the order in which the function entry points where traversed */
@@ -77,19 +99,21 @@ public class ArgAnalysisUtils {
         CFANode node = state.getLocationNode();
         FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
         if (node.isLoopStart()) {
-          collectedStates.loopInvariants.put(node, pSuccessor);
+          collectedStates.loopInvariants().put(node, pSuccessor);
         } else if (leavingEdges.size() == 1
             && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
-          collectedStates.functionCallInvariants.put(node, pSuccessor);
+          collectedStates.functionCallInvariants().put(node, pSuccessor);
         } else if (node instanceof FunctionEntryNode functionEntryNode) {
           functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pSuccessor);
-          collectedStates.functionContractRequires.put(functionEntryNode, pSuccessor);
+          collectedStates.functionContractRequires().put(functionEntryNode, pSuccessor);
         } else if (node instanceof FunctionExitNode functionExitNode) {
           List<ARGState> functionEntryNodes = functionEntryStatesCallStack.get(node.getFunction());
           Verify.verify(!functionEntryNodes.isEmpty());
-          collectedStates.functionContractEnsures.put(
-              functionExitNode,
-              new FunctionEntryExitPair(functionEntryNodes.removeLast(), pSuccessor));
+          collectedStates
+              .functionContractEnsures()
+              .put(
+                  functionExitNode,
+                  new FunctionEntryExitPair(functionEntryNodes.removeLast(), pSuccessor));
         }
 
         if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
@@ -99,7 +123,7 @@ public class ArgAnalysisUtils {
     }
 
     CollectedARGStates getCollectedStates() {
-      return collectedStates;
+      return collectedStates.immutableCopy();
     }
   }
 

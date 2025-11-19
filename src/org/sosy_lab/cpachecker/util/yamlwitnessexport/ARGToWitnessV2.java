@@ -87,8 +87,8 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
+    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants();
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();

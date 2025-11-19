@@ -158,7 +158,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 
     // First create the loop invariants
-    Multimap<CFANode, ARGState> loopInvariants = relevantStates.loopInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = relevantStates.loopInvariants();
     for (CFANode node : loopInvariants.keySet()) {
       Collection<ARGState> argStates = loopInvariants.get(node);
       Set<SvLibTagReference> correspondingTag = svLibMetadata.tagReferences().get(node);
@@ -172,9 +172,9 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
     // Handle the statement contracts
     Multimap<FunctionEntryNode, ARGState> functionContractRequires =
-        relevantStates.functionContractRequires;
+        relevantStates.functionContractRequires();
     Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
-        relevantStates.functionContractEnsures;
+        relevantStates.functionContractEnsures();
     for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
       Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
       Set<SvLibTagReference> correspondingTag =

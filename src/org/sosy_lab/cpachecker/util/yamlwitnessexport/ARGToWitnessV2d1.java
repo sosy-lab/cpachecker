@@ -167,7 +167,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
@@ -187,7 +187,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // If we are exporting to witness version 3.0 then we want to include function contracts
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
-            statesCollector.functionContractRequires, statesCollector.functionContractEnsures);
+            statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
     entries.addAll(
         FluentIterable.from(functionContractCreationResult)
             .transform(FunctionContractCreationResult::functionContractEntry));
