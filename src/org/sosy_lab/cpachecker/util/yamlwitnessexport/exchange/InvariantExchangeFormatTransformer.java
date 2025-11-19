@@ -15,6 +15,7 @@ import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -179,6 +180,7 @@ public class InvariantExchangeFormatTransformer {
         ImmutableMap.builder();
 
     Scope scope = new CProgramScope(cfa, logger);
+    Set<String> alreadyDeclaredVariables = new HashSet<>();
 
     while (matcher.find()) {
       String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
@@ -187,6 +189,12 @@ public class InvariantExchangeFormatTransformer {
         continue;
       }
       prevVariable = "__CPACHECKER_" + prevVariable + "__PREV";
+
+      // We want to declare each PREV variable only once
+      if (alreadyDeclaredVariables.contains(prevVariable)) {
+        continue;
+      }
+      alreadyDeclaredVariables.add(prevVariable);
 
       CDeclaration prevDeclaration =
           new CVariableDeclaration(
