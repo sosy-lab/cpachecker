@@ -279,11 +279,13 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
             pInitialFormula, pPrevIndex, pCurrIndex, fmgr, scope, pMapPrevToCurrVars);
     ImmutableList.Builder<Formula> builder = ImmutableList.builder();
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(fmgr.uninstantiate(pFormula));
-    for (String name : FluentIterable.from(mapNamesToVariables.keySet())) {
-      if (ssaMap.containsVariable(name) && ssaMap.getIndex(name) == pPrevIndex.getIndex()) {
-        builder.add(mapNamesToVariables.get(name));
-      }
-    }
+    builder.addAll(
+        FluentIterable.from(mapNamesToVariables.keySet())
+            .filter(
+                name ->
+                    ssaMap.containsVariable(name) && ssaMap.getIndex(name) == pPrevIndex.getIndex())
+            .transform(mapNamesToVariables::get)
+            .toSet());
     return builder.build();
   }
 
