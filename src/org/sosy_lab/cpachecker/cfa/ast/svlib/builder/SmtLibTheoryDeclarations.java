@@ -12,10 +12,10 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 
 public class SmtLibTheoryDeclarations {

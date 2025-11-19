@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
 public sealed interface CAstNode extends AAstNode
     permits CDesignator,

@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public sealed interface SvLibSimpleDeclaration extends ASimpleDeclaration, SvLibAstNode
     permits SvLibDeclaration, SvLibParameterDeclaration {

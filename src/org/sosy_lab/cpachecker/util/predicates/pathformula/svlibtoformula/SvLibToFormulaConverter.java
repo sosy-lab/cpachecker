@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
@@ -63,15 +63,24 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
+// TODO: Figure out if we actually need all the paramters which are currently being suppressed
+//      as unused.
 public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   private final FormulaManagerView fmgr;
   private final SvLibFormulaEncodingOptions options;
   private final Optional<VariableClassification> variableClassification;
   private final BooleanFormulaManagerView bfmgr;
+
+  @SuppressWarnings("unused")
   private final BitvectorFormulaManagerView efmgr;
+
+  @SuppressWarnings("unused")
   private final FunctionFormulaManagerView ffmgr;
+
   private final LogManagerWithoutDuplicates logger;
+
+  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
   public SvLibToFormulaConverter(
@@ -173,10 +182,10 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   protected BooleanFormula makePredicate(
       SvLibAssumeEdge edge,
-      String function,
+      @SuppressWarnings("unused") String function,
       SSAMapBuilder ssa,
-      Constraints constraints,
-      ErrorConditions errorConditions)
+      @SuppressWarnings("unused") Constraints constraints,
+      @SuppressWarnings("unused") ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
     Formula formula = SvLibTermToFormulaConverter.convertTerm(edge.getExpression(), ssa, fmgr);
@@ -193,10 +202,10 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   private BooleanFormula makeExitProcedure(
       final SvLibProcedureSummaryEdge pEdge,
-      final String calledFunction,
+      @SuppressWarnings("unused") final String calledFunction,
       final SSAMapBuilder ssa,
-      final Constraints constraints,
-      final ErrorConditions errorConditions) {
+      @SuppressWarnings("unused") final Constraints constraints,
+      @SuppressWarnings("unused") final ErrorConditions errorConditions) {
 
     SvLibProcedureCallStatement procedureCall = pEdge.getExpression();
 
@@ -216,10 +225,10 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   private BooleanFormula makeDeclaration(
       final SvLibDeclarationEdge edge,
-      final String function,
+      @SuppressWarnings("unused") final String function,
       final SSAMapBuilder ssa,
-      final Constraints constraints,
-      final ErrorConditions errorConditions) {
+      @SuppressWarnings("unused") final Constraints constraints,
+      @SuppressWarnings("unused") final ErrorConditions errorConditions) {
 
     if (!(edge.getDeclaration() instanceof SvLibVariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
@@ -255,10 +264,10 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   protected BooleanFormula makeProcedureCall(
       final SvLibProcedureCallEdge edge,
-      final String callerFunction,
+      @SuppressWarnings("unused") final String callerFunction,
       final SSAMapBuilder ssa,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
+      @SuppressWarnings("unused") final Constraints constraints,
+      @SuppressWarnings("unused") final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
     List<SvLibTerm> actualParams = edge.getFunctionCall().getParameterExpressions();
@@ -299,6 +308,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
         fmgr);
   }
 
+  @SuppressWarnings("unused")
   protected boolean isRelevantLeftHandSide(final SvLibIdTerm lhs, final Optional<SvLibTerm> rhs) {
     // TODO: Add for optimizing, based on the one for CtoFormulaConverter
     return true;

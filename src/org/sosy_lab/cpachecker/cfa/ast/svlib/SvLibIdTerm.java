@@ -12,6 +12,8 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
   @Serial private static final long serialVersionUID = 5782817996036730363L;

@@ -19,9 +19,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibScript;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibToAstParser;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.SvLibToAstParser.SvLibAstParseException;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 

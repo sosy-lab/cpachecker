@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibParameterDeclaration extends AParameterDeclaration
     implements SvLibSimpleDeclaration {

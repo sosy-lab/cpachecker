@@ -13,6 +13,9 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibVariableDeclaration extends AVariableDeclaration
     implements SvLibDeclaration {

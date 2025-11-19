@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 public sealed interface SvLibDeclaration extends SvLibSimpleDeclaration, ADeclaration
-    permits SvLibFunctionDeclaration,
+    permits SvLibSmtFunctionDeclaration,
         SvLibProcedureDeclaration,
         SvLibSortDeclaration,
         SvLibVariableDeclaration {}

@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public sealed interface SvLibConstantTerm extends SvLibTerm
     permits SvLibBooleanConstantTerm, SvLibIntegerConstantTerm, SvLibRealConstantTerm {

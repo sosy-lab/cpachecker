@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
 public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressionVisitor<R, X>
     implements CAstNodeVisitor<R, X>, JAstNodeVisitor<R, X>, SvLibAstNodeVisitor<R, X> {

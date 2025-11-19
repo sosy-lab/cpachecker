@@ -53,6 +53,8 @@ public class PropertyFileParser {
   }
 
   private final CharSource propertyFile;
+
+  @SuppressWarnings("unused")
   private final List<Path> programFiles;
 
   private @Nullable String entryFunction;

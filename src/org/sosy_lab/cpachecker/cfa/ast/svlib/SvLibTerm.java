@@ -8,5 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+
 public sealed interface SvLibTerm extends SvLibAstNode, SvLibFinalRelationalTerm
     permits SvLibSymbolApplicationTerm, SvLibConstantTerm, SvLibIdTerm {}
