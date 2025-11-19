@@ -3345,15 +3345,12 @@ class ASTConverter {
 
     private Deque<Integer> getMemberIndicesToDesignators(
         List<ICASTDesignator> designatorSequence, CType parentType) {
-      ICASTDesignator nextStep = designatorSequence.getFirst();
-      List<ICASTDesignator> remainingSteps =
-          designatorSequence.subList(1, designatorSequence.size());
-
-      Pair<List<Integer>, CType> nextIndexAndType =
-          resolveIndicesOfDesignator(nextStep, parentType);
-      Deque<Integer> indices = new ArrayDeque<>(nextIndexAndType.getFirst());
-      if (!remainingSteps.isEmpty()) {
-        indices.addAll(getMemberIndicesToDesignators(remainingSteps, nextIndexAndType.getSecond()));
+      Deque<Integer> indices = new ArrayDeque<>(designatorSequence.size());
+      CType currentPositionType = parentType;
+      for (ICASTDesignator designator : designatorSequence) {
+        var nextIndexAndType = resolveIndicesOfDesignator(designator, currentPositionType);
+        indices.addAll(nextIndexAndType.getFirst());
+        currentPositionType = nextIndexAndType.getSecond();
       }
       return indices;
     }
