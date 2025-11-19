@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ArgAnalysisUtils {
+public class RelevantArgStatesCollector {
 
   /**
    * A class to keep track of parent child relations between abstract states which enter a function
@@ -63,70 +63,6 @@ public class ArgAnalysisUtils {
   }
 
   /**
-   * Analyzes the ARG during its traversal by collecting the states relevant to exporting a witness
-   */
-  private static class RelevantARGStateCollector {
-
-    private final CollectedARGStates collectedStates =
-        new CollectedARGStates(
-            HashMultimap.create(),
-            HashMultimap.create(),
-            HashMultimap.create(),
-            HashMultimap.create());
-
-    // TODO: This needs to be improved once we implement setjump/longjump
-    /** The callstack of the order in which the function entry points where traversed */
-    private ListMultimap<AFunctionDeclaration, ARGState> functionEntryStatesCallStack =
-        ArrayListMultimap.create();
-
-    /** Enables the recovery of the callstack when an ARGState has multiple children */
-    private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
-        new HashMap<>();
-
-    void analyze(ARGState pSuccessor) {
-      if (!pSuccessor.getParents().isEmpty()) {
-        ARGState parent = pSuccessor.getParents().getFirst();
-        if (callStackRecovery.containsKey(parent)) {
-          // Copy the saved callstack, since we want to return to the state we had before the
-          // branching
-          functionEntryStatesCallStack = ArrayListMultimap.create(callStackRecovery.get(parent));
-        }
-      }
-
-      for (LocationState state :
-          AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
-        CFANode node = state.getLocationNode();
-        FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
-        if (node.isLoopStart()) {
-          collectedStates.loopInvariants().put(node, pSuccessor);
-        } else if (leavingEdges.size() == 1
-            && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
-          collectedStates.functionCallInvariants().put(node, pSuccessor);
-        } else if (node instanceof FunctionEntryNode functionEntryNode) {
-          functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pSuccessor);
-          collectedStates.functionContractRequires().put(functionEntryNode, pSuccessor);
-        } else if (node instanceof FunctionExitNode functionExitNode) {
-          List<ARGState> functionEntryNodes = functionEntryStatesCallStack.get(node.getFunction());
-          Verify.verify(!functionEntryNodes.isEmpty());
-          collectedStates
-              .functionContractEnsures()
-              .put(
-                  functionExitNode,
-                  new FunctionEntryExitPair(functionEntryNodes.removeLast(), pSuccessor));
-        }
-
-        if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
-          callStackRecovery.put(pSuccessor, ArrayListMultimap.create(functionEntryStatesCallStack));
-        }
-      }
-    }
-
-    CollectedARGStates getCollectedStates() {
-      return collectedStates.immutableCopy();
-    }
-  }
-
-  /**
    * Collect the relevant states from the ARG starting at the given root state for the export of a
    * witness
    *
@@ -135,12 +71,60 @@ public class ArgAnalysisUtils {
    * @return the collected information about the ARG
    */
   public static CollectedARGStates getRelevantStates(ARGState pRootState) {
-    RelevantARGStateCollector statesCollector = new RelevantARGStateCollector();
+    final CollectedARGStates collectedStates =
+        new CollectedARGStates(
+            HashMultimap.create(),
+            HashMultimap.create(),
+            HashMultimap.create(),
+            HashMultimap.create());
+
+    ListMultimap<AFunctionDeclaration, ARGState> functionEntryStatesCallStack =
+        ArrayListMultimap.create();
+
+    final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
+        new HashMap<>();
+
+    // We need a depth first traversal, since we need to visit function entries before function
+    // exits to maintain a correct call stack
     for (ARGState state :
         Traverser.forGraph(ARGState::getChildren).depthFirstPreOrder(pRootState)) {
-      statesCollector.analyze(state);
+      if (!state.getParents().isEmpty()) {
+        ARGState parent = state.getParents().getFirst();
+        if (callStackRecovery.containsKey(parent)) {
+          // Copy the saved callstack, since we want to return to the state we had before the
+          // branching
+          functionEntryStatesCallStack = ArrayListMultimap.create(callStackRecovery.get(parent));
+        }
+      }
+
+      for (LocationState locationState :
+          AbstractStates.asIterable(state).filter(LocationState.class)) {
+        CFANode node = locationState.getLocationNode();
+        FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
+        if (node.isLoopStart()) {
+          collectedStates.loopInvariants().put(node, state);
+        } else if (leavingEdges.size() == 1
+            && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
+          collectedStates.functionCallInvariants().put(node, state);
+        } else if (node instanceof FunctionEntryNode functionEntryNode) {
+          functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), state);
+          collectedStates.functionContractRequires().put(functionEntryNode, state);
+        } else if (node instanceof FunctionExitNode functionExitNode) {
+          List<ARGState> functionEntryNodes = functionEntryStatesCallStack.get(node.getFunction());
+          Verify.verify(!functionEntryNodes.isEmpty());
+          collectedStates
+              .functionContractEnsures()
+              .put(
+                  functionExitNode,
+                  new FunctionEntryExitPair(functionEntryNodes.removeLast(), state));
+        }
+
+        if (state.getChildren().size() > 1 && !callStackRecovery.containsKey(state)) {
+          callStackRecovery.put(state, ArrayListMultimap.create(functionEntryStatesCallStack));
+        }
+      }
     }
 
-    return statesCollector.getCollectedStates();
+    return collectedStates.immutableCopy();
   }
 }

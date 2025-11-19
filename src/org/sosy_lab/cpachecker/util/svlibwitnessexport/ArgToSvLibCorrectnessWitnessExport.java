@@ -20,30 +20,30 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibTermBuilder;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils;
-import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.CollectedARGStates;
-import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.FunctionEntryExitPair;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
 
 public class ArgToSvLibCorrectnessWitnessExport {
   private final SvLibCfaMetadata svLibMetadata;
@@ -148,7 +148,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
       throws ReportingMethodNotImplementedException, InterruptedException {
-    CollectedARGStates relevantStates = ArgAnalysisUtils.getRelevantStates(pRootState);
+    CollectedARGStates relevantStates = RelevantArgStatesCollector.getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 

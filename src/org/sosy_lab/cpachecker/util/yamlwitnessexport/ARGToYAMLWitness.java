@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
-import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils;
-import org.sosy_lab.cpachecker.util.witnesses.ArgAnalysisUtils.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 
@@ -105,7 +105,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
-      stateToStatesCollector.put(pRootState, ArgAnalysisUtils.getRelevantStates(pRootState));
+      stateToStatesCollector.put(
+          pRootState, RelevantArgStatesCollector.getRelevantStates(pRootState));
     }
 
     return stateToStatesCollector.get(pRootState);
