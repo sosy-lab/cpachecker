@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -288,12 +287,15 @@ public class TerminationWitnessValidator implements Algorithm {
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinAllPrevDeclarationMaps(
       Set<ExpressionTreeLocationInvariant> invariants) {
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> builder = ImmutableMap.builder();
 
-    return FluentIterable.from(invariants).stream()
+    FluentIterable.from(invariants)
         .filter(invariant -> invariant instanceof ExpressionTreeLocationTransitionInvariant)
-        .map(ExpressionTreeLocationTransitionInvariant.class::cast)
-        .flatMap(inv -> inv.getMapPrevVarsToCurrent().entrySet().stream())
-        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+        .transform(ExpressionTreeLocationTransitionInvariant.class::cast)
+        .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
+        .forEach(e -> builder.put(e.getKey(), e.getValue()));
+
+    return builder.build();
   }
 
   private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
