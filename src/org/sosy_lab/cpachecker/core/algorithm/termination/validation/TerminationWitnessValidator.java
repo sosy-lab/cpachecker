@@ -295,7 +295,7 @@ public class TerminationWitnessValidator implements Algorithm {
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
