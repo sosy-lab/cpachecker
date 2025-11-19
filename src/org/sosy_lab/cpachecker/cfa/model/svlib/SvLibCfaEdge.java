@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model.svlib;
 
 public sealed interface SvLibCfaEdge
     permits SvLibAssumeEdge,
+        SvLibBlankChoiceEdge,
         SvLibDeclarationEdge,
         SvLibProcedureCallEdge,
         SvLibProcedureReturnEdge,

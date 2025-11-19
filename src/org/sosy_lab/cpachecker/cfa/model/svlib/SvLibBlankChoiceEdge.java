@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * nondeterministic choices during the violation witness export. But for all the other purposes,
  * this edge is just a normal blank edge.
  */
-public class SvLibBlankChoiceEdge extends BlankEdge {
+public final class SvLibBlankChoiceEdge extends BlankEdge implements SvLibCfaEdge {
   private final int choiceIndex;
 
   public SvLibBlankChoiceEdge(
