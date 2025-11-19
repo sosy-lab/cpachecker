@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.specification;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -65,6 +64,8 @@ public class PropertyFileParser {
               + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
               + "|"
               + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
+              + "|"
+              + CFACreator.VALID_SVLIB_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
   private static final Pattern COVERAGE_PATTERN =
@@ -95,14 +96,10 @@ public class PropertyFileParser {
     checkState(properties == null, "single-use only");
     ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
-    boolean parsingSvLibProperty =
-        FluentIterable.from(programFiles)
-                .allMatch(path -> path.getFileName().toString().endsWith(".svlib"))
-            && !programFiles.isEmpty();
 
     try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
-        if (rawProperty.startsWith("#") && parsingSvLibProperty) {
+        if (rawProperty.startsWith("#")) {
           continue;
         }
         if (!rawProperty.isEmpty()) {
@@ -111,20 +108,6 @@ public class PropertyFileParser {
       }
     }
     properties = propertiesBuilder.build();
-
-    // In SV-LIB the specification is inside of the file, so it is possible that no property is
-    // specified. Due to this, we remove the check for an empty property, if the file ends with
-    // `.svlib`.
-    if (properties.isEmpty() && parsingSvLibProperty) {
-      // The entry function is ignored, since the actual entry
-      // function is only set during the CFA construction
-      entryFunction = "";
-      return;
-    }
-
-    if (properties.isEmpty()) {
-      throw new InvalidPropertyFileException("No property in file.");
-    }
   }
 
   private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
@@ -166,7 +149,6 @@ public class PropertyFileParser {
   }
 
   public String getEntryFunction() {
-    checkState(entryFunction != null);
     return entryFunction;
   }
 

@@ -129,6 +129,7 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; // TODO
+  public static final String VALID_SVLIB_FUNCTION_NAME_PATTERN = "\\|?[_a-zA-Z][_a-zA-Z0-9]*\\|?";
 
   @Option(
       secure = true,

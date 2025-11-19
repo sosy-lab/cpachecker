@@ -109,7 +109,8 @@ public interface Property {
 
     TERMINATION("F end"),
 
-    ASSERT("G assert");
+    ASSERT("G assert"),
+    CORRECT_TAGS("G correct-tags");
 
     private final String representation;
 

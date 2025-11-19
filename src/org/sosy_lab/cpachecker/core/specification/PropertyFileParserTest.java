@@ -86,6 +86,9 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
               new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
+          .put(
+              "CHECK( init(__VERIFIER_main()), LTL(G correct-tags) )",
+              CommonVerificationProperty.CORRECT_TAGS)
           .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
@@ -156,11 +159,15 @@ public class PropertyFileParserTest {
   public void testInvalid() {
     List<String> invalidFiles =
         ImmutableList.of(
-            "",
-            "  \n  ",
-            "# " + VALID_ASSERT_PROPERTY,
+            // Empty properties are now allowed due to SV-LIB, which
+            // may pass an empty property file to indicate that the properties
+            // given in the program need to be checked.
+            // "",
+            // "  \n  ",
+            // Comments are now allowed, since we need it for SV-LIB
+            // "# " + VALID_ASSERT_PROPERTY,
+            // VALID_ASSERT_PROPERTY + "\n#",
             " " + VALID_ASSERT_PROPERTY, // TODO trim first?
-            VALID_ASSERT_PROPERTY + "\n#",
             "CHECK( init(main), LTL(G assert) )",
             // "CHECK( init(()), LTL(G assert) )", TODO fix
             // "CHECK( init(m(ai)n()), LTL(G assert) )", TODO fix

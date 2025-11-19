@@ -637,13 +637,15 @@ public class CPAMain {
           "Could not read property file: " + e.getMessage(), e);
     }
 
+    String entryFunctionInPropertyFile = parser.getEntryFunction();
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
-      if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
+      if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(entryFunctionInPropertyFile)) {
         throw new InvalidCmdlineArgumentException(
             "Mismatching names for entry function on command line and in property file");
       }
-    } else {
-      cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
+      // Not all properties need an entry function, for example for SV-LIB properties.
+    } else if (entryFunctionInPropertyFile != null) {
+      cmdLineOptions.put(ENTRYFUNCTION_OPTION, entryFunctionInPropertyFile);
     }
     return parser.getProperties();
   }
