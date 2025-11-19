@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
@@ -300,7 +299,6 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
 
   @Override
   public final FormulaType<?> getFormulaTypeFromType(Type pType) {
-    Verify.verify(pType instanceof CType);
     CType type = (CType) pType;
 
     type = type.getCanonicalType();
