@@ -6,11 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.parser.svlib;
+package org.sosy_lab.cpachecker.exceptions;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class SvLibParserException extends ParserException {
 
