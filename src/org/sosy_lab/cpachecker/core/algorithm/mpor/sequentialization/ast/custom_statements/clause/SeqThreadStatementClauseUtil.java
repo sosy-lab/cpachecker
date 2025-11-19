@@ -19,15 +19,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import java.util.ArrayDeque;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -303,6 +300,10 @@ public class SeqThreadStatementClauseUtil {
 
   // No Backward Goto ==============================================================================
 
+  /**
+   * Removes backward goto, e.g. {@code goto label;} where {@code label:} is in a lower line of code
+   * i.e. higher up in the program. This is done by reordering blocks via a dependence graph.
+   */
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
@@ -378,20 +379,12 @@ public class SeqThreadStatementClauseUtil {
     if (pBlock.equals(pTarget)) {
       return false;
     }
-    // check if pBlock is reachable when starting in pTarget
-    Deque<SeqThreadStatementBlock> stack = new ArrayDeque<>();
-    Set<SeqThreadStatementBlock> visited = new HashSet<>();
-    stack.push(pTarget);
-    while (!stack.isEmpty()) {
-      SeqThreadStatementBlock current = stack.pop();
-      if (visited.add(current)) {
-        if (current.equals(pBlock)) {
-          // Path exists: adding edge creates a cycle
-          return false;
-        }
-        for (SeqThreadStatementBlock successor : pGraph.get(current)) {
-          stack.push(successor);
-        }
+    // Build a Traverser that walks through successors from the multimap
+    Traverser<SeqThreadStatementBlock> traverser = Traverser.forGraph(pGraph::get);
+    // Check reachability: if pBlock is reachable from pTarget => cycle
+    for (SeqThreadStatementBlock node : traverser.depthFirstPreOrder(pTarget)) {
+      if (node.equals(pBlock)) {
+        return false;
       }
     }
     // no path from pBlock to pTarget
