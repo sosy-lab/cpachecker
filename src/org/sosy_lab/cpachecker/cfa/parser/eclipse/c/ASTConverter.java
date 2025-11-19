@@ -2872,7 +2872,7 @@ class ASTConverter {
             }
             case ICASTDesignatedInitializer designatedInit -> {
               CInitializer result = convert(designatedInit, compositeType, declaration);
-              positionInComposite.jumpToPositionAfterDesignator(designatedInit, compositeType);
+              positionInComposite.jumpToPositionAfterDesignator(designatedInit);
               yield result;
             }
             default ->
@@ -3332,12 +3332,10 @@ class ASTConverter {
      * Jump to the next position after the given designated initializer.
      *
      * @param designatedInit the designated initializer
-     * @param parentType the composite type that contains the designator
      */
-    void jumpToPositionAfterDesignator(
-        ICASTDesignatedInitializer designatedInit, CType parentType) {
+    void jumpToPositionAfterDesignator(ICASTDesignatedInitializer designatedInit) {
 
-      jumpToDesignator(designatedInit.getDesignators(), parentType);
+      jumpToDesignator(designatedInit.getDesignators(), rootType);
       advanceToNextElement();
     }
 
