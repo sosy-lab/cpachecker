@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.core;
 
-import com.google.common.base.Verify;
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
@@ -109,6 +111,46 @@ public class CPAcheckerTest {
         .build();
   }
 
+  private String obtainSvLibWitnessContentCheckingOutputCorrectness(
+      TestResults pResult, Path pWitnessOutputPath, String pProgramPath) throws IOException {
+
+    assertWithMessage("CFA should be present in the result")
+        .that(pResult.getCheckerResult().getCfa())
+        .isNotNull();
+
+    Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
+        Objects.requireNonNull(pResult.getCheckerResult().getCfa())
+            .getMetadata()
+            .getSvLibCfaMetadata();
+
+    assertWithMessage("SV-LIB CFA Metadata should be present for every SV-LIB program")
+        .that(svLibCfaMetadataOptional)
+        .isPresent();
+
+    assertWithMessage("SV-LIB CFA Metadata should be present for every SV-LIB program")
+        .that(svLibCfaMetadataOptional)
+        .isPresent();
+    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
+
+    assertWithMessage(
+            "For the safe SV-LIB program '"
+                + pProgramPath
+                + "', the witness export should be enabled")
+        .that(svLibCfaMetadata.exportCorrectnessWitness())
+        .isTrue();
+
+    assertWithMessage(
+            "For the safe SV-LIB program '"
+                + pProgramPath
+                + "', the witness path should be present after exporting the witness")
+        .that(Files.exists(pWitnessOutputPath))
+        .isTrue();
+
+    // Read entire file content as a single string (UTF-8)
+    // This is safe to do, since the witness files are small.
+    return Files.readString(pWitnessOutputPath);
+  }
+
   @Test
   public void testWitnessExportForSafeSvLibProgram() throws Exception {
     Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
@@ -119,34 +161,16 @@ public class CPAcheckerTest {
 
     result.assertIsSafe();
 
-    Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
-        result.getCheckerResult().getCfa().getMetadata().getSvLibCfaMetadata();
+    String content =
+        obtainSvLibWitnessContentCheckingOutputCorrectness(
+            result, witnessOutputPath, SAFE_LOOP_PROGRAM_SvLib);
 
-    Verify.verify(
-        svLibCfaMetadataOptional.isPresent(),
-        "SV-LIB CFA Metadata should be present for every SV-LIB program");
-    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
-
-    Verify.verify(
-        svLibCfaMetadata.exportCorrectnessWitness(),
-        "For the safe SV-LIB program '"
-            + SAFE_LOOP_PROGRAM_SvLib
-            + "', the witness export should be enabled");
-
-    Verify.verify(
-        Files.exists(witnessOutputPath),
-        "For the safe SV-LIB program '"
-            + SAFE_LOOP_PROGRAM_SvLib
-            + "', the witness path should be present after exporting the witness");
-
-    // Read entire file content as a single string (UTF-8)
-    // This is safe to do, since the witness files are small.
-    String content = Files.readString(witnessOutputPath);
-    Verify.verify(
-        content.contains(":invariant"), "The witness should contain at least one invariant.");
-    Verify.verify(
-        content.contains("(annotate-tag"),
-        "The witness should contain at least one annotate-tag command.");
+    assertWithMessage("The witness should contain at least one invariant.")
+        .that(content)
+        .contains(":invariant");
+    assertWithMessage("The witness should contain at least one annotate-tag command.")
+        .that(content)
+        .contains("annotate-tag");
   }
 
   @Test
@@ -169,31 +193,13 @@ public class CPAcheckerTest {
 
     result.assertIsUnsafe();
 
-    Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
-        result.getCheckerResult().getCfa().getMetadata().getSvLibCfaMetadata();
+    String content =
+        obtainSvLibWitnessContentCheckingOutputCorrectness(
+            result, witnessOutputPath, UNSAFE_LOOP_PROGRAM_SvLib);
 
-    Verify.verify(
-        svLibCfaMetadataOptional.isPresent(),
-        "SV-LIB CFA Metadata should be present for every SV-LIB program");
-    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
-
-    Verify.verify(
-        svLibCfaMetadata.exportCorrectnessWitness(),
-        "For the safe SV-LIB program '"
-            + SAFE_LOOP_PROGRAM_SvLib
-            + "', the witness export should be enabled");
-
-    Verify.verify(
-        Files.exists(witnessOutputPath),
-        "For the safe SV-LIB program '"
-            + SAFE_LOOP_PROGRAM_SvLib
-            + "', the witness path should be present after exporting the witness");
-
-    // Read entire file content as a single string (UTF-8)
-    // This is safe to do, since the witness files are small.
-    String content = Files.readString(witnessOutputPath);
-
-    Verify.verify(content.contains("(select-trace"), "The witness should contain an error-path.");
+    assertWithMessage("The witness should contain at least one error-path.")
+        .that(content)
+        .contains("select-trace");
   }
 
   @Test
