@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastThreadOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
@@ -67,7 +66,7 @@ record ReduceLastThreadOrderInjector(
       // do not inject for main thread, because last_thread < 0 never holds
       return pStatement;
     }
-    if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
+    if (pStatement.isTargetPcValid()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause targetClause = labelClauseMap.get(targetPc);
       assert targetClause != null : "could not find targetPc in pLabelBlockMap";

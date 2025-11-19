@@ -65,7 +65,7 @@ public class AtomicBlockMerger {
       CSeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
+    if (pCurrentStatement.isTargetPcValid()) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementBlock targetBlock = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
       CSeqThreadStatement firstStatement = targetBlock.getFirstStatement();

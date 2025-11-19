@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
@@ -106,6 +107,14 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
+  }
+
+  /**
+   * Returns true if the target {@code pc} is present and not equal to {@link
+   * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
+   */
+  public boolean isTargetPcValid() {
+    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */

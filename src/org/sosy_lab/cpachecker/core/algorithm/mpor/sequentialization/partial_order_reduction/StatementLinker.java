@@ -84,7 +84,7 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
+    if (pCurrentStatement.isTargetPcValid()) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap)) {

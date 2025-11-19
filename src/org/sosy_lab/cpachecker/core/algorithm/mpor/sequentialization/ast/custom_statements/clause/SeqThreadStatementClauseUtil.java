@@ -207,7 +207,7 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, Integer> pLabelBlockMap,
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
-    if (isValidTargetPc(pCurrentStatement.getTargetPc())) {
+    if (pCurrentStatement.isTargetPcValid()) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       // for pc writes, use clause labels
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -251,16 +251,6 @@ public class SeqThreadStatementClauseUtil {
       }
     }
     return rNewInjected.build();
-  }
-
-  public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {
-    if (pTargetPc.isPresent()) {
-      int targetPc = pTargetPc.orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
-        return true;
-      }
-    }
-    return false;
   }
 
   // Loops =========================================================================================
