@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -99,7 +98,6 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
-  private final Map<FileLocation, String> acslCommentStrings = new HashMap<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
@@ -189,7 +187,6 @@ class CFABuilder extends ASTVisitor {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
           acslCommentPositions.add(astCreator.getLocation(comment));
-          acslCommentStrings.put(astCreator.getLocation(comment), commentString);
         }
       }
     }
