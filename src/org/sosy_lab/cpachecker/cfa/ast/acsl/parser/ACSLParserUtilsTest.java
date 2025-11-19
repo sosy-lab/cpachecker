@@ -27,7 +27,8 @@ public class ACSLParserUtilsTest {
 ensures x = 0;
 assumes /true;
 ensures !(x < 0);
-*/""";
+*/\
+""";
     String blockCommentExpected =
 """
 ensures x = 0;
