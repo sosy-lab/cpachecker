@@ -151,8 +151,8 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    // if enabled, exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (options.optimizeConstAuxiliaryVariables() && pMemoryLocation.isConstCpaCheckerTmp()) {
+    // exclude const CPAchecker_TMP, they do not have any effect in the input program
+    if (pMemoryLocation.isConstCpaCheckerTmp()) {
       return false;
     }
     // relevant locations are either explicit or implicit (e.g. through pointers) global

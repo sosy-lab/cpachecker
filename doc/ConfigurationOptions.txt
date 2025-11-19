@@ -341,14 +341,6 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# some auxiliary variables may introduce additional context switches in the
-# output program, e.g. 'x++;' is transformed into 'const int AUX_VAR = x;
-# {context-switch} x = x + 1; AUX_VAR;' if 'x' is a global variable. with
-# this option enabled, the context switch is removed i.e. the statements
-# treated as atomic. leave disabled if unsure whether the CFA contains these
-# variables.
-analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables = false
-
 # create additional output file with metadata such as input file(s) and
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
@@ -1178,9 +1170,9 @@ cinvariants.prefix = no default value
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
 
-# define the clang-format version to use, e.g. '-18' for 'clang-format-18' or
-# '' for the default 'clang-format'.
-clangFormatter.clangFormatVersion = "-18"
+# define the clang-format command to use, e.g. "clang-format-18" or
+# "clang-format"
+clangFormatter.clangFormatCommand = "clang-format-18"
 
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based

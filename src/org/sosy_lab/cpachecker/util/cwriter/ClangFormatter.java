@@ -24,11 +24,8 @@ public class ClangFormatter {
   @Option(
       secure = false,
       description =
-          "define the clang-format version to use, e.g. \"-18\" for \"clang-format-18\" or and"
-              + " empty string for the default \"clang-format\".")
-  private String clangFormatVersion = "-18";
-
-  private final String clangFormatCommand;
+          "define the clang-format command to use, e.g. \"clang-format-18\" or \"clang-format\"")
+  private String clangFormatCommand = "clang-format-18";
 
   private final LogManager logger;
 
@@ -36,7 +33,6 @@ public class ClangFormatter {
       throws InvalidConfigurationException {
 
     pConfiguration.inject(this);
-    clangFormatCommand = "clang-format" + clangFormatVersion;
     logger = pLogger;
   }
 
@@ -45,7 +41,6 @@ public class ClangFormatter {
    * returns {@code pCode} as is.
    */
   public String tryFormat(String pCode, ClangFormatStyle pStyle) throws InterruptedException {
-
     try {
       return format(pCode, pStyle);
     } catch (IOException e) {

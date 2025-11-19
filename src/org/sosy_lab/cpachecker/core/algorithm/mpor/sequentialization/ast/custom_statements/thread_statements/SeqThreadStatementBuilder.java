@@ -77,8 +77,7 @@ public record SeqThreadStatementBuilder(
       CFAEdgeForThread threadEdge = leavingEdges.get(i);
 
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
-      if (options.optimizeConstAuxiliaryVariables()
-          && MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
+      if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
 
         // we exclude all function summaries, the calling context is handled by return edges

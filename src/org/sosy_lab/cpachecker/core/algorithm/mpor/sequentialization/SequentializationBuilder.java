@@ -132,10 +132,8 @@ public class SequentializationBuilder {
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     // try remove const qualifier from variable
     if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // if enabled, const CPAchecker_TMP variables are declared and initialized in the statement.
-      // everything else: add declaration without initializer (and assign later in statements)
-      if (pOptions.optimizeConstAuxiliaryVariables()
-          && MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
+      // const CPAchecker_TMP variables are declared and initialized in the statement
+      if (MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
         return Optional.empty();
       } else {
         return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
@@ -152,6 +150,7 @@ public class SequentializationBuilder {
         // function pointer initializer -> add declaration as is
         return Optional.of(pLocalVariableDeclaration.toASTString());
       }
+      // everything else: add declaration without initializer (and assign later in statements)
       return Optional.of(
           SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
               pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));

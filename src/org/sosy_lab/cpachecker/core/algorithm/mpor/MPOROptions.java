@@ -135,16 +135,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "some auxiliary variables may introduce additional context switches in the output"
-              + " program, e.g. 'x++;' is transformed into 'const int AUX_VAR = x; {context-switch}"
-              + " x = x + 1; AUX_VAR;' if 'x' is a global variable. with this option enabled, the"
-              + " context switch is removed i.e. the statements treated as atomic. leave disabled"
-              + " if unsure whether the CFA contains these variables.")
-  private boolean optimizeConstAuxiliaryVariables = false;
-
-  @Option(
-      secure = true,
-      description =
           "create additional output file with metadata such as input file(s) and algorithm"
               + " options?")
   private boolean outputMetadata = true;
@@ -478,10 +468,6 @@ public class MPOROptions {
 
   public NondeterminismSource nondeterminismSource() {
     return nondeterminismSource;
-  }
-
-  public boolean optimizeConstAuxiliaryVariables() {
-    return optimizeConstAuxiliaryVariables;
   }
 
   public boolean outputMetadata() {
