@@ -175,15 +175,20 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
-      if (loop.getIncomingEdges().isEmpty() || !loopsToTransitionInvariants.containsKey(loop)) {
+      if (loop.getIncomingEdges().isEmpty()) {
         // The loop is not reachable due to prunning in CFA construction
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
+      if (!loopsToTransitionInvariants.containsKey(loop) && !loopsToSupportingInvariants.containsKey(loop)) {
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      }
+
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
+
       if (!checkWithInfiniteSpace) {
         logger.log(
             Level.INFO,
@@ -212,7 +217,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // Our termination analysis might be unsound with respect to C semantics because it uses an
       // unsound overapproximation of mathematical integers.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
       if (!isWellFounded
           || !isCandidateInvariantInductiveTransitionInvariant(
@@ -222,7 +227,7 @@ public class TerminationWitnessValidator implements Algorithm {
               loopsToSupportingInvariants,
               mapPrevVarsToCurrVars)) {
         // In this case, we are not sure whether the invariant could be divided otherwise
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
     }
     pReachedSet.clear();
