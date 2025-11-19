@@ -200,6 +200,7 @@ public class InvariantExchangeFormatTransformer {
               currDeclaration.getType(),
               prevVariable,
               prevVariable,
+              // The scope is not relevant as these variables are not in the original program
               "main::" + prevVariable,
               null);
       // TODO: Add also the original variable into the scope?
