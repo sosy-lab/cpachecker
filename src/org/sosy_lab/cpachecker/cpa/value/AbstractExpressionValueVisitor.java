@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -779,8 +780,8 @@ public abstract class AbstractExpressionValueVisitor
       throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
-    // We only handle builtin functions
     if (functionNameExp instanceof CIdExpression cIdExpression) {
+      // We only handle builtin functions
       String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
@@ -800,7 +801,11 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+        if (BuiltinFunctions.isPopcountFunction(functionName)) {
+          return handlePopcount(
+              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
+
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
 
@@ -2263,6 +2268,83 @@ public abstract class AbstractExpressionValueVisitor
     } else {
       return null;
     }
+  }
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
+   * sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int number
+   * given. Test C programs available at test/programs/simple/builtin_popcount*.c
+   */
+  private static Value handlePopcount(
+      String pFunctionName,
+      List<Value> pParameters,
+      CFunctionCallExpression e,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    if (pParameters.size() == 1) {
+      CSimpleType argumentType =
+          BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+      assert argumentType.hasUnsignedSpecifier();
+
+      // Cast to unsigned target type
+      Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
+
+      if (paramValue.isNumericValue()) {
+        BigInteger numericParam = paramValue.asNumericValue().bigIntegerValue();
+
+        // Check that the cast function parameter is really unsigned, as defined by the function and
+        // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
+        // results
+        verify(
+            numericParam.signum() >= 0,
+            "Evaluated parameter for C function %s is negative, but the function defines unsigned"
+                + " parameters only",
+            pFunctionName);
+
+        return new NumericValue(numericParam.bitCount());
+
+      } else if (paramValue instanceof SymbolicExpression symbolicParam) {
+        // Value Analysis without SymEx never ends up here!
+
+        int parameterBitSize = pMachineModel.getSizeofInBits(argumentType);
+
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression constraint =
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, argumentType);
+
+        // Add up the bits one by one
+        // sum of ((castParamValue >> i) & 1)
+        for (int i = 1; i < parameterBitSize; i++) {
+          SymbolicExpression countOfBitAtIndex =
+              factory.binaryAnd(
+                  factory.shiftRightUnsigned(
+                      symbolicParam,
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      argumentType,
+                      argumentType),
+                  one,
+                  CNumericTypes.INT,
+                  argumentType);
+          constraint =
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+        }
+        return constraint;
+      }
+
+      return Value.UnknownValue.getInstance();
+    }
+
+    throw new UnrecognizedCodeException(
+        "Function "
+            + pFunctionName
+            + " received "
+            + pParameters.size()
+            + " parameters"
+            + " instead of the expected "
+            + 1,
+        e);
   }
 
   /**

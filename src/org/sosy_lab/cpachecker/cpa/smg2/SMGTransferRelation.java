@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
+import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -855,8 +856,10 @@ public class SMGTransferRelation
     truthValue = simplifiedExpression.getSecond();
 
     if (expression instanceof CBinaryExpression binEx
-        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound
+        && loopBound.getValue().bitCount() <= 32) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // TODO: add option and extract to method
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
         if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
                 <= loopBound.getValue().intValueExact()
@@ -976,60 +979,81 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+      List<ValueAndSMGState> handledFunReturn =
+          evaluator
+              .getBuiltinFunctionHandler()
+              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, state, pCfaEdge);
 
-      // function calls without assignments
-      resultStatesBuilder.addAll(
-          handleFunctionCallWithoutBody(state, pCfaEdge, cFCExpression, calledFunctionName));
+      // Memory allocating function calls that need to be freed without remembering the pointer
+      // leads to memory-leaks. Speed up this process.
+      handledFunReturn =
+          postprocessBuiltinCFunctionWithoutReturn(handledFunReturn, pCfaEdge, calledFunctionName);
 
-      return resultStatesBuilder.build();
+      return transformedImmutableListCopy(handledFunReturn, ValueAndSMGState::getState);
+
     } else {
       // Fall through for unneeded cases
       return ImmutableList.of(state);
     }
   }
 
-  /*
-   * Function calls without assignment only. Checks the arguments for validity!
-   * The split up of the methods used helps with better errors.
+  /**
+   * Post-processes C builtin function calls without subsequent assignments. Shortcuts errors for
+   * memory allocating functions and returns them with memory-leaks, as their pointers can never be
+   * freed. Other function calls are handled normally. Expects the input states to already have the
+   * functions handled, and the values being the return values of the functions.
    */
-  private Collection<SMGState> handleFunctionCallWithoutBody(
-      SMGState pState,
+  private List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
+      List<ValueAndSMGState> statesWithHandledFunctions,
       CStatementEdge pCfaEdge,
-      CFunctionCallExpression cFCExpression,
       String calledFunctionName)
       throws CPATransferException {
-    SMGCPABuiltins builtins = evaluator.getBuiltinFunctionHandler();
-    List<ValueAndSMGState> uselessValuesAndStates;
-    if (builtins.isABuiltIn(calledFunctionName)) {
-      if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
-        ImmutableList.Builder<SMGState> newStatesBuilder = ImmutableList.builder();
-        String errorMSG =
-            "Calling " + functionName + " and not using the return value results in a memory leak.";
-        logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
-        List<ValueAndSMGState> uselessValuesAndNewStates =
-            builtins.evaluateConfigurableAllocationFunction(
-                cFCExpression, calledFunctionName, pState, pCfaEdge);
-        for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
-          newStatesBuilder.add(
-              valueAndState
-                  .getState()
-                  .withMemoryLeak(errorMSG, ImmutableList.of(valueAndState.getValue())));
+
+    if (isMemoryAllocatingFunction(calledFunctionName)) {
+      // Shortcut to faster errors
+      ImmutableList.Builder<ValueAndSMGState> newReturnBuilder = ImmutableList.builder();
+      String errorMSG =
+          "Calling "
+              + calledFunctionName
+              + " and not using the return value, results in a memory-leak at "
+              + pCfaEdge;
+
+      for (ValueAndSMGState valueAndState : statesWithHandledFunctions) {
+        Value funReturn = valueAndState.getValue();
+        SMGState funReturnState = valueAndState.getState();
+
+        if (funReturn instanceof NumericValue numRet
+            && numRet.bigIntegerValue().equals(BigInteger.ZERO)) {
+          // 0 returns do not need freeing
+          newReturnBuilder.add(valueAndState);
+        } else if (funReturnState.isPointer(funReturn)) {
+          // Valid pointer returned, this needs to be freed, but can't be freed as the pointer will
+          // be lost
+          logger.logf(
+              Level.INFO,
+              "Called memory allocating C function %s() that needs freeing, but did not assign the"
+                  + " returned value %s; memory-leak assumed following %s",
+              funReturn,
+              calledFunctionName,
+              pCfaEdge);
+
+          newReturnBuilder.add(
+              ValueAndSMGState.of(funReturn, funReturnState.withMemoryLeak(errorMSG, funReturn)));
+
+        } else {
+          throw new SMGException(
+              "Error: unexpected return value "
+                  + funReturn
+                  + " encountered in post-processing of function call to "
+                  + functionName
+                  + "() without assigning the functions return value at "
+                  + pCfaEdge);
         }
-        return newStatesBuilder.build();
       }
-      if (builtins.isDeallocationFunction(calledFunctionName)) {
-        return builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
-      } else {
-        uselessValuesAndStates =
-            builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
-      }
-    } else {
-      // Check arguments for unknown functions without body
-      uselessValuesAndStates =
-          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
+      return newReturnBuilder.build();
     }
-    return transformedImmutableListCopy(uselessValuesAndStates, ValueAndSMGState::getState);
+
+    return statesWithHandledFunctions;
   }
 
   @Override

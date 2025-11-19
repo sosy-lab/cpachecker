@@ -194,6 +194,8 @@ public class CounterexampleCheckAlgorithm
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
       throws InterruptedException {
 
+    // TODO: also print the config that is used for the CEX check. (loaded when CPA is built in
+    //  checkErrorPaths())
     logger.log(
         Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     final boolean feasibility;

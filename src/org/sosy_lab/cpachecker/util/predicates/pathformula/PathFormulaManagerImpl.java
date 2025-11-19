@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -236,9 +238,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       PathFormula pOldFormula, final CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-    PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
-
-    return Pair.of(pf, errorConditions);
+    try {
+      PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
+      return Pair.of(pf, errorConditions);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
   }
 
   private PathFormula makeAnd(
@@ -298,7 +303,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
-    return makeAnd(pOldFormula, pEdge, errorConditions);
+    try {
+      return makeAnd(pOldFormula, pEdge, errorConditions);
+    } catch (UnsupportedOperationByDesignException e) {
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
   }
 
   @Override

@@ -59,6 +59,14 @@ final class FormulaWrappingHandler {
     return encodeBitvectorAs == Theory.BITVECTOR;
   }
 
+  boolean useIntForBitvectors() {
+    return encodeBitvectorAs == Theory.INTEGER;
+  }
+
+  boolean useFloatForFloats() {
+    return encodeFloatAs == Theory.FLOAT;
+  }
+
   @SuppressWarnings("unchecked")
   <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
