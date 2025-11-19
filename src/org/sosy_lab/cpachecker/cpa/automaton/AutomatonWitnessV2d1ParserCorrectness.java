@@ -81,8 +81,10 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
               lineToSeenInvariants.get(position).add(lookupKey);
             }
 
-            if (invariantType.equals(InvariantRecordType.TRANSITION_LOCATION_INVARIANT.getKeyword())) {
-              throw new WitnessParseException("Transition invariants on locations are not yet supported.");
+            if (invariantType.equals(
+                InvariantRecordType.TRANSITION_LOCATION_INVARIANT.getKeyword())) {
+              throw new WitnessParseException(
+                  "Transition invariants on locations are not yet supported.");
             }
 
             // The parsing of normal invariants is done in the parser of 2.0 which is called in the
