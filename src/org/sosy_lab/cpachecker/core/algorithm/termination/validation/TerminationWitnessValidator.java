@@ -161,8 +161,6 @@ public class TerminationWitnessValidator implements Algorithm {
         mapTransitionInvariantsToLoops(loops, invariants);
     ImmutableListMultimap<LoopStructure.Loop, BooleanFormula> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
-        joinAllPrevDeclarationMaps(invariants);
 
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
@@ -182,6 +180,8 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
+          joinPrevDeclarationMapsForLoop(loop, invariants);
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
       if (!checkWithInfiniteSpace) {
@@ -285,12 +285,15 @@ public class TerminationWitnessValidator implements Algorithm {
     }
   }
 
-  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinAllPrevDeclarationMaps(
-      Set<ExpressionTreeLocationInvariant> invariants) {
+  private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> joinPrevDeclarationMapsForLoop(
+      Loop pLoop, Set<ExpressionTreeLocationInvariant> invariants) {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> builder = ImmutableMap.builder();
 
     FluentIterable.from(invariants)
-        .filter(invariant -> invariant instanceof ExpressionTreeLocationTransitionInvariant)
+        .filter(
+            invariant ->
+                invariant instanceof ExpressionTreeLocationTransitionInvariant
+                    && isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
         .transform(ExpressionTreeLocationTransitionInvariant.class::cast)
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
@@ -332,7 +335,7 @@ public class TerminationWitnessValidator implements Algorithm {
     for (LoopStructure.Loop loop : pLoops) {
       BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
       boolean isTrivial = true;
-      PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(loop.getInnerLoopEdges()));
+      PathFormula loopFormula = pfmgr.makeFormulaForPath(loop.getInnerLoopEdges().asList());
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
           continue;
