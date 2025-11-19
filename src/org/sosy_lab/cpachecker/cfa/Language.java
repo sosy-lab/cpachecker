@@ -13,7 +13,7 @@ public enum Language {
   C("C"),
   JAVA("Java"),
   LLVM("LLVM IR"),
-  SV_LIB("sv-lib");
+  SVLIB("sv-lib");
 
   private final String name;
 

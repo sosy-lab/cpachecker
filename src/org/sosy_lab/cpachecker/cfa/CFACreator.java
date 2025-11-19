@@ -467,7 +467,7 @@ public class CFACreator {
         language = Language.C;
         // After parsing, we will have a CFA representing C code
       }
-      case SV_LIB -> {
+      case SVLIB -> {
         parser = Parsers.getSvLibParser(pLogger, pConfig, machineModel, shutdownNotifier);
       }
       default -> throw new AssertionError();
@@ -538,7 +538,7 @@ public class CFACreator {
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
         }
         case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
-        case SV_LIB -> mainFunction = getSvLibMainFunction(c.functions());
+        case SVLIB -> mainFunction = getSvLibMainFunction(c.functions());
         default -> throw new AssertionError();
       }
 
@@ -770,7 +770,7 @@ public class CFACreator {
       switch (language) {
         case JAVA -> throw new JParserException("No methods found in program");
         case C -> throw new CParserException("No functions found in program");
-        case SV_LIB ->
+        case SVLIB ->
             throw new SvLibParserException(
                 "No verification call found in the SV-LIB program. Please check the syntax of your"
                     + " SV-LIB program.");
@@ -1091,7 +1091,7 @@ public class CFACreator {
                 new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
             case JAVA ->
                 new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
-            case SV_LIB ->
+            case SVLIB ->
                 new SvLibDeclarationEdge(
                     Objects.requireNonNull(rawSignature),
                     d.getFileLocation(),

@@ -380,10 +380,6 @@ public class ConfigurationFileChecks {
         tempFolder.newFolder(OUTPUT_DIR.toString()).toPath().resolve("AssumptionAutomaton.txt"));
   }
 
-  private static boolean isSvLibConfig(String configFilePath) {
-    return configFilePath.contains("svlib");
-  }
-
   @Test
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
@@ -409,10 +405,9 @@ public class ConfigurationFileChecks {
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (isSvLibConfig(basePath.toString())) {
+    if (options.language == Language.SVLIB) {
       // For SV-LIB Programs the specification is inside the program itself, so we do not need to
-      // check
-      // anything
+      // check anything
       assertThat(spec).isEqualTo("specification/correct-tags.spc");
     } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -523,15 +518,6 @@ public class ConfigurationFileChecks {
       ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
       configBuilder.setOption(SPECIFICATION_OPTION, "config/specification/Assertion.spc");
       config = configBuilder.build();
-    }
-    if (isSvLibConfig(configFile.toString())) {
-      // For SV-LIB Programs we need to set the language to SV-LIB
-      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
-      configBuilder.setOption(LANGUAGE_OPTION, Language.SV_LIB.name());
-      config = configBuilder.build();
-      // We need to change the current language options, but only after we created the config
-      // object above
-      config.inject(options);
     }
 
     final TestLogHandler logHandler = new TestLogHandler();

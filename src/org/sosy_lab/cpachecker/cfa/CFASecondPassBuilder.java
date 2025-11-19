@@ -261,7 +261,7 @@ public class CFASecondPassBuilder {
                 (CFunctionCall) functionCall,
                 (CFunctionSummaryEdge) calltoReturnEdge);
       }
-      case SV_LIB -> {
+      case SVLIB -> {
         calltoReturnEdge =
             new SvLibProcedureSummaryEdge(
                 edge.getRawStatement(),
@@ -328,7 +328,7 @@ public class CFASecondPassBuilder {
             case C ->
                 new CFunctionReturnEdge(
                     fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-            case SV_LIB ->
+            case SVLIB ->
                 new SvLibProcedureReturnEdge(
                     fileLocation,
                     exitNode,

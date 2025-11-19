@@ -66,7 +66,7 @@ public class UnrecognizedCodeException extends CPATransferException {
     return switch (lang) {
       case C -> "Unrecognized C code";
       case JAVA -> "Unrecognized Java code";
-      case SV_LIB -> "Unrecognized SV-LIB code";
+      case SVLIB -> "Unrecognized SV-LIB code";
       default -> throw new AssertionError();
     };
   }
@@ -77,7 +77,7 @@ public class UnrecognizedCodeException extends CPATransferException {
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
     } else if (astNode instanceof SvLibAstNode) {
-      return Language.SV_LIB;
+      return Language.SVLIB;
     }
     throw new AssertionError();
   }

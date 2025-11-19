@@ -471,7 +471,7 @@ public class CPAMain {
           switch (suffix) {
             case "ll", "bc" -> Language.LLVM;
             case "c", "i", "h" -> Language.C;
-            case "svlib" -> Language.SV_LIB;
+            case "svlib" -> Language.SVLIB;
             default -> Language.C;
           };
       Preconditions.checkNotNull(language);

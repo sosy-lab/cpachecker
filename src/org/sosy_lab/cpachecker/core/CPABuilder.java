@@ -211,7 +211,7 @@ public class CPABuilder {
         allCpas.size() == allCpaConfigs.size() + cpas.size() - placeholderCount,
         "Number of CPAs in final CPA tree does not match configured CPAs");
     verify(
-        cfa.getLanguage() != Language.SV_LIB
+        cfa.getLanguage() != Language.SVLIB
             || FluentIterable.from(allCpas).anyMatch(pCpa -> pCpa instanceof SvLibSafetySpecCPA),
         "For verifying SV-LIB programs, a SvLibSafetySpecCPA must be part of the CPA "
             + "configuration in order to be able to handle the specification");

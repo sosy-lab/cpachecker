@@ -240,7 +240,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         NONDET_FORMULA_TYPE = converter.getFormulaTypeFromType(NONDET_TYPE);
       }
-      case SV_LIB -> {
+      case SVLIB -> {
         converter =
             new SvLibToFormulaConverter(
                 new FormulaEncodingOptions(config),

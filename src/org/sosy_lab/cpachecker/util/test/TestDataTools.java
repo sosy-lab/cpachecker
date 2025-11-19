@@ -187,7 +187,7 @@ public class TestDataTools {
         fileContent = "define i32 @main() { entry:  ret i32 0}";
         program = tempFile.toString();
       }
-      case SV_LIB -> {
+      case SVLIB -> {
         tempFile = getTempFile(pTempFolder, "program.svlib");
         fileContent = "(define-proc f1 () () () (sequence))\n" + "(verify-call f1 ())";
         program = tempFile.toString();

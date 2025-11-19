@@ -91,8 +91,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForSafeSvLibProgram() throws Exception {
-    Configuration config =
-        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    Configuration config = getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
@@ -103,7 +102,7 @@ public class CPAcheckerTest {
   private Configuration svLibConfigWithWitnessOutput(Path witnessOutputPath)
       throws InvalidConfigurationException, IOException {
     return Configuration.builder()
-        .copyFrom(getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib))
+        .copyFrom(getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib))
         .setOption("output.path", witnessOutputPath.getParent().toString())
         .setOption("counterexample.export.svlib", witnessOutputPath.getFileName().toString())
         .setOption("cpa.arg.svLibCorrectnessWitness", witnessOutputPath.getFileName().toString())
@@ -152,8 +151,7 @@ public class CPAcheckerTest {
 
   @Test
   public void testRunForUnsafeSvLibProgram() throws Exception {
-    Configuration config =
-        getConfig(CONFIGURATION_FILE_SvLib, Language.SV_LIB, SPECIFICATION_SvLib);
+    Configuration config = getConfig(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
     TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();

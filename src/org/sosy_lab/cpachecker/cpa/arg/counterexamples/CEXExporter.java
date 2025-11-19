@@ -349,7 +349,7 @@ public class CEXExporter {
       }
     }
 
-    if (cfa.getLanguage() != Language.SV_LIB) {
+    if (cfa.getLanguage() != Language.SVLIB) {
       if (options.getWitnessFile() != null
           || options.getWitnessDotFile() != null
           || options.getYamlWitnessPathTemplate() != null) {

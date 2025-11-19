@@ -306,7 +306,7 @@ public final class CfaMetadata {
    */
   public CfaMetadata withSvLibCfaMetadata(@Nullable SvLibCfaMetadata pSvLibCfaMetadata) {
     Preconditions.checkArgument(
-        inputLanguage == Language.SV_LIB ? pSvLibCfaMetadata != null : pSvLibCfaMetadata == null);
+        inputLanguage == Language.SVLIB ? pSvLibCfaMetadata != null : pSvLibCfaMetadata == null);
     return new CfaMetadata(
         machineModel,
         cfaLanguage,

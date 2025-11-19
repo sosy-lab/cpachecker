@@ -17,14 +17,14 @@ public class SvLibParserException extends ParserException {
   @Serial private static final long serialVersionUID = 2377475523222354924L;
 
   public SvLibParserException(String pMsg) {
-    super(pMsg, Language.SV_LIB);
+    super(pMsg, Language.SVLIB);
   }
 
   public SvLibParserException(Throwable pCause) {
-    super(pCause, Language.SV_LIB);
+    super(pCause, Language.SVLIB);
   }
 
   public SvLibParserException(String pMsg, Throwable pCause) {
-    super(pMsg, pCause, Language.SV_LIB);
+    super(pMsg, pCause, Language.SVLIB);
   }
 }
