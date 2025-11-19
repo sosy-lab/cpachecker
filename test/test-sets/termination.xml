@@ -33,8 +33,6 @@
         <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
     </rundefinition>
 
-    <resultfiles>**.graphml*</resultfiles>
-
     <tasks>
         <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
         <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>

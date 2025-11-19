@@ -602,6 +602,47 @@ public final class StandardFunctions {
   /** All functions defined by POSIX from the other sets in this file */
   public static final ImmutableSet<String> POSIX_ALL_FUNCTIONS = POSIX_UNISTD_H_FUNCTIONS;
 
+  /* #################### C11 Memory management functions (see C11 7.22.3) #################### */
+  private static final Set<String> MEMORY_ALLOCATING_FUNCTIONS =
+      ImmutableSet.of("malloc", "calloc", "aligned_alloc");
+  private static final String MEMORY_DEALLOCATING_FUNCTION = "free";
+  private static final String MEMORY_REALLOCATING_FUNCTION = "realloc";
+
+  /**
+   * True if the function names matches any memory management function defined by the C11 standard
+   * in section 7.22.3, i.e. free(), aligned_alloc(), calloc(), malloc(), or realloc().
+   */
+  @SuppressWarnings("unused")
+  public static boolean isMemoryManagementFunction(String functionName) {
+    return isMemoryAllocatingFunction(functionName)
+        || isMemoryDeallocatingFunction(functionName)
+        || isMemoryReallocatingFunction(functionName);
+  }
+
+  /**
+   * True if the function names matches any memory allocating function defined by the C11 standard
+   * in section 7.22.3, i.e. aligned_alloc(), calloc(), malloc().
+   */
+  public static boolean isMemoryAllocatingFunction(String functionName) {
+    return MEMORY_ALLOCATING_FUNCTIONS.contains(functionName);
+  }
+
+  /**
+   * True if the function names matches the memory de-allocation function defined by the C11
+   * standard in section 7.22.3, i.e. free().
+   */
+  public static boolean isMemoryDeallocatingFunction(String functionName) {
+    return MEMORY_DEALLOCATING_FUNCTION.equals(functionName);
+  }
+
+  /**
+   * True if the function names matches the memory re-allocation function defined by the C11
+   * standard in section 7.22.3, i.e. realloc().
+   */
+  public static boolean isMemoryReallocatingFunction(String functionName) {
+    return MEMORY_REALLOCATING_FUNCTION.equals(functionName);
+  }
+
   /* ############## C11 input/output functions by categories used in the standard ############## */
 
   // TODO: all below are already part of the functions above (or should be at least). Pull them out

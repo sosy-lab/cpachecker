@@ -11,6 +11,13 @@ SPDX-License-Identifier: Apache-2.0
 Changes since CPAchecker 4.1
 ----------------------------
 * Java 21 or later is required now.
+* When parsing C code, CPAchecker
+  now immediately attempts to parse the code with
+  an external pre-processor to resolve system headers
+  in case the usual parsing failed.
+  To use the previous behavior, which
+  did not use an external pre-processor,
+  set the option `cfa.usePreprocessor` to `false`.
 
 
 Changes from CPAchecker 4.0 to CPAchecker 4.1

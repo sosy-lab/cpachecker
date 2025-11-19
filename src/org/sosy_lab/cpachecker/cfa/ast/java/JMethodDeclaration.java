@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,8 +100,8 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JParameterDeclaration> getParameters() {
-    return (List<JParameterDeclaration>) super.getParameters();
+  public ImmutableList<JParameterDeclaration> getParameters() {
+    return (ImmutableList<JParameterDeclaration>) super.getParameters();
   }
 
   @Override
