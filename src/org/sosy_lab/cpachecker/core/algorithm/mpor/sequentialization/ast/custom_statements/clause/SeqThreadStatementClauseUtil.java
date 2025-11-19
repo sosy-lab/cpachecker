@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -182,7 +182,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = Sequentialization.INIT_PC;
+    int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         rLabelToIndex.put(block.getLabel().number(), index++);
@@ -195,7 +195,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = Sequentialization.INIT_PC;
+    int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.labelNumber, index++);
     }
@@ -256,7 +256,7 @@ public class SeqThreadStatementClauseUtil {
   public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {
     if (pTargetPc.isPresent()) {
       int targetPc = pTargetPc.orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC) {
+      if (targetPc != ProgramCounterVariables.EXIT_PC) {
         return true;
       }
     }
@@ -350,7 +350,7 @@ public class SeqThreadStatementClauseUtil {
     for (CSeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
-        if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
+        if (targetNumber.orElseThrow() != ProgramCounterVariables.EXIT_PC) {
           SeqThreadStatementBlock targetBlock =
               Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
           // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph

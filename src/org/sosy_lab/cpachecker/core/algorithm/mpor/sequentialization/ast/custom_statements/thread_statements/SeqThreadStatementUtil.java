@@ -22,7 +22,6 @@ import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -215,13 +215,13 @@ public final class SeqThreadStatementUtil {
     // first create pruned statements
     ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
     // create the pc write
-    CExpressionAssignmentStatement pcWrite =
-        SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc);
+    CExpressionAssignmentStatement pcAssignmentStatement =
+        ProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
     boolean emptyBitVectorEvaluation =
         SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pruned);
     // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
     if (emptyBitVectorEvaluation) {
-      statements.add(pcWrite.toASTString());
+      statements.add(pcAssignmentStatement.toASTString());
     }
     // add all injected statements in the correct order
     ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pOptions, pruned);
@@ -231,7 +231,7 @@ public final class SeqThreadStatementUtil {
     }
     // for non-empty bit vector evaluations, place pc write after injections for optimization
     if (!emptyBitVectorEvaluation) {
-      statements.add(pcWrite.toASTString());
+      statements.add(pcAssignmentStatement.toASTString());
     }
     return statements.toString();
   }

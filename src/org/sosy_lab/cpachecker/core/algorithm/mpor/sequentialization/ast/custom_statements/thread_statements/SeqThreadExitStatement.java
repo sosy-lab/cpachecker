@@ -15,10 +15,10 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -68,9 +68,9 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   @Override
   public SeqThreadExitStatement withTargetPc(int pTargetPc) {
     checkArgument(
-        pTargetPc == Sequentialization.EXIT_PC,
+        pTargetPc == ProgramCounterVariables.EXIT_PC,
         "reach_errors should only be cloned with exit pc %s",
-        Sequentialization.EXIT_PC);
+        ProgramCounterVariables.EXIT_PC);
     return new SeqThreadExitStatement(
         options,
         returnValueAssignment,

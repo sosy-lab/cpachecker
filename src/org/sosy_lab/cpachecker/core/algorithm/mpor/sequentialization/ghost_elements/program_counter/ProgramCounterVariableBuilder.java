@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter;
 
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder.buildIntegerLiteralExpression;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,23 +20,37 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record ProgramCounterVariableBuilder(
     MPOROptions options, int numThreads, CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   private static final String PROGRAM_COUNTER_VARIABLE_NAME = "pc";
+
+  public static final CIntegerLiteralExpression INIT_PC_LITERAL_EXPRESSION =
+      buildIntegerLiteralExpression(ProgramCounterVariables.INIT_PC);
+
+  public static final CIntegerLiteralExpression EXIT_PC_LITERAL_EXPRESSION =
+      buildIntegerLiteralExpression(ProgramCounterVariables.EXIT_PC);
+
+  private static final CInitializer INIT_PC_INITIALIZER =
+      new CInitializerExpression(FileLocation.DUMMY, INIT_PC_LITERAL_EXPRESSION);
+
+  private static final CInitializer EXIT_PC_INITIALIZER =
+      new CInitializerExpression(FileLocation.DUMMY, EXIT_PC_LITERAL_EXPRESSION);
 
   /**
    * A dummy {@link CIdExpression} that can be used to create {@link CArraySubscriptExpression} of
@@ -91,13 +107,13 @@ public record ProgramCounterVariableBuilder(
                 true,
                 CNumericTypes.UNSIGNED_INT,
                 pPcLeftHandSides.get(i).toASTString(),
-                SeqInitializers.getPcInitializer(i == 0)));
+                getPcInitializer(i == 0)));
       }
     } else {
       // declare int array: pc[] = { 1, 0, ... };
       ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
-        initializers.add(SeqInitializers.getPcInitializer(i == 0));
+        initializers.add(getPcInitializer(i == 0));
       }
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());
@@ -113,7 +129,7 @@ public record ProgramCounterVariableBuilder(
   private ImmutableList<CIdExpression> buildScalarPcExpressions() {
     ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < numThreads; i++) {
-      CInitializer initializer = SeqInitializers.getPcInitializer(i == 0);
+      CInitializer initializer = getPcInitializer(i == 0);
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true, CNumericTypes.UNSIGNED_INT, PROGRAM_COUNTER_VARIABLE_NAME + i, initializer);
@@ -139,7 +155,7 @@ public record ProgramCounterVariableBuilder(
         return Optional.of(
             binaryExpressionBuilder.buildBinaryExpression(
                 buildPcSubscriptExpression(SeqIdExpressions.NEXT_THREAD),
-                SeqIntegerLiteralExpressions.INT_EXIT_PC,
+                EXIT_PC_LITERAL_EXPRESSION,
                 BinaryOperator.NOT_EQUALS));
       }
     }
@@ -155,7 +171,7 @@ public record ProgramCounterVariableBuilder(
     for (CLeftHandSide pcLeftHandSide : pPcLeftHandSides) {
       rExpressions.add(
           binaryExpressionBuilder.buildBinaryExpression(
-              pcLeftHandSide, SeqIntegerLiteralExpressions.INT_EXIT_PC, pBinaryOperator));
+              pcLeftHandSide, EXIT_PC_LITERAL_EXPRESSION, pBinaryOperator));
     }
     return rExpressions.build();
   }
@@ -163,5 +179,15 @@ public record ProgramCounterVariableBuilder(
   private CArraySubscriptExpression buildPcSubscriptExpression(CExpression pSubscriptExpression) {
     return new CArraySubscriptExpression(
         FileLocation.DUMMY, CArrayType.UNSIGNED_INT_ARRAY, PC_ARRAY_DUMMY, pSubscriptExpression);
+  }
+
+  // Initializer
+
+  /**
+   * Returns the {@link CInitializer} for {@link Sequentialization#INIT_PC} for the main thread and
+   * {@link Sequentialization#EXIT_PC} for all other threads.
+   */
+  private static CInitializer getPcInitializer(boolean pIsMainThread) {
+    return pIsMainThread ? INIT_PC_INITIALIZER : EXIT_PC_INITIALIZER;
   }
 }

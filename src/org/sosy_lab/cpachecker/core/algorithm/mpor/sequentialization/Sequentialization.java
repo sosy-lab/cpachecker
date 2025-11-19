@@ -36,13 +36,7 @@ public class Sequentialization {
       SeqReachErrorFunction.buildReachErrorFunctionCallStatement(
           "__FILE_NAME_PLACEHOLDER__", -1, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
 
-  public static final int INIT_PC = 1;
-
-  public static final int EXIT_PC = 0;
-
-  public static final int MAIN_THREAD_ID = 0;
-
-  public static final int FIRST_LINE = 1;
+  static final int FIRST_LINE = 1;
 
   public static String tryBuildProgramString(
       MPOROptions pOptions, CFA pCfa, String pInputFileName, SequentializationUtils pUtils)

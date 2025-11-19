@@ -31,7 +31,7 @@ public abstract sealed class SeqFunction
    */
   final CIdExpression name;
 
-  final CFunctionDeclaration declaration;
+  public final CFunctionDeclaration declaration;
 
   final String body;
 

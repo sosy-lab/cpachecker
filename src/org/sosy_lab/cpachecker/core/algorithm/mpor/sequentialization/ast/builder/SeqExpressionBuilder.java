@@ -8,14 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import com.google.common.collect.ImmutableCollection;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -23,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressionBuilder {
 
@@ -51,24 +44,5 @@ public class SeqExpressionBuilder {
 
   public static CIdExpression buildIdExpression(CSimpleDeclaration pDeclaration) {
     return new CIdExpression(FileLocation.DUMMY, pDeclaration);
-  }
-
-  // Helper ========================================================================================
-
-  public static CExpression nestBinaryExpressions(
-      ImmutableCollection<CExpression> pAllExpressions,
-      BinaryOperator pBinaryOperator,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
-
-    CExpression rNested = pAllExpressions.iterator().next();
-    for (CExpression next : pAllExpressions) {
-      if (!next.equals(rNested)) {
-        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
-      }
-    }
-    return rNested;
   }
 }

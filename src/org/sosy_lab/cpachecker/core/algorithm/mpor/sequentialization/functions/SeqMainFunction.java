@@ -100,7 +100,8 @@ public final class SeqMainFunction extends SeqFunction {
         // add last_thread = next_thread assignment (before setting next_thread)
         if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
           CExpressionAssignmentStatement assignment =
-              SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpressions.NEXT_THREAD);
+              new CExpressionAssignmentStatement(
+                  FileLocation.DUMMY, SeqIdExpressions.LAST_THREAD, SeqIdExpressions.NEXT_THREAD);
           loopBlock.add(assignment.toASTString());
         }
       }
@@ -112,7 +113,7 @@ public final class SeqMainFunction extends SeqFunction {
         }
         // next_thread = __VERIFIER_nondet_...()
         CFunctionCallAssignmentStatement nextThreadAssignment =
-            SeqStatementBuilder.buildNondetIntegerAssignment(
+            VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 pOptions, SeqIdExpressions.NEXT_THREAD);
         loopBlock.add(nextThreadAssignment.toASTString());
 
@@ -202,8 +203,8 @@ public final class SeqMainFunction extends SeqFunction {
             VerifierNondetFunctionType.tryBuildFunctionCallExpressionByType(mainArgType);
         if (verifierNondet.isPresent()) {
           CFunctionCallAssignmentStatement assignment =
-              SeqStatementBuilder.buildFunctionCallAssignmentStatement(
-                  mainArgSubstitute, verifierNondet.orElseThrow());
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY, mainArgSubstitute, verifierNondet.orElseThrow());
           rAssignments.add(assignment.toASTString());
         } else {
           pLogger.log(

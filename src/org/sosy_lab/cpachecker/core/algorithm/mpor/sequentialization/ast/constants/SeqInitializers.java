@@ -8,36 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;
 
-import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder.buildInitializerExpression;
-
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public class SeqInitializers {
 
-  private static final CInitializer INT_INIT_PC =
-      buildInitializerExpression(SeqIntegerLiteralExpressions.INT_INIT_PC);
-
-  private static final CInitializer INT_EXIT_PC =
-      buildInitializerExpression(SeqIntegerLiteralExpressions.INT_EXIT_PC);
-
   public static final CInitializer INT_0 =
-      buildInitializerExpression(SeqIntegerLiteralExpressions.INT_0);
+      new CInitializerExpression(FileLocation.DUMMY, SeqIntegerLiteralExpressions.INT_0);
 
   public static final CInitializer INT_1 =
-      buildInitializerExpression(SeqIntegerLiteralExpressions.INT_1);
+      new CInitializerExpression(FileLocation.DUMMY, SeqIntegerLiteralExpressions.INT_1);
 
   public static final CInitializerList EMPTY_LIST =
       new CInitializerList(FileLocation.DUMMY, ImmutableList.of());
-
-  /**
-   * Returns the {@link CInitializer} for {@link Sequentialization#INIT_PC} for the main thread and
-   * {@link Sequentialization#EXIT_PC} for all other threads.
-   */
-  public static CInitializer getPcInitializer(boolean pIsMainThread) {
-    return pIsMainThread ? INT_INIT_PC : INT_EXIT_PC;
-  }
 }

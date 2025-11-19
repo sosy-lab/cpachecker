@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
@@ -53,7 +54,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -78,7 +79,7 @@ public class SequentializationFieldsTest {
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
     assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(1);
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -102,7 +103,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -123,7 +124,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
 
     // check that each __CPAchecker_TMP variable storing function return values is present once.
@@ -161,7 +162,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -182,7 +183,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -205,7 +206,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -229,7 +230,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -255,7 +256,7 @@ public class SequentializationFieldsTest {
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(2);
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -277,7 +278,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -298,7 +299,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).isEmpty();
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -321,7 +322,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).hasSize(1);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
@@ -344,7 +345,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences).hasSize(2);
     assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(0);
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
     assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 

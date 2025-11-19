@@ -11,15 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.consta
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder.buildIntegerLiteralExpression;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public class SeqIntegerLiteralExpressions {
-
-  public static final CIntegerLiteralExpression INT_INIT_PC =
-      buildIntegerLiteralExpression(Sequentialization.INIT_PC);
-
-  public static final CIntegerLiteralExpression INT_EXIT_PC =
-      buildIntegerLiteralExpression(Sequentialization.EXIT_PC);
 
   public static final CIntegerLiteralExpression INT_0 = buildIntegerLiteralExpression(0);
 

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -19,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -72,8 +73,25 @@ public class BitVectorEvaluationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return SeqExpressionBuilder.nestBinaryExpressions(
+    return nestBinaryExpressions(
         pDisjunctionTerms, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+  }
+
+  private static CExpression nestBinaryExpressions(
+      ImmutableCollection<CExpression> pAllExpressions,
+      BinaryOperator pBinaryOperator,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
+
+    CExpression rNested = pAllExpressions.iterator().next();
+    for (CExpression next : pAllExpressions) {
+      if (!next.equals(rNested)) {
+        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
+      }
+    }
+    return rNested;
   }
 
   // Nest Expressions ==============================================================================

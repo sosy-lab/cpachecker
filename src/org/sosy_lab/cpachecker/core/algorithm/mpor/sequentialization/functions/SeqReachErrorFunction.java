@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -51,10 +53,7 @@ public final class SeqReachErrorFunction extends SeqFunction {
           FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, "__assertion");
 
   private static final ImmutableList<CParameterDeclaration> ASSERT_FAIL_PARAMETERS =
-      ImmutableList.<CParameterDeclaration>builder()
-          .add(ASSERTION_PARAMETER_ASSERT_FAIL)
-          .addAll(REACH_ERROR_PARAMETERS)
-          .build();
+      elementAndList(ASSERTION_PARAMETER_ASSERT_FAIL, REACH_ERROR_PARAMETERS);
 
   // CFunctionTypes
 

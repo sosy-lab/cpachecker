@@ -10,12 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 
 /**
  * Used to store the program counter i.e. {@code pc} and related expressions for each thread. A
@@ -40,6 +43,10 @@ public record ProgramCounterVariables(
     ImmutableList<CBinaryExpression> threadInactiveExpressions,
     Optional<CBinaryExpression> nextThreadActiveExpression) {
 
+  public static final int INIT_PC = 1;
+
+  public static final int EXIT_PC = 0;
+
   public CLeftHandSide getPcLeftHandSide(int pThreadId) {
     return pcLeftHandSides.get(pThreadId);
   }
@@ -50,5 +57,18 @@ public record ProgramCounterVariables(
 
   public CBinaryExpression getThreadInactiveExpression(int pThreadId) {
     return threadInactiveExpressions.get(pThreadId);
+  }
+
+  /**
+   * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
+   * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
+   */
+  public static CExpressionAssignmentStatement buildPcAssignmentStatement(
+      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
+    return new CExpressionAssignmentStatement(
+        FileLocation.DUMMY,
+        pPcLeftHandSide,
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pTargetPc));
   }
 }

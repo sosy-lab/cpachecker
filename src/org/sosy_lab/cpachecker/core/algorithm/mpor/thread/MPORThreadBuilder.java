@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
@@ -42,25 +43,27 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
-  private static int currentThreadId = Sequentialization.MAIN_THREAD_ID;
+  @VisibleForTesting public static final int MAIN_THREAD_ID = 0;
+
+  private static int currentThreadId = MAIN_THREAD_ID;
 
   public static void resetThreadId() {
-    currentThreadId = Sequentialization.MAIN_THREAD_ID;
+    currentThreadId = MAIN_THREAD_ID;
   }
 
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
-  private static int currentPc = Sequentialization.INIT_PC;
+  private static int currentPc = ProgramCounterVariables.INIT_PC;
 
   public static void resetPc() {
-    currentPc = Sequentialization.INIT_PC;
+    currentPc = ProgramCounterVariables.INIT_PC;
   }
 
   /**
@@ -204,7 +207,12 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       pThreadNodes.add(
           new CFANodeForThread(
               // thread exits are never in atomic blocks
-              pThreadId, pCurrentNode, Sequentialization.EXIT_PC, callContext, edgeList, false));
+              pThreadId,
+              pCurrentNode,
+              ProgramCounterVariables.EXIT_PC,
+              callContext,
+              edgeList,
+              false));
     } else {
       pThreadNodes.add(
           new CFANodeForThread(
