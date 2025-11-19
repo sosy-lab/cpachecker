@@ -101,8 +101,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     builder.add("int main() {");
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
 
-    // Initialize the variables from the transition invariant
+    // This could easily happen (and it is completely fine and expected) since there could be some
+    // variables shared across for example supporting invariants and the loop condition or
+    // transition invariant and the supporting invariants.
+    // That is why they are collected to not be initialized it twice.
     Set<String> alreadyDeclaredVars = new HashSet<>();
+
+    // Initialize the variables from the transition invariant
     InitializeVariables(loopHead, alreadyDeclaredVars, builder, mapNamesToVariables);
 
     // Build the loop
