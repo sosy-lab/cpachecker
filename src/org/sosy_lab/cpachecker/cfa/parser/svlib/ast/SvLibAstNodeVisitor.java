@@ -23,9 +23,9 @@ import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTraceComponentV
 
 public interface SvLibAstNodeVisitor<R, X extends Exception>
     extends SvLibControlFlowStatementVisitor<R, X>,
-            SvLibCfaEdgeStatementVisitor<R, X>,
+        SvLibCfaEdgeStatementVisitor<R, X>,
         SvLibTagAttributeVisitor<R, X>,
-            SvLibTermVisitor<R, X>,
+        SvLibTermVisitor<R, X>,
         SvLibCommandVisitor<R, X>,
         SvLibTraceComponentVisitor<R, X> {
   R visit(SvLibVariableDeclaration pSvLibVariableDeclaration) throws X;

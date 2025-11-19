@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
@@ -126,6 +125,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunRecCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunsRecCommand;
@@ -1098,8 +1098,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(SvLibSmtFunctionDeclaration pSvLibSmtFunctionDeclaration)
-        throws NoException {
+    public Iterable<? extends AAstNode> visit(
+        SvLibSmtFunctionDeclaration pSvLibSmtFunctionDeclaration) throws NoException {
       return ImmutableList.of();
     }
 

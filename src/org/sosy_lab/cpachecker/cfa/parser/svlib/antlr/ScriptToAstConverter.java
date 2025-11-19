@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ScriptContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 
 class ScriptToAstConverter extends AbstractAntlrToAstConverter<SvLibScript> {
 

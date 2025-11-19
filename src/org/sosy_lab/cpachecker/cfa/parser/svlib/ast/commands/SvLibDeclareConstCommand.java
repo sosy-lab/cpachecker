@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 import com.google.common.base.Preconditions;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
 public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibCommand {
 

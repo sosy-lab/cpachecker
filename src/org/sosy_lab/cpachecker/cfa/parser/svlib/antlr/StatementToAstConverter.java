@@ -22,9 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagAttribute;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AnnotatedStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.AssignStatementContext;
@@ -53,6 +50,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatem
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagAttribute;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 
 class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement> {
 

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
@@ -146,8 +145,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
         FileLocation.DUMMY);
   }
 
-  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
-      throws ReportingMethodNotImplementedException, InterruptedException {
+  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
     CollectedARGStates relevantStates = RelevantArgStatesCollector.getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();

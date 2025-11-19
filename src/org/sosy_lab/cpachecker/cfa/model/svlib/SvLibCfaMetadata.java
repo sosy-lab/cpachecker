@@ -16,11 +16,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
 import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record SvLibCfaMetadata(
     ImmutableList<SmtLibCommand> smtLibCommands,

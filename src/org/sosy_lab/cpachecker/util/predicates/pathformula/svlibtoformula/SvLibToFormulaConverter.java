@@ -186,7 +186,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
       SSAMapBuilder ssa,
       @SuppressWarnings("unused") Constraints constraints,
       @SuppressWarnings("unused") ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      throws UnrecognizedCodeException {
 
     Formula formula = SvLibTermToFormulaConverter.convertTerm(edge.getExpression(), ssa, fmgr);
     if (!(formula instanceof BooleanFormula booleanFormula)) {

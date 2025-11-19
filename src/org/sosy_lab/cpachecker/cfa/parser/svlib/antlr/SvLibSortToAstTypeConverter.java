@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ParametricSortContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SimpleSortContext;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvLibType> {
 
