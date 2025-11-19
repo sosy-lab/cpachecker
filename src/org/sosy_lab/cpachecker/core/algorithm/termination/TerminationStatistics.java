@@ -112,7 +112,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
-@Options(prefix = "termination")
+@Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
@@ -126,6 +126,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @Option(
       secure = true,
       name = "violation.witness.graphml",
+      deprecatedName = "violation.witness",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");

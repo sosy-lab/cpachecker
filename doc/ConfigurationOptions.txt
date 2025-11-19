@@ -5353,6 +5353,9 @@ termination.useCexImpreciseHeuristic = false
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
 
+# deprecated name for termination.violation.witness.graphml
+termination.violation.witness = "nontermination_witness.graphml"
+
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
