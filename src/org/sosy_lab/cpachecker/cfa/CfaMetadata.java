@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.ACSLMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -45,6 +46,7 @@ public final class CfaMetadata {
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
+  private final @Nullable ACSLMetadata acslMetadata;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -57,7 +59,8 @@ public final class CfaMetadata {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables,
-      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations) {
+      @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
+      @Nullable ACSLMetadata pACSLMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -70,6 +73,7 @@ public final class CfaMetadata {
     variableClassification = pVariableClassification;
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
+    acslMetadata = pACSLMetadata;
   }
 
   /**
@@ -106,6 +110,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -138,7 +143,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -198,7 +204,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -229,7 +236,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -273,7 +281,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -295,7 +304,8 @@ public final class CfaMetadata {
         pLoopStructure,
         variableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -329,7 +339,8 @@ public final class CfaMetadata {
         loopStructure,
         pVariableClassification,
         liveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -362,7 +373,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         pLiveVariables,
-        edgesToAnnotations);
+        edgesToAnnotations,
+        acslMetadata);
   }
 
   /**
@@ -399,7 +411,8 @@ public final class CfaMetadata {
         loopStructure,
         variableClassification,
         liveVariables,
-        pedgesToAnnotations);
+        pedgesToAnnotations,
+        acslMetadata);
   }
 
   @Override
