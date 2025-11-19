@@ -65,7 +65,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 @SuppressWarnings("unused")
-public class SvLibToFormulaConverter implements LanguageToSmtConverter {
+public class SvLibToFormulaConverter extends LanguageToSmtConverter {
 
   private final FormulaManagerView fmgr;
   private final FormulaEncodingOptions options;
@@ -240,7 +240,7 @@ public class SvLibToFormulaConverter implements LanguageToSmtConverter {
       return bfmgr.makeTrue();
     }
 
-    SSAHandler.makeFreshIndex(varName, decl.getType(), ssa);
+    LanguageToSmtConverter.makeFreshIndex(varName, decl.getType(), ssa);
 
     BooleanFormula result = bfmgr.makeTrue();
 
@@ -276,7 +276,7 @@ public class SvLibToFormulaConverter implements LanguageToSmtConverter {
     // Initialize return variables to default values (nondet)
     for (SvLibParameterDeclaration returnVarDecl :
         edge.getFunctionCall().getProcedureDeclaration().getReturnValues()) {
-      SSAHandler.makeFreshIndex(
+      LanguageToSmtConverter.makeFreshIndex(
           cleanVariableNameForJavaSMT(returnVarDecl.getQualifiedName()),
           returnVarDecl.getType(),
           ssa);
@@ -285,7 +285,7 @@ public class SvLibToFormulaConverter implements LanguageToSmtConverter {
     // Initialize local variables to default values (nondet)
     for (SvLibParameterDeclaration localVarDecl :
         edge.getFunctionCall().getProcedureDeclaration().getLocalVariables()) {
-      SSAHandler.makeFreshIndex(
+      LanguageToSmtConverter.makeFreshIndex(
           cleanVariableNameForJavaSMT(localVarDecl.getQualifiedName()),
           localVarDecl.getType(),
           ssa);

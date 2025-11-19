@@ -117,7 +117,10 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Class containing all the code that converts C code into a formula. */
-public class CtoFormulaConverter implements LanguageToSmtConverter {
+public class CtoFormulaConverter extends LanguageToSmtConverter {
+
+  // Name prefix for variables that represent function parameters.
+  public static final String PARAM_VARIABLE_NAME = "__param__";
 
   // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
@@ -378,11 +381,7 @@ public class CtoFormulaConverter implements LanguageToSmtConverter {
    */
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    int idx = ssa.getFreshIndex(name);
-    if (idx <= 0) {
-      idx = VARIABLE_FIRST_ASSIGNMENT;
-    }
-    return idx;
+    return LanguageToSmtConverter.getFreshIndex(name, ssa);
   }
 
   /**
@@ -393,21 +392,7 @@ public class CtoFormulaConverter implements LanguageToSmtConverter {
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    int idx = ssa.getIndex(name);
-    if (idx <= 0) {
-      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
-      idx = VARIABLE_UNINITIALIZED;
-
-      // It is important to store the index in the variable here.
-      // If getIndex() was called with a specific name,
-      // this means that name@idx will appear in formulas.
-      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
-      // will also add indices for this name,
-      // which it does exactly if the name is in the SSAMap.
-      ssa.setIndex(name, type, idx);
-    }
-
-    return idx;
+    return LanguageToSmtConverter.getExistingOrNewIndex(name, type, ssa);
   }
 
   protected void checkSsaSavedType(String name, CType type, CType t) {

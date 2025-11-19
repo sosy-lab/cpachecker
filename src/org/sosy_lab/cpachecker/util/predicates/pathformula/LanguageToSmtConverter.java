@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -17,43 +18,105 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public interface LanguageToSmtConverter {
-
-  // Name prefix for variables that represent function parameters.
-  public static final String PARAM_VARIABLE_NAME = "__param__";
+public abstract class LanguageToSmtConverter {
 
   // Index that is used to read from variables that were not assigned yet
-  int VARIABLE_UNINITIALIZED = 1;
+  private static final int VARIABLE_UNINITIALIZED = 1;
 
   // Index to be used for first assignment to a variable (must be higher than
   // VARIABLE_UNINITIALIZED!)
-  int VARIABLE_FIRST_ASSIGNMENT = 2;
+  private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  FormulaType<?> getFormulaTypeFromType(Type type);
+  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  public static int makeFreshIndex(String name, SvLibType type, SSAMapBuilder ssa) {
+    int idx = getFreshIndex(name, ssa);
+    ssa.setIndex(name, type, idx);
+    return idx;
+  }
 
-  PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)
+  /**
+   * Create a formula for a given variable with a fresh index for the left-hand side of an
+   * assignment. This method does not handle scoping and the NON_DET_VARIABLE!
+   */
+  public static Formula makeFreshVariable(
+      String name, SvLibType type, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+    int useIndex = makeFreshIndex(name, type, ssa);
+
+    Formula result = fmgr.makeVariable(type.toFormulaType(), name, useIndex);
+
+    return result;
+  }
+
+  /**
+   * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
+   * you should use {@link #makeFreshIndex(String, SvLibType, SSAMapBuilder)} instead, because using
+   * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
+   * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
+   * correctly.
+   */
+  public static int getFreshIndex(String name, SSAMapBuilder ssa) {
+    // TODO: Check that the variable for its type has been declared before?
+    // checkSsaSavedType(name, type, ssa.getType(name));
+    int idx = ssa.getFreshIndex(name);
+    if (idx <= 0) {
+      idx = LanguageToSmtConverter.VARIABLE_FIRST_ASSIGNMENT;
+    }
+    return idx;
+  }
+
+  /**
+   * This method returns the index of the given variable in the ssa map, if there is none, it
+   * creates one with the value 1.
+   *
+   * <p>Note that this not check whether the variable has always the same type. It is the caller's
+   * responsibility to ensure that.
+   *
+   * @return the index of the variable
+   */
+  public static int getExistingOrNewIndex(String name, Type type, SSAMapBuilder ssa) {
+    int idx = ssa.getIndex(name);
+    if (idx <= 0) {
+      idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
+
+      // It is important to store the index in the variable here.
+      // If getIndex() was called with a specific name,
+      // this means that name@idx will appear in formulas.
+      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
+      // will also add indices for this name,
+      // which it does exactly if the name is in the SSAMap.
+      ssa.setIndex(name, type, idx);
+    }
+
+    return idx;
+  }
+
+  public abstract FormulaType<?> getFormulaTypeFromType(Type type);
+
+  public abstract PathFormula makeAnd(
+      PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)
       throws UnrecognizedCodeException, InterruptedException;
 
-  MergeResult<PointerTargetSet> mergePointerTargetSets(
+  public abstract MergeResult<PointerTargetSet> mergePointerTargetSets(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pNewSSA)
       throws InterruptedException;
 
-  BooleanFormula makeSsaUpdateTerm(
+  public abstract BooleanFormula makeSsaUpdateTerm(
       String pSymbolName, Type pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
       throws InterruptedException;
 
-  Formula makeFormulaForVariable(
+  public abstract Formula makeFormulaForVariable(
       SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, CType pType);
 
-  Formula makeFormulaForUninstantiatedVariable(
+  public abstract Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
 
-  Formula buildTermFromPathFormula(PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge)
-      throws UnrecognizedCodeException;
+  public abstract Formula buildTermFromPathFormula(
+      PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge) throws UnrecognizedCodeException;
 
-  void printStatistics(PrintStream pOut);
+  public abstract void printStatistics(PrintStream pOut);
 }

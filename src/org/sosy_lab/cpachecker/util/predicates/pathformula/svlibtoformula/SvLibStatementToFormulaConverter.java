@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -45,7 +46,7 @@ public class SvLibStatementToFormulaConverter {
       Formula rightHandSideTerm =
           SvLibTermToFormulaConverter.convertTerm(assignment.getValue(), ssa, fmgr);
       Formula assignedVariable =
-          SSAHandler.makeFreshVariable(
+          LanguageToSmtConverter.makeFreshVariable(
               cleanVariableNameForJavaSMT(assignment.getKey().getQualifiedName()),
               assignment.getKey().getType(),
               ssa,
@@ -66,7 +67,7 @@ public class SvLibStatementToFormulaConverter {
       // any constraints.
       // This is effectively equivalent to havoc in the context of SSA.
       // Therefore, we do not need to add any additional constraints to the result formula.
-      SSAHandler.makeFreshVariable(
+      LanguageToSmtConverter.makeFreshVariable(
           cleanVariableNameForJavaSMT(variableToHavoc.getQualifiedName()),
           variableToHavoc.getType(),
           ssa,

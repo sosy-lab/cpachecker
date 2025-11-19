@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -54,6 +55,21 @@ public class SvLibTermToFormulaConverter {
     };
   }
 
+  /**
+   * This method returns the index of the given variable in the ssa map, if there is none, it
+   * creates one with the value 1.
+   *
+   * @return the index of the variable
+   */
+  protected static int getIndex(String name, Type type, SSAMapBuilder ssa) {
+    Type existingType = ssa.getType(name);
+    if (existingType != null && !type.equals(existingType)) {
+      throw new IllegalArgumentException(
+          "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
+    }
+    return LanguageToSmtConverter.getExistingOrNewIndex(name, type, ssa);
+  }
+
   private static @NonNull Formula convertConstant(
       SvLibConstantTerm pSvLibConstantTerm, FormulaManagerView fmgr) {
     return switch (pSvLibConstantTerm) {
@@ -64,35 +80,6 @@ public class SvLibTermToFormulaConverter {
       case SvLibRealConstantTerm pSvLibRealConstantTerm ->
           fmgr.getRationalFormulaManager().makeNumber(pSvLibRealConstantTerm.getValue());
     };
-  }
-
-  /**
-   * This method returns the index of the given variable in the ssa map, if there is none, it
-   * creates one with the value 1.
-   *
-   * @return the index of the variable
-   */
-  protected static int getIndex(String name, SvLibType type, SSAMapBuilder ssa) {
-    SvLibType existingType = (SvLibType) ssa.getType(name);
-    if (existingType != null && !type.equals(existingType)) {
-      throw new IllegalArgumentException(
-          "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
-    }
-
-    int idx = ssa.getIndex(name);
-    if (idx <= 0) {
-      idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
-
-      // It is important to store the index in the variable here.
-      // If getIndex() was called with a specific name,
-      // this means that name@idx will appear in formulas.
-      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
-      // will also add indices for this name,
-      // which it does exactly if the name is in the SSAMap.
-      ssa.setIndex(name, type, idx);
-    }
-
-    return idx;
   }
 
   private static @NonNull Formula convertVariable(
