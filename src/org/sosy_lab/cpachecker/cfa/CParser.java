@@ -156,7 +156,7 @@ public interface CParser extends Parser {
     private Dialect dialect = Dialect.GNUC;
 
     @Option(secure = true, description = "Whether to collect ACSL annotations if present")
-    private boolean collectACSLAnnotations = true;
+    private boolean collectACSLAnnotations = false;
 
     protected ParserOptions() {}
 
