@@ -283,7 +283,6 @@ int main() {
       assert(0);
       goto ERROR;
     }
-
     // max+1 == overflows (all signed int) + reversed
     if (!__builtin_add_overflow(signedIntMax, 1, &sIntResult)) {
       assert(0);
@@ -613,7 +612,6 @@ int main() {
       assert(0);
       goto ERROR;
     }
-
     // (min+1)+max == 2 (all signed int) + reversed
     if (__builtin_add_overflow(signedIntMax, signedIntMinPlusOne, &sIntResult)) {
       assert(0);
@@ -632,8 +630,39 @@ int main() {
       goto ERROR;
     }
     // (min+1)+max == 2 (all signed long) + reversed
+    if (__builtin_add_overflow(signedLongMax, signedLongMinPlusOne, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != 1l) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(signedLongMinPlusOne, signedLongMax, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != 1l) {
+      assert(0);
+      goto ERROR;
+    }
     // (min+1)+max == 2 (all signed long long) + reversed
-
+    if (__builtin_add_overflow(signedLongLongMax, signedLongLongMinPlusOne, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1ll) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(signedLongLongMinPlusOne, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1ll) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+1 == max (all signed int) + reversed
     if (__builtin_add_overflow(signedIntMaxMinusOne, 1, &sIntResult)) {
       assert(0);
@@ -652,11 +681,90 @@ int main() {
       goto ERROR;
     }
     // (max-1)+1 == max (all unsigned int) + reversed
+    if (__builtin_add_overflow(unsignedIntMaxMinusOne, 1u, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1u, unsignedIntMaxMinusOne, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+1 == max (all signed long) + reversed
+    if (__builtin_add_overflow(signedLongMaxMinusOne, 1l, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != signedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1l, signedLongMaxMinusOne, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != signedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+1 == max (all unsigned long) + reversed
+    if (__builtin_add_overflow(unsignedLongMaxMinusOne, 1ul, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ul, unsignedLongMaxMinusOne, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+1 == max (all signed long long) + reversed
+    if (__builtin_add_overflow(signedLongLongMaxMinusOne, 1ll, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ll, signedLongLongMaxMinusOne, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+1 == max (all unsigned long long) + reversed
-
+    if (__builtin_add_overflow(unsignedLongLongMaxMinusOne, 1ull, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ull, unsignedLongLongMaxMinusOne, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+2 == max+1 overflow (all signed int) + reversed
     if (!__builtin_add_overflow(signedIntMaxMinusOne, 2, &sIntResult)) {
       assert(0);
