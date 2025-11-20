@@ -126,6 +126,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.BuiltinOverflowFunctionReturn;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -870,11 +871,19 @@ public class ValueAnalysisTransferRelation
           return handleCallToFree(functionCall);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
-          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (!options.isAllowedUnsupportedOption(func)) {
-              throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
-            }
+          // TODO: handle overflow func
+          // TODO: collect all function handlings into method and call that instead of having 2 handlings, one here, one in the visitor!
+
+          BuiltinOverflowFunctionReturn overflowFunctionExpressions =
+              BuiltinOverflowFunctions.handleOverflowFunction(
+                  functionCallExp, func, cfaEdge, machineModel, logger);
+          ValueAnalysisState updatedState = state;
+          if (overflowFunctionExpressions.hasSideEffectAssignment()) {
+            updatedState = handleAssignment(
+                overflowFunctionExpressions.getSideEffectAssignmentExpression().orElseThrow(), cfaEdge);
           }
+          return
+
         } else if (expression
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
