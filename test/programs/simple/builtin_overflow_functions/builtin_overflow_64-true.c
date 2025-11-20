@@ -1024,11 +1024,90 @@ int main() {
       goto ERROR;
     }
     // (max-1)+max == max overflow (all unsigned int) + reversed
+    if (!__builtin_add_overflow(unsignedIntMaxMinusOne, unsignedIntMax, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != (unsignedIntMaxMinusOne + unsignedIntMax)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedIntMax, unsignedIntMaxMinusOne, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != (unsignedIntMaxMinusOne + unsignedIntMax)) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+max == max overflow (all signed long) + reversed
+    if (!__builtin_add_overflow(signedLongMaxMinusOne, signedLongMax, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != -3l) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(signedLongMax, signedLongMaxMinusOne, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != -3l) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+max == max overflow (all unsigned long) + reversed
+    if (!__builtin_add_overflow(unsignedLongMaxMinusOne, unsignedLongMax, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != (unsignedLongMaxMinusOne + unsignedLongMax)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedLongMax, unsignedLongMaxMinusOne, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != (unsignedLongMaxMinusOne + unsignedLongMax)) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+max == max overflow (all signed long long) + reversed
+    if (!__builtin_add_overflow(signedLongLongMaxMinusOne, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -3ll) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(signedLongLongMax, signedLongLongMaxMinusOne, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -3ll) {
+      assert(0);
+      goto ERROR;
+    }
     // (max-1)+max == max overflow (all unsigned long long) + reversed
-
+    if (!__builtin_add_overflow(unsignedLongLongMaxMinusOne, unsignedLongLongMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != (unsignedLongLongMaxMinusOne + unsignedLongLongMax)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedLongLongMax, unsignedLongLongMaxMinusOne, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != (unsignedLongLongMaxMinusOne + unsignedLongLongMax)) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (all signed int)
     if (!__builtin_add_overflow(signedIntMax, signedIntMax, &sIntResult)) {
       assert(0);
@@ -1070,11 +1149,90 @@ int main() {
       goto ERROR;
     }
     // max+0 == max overflow (input unsigned int, output signed int)
+    if (!__builtin_add_overflow(unsignedIntMax, 0, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(0, unsignedIntMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
     // max+0 == max overflow (input signed long, output signed int)
+    if (!__builtin_add_overflow(signedLongMax, 0, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(0, signedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
     // max+0 == max overflow (input unsigned long, output signed int)
+    if (!__builtin_add_overflow(unsignedLongMax, 0ul, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(0ul, unsignedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
     // max+0 == max overflow (input signed long long, output signed int)
+    if (!__builtin_add_overflow(signedLongLongMax, 0ll, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(0ll, signedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
     // max+0 == max overflow (input unsigned long long, output signed int)
-
+    if (!__builtin_add_overflow(unsignedLongLongMax, 0ull, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(0ull, unsignedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -1) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (input signed int, output signed int)
     if (!__builtin_add_overflow(signedIntMax, signedIntMax, &sIntResult)) {
       assert(0);
@@ -1085,11 +1243,90 @@ int main() {
       goto ERROR;
     }
     // max+max == max overflow (input unsigned int, output signed int)
+    if (!__builtin_add_overflow(unsignedIntMax, unsignedIntMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedIntMax, unsignedIntMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (input signed long, output signed int)
+    if (!__builtin_add_overflow(signedLongMax, signedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(signedLongMax, signedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (input unsigned long, output signed int)
+    if (!__builtin_add_overflow(unsignedLongMax, unsignedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedLongMax, unsignedLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (input signed long long, output signed int)
+    if (!__builtin_add_overflow(signedLongLongMax, signedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(signedLongLongMax, signedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == max overflow (input unsigned long long, output signed int)
-
+    if (!__builtin_add_overflow(unsignedLongLongMax, unsignedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow(unsignedLongLongMax, unsignedLongLongMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
     // max+max == 2*max signed int (input signed int, output signed long)
     if (!__builtin_add_overflow(signedIntMax, signedIntMax, &sIntResult)) {
       assert(0);
