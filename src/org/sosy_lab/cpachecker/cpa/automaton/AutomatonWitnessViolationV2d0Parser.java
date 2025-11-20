@@ -339,6 +339,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws InterruptedException {
 
+    // TODO: Handle missing columns properly here
     AutomatonBoolExpr expr =
         new And(
             new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
@@ -359,7 +360,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       FileLocation statementLocation = statement.getFileLocation();
       int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
       if (columnOfClosingBracketInFunctionCall != followColumn.orElseThrow()
-          || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
+          || statement.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
 
