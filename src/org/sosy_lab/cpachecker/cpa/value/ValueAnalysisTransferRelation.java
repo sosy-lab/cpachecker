@@ -879,7 +879,7 @@ public class ValueAnalysisTransferRelation
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (!isAllowedUnsupportedOption(func)) {
+            if (isUnsupportedFunction(func)) {
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
@@ -918,9 +918,13 @@ public class ValueAnalysisTransferRelation
     return state;
   }
 
-  private boolean isAllowedUnsupportedOption(String pFunc) {
-    return IGNORED_UNSUPPORTED_FUNCTIONS.contains(pFunc)
-        || options.isUserDefinedAllowedUnsupportedFunction(pFunc);
+  /**
+   * Returns true for all functions (i.e. function names) not known to the analysis and are
+   * unsupported. Else false.
+   */
+  private boolean isUnsupportedFunction(String nameOfFunction) {
+    return !(IGNORED_UNSUPPORTED_FUNCTIONS.contains(nameOfFunction)
+        || options.isUserDefinedAllowedUnsupportedFunction(nameOfFunction));
   }
 
   private ValueAnalysisState handleFunctionAssignment(
@@ -1845,7 +1849,7 @@ public class ValueAnalysisTransferRelation
           "Could not determine function name in function call: " + functionCall);
     }
 
-    if (!isAllowedUnsupportedOption(calledFunctionName)) {
+    if (isUnsupportedFunction(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
         String additionalMsg = "";
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
