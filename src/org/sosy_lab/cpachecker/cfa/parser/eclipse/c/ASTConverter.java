@@ -466,11 +466,16 @@ class ASTConverter {
       case IASTIdExpression iASTIdExpression -> {
         CExpression exp = convert(iASTIdExpression);
         CType type = exp.getExpressionType();
-        // this id expression is the name of a function. When there is no
-        // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
-        // around it, we create it.
+        // This id expression is the name of a function. If it's not part of a function call, it
+        // must be used as a function pointer, and we add an '&' in front of it (unless there
+        // already is one). Note that no '&' is added if the id is the operand of a sizeOf or
+        // alignOf operator
+        // See §6.3.2.1 (4) in the C11 standard for details
         if (type instanceof CFunctionType
-            && !(isFunctionCallNameExpression(e) || isAddressOfArgument(e))) {
+            && !(isFunctionCallNameExpression(e)
+                || isAddressOfArgument(e)
+                || isSizeOfArgument(e)
+                || isAlignOfArgument(e))) {
           exp =
               new CUnaryExpression(
                   exp.getFileLocation(),
@@ -531,6 +536,20 @@ class ASTConverter {
     return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
         && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
         && unaryOpParent.getOperator() == IASTUnaryExpression.op_amper;
+  }
+
+  private boolean isSizeOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_sizeof;
+  }
+
+  private boolean isAlignOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_alignOf;
   }
 
   enum Condition {
@@ -1046,9 +1065,19 @@ class ASTConverter {
     final FileLocation loc = getLocation(e);
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    if (e.isPointerDereference()) {
+    boolean isPointerDereference = e.isPointerDereference();
+    if (isPointerDereference) {
       if (ownerType instanceof CPointerType) {
         ownerType = ((CPointerType) ownerType).getType();
+
+      } else if (ownerType instanceof CArrayType arrayType) {
+        // Implicit use of the address of the array. "s->f" is the same as "(&(s[0])->f" but also
+        // the same as "s[0].f". We prefer the latter.
+        isPointerDereference = false;
+        ownerType = arrayType.getType();
+        owner =
+            new CArraySubscriptExpression(loc, ownerType, owner, CIntegerLiteralExpression.ZERO);
+
       } else if (!(ownerType instanceof CProblemType)) {
         throw parseContext.parseError("Pointer dereference of non-pointer type " + ownerType, e);
       }
@@ -1077,13 +1106,12 @@ class ASTConverter {
               typeConverter.convert(e.getExpressionType()),
               fieldName,
               owner,
-              e.isPointerDereference());
+              isPointerDereference);
     } else if (ownerType instanceof CCompositeType compositeType) {
       wayToInnerField =
           PositionInComposite.getWayToInnerField(compositeType, fieldName, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         CExpression current = owner;
-        boolean isPointerDereference = e.isPointerDereference();
         for (Pair<String, CType> field : wayToInnerField) {
           current =
               new CFieldReference(
@@ -1127,7 +1155,7 @@ class ASTConverter {
         if (fields.isEmpty()) {
 
           // in case there is only one field access we have to check here on a pointer dereference
-          if (isFirstVisit && e.isPointerDereference()) {
+          if (isFirstVisit && isPointerDereference) {
             CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
             CExpression tmpOwner =
                 new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
@@ -1141,7 +1169,7 @@ class ASTConverter {
           // here could be a pointer dereference, in this case we create a temporary variable
           // otherwise there is nothing special to be done
           if (isFirstVisit) {
-            if (e.isPointerDereference()) {
+            if (isPointerDereference) {
               CPointerExpression exp =
                   new CPointerExpression(loc, owner.getExpressionType(), owner);
               CExpression tmpOwner =
@@ -2927,14 +2955,14 @@ class ASTConverter {
         return null;
       }
 
-      final CInitializerExpression result;
+      final FileLocation loc = getLocation(ic);
+      CExpression initializedExpression;
       switch (initializer) {
         case CAssignment cAssignment -> {
           sideAssignmentStack.addPreSideAssignment(initializer);
-          result = new CInitializerExpression(getLocation(e), cAssignment.getLeftHandSide());
+          initializedExpression = cAssignment.getLeftHandSide();
         }
         case CFunctionCallExpression cFunctionCallExpression -> {
-          FileLocation loc = getLocation(i);
           if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
             // This is a variable declaration like "int i = f();"
             // We can replace this with "int i; i = f();"
@@ -2950,28 +2978,42 @@ class ASTConverter {
             CIdExpression var = createTemporaryVariableWithTypeOf(e);
             sideAssignmentStack.addPreSideAssignment(
                 new CFunctionCallAssignmentStatement(loc, var, cFunctionCallExpression));
-            result = new CInitializerExpression(loc, var);
+            initializedExpression = var;
           }
         }
-        case CExpression cExpression ->
-            result = new CInitializerExpression(getLocation(ic), cExpression);
+        case CExpression cExpression -> initializedExpression = cExpression;
         default ->
             throw parseContext.parseError(
-                "Initializer is not free of side effects, it is a "
+                "Initializer is not free of side-effects, it is a "
                     + initializer.getClass().getSimpleName(),
                 e);
       }
 
-      if (!areInitializerAssignable(type, result.getExpression())) {
+      if (type.getCanonicalType() instanceof CPointerType
+          && initializedExpression.getExpressionType().getCanonicalType()
+              instanceof CArrayType initializerType) {
+        // TODO This is part of #1035 but should probably be handled generally somewhere else and
+        // removed here.
+        CType elementType = initializerType.getType();
+        initializedExpression =
+            new CUnaryExpression(
+                loc,
+                new CPointerType(initializerType.getQualifiers(), elementType),
+                new CArraySubscriptExpression(
+                    loc, elementType, initializedExpression, CIntegerLiteralExpression.ZERO),
+                CUnaryExpression.UnaryOperator.AMPER);
+      }
+
+      if (!areInitializerAssignable(type, initializedExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
-            && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
+            && CTypes.isIntegerType(initializedExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
                 "%s: Initialization of pointer variable %s with integer expression %s.",
-                result.getFileLocation(),
+                initializedExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                result);
+                initializedExpression);
           }
         } else {
           throw parseContext.parseError(
@@ -2984,7 +3026,7 @@ class ASTConverter {
         }
       }
 
-      return result;
+      return new CInitializerExpression(loc, initializedExpression);
 
     } else if (ic instanceof IASTInitializerList iASTInitializerList) {
       return convert(iASTInitializerList, type, declaration);
