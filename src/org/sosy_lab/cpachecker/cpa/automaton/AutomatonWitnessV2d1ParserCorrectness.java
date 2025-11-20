@@ -57,7 +57,7 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
     ImmutableList.Builder<AutomatonTransition> transitions =
         super.createTransitionsFromEntries(entries);
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
-    SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
+    SetMultimap<Pair<Integer, Optional<Integer>>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
 
     for (AbstractEntry entry : entries) {
@@ -69,7 +69,7 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
             Optional<Integer> column = invariantEntry.getLocation().getColumn();
-            Pair<Integer, Integer> position = Pair.of(line, column.orElseThrow());
+            Pair<Integer, Optional<Integer>> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it
@@ -94,7 +94,7 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
                   transformer.parseInvariantEntry(invariantEntry);
 
               Optional<IterationElement> optionalIterationStructure =
-                  astCfaRelation.getIterationStructureStartingAtColumn(column, line);
+                  astCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(column, line);
 
               IterationElement iterationElement = optionalIterationStructure.orElseThrow();
               Optional<CFANode> optionalLoopHead = iterationElement.getLoopHead();

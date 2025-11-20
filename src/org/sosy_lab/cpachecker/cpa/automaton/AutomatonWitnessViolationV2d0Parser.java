@@ -113,16 +113,22 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String currentStateId,
       ImmutableList.Builder<AutomatonTransition> transitions,
       ImmutableList.Builder<AutomatonInternalState> automatonStates) {
-    // For the reachability specification the target waypoint should exactly point to where the
-    // violation occurs. For no-overflow, instead it should point to the beginning of the full
-    // expression causing the overflow.
+    // The violation points to the largest full expression which produces the error.
     //
-    // TODO: Review if the first check is required or if the second check is sufficient
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
     AutomatonBoolExpr expr =
         new Or(
-            new CheckMatchesColumnAndLine(followColumn.orElseThrow(), followLine),
+            new CheckMatchesColumnAndLine(
+                tightestStatementForStarting.location().getStartColumnInLine(), followLine),
             new CheckClosestFullExpressionMatchesColumnAndLine(
-                followColumn.orElseThrow(), followLine, cfa.getAstCfaRelation()));
+                tightestStatementForStarting.location().getStartColumnInLine(),
+                followLine,
+                cfa.getAstCfaRelation()));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -209,10 +215,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       Builder<AutomatonTransition> transitions) {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
-        pAstCfaRelation.getIfStructureStartingAtColumn(followLine, followColumn.orElseThrow());
+        pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
-        pAstCfaRelation.getIterationStructureStartingAtColumn(
-            followColumn.orElseThrow(), followLine);
+        pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
     Optional<List<AutomatonTransition>> newTransitions;
     if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
       logger.log(
@@ -510,7 +515,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       case WaypointType.ASSUMPTION ->
           handleAssumption(
               nextStateId,
-              cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn),
+              cfa.getAstCfaRelation()
+                  .getTightestStatementForStarting(followLine, followColumn)
+                  .orElseThrow(),
               followLine,
               follow.getLocation().getFunction(),
               distance,
