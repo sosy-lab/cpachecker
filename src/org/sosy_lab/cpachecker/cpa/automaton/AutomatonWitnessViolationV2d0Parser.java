@@ -408,6 +408,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     final ImmutableList.Builder<AutomatonInternalState> automatonStates =
         new ImmutableList.Builder<>();
+
+    // add bottom state
+    automatonStates.add(AutomatonInternalState.BOTTOM);
     String currentStateId = initState;
 
     int distance = segments.size() - 1;
@@ -499,6 +502,47 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     Integer followLine = follow.getLocation().getLine();
     Optional<Integer> followColumn = follow.getLocation().getColumn();
+
+    for (WaypointRecord avoid : pEntry.avoids()) {
+      // Handle all avoid waypoints. They can be handled similarly to follow waypoints, but
+      // instead of going to the next state, they go to the bottom state.
+      switch (avoid.getType()) {
+        case WaypointType.ASSUMPTION ->
+            handleAssumption(
+                AutomatonInternalState.BOTTOM.getName(),
+                cfa.getAstCfaRelation()
+                    .getTightestStatementForStarting(followLine, followColumn)
+                    .orElseThrow(),
+                avoid.getLocation().getLine(),
+                avoid.getLocation().getFunction(),
+                distance,
+                avoid.getConstraint().getValue(),
+                transitions);
+        case WaypointType.BRANCHING ->
+            handleFollowWaypointAtStatement(
+                cfa.getAstCfaRelation(),
+                AutomatonInternalState.BOTTOM.getName(),
+                avoid.getLocation().getColumn(),
+                avoid.getLocation().getLine(),
+                distance,
+                Boolean.parseBoolean(avoid.getConstraint().getValue()),
+                transitions);
+        case WaypointType.FUNCTION_RETURN ->
+            handleFunctionReturn(
+                AutomatonInternalState.BOTTOM.getName(),
+                avoid.getLocation().getLine(),
+                avoid.getLocation().getColumn(),
+                distance,
+                avoid.getConstraint().getValue(),
+                ImmutableListMultimap.of(),
+                transitions);
+        default ->
+            throw new WitnessParseException(
+                "Avoid waypoints of type "
+                    + avoid.getType()
+                    + " are not supported in violation witnesses.");
+      }
+    }
 
     switch (follow.getType()) {
       case WaypointType.TARGET ->
