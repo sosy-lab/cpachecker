@@ -2914,7 +2914,11 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (!__builtin_sub_overflow_p(signedIntMin, 1, (int)0)) {
+    if (__builtin_sub_overflow_p(signedIntMin, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_sub_overflow_p(signedIntMin, 2, (int)0)) {
       assert(0);
       goto ERROR;
     }
