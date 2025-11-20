@@ -3873,9 +3873,9 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Allow the given extern functions and interpret them as pure functions
-# although the value analysis does not support their semantics and this can
-# produce wrong results.
+# If given functions are not handled by the analysis, they are interpret as
+# functions without side-effects and return a new nondeterministic value
+# every time they are called. This can be unsound!
 cpa.value.allowedUnsupportedFunctions = {}
 
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
@@ -3888,6 +3888,13 @@ cpa.value.exportLoopInvariants = IF_TRUE
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
+
+# In case the value analysis encounters a unhandled or unknown function, and
+# this is set to true, a warning is logged and the function call is ignored.
+# Ignoring function calls is unsound! If this is set to false, a exception is
+# raised. Functions listed in option allowedUnsupportedFunctions are
+# considered pure and are exempt from this.
+cpa.value.ignoreCallsToUnknownFunctions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
