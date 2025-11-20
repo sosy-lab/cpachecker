@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
@@ -70,6 +71,7 @@ public class LocationRecord {
     return line;
   }
 
+  @JsonIgnore
   public Optional<Integer> getColumn() {
     return Optional.ofNullable(column);
   }
@@ -94,7 +96,7 @@ public class LocationRecord {
   public int hashCode() {
     int hashCode = fileName.hashCode();
     hashCode = 31 * hashCode + Integer.hashCode(line);
-    hashCode = 31 * hashCode + Integer.hashCode(column);
+    hashCode = 31 * hashCode + (column != null ? Integer.hashCode(column) : 0);
     hashCode = 31 * hashCode + (function != null ? function.hashCode() : 0);
     return hashCode;
   }

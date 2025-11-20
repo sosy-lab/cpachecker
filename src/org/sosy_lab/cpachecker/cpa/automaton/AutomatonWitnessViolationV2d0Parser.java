@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -213,7 +212,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
-      Builder<AutomatonTransition> transitions)
+      ImmutableList.Builder<AutomatonTransition> transitions)
       throws WitnessParseException {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
@@ -337,7 +336,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
-      Builder<AutomatonTransition> transitions)
+      ImmutableList.Builder<AutomatonTransition> transitions)
       throws InterruptedException {
 
     AutomatonBoolExpr expr =
