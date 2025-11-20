@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
@@ -212,14 +213,23 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
-      Builder<AutomatonTransition> transitions) {
+      Builder<AutomatonTransition> transitions)
+      throws WitnessParseException {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
         pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
         pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
+
+    // This is the case for ternary operators, which are expressions and therefore not covered by if
+    // or iteration structures which only cover statements.
+    Optional<ASTElement> astElement =
+        pAstCfaRelation.getTightestStatementForStarting(followLine, followColumn);
+
     Optional<List<AutomatonTransition>> newTransitions;
-    if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
+    if (optionalIfStructure.isEmpty()
+        && optionalIterationStructure.isEmpty()
+        && astElement.isEmpty()) {
       logger.log(
           Level.INFO, "Could not find an element corresponding to the waypoint, skipping it");
       return;
@@ -250,6 +260,28 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
         return;
       }
+    } else if (astElement.isPresent()) {
+      // Ternary operator case, we cannot currently distinguish between then and else branch.
+      // Therefore, we first check if we are really in a ternary operator, by checking if we
+      // have assume edges at this location, and if so, we throw an exception that we cannot
+      // support this.
+      //
+      // Else we could not find a proper if or iteration structure, but we have a statement
+      // here, to continue with validating the witness we just log this and skip the waypoint.
+      // This does not conform to the witness spec, but will be complete, i.e., we will not
+      // miss violations due to this.
+      ImmutableList<@NonNull CAssumeEdge> edges =
+          FluentIterable.from(astElement.orElseThrow().edges()).filter(CAssumeEdge.class).toList();
+
+      if (edges.isEmpty()) {
+        logger.log(
+            Level.INFO, "Could not find if or iteration structure for waypoint, skipping it");
+        return;
+      }
+
+      throw new WitnessParseException(
+          "Ternary operators as branching waypoints are currently not supported!");
+
     } else {
       throw new AssertionError("This should never happen");
     }
