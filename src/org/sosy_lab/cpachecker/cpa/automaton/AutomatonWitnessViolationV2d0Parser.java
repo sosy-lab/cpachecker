@@ -561,15 +561,16 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                 // in the bottom state automatically due to how we handle branching waypoints
                 !Boolean.parseBoolean(avoid.getConstraint().getValue()),
                 transitions);
-        case WaypointType.FUNCTION_RETURN ->
-            handleFunctionReturn(
-                AutomatonInternalState.BOTTOM.getName(),
-                avoid.getLocation().getLine(),
-                avoid.getLocation().getColumn(),
-                distance,
-                avoid.getConstraint().getValue(),
-                ImmutableListMultimap.of(),
-                transitions);
+        case WaypointType.FUNCTION_RETURN -> {
+          handleFunctionReturn(
+              currentStateId,
+              avoid.getLocation().getLine(),
+              avoid.getLocation().getColumn(),
+              distance,
+              "!(" + avoid.getConstraint().getValue() + ")",
+              startLineToCFAEdge,
+              transitions);
+        }
         case FUNCTION_ENTER ->
             throw new WitnessParseException(
                 "We currently do not support function enter waypoints.");
