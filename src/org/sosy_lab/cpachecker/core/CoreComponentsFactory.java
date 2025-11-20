@@ -573,8 +573,7 @@ public class CoreComponentsFactory {
                 .equals(ProgramTransformation.SEQUENTIALIZATION))) {
       // First pre-process everything, and then continue with the normal algorithm
       algorithm =
-          new MporPreprocessingAlgorithm(
-              config, logger, shutdownNotifier, cfa, aggregatedReachedSetManager, specification);
+          new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =

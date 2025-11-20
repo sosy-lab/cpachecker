@@ -307,7 +307,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     // use ImmutableBiMap to retain insertion order (HashBiMap does not)
     ImmutableBiMap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges = ImmutableBiMap.builder();
-    for (CFAEdge cfaEdge : pCfaEdges) {
+    for (CFAEdge cfaEdge : pCfaEdges.toSet()) {
       rThreadEdges.put(new CFAEdgeForThread(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
     return rThreadEdges.buildOrThrow();

@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.file.Path;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,9 +23,9 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -49,7 +47,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
   private final ShutdownNotifier shutdownNotifier;
 
   private final Configuration config;
-  private final AggregatedReachedSets aggregatedReachedSets;
   private final Specification specification;
 
   private final CFA cfa;
@@ -59,7 +56,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa,
-      @Nullable AggregatedReachedSetManager pAggregatedReachedSets,
       Specification pSpecification)
       throws InvalidConfigurationException {
 
@@ -69,11 +65,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
     shutdownNotifier = pShutdownNotifier;
     cfa = pInputCfa;
     config = pConfiguration;
-    if (pAggregatedReachedSets == null) {
-      aggregatedReachedSets = AggregatedReachedSets.empty();
-    } else {
-      aggregatedReachedSets = pAggregatedReachedSets.asView();
-    }
     specification = pSpecification;
   }
 
@@ -149,12 +140,10 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
   }
 
   public String buildSequentializedProgram()
-      throws UnrecognizedCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException, InvalidConfigurationException {
 
     // just use the first input file name for naming purposes
-    Path firstInputFilePath = cfa.getFileNames().getFirst();
-    String inputFileName = firstInputFilePath.toString();
     return Sequentialization.tryBuildProgramString(
-        options, cfa, inputFileName, logger, shutdownNotifier);
+        options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
   }
 }
