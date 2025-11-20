@@ -472,10 +472,90 @@ int main() {
       goto ERROR;
     }
     // min+max == max (all unsigned int) + reversed
+    if (__builtin_add_overflow(zero, unsignedIntMax, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(unsignedIntMax, zero, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
     // min+max == 1 (all signed long) + reversed
+    if (__builtin_add_overflow(signedLongMin, signedLongMax, &sLongResult)) {
+     assert(0);
+     goto ERROR;
+    }
+    if (sLongResult != 1l) {
+     assert(0);
+     goto ERROR;
+    }
+    if (__builtin_add_overflow(signedLongMax, signedLongMin, &sLongResult)) {
+     assert(0);
+     goto ERROR;
+    }
+    if (sLongResult != 1l) {
+     assert(0);
+     goto ERROR;
+    }
     // min+max == max (all unsigned long) + reversed
+    if (__builtin_add_overflow((unsigned long)zero, unsignedLongMax, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(unsignedLongMax, (unsigned long)zero, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
     // min+max == 1 (all signed long long) + reversed
+    if (__builtin_add_overflow(signedLongLongMin, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1ll) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(signedLongLongMax, signedLongLongMin, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1ll) {
+      assert(0);
+      goto ERROR;
+    }
     // min+max == max (all unsigned long long) + reversed
+    if (__builtin_add_overflow((unsigned long long)zero, unsignedLongLongMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(unsignedLongLongMax, (unsigned long long)zero, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
 
     // (min+1)+max == 2 (all signed int) + reversed
     if (__builtin_add_overflow(signedIntMax, signedIntMinPlusOne, &sIntResult)) {
