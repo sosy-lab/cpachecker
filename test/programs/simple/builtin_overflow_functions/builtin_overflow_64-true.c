@@ -403,8 +403,56 @@ int main() {
       goto ERROR;
     }
     // min+1 == min+1 (all unsigned long) + reversed
+    if (__builtin_add_overflow((unsigned long)zero, 1ul, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ul, (unsigned long)zero, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
     // min+1 == min+1 (all signed long long) + reversed
+    if (__builtin_add_overflow(signedLongLongMin, 1ll, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMinPlusOne) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ll, signedLongLongMin, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMinPlusOne) {
+      assert(0);
+      goto ERROR;
+    }
     // min+1 == min+1 (all unsigned long long) + reversed
+    if (__builtin_add_overflow((unsigned long long)zero, 1ull, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow(1ull, (unsigned long long)zero, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
 
     // min+max == 1 (all signed int) + reversed
     if (__builtin_add_overflow(signedIntMax, signedIntMin, &sIntResult)) {
