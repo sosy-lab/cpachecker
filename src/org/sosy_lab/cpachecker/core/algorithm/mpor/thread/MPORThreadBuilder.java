@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -186,7 +186,7 @@ public class MPORThreadBuilder {
     }
     pVisitedCfaNodes.put(pCurrentNode, callContext);
 
-    FluentIterable<CFAEdge> leavingCfaEdges = pCurrentNode.getAllLeavingEdges();
+    Set<CFAEdge> leavingCfaEdges = pCurrentNode.getAllLeavingEdges().toSet();
     // all leaving edges of a node are in the atomic block
     ImmutableBiMap<CFAEdgeForThread, CFAEdge> threadEdges =
         buildThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);
@@ -283,7 +283,7 @@ public class MPORThreadBuilder {
   // (Private) Helpers =============================================================================
 
   private static ImmutableBiMap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
-      int pThreadId, FluentIterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
+      int pThreadId, Set<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
 
     // use ImmutableBiMap to retain insertion order (HashBiMap does not)
     ImmutableBiMap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges = ImmutableBiMap.builder();
