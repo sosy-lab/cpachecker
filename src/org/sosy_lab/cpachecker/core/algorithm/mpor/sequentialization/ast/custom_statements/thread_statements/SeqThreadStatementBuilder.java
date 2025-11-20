@@ -195,7 +195,7 @@ public record SeqThreadStatementBuilder(
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
 
-    if (yieldsNoStatement(pSubstituteEdge, successor)) {
+    if (resultsInBlankStatement(pSubstituteEdge, successor)) {
       return new SeqBlankStatement(reductionOrder, pcLeftHandSide, targetPc);
     }
 
@@ -476,11 +476,24 @@ public record SeqThreadStatementBuilder(
   }
 
   /**
-   * Returns true if the resulting statement has only pc adjustments, i.e. no code changing the
-   * input program state.
+   * Returns {@code true} if the resulting statement has only {@code pc} adjustments, i.e. no code
+   * changing the input program state, {@code false} otherwise.
+   *
+   * <p>This is the case when:
+   *
+   * <ul>
+   *   <li>{@code pSuccessor} marks the termination of a thread
+   *   <li>{@code pSuccessor} is inside the body of {@code reach_error()}
+   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge}
+   *   <li>{@code pSubstituteEdge} is a {@code PTHREAD_MUTEX_INITIALIZER} assignment
+   *   <li>{@code pSubstituteEdge} is a {@link CDeclarationEdge}, except for local variable
+   *       declarations with an initializer
+   *   <li>{@code pSubstituteEdge} is a call to a {@code pthread} function that is not explicitly
+   *       handled.
+   * </ul>
    */
-  private boolean yieldsNoStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
-    // exiting start_routine of thread -> blank, just set pc[i] = -1;
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
+    // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
       return true;
@@ -488,7 +501,7 @@ public record SeqThreadStatementBuilder(
     } else if (pSuccessor
         .getFunctionName()
         .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME)) {
-      // if we enter reach_error, include only call edge (to inject reach_error)
+      // if we enter reach_error, include only call edge (to inject reach_error), not the body
       return !(pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge);
 
     } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge) {
