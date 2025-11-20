@@ -74,12 +74,9 @@ public class SeqStringUtil {
           // with loop unrolling enabled, always return to main()
           yield "return" + SeqSyntax.SEMICOLON;
         }
-        if (pOptions.isThreadLabelRequired()) {
-          // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
-          if (pNextThreadLabel.isPresent()) {
-            SeqGotoStatement gotoStatement = new SeqGotoStatement(pNextThreadLabel.orElseThrow());
-            yield gotoStatement.toASTString();
-          }
+        // if this is not the last thread, add "goto T{next_thread_ID}", otherwise continue
+        if (pNextThreadLabel.isPresent()) {
+          yield new SeqGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
         }
         yield "continue" + SeqSyntax.SEMICOLON;
       }

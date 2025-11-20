@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
-public record NumStatementsNondeterministicSimulation(
+record NumStatementsNondeterministicSimulation(
     MPOROptions options,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     GhostElements ghostElements,
@@ -72,12 +72,10 @@ public record NumStatementsNondeterministicSimulation(
 
     StringBuilder rLines = new StringBuilder();
 
-    // create T{thread_id}: label
-    if (ghostElements.isThreadLabelPresent(pActiveThread)) {
-      rLines.append(ghostElements.getThreadLabelByThread(pActiveThread).toASTString());
-    }
+    // add "T{thread_id}: label", if present
+    Optional.ofNullable(ghostElements.threadLabels().get(pActiveThread)).ifPresent(rLines::append);
 
-    // create "if (pc != 0 ...)" condition
+    // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
         ghostElements.getPcVariables().getThreadActiveExpression(pActiveThread.id());
     ImmutableList.Builder<String> ifBlock = ImmutableList.builder();

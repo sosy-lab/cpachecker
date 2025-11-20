@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -93,7 +92,6 @@ public class InputRejection {
     checkRecursiveFunctions(pInputCfa);
   }
 
-  @TerminatesExecution
   private static void rejectCfaEdge(CFAEdge pCfaEdge, InputRejectionMessage pMessage)
       throws UnsupportedCodeException {
 

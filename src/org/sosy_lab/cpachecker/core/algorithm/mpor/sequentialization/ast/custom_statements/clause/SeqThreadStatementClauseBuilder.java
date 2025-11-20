@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -61,7 +60,8 @@ public record SeqThreadStatementClauseBuilder(
       throws UnrecognizedCodeException {
 
     // initialize clauses from ThreadCFAs
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses = initClauses();
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses =
+        initClausesForAllThreads();
 
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
@@ -98,13 +98,14 @@ public record SeqThreadStatementClauseBuilder(
   }
 
   /** Maps threads to the case clauses they potentially execute. */
-  private ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClauses()
+  private ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClausesForAllThreads()
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : substitutions) {
-      rClauses.putAll(substitution.thread, initClauses(substitution.thread, new HashSet<>()));
+      MPORThread thread = substitution.thread;
+      rClauses.putAll(thread, initClausesForSingleThread(thread, new HashSet<>()));
     }
     // only check pc validation, since clauses are not reordered at this point
     SeqValidator.tryValidateProgramCounters(options, rClauses.build());
@@ -149,7 +150,7 @@ public record SeqThreadStatementClauseBuilder(
    * Builds the case clauses for the single thread {@code pThread}. Visits {@link CFANode}s only
    * once via {@code pVisitedNodes}.
    */
-  private ImmutableList<SeqThreadStatementClause> initClauses(
+  private ImmutableList<SeqThreadStatementClause> initClausesForSingleThread(
       MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
@@ -192,7 +193,8 @@ public record SeqThreadStatementClauseBuilder(
       return ImmutableList.of();
     }
 
-    Optional<SeqThreadLabelStatement> nextThreadLabel = tryGetNextThreadLabel(pThread);
+    Optional<SeqThreadLabelStatement> nextThreadLabel =
+        ghostElements.tryGetNextThreadLabel(pThread);
     CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
     int labelPc = pThreadNode.pc;
     int targetPc = firstThreadEdge.getSuccessor().pc;
@@ -227,27 +229,6 @@ public record SeqThreadStatementClauseBuilder(
   }
 
   // Helpers =====================================================================================
-
-  private Optional<SeqThreadLabelStatement> tryGetNextThreadLabel(MPORThread pThread) {
-    Optional<MPORThread> nextThread = tryGetNextThread(pThread, allThreads);
-    return nextThread.isPresent()
-        ? Optional.ofNullable(ghostElements.threadLabels().get(nextThread.orElseThrow()))
-        : Optional.empty();
-  }
-
-  private SeqBlockLabelStatement buildBlockLabelStatement(int pThreadId, int pLabelNumber) {
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(options, pThreadId);
-    return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
-  }
-
-  private static Optional<MPORThread> tryGetNextThread(
-      MPORThread pCurrentThread, ImmutableList<MPORThread> pAllThreads) {
-
-    if (pCurrentThread.id() < pAllThreads.size() - 1) {
-      return Optional.of(MPORThreadUtil.getThreadById(pAllThreads, pCurrentThread.id() + 1));
-    }
-    return Optional.empty();
-  }
 
   private ImmutableList<SeqThreadStatementClause> handleMultipleClauseEdge(
       MPORThread pThread,
@@ -318,7 +299,8 @@ public record SeqThreadStatementClauseBuilder(
       int pLabelPc,
       ImmutableList<CSeqThreadStatement> pStatements) {
 
-    SeqBlockLabelStatement blockLabelStatement = buildBlockLabelStatement(pThread.id(), pLabelPc);
+    String threadPrefix = SeqNameUtil.buildThreadPrefix(options, pThread.id());
+    SeqBlockLabelStatement blockLabelStatement = new SeqBlockLabelStatement(threadPrefix, pLabelPc);
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(options, pNextThreadLabel, blockLabelStatement, pStatements);
     return new SeqThreadStatementClause(block);

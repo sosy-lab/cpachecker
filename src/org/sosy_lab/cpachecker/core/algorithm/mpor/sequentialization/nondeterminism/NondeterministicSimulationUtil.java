@@ -122,7 +122,7 @@ public class NondeterministicSimulationUtil {
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
       String threadSimulation =
-          NondeterministicSimulationUtil.buildSingleThreadSimulationByNondeterminismSource(
+          buildSingleThreadSimulationByNondeterminismSource(
               pOptions, pGhostElements, thread, otherThreads, pClauses, pUtils);
       rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
     }

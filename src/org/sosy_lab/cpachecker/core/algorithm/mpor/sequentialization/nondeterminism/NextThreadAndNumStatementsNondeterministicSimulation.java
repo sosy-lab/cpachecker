@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record NextThreadAndNumStatementsNondeterministicSimulation(
+record NextThreadAndNumStatementsNondeterministicSimulation(
     MPOROptions options,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     GhostElements ghostElements,
