@@ -822,7 +822,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (uLongLongResult != uLongLongResult) {
+    if (uLongLongResult != 18446744073709551614ULL) {
       assert(0);
       goto ERROR;
     }
