@@ -337,10 +337,7 @@ class BitVectorReadWriteEvaluationBuilder {
             buildPrunedSparseSingleVariableEvaluation(leftHandSide, rightHandSide));
       }
     }
-    if (sparseExpressions.build().isEmpty()) {
-      return Optional.empty();
-    }
-    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   /** Builds the logical LHS i.e. {@code (R && (W' || W'' || ...))}. */
@@ -349,13 +346,17 @@ class BitVectorReadWriteEvaluationBuilder {
       SeqMemoryLocation pMemoryLocation,
       ImmutableList<CExpression> pOtherWriteVariables) {
 
+    // if the LHS is 0, then the entire && expression is 0 -> prune
     if (!pDirectReadMemoryLocations.contains(pMemoryLocation)) {
-      // if the LHS is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
-    return BitVectorEvaluationUtil.tryLogicalDisjunction(
-        transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of));
+    if (pOtherWriteVariables.isEmpty()) {
+      // RHS is empty too -> prune
+      return Optional.empty();
+    }
+    return Optional.of(
+        Or.of(transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of)));
   }
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
@@ -369,8 +370,12 @@ class BitVectorReadWriteEvaluationBuilder {
       return Optional.empty();
     }
     // otherwise the LHS is 1, and we only need the right side of the && expression
-    return BitVectorEvaluationUtil.tryLogicalDisjunction(
-        transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of));
+    if (pOtherAccessVariables.isEmpty()) {
+      // RHS is empty too -> prune
+      return Optional.empty();
+    }
+    return Optional.of(
+        Or.of(transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of)));
   }
 
   // Pruned Sparse Single Variable Evaluation ======================================================
@@ -414,7 +419,7 @@ class BitVectorReadWriteEvaluationBuilder {
               otherWriteVariables,
               otherAccessVariables));
     }
-    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   private static Optional<BitVectorEvaluationExpression> buildFullSparseVariableOnlyEvaluation(
@@ -437,7 +442,7 @@ class BitVectorReadWriteEvaluationBuilder {
               otherAccessVariables,
               pBitVectorVariables));
     }
-    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   // Full Sparse Single Variable Evaluation ========================================================
@@ -458,8 +463,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
     return And.of(
         LeafExpression.of(pActiveReadValue),
-        BitVectorEvaluationUtil.logicalDisjunction(
-            transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of)));
+        Or.of(transformedImmutableListCopy(pOtherWriteVariables, LeafExpression::of)));
   }
 
   private static ExpressionTree<CExpression> buildFullSparseSingleVariableRightHandSide(
@@ -478,8 +482,7 @@ class BitVectorReadWriteEvaluationBuilder {
 
     return And.of(
         LeafExpression.of(pActiveWriteValue),
-        BitVectorEvaluationUtil.logicalDisjunction(
-            transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of)));
+        Or.of(transformedImmutableListCopy(pOtherAccessVariables, LeafExpression::of)));
   }
 
   private static ExpressionTree<CExpression> buildFullSparseSingleVariableEvaluation(

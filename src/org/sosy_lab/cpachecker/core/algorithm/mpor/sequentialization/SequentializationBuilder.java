@@ -14,31 +14,34 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
@@ -117,7 +120,7 @@ public class SequentializationBuilder {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
+        Optional<String> line = tryBuildInputLocalVariableDeclaration(pOptions, localDeclaration);
         if (line.isPresent()) {
           rDeclarations.add(line.orElseThrow());
         }
@@ -127,12 +130,17 @@ public class SequentializationBuilder {
   }
 
   private static Optional<String> tryBuildInputLocalVariableDeclaration(
-      CVariableDeclaration pLocalVariableDeclaration) {
+      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     // try remove const qualifier from variable
     if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
-      return tryBuildInputConstLocalVariableDeclaration(pLocalVariableDeclaration);
+      // const CPAchecker_TMP variables are declared and initialized in the statement
+      if (MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
+        return Optional.empty();
+      } else {
+        return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
+      }
     }
     // otherwise, for non-const variables
     if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
@@ -140,24 +148,21 @@ public class SequentializationBuilder {
       if (initializer == null) {
         // no initializer -> add declaration as is
         return Optional.of(pLocalVariableDeclaration.toASTString());
-
-      } else if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
+      }
+      if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
         // function pointer initializer -> add declaration as is
         return Optional.of(pLocalVariableDeclaration.toASTString());
-
-      } else if (!MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
-        // const CPAchecker_TMP variables are declared and initialized directly in the case.
-        // everything else: add declaration without initializer (and assign later in cases)
-        return Optional.of(
-            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-                pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
       }
+      // everything else: add declaration without initializer (and assign later in statements)
+      return Optional.of(
+          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+              pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
     }
     return Optional.empty();
   }
 
   private static Optional<String> tryBuildInputConstLocalVariableDeclaration(
-      CVariableDeclaration pLocalVariableDeclaration) {
+      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     checkArgument(
@@ -177,7 +182,7 @@ public class SequentializationBuilder {
             pLocalVariableDeclaration.getOrigName(),
             pLocalVariableDeclaration.getQualifiedName(),
             pLocalVariableDeclaration.getInitializer());
-    return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
+    return tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationWithoutConst);
   }
 
   // Input Parameter Declarations ==================================================================
@@ -270,24 +275,21 @@ public class SequentializationBuilder {
     } else {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rDeclarations.add(SeqFunctionDeclarations.REACH_ERROR.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ASSERT_FAIL.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ASSUME.toASTString());
-    rDeclarations.add(SeqFunctionDeclarations.ABORT.toASTString());
+    rDeclarations.add(SeqReachErrorStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
 
     // malloc is required for valid-memsafety tasks
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
 
     // thread simulation functions, only enabled with loop is unrolled
     if (pOptions.loopUnrolling()) {
-      for (MPORThread thread : pFields.threads) {
-        CFunctionDeclaration threadSimulationFunctionDeclaration =
-            SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(thread.id());
-        rDeclarations.add(threadSimulationFunctionDeclaration.toASTString());
+      for (SeqThreadSimulationFunction threadFunction : pFields.threadSimulationFunctions) {
+        rDeclarations.add(threadFunction.declaration.toASTString());
       }
     }
     // main should always be duplicate
-    rDeclarations.add(SeqFunctionDeclarations.MAIN.toASTString());
+    rDeclarations.add(SeqMainFunction.MAIN_FUNCTION_DECLARATION.toASTString());
     return rDeclarations.toString();
   }
 
@@ -299,20 +301,17 @@ public class SequentializationBuilder {
     if (pOptions.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
     }
-    // custom function definitions: reach_error(), assume(), main()
-    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
-    rDefinitions.add(reachError.buildDefinition());
-
+    // custom function definitions: assume(), main()
     CBinaryExpression condEqualsZeroExpression =
         pUtils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.COND_PARAMETER_ASSUME,
+                SeqAssumeFunction.COND_ID_EXPRESSION,
                 SeqIntegerLiteralExpressions.INT_0,
                 BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rDefinitions.add(assume.buildDefinition());
-    // create separate thread simulation functions, if enabled
+    // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
         rDefinitions.add(threadSimulation.buildDefinition());
@@ -341,15 +340,26 @@ public class SequentializationBuilder {
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
       CInitializer lastThreadInitializer =
-          SeqInitializerBuilder.buildInitializerExpression(numThreadsExpression);
+          new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
       CVariableDeclaration lastThreadDeclaration =
-          SeqDeclarationBuilder.buildLastThreadDeclaration(lastThreadInitializer);
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              true,
+              CNumericTypes.UNSIGNED_INT,
+              SeqIdExpressions.LAST_THREAD.getName(),
+              // the initializer of last_thread is dependent on the number of threads
+              lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());
     }
 
     // next_thread
     if (pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
-      rDeclarations.add(SeqDeclarationBuilder.buildNextThreadDeclaration(pOptions).toASTString());
+      CVariableDeclaration nextThreadDeclaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              true,
+              pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+              SeqIdExpressions.NEXT_THREAD.getName(),
+              SeqInitializers.INT_0);
+      rDeclarations.add(nextThreadDeclaration.toASTString());
     }
 
     // pc variable(s)
@@ -357,15 +367,23 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.PC_DECLARATION);
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
-        SeqDeclarationBuilder.buildPcDeclarations(pOptions, pFields);
+        pFields.ghostElements.getPcVariables().pcDeclarations();
     for (CVariableDeclaration pcDeclaration : pcDeclarations) {
       rDeclarations.add(pcDeclaration.toASTString());
     }
 
     // if enabled: bit vectors
-    if (pOptions.isAnyReductionEnabled()) {
+    if (pOptions.isAnyBitVectorReductionEnabled()) {
+      SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
+          new SeqBitVectorDeclarationBuilder(
+              pOptions.bitVectorEncoding(),
+              pOptions.reduceIgnoreSleep(),
+              pOptions.reductionMode(),
+              pFields.ghostElements.bitVectorVariables().orElseThrow(),
+              pFields.clauses,
+              pFields.memoryModel.orElseThrow());
       ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
-          SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(pOptions, pFields);
+          bitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding();
       for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
         rDeclarations.add(bitVectorDeclaration.toASTString());
       }
@@ -379,7 +397,13 @@ public class SequentializationBuilder {
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
       rDeclarations.add(SeqVariableDeclarations.ROUND.toASTString());
-      rDeclarations.add(SeqDeclarationBuilder.buildRoundMaxDeclaration(pOptions).toASTString());
+      rDeclarations.add(
+          SeqDeclarationBuilder.buildVariableDeclaration(
+                  true,
+                  pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
+                  SeqIdExpressions.ROUND_MAX.getName(),
+                  SeqInitializers.INT_0)
+              .toASTString());
     }
 
     // thread synchronization variables (e.g. mutex_locked)

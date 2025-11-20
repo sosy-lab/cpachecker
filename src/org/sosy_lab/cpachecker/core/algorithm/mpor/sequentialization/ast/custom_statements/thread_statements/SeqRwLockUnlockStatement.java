@@ -13,13 +13,13 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -28,24 +28,18 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   private final RwLockNumReadersWritersFlag rwLockFlags;
 
   SeqRwLockUnlockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     rwLockFlags = pRwLockFlags;
   }
 
   private SeqRwLockUnlockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -53,7 +47,13 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     rwLockFlags = pRwLockFlags;
   }
 
@@ -70,14 +70,14 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
             ImmutableList.of(setNumWritersToZero.toASTString()));
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return ifStatement.toASTString() + injected;
   }
 
   @Override
   public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqRwLockUnlockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,
@@ -89,7 +89,7 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqRwLockUnlockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,
@@ -103,7 +103,7 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqRwLockUnlockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,

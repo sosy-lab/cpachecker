@@ -14,23 +14,30 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public record BinaryBitVectorValueExpression(int binaryLength, ImmutableSet<Integer> setBits)
-    implements BitVectorValueExpression {
+public class BinaryBitVectorValueExpression extends BitVectorValueExpression {
 
-  public BinaryBitVectorValueExpression {
-    checkArgument(setBits.isEmpty() || Collections.max(setBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+  private static final String BINARY_LITERAL = "0b";
+
+  private final int binaryLength;
+
+  private final ImmutableSet<Integer> setBits;
+
+  public BinaryBitVectorValueExpression(int pBinaryLength, ImmutableSet<Integer> pSetBits) {
+    checkArgument(
+        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    binaryLength = pBinaryLength;
+    setBits = pSetBits;
   }
 
   @Override
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(SeqToken.BINARY_LITERAL);
+    rBitVector.append(BINARY_LITERAL);
     int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binaryLength);
     // build bit vector from left to right
     for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
-      rBitVector.append(setBits.contains(i) ? SeqToken.ONE_BIT : SeqToken.ZERO_BIT);
+      rBitVector.append(setBits.contains(i) ? ONE_BIT : ZERO_BIT);
     }
     return rBitVector.toString();
   }

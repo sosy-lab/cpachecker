@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -28,20 +30,26 @@ public record GhostElements(
     ThreadSyncFlags threadSyncFlags) {
 
   public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
-    assert functionStatements.containsKey(pThread) : "functionStatements does not contain pThread";
-    return functionStatements.get(pThread);
+    return Objects.requireNonNull(functionStatements.get(pThread));
   }
 
   public ProgramCounterVariables getPcVariables() {
     return programCounterVariables;
   }
 
-  public boolean isThreadLabelPresent(MPORThread pThread) {
-    return threadLabels.containsKey(pThread);
-  }
-
-  public SeqThreadLabelStatement getThreadLabelByThread(MPORThread pThread) {
-    assert threadLabels.containsKey(pThread) : "threadLabels does not contain pThread";
-    return threadLabels.get(pThread);
+  /**
+   * Returns the {@link SeqThreadLabelStatement} of the next thread relative to {@code pThread},
+   * i.e. the one with ID {@code pThread.id() + 1}. Returns {@link Optional#empty()} if {@code
+   * pThread} is the last thread, or if there are no {@link SeqThreadLabelStatement}s at all.
+   */
+  public Optional<SeqThreadLabelStatement> tryGetNextThreadLabel(MPORThread pThread) {
+    // shortcut if there are no thread labels (because they are unnecessary due to the options)
+    if (threadLabels.isEmpty()) {
+      return Optional.empty();
+    }
+    return threadLabels.entrySet().stream()
+        .filter(entry -> entry.getKey().id() == pThread.id() + 1)
+        .map(Map.Entry::getValue)
+        .findFirst();
   }
 }

@@ -9,19 +9,29 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.cwriter.ClangFormatter;
 
 public record SequentializationUtils(
     CBinaryExpressionBuilder binaryExpressionBuilder,
+    ClangFormatter clangFormatter,
     LogManager logger,
     ShutdownNotifier shutdownNotifier) {
 
   public static SequentializationUtils of(
-      MachineModel pMachineModel, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
+      CFA pCfa,
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     return new SequentializationUtils(
-        new CBinaryExpressionBuilder(pMachineModel, pLogger), pLogger, pShutdownNotifier);
+        new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger),
+        new ClangFormatter(pConfiguration, pLogger),
+        pLogger,
+        pShutdownNotifier);
   }
 }

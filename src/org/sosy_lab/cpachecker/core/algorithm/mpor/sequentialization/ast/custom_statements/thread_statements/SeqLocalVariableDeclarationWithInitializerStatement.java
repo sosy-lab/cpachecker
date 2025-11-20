@@ -16,9 +16,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -42,25 +42,19 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   }
 
   SeqLocalVariableDeclarationWithInitializerStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     checkArguments(pVariableDeclaration);
     variableDeclaration = pVariableDeclaration;
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -68,7 +62,13 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     checkArguments(pVariableDeclaration);
     variableDeclaration = pVariableDeclaration;
   }
@@ -77,7 +77,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.getVariableDeclarationASTStringWithoutStorageClassAndType(
             variableDeclaration, AAstNodeRepresentation.DEFAULT)
         + SeqSyntax.SPACE
@@ -87,7 +87,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   @Override
   public SeqLocalVariableDeclarationWithInitializerStatement withTargetPc(int pTargetPc) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        options,
+        reductionOrder,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,
@@ -99,7 +99,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        options,
+        reductionOrder,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,
@@ -113,7 +113,7 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        options,
+        reductionOrder,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,

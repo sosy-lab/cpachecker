@@ -15,13 +15,13 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -36,24 +36,18 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
   private final MutexLockedFlag mutexLockedFlag;
 
   SeqMutexLockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     mutexLockedFlag = pMutexLockedFlag;
   }
 
   private SeqMutexLockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -61,21 +55,27 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     mutexLockedFlag = pMutexLockedFlag;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumeCall =
-        SeqAssumptionBuilder.buildAssumption(mutexLockedFlag.notLockedExpression());
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(mutexLockedFlag.notLockedExpression());
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(assumeCall.toASTString(), setMutexLockedTrue.toASTString(), injected);
@@ -84,7 +84,7 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
   @Override
   public SeqMutexLockStatement withTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(
-        options,
+        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -96,7 +96,7 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexLockStatement(
-        options,
+        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -110,7 +110,7 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(
-        options,
+        reductionOrder,
         mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,

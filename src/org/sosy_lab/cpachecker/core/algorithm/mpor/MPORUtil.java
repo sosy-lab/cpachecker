@@ -43,7 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Contains static methods that can be reused outside the MPOR context. */
@@ -134,7 +135,7 @@ public final class MPORUtil {
         .getFunctionEntry()
         .getFunction()
         .getOrigName()
-        .equals(SeqToken.REACH_ERROR_FUNCTION_NAME);
+        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
   }
 
   private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
@@ -142,17 +143,17 @@ public final class MPORUtil {
         .getFunctionCallExpression()
         .getDeclaration()
         .getOrigName()
-        .equals(SeqToken.REACH_ERROR_FUNCTION_NAME);
+        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
   }
 
   // const CPAchecker_TMP ==========================================================================
 
-  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {
-    return pVarDec.getType().isConst()
-        && !pVarDec.isGlobal()
-        && pVarDec.getName().contains(SeqToken.CPACHECKER_TMP_KEYWORD)
+  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVariableDeclaration) {
+    return pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
         // in tests, const CPAchecker_TMP variables always had initializer
-        && pVarDec.getInitializer() != null;
+        && pVariableDeclaration.getInitializer() != null;
   }
 
   public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
@@ -167,17 +168,19 @@ public final class MPORUtil {
   // Pointers ======================================================================================
 
   /**
-   * Extracts e.g. {@code id1} from {@code &id1}, throws a {@link IllegalArgumentException} if the
-   * extraction not possible.
+   * Extracts e.g. {@code id1} from {@code &id1}, throws a {@link UnsupportedCodeException} if the
+   * extraction is not possible.
    */
-  public static CExpression getOperandFromUnaryExpression(CExpression pExpression) {
+  public static CExpression getOperandFromUnaryExpression(CExpression pExpression)
+      throws UnsupportedCodeException {
+
     if (pExpression instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getExpressionType() instanceof CPointerType) {
         return unaryExpression.getOperand();
       }
     }
-    throw new IllegalArgumentException(
-        "cannot extract operand from pExpression " + pExpression.toASTString());
+    throw new UnsupportedCodeException(
+        "Could not extract operand from pExpression " + pExpression.toASTString(), null);
   }
 
   public static boolean isFunctionPointer(CInitializer pInitializer) {

@@ -13,8 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public enum BitVectorDataType {
   UINT8_T(8, CNumericTypes.UNSIGNED_CHAR),
@@ -31,11 +29,7 @@ public enum BitVectorDataType {
   }
 
   public String toASTString() {
-    return SeqToken.MPOR_PREFIX
-        + SeqToken.UINT_TYPE_KEYWORD
-        + size
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.TYPE_NAME_SUFFIX;
+    return "uint" + size + "_t_sequentialized";
   }
 
   public CTypeDeclaration buildDeclaration() {

@@ -89,7 +89,7 @@ public class MemoryModelStartRoutineArgTest {
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(startRoutineArgAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
     assertThat(pointerParameterAssignments).hasSize(1);

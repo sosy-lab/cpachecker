@@ -9,13 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public record SparseBitVectorValueExpression(boolean value) implements BitVectorValueExpression {
+public class SparseBitVectorValueExpression extends BitVectorValueExpression {
+
+  private final boolean value;
+
+  public SparseBitVectorValueExpression(boolean pValue) {
+    value = pValue;
+  }
 
   @Override
   public String toASTString() {
-    return value ? SeqToken.ONE_BIT : SeqToken.ZERO_BIT;
+    return value ? ONE_BIT : ZERO_BIT;
   }
 
   @Override

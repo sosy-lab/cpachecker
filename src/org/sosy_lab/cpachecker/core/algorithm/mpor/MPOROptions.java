@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -59,7 +58,8 @@ public class MPOROptions {
       secure = true,
       description =
           "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the number of"
-              + " statements. disabling may result in first statement being unreachable.")
+              + " statements. disabling may result in the first statement being unreachable, but"
+              + " can be useful for debugging.")
   private boolean consecutiveLabels = true;
 
   @Option(
@@ -88,11 +88,6 @@ public class MPOROptions {
           "include original type declarations from input file? disabling may result in parse errors"
               + " for the output program.")
   private boolean inputTypeDeclarations = true;
-
-  @Option(
-      secure = true,
-      description = "include CPAchecker license header in the sequentialization?")
-  private boolean license = false;
 
   @Option(
       secure = true,
@@ -148,9 +143,9 @@ public class MPOROptions {
       secure = true,
       description =
           "the file name for the sequentialization and metadata. uses the first input file name as"
-              + " default.")
+              + " the default prefix.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate outputPath = PathTemplate.ofFormatString(SeqToken.MPOR_PREFIX + "%s");
+  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
 
   @Option(secure = true, description = "export the sequentialized program in a .i file?")
   private boolean outputProgram = true;
@@ -272,6 +267,14 @@ public class MPOROptions {
           String.format(
               "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE));
     }
+    if (nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!controlEncodingThread.isEnabled()) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "controlEncodingThread cannot be %s when nondeterminismSource contains NEXT_THREAD",
+                MultiControlStatementEncoding.NONE));
+      }
+    }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -323,7 +326,7 @@ public class MPOROptions {
       }
     }
     if (pruneBitVectorEvaluations) {
-      if (!isAnyReductionEnabled()) {
+      if (!isAnyBitVectorReductionEnabled()) {
         throw new InvalidConfigurationException(
             "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
       }
@@ -352,7 +355,7 @@ public class MPOROptions {
             "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
-    if (isAnyReductionEnabled()) {
+    if (isAnyBitVectorReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
         throw new InvalidConfigurationException(
             "a reduce* option is enabled, but reductionMode is not set.");
@@ -375,7 +378,7 @@ public class MPOROptions {
 
   // boolean helpers ===============================================================================
 
-  public boolean isAnyReductionEnabled() {
+  public boolean isAnyBitVectorReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 
@@ -437,10 +440,6 @@ public class MPOROptions {
 
   public boolean inputTypeDeclarations() {
     return inputTypeDeclarations;
-  }
-
-  public boolean license() {
-    return license;
   }
 
   public boolean linkReduction() {
@@ -528,7 +527,7 @@ public class MPOROptions {
   }
 
   public boolean validateNoBackwardGoto() {
-    return noBackwardGoto;
+    return validateNoBackwardGoto;
   }
 
   public boolean validateParse() {

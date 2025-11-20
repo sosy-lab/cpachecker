@@ -199,13 +199,7 @@ public enum PthreadFunctionType {
   }
 
   private PthreadParameterInfo getParameterInfoByObjectType(PthreadObjectType pObjectType) {
-    for (PthreadParameterInfo info : parameterInfo) {
-      if (info.getObjectType().equals(pObjectType)) {
-        return info;
-      }
-    }
-    throw new AssertionError(
-        String.format("could not find pObjectType %s in parameterInfo", pObjectType));
+    return tryGetParameterInfoByObjectType(pObjectType).orElseThrow();
   }
 
   private static int getSingleIndex(PthreadParameterInfo pParameterInfo) {

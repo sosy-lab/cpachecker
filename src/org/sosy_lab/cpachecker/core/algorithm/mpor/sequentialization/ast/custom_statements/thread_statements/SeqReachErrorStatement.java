@@ -13,11 +13,19 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -29,30 +37,51 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public final class SeqReachErrorStatement extends CSeqThreadStatement {
 
+  public static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
+
+  private static final CFunctionTypeWithNames REACH_ERROR_FUNCTION_TYPE =
+      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(), false);
+
+  public static final CFunctionDeclaration REACH_ERROR_FUNCTION_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          REACH_ERROR_FUNCTION_TYPE,
+          REACH_ERROR_FUNCTION_NAME,
+          ImmutableList.of(),
+          ImmutableSet.of(FunctionAttribute.NO_RETURN));
+
+  private static final CIdExpression REACH_ERROR_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, REACH_ERROR_FUNCTION_DECLARATION);
+
+  private static final CFunctionCallExpression REACH_ERROR_FUNCTION_CALL_EXPRESSION =
+      new CFunctionCallExpression(
+          FileLocation.DUMMY,
+          CVoidType.VOID,
+          REACH_ERROR_ID_EXPRESSION,
+          ImmutableList.of(),
+          REACH_ERROR_FUNCTION_DECLARATION);
+
+  private static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_STATEMENT =
+      new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
+
   SeqReachErrorStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
   }
 
   private SeqReachErrorStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     super(
-        pOptions,
+        pReductionOrder,
         pSubstituteEdges,
         pPcLeftHandSide,
         Optional.of(pTargetPc),
@@ -64,17 +93,17 @@ public final class SeqReachErrorStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + injected;
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+    return REACH_ERROR_FUNCTION_CALL_STATEMENT.toASTString() + SeqSyntax.SPACE + injected;
   }
 
   @Override
   public SeqReachErrorStatement withTargetPc(int pTargetPc) {
     checkArgument(
-        pTargetPc == Sequentialization.EXIT_PC,
-        "reach_errors should only be cloned with exit pc %s",
-        Sequentialization.EXIT_PC);
-    return new SeqReachErrorStatement(options, pcLeftHandSide, substituteEdges, pTargetPc);
+        pTargetPc == ProgramCounterVariables.EXIT_PC,
+        this.getClass().getSimpleName() + " should only be cloned with exit pc %s",
+        ProgramCounterVariables.EXIT_PC);
+    return new SeqReachErrorStatement(reductionOrder, pcLeftHandSide, substituteEdges, pTargetPc);
   }
 
   @Override
@@ -88,7 +117,11 @@ public final class SeqReachErrorStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        options, pcLeftHandSide, substituteEdges, targetPc.orElseThrow(), pInjectedStatements);
+        reductionOrder,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc.orElseThrow(),
+        pInjectedStatements);
   }
 
   @Override

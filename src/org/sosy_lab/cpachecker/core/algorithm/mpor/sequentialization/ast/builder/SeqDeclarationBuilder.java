@@ -8,65 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqDeclarationBuilder {
-
-  public static CFunctionDeclaration buildFunctionDeclarationWithoutParameters(
-      CFunctionType pFunctionType, String pFunctionName) {
-
-    return new CFunctionDeclaration(
-        FileLocation.DUMMY, pFunctionType, pFunctionName, ImmutableList.of(), ImmutableSet.of());
-  }
-
-  public static CVariableDeclaration buildLastThreadDeclaration(CInitializer pInitializer) {
-    return buildVariableDeclaration(
-        true,
-        CNumericTypes.UNSIGNED_INT,
-        SeqIdExpressions.LAST_THREAD.getName(),
-        // the initializer is dependent on the number of threads
-        pInitializer);
-  }
-
-  public static CVariableDeclaration buildNextThreadDeclaration(MPOROptions pOptions) {
-    return buildVariableDeclaration(
-        true,
-        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
-        SeqIdExpressions.NEXT_THREAD.getName(),
-        SeqInitializers.INT_0);
-  }
-
-  public static CVariableDeclaration buildRoundMaxDeclaration(MPOROptions pOptions) {
-    return buildVariableDeclaration(
-        true,
-        pOptions.nondeterminismSigned() ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
-        SeqIdExpressions.ROUND_MAX.getName(),
-        SeqInitializers.INT_0);
-  }
-
-  public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
-    CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildFunctionName(SeqToken.THREAD + pThreadId);
-    return buildFunctionDeclarationWithoutParameters(functionType, functionName);
-  }
 
   public static CVariableDeclaration buildVariableDeclaration(
       boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
@@ -80,37 +29,5 @@ public class SeqDeclarationBuilder {
         pName,
         SeqNameUtil.buildDummyQualifiedName(pName),
         pInitializer);
-  }
-
-  public static ImmutableList<CVariableDeclaration> buildPcDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) {
-
-    ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    if (pOptions.scalarPc()) {
-      // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
-      for (int i = 0; i < pFields.numThreads; i++) {
-        rDeclarations.add(
-            SeqDeclarationBuilder.buildVariableDeclaration(
-                true,
-                CNumericTypes.UNSIGNED_INT,
-                pFields.ghostElements.getPcVariables().getPcLeftHandSide(i).toASTString(),
-                SeqInitializers.getPcInitializer(i == 0)));
-      }
-    } else {
-      // declare int array: pc[] = { 0, -1, ... };
-      ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
-      for (int i = 0; i < pFields.numThreads; i++) {
-        initializers.add(SeqInitializers.getPcInitializer(i == 0));
-      }
-      CInitializerList initializerList =
-          new CInitializerList(FileLocation.DUMMY, initializers.build());
-      rDeclarations.add(
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              true,
-              CArrayType.UNSIGNED_INT_ARRAY,
-              SeqToken.PROGRAM_COUNTER_VARIABLE,
-              initializerList));
-    }
-    return rDeclarations.build();
   }
 }

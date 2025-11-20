@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -68,7 +68,7 @@ public class InputRejection {
   }
 
   /**
-   * Handles input program rejections and throws an {@link IllegalArgumentException} if the input
+   * Handles input program rejections and throws a {@link UnsupportedCodeException} if the input
    * program...
    *
    * <ul>
@@ -92,7 +92,6 @@ public class InputRejection {
     checkRecursiveFunctions(pInputCfa);
   }
 
-  @TerminatesExecution
   private static void rejectCfaEdge(CFAEdge pCfaEdge, InputRejectionMessage pMessage)
       throws UnsupportedCodeException {
 
@@ -101,23 +100,27 @@ public class InputRejection {
         pCfaEdge);
   }
 
-  private static void checkLanguageC(CFA pInputCfa) {
+  private static void checkLanguageC(CFA pInputCfa) throws UnsupportedCodeException {
     Language language = pInputCfa.getMetadata().getInputLanguage();
     if (!language.equals(Language.C)) {
-      throw new IllegalArgumentException(InputRejectionMessage.LANGUAGE_NOT_C.message);
+      throw new UnsupportedCodeException(InputRejectionMessage.LANGUAGE_NOT_C.message, null);
     }
   }
 
-  private static void checkIsParallelProgram(CFA pInputCfa) {
+  private static void checkIsParallelProgram(CFA pInputCfa) throws UnsupportedCodeException {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        isParallel = true;
-        break;
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
+          isParallel = true;
+          break;
+        }
       }
     }
     if (!isParallel) {
-      throw new IllegalArgumentException(InputRejectionMessage.NOT_CONCURRENT.message);
+      throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
     }
   }
 
@@ -138,11 +141,14 @@ public class InputRejection {
   }
 
   private static void checkUnsupportedFunctions(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-        if (!funcType.isSupported) {
-          if (PthreadUtil.isCallToPthreadFunction(edge, funcType)) {
-            rejectCfaEdge(edge, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
+        if (!functionType.isSupported) {
+          Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+          if (functionCall.isPresent()) {
+            if (PthreadUtil.isCallToPthreadFunction(functionCall.orElseThrow(), functionType)) {
+              rejectCfaEdge(cfaEdge, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+            }
           }
         }
       }
@@ -151,10 +157,13 @@ public class InputRejection {
 
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToAnyPthreadFunction(edge)) {
-        if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-          rejectCfaEdge(edge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
+          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+          }
         }
       }
     }
@@ -166,40 +175,47 @@ public class InputRejection {
    */
   private static void checkPthreadCreateLoops(CFA pInputCfa) throws UnsupportedCodeException {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
-          rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToPthreadFunction(
+            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_CREATE)) {
+          if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+          }
         }
       }
     }
   }
 
-  private static void checkRecursiveFunctions(CFA pInputCfa) {
+  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
     for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
       Optional<FunctionExitNode> exit = entry.getExitNode();
       // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
       if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw new IllegalArgumentException(
+        throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
                 entry.getFunction().getFileLocation().getStartingLineInOrigin(),
-                entry.getFunctionName()));
+                entry.getFunctionName()),
+            null);
       }
     }
   }
 
   /** Public, because checking is done in {@link MPORSubstitution}. */
   public static void checkPointerWrite(
-      boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable) {
+      boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable)
+      throws UnsupportedCodeException {
 
     if (pIsWrite) {
       if (!pOptions.allowPointerWrites()) {
         if (pWrittenVariable.getExpressionType() instanceof CPointerType) {
-          throw new IllegalArgumentException(
+          throw new UnsupportedCodeException(
               String.format(
                   InputRejectionMessage.POINTER_WRITE.formatMessage(),
                   pWrittenVariable.getFileLocation().getStartingLineInOrigin(),
-                  pWrittenVariable.toASTString()));
+                  pWrittenVariable.toASTString()),
+              null);
         }
       }
     }

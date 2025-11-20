@@ -36,14 +36,18 @@ class MetadataWriter {
       MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
 
     if (pOptions.outputMetadata()) {
+      Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
+      YAMLMapper yamlMapper = new YAMLMapper();
+      MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
       try {
-        Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
-        YAMLMapper yamlMapper = new YAMLMapper();
-        MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
         yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
-
+        pLogger.log(Level.INFO, "Sequentialization metadata created in: ", metadataPath.toString());
       } catch (IOException e) {
-        pLogger.logUserException(Level.SEVERE, e, "An error occurred while writing metadata.");
+        pLogger.logUserException(
+            Level.WARNING,
+            e,
+            "An error occurred while writing metadata. Sequentialization metadata was not"
+                + " created.");
       }
     }
   }

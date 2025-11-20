@@ -295,8 +295,8 @@ analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
 analysis.algorithm.MPOR.comments = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
-# the number of statements. disabling may result in first statement being
-# unreachable.
+# the number of statements. disabling may result in the first statement being
+# unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # defines the syntax in which the next statement of a thread simulation is
@@ -317,9 +317,6 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # include original type declarations from input file? disabling may result in
 # parse errors for the output program.
 analysis.algorithm.MPOR.inputTypeDeclarations = true
-
-# include CPAchecker license header in the sequentialization?
-analysis.algorithm.MPOR.license = false
 
 # link commuting statements via goto to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
@@ -355,8 +352,8 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 analysis.algorithm.MPOR.outputMetadata = true
 
 # the file name for the sequentialization and metadata. uses the first input
-# file name as default.
-analysis.algorithm.MPOR.outputPath = SeqToken.MPOR_PREFIX + "%s"
+# file name as the default prefix.
+analysis.algorithm.MPOR.outputPath = "%s-sequentialized"
 
 # export the sequentialized program in a .i file?
 analysis.algorithm.MPOR.outputProgram = true
@@ -1192,6 +1189,10 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# define the clang-format command to use, e.g. "clang-format-18" or
+# "clang-format"
+clangFormatter.clangFormatCommand = "clang-format-18"
 
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based

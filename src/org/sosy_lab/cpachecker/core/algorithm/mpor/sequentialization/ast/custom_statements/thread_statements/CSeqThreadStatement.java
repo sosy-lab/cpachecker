@@ -8,16 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
@@ -39,7 +42,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
         SeqLocalVariableDeclarationWithInitializerStatement,
         SeqMutexLockStatement,
         SeqMutexUnlockStatement,
-        SeqParameterAssignmentStatements,
+        SeqParameterAssignmentStatement,
         SeqReachErrorStatement,
         SeqReturnValueAssignmentStatement,
         SeqRwLockRdLockStatement,
@@ -49,7 +52,11 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
         SeqThreadExitStatement,
         SeqThreadJoinStatement {
 
-  final MPOROptions options;
+  /**
+   * The order in which reduction statements inside this {@link CSeqThreadStatement} should be
+   * ordered, specified in the options.
+   */
+  final ReductionOrder reductionOrder;
 
   final ImmutableSet<SubstituteEdge> substituteEdges;
 
@@ -65,20 +72,53 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
 
   final ImmutableList<SeqInjectedStatement> injectedStatements;
 
+  /**
+   * Use this constructor for the initialization, when there is no target goto {@link
+   * SeqBlockLabelStatement} and no {@link SeqInjectedStatement}s.
+   */
   CSeqThreadStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      CLeftHandSide pPcLeftHandSide,
+      Integer pTargetPc) {
+
+    reductionOrder = pReductionOrder;
+    substituteEdges = pSubstituteEdges;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
+    injectedStatements = ImmutableList.of();
+  }
+
+  /**
+   * Use this constructor to clone with target pc, target goto {@link SeqBlockLabelStatement}, or
+   * {@link SeqInjectedStatement}s.
+   */
+  CSeqThreadStatement(
+      ReductionOrder pReductionOrder,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    options = pOptions;
+    checkArgument(
+        pTargetPc.isPresent() || pTargetGoto.isPresent(),
+        "Either pTargetPc or pTargetGoto must be present.");
+    reductionOrder = pReductionOrder;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
+  }
+
+  /**
+   * Returns true if the target {@code pc} is present and not equal to {@link
+   * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
+   */
+  public boolean isTargetPcValid() {
+    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */

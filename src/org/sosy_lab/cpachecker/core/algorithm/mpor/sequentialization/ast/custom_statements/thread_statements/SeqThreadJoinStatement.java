@@ -15,22 +15,24 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public final class SeqThreadJoinStatement extends CSeqThreadStatement {
@@ -40,26 +42,20 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   private final CBinaryExpression joinedThreadNotActive;
 
   SeqThreadJoinStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       Optional<CIdExpression> pJoinedThreadExitVariable,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       CBinaryExpression pJoinedThreadNotActive,
       CLeftHandSide pPcLeftHandSide) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     joinedThreadNotActive = pJoinedThreadNotActive;
   }
 
   private SeqThreadJoinStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       Optional<CIdExpression> pJoinedThreadExitVariable,
       CBinaryExpression pJoinedThreadActive,
       CLeftHandSide pPcLeftHandSide,
@@ -68,34 +64,44 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     joinedThreadNotActive = pJoinedThreadActive;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(joinedThreadNotActive);
+    CFunctionCallStatement assumeCall =
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(joinedThreadNotActive);
     String returnValueRead =
         buildReturnValueRead(joinedThreadExitVariable, substituteEdges)
             .orElse(SeqSyntax.EMPTY_STRING);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return Joiner.on(SeqSyntax.SPACE).join(assumeCall.toASTString(), returnValueRead, injected);
   }
 
   private static Optional<String> buildReturnValueRead(
       Optional<CIdExpression> pJoinedThreadExitVariable,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges) {
+      ImmutableSet<SubstituteEdge> pSubstituteEdges)
+      throws UnsupportedCodeException {
 
     if (pJoinedThreadExitVariable.isPresent()) {
       SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
-      int index =
+      int returnValueIndex =
           PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
+      CFunctionCall functionCall =
+          PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
       CExpression returnValueParameter =
-          CFAUtils.tryGetParameterAtIndex(substituteEdge.cfaEdge, index).orElseThrow();
+          functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
       if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
         // extract retval from unary expression &retval
         if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
@@ -106,7 +112,9 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
             return Optional.of(assignment.toASTString());
           } else {
             // just in case
-            throw new IllegalArgumentException("pthread_join retval must be CIdExpression");
+            throw new UnsupportedCodeException(
+                "pthread_join retval must be CIdExpression, got " + unaryExpression.toASTString(),
+                null);
           }
         }
       }
@@ -117,7 +125,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   @Override
   public SeqThreadJoinStatement withTargetPc(int pTargetPc) {
     return new SeqThreadJoinStatement(
-        options,
+        reductionOrder,
         joinedThreadExitVariable,
         joinedThreadNotActive,
         pcLeftHandSide,
@@ -130,7 +138,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadJoinStatement(
-        options,
+        reductionOrder,
         joinedThreadExitVariable,
         joinedThreadNotActive,
         pcLeftHandSide,
@@ -145,7 +153,7 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
-        options,
+        reductionOrder,
         joinedThreadExitVariable,
         joinedThreadNotActive,
         pcLeftHandSide,

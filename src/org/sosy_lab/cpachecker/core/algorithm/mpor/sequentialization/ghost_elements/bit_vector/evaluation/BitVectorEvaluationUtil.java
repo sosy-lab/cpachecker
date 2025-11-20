@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -19,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -53,27 +54,17 @@ public class BitVectorEvaluationUtil {
 
   // Conjunction and Disjunction ===================================================================
 
-  /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
-  static Optional<BitVectorEvaluationExpression> buildSparseLogicalDisjunction(
+  /**
+   * Creates a logical conjunction of the given terms: {@code A || B || C ...} or returns {@link
+   * Optional#empty()} if {@code pTerms} is empty.
+   */
+  static Optional<BitVectorEvaluationExpression> tryBuildSparseLogicalDisjunction(
       ImmutableList<ExpressionTree<CExpression>> pTerms) {
 
     if (pTerms.isEmpty()) {
       return Optional.empty();
     }
-    return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction(pTerms)));
-  }
-
-  static <LeafType> Optional<ExpressionTree<LeafType>> tryLogicalDisjunction(
-      ImmutableList<ExpressionTree<LeafType>> pTerms) {
-
-    return pTerms.isEmpty() ? Optional.empty() : Optional.of(Or.of(pTerms));
-  }
-
-  /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */
-  static <LeafType> ExpressionTree<LeafType> logicalDisjunction(
-      ImmutableList<ExpressionTree<LeafType>> pTerms) {
-
-    return Or.of(pTerms);
+    return Optional.of(new BitVectorEvaluationExpression(Or.of(pTerms)));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
@@ -82,8 +73,25 @@ public class BitVectorEvaluationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return SeqExpressionBuilder.nestBinaryExpressions(
+    return nestBinaryExpressions(
         pDisjunctionTerms, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+  }
+
+  private static CExpression nestBinaryExpressions(
+      ImmutableCollection<CExpression> pAllExpressions,
+      BinaryOperator pBinaryOperator,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
+
+    CExpression rNested = pAllExpressions.iterator().next();
+    for (CExpression next : pAllExpressions) {
+      if (!next.equals(rNested)) {
+        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
+      }
+    }
+    return rNested;
   }
 
   // Nest Expressions ==============================================================================

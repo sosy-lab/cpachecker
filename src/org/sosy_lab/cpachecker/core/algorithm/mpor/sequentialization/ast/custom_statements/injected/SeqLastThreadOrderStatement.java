@@ -17,23 +17,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqConflictOrderStatement(
+public record SeqLastThreadOrderStatement(
     MPORThread activeThread,
     Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation,
     CBinaryExpressionBuilder binaryExpressionBuilder)
     implements SeqInjectedStatement {
 
-  public SeqConflictOrderStatement {
-    checkArgument(!activeThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
+  public SeqLastThreadOrderStatement {
+    checkArgument(
+        !activeThread.isMain(), "cannot build SeqLastThreadOrderStatement for main thread");
   }
 
   @Override
@@ -49,11 +49,12 @@ public record SeqConflictOrderStatement(
     final String ifBlock;
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
-      ifBlock = SeqFunctionCallExpressions.ABORT.toASTString();
+      ifBlock = SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT.toASTString();
     } else {
       // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
       ifBlock =
-          SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.orElseThrow().expression());
+          SeqAssumeFunction.buildAssumeFunctionCallStatement(
+              lastBitVectorEvaluation.orElseThrow().expression());
     }
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));

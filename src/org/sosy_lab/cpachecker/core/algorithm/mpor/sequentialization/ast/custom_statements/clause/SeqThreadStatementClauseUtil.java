@@ -19,21 +19,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import java.util.ArrayDeque;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
@@ -43,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -138,8 +135,8 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * Ensures that all {@code int} labels in {@code pClauses} are numbered consecutively, i.e. the
-   * numbers {@code 0} to {@code pClauses.size() - 1} are present (no gaps).
+   * Ensures that all {@code int} labels in {@code clauses} are numbered consecutively, i.e. the
+   * numbers {@code 0} to {@code clauses.size() - 1} are present (no gaps).
    *
    * <p>This function also recursively searches for all target {@code pc} and adjusts them
    * accordingly.
@@ -185,7 +182,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = Sequentialization.INIT_PC;
+    int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         rLabelToIndex.put(block.getLabel().number(), index++);
@@ -198,7 +195,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = Sequentialization.INIT_PC;
+    int index = ProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.labelNumber, index++);
     }
@@ -210,7 +207,7 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, Integer> pLabelBlockMap,
       final ImmutableMap<Integer, Integer> pLabelClauseMap) {
 
-    if (isValidTargetPc(pCurrentStatement.getTargetPc())) {
+    if (pCurrentStatement.isTargetPcValid()) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       // for pc writes, use clause labels
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -256,16 +253,6 @@ public class SeqThreadStatementClauseUtil {
     return rNewInjected.build();
   }
 
-  public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {
-    if (pTargetPc.isPresent()) {
-      int targetPc = pTargetPc.orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   // Loops =========================================================================================
 
   /**
@@ -303,6 +290,10 @@ public class SeqThreadStatementClauseUtil {
 
   // No Backward Goto ==============================================================================
 
+  /**
+   * Removes backward goto, e.g. {@code goto label;} where {@code label:} is in a lower line of code
+   * i.e. higher up in the program. This is done by reordering blocks via a dependence graph.
+   */
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
@@ -349,7 +340,7 @@ public class SeqThreadStatementClauseUtil {
     for (CSeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
-        if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
+        if (targetNumber.orElseThrow() != ProgramCounterVariables.EXIT_PC) {
           SeqThreadStatementBlock targetBlock =
               Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
           // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph
@@ -378,20 +369,12 @@ public class SeqThreadStatementClauseUtil {
     if (pBlock.equals(pTarget)) {
       return false;
     }
-    // check if pBlock is reachable when starting in pTarget
-    Deque<SeqThreadStatementBlock> stack = new ArrayDeque<>();
-    Set<SeqThreadStatementBlock> visited = new HashSet<>();
-    stack.push(pTarget);
-    while (!stack.isEmpty()) {
-      SeqThreadStatementBlock current = stack.pop();
-      if (visited.add(current)) {
-        if (current.equals(pBlock)) {
-          // Path exists: adding edge creates a cycle
-          return false;
-        }
-        for (SeqThreadStatementBlock successor : pGraph.get(current)) {
-          stack.push(successor);
-        }
+    // Build a Traverser that walks through successors from the multimap
+    Traverser<SeqThreadStatementBlock> traverser = Traverser.forGraph(pGraph::get);
+    // Check reachability: if pBlock is reachable from pTarget => cycle
+    for (SeqThreadStatementBlock node : traverser.depthFirstPreOrder(pTarget)) {
+      if (node.equals(pBlock)) {
+        return false;
       }
     }
     // no path from pBlock to pTarget

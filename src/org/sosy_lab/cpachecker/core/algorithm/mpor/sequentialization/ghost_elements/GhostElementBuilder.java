@@ -30,46 +30,54 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class GhostElementBuilder {
+public record GhostElementBuilder(
+    MPOROptions options,
+    ImmutableList<MPORThread> threads,
+    ImmutableList<MPORSubstitution> substitutions,
+    ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    Optional<MemoryModel> memoryModel,
+    CBinaryExpressionBuilder binaryExpressionBuilder) {
 
-  public static GhostElements buildGhostElements(
-      MPOROptions pOptions,
-      ImmutableList<MPORThread> pThreads,
-      ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
-      Optional<MemoryModel> pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
+  public GhostElements buildGhostElements() throws UnrecognizedCodeException {
     Optional<BitVectorVariables> bitVectorVariables =
-        BitVectorBuilder.buildBitVectorVariables(
-            pOptions, pThreads, pSubstituteEdges, pMemoryModel);
+        options.isAnyBitVectorReductionEnabled()
+            ? new BitVectorBuilder(options, threads, substituteEdges, memoryModel.orElseThrow())
+                .buildBitVectorVariables()
+            : Optional.empty();
+
+    FunctionStatementBuilder functionStatementBuilder =
+        new FunctionStatementBuilder(threads, substitutions, substituteEdges);
     ImmutableMap<MPORThread, FunctionStatements> functionStatements =
-        FunctionStatementBuilder.buildFunctionStatements(
-            pThreads, pSubstitutions, pSubstituteEdges);
+        functionStatementBuilder.buildFunctionStatements();
+
+    ProgramCounterVariableBuilder pcVariableBuilder =
+        new ProgramCounterVariableBuilder(
+            options.scalarPc(),
+            options.nondeterminismSource(),
+            threads.size(),
+            binaryExpressionBuilder);
     ProgramCounterVariables programCounterVariables =
-        ProgramCounterVariableBuilder.buildProgramCounterVariables(
-            pOptions, pThreads.size(), pBinaryExpressionBuilder);
-    ThreadSyncFlags threadSyncFlags =
-        ThreadSyncFlagsBuilder.buildThreadSyncFlags(pOptions, pThreads, pBinaryExpressionBuilder);
+        pcVariableBuilder.buildProgramCounterVariables();
+
+    ThreadSyncFlagsBuilder threadSyncFlagsBuilder =
+        new ThreadSyncFlagsBuilder(options, threads, binaryExpressionBuilder);
+    ThreadSyncFlags threadSyncFlags = threadSyncFlagsBuilder.buildThreadSyncFlags();
 
     return new GhostElements(
         bitVectorVariables,
         functionStatements,
         programCounterVariables,
-        buildThreadLabels(pOptions, pThreads),
+        buildThreadLabels(),
         threadSyncFlags);
   }
 
-  private static ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
-
-    if (!pOptions.isThreadLabelRequired()) {
+  private ImmutableMap<MPORThread, SeqThreadLabelStatement> buildThreadLabels() {
+    if (!options.isThreadLabelRequired()) {
       return ImmutableMap.of();
     }
     ImmutableMap.Builder<MPORThread, SeqThreadLabelStatement> rLabels = ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildThreadPrefix(pOptions, thread.id());
+    for (MPORThread thread : threads) {
+      String name = SeqNameUtil.buildThreadPrefix(options, thread.id());
       rLabels.put(thread, new SeqThreadLabelStatement(name));
     }
     return rLabels.buildOrThrow();

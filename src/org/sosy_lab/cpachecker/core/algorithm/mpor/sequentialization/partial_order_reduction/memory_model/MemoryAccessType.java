@@ -9,14 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public enum MemoryAccessType {
   NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
   /** For both read and write. */
-  ACCESS(SeqToken.ACCESS_BIT_VECTOR_PREFIX, SeqToken.ACCESS),
-  READ(SeqToken.READ_BIT_VECTOR_PREFIX, SeqToken.READ),
-  WRITE(SeqToken.WRITE_BIT_VECTOR_PREFIX, SeqToken.WRITE);
+  ACCESS("a", "ACCESS"),
+  READ("r", "READ"),
+  WRITE("w", "WRITE");
 
   public final String shortName;
 

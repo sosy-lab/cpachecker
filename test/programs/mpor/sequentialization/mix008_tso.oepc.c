@@ -1,10 +1,11 @@
 // This file is part of the SV-Benchmarks collection of verification tasks:
 // https://github.com/sosy-lab/sv-benchmarks
 //
-// SPDX-FileCopyrightText: 2015-2016 Daniel Liew <dan@su-root.co.uk>
-// SPDX-FileCopyrightText: 2015-2020 The SV-Benchmarks Community
+// SPDX-FileCopyrightText: 2001-2016, Daniel Kroening, Edmund Clarke
+// SPDX-FileCopyrightText: Computer Science Department, Carnegie Mellon University
+// SPDX-FileCopyrightText: Computer Science Department, University of Oxford
 //
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-BSD-4-Clause-CBMC
 
 extern void abort(void);
 void assume_abort_if_not(int cond) {

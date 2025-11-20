@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -57,7 +56,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
@@ -83,7 +81,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarPc", "false")
@@ -102,7 +99,6 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.loopIterations", "42")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -126,7 +122,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.loopIterations", "1")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -153,7 +148,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption(
@@ -177,7 +171,6 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.loopIterations", "7")
             .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
@@ -194,8 +187,7 @@ public class SequentializationParseTest {
   public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
     // this program is ... very large
     Path path =
-        Path.of(
-            "./test/programs/mpor/sequentialization/pthread-wmm/mix014_power.oepc_pso.oepc_rmo.oepc.c");
+        Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
@@ -227,7 +219,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.linkReduction", "false")
             .setOption("analysis.algorithm.MPOR.loopIterations", "2000000000")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
@@ -251,7 +242,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
@@ -278,7 +268,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.license", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
@@ -306,6 +295,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables", "true")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
@@ -377,22 +367,27 @@ public class SequentializationParseTest {
   private String buildTestOutputProgram(
       MPOROptions pOptions,
       Path pInputFilePath,
+      Configuration pConfiguration,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger)
       throws Exception {
 
     CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
-    return Sequentialization.tryBuildProgramString(
-        pOptions, cfa, "test", pLogger, pShutdownNotifier);
+    SequentializationUtils utils =
+        SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
+    return Sequentialization.tryBuildProgramString(pOptions, cfa, utils);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
+    Configuration configuration = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
     // create two sequentializations A, B of the same input program with the same option
-    String programA = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
-    String programB = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
+    String programA =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
+    String programB =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
 
     // test that the output programs of A, B are equal
     // (this does not imply that our algorithm is deterministic)
@@ -400,6 +395,8 @@ public class SequentializationParseTest {
     // test if program A parses (which implies that program B parses too)
     testParse(programA, logger, shutdownNotifier);
   }
+
+  private static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
@@ -413,8 +410,7 @@ public class SequentializationParseTest {
       String lineA = linesA.get(i);
       String lineB = linesB.get(i);
       // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
-      if (!lineA.contains(SeqToken.ANON_TYPE_KEYWORD)
-          && !lineB.contains(SeqToken.ANON_TYPE_KEYWORD)) {
+      if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
         assertWithMessage(
                 "lineA, lineB with number "
                     + (i + Sequentialization.FIRST_LINE)

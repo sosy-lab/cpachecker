@@ -12,10 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -24,36 +24,36 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
 
   SeqAtomicBeginStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(
-        pOptions,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
   }
 
   private SeqAtomicBeginStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
@@ -63,7 +63,7 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
   @Override
   public SeqAtomicBeginStatement withTargetPc(int pTargetPc) {
     return new SeqAtomicBeginStatement(
-        options,
+        reductionOrder,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -74,7 +74,7 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAtomicBeginStatement(
-        options,
+        reductionOrder,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -87,7 +87,7 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicBeginStatement(
-        options, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
+        reductionOrder, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

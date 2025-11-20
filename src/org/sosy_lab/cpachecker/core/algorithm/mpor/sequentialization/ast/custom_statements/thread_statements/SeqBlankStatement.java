@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -25,24 +25,19 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public final class SeqBlankStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
-  SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-    super(
-        pOptions,
-        ImmutableSet.of(),
-        pPcLeftHandSide,
-        Optional.of(pTargetPc),
-        Optional.empty(),
-        ImmutableList.of());
+  public SeqBlankStatement(
+      ReductionOrder pReductionOrder, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    super(pReductionOrder, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
   }
 
   private SeqBlankStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     super(
-        pOptions,
+        pReductionOrder,
         ImmutableSet.of(),
         pPcLeftHandSide,
         pTargetPc,
@@ -53,13 +48,13 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     return SeqThreadStatementUtil.buildInjectedStatementsString(
-        options, pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
+        reductionOrder, pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }
 
   @Override
   public SeqBlankStatement withTargetPc(int pTargetPc) {
     return new SeqBlankStatement(
-        options, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
+        reductionOrder, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
   @Override

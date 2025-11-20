@@ -12,20 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqFunctionDeclarations {
-
-  public static final CFunctionDeclaration ABORT =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.ABORT,
-          SeqToken.ABORT_FUNCTION_NAME,
-          ImmutableList.of(),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
 
   public static final CFunctionDeclaration VERIFIER_NONDET_INT =
       new CFunctionDeclaration(
@@ -43,50 +32,11 @@ public class SeqFunctionDeclarations {
           ImmutableList.of(),
           ImmutableSet.of());
 
-  public static final CFunctionDeclaration REACH_ERROR =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.REACH_ERROR,
-          SeqToken.REACH_ERROR_FUNCTION_NAME,
-          ImmutableList.of(
-              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
-              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
-              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
-
-  public static final CFunctionDeclaration ASSERT_FAIL =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.ASSERT_FAIL,
-          SeqToken.ASSERT_FAIL_FUNCTION_NAME,
-          ImmutableList.of(
-              SeqParameterDeclarations.ASSERTION_PARAMETER_ASSERT_FAIL,
-              SeqParameterDeclarations.FILE_PARAMETER_ASSERT_FAIL,
-              SeqParameterDeclarations.LINE_PARAMETER_ASSERT_FAIL,
-              SeqParameterDeclarations.FUNCTION_PARAMETER_ASSERT_FAIL),
-          ImmutableSet.of(FunctionAttribute.NO_RETURN));
-
-  public static final CFunctionDeclaration ASSUME =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.ASSUME,
-          SeqNameUtil.buildFunctionName(SeqToken.ASSUME_FUNCTION_NAME),
-          ImmutableList.of(SeqParameterDeclarations.COND_PARAMETER_ASSUME),
-          ImmutableSet.of());
-
-  public static final CFunctionDeclaration MAIN =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          SeqFunctionTypes.MAIN,
-          SeqToken.MAIN_FUNCTION_KEYWORD,
-          ImmutableList.of(),
-          ImmutableSet.of());
-
   public static final CFunctionDeclaration MALLOC =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           SeqFunctionTypes.MALLOC,
-          SeqToken.MALLOC_FUNCTION_KEYWORD,
-          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
+          "malloc",
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_MALLOC),
           ImmutableSet.of());
 }

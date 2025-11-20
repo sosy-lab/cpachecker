@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -53,7 +52,8 @@ public record SeqSwitchStatement(
     for (var entry : statements.entrySet()) {
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
-      String breakSuffix = buildBreakSuffix(statement);
+      // this may be overridden by e.g. 'continue;' in the statement, but it is safer to always add
+      String breakSuffix = "break" + SeqSyntax.SEMICOLON;
       switchCase.add(casePrefix + statement.toASTString() + breakSuffix);
     }
     switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
@@ -66,13 +66,6 @@ public record SeqSwitchStatement(
   }
 
   private static String buildCasePrefix(CExpression pExpression) {
-    return SeqToken.CASE_KEYWORD + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
-  }
-
-  private static String buildBreakSuffix(SeqStatement pStatement) {
-    if (pStatement instanceof SeqSwitchStatement) {
-      return SeqSyntax.SPACE + SeqToken.BREAK_KEYWORD + SeqSyntax.SEMICOLON;
-    }
-    return SeqSyntax.EMPTY_STRING;
+    return "case" + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
   }
 }

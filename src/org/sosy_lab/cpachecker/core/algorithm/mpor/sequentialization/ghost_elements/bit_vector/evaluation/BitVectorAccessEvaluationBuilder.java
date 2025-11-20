@@ -13,6 +13,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 
 class BitVectorAccessEvaluationBuilder {
 
@@ -166,18 +170,17 @@ class BitVectorAccessEvaluationBuilder {
       SeqMemoryLocation memoryLocation = entry.getKey();
       // if the LHS is 0, then the entire && expression is 0 -> prune
       if (pDirectMemoryLocations.contains(memoryLocation)) {
+        ImmutableList<CExpression> sparseBitVectors = pSparseBitVectorMap.get(memoryLocation);
         // if the LHS is 1, check if any expression exists for the RHS
-        if (!pSparseBitVectorMap.get(memoryLocation).isEmpty()) {
+        if (!sparseBitVectors.isEmpty()) {
           // simplify A && (B || C || ...) to just (B || C || ...)
           ExpressionTree<CExpression> logicalDisjunction =
-              BitVectorEvaluationUtil.logicalDisjunction(
-                  transformedImmutableListCopy(
-                      pSparseBitVectorMap.get(memoryLocation), LeafExpression::of));
+              Or.of(transformedImmutableListCopy(sparseBitVectors, LeafExpression::of));
           sparseExpressions.add(logicalDisjunction);
         }
       }
     }
-    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
+    return BitVectorEvaluationUtil.tryBuildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   private static Optional<BitVectorEvaluationExpression> buildFullSparseEvaluation(
@@ -201,9 +204,7 @@ class BitVectorAccessEvaluationBuilder {
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    ExpressionTree<CExpression> logicalDisjunction =
-        BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
-    return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction));
+    return Optional.of(new BitVectorEvaluationExpression(Or.of(sparseExpressions.build())));
   }
 
   /**
@@ -218,22 +219,20 @@ class BitVectorAccessEvaluationBuilder {
     ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectorMap =
         BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
             pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
-    ImmutableList.Builder<ExpressionTree<CExpression>> sparseExpressions = ImmutableList.builder();
+    List<ExpressionTree<CExpression>> sparseExpressions = new ArrayList<>();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CIdExpression directBitVector =
           entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread);
       ExpressionTree<CExpression> logicalAnd =
           buildSingleSparseLogicalAndExpression(
-              sparseBitVectorMap, directBitVector, entry.getKey());
+              sparseBitVectorMap, Objects.requireNonNull(directBitVector), entry.getKey());
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
-    Optional<ExpressionTree<CExpression>> logicalDisjunction =
-        BitVectorEvaluationUtil.tryLogicalDisjunction(sparseExpressions.build());
-    if (logicalDisjunction.isEmpty()) {
+    if (sparseExpressions.isEmpty()) {
       return Optional.empty();
     } else {
-      return Optional.of(new BitVectorEvaluationExpression(logicalDisjunction.orElseThrow()));
+      return Optional.of(new BitVectorEvaluationExpression(Or.of(sparseExpressions)));
     }
   }
 
@@ -249,8 +248,7 @@ class BitVectorAccessEvaluationBuilder {
       return LeafExpression.of(pDirectBitVector);
     }
     ExpressionTree<CExpression> disjunction =
-        BitVectorEvaluationUtil.logicalDisjunction(
-            transformedImmutableListCopy(sparseBitVectors, LeafExpression::of));
+        Or.of(transformedImmutableListCopy(sparseBitVectors, LeafExpression::of));
     // create logical and -> (A && (B || C || ...))
     return And.of(LeafExpression.of(pDirectBitVector), disjunction);
   }

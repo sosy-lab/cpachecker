@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.file.Path;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -20,9 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
@@ -33,13 +32,11 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  */
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
+  private final CFA cfa;
+
   private final MPOROptions options;
 
-  private final LogManager logger;
-
-  private final ShutdownNotifier shutdownNotifier;
-
-  private final CFA cfa;
+  private final SequentializationUtils utils;
 
   public MPORAlgorithm(
       Configuration pConfiguration,
@@ -51,9 +48,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // the options are not null when unit testing
     options = pOptions != null ? pOptions : new MPOROptions(pConfiguration);
-    logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
     cfa = pInputCfa;
+    utils = SequentializationUtils.of(cfa, pConfiguration, pLogManager, pShutdownNotifier);
     InputRejection.handleRejections(cfa);
   }
 
@@ -62,18 +58,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   public AlgorithmStatus run(@Nullable ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
 
-    String sequentializedProgram = buildSequentializedProgram();
-    MPORWriter.write(options, sequentializedProgram, cfa.getFileNames(), logger);
+    String sequentializedProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
+    MPORWriter.write(options, sequentializedProgram, cfa.getFileNames(), utils.logger());
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
-  }
-
-  public String buildSequentializedProgram()
-      throws UnrecognizedCodeException, InterruptedException {
-
-    // just use the first input file name for naming purposes
-    Path firstInputFilePath = cfa.getFileNames().getFirst();
-    String inputFileName = firstInputFilePath.toString();
-    return Sequentialization.tryBuildProgramString(
-        options, cfa, inputFileName, logger, shutdownNotifier);
   }
 }

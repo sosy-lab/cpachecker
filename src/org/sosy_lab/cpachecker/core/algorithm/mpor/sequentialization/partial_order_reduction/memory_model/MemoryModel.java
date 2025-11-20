@@ -17,9 +17,12 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * A class to keep track of all memory locations in the concurrent input program, including pointers
@@ -59,15 +62,22 @@ public class MemoryModel {
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
   MemoryModel(
+      MPOROptions pOptions,
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
-    checkArguments(pPointerAssignments, pParameterAssignments, pPointerParameterAssignments);
+    checkArguments(
+        pOptions,
+        pRelevantMemoryLocationIds,
+        pPointerAssignments,
+        pParameterAssignments,
+        pPointerParameterAssignments);
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -79,9 +89,23 @@ public class MemoryModel {
   }
 
   private static void checkArguments(
+      MPOROptions pOptions,
+      ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments)
+      throws UnsupportedCodeException {
+
+    if (pOptions.bitVectorEncoding().isDense) {
+      if (pRelevantMemoryLocationIds.size() > BitVectorUtil.MAX_BINARY_LENGTH) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "The input program contains too many relevant memory locations (> %s). Try setting"
+                    + " bitVectorEncoding=SPARSE.",
+                BitVectorUtil.MAX_BINARY_LENGTH),
+            null);
+      }
+    }
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
@@ -101,6 +125,7 @@ public class MemoryModel {
             memoryLocation.declaration.getType());
       }
     }
+
     // check that pointer assignments contains all pointer parameter assignments (i.e. subset)
     for (var entry : pPointerParameterAssignments.entrySet()) {
       checkArgument(
