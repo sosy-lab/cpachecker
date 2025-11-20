@@ -530,7 +530,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     // TODO: It may be worthwhile to refactor this into the CFA
     ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
         FluentIterable.from(cfa.edges())
-            .index(edge -> edge.getFileLocation().getStartingLineNumber());
+            .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
 
     Integer followLine = follow.getLocation().getLine();
     Optional<Integer> followColumn = follow.getLocation().getColumn();
