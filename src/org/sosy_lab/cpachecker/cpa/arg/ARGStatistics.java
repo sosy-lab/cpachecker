@@ -12,9 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -78,6 +76,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
@@ -485,26 +484,8 @@ public class ARGStatistics implements Statistics {
         if (argToSvLibWitnessWriter != null && svLibCorrectnessWitnessPath != null) {
           List<SvLibAnnotateTagCommand> witnessCommands =
               argToSvLibWitnessWriter.generateWitnessCommands(rootState);
-
-          // The catch block was not triggered, so we can proceed to write the witness
-          if (witnessCommands != null) {
-            String witnessContent =
-                Joiner.on(System.lineSeparator())
-                    .join(
-                        FluentIterable.from(witnessCommands)
-                            .transform(SvLibAnnotateTagCommand::toASTString));
-            try (Writer writer =
-                IO.openOutputFile(svLibCorrectnessWitnessPath, Charset.defaultCharset())) {
-              writer.write(witnessContent);
-            } catch (IOException e) {
-              logger.logUserException(
-                  Level.WARNING,
-                  e,
-                  "Could not write the SV-LIB correctness witness to file: "
-                      + svLibCorrectnessWitnessPath
-                      + ". Therefore no SV-LIB witness will be exported.");
-            }
-          }
+          WitnessExportUtils.writeCommandsAsWitness(
+              svLibCorrectnessWitnessPath, witnessCommands, logger);
         }
 
         if (proofWitness != null || proofWitnessDot != null) {

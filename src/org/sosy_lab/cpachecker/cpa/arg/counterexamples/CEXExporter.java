@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -66,6 +65,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.CounterexampleToSvLibWitnessExport;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
@@ -206,19 +206,7 @@ public class CEXExporter {
     if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
       List<SvLibCommand> witnessCommands =
           cexToSvLibWitness.generateWitnessCommands(counterexample);
-      String witnessContent =
-          Joiner.on(System.lineSeparator())
-              .join(FluentIterable.from(witnessCommands).transform(SvLibCommand::toASTString));
-      try (Writer writer = IO.openOutputFile(svLibWitnessOutputPath, Charset.defaultCharset())) {
-        writer.write(witnessContent);
-      } catch (IOException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Could not write the SV-LIB violation witness to file: "
-                + svLibWitnessOutputPath
-                + ". Therefore no SV-LIB witness will be exported.");
-      }
+      WitnessExportUtils.writeCommandsAsWitness(svLibWitnessOutputPath, witnessCommands, logger);
     }
 
     if (exportFaults
