@@ -309,7 +309,7 @@ public class ValueAnalysisTransferRelation
   @LazyInit private Random randomSampler = null;
 
   // Functions that we know are safe to ignore
-  private final Set<String> ignoredUnsupportedFunctions =
+  private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
       ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
 
   public ValueAnalysisTransferRelation(
@@ -919,7 +919,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private boolean isAllowedUnsupportedOption(String pFunc) {
-    return ignoredUnsupportedFunctions.contains(pFunc)
+    return IGNORED_UNSUPPORTED_FUNCTIONS.contains(pFunc)
         || options.isUserDefinedAllowedUnsupportedFunction(pFunc);
   }
 
