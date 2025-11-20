@@ -74,12 +74,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class CParserUtils {
 
@@ -245,11 +247,18 @@ public class CParserUtils {
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
-      if (tree instanceof LeafExpression) {
-        LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
+      if (tree instanceof LeafExpression<AExpression> leaf) {
         AExpression expression = leaf.getExpression();
         if (expression instanceof CExpression cExpression) {
-          result.add(new CExpressionStatement(FileLocation.DUMMY, cExpression));
+          ToCExpressionVisitor toCExpressionVisitor =
+              new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
+
+          try {
+            result.add(
+                new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+          } catch (UnrecognizedCodeException pE) {
+            fallBack = true;
+          }
         } else {
           fallBack = true;
         }
