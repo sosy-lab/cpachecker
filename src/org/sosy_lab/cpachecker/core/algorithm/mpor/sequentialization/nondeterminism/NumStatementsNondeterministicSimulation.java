@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqCountUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
@@ -73,7 +74,11 @@ record NumStatementsNondeterministicSimulation(
     StringBuilder rLines = new StringBuilder();
 
     // add "T{thread_id}: label", if present
-    Optional.ofNullable(ghostElements.threadLabels().get(pActiveThread)).ifPresent(rLines::append);
+    Optional<SeqThreadLabelStatement> threadLabel =
+        Optional.ofNullable(ghostElements.threadLabels().get(pActiveThread));
+    if (threadLabel.isPresent()) {
+      rLines.append(threadLabel.orElseThrow().toASTString());
+    }
 
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =

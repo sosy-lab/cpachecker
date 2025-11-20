@@ -81,7 +81,8 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
+        if (BitVectorUtil.isAccessReachPairNeeded(
+            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
           rAssignments.addAll(
               buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
         }
@@ -102,7 +103,8 @@ public record BitVectorAssignmentInjector(
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (MemoryAccessType accessType : MemoryAccessType.values()) {
       for (ReachType reachType : ReachType.values()) {
-        if (BitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
+        if (BitVectorUtil.isAccessReachPairNeeded(
+            options.reduceIgnoreSleep(), options.reductionMode(), accessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
                   labelClauseMap,
@@ -139,13 +141,15 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
+    if (!BitVectorUtil.isAccessReachPairNeeded(
+        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     CIdExpression bitVectorVariable =
         bitVectorVariables.getDenseBitVector(activeThread, pAccessType, pReachType);
     BitVectorValueExpression bitVectorExpression =
-        BitVectorUtil.buildBitVectorExpression(options, memoryModel, pMemoryLocations);
+        BitVectorUtil.buildBitVectorExpression(
+            options.bitVectorEncoding(), memoryModel, pMemoryLocations);
     return ImmutableList.of(
         new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression));
   }
@@ -155,7 +159,8 @@ public record BitVectorAssignmentInjector(
       MemoryAccessType pAccessType,
       ReachType pReachType) {
 
-    if (!BitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType)) {
+    if (!BitVectorUtil.isAccessReachPairNeeded(
+        options.reduceIgnoreSleep(), options.reductionMode(), pAccessType, pReachType)) {
       return ImmutableList.of();
     }
     // use list so that the assignment order is deterministic
