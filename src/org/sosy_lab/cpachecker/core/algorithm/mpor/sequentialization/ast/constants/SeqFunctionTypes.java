@@ -25,6 +25,6 @@ public class SeqFunctionTypes {
   public static final CFunctionTypeWithNames MALLOC =
       new CFunctionTypeWithNames(
           CPointerType.POINTER_TO_VOID,
-          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_MALLOC),
           false);
 }

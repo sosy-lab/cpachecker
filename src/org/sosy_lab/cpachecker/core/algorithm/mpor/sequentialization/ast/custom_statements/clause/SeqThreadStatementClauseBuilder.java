@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -103,11 +104,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : substitutions) {
-      MPORThread thread = substitution.thread;
-      ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
-      Set<CFANodeForThread> coveredNodes = new HashSet<>();
-      clauses.addAll(initClauses(thread, coveredNodes));
-      rClauses.putAll(thread, clauses.build());
+      rClauses.putAll(substitution.thread, initClauses(substitution.thread, new HashSet<>()));
     }
     // only check pc validation, since clauses are not reordered at this point
     SeqValidator.tryValidateProgramCounters(options, rClauses.build());
@@ -140,7 +137,7 @@ public record SeqThreadStatementClauseBuilder(
         reordered.add(nonBlank);
         reordered.addAll(
             clauses.stream()
-                .filter(c -> !c.equals(nonBlank))
+                .filter(clause -> !clause.equals(nonBlank))
                 .collect(ImmutableList.toImmutableList()));
         rReordered.putAll(thread, reordered.build());
       }
@@ -148,9 +145,12 @@ public record SeqThreadStatementClauseBuilder(
     return rReordered.build();
   }
 
-  /** Builds the case clauses for the single thread {@code pThread}. */
+  /**
+   * Builds the case clauses for the single thread {@code pThread}. Visits {@link CFANode}s only
+   * once via {@code pVisitedNodes}.
+   */
   private ImmutableList<SeqThreadStatementClause> initClauses(
-      MPORThread pThread, Set<CFANodeForThread> pCoveredNodes) throws UnsupportedCodeException {
+      MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
@@ -164,9 +164,9 @@ public record SeqThreadStatementClauseBuilder(
             ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),
             ghostElements.getPcVariables());
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
-      if (pCoveredNodes.add(threadNode)) {
+      if (pVisitedNodes.add(threadNode)) {
         rClauses.addAll(
-            buildClausesFromThreadNode(pThread, pCoveredNodes, threadNode, statementBuilder));
+            buildClausesFromThreadNode(pThread, pVisitedNodes, threadNode, statementBuilder));
       }
     }
     return rClauses.build();

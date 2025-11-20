@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -184,8 +183,8 @@ public record ProgramCounterVariableBuilder(
   // Initializer
 
   /**
-   * Returns the {@link CInitializer} for {@link Sequentialization#INIT_PC} for the main thread and
-   * {@link Sequentialization#EXIT_PC} for all other threads.
+   * Returns the {@link CInitializer} for {@link ProgramCounterVariables#INIT_PC} for the main
+   * thread and {@link ProgramCounterVariables#EXIT_PC} for all other threads.
    */
   private static CInitializer getPcInitializer(boolean pIsMainThread) {
     return pIsMainThread ? INIT_PC_INITIALIZER : EXIT_PC_INITIALIZER;

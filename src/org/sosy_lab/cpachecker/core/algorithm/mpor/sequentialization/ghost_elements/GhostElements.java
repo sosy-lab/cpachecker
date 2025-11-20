@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -28,8 +29,7 @@ public record GhostElements(
     ThreadSyncFlags threadSyncFlags) {
 
   public FunctionStatements getFunctionStatementsByThread(MPORThread pThread) {
-    assert functionStatements.containsKey(pThread) : "functionStatements does not contain pThread";
-    return functionStatements.get(pThread);
+    return Objects.requireNonNull(functionStatements.get(pThread));
   }
 
   public ProgramCounterVariables getPcVariables() {
@@ -41,7 +41,6 @@ public record GhostElements(
   }
 
   public SeqThreadLabelStatement getThreadLabelByThread(MPORThread pThread) {
-    assert threadLabels.containsKey(pThread) : "threadLabels does not contain pThread";
-    return threadLabels.get(pThread);
+    return Objects.requireNonNull(threadLabels.get(pThread));
   }
 }

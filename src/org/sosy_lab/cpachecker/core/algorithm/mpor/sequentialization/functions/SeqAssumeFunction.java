@@ -56,7 +56,7 @@ public final class SeqAssumeFunction extends SeqFunction {
 
   // CFunctionDeclaration
 
-  private static final CFunctionDeclaration ASSUME_FUNCTION_DECLARATION =
+  public static final CFunctionDeclaration ASSUME_FUNCTION_DECLARATION =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           ASSUME_FUNCTION_TYPE,

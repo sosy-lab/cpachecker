@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -135,7 +135,7 @@ public final class MPORUtil {
         .getFunctionEntry()
         .getFunction()
         .getOrigName()
-        .equals(SeqReachErrorFunction.NAME);
+        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
   }
 
   private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
@@ -143,7 +143,7 @@ public final class MPORUtil {
         .getFunctionCallExpression()
         .getDeclaration()
         .getOrigName()
-        .equals(SeqReachErrorFunction.NAME);
+        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
   }
 
   // const CPAchecker_TMP ==========================================================================

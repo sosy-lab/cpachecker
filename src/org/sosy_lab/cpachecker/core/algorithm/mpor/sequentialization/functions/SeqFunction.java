@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public abstract sealed class SeqFunction
-    permits SeqAssumeFunction, SeqMainFunction, SeqReachErrorFunction, SeqThreadSimulationFunction {
+    permits SeqAssumeFunction, SeqMainFunction, SeqThreadSimulationFunction {
 
   /**
    * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but

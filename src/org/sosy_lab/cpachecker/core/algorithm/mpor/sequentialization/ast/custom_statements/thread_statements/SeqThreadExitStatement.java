@@ -69,7 +69,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   public SeqThreadExitStatement withTargetPc(int pTargetPc) {
     checkArgument(
         pTargetPc == ProgramCounterVariables.EXIT_PC,
-        "reach_errors should only be cloned with exit pc %s",
+        this.getClass().getSimpleName() + " should only be cloned with exit pc %s",
         ProgramCounterVariables.EXIT_PC);
     return new SeqThreadExitStatement(
         options,

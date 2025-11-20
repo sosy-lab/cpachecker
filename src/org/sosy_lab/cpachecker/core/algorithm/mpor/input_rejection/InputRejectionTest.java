@@ -154,7 +154,7 @@ public class InputRejectionTest {
     UnsupportedCodeException throwable =
         assertThrows(
             UnsupportedCodeException.class,
-            () -> Sequentialization.tryBuildProgramString(customOptions, cfa, "test", utils));
+            () -> Sequentialization.tryBuildProgramString(customOptions, cfa, utils));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage()).contains(expectedMessage);
   }

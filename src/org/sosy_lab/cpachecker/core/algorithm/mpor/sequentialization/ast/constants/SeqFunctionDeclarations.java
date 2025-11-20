@@ -37,6 +37,6 @@ public class SeqFunctionDeclarations {
           FileLocation.DUMMY,
           SeqFunctionTypes.MALLOC,
           "malloc",
-          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_ASSERT_FAIL),
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_MALLOC),
           ImmutableSet.of());
 }

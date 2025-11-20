@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
@@ -275,9 +275,8 @@ public class SequentializationBuilder {
     } else {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rDeclarations.add(SeqReachErrorFunction.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqReachErrorFunction.ASSERT_FAIL_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqReachErrorStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
 
     // malloc is required for valid-memsafety tasks
@@ -302,10 +301,7 @@ public class SequentializationBuilder {
     if (pOptions.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
     }
-    // custom function definitions: reach_error(), assume(), main()
-    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
-    rDefinitions.add(reachError.buildDefinition());
-
+    // custom function definitions: assume(), main()
     CBinaryExpression condEqualsZeroExpression =
         pUtils
             .binaryExpressionBuilder()
@@ -315,7 +311,7 @@ public class SequentializationBuilder {
                 BinaryOperator.EQUALS);
     SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
     rDefinitions.add(assume.buildDefinition());
-    // create separate thread simulation functions, if enabled
+    // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
         rDefinitions.add(threadSimulation.buildDefinition());

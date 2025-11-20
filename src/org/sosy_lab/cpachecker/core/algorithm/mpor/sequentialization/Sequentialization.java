@@ -13,10 +13,7 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -30,37 +27,30 @@ public class Sequentialization {
               + " equivalent",
           "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
 
-  private static final String PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME = "__PRETTY_FUNCTION__";
-
-  public static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_DUMMY =
-      SeqReachErrorFunction.buildReachErrorFunctionCallStatement(
-          "__FILE_NAME_PLACEHOLDER__", -1, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
-
   static final int FIRST_LINE = 1;
 
   public static String tryBuildProgramString(
-      MPOROptions pOptions, CFA pCfa, String pInputFileName, SequentializationUtils pUtils)
+      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
     SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
-    return buildProgramString(pOptions, pInputFileName, fields, pUtils);
+    return buildProgramString(pOptions, fields, pUtils);
   }
 
   private static String buildProgramString(
-      MPOROptions pOptions,
-      String pInputFileName,
-      SequentializationFields pFields,
-      SequentializationUtils pUtils)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
-    String formattedProgram = handleProgramFormatting(pOptions, initProgram, pUtils);
-    // replace dummy reach_errors after formatting so that line numbers are exact
-    String rFinalProgram = replaceDummyReachErrors(pInputFileName, formattedProgram);
-
+    // if enabled, format program
+    String rFormattedProgram =
+        pOptions.clangFormatStyle().isEnabled()
+            ? pUtils.clangFormatter().tryFormat(initProgram, pOptions.clangFormatStyle())
+            : initProgram;
+    // if enabled, test that program can be parsed by CPAchecker
     if (pOptions.validateParse()) {
       try {
-        return SeqValidator.validateProgramParsing(rFinalProgram, pUtils);
+        return SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
       } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
         pUtils
             .logger()
@@ -68,10 +58,10 @@ public class Sequentialization {
                 Level.WARNING, e, "An exception occurred while parsing the sequentialization.");
       }
     }
-    return rFinalProgram;
+    return rFormattedProgram;
   }
 
-  /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
+  /** Initializes and returns the unformatted, sequentialized program. */
   private static String initProgram(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -113,45 +103,5 @@ public class Sequentialization {
     rProgram.add(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
 
     return rProgram.toString();
-  }
-
-  private static String handleProgramFormatting(
-      MPOROptions pOptions, String pProgram, SequentializationUtils pUtils)
-      throws InterruptedException {
-
-    if (pOptions.clangFormatStyle().isEnabled()) {
-      return pUtils.clangFormatter().tryFormat(pProgram, pOptions.clangFormatStyle());
-    }
-    return pProgram;
-  }
-
-  /** Replaces the file name and line in {@code reach_error();} dummies with the actual values. */
-  private static String replaceDummyReachErrors(String pInputFileName, String pInitProgram) {
-    StringJoiner rProgram = new StringJoiner(SeqSyntax.NEWLINE);
-    int currentLine = FIRST_LINE;
-    for (String lineOfCode : SeqStringUtil.splitOnNewline(pInitProgram)) {
-      // replace dummy line numbers (-1) with actual line numbers in the seq
-      rProgram.add(replaceReachErrorDummies(pInputFileName, lineOfCode, currentLine));
-      currentLine++;
-    }
-    return rProgram.toString();
-  }
-
-  /**
-   * Replaces dummy calls to {@code reach_error}, or returns {@code pLineOfCode} as is if there is
-   * none.
-   */
-  private static String replaceReachErrorDummies(
-      String pInputFileName, String pLineOfCode, int pLineNumber) {
-
-    if (pLineOfCode.contains(REACH_ERROR_FUNCTION_CALL_DUMMY.toASTString())) {
-      // reach_error calls from the input program
-      CFunctionCallStatement updatedReachError =
-          SeqReachErrorFunction.buildReachErrorFunctionCallStatement(
-              pInputFileName, pLineNumber, PRETTY_FUNCTION_REACH_ERROR_PARAMETER_NAME);
-      return pLineOfCode.replace(
-          REACH_ERROR_FUNCTION_CALL_DUMMY.toASTString(), updatedReachError.toASTString());
-    }
-    return pLineOfCode;
   }
 }
