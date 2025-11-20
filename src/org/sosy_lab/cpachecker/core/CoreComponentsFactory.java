@@ -21,7 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
@@ -61,7 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -95,8 +94,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
 @Options(prefix = "analysis")
@@ -503,29 +500,15 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
-    // Only sequentialize if not already done and requested.
-    if (useMporPreprocessing) {
-      // We replace the CFA for its sequentialized version.
-      if (alreadySequentialized(cfa)) {
-        logger.log(
-            Level.INFO,
-            "The CFA is already sequentialized. "
-                + "The sequentialization will be ignored. "
-                + "If this is part of a parallel algorithm, this may be expected.");
-      } else {
-        try {
-          cfa = preprocessCfaUsingSequentialization(config, logger, shutdownNotifier, cfa);
-        } catch (UnrecognizedCodeException | ParserException e) {
-          throw new UnsupportedOperationException(e);
-        }
-      }
-    } else {
-      // This can happen if the parallel algorithm requires a sequentialized CFA,
-      // but one of the inner analyses does not require it, and overwrote the option.
-      // In this case we revert to the original CFA.
-      if (alreadySequentialized(cfa)) {
-        cfa = verifyNotNull(cfa.getMetadata().getTransformationMetadata()).originalCfa();
-      }
+    // Allow for deactivating the sequentialization in inner analyses which do not need it.
+    CfaTransformationMetadata transformationMetadata =
+        cfa.getMetadata().getTransformationMetadata();
+    if (!useMporPreprocessing
+        && transformationMetadata != null
+        && transformationMetadata
+            .transformation()
+            .equals(ProgramTransformation.SEQUENTIALIZATION)) {
+      cfa = cfa.getMetadata().getTransformationMetadata().originalCfa();
     }
 
     if (useTerminationAlgorithm) {
@@ -543,35 +526,6 @@ public class CoreComponentsFactory {
     if (checkCounterexamplesWithBDDCPARestriction) {
       checkCounterexamples = true;
     }
-  }
-
-  private boolean alreadySequentialized(CFA pCFA) {
-    CfaTransformationMetadata transformationMetadata =
-        pCFA.getMetadata().getTransformationMetadata();
-    return transformationMetadata != null
-        && transformationMetadata.transformation().equals(ProgramTransformation.SEQUENTIALIZATION);
-  }
-
-  private static CFA preprocessCfaUsingSequentialization(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
-      throws UnrecognizedCodeException,
-          InterruptedException,
-          ParserException,
-          InvalidConfigurationException {
-    CFA originalCfa = pCFA;
-    MPORAlgorithm algorithm = new MPORAlgorithm(pConfig, pLogger, pShutdownNotifier, pCFA, null);
-    String sequentializedCode = algorithm.buildSequentializedProgram();
-    pCFA =
-        new CFACreator(pConfig, pLogger, pShutdownNotifier)
-            .parseSourceAndCreateCFA(sequentializedCode);
-
-    pCFA =
-        pCFA.copyWithMetadata(
-            pCFA.getMetadata()
-                .withTransformationMetadata(
-                    new CfaTransformationMetadata(
-                        originalCfa, ProgramTransformation.SEQUENTIALIZATION)));
-    return pCFA;
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -606,9 +560,21 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
+    CfaTransformationMetadata transformationMetadata =
+        cfa.getMetadata().getTransformationMetadata();
+
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useMporPreprocessing
+        && (transformationMetadata == null
+            || !transformationMetadata
+                .transformation()
+                .equals(ProgramTransformation.SEQUENTIALIZATION))) {
+      // First pre-process everything, and then continue with the normal algorithm
+      algorithm =
+          new MporPreprocessingAlgorithm(
+              config, logger, shutdownNotifier, cfa, aggregatedReachedSetManager, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
