@@ -1614,38 +1614,299 @@ int main() {
     }
 
   }
-
   // __builtin_sadd_overflow, signed int
   {
-
-
-
+    int sIntResult;
+    // 0+0 == 0
+    if (__builtin_sadd_overflow(zero, zero, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != zero) {
+      assert(0);
+      goto ERROR;
+    }
+    // max+0 == max (all signed int) + reversed
+    if (__builtin_sadd_overflow(signedIntMax, zero, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != signedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_sadd_overflow(zero, signedIntMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != signedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    // max+1 == overflow (all signed int) + reversed
+    if (!__builtin_sadd_overflow(signedIntMax, 1, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != INT_MIN) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_sadd_overflow(1, signedIntMax, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != INT_MIN) {
+      assert(0);
+      goto ERROR;
+    }
+    // min+1 == min+1 (all signed int) + reversed
+    if (__builtin_sadd_overflow(signedIntMin, 1, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != signedIntMinPlusOne) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_sadd_overflow(1, signedIntMin, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != signedIntMinPlusOne) {
+      assert(0);
+      goto ERROR;
+    }
+    // INT_MIN-1 == overflow (all signed int)
+    if (!__builtin_sadd_overflow(INT_MIN, -1, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != INT_MAX) {
+      assert(0);
+      goto ERROR;
+    }
+  }
+  // __builtin_sadd_overflow, signed int
+  {
+   int sIntResult;
+   if (__builtin_sadd_overflow(0, 0, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sIntResult != 0) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_sadd_overflow(signedIntMax, 0, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sIntResult != signedIntMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_sadd_overflow(signedIntMax, 1, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sIntResult != INT_MIN) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_sadd_overflow(signedIntMin, 1, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sIntResult != signedIntMinPlusOne) {
+    assert(0);
+    goto ERROR;
+   }
   }
 
   // __builtin_saddl_overflow, signed long
   {
-
+   long sLongResult;
+   if (__builtin_saddl_overflow(0l, 0l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongResult != 0l) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_saddl_overflow(signedLongMax, 0l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongResult != signedLongMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_saddl_overflow(signedLongMax, 1l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongResult != LONG_MIN) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_saddl_overflow(signedLongMin, 1l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongResult != signedLongMinPlusOne) {
+    assert(0);
+    goto ERROR;
+   }
   }
 
-  // __builtin_saddll_overflow, singed long long
+  // __builtin_saddll_overflow, signed long long
   {
-
+   long long sLongLongResult;
+   if (__builtin_saddll_overflow(0ll, 0ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongLongResult != 0ll) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_saddll_overflow(signedLongLongMax, 0ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongLongResult != signedLongLongMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_saddll_overflow(signedLongLongMax, 1ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongLongResult != LONG_MIN) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_saddll_overflow(signedLongLongMin, 1ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (sLongLongResult != signedLongLongMinPlusOne) {
+    assert(0);
+    goto ERROR;
+   }
   }
 
   // __builtin_uadd_overflow, unsigned int
   {
-
+   unsigned int uIntResult;
+   if (__builtin_uadd_overflow(0u, 0u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uIntResult != 0u) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_uadd_overflow(unsignedIntMax, 0u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uIntResult != unsignedIntMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uadd_overflow(unsignedIntMax, 1u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uIntResult != unsignedIntMax + 1u) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uadd_overflow(1u, unsignedIntMax, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uIntResult != unsignedIntMax + 1u) {
+    assert(0);
+    goto ERROR;
+   }
   }
 
   // __builtin_uaddl_overflow, unsigned long
   {
-
+   unsigned long uLongResult;
+   if (__builtin_uaddl_overflow(0ul, 0ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongResult != 0ul) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_uaddl_overflow(unsignedLongMax, 0ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongResult != unsignedLongMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uaddl_overflow(unsignedLongMax, 1ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongResult != unsignedLongMax + 1ul) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uaddl_overflow(1ul, unsignedLongMax, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongResult != unsignedLongMax + 1ul) {
+    assert(0);
+    goto ERROR;
+   }
   }
-
 
   // __builtin_uaddll_overflow, unsigned long long
   {
-
+   unsigned long long uLongLongResult;
+   if (__builtin_uaddll_overflow(0ull, 0ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongLongResult != 0ull) {
+    assert(0);
+    goto ERROR;
+   }
+   if (__builtin_uaddll_overflow(unsignedLongLongMax, 0ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongLongResult != unsignedLongLongMax) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uaddll_overflow(unsignedLongLongMax, 1ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongLongResult != unsignedLongLongMax + 1ull) {
+    assert(0);
+    goto ERROR;
+   }
+   if (!__builtin_uaddll_overflow(1ull, unsignedLongLongMax, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+   }
+   if (uLongLongResult != unsignedLongLongMax + 1ull) {
+    assert(0);
+    goto ERROR;
+   }
   }
 
   // __builtin_sub_overflow(), types can be chosen freely
@@ -1707,40 +1968,228 @@ int main() {
       assert(0);
       goto ERROR;
     }
-
-    
   }
-
-  // __builtin_ssub_overflow
-  {
-
-
+// __builtin_ssub_overflow
+{
+  int sIntResult;
+  if (__builtin_ssub_overflow(zero, zero, &sIntResult)) {
+    assert(0);
+    goto ERROR;
   }
-  
-  // __builtin_ssubl_overflow
-  {
-
+  if (sIntResult != 0) {
+    assert(0);
+    goto ERROR;
   }
-
-  // __builtin_ssubll_overflow
-  {
-
+  if (__builtin_ssub_overflow(signedIntMax, zero, &sIntResult)) {
+    assert(0);
+    goto ERROR;
   }
-
-  // __builtin_usub_overflow
-  {
- 
+  if (sIntResult != signedIntMax) {
+    assert(0);
+    goto ERROR;
   }
-
-  // __builtin_usubl_overflow
-  {
-
+  if (__builtin_ssub_overflow(signedIntMin, zero, &sIntResult)) {
+    assert(0);
+    goto ERROR;
   }
-
-  // __builtin_usubll_overflow
-  {
-
+  if (sIntResult != signedIntMin) {
+    assert(0);
+    goto ERROR;
   }
+  if (__builtin_ssub_overflow(signedIntMin, 1, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sIntResult != INT_MIN) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_ssub_overflow(signedIntMin, 2, &sIntResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sIntResult != signedIntMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
+
+// __builtin_ssubl_overflow
+{
+  long sLongResult;
+  if (__builtin_ssubl_overflow(0l, 0l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongResult != 0l) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubl_overflow(signedLongMax, 0l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongResult != signedLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubl_overflow(signedLongMin, 0l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongResult != signedLongMin) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubl_overflow(signedLongMin, 1l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongResult != LONG_MIN) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_ssubl_overflow(signedLongMin, 2l, &sLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongResult != signedLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
+
+// __builtin_ssubll_overflow
+{
+  long long sLongLongResult;
+  if (__builtin_ssubll_overflow(0ll, 0ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongLongResult != 0ll) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubll_overflow(signedLongLongMax, 0ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongLongResult != signedLongLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubll_overflow(signedLongLongMin, 0ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongLongResult != signedLongLongMin) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_ssubll_overflow(signedLongLongMin, 1ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongLongResult != LONG_MIN) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_ssubll_overflow(signedLongLongMin, 2ll, &sLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (sLongLongResult != signedLongLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
+
+// __builtin_usub_overflow
+{
+  unsigned int uIntResult;
+  if (__builtin_usub_overflow(0u, 0u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uIntResult != 0u) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_usub_overflow(unsignedIntMax, 0u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uIntResult != unsignedIntMax) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_usub_overflow(0u, 1u, &uIntResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uIntResult != unsignedIntMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
+
+// __builtin_usubl_overflow
+{
+  unsigned long uLongResult;
+  if (__builtin_usubl_overflow(0ul, 0ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongResult != 0ul) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_usubl_overflow(unsignedLongMax, 0ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongResult != unsignedLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_usubl_overflow(0ul, 1ul, &uLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongResult != unsignedLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
+
+// __builtin_usubll_overflow
+{
+  unsigned long long uLongLongResult;
+  if (__builtin_usubll_overflow(0ull, 0ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongLongResult != 0ull) {
+    assert(0);
+    goto ERROR;
+  }
+  if (__builtin_usubll_overflow(unsignedLongLongMax, 0ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongLongResult != unsignedLongLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+  if (!__builtin_usubll_overflow(0ull, 1ull, &uLongLongResult)) {
+    assert(0);
+    goto ERROR;
+  }
+  if (uLongLongResult != unsignedLongLongMax) {
+    assert(0);
+    goto ERROR;
+  }
+}
 
   // __builtin_mul_overflow(), types can be chosen freely
   {
@@ -2059,38 +2508,178 @@ int main() {
 
 
   }
-
   // __builtin_smul_overflow
   {
-
+    int sIntResult;
+    if (__builtin_smul_overflow(0, 0, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != 0) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_smul_overflow(signedIntMax, 1, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != signedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_smul_overflow(signedIntMax, 2, &sIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sIntResult != -2) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   // __builtin_smull_overflow
   {
-
+    long sLongResult;
+    if (__builtin_smull_overflow(0l, 0l, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != 0l) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_smull_overflow(signedLongMax, 1l, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != signedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_smull_overflow(signedLongMax, 2l, &sLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongResult != -2l) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   // __builtin_smulll_overflow
   {
-
+    long long sLongLongResult;
+    if (__builtin_smulll_overflow(0ll, 0ll, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0ll) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_smulll_overflow(signedLongLongMax, 1ll, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_smulll_overflow(signedLongLongMax, 2ll, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -2ll) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   // __builtin_umul_overflow
   {
-   
-
+    unsigned int uIntResult;
+    if (__builtin_umul_overflow(0u, 0u, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_umul_overflow(unsignedIntMax, 1u, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_umul_overflow(unsignedIntMax, 2u, &uIntResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uIntResult != unsignedIntMaxMinusOne) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   // __builtin_umull_overflow
   {
-   
-
+    unsigned long uLongResult;
+    if (__builtin_umull_overflow(0ul, 0ul, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_umull_overflow(unsignedLongMax, 1ul, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_umull_overflow(unsignedLongMax, 2ul, &uLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongResult != unsignedLongMaxMinusOne) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
-  // __builtin_smulll_overflow
+  // __builtin_umulll_overflow
   {
-    
-
+    unsigned long long uLongLongResult;
+    if (__builtin_umulll_overflow(0ull, 0ull, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_umulll_overflow(unsignedLongLongMax, 1ull, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_umulll_overflow(unsignedLongLongMax, 2ull, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMaxMinusOne) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
 
@@ -2132,35 +2721,316 @@ int main() {
 
   // ############ Methods returning the arithmetic result directly ############
   // (They also have a third argument that is added/subtracted, and return the boolean overflow result using a side effect)
-
   {
     // __builtin_addc(), unsigned int
-
+    unsigned int carryin;
+    unsigned int carryout;
+    unsigned int uIntResult;
+    carryin = 0u;
+    uIntResult = __builtin_addc(0u, 0u, carryin, &carryout);
+    if (uIntResult != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0u;
+    uIntResult = __builtin_addc(unsignedIntMax, 0u, carryin, &carryout);
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0u;
+    uIntResult = __builtin_addc(unsignedIntMax, 1u, carryin, &carryout);
+    if (uIntResult != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0u;
+    uIntResult = __builtin_addc(unsignedIntMax, unsignedIntMax, carryin, &carryout);
+    if (uIntResult != unsignedIntMax - 1u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1u) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_addcl(), unsigned long
-
+    unsigned long carryin;
+    unsigned long carryout;
+    unsigned long uLongResult;
+    carryin = 0ul;
+    uLongResult = __builtin_addcl(0ul, 0ul, carryin, &carryout);
+    if (uLongResult != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ul;
+    uLongResult = __builtin_addcl(unsignedLongMax, 0ul, carryin, &carryout);
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ul;
+    uLongResult = __builtin_addcl(unsignedLongMax, 1ul, carryin, &carryout);
+    if (uLongResult != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ul;
+    uLongResult = __builtin_addcl(unsignedLongMax, unsignedLongMax, carryin, &carryout);
+    if (uLongResult != unsignedLongMax - 1ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_addcll(), unsigned long long
-
+    unsigned long long carryin;
+    unsigned long long carryout;
+    unsigned long long uLongLongResult;
+    carryin = 0ull;
+    uLongLongResult = __builtin_addcll(0ull, 0ull, carryin, &carryout);
+    if (uLongLongResult != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ull;
+    uLongLongResult = __builtin_addcll(unsignedLongLongMax, 0ull, carryin, &carryout);
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ull;
+    uLongLongResult = __builtin_addcll(unsignedLongLongMax, 1ull, carryin, &carryout);
+    if (uLongLongResult != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ull;
+    uLongLongResult = __builtin_addcll(unsignedLongLongMax, unsignedLongLongMax, carryin, &carryout);
+    if (uLongLongResult != unsignedLongLongMax - 1ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_subc(), unsigned int
-
+    unsigned int carryin;
+    unsigned int carryout;
+    unsigned int uIntResult;
+    carryin = 0u;
+    uIntResult = __builtin_subc(5u, 3u, carryin, &carryout);
+    if (uIntResult != 2u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1u;
+    uIntResult = __builtin_subc(5u, 3u, carryin, &carryout);
+    if (uIntResult != 1u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0u;
+    uIntResult = __builtin_subc(0u, 0u, carryin, &carryout);
+    if (uIntResult != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0u;
+    uIntResult = __builtin_subc(0u, 1u, carryin, &carryout);
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1u) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1u;
+    uIntResult = __builtin_subc(0u, 0u, carryin, &carryout);
+    if (uIntResult != unsignedIntMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1u) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_subcl(), unsigned long
-
+    unsigned long carryin;
+    unsigned long carryout;
+    unsigned long uLongResult;
+    carryin = 0ul;
+    uLongResult = __builtin_subcl(5ul, 3ul, carryin, &carryout);
+    if (uLongResult != 2ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1ul;
+    uLongResult = __builtin_subcl(5ul, 3ul, carryin, &carryout);
+    if (uLongResult != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ul;
+    uLongResult = __builtin_subcl(0ul, 0ul, carryin, &carryout);
+    if (uLongResult != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ul;
+    uLongResult = __builtin_subcl(0ul, 1ul, carryin, &carryout);
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1ul;
+    uLongResult = __builtin_subcl(0ul, 0ul, carryin, &carryout);
+    if (uLongResult != unsignedLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ul) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_subcll(), unsigned long long
-
+    unsigned long long carryin;
+    unsigned long long carryout;
+    unsigned long long uLongLongResult;
+    carryin = 0ull;
+    uLongLongResult = __builtin_subcll(5ull, 3ull, carryin, &carryout);
+    if (uLongLongResult != 2ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1ull;
+    uLongLongResult = __builtin_subcll(5ull, 3ull, carryin, &carryout);
+    if (uLongLongResult != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ull;
+    uLongLongResult = __builtin_subcll(0ull, 0ull, carryin, &carryout);
+    if (uLongLongResult != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 0ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 0ull;
+    uLongLongResult = __builtin_subcll(0ull, 1ull, carryin, &carryout);
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
+    carryin = 1ull;
+    uLongLongResult = __builtin_subcll(0ull, 0ull, carryin, &carryout);
+    if (uLongLongResult != unsignedLongLongMax) {
+      assert(0);
+      goto ERROR;
+    }
+    if (carryout != 1ull) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   return 0;
