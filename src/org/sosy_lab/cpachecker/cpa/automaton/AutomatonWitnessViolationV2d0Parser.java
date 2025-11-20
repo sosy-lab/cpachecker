@@ -553,11 +553,13 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         case WaypointType.BRANCHING ->
             handleFollowWaypointAtStatement(
                 cfa.getAstCfaRelation(),
-                AutomatonInternalState.BOTTOM.getName(),
+                currentStateId,
                 avoid.getLocation().getColumn(),
                 avoid.getLocation().getLine(),
                 distance,
-                Boolean.parseBoolean(avoid.getConstraint().getValue()),
+                // We negate to remain in the same state, the actual branch we want to avoid lands
+                // in the bottom state automatically due to how we handle branching waypoints
+                !Boolean.parseBoolean(avoid.getConstraint().getValue()),
                 transitions);
         case WaypointType.FUNCTION_RETURN ->
             handleFunctionReturn(
