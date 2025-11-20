@@ -299,13 +299,14 @@ public final class AstCfaRelation {
     startingLocationToTightestStatement = builder.buildOrThrow();
   }
 
-  public ASTElement getTightestStatementForStarting(int pLine, int pColumn) {
+  public ASTElement getTightestStatementForStarting(int pLine, Optional<Integer> pColumn) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
 
     return Objects.requireNonNull(
-            startingLocationToTightestStatement.floorEntry(new StartingLocation(pColumn, pLine)))
+            startingLocationToTightestStatement.floorEntry(
+                new StartingLocation(pColumn.orElseThrow(), pLine)))
         .getValue();
   }
 

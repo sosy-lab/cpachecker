@@ -68,8 +68,8 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
-            Integer column = invariantEntry.getLocation().getColumn();
-            Pair<Integer, Integer> position = Pair.of(line, column);
+            Optional<Integer> column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, Integer> position = Pair.of(line, column.orElseThrow());
             String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it

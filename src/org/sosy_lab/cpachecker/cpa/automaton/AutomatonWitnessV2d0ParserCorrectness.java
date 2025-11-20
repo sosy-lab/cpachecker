@@ -115,7 +115,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
-            Integer column = invariantEntry.getLocation().getColumn();
+            Integer column = invariantEntry.getLocation().getColumn().orElseThrow();
             Pair<Integer, Integer> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 

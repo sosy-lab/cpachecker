@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -107,7 +108,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleTarget(
       String nextStateId,
       Integer followLine,
-      Integer followColumn,
+      Optional<Integer> followColumn,
       Integer pDistanceToViolation,
       String currentStateId,
       ImmutableList.Builder<AutomatonTransition> transitions,
@@ -119,9 +120,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     // TODO: Review if the first check is required or if the second check is sufficient
     AutomatonBoolExpr expr =
         new Or(
-            new CheckMatchesColumnAndLine(followColumn, followLine),
+            new CheckMatchesColumnAndLine(followColumn.orElseThrow(), followLine),
             new CheckClosestFullExpressionMatchesColumnAndLine(
-                followColumn, followLine, cfa.getAstCfaRelation()));
+                followColumn.orElseThrow(), followLine, cfa.getAstCfaRelation()));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -201,16 +202,17 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
-      Integer followColumn,
+      Optional<Integer> followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
-      ImmutableList.Builder<AutomatonTransition> transitions) {
+      Builder<AutomatonTransition> transitions) {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
-        pAstCfaRelation.getIfStructureStartingAtColumn(followLine, followColumn);
+        pAstCfaRelation.getIfStructureStartingAtColumn(followLine, followColumn.orElseThrow());
     Optional<IterationElement> optionalIterationStructure =
-        pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
+        pAstCfaRelation.getIterationStructureStartingAtColumn(
+            followColumn.orElseThrow(), followLine);
     Optional<List<AutomatonTransition>> newTransitions;
     if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
       logger.log(
@@ -294,16 +296,16 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFunctionReturn(
       String nextStateId,
       Integer followLine,
-      Integer followColumn,
+      Optional<Integer> followColumn,
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
-      ImmutableList.Builder<AutomatonTransition> transitions)
+      Builder<AutomatonTransition> transitions)
       throws InterruptedException {
 
     AutomatonBoolExpr expr =
         new And(
-            new CheckCoversColumnAndLine(followColumn, followLine),
+            new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
             // Edges which correspond to blocks in the code, like function declaration edges and
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
@@ -320,7 +322,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       AStatement statement = edge.getStatement();
       FileLocation statementLocation = statement.getFileLocation();
       int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
-      if (columnOfClosingBracketInFunctionCall != followColumn
+      if (columnOfClosingBracketInFunctionCall != followColumn.orElseThrow()
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
@@ -486,17 +488,14 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String currentStateId)
       throws InterruptedException, WitnessParseException {
     List<WaypointRecord> avoids = pEntry.avoids();
-    if (!avoids.isEmpty()) {
-      logger.log(Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
-    }
 
     // TODO: It may be worthwhile to refactor this into the CFA
     ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
         FluentIterable.from(cfa.edges())
             .index(edge -> edge.getFileLocation().getStartingLineNumber());
 
-    int followLine = follow.getLocation().getLine();
-    int followColumn = follow.getLocation().getColumn();
+    Integer followLine = follow.getLocation().getLine();
+    Optional<Integer> followColumn = follow.getLocation().getColumn();
 
     switch (follow.getType()) {
       case WaypointType.TARGET ->

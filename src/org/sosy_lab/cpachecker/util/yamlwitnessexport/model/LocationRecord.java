@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -21,19 +21,18 @@ public class LocationRecord {
   private final String fileName;
 
   @JsonProperty("line")
-  private final int line;
+  private final Integer line;
 
   @JsonProperty("column")
-  private final int column;
+  private final Integer column;
 
   @JsonProperty("function")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String function;
 
   public LocationRecord(
       @JsonProperty("file_name") String pFileName,
-      @JsonProperty("line") int pLine,
-      @JsonProperty("column") int pColumn,
+      @JsonProperty("line") Integer pLine,
+      @JsonProperty("column") Integer pColumn,
       @JsonProperty("function") String pFunction) {
     fileName = pFileName;
     line = pLine;
@@ -67,12 +66,12 @@ public class LocationRecord {
     return fileName;
   }
 
-  public int getLine() {
+  public Integer getLine() {
     return line;
   }
 
-  public int getColumn() {
-    return column;
+  public Optional<Integer> getColumn() {
+    return Optional.ofNullable(column);
   }
 
   public String getFunction() {
