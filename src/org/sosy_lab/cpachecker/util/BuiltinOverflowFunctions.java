@@ -8,33 +8,51 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT128;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.jdt.internal.compiler.ast.BinaryExpression;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class BuiltinOverflowFunctions {
 
@@ -238,9 +256,8 @@ public class BuiltinOverflowFunctions {
    * Returns true if the function given returns the arithmetic result of the
    * addition/subtraction/multiplication performed in the function as function return.
    */
-  // TODO: useless due to functionReturnsBooleanOverflowCheck?
   private static boolean functionReturnsArithmeticResult(String functionName) {
-    return allFunctions.get(functionName).directArithmeticReturn;
+    return !functionReturnsBooleanOverflowCheck(functionName);
   }
 
   // TODO: remove this method. Either we don't know the types, or all are equal, with the last being
@@ -260,160 +277,267 @@ public class BuiltinOverflowFunctions {
   }
 
   /**
-   * This method returns a {@link CExpression} that represents the truth value of checking whether
-   * an arithmetic operation performed on the input expressions var1 and var1 overflows.
-   *
-   * @throws UnrecognizedCodeException when building the result fails due to unrecognized code
-   */
-  public static CExpression getOverflowFunctionResult(
-      OverflowAssumptionManager overflowMgr,
-      CExpression var1,
-      CExpression var2,
-      CExpression var3,
-      String functionName)
-      throws UnrecognizedCodeException {
-    checkState(isBuiltinOverflowFunction(functionName));
-    CSimpleType targetType = getTargetType(functionName, var3);
-    BinaryOperator operator = getOperator(functionName);
-    CExpression castVar1 = var1;
-    CExpression castVar2 = var2;
-    if (!isFunctionWithArbitraryArgumentTypes(functionName)) {
-      castVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
-      castVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
-    }
-
-    CExpression result;
-    if (operator == BinaryOperator.MULTIPLY) {
-      result =
-          overflowMgr.getConjunctionOfMultiplicationAssumptions(
-              castVar1, castVar2, targetType, true);
-    } else {
-      result =
-          overflowMgr.getConjunctionOfAdditiveAssumptions(
-              castVar1, castVar2, operator, targetType, true);
-    }
-
-    return new CCastExpression(FileLocation.DUMMY, CNumericTypes.BOOL, result);
-  }
-
-  /**
-   * Returns the {@link CExpression} handling the side effect for all functions with side effects.
-   * E.g. in case the numeric operations result is returned via a pointer, the
-   */
-  // TODO: this is returning the result of the numeric calculation, but should return the
-  //  assignment of this value to the dereferenced pointer!
-  public static CExpression handleOverflowSideEffects(
-      OverflowAssumptionManager overflowMgr,
-      CExpression var1,
-      CExpression var2,
-      CExpression var3,
-      String functionName)
-      throws UnrecognizedCodeException {
-    checkState(isBuiltinOverflowFunction(functionName));
-    CSimpleType targetType = getTargetType(functionName, var3);
-    BinaryOperator operator = getOperator(functionName);
-    CExpression castVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
-    CExpression castVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
-    // TODO: This is WRONG! This does not promote to infinite precision at all!
-    return overflowMgr.getResultOfOperation(castVar1, castVar2, operator);
-  }
-
-  /**
    * Returns the {@link CSimpleType} in which the numerically calculated value is to be cast to and
    * returned (either as part of the side effect of these functions in case of function with
    * "overflow" in their names, or as actual function return in case of functions without "overflow"
    * in their names).
    */
-  private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
+  private static CSimpleType getTargetType(String pFunctionName, CExpression pArgumentToRetrieveTypeFrom, boolean abortForSideEffects, CFAEdge edge)
+      throws UnsupportedCodeException {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
       return getParameterType(pFunctionName).orElseThrow();
     }
 
-    CType targetType = thirdArgument.getExpressionType().getCanonicalType();
+    CExpression unpackedArg = pArgumentToRetrieveTypeFrom;
+    if (abortForSideEffects) {
+      // TODO: we did not evaluate the side effect of the third argument of functions not returning the arithmetic result yet, but we need to according to the definition. We disallow non-variable/literal input in the third arg for now.
+      while (unpackedArg instanceof CCastExpression castArg) {
+      unpackedArg = castArg.getOperand();
+    }
+    // This is by no means complete! Just the most common cases where we can be sure that there are not side effects!
+      if (unpackedArg instanceof CUnaryExpression unaryExpr) {
+        unpackedArg = unaryExpr.getOperand();
+      }
+    if (!(unpackedArg instanceof CIdExpression || unpackedArg instanceof CLiteralExpression )) {
+      throw new UnsupportedCodeException("Builtin overflow function " + pFunctionName + " can not evaluate argument " + pArgumentToRetrieveTypeFrom, edge);
+    }
+    }
+
+    CType targetType = pArgumentToRetrieveTypeFrom.getExpressionType().getCanonicalType();
     if (targetType instanceof CPointerType) {
       targetType = ((CPointerType) targetType).getType();
     }
     return (CSimpleType) targetType;
   }
 
-  // TODO: add method that does all the handling based on CExpression as the method below for Value
-  //  Analysis, bundling handleOverflowSideEffects() and getOverflowFunctionResult() based on
-  //  generic CExpressions that can be handled by any CPA (that can handle C) and replace the method
-  //  below.
-
   /**
-   * Evaluates the result value of the numeric operation (addition/subtraction/multiplication) of
-   * the builtin overflow function. The arguments are cast to the functions parameters types (if
-   * necessary), and the result of the numeric operation is computed with infinite precision. The
-   * overflow is determined by casting to the type of the third parameter.
+   * Returns the result of the called builtin overflow function, as well as possible side effects as assignments in {@link BuiltinOverflowFunctionReturn}.
    */
-  // TODO: this is missing symbolic handling.
-  // TODO: this UNSOUNDLY ignores side-effects!
-  public static Value evaluateFunctionCall(
-      CFunctionCallExpression functionCallExpression,
-      AbstractExpressionValueVisitor evv,
-      MachineModel machineModel,
-      LogManagerWithoutDuplicates logger)
+  public static BuiltinOverflowFunctionReturn handleOverflowFunction(
+      final CFunctionCallExpression funCallExpr, final String functionName, final CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
       throws UnrecognizedCodeException {
-    CExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
-    if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-      String nameOfCalledFunc = ((CIdExpression) nameExpressionOfCalledFunc).getName();
-      if (isBuiltinOverflowFunction(nameOfCalledFunc)) {
-        List<CExpression> parameters = functionCallExpression.getParameterExpressions();
-        if (parameters.size() == 3) {
-          Value firstParameterValue =
-              evv.evaluate(parameters.getFirst(), parameters.getFirst().getExpressionType());
-          Value secondParameterValue =
-              evv.evaluate(parameters.get(1), parameters.get(1).getExpressionType());
-          CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
+    checkArgument(BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName));
 
-          if (resultType.getType().isIntegerType()
-              && firstParameterValue.isExplicitlyKnown()
-              && secondParameterValue.isExplicitlyKnown()) {
-            // cast arguments to matching values
-            if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
-              firstParameterValue =
-                  AbstractExpressionValueVisitor.castCValue(
-                      firstParameterValue, resultType, machineModel, logger);
-              secondParameterValue =
-                  AbstractExpressionValueVisitor.castCValue(
-                      secondParameterValue, resultType, machineModel, logger);
-            }
+    if (functionReturnsArithmeticResult(functionName)) {
+      return handleOverflowFunctionReturningArithmeticResult(funCallExpr, functionName, edge, pMachineModel, pLogger);
+    } else if (functionStoresArithmeticResultUsingSideEffect(functionName)) {
+      return handleOverflowFunctionStoringArithmeticResultAsSideEffect(funCallExpr, functionName, edge, pMachineModel, pLogger);
+    } else {
+      return handleOverflowFunctionReturningOnlyBooleanResult(funCallExpr, functionName, edge, pMachineModel, pLogger);
+    }
+  }
 
-            // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
+  private static BuiltinOverflowFunctionReturn handleOverflowFunctionReturningOnlyBooleanResult(
+      CFunctionCallExpression pFunCallExpr, String pFunctionName, CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
+      throws UnrecognizedCodeException {
+    // Calculate arithmetic result and return an expression that checks whether the cast value is equal to the uncast
+    // A possible alternative would be the overflow CPAs overflow check
+    CExpression uncastArithmeticResult = getUncastArithmeticResultOfFirstTwoArguments(pFunCallExpr, pFunctionName, edge, pMachineModel, pLogger);
+    CExpression thirdArg = pFunCallExpr.getParameterExpressions().get(2);
+    // TODO: we did not evaluate the side effect of the third argument yet, and will not for now, but we need to according to the definition. We disallow non-variable/literal input in the third arg for now.
+    CExpression castArithmeticResult = castExpression(uncastArithmeticResult, getTargetType(pFunctionName, thirdArg, true, edge));
 
-            BigInteger resultOfComputation;
-            BinaryOperator operator = getOperator(nameOfCalledFunc);
-            resultOfComputation =
-                switch (operator) {
-                  case PLUS -> p1.add(p2);
-                  case MINUS -> p1.subtract(p2);
-                  case MULTIPLY -> p1.multiply(p2);
-                  default ->
-                      throw new UnrecognizedCodeException(
-                          "Can not determine operator of function " + nameOfCalledFunc, null, null);
-                };
+    return BuiltinOverflowFunctionReturn.of(getEqualityExpression(uncastArithmeticResult, castArithmeticResult, pMachineModel, pLogger));
+  }
 
-            // cast result type of third parameter
-            Value resultValue = new NumericValue(resultOfComputation);
-            resultValue =
-                AbstractExpressionValueVisitor.castCValue(
-                    resultValue, resultType, machineModel, logger);
+  private static BuiltinOverflowFunctionReturn handleOverflowFunctionStoringArithmeticResultAsSideEffect(
+      CFunctionCallExpression pFunCallExpr, String pFunctionName, final CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
+      throws UnrecognizedCodeException {
+// Calculate arithmetic result and return an expression that checks whether the cast value is equal to the uncast
+    // A possible alternative would be the overflow CPAs overflow check
+    CExpression uncastArithmeticResult = getUncastArithmeticResultOfFirstTwoArguments(pFunCallExpr, pFunctionName, edge, pMachineModel, pLogger);
+    CExpression thirdArg = pFunCallExpr.getParameterExpressions().get(2);
+    // TODO: we did not evaluate the side effect of the third argument yet, and will not for now, but we need to according to the definition. We disallow non-variable/literal input in the third arg for now.
+    CExpression castArithmeticResult = castExpression(uncastArithmeticResult, getTargetType(pFunctionName, thirdArg, true, edge));
 
-            // TODO: this ignores all side-effects!
-            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
-              return new NumericValue(0);
-            } else {
-              return new NumericValue(1);
-            }
-          }
-        }
-      }
+    // TODO:
+    CExpressionAssignmentStatement sideEffectAssignment = null;
+
+    CExpression functionReturn = getEqualityExpression(uncastArithmeticResult, castArithmeticResult, pMachineModel, pLogger);
+    return BuiltinOverflowFunctionReturn.of(functionReturn, sideEffectAssignment);
+  }
+
+  private static BuiltinOverflowFunctionReturn handleOverflowFunctionReturningArithmeticResult(
+      CFunctionCallExpression pFunCallExpr, String functionName, final CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
+      throws UnsupportedCodeException {
+    // All of these method have parameters (a, b, carry_in, *carry_out)
+    //  with exclusively unsigned types (either unsigned int, unsigned long, or unsigned long long).
+    // They can be built using a composition of the other methods defined in this class like:
+    //  ({ __typeof__ (a) s; \
+    //      __typeof__ (a) c1 = __builtin_sub/add_overflow(a, b, &s); \
+    //      __typeof__ (a) c2 = __builtin_sub/add_overflow(s, carry_in, &s); \
+    //      *(carry_out) = c1 | c2; \
+    //      s; })
+
+    // Our type restriction gets worse here as long long * long long * long long can exceed int128!
+    List<CExpression> params = pFunCallExpr.getParameterExpressions();
+    CType typeArg1 = params.get(0).getExpressionType().getCanonicalType();
+    CType typeArg2 = params.get(1).getExpressionType().getCanonicalType();
+    CType typeArg3 = params.get(2).getExpressionType().getCanonicalType();
+    int typeBitSizesAdded = pMachineModel.getSizeofInBits(typeArg1).add(pMachineModel.getSizeofInBits(typeArg2)).add(pMachineModel.getSizeofInBits(typeArg3)).intValueExact();
+    if (typeBitSizesAdded > 128) {
+      // Unsupported for now
+      throw new UnsupportedCodeException("Builtin overflow function " + functionName + " is currently not supported with input types " + typeArg1 + ", " + typeArg2 + ", and " + typeArg3 + ", as we can't evaluate types this large", edge);
     }
 
-    // TODO: this ignores all side-effects!
-    return Value.UnknownValue.getInstance();
+    // TODO:
+    // These functions return the boolean result in the side effect
+    // The boolean overflow result is just a bitwise OR on the 2 results
+    CExpressionAssignmentStatement sideEffectAssignment = null;
+
+    // TODO:
+    // These functions return the arithmetic result as function return
+    CExpression functionReturn = null;
+
+    return BuiltinOverflowFunctionReturn.of(functionReturn, sideEffectAssignment);
+  }
+
+  /**
+   * Takes the first 2 arguments of the {@link CFunctionCallExpression} and applies the arithmetic binary operation of the overflow function.
+   */
+  private static CExpression getUncastArithmeticResultOfFirstTwoArguments(CFunctionCallExpression pFunCallExpr, String pFunctionName, CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
+      throws UnrecognizedCodeException {
+    List<CExpression> params = pFunCallExpr.getParameterExpressions();
+    BinaryOperator operator = getOperator(pFunctionName);
+    CExpression castArg1 = params.get(1);
+    CExpression castArg2 = params.get(2);
+    if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
+      CType paramType = getParameterType(pFunctionName).orElseThrow().getCanonicalType();
+      checkArgument(paramType.equals(pFunCallExpr.getDeclaration().getParameters().get(0).getType().getCanonicalType()));
+      checkArgument(paramType.equals(pFunCallExpr.getDeclaration().getParameters().get(1).getType().getCanonicalType()));
+      castArg1 = new CCastExpression(FileLocation.DUMMY, paramType, castArg1);
+      castArg2 = new CCastExpression(FileLocation.DUMMY, paramType, castArg2);
+    }
+
+    return getUncastArithmeticResultOf(castArg1, castArg2, operator, pFunctionName, edge, pMachineModel, pLogger);
+  }
+
+  private static CExpression getUncastArithmeticResultOf(CExpression left, CExpression right, BinaryOperator op, String functionName, CFAEdge edge, MachineModel pMachineModel, LogManager pLogger)
+      throws UnrecognizedCodeException {
+    // The definition says that we promote to an infinite precision signed type.
+    // Promote the type to a much larger (signed) type and just cast back.
+    CType leftType = left.getExpressionType().getCanonicalType();
+    CType rightType = right.getExpressionType().getCanonicalType();
+    // Signage is only relevant for 2 types whose bit size added is equal to int128s, as all others fit nicely
+    boolean signedCalculationType = true;
+    int typeBitSizesAdded = pMachineModel.getSizeofInBits(leftType).add(pMachineModel.getSizeofInBits(rightType)).intValueExact();
+    if (typeBitSizesAdded == 128 && op == BinaryOperator.MULTIPLY) {
+      // Additions and subtractions of smaller types can not hit this limit, only multiplications can, in the wurst case, add their bit-counts.
+      // Since we can hit that limit with 2 long longs, the signage is important in this case!
+      CSimpleType leftUsedType = getUsedType(leftType, edge);
+      boolean leftSignedCalculationType = leftUsedType.hasSignedSpecifier();
+      checkState(signedCalculationType != leftUsedType.hasUnsignedSpecifier());
+      CSimpleType rightUsedType = getUsedType(rightType, edge);
+      boolean rightSignedCalculationType = rightUsedType.hasSignedSpecifier();
+      checkState(signedCalculationType != rightUsedType.hasUnsignedSpecifier());
+      if (leftSignedCalculationType == rightSignedCalculationType) {
+        signedCalculationType = leftSignedCalculationType;
+      } else {
+        throw new UnsupportedCodeException("Builtin overflow function " + functionName + " is currently not supported with input types " + leftType + " and " + rightType+ ", as we can't evaluate types with distinct signage this large", edge);
+      }
+
+    } else if (typeBitSizesAdded > 128) {
+      // Unsupported for now
+      throw new UnsupportedCodeException("Builtin overflow function " + functionName + " is currently not supported with input types " + leftType + " and " + rightType+ ", as we can't evaluate types this large", edge);
+    }
+    // TODO: check if this is correct and works in all cases! If not, create a TRULY larger type or maybe use the OverflowCPA.
+    CSimpleType calculationType = new CSimpleType(
+        CTypeQualifiers.NONE,
+        INT128,
+        false,
+        false,
+        signedCalculationType,
+        !signedCalculationType,
+        false,
+        false,
+        false);
+
+    CExpression castLeft = new CCastExpression(FileLocation.DUMMY, calculationType, left);
+    CExpression castRight = new CCastExpression(FileLocation.DUMMY, calculationType, right);
+
+    return new CBinaryExpressionBuilder(pMachineModel, pLogger).buildBinaryExpression(castLeft, castRight, op);
+  }
+
+  private static CSimpleType getUsedType(CType type, CFAEdge edge)
+      throws UnsupportedCodeException {
+    CType returnType;
+    if (type instanceof CSimpleType simpleType) {
+      returnType = simpleType.getCanonicalType();
+    } else if (type instanceof CArrayType arrayType) {
+      returnType =  arrayType.getType().getCanonicalType();
+    } else if (type instanceof CVoidType voidType) {
+      returnType =  voidType.getCanonicalType();
+    } else if (type instanceof CTypedefType typeDefType) {
+      returnType =  typeDefType.getRealType().getCanonicalType();
+    } else if (type instanceof CPointerType ptrType) {
+      returnType =  ptrType.getType().getCanonicalType();
+    } else if (type instanceof CFunctionType funType) {
+      returnType =  funType.getReturnType().getCanonicalType();
+    } else if (type instanceof CBitFieldType bitFieldType) {
+      returnType =  bitFieldType.getType().getCanonicalType();
+    } else {
+      throw new UnsupportedCodeException("Unhandled type "+ type +" when resolving types for builtin overflow function",
+          edge);
+    }
+    if (returnType instanceof CSimpleType simpleType) {
+      return simpleType;
+    }
+    throw new UnsupportedCodeException("Unhandled type "+ type +" when resolving types for builtin overflow function",
+        edge);
+  }
+
+  /**
+   * Returns 0 for no overflow and 1 for overflow by returning the negated equality of the cast and uncast arithmetic result.
+   */
+  private static CExpression getEqualityExpression(CExpression uncastArithmeticResult, CExpression castArithmeticResult, MachineModel pMachineModel, LogManager pLogger)
+      throws UnrecognizedCodeException {
+    return new CBinaryExpressionBuilder(pMachineModel, pLogger).buildBinaryExpression(uncastArithmeticResult, castArithmeticResult, BinaryOperator.NOT_EQUALS);
+  }
+
+  private static CExpression castExpression(CExpression expressionToCast, CType targetType) {
+    return new CCastExpression(FileLocation.DUMMY, targetType, expressionToCast);
+  }
+
+  /**
+   * Builtin overflow functions often have a side effect that needs to be assigned additionally to their returned expression.
+   */
+  public static final class BuiltinOverflowFunctionReturn {
+
+    private final CExpression functionReturn;
+    private final Optional<CExpressionAssignmentStatement> sideEffectAssignment;
+
+    private BuiltinOverflowFunctionReturn(CExpression pFunctionReturn, @Nullable CExpressionAssignmentStatement pSideEffectAssignment) {
+      functionReturn = checkNotNull(pFunctionReturn);
+      sideEffectAssignment = Optional.ofNullable(pSideEffectAssignment);
+    }
+
+    static BuiltinOverflowFunctionReturn of(CExpression pFunctionReturn) {
+      return new BuiltinOverflowFunctionReturn(pFunctionReturn, null);
+    }
+
+    static BuiltinOverflowFunctionReturn of(CExpression pFunctionReturn, CExpressionAssignmentStatement pSideEffectAssignment) {
+      return new BuiltinOverflowFunctionReturn(pFunctionReturn, checkNotNull(pSideEffectAssignment));
+    }
+
+    /**
+     * Returns the function return of the overflow function called. If {@link #hasSideEffectAssignment()} is true, the side effect returned in {@link #getSideEffectAssignmentExpression()} needs to be assigned additionally to evaluating the expression returned here!
+     */
+    public CExpression getFunctionReturnExpression() {
+      return functionReturn;
+    }
+
+    /**
+     * Returns true if a side effect assignment is part of the function evaluation and {@link #getSideEffectAssignmentExpression()} is non-empty.
+     */
+    public boolean hasSideEffectAssignment() {
+      return sideEffectAssignment.isPresent();
+    }
+
+    /**
+     * Returns an optional, that if filled, is the assignment expression for the side effect of the evaluated overflow function.
+     */
+    public Optional<CExpressionAssignmentStatement> getSideEffectAssignmentExpression() {
+      return sideEffectAssignment;
+    }
   }
 }
