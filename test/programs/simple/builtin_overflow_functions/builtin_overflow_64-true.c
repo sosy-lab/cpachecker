@@ -7,15 +7,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
 
 int zero = 0;
 
 // Int
-int signedIntMax = 2147483647;
+int signedIntMax = 2147483647; // == INT_MAX
 int signedIntMaxMinusOne = 2147483646;
-int signedIntMin = -2147483646;
-int signedIntMinPlusOne = -2147483645;
+int signedIntMin = -2147483647; // INT_MIN + 1, but INT_MIN exceeds the standards defined range by -1!
+int signedIntMinPlusOne = -2147483646;
 int signedIntMaxHalfRoundedUp = 1073741824;
 int signedIntMaxHalfRoundedDown = 1073741823;
 
@@ -26,10 +28,10 @@ unsigned int unsignedIntMaxHalfRoundedUp = 2147483648u;
 unsigned int unsignedIntThird = 1431655765u;
 
 // Long (64 bit)
-long signedLongMax = 9223372036854775807l;
+long signedLongMax = 9223372036854775807L;
 long signedLongMaxMinusOne = 9223372036854775806l;
-long signedLongMin = -9223372036854775806l;
-long signedLongMinPlusOne = -9223372036854775805l;
+long signedLongMin = -9223372036854775807L; // Same as with integer minimum, this is according to the standard. LONG_MIN is 1 less than this!
+long signedLongMinPlusOne = -9223372036854775806l;
 long signedLongMaxHalfRoundedUp = 4611686018427387904l;
 long signedLongMaxHalfRoundedDown = 4611686018427387903l;
 long signedLongMaxSeventh = 1317624576693539401l;
@@ -43,8 +45,8 @@ unsigned long unsignedLongThird = 6148914691236517205ul;
 // Long Long
 long long signedLongLongMax = 9223372036854775807ll;
 long long signedLongLongMaxMinusOne = 9223372036854775806ll;
-long long signedLongLongMin = -9223372036854775806ll;
-long long signedLongLongMinPlusOne = -9223372036854775805ll;
+long long signedLongLongMin = -9223372036854775807LL; // Same as with integer minimum, this is according to the standard
+long long signedLongLongMinPlusOne = -9223372036854775806ll;
 long long signedLongLongMaxHalfRoundedUp = 4611686018427387904ll;
 long long signedLongLongMaxHalfRoundedDown = 4611686018427387903ll;
 long long signedLongLongMaxSeventh = 1317624576693539401l;
@@ -55,8 +57,63 @@ unsigned long long unsignedLongLongMaxHalfRoundedDown = 9223372036854775807ull;
 unsigned long long unsignedLongLongMaxHalfRoundedUp = 9223372036854775808ull;
 unsigned long long unsignedLongLongThird = 6148914691236517205ull;
 
+int intArray[] = {2147483647, -2147483646};
+int (* intArrayPtr)[2] = &intArray;
+
+long long longLongArray[] = {9223372036854775807ll, -9223372036854775806ll};
+long long (* longLongArrayPtr)[2] = &longLongArray;
+
+struct intStruct {
+  int intMax;
+  int intMin;
+} intStruct = {2147483647, -2147483646};
+
+struct intStruct * intStructPtr = &intStruct;
+
+struct longLongStruct {
+  long long longLongMax;
+  long long longLongMin;
+} longLongStruct = {9223372036854775807ll, -9223372036854775806ll};
+
+struct longLongStruct * longLongStructPtr = &longLongStruct;
+
+int getIntMax() {
+  return signedIntMax;
+}
+
+int * getIntMinPointer() {
+  int * intMinPtr = malloc(sizeof(int));
+  *intMinPtr = signedIntMin;
+  return intMinPtr;
+}
+
+long long getLongLongMax() {
+  return signedLongLongMax;
+}
+
+long long * getLongLongMinPointer() {
+  long long * longLongMinPtr = malloc(sizeof(long long));
+  *longLongMinPtr = signedLongLongMin;
+  return longLongMinPtr;
+}
+
 // Tests GCC (GNU) builtin overflow functions
 int main() {
+  // Sanity checks for the values used
+  assert(signedIntMax == INT_MAX);
+  assert(signedIntMaxMinusOne == INT_MAX - 1);
+  assert(signedIntMin == INT_MIN + 1); // Due to INT_MIN being INT_MAX + 1, it exceeds the standards defined range!
+  assert(signedIntMinPlusOne == INT_MIN + 2);
+
+  assert(signedLongMax == LONG_MAX); // Fails for 32 bit long. This is a 64 bit program!
+  assert(signedLongMaxMinusOne == LONG_MAX - 1L);
+  assert(signedLongMin == LONG_MIN + 1L); // As above
+  assert(signedLongMinPlusOne == LONG_MIN + 2L);
+
+  assert(signedLongLongMax == LONG_MAX);
+  assert(signedLongLongMaxMinusOne == LONG_MAX - 1LL);
+  assert(signedLongLongMin == LONG_MIN + 1LL); // As above
+  assert(signedLongLongMinPlusOne == LONG_MIN + 2LL);
 
   // ############ Methods return the boolean overflow result, and returning the arithmetic result as a side effect ############
 
@@ -232,7 +289,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if ((sIntResult+2) != signedIntMin) {
+    if (sIntResult != INT_MIN) {
       printf("Result: %d\n", sIntResult);
       assert(0);
       goto ERROR;
@@ -242,7 +299,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult+2 != signedIntMin) {
+    if (sIntResult != INT_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -459,7 +516,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != 1) {
+    if (sIntResult != 0) {
       assert(0);
       goto ERROR;
     }
@@ -467,7 +524,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != 1) {
+    if (sIntResult != 0) {
       assert(0);
       goto ERROR;
     }
@@ -562,7 +619,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != 2) {
+    if (sIntResult != 1) {
       assert(0);
       goto ERROR;
     }
@@ -570,7 +627,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != 2) {
+    if (sIntResult != 1) {
       assert(0);
       goto ERROR;
     }
@@ -605,7 +662,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult+2 != signedIntMin) {
+    if (sIntResult != INT_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -614,7 +671,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult+2 != signedIntMin) {
+    if (sIntResult != INT_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -651,7 +708,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != signedIntMax) {
+    if (sIntResult != -3) {
       assert(0);
       goto ERROR;
     }
@@ -659,7 +716,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != signedIntMax) {
+    if (sIntResult != -3) {
       assert(0);
       goto ERROR;
     }
@@ -674,7 +731,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != signedIntMax) {
+    if (sIntResult != -2) {
       assert(0);
       goto ERROR;
     }
@@ -682,7 +739,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != signedIntMax) {
+    if (sIntResult != -2) {
       assert(0);
       goto ERROR;
     }
@@ -720,7 +777,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != zero) {
+    if (sIntResult != -2) {
       assert(0);
       goto ERROR;
     }
@@ -731,11 +788,11 @@ int main() {
     // max+max == max overflow (input unsigned long long, output signed int)
 
     // max+max == 2*max signed int (input signed int, output signed long)
-    if (__builtin_add_overflow(signedIntMax, signedIntMax, &sIntResult)) {
+    if (!__builtin_add_overflow(signedIntMax, signedIntMax, &sIntResult)) {
       assert(0);
       goto ERROR;
     }
-    if (sIntResult != zero) {
+    if (sIntResult != -2) {
       assert(0);
       goto ERROR;
     }
@@ -750,7 +807,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongLongResult != (signedIntMax + signedIntMax)) {
+    if (sLongLongResult != 4294967294L) {
       assert(0);
       goto ERROR;
     }
@@ -765,7 +822,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (uLongLongResult != signedLongLongMax) {
+    if (uLongLongResult != uLongLongResult) {
       assert(0);
       goto ERROR;
     }
@@ -774,7 +831,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (uLongLongResult != unsignedLongLongMax) {
+    if (uLongLongResult != unsignedLongLongMax - 1ULL) {
       assert(0);
       goto ERROR;
     }
@@ -824,6 +881,57 @@ int main() {
     unsigned long long uLongLongResult;
 
 
+    if (__builtin_sub_overflow(signedLongLongMax, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_sub_overflow(signedLongLongMax, 0, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_sub_overflow(0, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -signedLongLongMax) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_sub_overflow(0, 0, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_sub_overflow(signedLongLongMin, -1, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -9223372036854775806) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    
   }
 
   // __builtin_ssub_overflow
@@ -867,6 +975,312 @@ int main() {
     unsigned long long uLongLongResult;
 
 
+    // TODO: missing cases
+
+
+    // long or long long into long/long long
+    if (!__builtin_mul_overflow(signedLongLongMax, signedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedLongLongMax, 0, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(0, longLongArray[0], &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedLongLongMax, 1, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+        if (__builtin_mul_overflow(1, getLongLongMax(), &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != signedLongLongMax) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+
+    // long or long long into unsigned long/unsigned long long
+    if (!__builtin_mul_overflow(signedLongLongMax, signedLongLongMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 1) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedLongLongMax, 0, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 0) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedLongLongMax, 1, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != signedLongLongMax) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+
+    // unsigned long or unsigned long long into long/long long
+    if (!__builtin_mul_overflow(unsignedLongLongMax, unsignedLongLongMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 1) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(unsignedLongLongMax, 0, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 0) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(unsignedLongLongMax, 1, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -1) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+
+    // unsigned long/unsigned long long into unsigned long/unsigned long long
+    if (!__builtin_mul_overflow(unsignedLongLongMax, unsignedLongLongMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 1) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(unsignedLongLongMax, 0, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 0) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(unsignedLongLongMax, 1, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != unsignedLongLongMax) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    // Cases in which the multiplication fits into the larger target type
+    // int max + int max == int max² in signed/unsigned long/long long
+    if (__builtin_mul_overflow(signedIntMax, signedIntMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 4611686014132420609LL) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedIntMax, signedIntMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 4611686014132420609LL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    // s int max * u int max into signed/unsigned long long
+    if (__builtin_mul_overflow(signedIntMax, unsignedIntMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 9223372030412324865LL) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedIntMax, unsignedIntMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 9223372030412324865LL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(unsignedIntMax, signedIntMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != 9223372030412324865LL) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(unsignedIntMax, signedIntMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 9223372030412324865LL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    // s int max * s int min into signed/unsigned long long
+    if (__builtin_mul_overflow(signedIntMax, signedIntMin, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -4611686014132420609LL) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(signedIntMax, signedIntMin, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058059577131007ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (__builtin_mul_overflow(signedIntMin, signedIntMax, &sLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (sLongLongResult != -4611686014132420609LL) {
+      printf("sLongLongResult: %lld", sLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(signedIntMin, signedIntMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058059577131007ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    // Test that we can insert values also via pointer-deref, arrays, functions, structs etc.
+    if (!__builtin_mul_overflow(*getIntMinPointer(), getIntMax(), &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058059577131007ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(intArray[1], (*intArrayPtr)[0], &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058061724614654ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(*intArray, (*intArrayPtr)[1], &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058061724614654ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(intStruct.intMin, intStructPtr->intMax, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058061724614654ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+    if (!__builtin_mul_overflow(intStruct.intMax, (*intStructPtr).intMin, &uLongLongResult)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (uLongLongResult != 13835058061724614654ULL) {
+      printf("uLongLongResult: %llu", uLongLongResult);
+      assert(0);
+      goto ERROR;
+    }
+
+
   }
 
   // __builtin_smul_overflow
@@ -886,203 +1300,20 @@ int main() {
 
   // __builtin_umul_overflow
   {
-    unsigned int a;
-    if (!__builtin_umul_overflow(4294967295U, 2, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umul_overflow(2, 4294967295U, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umul_overflow(1431655765U, 4, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umul_overflow(4, 1431655765U, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-    
-    if (__builtin_umul_overflow(1431655765U, 3, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-    if (__builtin_umul_overflow(3, 1431655765U, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-
-    if (__builtin_umul_overflow(4294967295U, 1, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
-
-    if (__builtin_umul_overflow(1, 4294967295U, &a)) {
-      goto ERROR;
-    }
-    if (a != 4294967295U) {
-      goto ERROR;
-    }
+   
 
   }
 
   // __builtin_umull_overflow
   {
-    unsigned long a;
-    if (__builtin_umull_overflow(18446744073709551615ULL, 2, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umull_overflow(2, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umull_overflow(2, 9223372036854775807ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551614ULL) {
-      goto ERROR;
-    }
-
-
-    if (__builtin_umull_overflow(3, 6148914691236517205ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umull_overflow(6148914691236517205ULL, 3, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    // check proper type conversion of arguments
-    if (__builtin_umull_overflow(18446744073709551615ULL, 1, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umull_overflow(1, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umull_overflow(18446744073709551615ULL, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umull_overflow(18446744073709551615ULL, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
+   
 
   }
 
   // __builtin_smulll_overflow
   {
-    unsigned long long a;
-    if (__builtin_umulll_overflow(18446744073709551615ULL, 2, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
+    
 
-    if (!__builtin_umulll_overflow(2, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umulll_overflow(2, 9223372036854775807ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551614ULL) {
-      goto ERROR;
-    }
-
-
-    if (__builtin_umulll_overflow(3, 6148914691236517205ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umulll_overflow(6148914691236517205ULL, 3, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    // check proper type conversion of arguments
-    if (__builtin_umulll_overflow(18446744073709551615ULL, 1, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (__builtin_umulll_overflow(1, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umulll_overflow(18446744073709551615ULL, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
-
-    if (!__builtin_umulll_overflow(18446744073709551615ULL, 18446744073709551615ULL, &a)) {
-      goto ERROR;
-    }
-    if (a != 18446744073709551615ULL) {
-      goto ERROR;
-    }
   }
 
 
