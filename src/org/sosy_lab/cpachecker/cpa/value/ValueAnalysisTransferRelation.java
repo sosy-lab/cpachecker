@@ -1845,8 +1845,9 @@ public class ValueAnalysisTransferRelation
     } else if (funcCallExpr.getFunctionNameExpression() instanceof CIdExpression funNameIdExpr) {
       calledFunctionName = funNameIdExpr.getName();
     } else {
-      throw new AssertionError(
-          "Could not determine function name in function call: " + functionCall);
+      // Ignore function calls from pointers for now, as its hard to get the correct function name
+      // TODO: add them as well
+      return;
     }
 
     if (isUnsupportedFunction(calledFunctionName)) {
