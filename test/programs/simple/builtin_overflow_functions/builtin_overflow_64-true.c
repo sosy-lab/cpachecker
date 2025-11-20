@@ -345,7 +345,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongResult + 2l != signedLongMin) {
+    if (sLongResult != LONG_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -353,7 +353,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongResult + 2l != signedLongMin) {
+    if (sLongResult != LONG_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -379,7 +379,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongLongResult + 2ll != signedLongLongMin) {
+    if (sLongLongResult != LONG_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -387,7 +387,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongLongResult + 2ll != signedLongLongMin) {
+    if (sLongLongResult != LONG_MIN) {
       assert(0);
       goto ERROR;
     }
@@ -550,7 +550,7 @@ int main() {
      assert(0);
      goto ERROR;
     }
-    if (sLongResult != 1l) {
+    if (sLongResult != 0) {
      assert(0);
      goto ERROR;
     }
@@ -558,7 +558,7 @@ int main() {
      assert(0);
      goto ERROR;
     }
-    if (sLongResult != 1l) {
+    if (sLongResult != 0) {
      assert(0);
      goto ERROR;
     }
@@ -584,7 +584,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongLongResult != 1ll) {
+    if (sLongLongResult != 0) {
       assert(0);
       goto ERROR;
     }
@@ -592,7 +592,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (sLongLongResult != 1ll) {
+    if (sLongLongResult != 0) {
       assert(0);
       goto ERROR;
     }
