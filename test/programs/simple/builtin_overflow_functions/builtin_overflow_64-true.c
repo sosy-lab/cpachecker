@@ -11,6 +11,34 @@
 #include <assert.h>
 #include <limits.h>
 
+#if !defined(__has_builtin)
+#define __has_builtin(x) 0
+#endif
+
+#if !__has_builtin(__builtin_add_overflow_p)
+#define __builtin_add_overflow_p(a, b, c) \
+  (__extension__({ \
+    __typeof__(c) __tmp; \
+    __builtin_add_overflow((__typeof__(c))(a), (__typeof__(c))(b), &__tmp); \
+  }))
+#endif
+
+#if !__has_builtin(__builtin_sub_overflow_p)
+#define __builtin_sub_overflow_p(a, b, c) \
+  (__extension__({ \
+    __typeof__(c) __tmp; \
+    __builtin_sub_overflow((__typeof__(c))(a), (__typeof__(c))(b), &__tmp); \
+  }))
+#endif
+
+#if !__has_builtin(__builtin_mul_overflow_p)
+#define __builtin_mul_overflow_p(a, b, c) \
+  (__extension__({ \
+    __typeof__(c) __tmp; \
+    __builtin_mul_overflow((__typeof__(c))(a), (__typeof__(c))(b), &__tmp); \
+  }))
+#endif
+
 int zero = 0;
 
 // Int
@@ -2714,7 +2742,11 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    if (!__builtin_sub_overflow_p(signedIntMin, 1, (int)0)) {
+    if (__builtin_sub_overflow_p(signedIntMin, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_sub_overflow_p(signedIntMin, 2, (int)0)) {
       assert(0);
       goto ERROR;
     }
