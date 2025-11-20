@@ -110,7 +110,7 @@ public class InputRejection {
 
   private static void checkIsParallelProgram(CFA pInputCfa) {
     boolean isParallel = false;
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa).toSet()) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
@@ -122,7 +122,7 @@ public class InputRejection {
   }
 
   private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa).toSet()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (edge instanceof CDeclarationEdge decEdge) {
         if (decEdge.getDeclaration() instanceof CVariableDeclaration varDec) {
           if (varDec.getType() instanceof CArrayType arrayType) {
@@ -138,7 +138,7 @@ public class InputRejection {
   }
 
   private static void checkUnsupportedFunctions(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa).toSet()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
         if (!funcType.isSupported) {
           if (PthreadUtil.isCallToPthreadFunction(edge, funcType)) {
@@ -151,7 +151,7 @@ public class InputRejection {
 
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
       throws UnsupportedCodeException {
-    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa).toSet()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadUtil.isCallToAnyPthreadFunction(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
           rejectCfaEdge(edge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
@@ -165,7 +165,7 @@ public class InputRejection {
    * i.e. if it is in a loop (or in a recursive call).
    */
   private static void checkPthreadCreateLoops(CFA pInputCfa) throws UnsupportedCodeException {
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa).toSet()) {
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
           rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_CREATE_LOOP);
