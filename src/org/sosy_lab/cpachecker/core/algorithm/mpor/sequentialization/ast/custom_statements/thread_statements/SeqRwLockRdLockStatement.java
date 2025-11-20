@@ -13,11 +13,11 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -26,18 +26,18 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   private final RwLockNumReadersWritersFlag rwLockFlags;
 
   SeqRwLockRdLockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     rwLockFlags = pRwLockFlags;
   }
 
   private SeqRwLockRdLockStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       RwLockNumReadersWritersFlag pRwLockFlags,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -45,7 +45,13 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     rwLockFlags = pRwLockFlags;
   }
 
@@ -55,14 +61,14 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
         SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return assumption.toASTString() + rwLockFlags.readersIncrement().toASTString() + injected;
   }
 
   @Override
   public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqRwLockRdLockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,
@@ -74,7 +80,7 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqRwLockRdLockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,
@@ -87,7 +93,7 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqRwLockRdLockStatement(
-        options,
+        reductionOrder,
         rwLockFlags,
         pcLeftHandSide,
         substituteEdges,

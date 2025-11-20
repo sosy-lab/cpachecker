@@ -27,15 +27,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record ProgramCounterVariableBuilder(
-    MPOROptions options, int numThreads, CBinaryExpressionBuilder binaryExpressionBuilder) {
+    boolean scalarPc,
+    NondeterminismSource nondeterminismSource,
+    int numThreads,
+    CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   private static final String PROGRAM_COUNTER_VARIABLE_NAME = "pc";
 
@@ -66,7 +69,7 @@ public record ProgramCounterVariableBuilder(
   public ProgramCounterVariables buildProgramCounterVariables() throws UnrecognizedCodeException {
     ImmutableList<CLeftHandSide> pcLeftHandSides = buildPcLeftHandSides();
     ImmutableList<CVariableDeclaration> pcDeclarations =
-        buildPcDeclarations(options, numThreads, pcLeftHandSides);
+        buildPcDeclarations(numThreads, pcLeftHandSides);
     // pc != 0 (thread is at not exit pc i.e. active)
     ImmutableList<CBinaryExpression> threadActiveExpressions =
         buildPcBinaryExpressions(pcLeftHandSides, BinaryOperator.NOT_EQUALS);
@@ -87,18 +90,36 @@ public record ProgramCounterVariableBuilder(
 
   private ImmutableList<CLeftHandSide> buildPcLeftHandSides() {
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
-    rPcExpressions.addAll(
-        options.scalarPc() ? buildScalarPcExpressions() : buildArrayPcExpressions());
+    for (int threadId = 0; threadId < numThreads; threadId++) {
+      rPcExpressions.add(
+          scalarPc ? buildScalarPcExpressions(threadId) : buildArrayPcExpressions(threadId));
+    }
     return rPcExpressions.build();
+  }
+
+  private CIdExpression buildScalarPcExpressions(int pThreadId) {
+    CInitializer initializer = getPcInitializer(pThreadId == 0);
+    CVariableDeclaration declaration =
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            true,
+            CNumericTypes.UNSIGNED_INT,
+            PROGRAM_COUNTER_VARIABLE_NAME + pThreadId,
+            initializer);
+    return new CIdExpression(FileLocation.DUMMY, declaration);
+  }
+
+  private CArraySubscriptExpression buildArrayPcExpressions(int pThreadId) {
+    return buildPcSubscriptExpression(
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pThreadId));
   }
 
   // Declarations ==================================================================================
 
   private ImmutableList<CVariableDeclaration> buildPcDeclarations(
-      MPOROptions pOptions, int pNumThreads, ImmutableList<CLeftHandSide> pPcLeftHandSides) {
+      int pNumThreads, ImmutableList<CLeftHandSide> pPcLeftHandSides) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    if (pOptions.scalarPc()) {
+    if (scalarPc) {
       // declare scalar int for each thread: pc0 = 1; pc1 = 0; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
@@ -125,31 +146,11 @@ public record ProgramCounterVariableBuilder(
 
   // Expressions ===================================================================================
 
-  private ImmutableList<CIdExpression> buildScalarPcExpressions() {
-    ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
-    for (int i = 0; i < numThreads; i++) {
-      CInitializer initializer = getPcInitializer(i == 0);
-      CVariableDeclaration declaration =
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              true, CNumericTypes.UNSIGNED_INT, PROGRAM_COUNTER_VARIABLE_NAME + i, initializer);
-      rScalarPc.add(new CIdExpression(FileLocation.DUMMY, declaration));
-    }
-    return rScalarPc.build();
-  }
-
-  private ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions() {
-    ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
-    for (int i = 0; i < numThreads; i++) {
-      rArrayPc.add(
-          buildPcSubscriptExpression(SeqExpressionBuilder.buildIntegerLiteralExpression(i)));
-    }
-    return rArrayPc.build();
-  }
-
   private Optional<CBinaryExpression> buildNextThreadActiveExpression()
       throws UnrecognizedCodeException {
-    if (options.nondeterminismSource().isNextThreadNondeterministic()) {
-      if (!options.scalarPc()) {
+
+    if (nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!scalarPc) {
         // pc array: single assume(pc[next_thread] != 0);
         return Optional.of(
             binaryExpressionBuilder.buildBinaryExpression(

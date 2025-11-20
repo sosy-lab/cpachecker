@@ -51,7 +51,11 @@ public record GhostElementBuilder(
         functionStatementBuilder.buildFunctionStatements();
 
     ProgramCounterVariableBuilder pcVariableBuilder =
-        new ProgramCounterVariableBuilder(options, threads.size(), binaryExpressionBuilder);
+        new ProgramCounterVariableBuilder(
+            options.scalarPc(),
+            options.nondeterminismSource(),
+            threads.size(),
+            binaryExpressionBuilder);
     ProgramCounterVariables programCounterVariables =
         pcVariableBuilder.buildProgramCounterVariables();
 

@@ -14,11 +14,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -34,18 +34,18 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   private final FunctionReturnValueAssignment returnValueAssignment;
 
   SeqThreadExitStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       FunctionReturnValueAssignment pReturnValueAssignment,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     returnValueAssignment = pReturnValueAssignment;
   }
 
   private SeqThreadExitStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       FunctionReturnValueAssignment pReturnValueAssignment,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -53,7 +53,13 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     returnValueAssignment = pReturnValueAssignment;
   }
 
@@ -61,7 +67,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return returnValueAssignment.statement().toASTString() + SeqSyntax.SPACE + injected;
   }
 
@@ -72,7 +78,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
         this.getClass().getSimpleName() + " should only be cloned with exit pc %s",
         ProgramCounterVariables.EXIT_PC);
     return new SeqThreadExitStatement(
-        options,
+        reductionOrder,
         returnValueAssignment,
         pcLeftHandSide,
         substituteEdges,
@@ -93,7 +99,7 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadExitStatement(
-        options,
+        reductionOrder,
         returnValueAssignment,
         pcLeftHandSide,
         substituteEdges,

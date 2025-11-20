@@ -15,12 +15,12 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -43,21 +43,21 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
   private final Optional<ImmutableList<SeqBitVectorAssignmentStatement>> bitVectorInitializations;
 
   SeqThreadCreationStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
       CLeftHandSide pPcLeftHandSide,
       CLeftHandSide pCreatedThreadPc,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThreadPc = pCreatedThreadPc;
     bitVectorInitializations = Optional.empty();
   }
 
   private SeqThreadCreationStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
       CLeftHandSide pPcLeftHandSide,
       CLeftHandSide pCreatedThreadPc,
@@ -67,7 +67,13 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThreadPc = pCreatedThreadPc;
     bitVectorInitializations = pBitVectorInitializations;
@@ -87,7 +93,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
     }
     String injectedStatementsString =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     String startRoutineArgAssignmentString =
         buildStartRoutineArgAssignmentString(startRoutineArgAssignment)
             .orElse(SeqSyntax.EMPTY_STRING);
@@ -114,7 +120,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
   @Override
   public SeqThreadCreationStatement withTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
-        options,
+        reductionOrder,
         startRoutineArgAssignment,
         pcLeftHandSide,
         createdThreadPc,
@@ -128,7 +134,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
-        options,
+        reductionOrder,
         startRoutineArgAssignment,
         pcLeftHandSide,
         createdThreadPc,
@@ -144,7 +150,7 @@ public final class SeqThreadCreationStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadCreationStatement(
-        options,
+        reductionOrder,
         startRoutineArgAssignment,
         pcLeftHandSide,
         createdThreadPc,

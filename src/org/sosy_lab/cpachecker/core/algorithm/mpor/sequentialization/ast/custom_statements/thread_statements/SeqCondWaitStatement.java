@@ -15,7 +15,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
@@ -23,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -34,20 +34,20 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
   private final MutexLockedFlag mutexLockedFlag;
 
   SeqCondWaitStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CondSignaledFlag pCondSignaledFlag,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     condSignaledFlag = pCondSignaledFlag;
     mutexLockedFlag = pMutexLockedFlag;
   }
 
   private SeqCondWaitStatement(
-      MPOROptions pOptions,
+      ReductionOrder pReductionOrder,
       CondSignaledFlag pCondSignaledFlag,
       MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
@@ -56,7 +56,13 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(pOptions, pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
+    super(
+        pReductionOrder,
+        pSubstituteEdges,
+        pPcLeftHandSide,
+        pTargetPc,
+        pTargetGoto,
+        pInjectedStatements);
     condSignaledFlag = pCondSignaledFlag;
     mutexLockedFlag = pMutexLockedFlag;
   }
@@ -77,7 +83,7 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return Joiner.on(SeqSyntax.SPACE)
         .join(
@@ -90,7 +96,7 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqCondWaitStatement(
-        options,
+        reductionOrder,
         condSignaledFlag,
         mutexLockedFlag,
         pcLeftHandSide,
@@ -103,7 +109,7 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondWaitStatement(
-        options,
+        reductionOrder,
         condSignaledFlag,
         mutexLockedFlag,
         pcLeftHandSide,
@@ -118,7 +124,7 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqCondWaitStatement(
-        options,
+        reductionOrder,
         condSignaledFlag,
         mutexLockedFlag,
         pcLeftHandSide,
