@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -23,8 +25,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointDeserializer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointSerializer;
 
@@ -49,10 +49,12 @@ public class WaypointRecord {
       @JsonProperty("action") WaypointAction action,
       @JsonProperty("constraint") InformationRecord constraint,
       @JsonProperty("location") LocationRecord location) {
+    checkNotNull(type, "Waypoint type must not be null");
+    checkNotNull(action, "Waypoint action must not be null");
     // if not mentioned in json the type is assumed to be VISIT:
-    this.type = type == null ? WaypointType.VISIT : type;
+    this.type = type;
     // if not mentioned in json the action is assumed to be FOLLOW
-    this.action = action == null ? WaypointAction.FOLLOW : action;
+    this.action = action;
     this.constraint = constraint;
     this.location = location;
   }
@@ -124,23 +126,13 @@ public class WaypointRecord {
   }
 
   public enum WaypointType {
-    VISIT("visit"),
     BRANCHING("branching"),
     ASSUMPTION("assumption"),
     FUNCTION_ENTER("function_enter"),
     FUNCTION_RETURN("function_return"),
-    TARGET("target"),
-    UNKNOWN("unknown");
+    TARGET("target");
 
-    private static final Map<String, WaypointType> map;
     private final String keyword;
-
-    static {
-      map = new HashMap<>();
-      for (WaypointType type : WaypointType.values()) {
-        map.put(type.getKeyword(), type);
-      }
-    }
 
     WaypointType(String pKeyword) {
       keyword = pKeyword;
@@ -148,14 +140,12 @@ public class WaypointRecord {
 
     @JsonCreator
     public static WaypointType fromKeyword(String keyword) {
-      if (keyword == null) {
-        return VISIT;
+      for (WaypointType type : WaypointType.values()) {
+        if (type.getKeyword().equals(keyword)) {
+          return type;
+        }
       }
-      if (keyword.equals("identifier_evaluation")) {
-        // handle deprecated old keyword name
-        return FUNCTION_ENTER;
-      }
-      return map.getOrDefault(keyword, UNKNOWN);
+      throw new UnsupportedOperationException("Unknown WaypointType keyword: " + keyword);
     }
 
     @JsonValue
@@ -170,15 +160,7 @@ public class WaypointRecord {
     AVOID("avoid"),
     UNKNOWN("unknown");
 
-    private static final Map<String, WaypointAction> map;
     private final String keyword;
-
-    static {
-      map = new HashMap<>();
-      for (WaypointAction type : WaypointAction.values()) {
-        map.put(type.getKeyword(), type);
-      }
-    }
 
     WaypointAction(String pKeyword) {
       keyword = pKeyword;
@@ -186,7 +168,12 @@ public class WaypointRecord {
 
     @JsonCreator
     public static WaypointAction fromKeyword(String keyword) {
-      return map.getOrDefault(keyword, UNKNOWN);
+      for (WaypointAction action : WaypointAction.values()) {
+        if (action.getKeyword().equals(keyword)) {
+          return action;
+        }
+      }
+      throw new UnsupportedOperationException("Unknown WaypointAction keyword: " + keyword);
     }
 
     @JsonValue

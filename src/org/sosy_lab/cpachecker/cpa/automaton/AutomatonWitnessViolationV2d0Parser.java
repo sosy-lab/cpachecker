@@ -536,11 +536,11 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                 avoid.getConstraint().getValue(),
                 ImmutableListMultimap.of(),
                 transitions);
-        default ->
+        case FUNCTION_ENTER ->
             throw new WitnessParseException(
-                "Avoid waypoints of type "
-                    + avoid.getType()
-                    + " are not supported in violation witnesses.");
+                "We currently do not support function enter waypoints.");
+        case TARGET ->
+            throw new WitnessParseException("Avoid waypoints of type target are invalid.");
       }
     }
 
@@ -574,6 +574,8 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               distance,
               Boolean.parseBoolean(follow.getConstraint().getValue()),
               transitions);
+      case FUNCTION_ENTER ->
+          throw new WitnessParseException("We currently do not support function enter waypoints.");
       case WaypointType.FUNCTION_RETURN ->
           handleFunctionReturn(
               nextStateId,
@@ -583,7 +585,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               follow.getConstraint().getValue(),
               startLineToCFAEdge,
               transitions);
-      default -> throw new WitnessParseException("Unknown waypoint type: " + follow.getType());
     }
   }
 }
