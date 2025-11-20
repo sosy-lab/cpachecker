@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqParameterAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
@@ -275,7 +275,8 @@ public class SequentializationBuilder {
     } else {
       rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rDeclarations.add(SeqReachErrorStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(
+        SeqParameterAssignmentStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
 

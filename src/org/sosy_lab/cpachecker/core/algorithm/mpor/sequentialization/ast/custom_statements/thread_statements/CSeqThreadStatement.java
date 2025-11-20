@@ -43,7 +43,6 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
         SeqMutexLockStatement,
         SeqMutexUnlockStatement,
         SeqParameterAssignmentStatement,
-        SeqReachErrorStatement,
         SeqReturnValueAssignmentStatement,
         SeqRwLockRdLockStatement,
         SeqRwLockUnlockStatement,
@@ -102,9 +101,10 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    // XOR that one must be present, one must be empty
     checkArgument(
-        pTargetPc.isPresent() || pTargetGoto.isPresent(),
-        "Either pTargetPc or pTargetGoto must be present.");
+        pTargetPc.isPresent() ^ pTargetGoto.isPresent(),
+        "either targetPc or targetGoto must be present (exclusive or)");
     reductionOrder = pReductionOrder;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;
@@ -119,6 +119,14 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    */
   public boolean isTargetPcValid() {
     return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+  }
+
+  /**
+   * Returns either the target {@code pc} or the number of the target {@link
+   * SeqBlockLabelStatement}, whichever is present.
+   */
+  public int getTargetNumber() {
+    return targetPc.isPresent() ? targetPc.orElseThrow() : targetGoto.orElseThrow().number();
   }
 
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */

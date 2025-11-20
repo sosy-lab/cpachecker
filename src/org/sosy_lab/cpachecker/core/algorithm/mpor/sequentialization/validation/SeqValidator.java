@@ -83,16 +83,15 @@ public class SeqValidator {
 
     if (pOptions.validatePc()) {
       for (MPORThread thread : pClauses.keySet()) {
-        ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
         // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
-        ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(clauses);
-        ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-            SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
+        ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(pClauses.get(thread));
         ImmutableSet<Integer> allTargetPcs =
             pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
-        for (var pcEntry : pcMap.entrySet()) {
-          validateLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.id());
-          validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id());
+        ImmutableSet<Integer> allLabelPcs = pcMap.keySet();
+        for (int labelPc : allLabelPcs) {
+          ImmutableSet<Integer> targetPcs = Objects.requireNonNull(pcMap.get(labelPc));
+          validateLabelPcAsTargetPc(labelPc, allTargetPcs, thread.id());
+          validateTargetPcAsLabelPc(targetPcs, allLabelPcs, thread.id());
         }
       }
     }
@@ -114,19 +113,13 @@ public class SeqValidator {
   }
 
   private static void validateLabelPcAsTargetPc(
-      int pLabelPc,
-      ImmutableSet<Integer> pAllTargetPc,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      int pThreadId)
+      int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId)
       throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
     if (pLabelPc != ProgramCounterVariables.INIT_PC) {
       // check if label is a target pc anywhere in this threads switch statement
       if (!pAllTargetPc.contains(pLabelPc)) {
-        // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
-        SeqThreadStatementClause clause = pLabelClauseMap.get(pLabelPc);
-        assert clause != null;
         throw new IllegalStateException(
             String.format(
                 "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId));
@@ -154,11 +147,17 @@ public class SeqValidator {
 
   /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
   public static void validateEqualBlocks(
+      int pThreadId,
       ImmutableCollection<SeqThreadStatementBlock> pBlocksA,
       ImmutableCollection<SeqThreadStatementBlock> pBlocksB) {
 
     // short circuit: check for equal length
-    checkState(pBlocksA.size() == pBlocksB.size(), "pBlocksA and pBlocksB length differ");
+    checkState(
+        pBlocksA.size() == pBlocksB.size(),
+        "pBlocksA (%s) and pBlocksB (%s) length differ after reordering in thread %s",
+        pBlocksA.size(),
+        pBlocksB.size(),
+        pThreadId);
     // otherwise check if B contains all elements from A
     for (SeqThreadStatementBlock blockA : pBlocksA) {
       checkState(pBlocksB.contains(blockA), "pBlocksB does not contain all blocks from pBlocksA");

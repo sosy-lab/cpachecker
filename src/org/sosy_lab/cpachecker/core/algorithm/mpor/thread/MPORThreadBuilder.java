@@ -13,15 +13,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -147,7 +148,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   private CFAForThread buildThreadCfa(
       int pThreadId, FunctionEntryNode pEntryNode, Optional<CFAEdgeForThread> pStartRoutineCall) {
 
-    // check if node is present already in a specific calling context
+    // check if node was visited already in a specific calling context
     Multimap<CFANode, Optional<CFAEdgeForThread>> visitedNodes = ArrayListMultimap.create();
     ImmutableList.Builder<CFANodeForThread> threadNodes = ImmutableList.builder();
     // we use an immutable map to preserve ordering (important when declaring types)
@@ -197,9 +198,9 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     FluentIterable<CFAEdge> leavingCfaEdges = pCurrentNode.getAllLeavingEdges();
     // all leaving edges of a node are in the atomic block
-    ImmutableBiMap<CFAEdgeForThread, CFAEdge> threadEdges =
+    ImmutableMultimap<CFAEdgeForThread, CFAEdge> threadEdges =
         buildThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);
-    pThreadEdges.putAll(threadEdges);
+    pThreadEdges.putAll(threadEdges.entries());
     List<CFAEdgeForThread> edgeList = new ArrayList<>(threadEdges.keySet());
 
     // recursively build cfa nodes and edges
@@ -218,12 +219,18 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           new CFANodeForThread(
               pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pIsInAtomicBlock));
       for (CFAEdge cfaEdge : leavingCfaEdges) {
-        // exclude function returns, their successors may be in other threads.
-        // the original, same-thread successor is included due to the function summary edge.
+        // exclude CFunctionReturnEdges in the search, their successors may be in other threads.
+        // the original, same-thread successor is included due to the CFunctionSummaryEdge.
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
           // update the calling context, if a function call is encountered
           if (cfaEdge instanceof CFunctionCallEdge) {
-            callContext = Optional.ofNullable(threadEdges.inverse().get(cfaEdge));
+            callContext =
+                Optional.ofNullable(
+                    Iterables.getOnlyElement(
+                        threadEdges.entries().stream()
+                            .filter(entry -> entry.getValue().equals(cfaEdge))
+                            .map(Map.Entry::getKey)
+                            .toList()));
           }
           buildThreadCfaVariables(
               pThreadId,
@@ -302,15 +309,15 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
   // (Private) Helpers =============================================================================
 
-  private ImmutableBiMap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
-      int pThreadId, FluentIterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
+  private ImmutableMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
+      int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
 
-    // use ImmutableBiMap to retain insertion order (HashBiMap does not)
-    ImmutableBiMap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges = ImmutableBiMap.builder();
+    // use ImmutableMap to retain insertion order
+    ImmutableMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges = ImmutableMultimap.builder();
     for (CFAEdge cfaEdge : pCfaEdges) {
       rThreadEdges.put(new CFAEdgeForThread(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
-    return rThreadEdges.buildOrThrow();
+    return rThreadEdges.build();
   }
 
   private FunctionEntryNode getStartRoutineFunctionEntryNode(

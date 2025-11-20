@@ -34,16 +34,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqReachErrorStatement;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -117,33 +114,6 @@ public final class MPORUtil {
       }
     }
     return foundPath;
-  }
-
-  // reach_error calls =============================================================================
-
-  public static boolean isReachErrorCall(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
-      return isReachErrorCall(functionSummaryEdge);
-    } else if (pCfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-      return isReachErrorCall(functionCallEdge);
-    }
-    return false;
-  }
-
-  private static boolean isReachErrorCall(CFunctionSummaryEdge pFunctionSummaryEdge) {
-    return pFunctionSummaryEdge
-        .getFunctionEntry()
-        .getFunction()
-        .getOrigName()
-        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
-  }
-
-  private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
-    return pFunctionCallEdge
-        .getFunctionCallExpression()
-        .getDeclaration()
-        .getOrigName()
-        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME);
   }
 
   // const CPAchecker_TMP ==========================================================================
