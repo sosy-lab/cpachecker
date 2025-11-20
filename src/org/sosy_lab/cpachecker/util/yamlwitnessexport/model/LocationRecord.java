@@ -85,8 +85,8 @@ public class LocationRecord {
     }
     return o instanceof LocationRecord other
         && fileName.equals(other.fileName)
-        && line == other.line
-        && column == other.column
+        && Objects.equals(line, other.line)
+        && Objects.equals(column, other.column)
         && Objects.equals(function, other.function);
   }
 

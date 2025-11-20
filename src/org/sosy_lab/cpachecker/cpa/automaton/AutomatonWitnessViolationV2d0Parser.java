@@ -492,8 +492,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       String currentStateId)
       throws InterruptedException, WitnessParseException {
-    List<WaypointRecord> avoids = pEntry.avoids();
-
     // TODO: It may be worthwhile to refactor this into the CFA
     ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
         FluentIterable.from(cfa.edges())
