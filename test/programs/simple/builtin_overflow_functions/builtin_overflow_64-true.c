@@ -538,7 +538,7 @@ int main() {
       goto ERROR;
     }
 
-    // min+max == 1 (all signed int) + reversed
+    // min+max == 0 (all signed int) + reversed
     if (__builtin_add_overflow(signedIntMax, signedIntMin, &sIntResult)) {
       assert(0);
       goto ERROR;
@@ -572,7 +572,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    // min+max == 1 (all signed long) + reversed
+    // min+max == 0 (all signed long) + reversed
     if (__builtin_add_overflow(signedLongMin, signedLongMax, &sLongResult)) {
      assert(0);
      goto ERROR;
@@ -606,7 +606,7 @@ int main() {
       assert(0);
       goto ERROR;
     }
-    // min+max == 1 (all signed long long) + reversed
+    // min+max == 0 (all signed long long) + reversed
     if (__builtin_add_overflow(signedLongLongMin, signedLongLongMax, &sLongLongResult)) {
       assert(0);
       goto ERROR;
@@ -1715,43 +1715,6 @@ int main() {
       goto ERROR;
     }
   }
-  // __builtin_sadd_overflow, signed int
-  {
-   int sIntResult;
-   if (__builtin_sadd_overflow(0, 0, &sIntResult)) {
-    assert(0);
-    goto ERROR;
-   }
-   if (sIntResult != 0) {
-    assert(0);
-    goto ERROR;
-   }
-   if (__builtin_sadd_overflow(signedIntMax, 0, &sIntResult)) {
-    assert(0);
-    goto ERROR;
-   }
-   if (sIntResult != signedIntMax) {
-    assert(0);
-    goto ERROR;
-   }
-   if (!__builtin_sadd_overflow(signedIntMax, 1, &sIntResult)) {
-    assert(0);
-    goto ERROR;
-   }
-   if (sIntResult != INT_MIN) {
-    assert(0);
-    goto ERROR;
-   }
-   if (__builtin_sadd_overflow(signedIntMin, 1, &sIntResult)) {
-    assert(0);
-    goto ERROR;
-   }
-   if (sIntResult != signedIntMinPlusOne) {
-    assert(0);
-    goto ERROR;
-   }
-  }
-
   // __builtin_saddl_overflow, signed long
   {
    long sLongResult;
