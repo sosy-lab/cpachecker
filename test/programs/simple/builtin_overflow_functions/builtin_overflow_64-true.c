@@ -2684,38 +2684,76 @@ int main() {
 
 
   // ############ Methods checking only for overflow, not returning the arithmetic result ############
-
   {
     // __builtin_add_overflow_p(), types can be chosen freely
-    int sIntResult;
-    long sLongResult;
-    long long sLongLongResult;
-    unsigned int uIntResult;
-    unsigned long uLongResult;
-    unsigned long long uLongLongResult;
-
+    if (!__builtin_add_overflow_p(signedIntMax, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow_p(signedIntMaxMinusOne, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_add_overflow_p(unsignedIntMax, 1u, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow_p(unsignedIntMaxMinusOne, 1u, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_add_overflow_p(0, 0, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_sub_overflow_p(), types can be chosen freely
-    int sIntResult;
-    long sLongResult;
-    long long sLongLongResult;
-    unsigned int uIntResult;
-    unsigned long uLongResult;
-    unsigned long long uLongLongResult;
-
+    if (__builtin_sub_overflow_p(signedIntMax, signedIntMax, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_sub_overflow_p(signedIntMin, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_sub_overflow_p(unsignedIntMax, unsignedIntMax, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_sub_overflow_p((unsigned int)0, 1u, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_sub_overflow_p(0, 0, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
   {
     // __builtin_mul_overflow_p(), types can be chosen freely
-    int sIntResult;
-    long sLongResult;
-    long long sLongLongResult;
-    unsigned int uIntResult;
-    unsigned long uLongResult;
-    unsigned long long uLongLongResult;
-
+    if (__builtin_mul_overflow_p(0, signedIntMax, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_mul_overflow_p(signedIntMax, 2, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_mul_overflow_p(1u, unsignedIntMax, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (!__builtin_mul_overflow_p(unsignedIntMax, 2u, (unsigned int)0)) {
+      assert(0);
+      goto ERROR;
+    }
+    if (__builtin_mul_overflow_p(1, 1, (int)0)) {
+      assert(0);
+      goto ERROR;
+    }
   }
 
 
