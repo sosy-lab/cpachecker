@@ -10,9 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -61,9 +64,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   private final Specification specification;
 
   private final CFA cfa;
-  private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
 
-  private Algorithm innerAlgorithm;
+  private final SequentializationStatistics sequentializationStatistics;
 
   public MporPreprocessingAlgorithm(
       Configuration pConfiguration,
@@ -80,6 +82,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     cfa = pInputCfa;
     config = pConfiguration;
     specification = pSpecification;
+    sequentializationStatistics = new SequentializationStatistics();
   }
 
   private boolean alreadySequentialized(CFA pCFA) {
@@ -97,7 +100,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           InvalidConfigurationException {
 
     pLogger.log(Level.INFO, "Starting sequentialization of the program.");
-    sequentializationTime.start();
+    sequentializationStatistics.startSequentializationTimer();
 
     String sequentializedCode =
         Sequentialization.tryBuildProgramString(
@@ -113,7 +116,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
                 .withTransformationMetadata(
                     new CfaTransformationMetadata(pCFA, ProgramTransformation.SEQUENTIALIZATION)));
 
-    sequentializationTime.stop();
+    sequentializationStatistics.stopSequentializationTimer();
     logger.log(Level.INFO, "Finished sequentialization of the program.");
 
     return newCFA;
@@ -144,6 +147,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     final CoreComponentsFactory coreComponents;
     final ConfigurableProgramAnalysis cpa;
+    Algorithm innerAlgorithm;
     try {
       coreComponents =
           new CoreComponentsFactory(
@@ -158,23 +162,61 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     pReachedSet.clear();
     coreComponents.initializeReachedSet(pReachedSet, newCfa.getMainFunction(), cpa);
 
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      sequentializationStatistics.addInnerStatisticsProvider(statisticsProvider);
+    }
+
     return innerAlgorithm.run(pReachedSet);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(new Stats());
-    if (innerAlgorithm instanceof StatisticsProvider pStatisticsProvider) {
-      pStatisticsProvider.collectStatistics(statsCollection);
-    }
+    statsCollection.add(sequentializationStatistics);
   }
 
-  private class Stats implements Statistics {
+  private static class SequentializationStatistics implements Statistics {
+
+    private final ImmutableList.Builder<StatisticsProvider> innerStatisticsProviders =
+        ImmutableList.builder();
+
+    private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
+
+    public void addInnerStatisticsProvider(StatisticsProvider provider) {
+      innerStatisticsProviders.add(provider);
+    }
+
+    public void startSequentializationTimer() {
+      sequentializationTime.start();
+    }
+
+    public void stopSequentializationTimer() {
+      sequentializationTime.stop();
+    }
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
       w0.put(sequentializationTime);
+      List<Statistics> stats = new ArrayList<>();
+      for (StatisticsProvider statisticsProvider : innerStatisticsProviders.build()) {
+        statisticsProvider.collectStatistics(stats);
+      }
+
+      for (Statistics stat : stats) {
+        stat.printStatistics(out, result, reached);
+      }
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      List<Statistics> stats = new ArrayList<>();
+      for (StatisticsProvider statisticsProvider : innerStatisticsProviders.build()) {
+        statisticsProvider.collectStatistics(stats);
+      }
+
+      for (Statistics stat : stats) {
+        stat.writeOutputFiles(pResult, pReached);
+      }
     }
 
     @Override
