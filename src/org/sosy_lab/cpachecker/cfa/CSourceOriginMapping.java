@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class CSourceOriginMapping {
 
@@ -28,9 +27,13 @@ public class CSourceOriginMapping {
   // from its lines to the tuple of (originalFile, lineDelta).
   // The full mapping is a map with those RangeMaps as values,
   // one for each input file.
+  // All file paths are always pre-fixed with a `./` in case they are not absolute paths.
   private final Map<Path, RangeMap<Integer, CodePosition>> mapping = new HashMap<>();
 
-  private final ListMultimap<Path, Integer> lineNumberToStartingColumn = ArrayListMultimap.create();
+  // For each file (identified by its path, always pre-fixed with a `./` in case it is not an
+  // absolute path), we store a list of starting offsets for each line. This allows us to compute
+  // the column number for a given offset.
+  private final ListMultimap<Path, Integer> lineNumberToStartingOffset = ArrayListMultimap.create();
 
   void mapInputLineRangeToDelta(
       Path pAnalysisFileName,
@@ -38,15 +41,31 @@ public class CSourceOriginMapping {
       int pFromAnalysisCodeLineNumber,
       int pToAnalysisCodeLineNumber,
       int pLineDeltaToOrigin) {
-    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
+    Path normalizedAnalysisFileName = normalizePathForLookup(pAnalysisFileName);
+    RangeMap<Integer, CodePosition> fileMapping = mapping.get(normalizedAnalysisFileName);
     if (fileMapping == null) {
       fileMapping = TreeRangeMap.create();
-      mapping.put(pAnalysisFileName, fileMapping);
+      mapping.put(normalizedAnalysisFileName, fileMapping);
     }
 
     Range<Integer> lineRange =
         Range.closedOpen(pFromAnalysisCodeLineNumber, pToAnalysisCodeLineNumber);
-    fileMapping.put(lineRange, CodePosition.of(pOriginFileName, pLineDeltaToOrigin));
+    fileMapping.put(lineRange, new CodePosition(pOriginFileName, pLineDeltaToOrigin));
+  }
+
+  /**
+   * Convert paths like "file.c" to "./file.c", and return all other paths unchanged. We need some
+   * type of normalization, since our Eclipse based parser for C programs returns relative paths
+   * with "./", while other parts of CPAchecker do not use "./" for relative paths.
+   *
+   * <p>Each time a lookup in a data structure of this class is done with a path, this method should
+   * be applied to the path first.
+   */
+  private static Path normalizePathForLookup(Path path) {
+    if (!path.toString().isEmpty() && !path.isAbsolute() && path.getParent() == null) {
+      return Path.of(".").resolve(path);
+    }
+    return path;
   }
 
   /**
@@ -67,7 +86,7 @@ public class CSourceOriginMapping {
       currentOffset += sourceLine.length() + 1;
     }
 
-    lineNumberToStartingColumn.putAll(pPath.normalize(), result.build());
+    lineNumberToStartingOffset.putAll(normalizePathForLookup(pPath), result.build());
   }
 
   /**
@@ -81,7 +100,8 @@ public class CSourceOriginMapping {
    */
   public CodePosition getOriginLineFromAnalysisCodeLine(
       Path pAnalysisFileName, int pAnalysisCodeLine) {
-    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
+    RangeMap<Integer, CodePosition> fileMapping =
+        mapping.get(normalizePathForLookup(pAnalysisFileName));
 
     if (fileMapping != null) {
       CodePosition originFileAndLineDelta = fileMapping.get(pAnalysisCodeLine);
@@ -90,29 +110,29 @@ public class CSourceOriginMapping {
         return originFileAndLineDelta.addToLineNumber(pAnalysisCodeLine);
       }
     }
-    return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
+    return new CodePosition(pAnalysisFileName, pAnalysisCodeLine);
   }
 
   public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
-    Path normalizedPath = pAnalysisFileName.normalize();
+    Path normalizedPath = normalizePathForLookup(pAnalysisFileName);
     // This should only happen when parsing an automaton file. In those cases the file is called
     // 'fragment' since usually only a fragment of the automaton contains C-code.
-    if (!lineNumberToStartingColumn.containsKey(normalizedPath)) {
+    if (!lineNumberToStartingOffset.containsKey(normalizedPath)) {
       Verify.verify(
           // For automata files
-          normalizedPath.toString().equals("fragment")
+          normalizedPath.toString().equals("./fragment")
               // For parsing expressions stemming from witnesses
-              || normalizedPath.toString().equals("#expr#"));
+              || normalizedPath.toString().equals("./#expr#"));
       // Till now, we only have fragments with one line of code.
       Verify.verify(pAnalysisCodeLine == 1);
       return pOffset;
     }
 
-    Verify.verify(lineNumberToStartingColumn.get(normalizedPath).size() >= pAnalysisCodeLine);
+    Verify.verify(lineNumberToStartingOffset.get(normalizedPath).size() >= pAnalysisCodeLine);
 
     // Since the offsets start at 0 there is a one-off difference between the column and the
     // offset
-    return pOffset - lineNumberToStartingColumn.get(normalizedPath).get(pAnalysisCodeLine - 1) + 1;
+    return pOffset - lineNumberToStartingOffset.get(normalizedPath).get(pAnalysisCodeLine - 1) + 1;
   }
 
   /**
@@ -124,50 +144,14 @@ public class CSourceOriginMapping {
   }
 
   /** Code position in terms of file name and absolute or relative line number. */
-  public static class CodePosition {
-
-    private final Path fileName;
-
-    private final int lineNumber;
-
-    private CodePosition(Path pFileName, int pLineNumber) {
-      fileName = pFileName;
-      lineNumber = pLineNumber;
-    }
-
-    public Path getFileName() {
-      return fileName;
-    }
-
-    public int getLineNumber() {
-      return lineNumber;
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      return pObj instanceof CodePosition other
-          && lineNumber == other.lineNumber
-          && fileName.equals(other.fileName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(fileName, lineNumber);
-    }
+  public record CodePosition(Path fileName, int lineNumber) {
 
     public CodePosition withFileName(Path pFileName) {
-      return of(pFileName, lineNumber);
+      return new CodePosition(pFileName, lineNumber);
     }
 
     public CodePosition addToLineNumber(int pDelta) {
-      return of(fileName, lineNumber + pDelta);
-    }
-
-    public static CodePosition of(Path pFileName, int pLineNumber) {
-      return new CodePosition(pFileName, pLineNumber);
+      return new CodePosition(fileName, lineNumber + pDelta);
     }
   }
 }

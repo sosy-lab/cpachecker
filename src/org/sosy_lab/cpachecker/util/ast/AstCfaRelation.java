@@ -398,4 +398,11 @@ public final class AstCfaRelation {
       return Optional.empty();
     }
   }
+
+  public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {
+    if (globalVariables == null) {
+      return Optional.empty();
+    }
+    return Optional.of(globalVariables);
+  }
 }
