@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformati
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -110,7 +109,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
   @Override
   public AlgorithmStatus run(@NonNull ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    InputRejection.handleRejections(cfa);
 
     // Only sequentialize if not already done and requested.
     // We replace the CFA for its sequentialized version.
@@ -151,7 +149,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
 
   public String buildSequentializedProgram()
       throws UnrecognizedCodeException, InterruptedException, InvalidConfigurationException {
-
     // just use the first input file name for naming purposes
     return Sequentialization.tryBuildProgramString(
         options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));

@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -32,7 +33,7 @@ public class Sequentialization {
   public static String tryBuildProgramString(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
-
+    InputRejection.handleRejections(pCfa);
     SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
     return buildProgramString(pOptions, fields, pUtils);
   }
