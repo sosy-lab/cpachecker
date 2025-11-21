@@ -115,7 +115,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final CounterexampleToWitness cexToWitness;
   private final CounterexampleToSvLibWitnessExport cexToSvLibWitness;
-  private final Path svLibWitnessOutputPath;
+  private final PathTemplate svLibWitnessOutputPath;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
@@ -203,12 +203,6 @@ public class CEXExporter {
       return;
     }
 
-    if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
-      List<SvLibCommand> witnessCommands =
-          cexToSvLibWitness.generateWitnessCommands(counterexample);
-      WitnessExportUtils.writeCommandsAsWitness(svLibWitnessOutputPath, witnessCommands, logger);
-    }
-
     if (exportFaults
         && counterexample instanceof FaultLocalizationInfo faultLocalizationInfo
         && faultExporter != null) {
@@ -226,6 +220,13 @@ public class CEXExporter {
         BiPredicates.pairIn(ImmutableSet.copyOf(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
+
+    if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
+      List<SvLibCommand> witnessCommands =
+          cexToSvLibWitness.generateWitnessCommands(counterexample);
+      WitnessExportUtils.writeCommandsAsWitness(
+          svLibWitnessOutputPath.getPath(uniqueId), witnessCommands, logger);
+    }
 
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());

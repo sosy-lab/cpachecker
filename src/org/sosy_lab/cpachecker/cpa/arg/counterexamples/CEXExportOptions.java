@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
-import java.nio.file.Path;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -119,7 +118,8 @@ public final class CEXExportOptions {
               + "witness for SV-LIB programs. "
               + "In case no output files are requested ")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path svLibViolationWitnessPath = Path.of("witness.svlib");
+  private PathTemplate svLibViolationWitnessPathTemplate =
+      PathTemplate.ofFormatString("Counterexample.%d.svlib");
 
   @Option(
       secure = true,
@@ -250,11 +250,11 @@ public final class CEXExportOptions {
     return exportWitnessV2 ? yamlWitnessOutputFileTemplate : null;
   }
 
-  @Nullable Path getSvLibViolationWitnessPath() {
+  @Nullable PathTemplate getSvLibViolationWitnessPath() {
     if (!exportErrorPath) {
       return null;
     }
-    return svLibViolationWitnessPath;
+    return svLibViolationWitnessPathTemplate;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {
