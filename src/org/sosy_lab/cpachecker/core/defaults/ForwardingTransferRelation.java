@@ -122,14 +122,20 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   /** the function BEFORE the current edge */
   protected @Nullable String stackFrameFunctionName;
 
+  /** The state to apply the transfer-relation on. */
   protected T getState() {
     return checkNotNull(stateBeforeTransferRelation);
   }
 
+  /** The precision given to the transfer-relation before applying the transfer-relation. */
   protected P getPrecision() {
     return checkNotNull(precision);
   }
 
+  /**
+   * The name of the function the analysis is in (i.e. the stack-frames function) BEFORE the current
+   * edge.
+   */
   protected String getFunctionNameBeforeTransferRelation() {
     return checkNotNull(stackFrameFunctionName);
   }
