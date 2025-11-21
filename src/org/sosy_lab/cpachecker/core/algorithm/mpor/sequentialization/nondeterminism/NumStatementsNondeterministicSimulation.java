@@ -197,7 +197,7 @@ record NumStatementsNondeterministicSimulation(
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         newBlocks.add(injectCountAndRoundGotoIntoBlock(block, pSyncFlag, labelClauseMap));
       }
-      updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
+      updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }
     return updatedClauses.build();
   }
@@ -229,7 +229,7 @@ record NumStatementsNondeterministicSimulation(
       CSeqThreadStatement withCountUpdates = tryInjectCountUpdatesIntoStatement(statement);
       newStatements.add(withCountUpdates);
     }
-    return pBlock.cloneWithStatements(newStatements.build());
+    return pBlock.withStatements(newStatements.build());
   }
 
   private CSeqThreadStatement tryInjectCountUpdatesIntoStatement(CSeqThreadStatement pStatement)

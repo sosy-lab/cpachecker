@@ -105,7 +105,7 @@ public class SeqValidator {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
       for (CSeqThreadStatement statement : clause.getAllStatements()) {
-        targetPcs.addAll(SeqThreadStatementClauseUtil.collectAllIntegerTargetPc(statement));
+        statement.getTargetPc().ifPresent(targetPcs::add);
       }
       rPcMap.put(clause.labelNumber, targetPcs.build());
     }

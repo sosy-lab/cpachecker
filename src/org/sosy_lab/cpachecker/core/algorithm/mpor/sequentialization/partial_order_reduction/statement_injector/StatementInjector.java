@@ -43,7 +43,7 @@ public record StatementInjector(
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         newBlocks.add(injectStatementsIntoBlock(block));
       }
-      rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
+      rInjected.add(clause.withBlocks(newBlocks.build()));
     }
     return rInjected.build();
   }
@@ -55,7 +55,7 @@ public record StatementInjector(
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
       newStatements.add(injectStatementsIntoStatement(statement));
     }
-    return pBlock.cloneWithStatements(newStatements.build());
+    return pBlock.withStatements(newStatements.build());
   }
 
   private CSeqThreadStatement injectStatementsIntoStatement(CSeqThreadStatement pStatement)

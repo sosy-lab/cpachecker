@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -20,13 +21,31 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqIgnoreSleepReductionStatement(
-    CIdExpression roundMaxVariable,
-    BitVectorEvaluationExpression bitVectorEvaluationExpression,
-    SeqBlockLabelStatement nextLabel,
-    ImmutableList<SeqInjectedStatement> reductionAssumptions,
-    CBinaryExpressionBuilder binaryExpressionBuilder)
-    implements SeqInjectedStatement {
+public final class SeqIgnoreSleepReductionStatement extends SeqInjectedStatement {
+
+  private final CIdExpression roundMaxVariable;
+
+  private final BitVectorEvaluationExpression bitVectorEvaluationExpression;
+
+  public final ImmutableList<SeqInjectedStatement> reductionAssumptions;
+
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
+  private final SeqBlockLabelStatement targetGoto;
+
+  public SeqIgnoreSleepReductionStatement(
+      CIdExpression pRoundMaxVariable,
+      BitVectorEvaluationExpression pBitVectorEvaluationExpression,
+      ImmutableList<SeqInjectedStatement> pReductionAssumptions,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      SeqBlockLabelStatement pTargetGoto) {
+
+    roundMaxVariable = pRoundMaxVariable;
+    bitVectorEvaluationExpression = pBitVectorEvaluationExpression;
+    reductionAssumptions = pReductionAssumptions;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    targetGoto = pTargetGoto;
+  }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
@@ -37,7 +56,7 @@ public record SeqIgnoreSleepReductionStatement(
 
     // negate the evaluation expression
     String ifExpression = bitVectorEvaluationExpression.toNegatedASTString();
-    SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
+    SeqGotoStatement gotoNext = new SeqGotoStatement(targetGoto);
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(ifExpression, ImmutableList.of(gotoNext.toASTString()));
 
@@ -63,23 +82,29 @@ public record SeqIgnoreSleepReductionStatement(
     return outerIfStatement.toASTString();
   }
 
-  public SeqIgnoreSleepReductionStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+  @Override
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
+    return Optional.of(targetGoto);
+  }
+
+  @Override
+  public SeqIgnoreSleepReductionStatement withLabelNumber(int pLabelNumber) {
     return new SeqIgnoreSleepReductionStatement(
         roundMaxVariable,
         bitVectorEvaluationExpression,
-        nextLabel.cloneWithLabelNumber(pLabelNumber),
         reductionAssumptions,
-        binaryExpressionBuilder);
+        binaryExpressionBuilder,
+        targetGoto.withLabelNumber(pLabelNumber));
   }
 
-  public SeqIgnoreSleepReductionStatement cloneWithReductionAssumptions(
+  public SeqIgnoreSleepReductionStatement withReductionAssumptions(
       ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
 
     return new SeqIgnoreSleepReductionStatement(
         roundMaxVariable,
         bitVectorEvaluationExpression,
-        nextLabel,
         pReductionAssumptions,
-        binaryExpressionBuilder);
+        binaryExpressionBuilder,
+        targetGoto);
   }
 }

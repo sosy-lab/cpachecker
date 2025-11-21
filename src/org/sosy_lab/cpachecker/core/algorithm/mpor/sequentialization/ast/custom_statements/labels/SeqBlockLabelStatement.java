@@ -26,7 +26,7 @@ public record SeqBlockLabelStatement(String threadPrefix, int number) implements
     return threadPrefix + SeqSyntax.UNDERSCORE + number;
   }
 
-  public SeqBlockLabelStatement cloneWithLabelNumber(int pLabelNumber) {
+  public SeqBlockLabelStatement withLabelNumber(int pLabelNumber) {
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
   }
 }

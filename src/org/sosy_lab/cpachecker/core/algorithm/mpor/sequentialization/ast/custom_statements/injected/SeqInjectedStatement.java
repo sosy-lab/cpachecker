@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 
-public sealed interface SeqInjectedStatement extends SeqStatement
+public abstract sealed class SeqInjectedStatement implements SeqStatement
     permits SeqBitVectorAssignmentStatement,
         SeqBitVectorEvaluationStatement,
         SeqCountUpdateStatement,
@@ -18,4 +20,14 @@ public sealed interface SeqInjectedStatement extends SeqStatement
         SeqLastBitVectorUpdateStatement,
         SeqLastThreadOrderStatement,
         SeqRoundGotoStatement,
-        SeqSyncUpdateStatement {}
+        SeqSyncUpdateStatement {
+
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
+    return Optional.empty();
+  }
+
+  public SeqInjectedStatement withLabelNumber(int pTargetNumber) {
+    throw new UnsupportedOperationException(
+        this.getClass().getName() + " does not have a target goto, cloning not possible.");
+  }
+}

@@ -25,15 +25,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqLastThreadOrderStatement(
-    MPORThread activeThread,
-    Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation,
-    CBinaryExpressionBuilder binaryExpressionBuilder)
-    implements SeqInjectedStatement {
+public final class SeqLastThreadOrderStatement extends SeqInjectedStatement {
 
-  public SeqLastThreadOrderStatement {
+  private final MPORThread activeThread;
+
+  private final Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation;
+
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
+  public SeqLastThreadOrderStatement(
+      MPORThread pActiveThread,
+      Optional<BitVectorEvaluationExpression> pLastBitVectorEvaluation,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
     checkArgument(
-        !activeThread.isMain(), "cannot build SeqLastThreadOrderStatement for main thread");
+        !pActiveThread.isMain(), "cannot build SeqLastThreadOrderStatement for main thread");
+    activeThread = pActiveThread;
+    lastBitVectorEvaluation = pLastBitVectorEvaluation;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
   @Override

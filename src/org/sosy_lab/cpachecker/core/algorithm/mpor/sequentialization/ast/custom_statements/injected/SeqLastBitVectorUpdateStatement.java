@@ -14,10 +14,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqLastBitVectorUpdateStatement(
-    CExpressionAssignmentStatement lastThreadUpdate,
-    ImmutableList<CExpressionAssignmentStatement> lastBitVectorUpdates)
-    implements SeqInjectedStatement {
+public final class SeqLastBitVectorUpdateStatement extends SeqInjectedStatement {
+
+  private final CExpressionAssignmentStatement lastThreadUpdate;
+
+  private final ImmutableList<CExpressionAssignmentStatement> lastBitVectorUpdates;
+
+  public SeqLastBitVectorUpdateStatement(
+      CExpressionAssignmentStatement pLastThreadUpdate,
+      ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
+
+    lastThreadUpdate = pLastThreadUpdate;
+    lastBitVectorUpdates = pLastBitVectorUpdates;
+  }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {

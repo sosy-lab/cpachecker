@@ -245,7 +245,7 @@ public class NondeterministicSimulationUtil {
               pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
       newStatements.add(withRoundGoto);
     }
-    return pBlock.cloneWithStatements(newStatements.build());
+    return pBlock.withStatements(newStatements.build());
   }
 
   private static CSeqThreadStatement tryInjectRoundGotoIntoStatement(
@@ -333,7 +333,7 @@ public class NondeterministicSimulationUtil {
           tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
       newStatements.add(withGoto);
     }
-    return pBlock.cloneWithStatements(newStatements.build());
+    return pBlock.withStatements(newStatements.build());
   }
 
   private static CSeqThreadStatement tryInjectSyncUpdateIntoStatement(

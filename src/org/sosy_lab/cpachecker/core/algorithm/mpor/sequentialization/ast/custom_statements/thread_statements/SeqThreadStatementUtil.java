@@ -94,7 +94,7 @@ public final class SeqThreadStatementUtil {
 
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluationStatement) {
-        if (evaluationStatement.evaluationExpression().isEmpty()) {
+        if (evaluationStatement.evaluationExpression.isEmpty()) {
           return true;
         }
       }
@@ -324,9 +324,9 @@ public final class SeqThreadStatementUtil {
       SeqIgnoreSleepReductionStatement ignoreSleepStatement =
           (SeqIgnoreSleepReductionStatement) ignoreSleepStatements.getFirst();
       ImmutableList<SeqInjectedStatement> reductionAssumptions =
-          ignoreSleepStatement.reductionAssumptions();
+          ignoreSleepStatement.reductionAssumptions;
       return ImmutableList.of(
-          ignoreSleepStatement.cloneWithReductionAssumptions(
+          ignoreSleepStatement.withReductionAssumptions(
               ImmutableList.<SeqInjectedStatement>builder()
                   .addAll(getInjectedStatementsByClass(reductionAssumptions, pFirstClass))
                   .addAll(getInjectedStatementsByClass(reductionAssumptions, pSecondClass))

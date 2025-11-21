@@ -80,9 +80,9 @@ record ReduceIgnoreSleepInjector(
     return new SeqIgnoreSleepReductionStatement(
         SeqIdExpressions.ROUND_MAX,
         pBitVectorEvaluationExpression,
-        pTargetClause.getFirstBlock().getLabel(),
         reductionAssumptions.build(),
-        utils.binaryExpressionBuilder());
+        utils.binaryExpressionBuilder(),
+        pTargetClause.getFirstBlock().getLabel());
   }
 
   private static ImmutableList<SeqInjectedStatement> replaceReductionAssumptions(

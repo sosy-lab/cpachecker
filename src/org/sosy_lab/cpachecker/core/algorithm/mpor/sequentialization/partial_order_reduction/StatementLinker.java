@@ -67,9 +67,9 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
           newStatements.add(
               linkStatements(statement, pLinkedTargetIds, labelClauseMap, labelBlockMap));
         }
-        newBlocks.add(block.cloneWithStatements(newStatements.build()));
+        newBlocks.add(block.withStatements(newStatements.build()));
       }
-      rNewClauses.add(clause.cloneWithBlocks(newBlocks.build()));
+      rNewClauses.add(clause.withBlocks(newBlocks.build()));
     }
     return rNewClauses.build();
   }
@@ -144,7 +144,7 @@ record StatementLinker(MPOROptions options, MemoryModel memoryModel) {
         // still need all mergedBlocks here
         temporary.addAll(0, clause.getMergedBlocks());
         SeqThreadStatementClause mergedClause =
-            clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
+            clause.withMergedBlocks(ImmutableList.copyOf(temporary));
         rMerged.addFirst(mergedClause);
         temporary.clear();
       }
