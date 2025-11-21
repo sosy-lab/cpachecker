@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -78,11 +79,24 @@ public final class IterationElement extends BranchingElement {
       return Optional.empty();
     }
 
-    ImmutableSet<CFANode> loopStartNodes =
-        controllingExpression.orElseThrow().edges().stream()
-            .map(CFAEdge::getPredecessor)
-            .filter(CFANode::isLoopStart)
-            .collect(ImmutableSet.toImmutableSet());
+    FluentIterable<@NonNull CFANode> boundaryNodes;
+    if (controllingExpression.orElseThrow().edges().isEmpty()) {
+      // Can happen in the case of while(1) { ... }
+      try {
+        boundaryNodes =
+            FluentIterable.from(getNodesBetweenConditionAndBody())
+                .transformAndConcat(CFAUtils::allPredecessorsOf);
+      } catch (BoundaryNodesComputationFailed e) {
+        // In this case, all our heuristics for computing a loop head failed.
+        return Optional.empty();
+      }
+    } else {
+      boundaryNodes =
+          FluentIterable.from(controllingExpression.orElseThrow().edges())
+              .transform(CFAEdge::getPredecessor);
+    }
+
+    ImmutableSet<CFANode> loopStartNodes = boundaryNodes.filter(CFANode::isLoopStart).toSet();
 
     if (loopStartNodes.size() != 1) {
       return Optional.empty();
@@ -92,7 +106,9 @@ public final class IterationElement extends BranchingElement {
   }
 
   private void computeNodesBetweenConditionAndBody() throws BoundaryNodesComputationFailed {
-    if (controllingExpression.isEmpty()) {
+    if (controllingExpression.isEmpty()
+        // Can happen in the case of while(1) { ... }
+        || controllingExpression.orElseThrow().edges().isEmpty()) {
       nodesBetweenConditionAndBody =
           ImmutableSet.copyOf(
               Sets.difference(
@@ -111,7 +127,7 @@ public final class IterationElement extends BranchingElement {
     nodesBetweenConditionAndExit = borderElements.getSecond();
   }
 
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndBody()
+  public ImmutableSet<@NonNull CFANode> getNodesBetweenConditionAndBody()
       throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndBody == null) {
       computeNodesBetweenConditionAndBody();
@@ -127,7 +143,7 @@ public final class IterationElement extends BranchingElement {
     return nodesBetweenConditionAndExit;
   }
 
-  public FluentIterable<CFANode> getControllingExpressionNodes() {
+  public FluentIterable<@NonNull CFANode> getControllingExpressionNodes() {
     if (controllingExpression.isEmpty()) {
       return FluentIterable.of();
     }

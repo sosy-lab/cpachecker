@@ -526,7 +526,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               distance,
               Boolean.parseBoolean(follow.getConstraint().getValue()),
               transitions);
-      case WaypointType.FUNCTION_ENTER ->
+      case WaypointType.FUNCTION_RETURN ->
           handleFunctionReturn(
               nextStateId,
               followLine,
