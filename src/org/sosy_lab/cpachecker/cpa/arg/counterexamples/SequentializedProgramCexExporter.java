@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Path;
-import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -124,26 +123,22 @@ public class SequentializedProgramCexExporter {
   }
 
   /** Returns a dummy {@code .graphml} counterexample without any meaningful nodes or edges. */
-  public static Optional<String> buildDefaultSequentializationCounterexample(
-      CFA pOriginalCfa, Specification pSpecification) {
+  public static String buildDefaultSequentializationCounterexample(
+      CFA pOriginalCfa, Specification pSpecification)
+      throws ParserConfigurationException, IOException, SAXException, TransformerException {
 
     DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
     StringWriter stringWriter = new StringWriter();
-    try {
-      DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-      Document document =
-          documentBuilder.parse(new InputSource(new StringReader(trivialWitness())));
-      document.getDocumentElement().normalize();
-      updateDefaultGraphml(pOriginalCfa, pSpecification, document);
+    DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+    Document document = documentBuilder.parse(new InputSource(new StringReader(trivialWitness())));
+    document.getDocumentElement().normalize();
+    updateDefaultGraphml(pOriginalCfa, pSpecification, document);
 
-      // Write witness to string
-      Transformer transformer = TransformerFactory.newInstance().newTransformer();
-      transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
-    } catch (SAXException | IOException | ParserConfigurationException | TransformerException e) {
-      return Optional.empty();
-    }
+    // Write witness to string
+    Transformer transformer = TransformerFactory.newInstance().newTransformer();
+    transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
 
-    return Optional.ofNullable(stringWriter.toString());
+    return stringWriter.toString();
   }
 
   private static void updateDataValue(Document pDocument, String pKeyName, String pNewValue) {

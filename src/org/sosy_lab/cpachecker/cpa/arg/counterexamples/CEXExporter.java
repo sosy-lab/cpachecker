@@ -26,6 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExpor
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.xml.sax.SAXException;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -332,17 +335,17 @@ public class CEXExporter {
                 + " sequentialized version. Currently there is no way to map the result for the"
                 + " sequentialized program back to the original program, therefore no witness will"
                 + " be exported.");
-        Optional<String> witnessString =
-            SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
-                transformationMetadata.originalCfa(), specification);
-        if (witnessString.isPresent()) {
-          writeErrorPathFile(
-              options.getWitnessFile(), uniqueId, witnessString.orElseThrow(), compressWitness);
-        } else {
-          logger.log(
-              Level.WARNING,
-              "Could not export default witness for sequentialized program due to an internal"
-                  + " error.");
+        try {
+          String witnessString =
+              SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
+                  transformationMetadata.originalCfa(), specification);
+          writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
+        } catch (ParserConfigurationException
+            | IOException
+            | SAXException
+            | TransformerException e) {
+          logger.logUserException(
+              Level.WARNING, e, "Could not export default witness for sequentialized program");
         }
 
       } else {
