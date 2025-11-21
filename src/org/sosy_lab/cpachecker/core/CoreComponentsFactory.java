@@ -575,12 +575,17 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (useMporPreprocessing
-        && (transformationMetadata == null
-            || !transformationMetadata
-                .transformation()
-                .equals(ProgramTransformation.SEQUENTIALIZATION))) {
+    } else if (useMporPreprocessing && MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
+      // Only in case the CFA is not already sequentialized, since in that case we are somewhere
+      // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
+      // In such a case we want to continue creating the algorithm with the already sequentialized
+      // CFA.
+      //
+      // This is usefull in order to be able to write `analysis.preprocessing.MPOR=true` in the
+      // existing configuration and have all (sub-)analyses automatically operate on the
+      // sequentialized CFA no matter how deep they are nested. In particular this works for
+      // parallel compositions, sequential compositions, and restart algorithm.
       algorithm =
           new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {

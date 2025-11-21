@@ -85,7 +85,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics = new SequentializationStatistics();
   }
 
-  private boolean alreadySequentialized(CFA pCFA) {
+  public static boolean alreadySequentialized(CFA pCFA) {
     CfaTransformationMetadata transformationMetadata =
         pCFA.getMetadata().getTransformationMetadata();
     return transformationMetadata != null
