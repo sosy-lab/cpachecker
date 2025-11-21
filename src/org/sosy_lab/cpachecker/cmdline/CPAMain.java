@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -386,7 +387,7 @@ public class CPAMain {
     if (language == null) {
       List<Path> programs = programFiles(pCommandLineOptions);
       language =
-          detectFrontendLanguageFromFileEndings(from(programs).transform(Path::toString).toList());
+          detectFrontendLanguageFromFileEndings(transformedImmutableListCopy(programs, Path::toString));
     }
 
     return language;
