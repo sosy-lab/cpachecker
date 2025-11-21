@@ -219,6 +219,41 @@ public class CPAMain {
   public static final String PROGRAMS_OPTION = "analysis.programNames";
 
   @Options
+  private static class BootstrapLanguageOptions {
+    @Option(
+        secure = true,
+        name = "c.config",
+        description =
+            "When checking c programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path cConfig = null;
+
+    @Option(
+        secure = true,
+        name = "svlib.config",
+        description =
+            "When checking c programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path svlibConfig = null;
+
+    @Option(
+        secure = true,
+        name = "java.config",
+        description =
+            "When checking java programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path javaConfig = null;
+
+    @Option(
+        secure = true,
+        name = "llvm.config",
+        description =
+            "When checking llvm programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path llvmConfig = null;
+  }
+
+  @Options
   private static class BootstrapOptions {
     @Option(
         secure = true,
@@ -301,7 +336,7 @@ public class CPAMain {
         secure = true,
         name = "configuration.dumpFile",
         description = "Dump the complete configuration to a file.")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
+    @FileOption(Type.OUTPUT_FILE)
     private Path configurationOutputFile = Path.of("UsedConfiguration.properties");
 
     @Option(
@@ -311,7 +346,7 @@ public class CPAMain {
     private boolean exportStatistics = true;
 
     @Option(secure = true, name = "statistics.file", description = "write some statistics to disk")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
+    @FileOption(Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Path.of("Statistics.txt");
 
     @Option(secure = true, name = "statistics.print", description = "print statistics to console")
@@ -338,6 +373,24 @@ public class CPAMain {
           CommonVerificationProperty.VALID_DEREF,
           CommonVerificationProperty.VALID_FREE,
           CommonVerificationProperty.VALID_MEMTRACK);
+
+  private static Language getInputLanguageFromCommandLine(Map<String, String> pCommandLineOptions)
+      throws InvalidConfigurationException {
+    // First try to get the language from the command-line options if it is set explicitly
+    Language language = null;
+    if (pCommandLineOptions.containsKey("language")) {
+      language = Language.valueOf(pCommandLineOptions.get("language"));
+    }
+
+    // If it was not set on the command line, try to auto-detect it from the input files
+    if (language == null) {
+      List<Path> programs = programFiles(pCommandLineOptions);
+      language =
+          detectFrontendLanguageFromFileEndings(from(programs).transform(Path::toString).toList());
+    }
+
+    return language;
+  }
 
   /**
    * Parse the command line, read the configuration file, and set up the program-wide base paths.
@@ -396,6 +449,14 @@ public class CPAMain {
             .copyFrom(config)
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
+
+    // Determine config for frontend language if necessary
+    BootstrapLanguageOptions bootstrapLangOptions = new BootstrapLanguageOptions();
+    config.inject(bootstrapLangOptions);
+    Language frontendLanguage = getInputLanguageFromCommandLine(cmdLineOptions);
+    config =
+        handleFrontendLanguageOptions(
+            config, bootstrapLangOptions, cmdLineOptions, frontendLanguage);
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
@@ -600,6 +661,15 @@ public class CPAMain {
     return config;
   }
 
+  private static List<Path> programFiles(Map<String, String> cmdLineOptions) {
+    return Splitter.on(',')
+        .trimResults()
+        .omitEmptyStrings()
+        .splitToStream(cmdLineOptions.getOrDefault(PROGRAMS_OPTION, ""))
+        .map(Path::of)
+        .collect(ImmutableList.toImmutableList());
+  }
+
   private static Set<Property> handlePropertyFile(Map<String, String> cmdLineOptions)
       throws InvalidCmdlineArgumentException {
     List<String> specificationFiles =
@@ -617,16 +687,10 @@ public class CPAMain {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
     String propertyFile = propertyFiles.getFirst();
-    List<Path> programFiles =
-        Splitter.on(',')
-            .trimResults()
-            .omitEmptyStrings()
-            .splitToStream(cmdLineOptions.getOrDefault(PROGRAMS_OPTION, ""))
-            .map(Path::of)
-            .collect(ImmutableList.toImmutableList());
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile), programFiles);
+    PropertyFileParser parser =
+        new PropertyFileParser(Path.of(propertyFile), programFiles(cmdLineOptions));
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
@@ -648,6 +712,34 @@ public class CPAMain {
       cmdLineOptions.put(ENTRYFUNCTION_OPTION, entryFunctionInPropertyFile);
     }
     return parser.getProperties();
+  }
+
+  private static Configuration handleFrontendLanguageOptions(
+      Configuration config,
+      BootstrapLanguageOptions pBootstrapLangOptions,
+      Map<String, String> pCmdLineOptions,
+      Language frontendLanguage)
+      throws InvalidConfigurationException, IOException {
+    Path subconfig =
+        switch (frontendLanguage) {
+          case C -> pBootstrapLangOptions.cConfig;
+          case JAVA -> pBootstrapLangOptions.javaConfig;
+          case LLVM -> pBootstrapLangOptions.llvmConfig;
+          case SVLIB -> pBootstrapLangOptions.svlibConfig;
+        };
+
+    if (subconfig != null) {
+      return Configuration.builder()
+          .loadFromFile(subconfig)
+          .setOptions(pCmdLineOptions)
+          .clearOption("c.config")
+          .clearOption("svlib.config")
+          .clearOption("llvm.config")
+          .clearOption("java.config")
+          .build();
+    }
+
+    return config;
   }
 
   @Options
