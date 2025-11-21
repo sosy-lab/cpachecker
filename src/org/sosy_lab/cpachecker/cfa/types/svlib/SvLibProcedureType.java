@@ -111,7 +111,7 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   }
 
   @Override
-  public ImmutableList<? extends SvLibType> getParameters() {
+  public ImmutableList<SvLibType> getParameters() {
     return getInputType();
   }
 
