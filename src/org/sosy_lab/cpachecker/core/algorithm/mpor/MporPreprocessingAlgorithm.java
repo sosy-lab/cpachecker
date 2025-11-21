@@ -102,7 +102,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     // TODO: Statistics about the sequentialization process
     ImmutableCFA originalCfa = pCFA;
-    String sequentializedCode = buildSequentializedProgram();
+    String sequentializedCode =
+        Sequentialization.tryBuildProgramString(
+            options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
     pCFA =
         new CFACreator(pConfig, pLogger, pShutdownNotifier)
             .parseSourceAndCreateCFA(sequentializedCode);
@@ -158,13 +160,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     coreComponents.initializeReachedSet(pReachedSet, newCfa.getMainFunction(), cpa);
 
     return innerAlgorithm.run(pReachedSet);
-  }
-
-  public String buildSequentializedProgram()
-      throws UnrecognizedCodeException, InterruptedException, InvalidConfigurationException {
-    // just use the first input file name for naming purposes
-    return Sequentialization.tryBuildProgramString(
-        options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
   }
 
   @Override
