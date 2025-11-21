@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -407,6 +406,20 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "preprocessing.preferOriginalCfaOverPreprocessed",
+      description =
+          "in case the CFA was modified in a pre-processing step "
+              + "(e.g., by sequentialization), if this option is set to true the original"
+              + " CFA is used instead of the modified one for the analysis. This is useful when the "
+              + "pre-processing should be done for multiple algorithms in a parallel portfolio,"
+              + "but some of them should analyze the original CFA."
+              + "For example, when using some analyses which support concurrency natively alongside "
+              + "analyses which need sequentialization in a parallel portfolio we want the "
+              + "analyses which natively support concurrency to use the original CFA.")
+  private boolean preferOriginalCfaOverPreprocessed = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.MPV",
       description = "use MPV algorithm for checking multiple properties")
   private boolean useMPV = false;
@@ -508,15 +521,19 @@ public class CoreComponentsFactory {
       shutdownNotifier = pShutdownNotifier;
     }
 
-    // Allow for deactivating the sequentialization in inner analyses which do not need it.
+    // Allow for deactivating pre-processing steps like the sequentialization in inner analyses
+    // which do not need it.
     CfaTransformationMetadata transformationMetadata =
         cfa.getMetadata().getTransformationMetadata();
-    if (!useMporPreprocessing
-        && transformationMetadata != null
-        && transformationMetadata
-            .transformation()
-            .equals(ProgramTransformation.SEQUENTIALIZATION)) {
-      cfa = cfa.getMetadata().getTransformationMetadata().originalCfa();
+
+    // Whenever we want to use the original CFA instead of a pre-processed one, we retrieve it here.
+    // This is necessary to pre-process the CFA only once, e.g., by sequentialization, but still
+    // allow analyses which do not need the pre-processed CFA to use the original one. For example,
+    // when using some analyses which support concurrency natively alongside analyses which need
+    // sequentialization in a parallel portfolio we want the analyses which natively support
+    // concurrency to use the original CFA.
+    if (preferOriginalCfaOverPreprocessed && transformationMetadata != null) {
+      cfa = transformationMetadata.originalCfa();
     }
 
     if (useTerminationAlgorithm) {
@@ -575,7 +592,9 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (useMporPreprocessing && !MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
+    } else if (useMporPreprocessing
+        && !preferOriginalCfaOverPreprocessed
+        && !MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
       // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
