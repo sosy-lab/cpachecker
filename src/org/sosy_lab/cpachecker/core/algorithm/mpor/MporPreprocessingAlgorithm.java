@@ -84,6 +84,10 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
           InterruptedException,
           ParserException,
           InvalidConfigurationException {
+
+    pLogger.log(Level.INFO, "Starting sequentialization of the program.");
+
+    // TODO: Statistics about the sequentialization process
     ImmutableCFA originalCfa = pCFA;
     String sequentializedCode = buildSequentializedProgram();
     pCFA =
@@ -96,6 +100,9 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
                 .withTransformationMetadata(
                     new CfaTransformationMetadata(
                         originalCfa, ProgramTransformation.SEQUENTIALIZATION)));
+
+    logger.log(Level.INFO, "Finished sequentialization of the program.");
+
     return pCFA;
   }
 
