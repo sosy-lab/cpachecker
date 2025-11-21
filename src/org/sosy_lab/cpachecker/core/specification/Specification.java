@@ -175,6 +175,9 @@ public final class Specification {
           // We are inside of an SV-LIB verification task but no property was specified.
           // Default to checking the correctness of SV-LIB tags.
           props = ImmutableSet.of(CommonVerificationProperty.CORRECT_TAGS);
+        } else if (props.isEmpty()) {
+          throw new InvalidConfigurationException(
+              String.format("No properties specified in property file %s", specFile));
         }
 
         for (Property prop : props) {
