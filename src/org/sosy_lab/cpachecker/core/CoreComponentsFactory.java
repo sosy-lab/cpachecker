@@ -580,7 +580,7 @@ public class CoreComponentsFactory {
             || !transformationMetadata
                 .transformation()
                 .equals(ProgramTransformation.SEQUENTIALIZATION))) {
-      // First pre-process everything, and then continue with the normal algorithm
+      // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       algorithm =
           new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
