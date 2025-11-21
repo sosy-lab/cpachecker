@@ -29,10 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
@@ -54,6 +50,10 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 
 public class SvLibParserTest {
 

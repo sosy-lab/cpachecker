@@ -46,18 +46,18 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteSta
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SmtLibModel;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibChoiceStep;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibHavocVariablesStep;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibIncorrectTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInitProcVariablesStep;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceEntryProcedure;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceSetGlobalVariable;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceStep;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibViolatedProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SmtLibModel;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibChoiceStep;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibHavocVariablesStep;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibIncorrectTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInitProcVariablesStep;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTrace;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTraceEntryProcedure;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTraceSetGlobalVariable;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTraceStep;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibViolatedProperty;
 
 public class CounterexampleToSvLibWitnessExport {
   @SuppressWarnings("unused")

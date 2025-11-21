@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class SvLibStatementToCfaVisitor

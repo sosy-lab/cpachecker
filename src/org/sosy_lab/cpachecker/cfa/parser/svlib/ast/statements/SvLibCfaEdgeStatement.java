@@ -13,8 +13,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCfaEdgeStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 
 public abstract non-sealed class SvLibCfaEdgeStatement extends SvLibStatement
     implements AStatement {

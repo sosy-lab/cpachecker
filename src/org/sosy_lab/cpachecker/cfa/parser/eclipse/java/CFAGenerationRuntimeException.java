@@ -101,7 +101,7 @@ class CFAGenerationRuntimeException extends RuntimeException {
     sb.append("\n");
     sb.append(rawSignature);
 
-    // search the specification node for the whole statement / declaration / line
+    // search the ast node for the whole statement / declaration / line
     ASTNode fullLine = node;
     while ((fullLine != null)
         && !(fullLine instanceof Statement)

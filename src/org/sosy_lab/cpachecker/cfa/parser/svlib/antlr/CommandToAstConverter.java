@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssertCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AttributeContext;
@@ -58,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
 
 class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 

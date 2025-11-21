@@ -95,7 +95,7 @@ class ParseContext {
     String rawSignature = node.getRawSignature();
     sb.append(rawSignature);
 
-    // search the specification node for the whole statement / declaration / line
+    // search the ast node for the whole statement / declaration / line
     IASTNode fullLine = node;
     while ((fullLine != null)
         && !(fullLine instanceof IASTStatement)

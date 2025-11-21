@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibCfaEdgeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
 
 public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
     implements AFunctionCall {

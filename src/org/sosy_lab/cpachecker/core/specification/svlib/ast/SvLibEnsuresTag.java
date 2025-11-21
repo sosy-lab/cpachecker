@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.core.specification.svlib.ast;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
-public final class SvLibCheckTrueTag implements SvLibTagProperty {
+public final class SvLibEnsuresTag implements SvLibTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final SvLibFinalRelationalTerm term;
   private final FileLocation fileLocation;
 
-  public SvLibCheckTrueTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
+  public SvLibEnsuresTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -36,12 +36,12 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toASTString(pAAstNodeRepresentation);
+    return ":ensures " + term.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toParenthesizedASTString(pAAstNodeRepresentation);
+    return ":ensures " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   public SvLibFinalRelationalTerm getTerm() {
@@ -53,7 +53,7 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof SvLibCheckTrueTag other && term.equals(other.term);
+    return pO instanceof SvLibEnsuresTag other && term.equals(other.term);
   }
 
   @Override
