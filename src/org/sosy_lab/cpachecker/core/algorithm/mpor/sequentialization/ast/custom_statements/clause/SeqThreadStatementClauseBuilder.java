@@ -8,17 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -83,7 +87,8 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, ensure that no backward goto exist
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         options.noBackwardGoto()
-            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses)
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(
+                options.validateNoBackwardGoto(), reducedClauses)
             : reducedClauses;
 
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
@@ -176,7 +181,7 @@ public record SeqThreadStatementClauseBuilder(
   /**
    * Returns a {@link SeqThreadStatementClause} which represents case statements in the
    * sequentializations while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving
-   * edges i.e. its pc is -1.
+   * edges i.e. its {@code pc} is {@link ProgramCounterVariables#EXIT_PC}.
    */
   private ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
       MPORThread pThread,
@@ -187,9 +192,7 @@ public record SeqThreadStatementClauseBuilder(
 
     pCoveredNodes.add(pThreadNode);
 
-    // no edges -> exit node of thread reached -> no case because no edges with code
-    if (pThreadNode.leavingEdges().isEmpty()) {
-      assert pThreadNode.pc == ProgramCounterVariables.EXIT_PC;
+    if (isExcludedNode(pThreadNode)) {
       return ImmutableList.of();
     }
 
@@ -226,6 +229,22 @@ public record SeqThreadStatementClauseBuilder(
           buildClause(pThread, nextThreadLabel, labelPc, statements.build());
       return ImmutableList.of(clause);
     }
+  }
+
+  private boolean isExcludedNode(CFANodeForThread pThreadNode) {
+    // no leaving edges -> exit node of thread reached -> no clause because no edges with code
+    if (pThreadNode.leavingEdges().isEmpty()) {
+      assert pThreadNode.pc == ProgramCounterVariables.EXIT_PC
+          : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
+      return true;
+    }
+    FluentIterable<CFAEdge> enteringEdges = pThreadNode.cfaNode.getEnteringEdges();
+    if (enteringEdges.size() == 1) {
+      if (Iterables.getOnlyElement(enteringEdges) instanceof CFunctionSummaryStatementEdge) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Helpers =====================================================================================

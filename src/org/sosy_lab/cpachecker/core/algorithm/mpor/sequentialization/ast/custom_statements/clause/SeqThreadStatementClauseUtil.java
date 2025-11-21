@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -295,6 +294,7 @@ public class SeqThreadStatementClauseUtil {
    * i.e. higher up in the program. This is done by reordering blocks via a dependence graph.
    */
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
+      boolean pValidateNoBackwardGoto,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
@@ -307,7 +307,9 @@ public class SeqThreadStatementClauseUtil {
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
-      SeqValidator.validateEqualBlocks(allBlocks, reorderedBlocks);
+      if (pValidateNoBackwardGoto) {
+        SeqValidator.validateEqualBlocks(thread.id(), allBlocks, reorderedBlocks);
+      }
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
     return rNoBackwardGoto.build();
@@ -338,18 +340,16 @@ public class SeqThreadStatementClauseUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     for (CSeqThreadStatement statement : pCurrentBlock.getStatements()) {
-      Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
-      if (targetNumber.isPresent()) {
-        if (targetNumber.orElseThrow() != ProgramCounterVariables.EXIT_PC) {
-          SeqThreadStatementBlock targetBlock =
-              Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
-          // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph
-          if (isCycleFree(pGraph, pCurrentBlock, targetBlock)) {
-            // prevent duplicates
-            if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
-              pGraph.get(pCurrentBlock).add(targetBlock);
-              recursivelyBuildBlockGraph(targetBlock, pGraph, pLabelBlockMap);
-            }
+      int targetNumber = statement.getTargetNumber();
+      if (targetNumber != ProgramCounterVariables.EXIT_PC) {
+        SeqThreadStatementBlock targetBlock =
+            Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
+        // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph
+        if (isCycleFree(pGraph, pCurrentBlock, targetBlock)) {
+          // prevent duplicates
+          if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
+            pGraph.get(pCurrentBlock).add(targetBlock);
+            recursivelyBuildBlockGraph(targetBlock, pGraph, pLabelBlockMap);
           }
         }
       }

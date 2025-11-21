@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -341,6 +342,13 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationWitnessCheck",
+      description =
+          "use termination witness validator to check a correctness witness for termination")
+  private boolean useTerminationWitnessValidation = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.undefinedFunctionCollector",
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
@@ -554,6 +562,7 @@ public class CoreComponentsFactory {
       final ConfigurableProgramAnalysis cpa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
+
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
     }
@@ -743,6 +752,19 @@ public class CoreComponentsFactory {
                 aggregatedReachedSetManager,
                 algorithm,
                 cpa);
+      }
+
+      if (useTerminationWitnessValidation) {
+        logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
+        algorithm =
+            new TerminationWitnessValidator(
+                cfa,
+                cpa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification.getPathToSpecificationAutomata().keySet(),
+                specification);
       }
 
       if (checkCounterexamples) {

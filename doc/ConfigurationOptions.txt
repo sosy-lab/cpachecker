@@ -495,6 +495,10 @@ analysis.algorithm.termination = false
 # CompositeCPA.
 analysis.algorithm.terminationToSafety = false
 
+# use termination witness validator to check a correctness witness for
+# termination
+analysis.algorithm.terminationWitnessCheck = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -4042,9 +4046,9 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Allow the given extern functions and interpret them as pure functions
-# although the value analysis does not support their semantics and this can
-# produce wrong results.
+# If given functions are not handled by the analysis, they are interpret as
+# functions without side-effects and return a new nondeterministic value
+# every time they are called. This can be unsound!
 cpa.value.allowedUnsupportedFunctions = {}
 
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
@@ -4057,6 +4061,13 @@ cpa.value.exportLoopInvariants = IF_TRUE
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
+
+# In case the value analysis encounters a unhandled or unknown function, and
+# this is set to true, a warning is logged and the function call is ignored.
+# Ignoring function calls is unsound! If this is set to false, a exception is
+# raised. Functions listed in option allowedUnsupportedFunctions are
+# considered pure and are exempt from this.
+cpa.value.ignoreCallsToUnknownFunctions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
@@ -4940,10 +4951,16 @@ parser.transformTokensToLines = false
 # the LLVM parser (currently unsupported).
 parser.useClang = false
 
-# For C files, run the preprocessor on them before parsing. Note that all
-# line numbers printed by CPAchecker will refer to the pre-processed file,
-# not the original input file.
-parser.usePreprocessor = false
+# For C files, run an external preprocessor on them before parsing. Note that
+# all line numbers printed by CPAchecker will refer to the pre-processed
+# file, not the original input file. In case auto detection is enabled, the
+# preprocessor will only be used in case the program contains system headers.
+# Furthermore, note that this option only enables an external pre-processor
+# for C files, whose primary responsibility is resolving system headers and
+# includes.We always make use of the built-in pre-processor of the Eclipse
+# CDT parser, which already handles macros and comments.
+parser.usePreprocessor = AUTO
+  enum:     [FALSE, TRUE, AUTO]
 
 # Specifies the mode how HW requirements are detected in the proof.
 pcc.HWrequirements.extraction.mode = OPERATOR
@@ -5448,6 +5465,12 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
+# export supporting invariants in the witness
+termination.exportSupportingInvariantsInWitness = true
+
+# export correctness witness in YAML format
+termination.exportYamlCorrectnessWitness = true
+
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
 # these variables.
@@ -5509,11 +5532,29 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
-# Export termination counterexample to file as GraphML automaton 
+# This option can be set to run an analysis that supports infinite state
+# spaces of programs.The analysis will automatically run the
+# ImplicitRankingChecker to check the well-foundedness of an invariant.If the
+# option is not set, then such analysis is ran only if the infinite state
+# space is detected.
+termination.validation.checkWithInfiniteSpace = false
+
+# deprecated name for termination.violation.witness.graphml
 termination.violation.witness = "nontermination_witness.graphml"
 
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
+
+# Export termination counterexample to file as GraphML automaton 
+termination.violation.witness.graphml = "nontermination_witness.graphml"
+
+# Export termination counterexample to file in YAML format 
+termination.violation.witness.yaml = "Counterexample.%s.witness-2.1.yml"
+
+# The template from which the different versions of the correctness witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+termination.yamlProofWitness = "witness-%s.yml"
 
 # compress the produced violation-witness automata using GZIP compression.
 terminationtoreach.compressWitness = false

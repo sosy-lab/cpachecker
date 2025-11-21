@@ -121,10 +121,9 @@ public class CFAForThread {
     for (CFAEdgeForThread threadEdge : pThreadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
-        CFANode edgeSuccessor = cfaEdge.getSuccessor();
         for (CFANodeForThread threadNode : pThreadNodes) {
           // check if predecessor node of edge is same as node
-          if (threadNode.cfaNode.equals(edgeSuccessor)) {
+          if (threadNode.cfaNode.equals(cfaEdge.getSuccessor())) {
             // check if calling context for node and edge are the same
             if (cfaEdge instanceof CFunctionCallEdge) {
               // for call edges, we use the edge as the call context

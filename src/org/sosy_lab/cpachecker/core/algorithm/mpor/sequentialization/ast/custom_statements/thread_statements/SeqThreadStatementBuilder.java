@@ -28,10 +28,11 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -78,12 +79,13 @@ public record SeqThreadStatementBuilder(
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
-
-        // we exclude all function summaries, the calling context is handled by return edges
-      } else if (!(threadEdge.cfaEdge instanceof FunctionSummaryEdge)) {
-        if (substituteEdges.containsKey(threadEdge)) {
-          SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          rStatements.add(buildStatementFromThreadEdge(i == 0, threadEdge, substitute));
+      } else {
+        // exclude all function summaries, the calling context is handled by return edges
+        if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
+          if (substituteEdges.containsKey(threadEdge)) {
+            SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
+            rStatements.add(buildStatementFromThreadEdge(i == 0, threadEdge, substitute));
+          }
         }
       }
     }
@@ -195,7 +197,7 @@ public record SeqThreadStatementBuilder(
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
 
-    if (yieldsNoStatement(pSubstituteEdge, successor)) {
+    if (resultsInBlankStatement(pSubstituteEdge, successor)) {
       return new SeqBlankStatement(reductionOrder, pcLeftHandSide, targetPc);
     }
 
@@ -244,29 +246,34 @@ public record SeqThreadStatementBuilder(
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    // function calls -> store parameters in ghost variables
-    if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
-      // inject non-inlined reach_error
-      return new SeqReachErrorStatement(
-          reductionOrder, pcLeftHandSide, pSubstituteEdges, pTargetPc);
+    String functionName =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getOrigName();
 
-    } else {
-      if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
-        // handle function with parameters
-        ImmutableList<FunctionParameterAssignment> assignments =
-            functionStatements.parameterAssignments().get(pThreadEdge);
-        return new SeqParameterAssignmentStatement(
-            reductionOrder, assignments, pcLeftHandSide, pSubstituteEdges, pTargetPc);
-
-      } else {
-        // handle function without parameters
-        CFunctionDeclaration functionDeclaration =
-            pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-        assert functionDeclaration.getParameters().isEmpty()
-            : "function has parameters, but they are not present in pFunctionStatements";
-        return new SeqBlankStatement(reductionOrder, pcLeftHandSide, pTargetPc);
-      }
+    // handle (some arbitrary) function with parameters
+    if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
+      ImmutableList<FunctionParameterAssignment> assignments =
+          functionStatements.parameterAssignments().get(pThreadEdge);
+      return new SeqParameterAssignmentStatement(
+          reductionOrder, functionName, assignments, pcLeftHandSide, pSubstituteEdges, pTargetPc);
     }
+
+    // handle function without parameters that is a call to "reach_error"
+    if (functionName.equals(SeqParameterAssignmentStatement.REACH_ERROR_FUNCTION_NAME)) {
+      return new SeqParameterAssignmentStatement(
+          reductionOrder,
+          functionName,
+          ImmutableList.of(),
+          pcLeftHandSide,
+          pSubstituteEdges,
+          pTargetPc);
+    }
+
+    // handle function without parameters that is not "reach_error" -> blank statement
+    CFunctionDeclaration functionDeclaration =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
+    assert functionDeclaration.getParameters().isEmpty()
+        : "function has parameters, but they are not present in pFunctionStatements";
+    return new SeqBlankStatement(reductionOrder, pcLeftHandSide, pTargetPc);
   }
 
   private CSeqThreadStatement buildReturnValueAssignmentStatement(
@@ -476,20 +483,26 @@ public record SeqThreadStatementBuilder(
   }
 
   /**
-   * Returns true if the resulting statement has only pc adjustments, i.e. no code changing the
-   * input program state.
+   * Returns {@code true} if the resulting statement has only {@code pc} adjustments, i.e. no code
+   * changing the input program state, {@code false} otherwise.
+   *
+   * <p>This is the case when:
+   *
+   * <ul>
+   *   <li>{@code pSuccessor} marks the termination of a thread
+   *   <li>{@code pSubstituteEdge} itself is a {@link BlankEdge}
+   *   <li>{@code pSubstituteEdge} is a {@code PTHREAD_MUTEX_INITIALIZER} assignment
+   *   <li>{@code pSubstituteEdge} is a {@link CDeclarationEdge}, except for local variable
+   *       declarations with an initializer
+   *   <li>{@code pSubstituteEdge} is a call to a {@code pthread} function that is not explicitly
+   *       handled.
+   * </ul>
    */
-  private boolean yieldsNoStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
-    // exiting start_routine of thread -> blank, just set pc[i] = -1;
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
+    // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().equals(thread.startRoutine())) {
       return true;
-
-    } else if (pSuccessor
-        .getFunctionName()
-        .equals(SeqReachErrorStatement.REACH_ERROR_FUNCTION_NAME)) {
-      // if we enter reach_error, include only call edge (to inject reach_error)
-      return !(pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge);
 
     } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge) {
       // blank edges have no code
@@ -522,5 +535,10 @@ public record SeqThreadStatementBuilder(
       }
     }
     return false;
+  }
+
+  private boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
+    return pCfaEdge instanceof CFunctionSummaryEdge
+        || pCfaEdge instanceof CFunctionSummaryStatementEdge;
   }
 }

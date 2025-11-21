@@ -47,7 +47,7 @@ public class CFANodeForThread {
 
   public final boolean isInAtomicBlock;
 
-  protected CFANodeForThread(
+  CFANodeForThread(
       int pThreadId,
       CFANode pCfaNode,
       int pPc,
@@ -73,7 +73,7 @@ public class CFANodeForThread {
     return ImmutableList.copyOf(leavingEdges);
   }
 
-  protected void pruneLeavingEdge(CFAEdgeForThread pThreadEdge) {
+  void pruneLeavingEdge(CFAEdgeForThread pThreadEdge) {
     checkArgument(leavingEdges.contains(pThreadEdge), "pThreadEdge not in threadEdges");
     checkArgument(
         pThreadEdge.cfaEdge instanceof CFunctionReturnEdge,
