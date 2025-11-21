@@ -93,6 +93,4 @@ public interface CFA extends CfaNetwork {
    * @return the metadata associated with this CFA
    */
   CfaMetadata getMetadata();
-
-  CFA copyWithMetadata(CfaMetadata pMetadata);
 }

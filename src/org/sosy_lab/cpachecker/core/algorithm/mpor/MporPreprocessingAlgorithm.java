@@ -97,9 +97,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           InvalidConfigurationException {
 
     pLogger.log(Level.INFO, "Starting sequentialization of the program.");
+    sequentializationTime.start();
 
-    // TODO: Statistics about the sequentialization process
-    CFA originalCfa = pCFA;
     String sequentializedCode =
         Sequentialization.tryBuildProgramString(
             options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
@@ -111,9 +110,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         newCFA.copyWithMetadata(
             pCFA.getMetadata()
                 .withTransformationMetadata(
-                    new CfaTransformationMetadata(
-                        originalCfa, ProgramTransformation.SEQUENTIALIZATION)));
+                    new CfaTransformationMetadata(pCFA, ProgramTransformation.SEQUENTIALIZATION)));
 
+    sequentializationTime.stop();
     logger.log(Level.INFO, "Finished sequentialization of the program.");
 
     return newCFA;
