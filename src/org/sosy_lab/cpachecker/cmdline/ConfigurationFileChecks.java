@@ -541,7 +541,7 @@ public class ConfigurationFileChecks {
               Path.of("describerr-portfolio.properties"),
               // The MPOR config rejects the default empty program used in this test, it requires a
               // concurrent C program with at least one call to pthread_create
-              Path.of("mpor.properties"),
+              Path.of("sequentializeProgram.properties"),
               Path.of("parallel-randomSampling.properties"),
               Path.of("randomSampling.properties"),
               Path.of("randomTesting.properties"));
