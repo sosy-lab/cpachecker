@@ -14,7 +14,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleChecker;
@@ -38,7 +38,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      ImmutableCFA cfa)
+      CFA cfa)
       throws InvalidConfigurationException {
     super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa);
 

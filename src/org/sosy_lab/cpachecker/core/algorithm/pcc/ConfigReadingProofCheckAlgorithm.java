@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -48,13 +48,13 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   private final ProofCheckAlgorithm checkingAlgorithm;
   private final CoreComponentsFactory coreFact;
   private final ConfigurableProgramAnalysis valCPA;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
 
   public ConfigReadingProofCheckAlgorithm(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final ImmutableCFA pCfa,
+      final CFA pCfa,
       final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);

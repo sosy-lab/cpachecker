@@ -25,7 +25,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -133,8 +132,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
           Configuration.builder().copyFrom(config).clearOption("parser.usePreprocessor").build();
       CFACreator cfaCreator = new CFACreator(cfaParsingConfig, logger, shutdownNotifier);
 
-      ImmutableCFA overapproximatingCFA =
-          cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
+      CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
       // CPA
       Path lassoRankerConfigPath =

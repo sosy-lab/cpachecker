@@ -40,7 +40,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -97,7 +97,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
   private final Specification specification;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
 
   @Option(
       secure = true,
@@ -153,7 +153,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       Specification pSpecification,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableCFA pCfa,
+      CFA pCfa,
       Function<ARGState, Optional<CounterexampleInfo>> pGetCounterexampleInfo)
       throws InvalidConfigurationException {
     this.logger = logger;

@@ -18,7 +18,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics.ThreadCPUTimer;
@@ -69,7 +69,7 @@ public class DssAnalysisWorker extends DssWorker {
       DssAnalysisOptions pOptions,
       DssConnection pConnection,
       BlockNode pBlock,
-      ImmutableCFA pCFA,
+      CFA pCFA,
       Specification pSpecification,
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,

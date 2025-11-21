@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -229,7 +229,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final Specification specification;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private final PartitioningOperator partitioningOperator;
   private final MultipleProperties multipleProperties;
 
@@ -239,7 +239,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      ImmutableCFA pCfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
     cpa = pCpa;
     config = pConfig;

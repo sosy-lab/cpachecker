@@ -37,7 +37,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -128,7 +127,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       description = "Collect statistical data about size of residual program")
   private boolean collectResidualProgramSizeStatistics = false;
 
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private final Specification spec;
   private final Configuration configuration;
   protected final LogManager logger;
@@ -142,7 +141,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   protected final ProgramGenerationStatistics statistic = new ProgramGenerationStatistics();
 
   public ResidualProgramConstructionAlgorithm(
-      final ImmutableCFA pCfa,
+      final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdown,
@@ -163,7 +162,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   protected ResidualProgramConstructionAlgorithm(
-      final ImmutableCFA pCfa,
+      final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdown,

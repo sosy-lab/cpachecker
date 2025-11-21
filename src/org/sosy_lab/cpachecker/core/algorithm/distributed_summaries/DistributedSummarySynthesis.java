@@ -43,7 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -160,7 +160,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final Configuration configuration;
   private final DssMessageFactory messageFactory;
   private final LogManager logger;
-  private final ImmutableCFA initialCFA;
+  private final CFA initialCFA;
   private final BlockOperator blockOperator;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
@@ -271,7 +271,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   public DistributedSummarySynthesis(
       Configuration pConfig,
       LogManager pLogger,
-      ImmutableCFA pInitialCFA,
+      CFA pInitialCFA,
       ShutdownManager pShutdownManager,
       Specification pSpecification)
       throws InvalidConfigurationException {
@@ -366,7 +366,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       if (!abstractionDeadEnds.isEmpty()) {
         logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
       }
-      ImmutableCFA cfa = modification.cfa();
+      CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
       logger.logf(
           Level.INFO,
@@ -520,7 +520,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     }
   }
 
-  private Components createComponentsDss(ImmutableCFA cfa, BlockGraph blockGraph)
+  private Components createComponentsDss(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =

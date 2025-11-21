@@ -167,6 +167,14 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
+  @Override
+  public MutableCFA copyWithMetadata(CfaMetadata pMetadata) {
+    // TODO: This method may be better suited to replace many of the `setX` methods.
+    //  In particular since for every addition to the `CfaMetadata` class a new `setX` method would
+    //  be needed here.
+    return new MutableCFA(functions, allNodes, pMetadata);
+  }
+
   public void setAstCfaRelation(AstCfaRelation pAstCfaRelation) {
     metadata = metadata.withAstCfaRelation(pAstCfaRelation);
   }

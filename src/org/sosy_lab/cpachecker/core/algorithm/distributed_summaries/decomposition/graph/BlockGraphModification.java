@@ -25,7 +25,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -50,8 +49,7 @@ public class BlockGraphModification {
    * @param blockGraph modified block graph
    * @param metadata metadata about the modification
    */
-  public record Modification(
-      ImmutableCFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
+  public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
 
   /**
    * Metadata about a modification of a CFA and its block graph.
@@ -64,7 +62,7 @@ public class BlockGraphModification {
    *     last node of a block that has a single ingoing, blank edge.
    */
   public record ModificationMetadata(
-      ImmutableCFA originalCfa,
+      CFA originalCfa,
       BlockGraph originalBlockGraph,
       MappingInformation mappingInfo,
       ImmutableSet<CFANode> unableToAbstract,
@@ -75,7 +73,7 @@ public class BlockGraphModification {
       Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
   public static Modification instrumentCFA(
-      ImmutableCFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
+      CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
     // If the block graph consists of a single block that is the full CFA,
     // the 'block graph' is trivial, and we do not require any modifications.
     if (pBlockGraph.getNodes().size() == 1) {
@@ -104,12 +102,12 @@ public class BlockGraphModification {
     if (adjustedLoopStructure.isPresent()) {
       metadata = metadata.withLoopStructure(adjustedLoopStructure.orElseThrow());
     }
-    mutableCfa.setMetadata(metadata);
+    mutableCfa = mutableCfa.copyWithMetadata(metadata);
 
     return new Modification(mutableCfa.immutableCopy(), adjustedBlockGraph, modificationMetadata);
   }
 
-  private static Modification getUnchanged(ImmutableCFA pCFA, BlockGraph pBlockGraph) {
+  private static Modification getUnchanged(CFA pCFA, BlockGraph pBlockGraph) {
     ImmutableMap<CFANode, CFANode> identityMapping =
         pCFA.nodes().stream()
             .map(n -> Map.entry(n, n))
@@ -133,7 +131,7 @@ public class BlockGraphModification {
   }
 
   private static Optional<LoopStructure> adjustLoopStructureToModification(
-      ImmutableCFA pCFA, Map<CFANode, CFANode> originalInstrumentedMapping) {
+      CFA pCFA, Map<CFANode, CFANode> originalInstrumentedMapping) {
     Optional<LoopStructure> loopStructure;
     if (pCFA.getMetadata().getLoopStructure().isPresent()) {
       LoopStructure extracted = pCFA.getMetadata().getLoopStructure().orElseThrow();
@@ -213,7 +211,7 @@ public class BlockGraphModification {
    * @param pBlockGraph block graph to use as reference for modification
    */
   private static ModificationMetadata addBlankEdgesAtBlockEnds(
-      MutableCFA pMutableCfa, ImmutableCFA pOriginalCfa, BlockGraph pBlockGraph) {
+      MutableCFA pMutableCfa, CFA pOriginalCfa, BlockGraph pBlockGraph) {
     MappingInformation blockMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =

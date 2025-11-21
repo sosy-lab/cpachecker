@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -256,10 +256,10 @@ public class SelectionAlgorithm extends NestingAlgorithm {
               + " addressedConfig.")
   private double addressedRatio = 0;
 
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
 
   public SelectionAlgorithm(
-      ImmutableCFA pCfa,
+      CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
       Specification pSpecification,
@@ -492,7 +492,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   private NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
-      ImmutableCFA pCfa,
+      CFA pCfa,
       ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();

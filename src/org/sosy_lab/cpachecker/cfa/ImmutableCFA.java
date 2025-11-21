@@ -90,6 +90,7 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
     return network;
   }
 
+  @Override
   public ImmutableCFA copyWithMetadata(CfaMetadata pMetadata) {
     return new ImmutableCFA(functions, allNodes, allEdges, network, pMetadata);
   }

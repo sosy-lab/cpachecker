@@ -473,7 +473,7 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
-  private ImmutableCFA cfa;
+  private CFA cfa;
   private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -486,8 +486,8 @@ public class CoreComponentsFactory {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       AggregatedReachedSets pAggregatedReachedSets,
-      ImmutableCFA pCFA)
-      throws InvalidConfigurationException {
+      CFA pCFA)
+      throws InvalidConfigurationException, InterruptedException {
     config = pConfig;
     logger = pLogger;
 

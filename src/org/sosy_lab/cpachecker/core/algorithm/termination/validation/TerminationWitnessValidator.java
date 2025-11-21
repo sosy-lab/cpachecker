@@ -27,8 +27,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -86,7 +86,7 @@ public class TerminationWitnessValidator implements Algorithm {
       DummyTargetState.withSimpleTargetInformation("termination");
 
   private final Path witnessPath;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
@@ -98,7 +98,7 @@ public class TerminationWitnessValidator implements Algorithm {
   private final WellFoundednessChecker wellFoundednessChecker;
 
   public TerminationWitnessValidator(
-      final ImmutableCFA pCfa,
+      final CFA pCfa,
       final ConfigurableProgramAnalysis pCPA,
       final Configuration pConfig,
       final LogManager pLogger,

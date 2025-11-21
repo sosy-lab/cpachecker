@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
@@ -183,7 +183,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private Algorithm currentAlgorithm;
 
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
@@ -197,7 +197,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      ImmutableCFA pCfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
     super(config, pLogger, pShutdownNotifier, pSpecification);
     config.inject(this);
@@ -227,7 +227,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      ImmutableCFA pCfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
     RestartAlgorithm algorithm =
         new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
@@ -498,7 +498,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   private NestedAnalysis createNextAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
-      ImmutableCFA pCfa,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       boolean pProvideReachedForNextAlgorithm,
       ReachedSet pCurrentReached)

@@ -19,7 +19,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
@@ -33,7 +33,7 @@ public class DssWorkerBuilder {
   public record Components(
       ImmutableList<DssActor> actors, ImmutableList<? extends DssConnection> connections) {}
 
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private final Specification specification;
 
   private final DssMessageFactory messageFactory;
@@ -42,7 +42,7 @@ public class DssWorkerBuilder {
   private int additionalConnections;
 
   public DssWorkerBuilder(
-      ImmutableCFA pCFA,
+      CFA pCFA,
       DssConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       DssMessageFactory pMessageFactory) {

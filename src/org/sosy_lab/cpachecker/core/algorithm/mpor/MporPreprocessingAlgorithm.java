@@ -19,6 +19,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -58,9 +60,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   private final Configuration config;
   private final Specification specification;
 
+  private final CFA cfa;
   private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
-
-  private final ImmutableCFA cfa;
 
   private Algorithm innerAlgorithm;
 
@@ -68,7 +69,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableCFA pInputCfa,
+      CFA pInputCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
 
@@ -81,18 +82,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     specification = pSpecification;
   }
 
-  private boolean alreadySequentialized(ImmutableCFA pCFA) {
+  private boolean alreadySequentialized(CFA pCFA) {
     CfaTransformationMetadata transformationMetadata =
         pCFA.getMetadata().getTransformationMetadata();
     return transformationMetadata != null
         && transformationMetadata.transformation().equals(ProgramTransformation.SEQUENTIALIZATION);
   }
 
-  private ImmutableCFA preprocessCfaUsingSequentialization(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      ImmutableCFA pCFA)
+  private CFA preprocessCfaUsingSequentialization(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws UnrecognizedCodeException,
           InterruptedException,
           ParserException,
@@ -101,16 +99,16 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     pLogger.log(Level.INFO, "Starting sequentialization of the program.");
 
     // TODO: Statistics about the sequentialization process
-    ImmutableCFA originalCfa = pCFA;
+    CFA originalCfa = pCFA;
     String sequentializedCode =
         Sequentialization.tryBuildProgramString(
             options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
-    pCFA =
+    ImmutableCFA newCFA =
         new CFACreator(pConfig, pLogger, pShutdownNotifier)
             .parseSourceAndCreateCFA(sequentializedCode);
 
-    pCFA =
-        pCFA.copyWithMetadata(
+    newCFA =
+        newCFA.copyWithMetadata(
             pCFA.getMetadata()
                 .withTransformationMetadata(
                     new CfaTransformationMetadata(
@@ -118,17 +116,18 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     logger.log(Level.INFO, "Finished sequentialization of the program.");
 
-    return pCFA;
+    return newCFA;
   }
 
   @CanIgnoreReturnValue
   @Override
   public AlgorithmStatus run(@NonNull ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
+    InputRejection.handleRejections(cfa);
 
     // Only sequentialize if not already done and requested.
     // We replace the CFA for its sequentialized version.
-    ImmutableCFA newCfa = cfa;
+    CFA newCfa = cfa;
     if (alreadySequentialized(cfa)) {
       logger.log(
           Level.INFO,

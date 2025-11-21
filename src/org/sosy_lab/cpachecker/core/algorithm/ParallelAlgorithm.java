@@ -53,7 +53,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -102,7 +102,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration globalConfig;
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
-  private final ImmutableCFA cfa;
+  private final CFA cfa;
   private final Specification specification;
   private final ParallelAlgorithmStatistics stats;
 
@@ -120,7 +120,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      ImmutableCFA pCfa,
+      CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, InterruptedException {
     config.inject(this);

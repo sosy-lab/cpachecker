@@ -68,7 +68,7 @@ public final class CCfaTransformer {
 
   private CCfaTransformer() {}
 
-  public static ImmutableCFA createCfa(
+  public static CFA createCfa(
       Configuration pConfiguration,
       LogManager pLogger,
       CFA pOriginalCfa,
@@ -90,7 +90,7 @@ public final class CCfaTransformer {
     return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
 
-  public static ImmutableCFA createCfa(
+  public static CFA createCfa(
       Configuration pConfiguration,
       LogManager pLogger,
       CFA pOriginalCfa,
@@ -560,8 +560,7 @@ public final class CCfaTransformer {
       return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
     }
 
-    private ImmutableCFA createCfa(
-        Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
+    private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
