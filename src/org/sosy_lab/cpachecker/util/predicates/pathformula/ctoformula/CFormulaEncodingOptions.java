@@ -15,10 +15,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.EncodingOptions;
 
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
-public class CFormulaEncodingOptions {
+public class CFormulaEncodingOptions extends EncodingOptions {
 
   @Option(
       secure = true,
@@ -78,11 +79,6 @@ public class CFormulaEncodingOptions {
 
   @Option(
       secure = true,
-      description = "Ignore variables that are not relevant for reachability properties.")
-  private boolean ignoreIrrelevantVariables = true;
-
-  @Option(
-      secure = true,
       description =
           "Do not ignore variables that could lead to an overflow (only makes sense if"
               + " ignoreIrrelevantVariables is set to true)")
@@ -100,27 +96,6 @@ public class CFormulaEncodingOptions {
       secure = true,
       description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
-
-  @Option(
-      secure = true,
-      description =
-          "Whether to give up immediately if a very large array is encountered (heuristic, often we"
-              + " would just waste time otherwise)")
-  private boolean abortOnLargeArrays = true;
-
-  @Option(
-      secure = true,
-      description =
-          "Insert tmp-variables for parameters at function-entries. "
-              + "The variables are similar to return-variables at function-exit.")
-  private boolean useParameterVariables = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Insert tmp-parameters for global variables at function-entries. "
-              + "The global variables are also encoded with return-variables at function-exit.")
-  private boolean useParameterVariablesForGlobals = false;
 
   @Option(
       secure = true,
@@ -145,6 +120,7 @@ public class CFormulaEncodingOptions {
   private boolean useHavocAbstraction = false;
 
   public CFormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
+    super(config);
     config.inject(this, CFormulaEncodingOptions.class);
   }
 
@@ -172,10 +148,6 @@ public class CFormulaEncodingOptions {
     return allowedUnsupportedFunctions.contains(function);
   }
 
-  public boolean ignoreIrrelevantVariables() {
-    return ignoreIrrelevantVariables;
-  }
-
   public boolean overflowVariablesAreRelevant() {
     return overflowVariablesAreRelevant;
   }
@@ -186,18 +158,6 @@ public class CFormulaEncodingOptions {
 
   public boolean trackFunctionPointers() {
     return trackFunctionPointers;
-  }
-
-  public boolean shouldAbortOnLargeArrays() {
-    return abortOnLargeArrays;
-  }
-
-  public boolean useParameterVariables() {
-    return useParameterVariables;
-  }
-
-  public boolean useParameterVariablesForGlobals() {
-    return useParameterVariablesForGlobals;
   }
 
   public boolean addRangeConstraintsForNondet() {
