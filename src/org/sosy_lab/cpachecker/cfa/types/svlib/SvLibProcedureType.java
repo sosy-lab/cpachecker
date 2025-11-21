@@ -13,31 +13,23 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibProcedureType implements SvLibType, AFunctionType {
 
   @Serial private static final long serialVersionUID = 5728816904538462642L;
-  private final FileLocation fileLocation;
   private final ImmutableList<SvLibType> inputType;
   private final ImmutableList<SvLibType> localVariableTypes;
   private final ImmutableList<SvLibType> outputType;
 
   public SvLibProcedureType(
-      FileLocation pFileLocation,
       List<SvLibType> pInputType,
       List<SvLibType> pLocalVariableTypes,
       List<SvLibType> pOutputType) {
-    fileLocation = pFileLocation;
     inputType = ImmutableList.copyOf(pInputType);
     localVariableTypes = ImmutableList.copyOf(pLocalVariableTypes);
     outputType = ImmutableList.copyOf(pOutputType);
-  }
-
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   public ImmutableList<SvLibType> getInputType() {
