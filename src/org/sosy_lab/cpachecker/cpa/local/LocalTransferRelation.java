@@ -104,7 +104,7 @@ public class LocalTransferRelation
   protected LocalState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption) {
     // Do not try to remove clone() - leads to problems in BAM's cache
-    return stateBeforeTransferRelation.copy();
+    return transferRelationState.copy();
   }
 
   @Override
@@ -113,7 +113,7 @@ public class LocalTransferRelation
     // TODO is it necessary to clone every time?
     // Guess, it is possible to return the same state (we add only in cloned states)
     Optional<CExpression> returnExpression = cfaEdge.getExpression();
-    LocalState newState = stateBeforeTransferRelation.copy();
+    LocalState newState = transferRelationState.copy();
     if (returnExpression.isPresent()) {
 
       int potentialDereference =
@@ -131,7 +131,7 @@ public class LocalTransferRelation
 
     // NOTE! getFunctionName() return inner function name!
 
-    LocalState newElement = stateBeforeTransferRelation.getClonedPreviousState();
+    LocalState newElement = transferRelationState.getClonedPreviousState();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {
       // Need to prepare id as left id is from caller function and the right id is from called
@@ -175,7 +175,7 @@ public class LocalTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> parameterTypes,
       String calledFunctionName) {
-    LocalState newState = LocalState.createNextLocalState(stateBeforeTransferRelation);
+    LocalState newState = LocalState.createNextLocalState(transferRelationState);
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
@@ -203,7 +203,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
-    LocalState newState = stateBeforeTransferRelation.copy();
+    LocalState newState = transferRelationState.copy();
     if (statement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
       assign(newState, assignment.getLeftHandSide(), assignment.getRightHandSide());
@@ -213,7 +213,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleDeclarationEdge(CDeclarationEdge declEdge, CDeclaration decl) {
-    LocalState newState = stateBeforeTransferRelation.copy();
+    LocalState newState = transferRelationState.copy();
     if (decl instanceof CVariableDeclaration cVariableDeclaration) {
       CInitializer init = cVariableDeclaration.getInitializer();
 
@@ -393,7 +393,7 @@ public class LocalTransferRelation
   }
 
   private DataType getMemoryType(AbstractIdentifier id) {
-    DataType type = stateBeforeTransferRelation.getType(id);
+    DataType type = transferRelationState.getType(id);
     if (type == null) {
       if (id instanceof ConstantIdentifier) {
         // return (struct myStruct *) 0; - consider the value as local

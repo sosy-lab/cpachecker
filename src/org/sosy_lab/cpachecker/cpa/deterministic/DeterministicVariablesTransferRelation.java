@@ -78,7 +78,7 @@ public class DeterministicVariablesTransferRelation
 
     // we do only care about variable declarations
     if (!(pDeclaration instanceof AVariableDeclaration aVariableDeclaration)) {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
     Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap(pDeclaration);
@@ -86,7 +86,7 @@ public class DeterministicVariablesTransferRelation
 
     // initializer is empty, return identity
     if (initializer == null) {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
     if (initializer instanceof CInitializerExpression
@@ -96,10 +96,10 @@ public class DeterministicVariablesTransferRelation
        * this is trivially true in the case where an initializer consists of constants, only,
        * so this does not need to be handled in a special case, but all in the same
        */
-      return stateBeforeTransferRelation.addDeterministicVariable(varDeclaration);
+      return transferRelationState.addDeterministicVariable(varDeclaration);
     }
 
-    return stateBeforeTransferRelation;
+    return transferRelationState;
   }
 
   @Override
@@ -116,7 +116,7 @@ public class DeterministicVariablesTransferRelation
       numberOfNonDetAssumes.inc();
     }
 
-    return stateBeforeTransferRelation;
+    return transferRelationState;
   }
 
   @Override
@@ -124,10 +124,10 @@ public class DeterministicVariablesTransferRelation
       final AStatementEdge cfaEdge, final AStatement statement) throws CPATransferException {
     if (statement instanceof AExpressionStatement) {
       // no assignments, thus return identity
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     } else if (statement instanceof AFunctionCallStatement) {
       // no assignments, thus return identity
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     } else if (statement instanceof AExpressionAssignmentStatement) {
       return handleAssignments((AAssignment) statement);
     } else if (statement instanceof AFunctionCallAssignmentStatement) {
@@ -142,7 +142,7 @@ public class DeterministicVariablesTransferRelation
       final AReturnStatementEdge cfaEdge) throws CPATransferException {
     // for an empty return statement return the current state
     if (!cfaEdge.asAssignment().isPresent()) {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
     return handleAssignments(cfaEdge.asAssignment().get());
@@ -165,7 +165,7 @@ public class DeterministicVariablesTransferRelation
         deterministicParameters.add(LIVE_DECL_EQUIVALENCE.wrap(parameters.get(i)));
       }
     }
-    return stateBeforeTransferRelation.addDeterministicVariables(deterministicParameters);
+    return transferRelationState.addDeterministicVariables(deterministicParameters);
   }
 
   @Override
@@ -186,14 +186,18 @@ public class DeterministicVariablesTransferRelation
 
         // add or remove assigned variable, depending on state of return variable
         if (assignedVariables.size() == 1) {
-          stateBeforeTransferRelation =
+          transferRelationState =
               areAllDeterministic(Collections.singleton(LIVE_DECL_EQUIVALENCE.wrap(returnVariable)))
-                  ? stateBeforeTransferRelation.addDeterministicVariable(Iterables.getOnlyElement(assignedVariables))
-                  : stateBeforeTransferRelation.removeDeterministicVariable(Iterables.getOnlyElement(assignedVariables));
+                  ? transferRelationState.addDeterministicVariable(
+                      Iterables.getOnlyElement(assignedVariables))
+                  : transferRelationState.removeDeterministicVariable(
+                      Iterables.getOnlyElement(assignedVariables));
         }
       }
 
-      stateBeforeTransferRelation = stateBeforeTransferRelation.removeDeterministicVariable(LIVE_DECL_EQUIVALENCE.wrap(returnVariable));
+      transferRelationState =
+          transferRelationState.removeDeterministicVariable(
+              LIVE_DECL_EQUIVALENCE.wrap(returnVariable));
     }
 
     // cleanup by removing function parameter from state
@@ -203,7 +207,7 @@ public class DeterministicVariablesTransferRelation
         cfaEdge.getFunctionEntry().getFunctionDefinition().getParameters()) {
       parameters.add(LIVE_DECL_EQUIVALENCE.wrap(param));
     }
-    return stateBeforeTransferRelation.removeDeterministicVariables(parameters);
+    return transferRelationState.removeDeterministicVariables(parameters);
   }
 
   @Override
@@ -251,19 +255,20 @@ public class DeterministicVariablesTransferRelation
         handleLeftHandSide(pAssignment.getLeftHandSide());
 
     if (assignedVariables.size() > 1) {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
     if (pAssignment instanceof AExpressionAssignmentStatement) {
       Wrapper<ASimpleDeclaration> assignedVariable = Iterables.getOnlyElement(assignedVariables);
 
       return areAllDeterministic(handleExpression((AExpression) pAssignment.getRightHandSide()))
-          ? stateBeforeTransferRelation.addDeterministicVariable(assignedVariable)
-          : stateBeforeTransferRelation.removeDeterministicVariable(assignedVariable);
+          ? transferRelationState.addDeterministicVariable(assignedVariable)
+          : transferRelationState.removeDeterministicVariable(assignedVariable);
 
     } else if (pAssignment instanceof AFunctionCallAssignmentStatement) {
       // for function calls of functions without a body
-      return stateBeforeTransferRelation.removeDeterministicVariable(Iterables.getOnlyElement(assignedVariables));
+      return transferRelationState.removeDeterministicVariable(
+          Iterables.getOnlyElement(assignedVariables));
     } else {
       throw new AssertionError("Unhandled assignment type " + pAssignment.getClass());
     }
@@ -272,7 +277,7 @@ public class DeterministicVariablesTransferRelation
   /** This method checks if all variables contained in the collection are deterministic. */
   private boolean areAllDeterministic(final Collection<Wrapper<ASimpleDeclaration>> variables) {
     for (Wrapper<ASimpleDeclaration> variable : variables) {
-      if (!stateBeforeTransferRelation.isDeterministic(variable)) {
+      if (!transferRelationState.isDeterministic(variable)) {
         return false;
       }
     }

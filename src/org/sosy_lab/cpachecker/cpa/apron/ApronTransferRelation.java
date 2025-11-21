@@ -155,7 +155,7 @@ public class ApronTransferRelation
 
   @Override
   protected Set<ApronState> handleBlankEdge(BlankEdge cfaEdge) {
-    return Collections.singleton(stateBeforeTransferRelation);
+    return Collections.singleton(transferRelationState);
   }
 
   @SuppressWarnings("deprecation")
@@ -168,17 +168,17 @@ public class ApronTransferRelation
       return switch (expression) {
         case CIntegerLiteralExpression cIntegerLiteralExpression ->
             handleLiteralBooleanExpression(
-                cIntegerLiteralExpression.asLong(), truthAssumption, stateBeforeTransferRelation);
+                cIntegerLiteralExpression.asLong(), truthAssumption, transferRelationState);
         case CCharLiteralExpression cCharLiteralExpression ->
             handleLiteralBooleanExpression(
-                cCharLiteralExpression.getCharacter(), truthAssumption, stateBeforeTransferRelation);
+                cCharLiteralExpression.getCharacter(), truthAssumption, transferRelationState);
         case CFloatLiteralExpression floatExpression -> {
           // only when the float is exactly zero the condition is wrong, for all other float values
           // it is true
           int val = floatExpression.getValue().isZero() ? 0 : 1;
-          yield handleLiteralBooleanExpression(val, truthAssumption, stateBeforeTransferRelation);
+          yield handleLiteralBooleanExpression(val, truthAssumption, transferRelationState);
         }
-        default -> Collections.singleton(stateBeforeTransferRelation);
+        default -> Collections.singleton(transferRelationState);
       };
 
     } else if (expression instanceof CBinaryExpression) {
@@ -187,16 +187,16 @@ public class ApronTransferRelation
     } else {
       Set<Texpr0Node> coeffs = expression.accept(new CApronExpressionVisitor());
       if (coeffs.isEmpty()) {
-        return Collections.singleton(stateBeforeTransferRelation);
+        return Collections.singleton(transferRelationState);
       }
       Set<ApronState> possibleStates = new HashSet<>();
       for (Texpr0Node coeff : coeffs) {
         if (truthAssumption) {
-          possibleStates.add(stateBeforeTransferRelation.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
+          possibleStates.add(transferRelationState.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
         } else {
-          possibleStates.add(stateBeforeTransferRelation.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
+          possibleStates.add(transferRelationState.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
           possibleStates.add(
-              stateBeforeTransferRelation.addConstraint(
+              transferRelationState.addConstraint(
                   new Tcons0(Tcons0.SUP, new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeff))));
         }
       }
@@ -218,7 +218,7 @@ public class ApronTransferRelation
     Set<Texpr0Node> rightCoeffs = binExp.getOperand2().accept(new CApronExpressionVisitor());
 
     if (leftCoeffs.isEmpty() || rightCoeffs.isEmpty()) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
@@ -226,31 +226,33 @@ public class ApronTransferRelation
       for (Texpr0Node right : rightCoeffs) {
         switch (binExp.getOperator()) {
           case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_RIGHT, SHIFT_LEFT -> {
-            return Collections.singleton(stateBeforeTransferRelation);
+            return Collections.singleton(transferRelationState);
           }
           case EQUALS -> {
             if (truthAssumption) {
               possibleStates.add(
-                  stateBeforeTransferRelation.addConstraint(
+                  transferRelationState.addConstraint(
                       new Tcons0(
                           Tcons0.EQ,
                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
             } else {
-              if ((left instanceof Texpr0DimNode leftNode && !stateBeforeTransferRelation.isInt(leftNode.dim))
-                  || (right instanceof Texpr0DimNode rightNode && !stateBeforeTransferRelation.isInt(rightNode.dim))) {
+              if ((left instanceof Texpr0DimNode leftNode
+                      && !transferRelationState.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode
+                      && !transferRelationState.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
 
                 possibleStates.add(
-                    stateBeforeTransferRelation.addConstraint(
+                    transferRelationState.addConstraint(
                         new Tcons0(
                             Tcons0.SUP,
                             new Texpr0Intern(
                                 new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, increasedRight)))));
                 possibleStates.add(
-                    stateBeforeTransferRelation.addConstraint(
+                    transferRelationState.addConstraint(
                         new Tcons0(
                             Tcons0.SUP,
                             new Texpr0Intern(
@@ -260,20 +262,20 @@ public class ApronTransferRelation
                 if (splitDisequalities) {
                   // use same trick as in octagon analysis since disequality does not seem to work
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.SUP,
                               new Texpr0Intern(
                                   new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.SUP,
                               new Texpr0Intern(
                                   new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)))));
                 } else {
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.DISEQ,
                               new Texpr0Intern(
@@ -288,20 +290,22 @@ public class ApronTransferRelation
                   new Tcons0(
                       Tcons0.SUPEQ,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             } else {
               Tcons0 act =
                   new Tcons0(
                       Tcons0.SUP,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             }
           }
           case GREATER_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode leftNode && !stateBeforeTransferRelation.isInt(leftNode.dim))
-                  || (right instanceof Texpr0DimNode rightNode && !stateBeforeTransferRelation.isInt(rightNode.dim))) {
+              if ((left instanceof Texpr0DimNode leftNode
+                      && !transferRelationState.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode
+                      && !transferRelationState.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 act =
@@ -316,13 +320,13 @@ public class ApronTransferRelation
                         new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
               }
 
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             } else {
               Tcons0 act =
                   new Tcons0(
                       Tcons0.SUPEQ,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             }
           }
           case LESS_EQUAL -> {
@@ -331,20 +335,22 @@ public class ApronTransferRelation
                   new Tcons0(
                       Tcons0.SUPEQ,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             } else {
               Tcons0 act =
                   new Tcons0(
                       Tcons0.SUP,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             }
           }
           case LESS_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode leftNode && !stateBeforeTransferRelation.isInt(leftNode.dim))
-                  || (right instanceof Texpr0DimNode rightNode && !stateBeforeTransferRelation.isInt(rightNode.dim))) {
+              if ((left instanceof Texpr0DimNode leftNode
+                      && !transferRelationState.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode
+                      && !transferRelationState.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedLeft =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
                 act =
@@ -359,32 +365,34 @@ public class ApronTransferRelation
                         new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
               }
 
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             } else {
               Tcons0 act =
                   new Tcons0(
                       Tcons0.SUPEQ,
                       new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
-              possibleStates.add(stateBeforeTransferRelation.addConstraint(act));
+              possibleStates.add(transferRelationState.addConstraint(act));
             }
           }
           case NOT_EQUALS -> {
             if (truthAssumption) {
-              if ((left instanceof Texpr0DimNode leftNode && !stateBeforeTransferRelation.isInt(leftNode.dim))
-                  || (right instanceof Texpr0DimNode rightNode && !stateBeforeTransferRelation.isInt(rightNode.dim))) {
+              if ((left instanceof Texpr0DimNode leftNode
+                      && !transferRelationState.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode
+                      && !transferRelationState.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
 
                 possibleStates.add(
-                    stateBeforeTransferRelation.addConstraint(
+                    transferRelationState.addConstraint(
                         new Tcons0(
                             Tcons0.SUP,
                             new Texpr0Intern(
                                 new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, increasedRight)))));
                 possibleStates.add(
-                    stateBeforeTransferRelation.addConstraint(
+                    transferRelationState.addConstraint(
                         new Tcons0(
                             Tcons0.SUP,
                             new Texpr0Intern(
@@ -393,20 +401,20 @@ public class ApronTransferRelation
                 if (splitDisequalities) {
                   // use same trick as in octagon analysis since disequality does not seem to work
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.SUP,
                               new Texpr0Intern(
                                   new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.SUP,
                               new Texpr0Intern(
                                   new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)))));
                 } else {
                   possibleStates.add(
-                      stateBeforeTransferRelation.addConstraint(
+                      transferRelationState.addConstraint(
                           new Tcons0(
                               Tcons0.DISEQ,
                               new Texpr0Intern(
@@ -415,7 +423,7 @@ public class ApronTransferRelation
               }
             } else {
               possibleStates.add(
-                  stateBeforeTransferRelation.addConstraint(
+                  transferRelationState.addConstraint(
                       new Tcons0(
                           Tcons0.EQ,
                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
@@ -433,16 +441,16 @@ public class ApronTransferRelation
                 };
             if (truthAssumption) {
               possibleStates.add(
-                  stateBeforeTransferRelation.addConstraint(new Tcons0(Tcons0.EQ, innerExp)));
+                  transferRelationState.addConstraint(new Tcons0(Tcons0.EQ, innerExp)));
             } else {
               possibleStates.add(
-                  stateBeforeTransferRelation.addConstraint(
+                  transferRelationState.addConstraint(
                       new Tcons0(
                           Tcons0.SUP,
                           new Texpr0Intern(
                               new Texpr0BinNode(Texpr0BinNode.OP_SUB, innerExp, constantMin)))));
               possibleStates.add(
-                  stateBeforeTransferRelation.addConstraint(
+                  transferRelationState.addConstraint(
                       new Tcons0(
                           Tcons0.SUP,
                           new Texpr0Intern(
@@ -461,7 +469,7 @@ public class ApronTransferRelation
     boolean result;
     switch (pBinaryOperator) {
       case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
-        return Collections.singleton(stateBeforeTransferRelation);
+        return Collections.singleton(transferRelationState);
       }
       case NOT_EQUALS -> result = pLeftVal != pRightVal;
       case EQUALS -> result = pLeftVal == pRightVal;
@@ -477,7 +485,7 @@ public class ApronTransferRelation
       default -> throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if (truthAssumption == result) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     } else {
       return ImmutableSet.of();
     }
@@ -558,14 +566,14 @@ public class ApronTransferRelation
     Set<ApronState> possibleStates = new HashSet<>();
     if (functionEntryNode.getReturnVariable().isPresent()) {
       possibleStates.add(
-          stateBeforeTransferRelation.declareVariable(
+          transferRelationState.declareVariable(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
     } else {
-      possibleStates.add(stateBeforeTransferRelation);
+      possibleStates.add(transferRelationState);
     }
 
     // declare all parameters as variables
@@ -578,7 +586,8 @@ public class ApronTransferRelation
       MemoryLocation formalParamName =
           MemoryLocation.forLocalVariable(calledFunctionName, paramNames.get(i));
 
-      if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
+      if (!getPrecision()
+          .isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
       }
 
@@ -622,9 +631,9 @@ public class ApronTransferRelation
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
       if (!isHandleableVariable(op1)
-          || !precision.isTracking(
-              assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
-        return Collections.singleton(stateBeforeTransferRelation.removeLocalVars(calledFunctionName));
+          || !getPrecision()
+              .isTracking(assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
+        return Collections.singleton(transferRelationState.removeLocalVars(calledFunctionName));
       }
 
       MemoryLocation returnVarName =
@@ -632,9 +641,10 @@ public class ApronTransferRelation
               calledFunctionName,
               cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
-      Texpr0Node right = new Texpr0DimNode(stateBeforeTransferRelation.getVariableIndexFor(returnVarName));
+      Texpr0Node right =
+          new Texpr0DimNode(transferRelationState.getVariableIndexFor(returnVarName));
 
-      stateBeforeTransferRelation = stateBeforeTransferRelation.makeAssignment(assignedVarName, right);
+      transferRelationState = transferRelationState.makeAssignment(assignedVarName, right);
 
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
       // g(b), do nothing
@@ -643,7 +653,7 @@ public class ApronTransferRelation
       throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
     }
 
-    return Collections.singleton(stateBeforeTransferRelation.removeLocalVars(calledFunctionName));
+    return Collections.singleton(transferRelationState.removeLocalVars(calledFunctionName));
   }
 
   @Override
@@ -656,7 +666,7 @@ public class ApronTransferRelation
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
       if (!isHandleAbleType(declaration.getType())) {
-        return Collections.singleton(stateBeforeTransferRelation);
+        return Collections.singleton(transferRelationState);
       }
 
       // make the fullyqualifiedname
@@ -664,8 +674,8 @@ public class ApronTransferRelation
       // get the variable name in the declarator
       MemoryLocation variableName = MemoryLocation.forDeclaration(decl);
 
-      if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
-        return Collections.singleton(stateBeforeTransferRelation);
+      if (!getPrecision().isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
+        return Collections.singleton(transferRelationState);
       }
 
       CInitializer init = declaration.getInitializer();
@@ -673,10 +683,10 @@ public class ApronTransferRelation
       // for global declarations, there may be forwards declarations, so we do
       // not need to declarate them a second time, but if there is an initializer
       // we assign it to the before declared variable
-      if (!stateBeforeTransferRelation.existsVariable(variableName)
+      if (!transferRelationState.existsVariable(variableName)
           && (init == null || init instanceof CInitializerExpression)) {
-        stateBeforeTransferRelation =
-            stateBeforeTransferRelation.declareVariable(
+        transferRelationState =
+            transferRelationState.declareVariable(
                 variableName, getCorrespondingOctStateType(declaration.getType()));
       }
 
@@ -688,11 +698,11 @@ public class ApronTransferRelation
           Set<Texpr0Node> initCoeffs = exp.accept(new CApronExpressionVisitor());
 
           if (initCoeffs.isEmpty()) {
-            possibleStates.add(stateBeforeTransferRelation);
+            possibleStates.add(transferRelationState);
           }
 
           for (Texpr0Node coeffs : initCoeffs) {
-            ApronState st = stateBeforeTransferRelation.makeAssignment(variableName, coeffs);
+            ApronState st = transferRelationState.makeAssignment(variableName, coeffs);
             assert !st.isEmpty() : "states with assignments / declarations should never be empty";
             possibleStates.add(st);
           }
@@ -700,7 +710,7 @@ public class ApronTransferRelation
           // if there is an initializerlist, the variable is either an array or a struct/union
           // we cannot handle them, so simply return the previous state
         } else if (init instanceof CInitializerList) {
-          return Collections.singleton(stateBeforeTransferRelation);
+          return Collections.singleton(transferRelationState);
 
         } else {
           throw new AssertionError("Unhandled Expression Type: " + init.getClass());
@@ -708,19 +718,20 @@ public class ApronTransferRelation
 
         // global variables without initializer are set to 0 in C
       } else if (decl.isGlobal()) {
-        possibleStates.add(stateBeforeTransferRelation.makeAssignment(variableName, new Texpr0CstNode()));
+        possibleStates.add(transferRelationState.makeAssignment(variableName, new Texpr0CstNode()));
       }
 
       if (possibleStates.isEmpty()) {
-        assert !stateBeforeTransferRelation.isEmpty() : "states with assignments / declarations should never be empty";
-        possibleStates.add(stateBeforeTransferRelation);
+        assert !transferRelationState.isEmpty()
+            : "states with assignments / declarations should never be empty";
+        possibleStates.add(transferRelationState);
       }
 
       return possibleStates;
 
     } else if (cfaEdge.getDeclaration() instanceof CTypeDeclaration
         || cfaEdge.getDeclaration() instanceof CFunctionDeclaration) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     }
 
     throw new AssertionError(
@@ -746,31 +757,31 @@ public class ApronTransferRelation
       CLeftHandSide left = cAssignment.getLeftHandSide();
       CRightHandSide right = cAssignment.getRightHandSide();
 
-      MemoryLocation variableName = buildVarName(left, stackFrameFunctionName);
+      MemoryLocation variableName = buildVarName(left, getFunctionNameBeforeTransferRelation());
 
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
-          || !precision.isTracking(
-              variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
-        assert !stateBeforeTransferRelation.existsVariable(variableName)
+          || !getPrecision()
+              .isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
+        assert !transferRelationState.existsVariable(variableName)
             : "variablename '" + variableName + "' is in map although it can not be handled";
-        return Collections.singleton(stateBeforeTransferRelation);
+        return Collections.singleton(transferRelationState);
       } else {
         Set<Texpr0Node> coeffsList = right.accept(new CApronExpressionVisitor());
 
         if (coeffsList.isEmpty()) {
           if (right instanceof CFunctionCallExpression) {
-            return Collections.singleton(stateBeforeTransferRelation.forget(variableName));
+            return Collections.singleton(transferRelationState.forget(variableName));
           }
-          return Collections.singleton(stateBeforeTransferRelation);
+          return Collections.singleton(transferRelationState);
         }
 
         Set<ApronState> possibleStates = new HashSet<>();
         for (Texpr0Node coeffs : coeffsList) {
           // if we cannot determine coefficients, we cannot make any assumptions about
           // the value of the assigned variable and reset its value to unknown
-          ApronState st = stateBeforeTransferRelation.makeAssignment(variableName, coeffs);
+          ApronState st = transferRelationState.makeAssignment(variableName, coeffs);
           assert !st.isEmpty() : "states with assignments / declarations should never be empty";
           possibleStates.add(st);
         }
@@ -781,7 +792,7 @@ public class ApronTransferRelation
       // => do nothing
     } else if (statement instanceof CFunctionCallStatement
         || statement instanceof CExpressionStatement) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     }
 
     throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
@@ -813,7 +824,7 @@ public class ApronTransferRelation
     // this is for functions without return value, which just have returns
     // in them to end the function
     if (!cfaEdge.getExpression().isPresent()) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     }
 
     MemoryLocation tempVarName =
@@ -823,8 +834,8 @@ public class ApronTransferRelation
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
-    if (!stateBeforeTransferRelation.existsVariable(tempVarName)) {
-      return Collections.singleton(stateBeforeTransferRelation);
+    if (!transferRelationState.existsVariable(tempVarName)) {
+      return Collections.singleton(transferRelationState);
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
@@ -832,11 +843,11 @@ public class ApronTransferRelation
         cfaEdge.getExpression().orElseThrow().accept(new CApronExpressionVisitor());
 
     if (coeffsList.isEmpty()) {
-      return Collections.singleton(stateBeforeTransferRelation);
+      return Collections.singleton(transferRelationState);
     }
 
     for (Texpr0Node coeffs : coeffsList) {
-      possibleStates.add(stateBeforeTransferRelation.makeAssignment(tempVarName, coeffs));
+      possibleStates.add(transferRelationState.makeAssignment(tempVarName, coeffs));
     }
     return possibleStates;
   }
@@ -892,11 +903,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -907,11 +918,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -922,11 +933,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -937,11 +948,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, rightCoeffs, leftCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -952,11 +963,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, rightCoeffs, leftCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -967,11 +978,11 @@ public class ApronTransferRelation
                       new Texpr0Intern(
                           new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-              if (!stateBeforeTransferRelation.satisfies(constraint)) {
+              if (!transferRelationState.satisfies(constraint)) {
                 returnCoefficients.add(new Texpr0CstNode());
               }
 
-              if (!stateBeforeTransferRelation.addConstraint(constraint).isEmpty()) {
+              if (!transferRelationState.addConstraint(constraint).isEmpty()) {
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
@@ -989,8 +1000,8 @@ public class ApronTransferRelation
 
     @Override
     public Set<Texpr0Node> visit(CIdExpression e) throws CPATransferException {
-      MemoryLocation varName = buildVarName(e, stackFrameFunctionName);
-      Integer varIndex = stateBeforeTransferRelation.getVariableIndexFor(varName);
+      MemoryLocation varName = buildVarName(e, getFunctionNameBeforeTransferRelation());
+      Integer varIndex = transferRelationState.getVariableIndexFor(varName);
       if (varIndex == -1) {
         return ImmutableSet.of();
       }

@@ -240,10 +240,10 @@ public class SMGTransferRelation
     if ((cfaEdge.getSuccessor() instanceof FunctionExitNode) && isEntryFunction(cfaEdge)) {
       // Entry functions need special handling as they don't have a return edge
       // (i.e. check for memory leaks)
-      return handleReturnEntryFunction(Collections.singleton(stateBeforeTransferRelation), cfaEdge);
+      return handleReturnEntryFunction(Collections.singleton(transferRelationState), cfaEdge);
     }
 
-    return Collections.singleton(stateBeforeTransferRelation);
+    return Collections.singleton(transferRelationState);
   }
 
   /**
@@ -288,7 +288,7 @@ public class SMGTransferRelation
       throws CPATransferException {
     ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
     // Check that there is a return object and if there is one we can write the return to it
-    if (stateBeforeTransferRelation.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
+    if (transferRelationState.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
       // retType == left hand side type of the return statement, i.e. the type in the function
@@ -301,10 +301,11 @@ public class SMGTransferRelation
         rightHandSideType = returnAssignment.orElseThrow().getRightHandSide().getExpressionType();
       }
 
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, stateBeforeTransferRelation, returnEdge, logger, options);
+      SMGCPAValueVisitor vv =
+          new SMGCPAValueVisitor(evaluator, transferRelationState, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
-        BigInteger sizeInBits = evaluator.getBitSizeof(stateBeforeTransferRelation, retType);
+        BigInteger sizeInBits = evaluator.getBitSizeof(transferRelationState, retType);
 
         // Iff the target and source are a struct, we need to copy the struct.
         // The value visitor gives us a pointer (singular value) that is then used to find the
@@ -360,7 +361,7 @@ public class SMGTransferRelation
         }
       }
     } else {
-      successorsBuilder.add(stateBeforeTransferRelation);
+      successorsBuilder.add(transferRelationState);
     }
 
     // Handle entry function return (check for mem leaks)
@@ -393,7 +394,7 @@ public class SMGTransferRelation
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     Preconditions.checkArgument(
-        stateBeforeTransferRelation.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
+        transferRelationState.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
@@ -402,9 +403,9 @@ public class SMGTransferRelation
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
       CType rightValueType =
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
-      BigInteger sizeInBits = evaluator.getBitSizeof(stateBeforeTransferRelation, rightValueType);
+      BigInteger sizeInBits = evaluator.getBitSizeof(transferRelationState, rightValueType);
       Optional<SMGObject> returnObject =
-          stateBeforeTransferRelation.getMemoryModel().getReturnObjectForCurrentStackFrame();
+          transferRelationState.getMemoryModel().getReturnObjectForCurrentStackFrame();
       // There should always be a return memory object in the case of a
       // CFunctionCallAssignmentStatement!
       Preconditions.checkArgument(returnObject.isPresent());
@@ -413,7 +414,7 @@ public class SMGTransferRelation
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(leftValueType)
           && SMGCPAExpressionEvaluator.isStructOrUnionType(rightValueType)) {
 
-        SMGState currentState = stateBeforeTransferRelation;
+        SMGState currentState = transferRelationState;
 
         for (SMGState stateWithNewVar :
             createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
@@ -439,7 +440,7 @@ public class SMGTransferRelation
         }
       } else {
         for (ValueAndSMGState readValueAndState :
-            stateBeforeTransferRelation.readValue(
+            transferRelationState.readValue(
                 returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType)) {
 
           // Now we can drop the stack frame as we left the function and have the return value
@@ -454,7 +455,7 @@ public class SMGTransferRelation
       }
       return stateBuilder.build();
     } else {
-      return ImmutableList.of(stateBeforeTransferRelation.dropStackFrame());
+      return ImmutableList.of(transferRelationState.dropStackFrame());
     }
   }
 
@@ -550,7 +551,8 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.of(handleFunctionCall(stateBeforeTransferRelation, callEdge, arguments, paramDecl));
+    return ImmutableList.of(
+        handleFunctionCall(transferRelationState, callEdge, arguments, paramDecl));
   }
 
   /**
@@ -872,7 +874,8 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, stateBeforeTransferRelation, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv =
+        new SMGCPAValueVisitor(evaluator, transferRelationState, cfaEdge, logger, options);
     for (ValueAndSMGState valueAndState :
         vv.evaluate(
             cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
@@ -898,7 +901,7 @@ public class SMGTransferRelation
                 truthValue,
                 options,
                 booleanVariables,
-                stackFrameFunctionName);
+                getFunctionNameBeforeTransferRelation());
         try {
           List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
           if (maybeFeasiblePaths == null) {
@@ -968,7 +971,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, stateBeforeTransferRelation)) {
+      for (SMGState currentState : createVariableOnTheSpot(lValue, transferRelationState)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
@@ -982,8 +985,8 @@ public class SMGTransferRelation
       List<ValueAndSMGState> handledFunReturn =
           evaluator
               .getBuiltinFunctionHandler()
-              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName,
-                  stateBeforeTransferRelation, pCfaEdge);
+              .handleFunctionCallWithoutBody(
+                  cFCExpression, calledFunctionName, transferRelationState, pCfaEdge);
 
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
@@ -994,7 +997,7 @@ public class SMGTransferRelation
 
     } else {
       // Fall through for unneeded cases
-      return ImmutableList.of(stateBeforeTransferRelation);
+      return ImmutableList.of(transferRelationState);
     }
   }
 
@@ -1046,7 +1049,7 @@ public class SMGTransferRelation
               "Error: unexpected return value "
                   + funReturn
                   + " encountered in post-processing of function call to "
-                  + stackFrameFunctionName
+                  + getFunctionNameBeforeTransferRelation()
                   + "() without assigning the functions return value at "
                   + pCfaEdge);
         }
@@ -1060,7 +1063,7 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
-    SMGState currentState = stateBeforeTransferRelation;
+    SMGState currentState = transferRelationState;
     // CEGAR checks inside the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration cFuncDecl) {
@@ -1178,7 +1181,7 @@ public class SMGTransferRelation
         break;
       } else {
         for (SMGState newState : newStates) {
-          setInfo(newState, precision, pCfaEdge);
+          setInfo(newState, getPrecision(), pCfaEdge);
         }
       }
     }

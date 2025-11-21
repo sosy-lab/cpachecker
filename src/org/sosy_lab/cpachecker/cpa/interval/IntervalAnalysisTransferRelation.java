@@ -69,14 +69,14 @@ public class IntervalAnalysisTransferRelation
 
   @Override
   protected Collection<IntervalAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
-    IntervalAnalysisState newState = stateBeforeTransferRelation;
+    IntervalAnalysisState newState = transferRelationState;
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
           || "skipped unnecessary edges".equals(cfaEdge.getDescription());
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
-      newState = newState.dropFrame(stackFrameFunctionName);
+      newState = newState.dropFrame(getFunctionNameBeforeTransferRelation());
     }
 
     return soleSuccessor(newState);
@@ -93,7 +93,7 @@ public class IntervalAnalysisTransferRelation
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = stateBeforeTransferRelation;
+    IntervalAnalysisState newState = transferRelationState;
     Optional<CVariableDeclaration> retVar = cfaEdge.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
       newState = newState.removeInterval(retVar.orElseThrow().getQualifiedName());
@@ -102,12 +102,12 @@ public class IntervalAnalysisTransferRelation
     // expression is an assignment operation, e.g. a = g(b);
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcExp) {
       // left hand side of the expression has to be a variable
-      if (stateBeforeTransferRelation.contains(retVar.orElseThrow().getQualifiedName())) {
+      if (transferRelationState.contains(retVar.orElseThrow().getQualifiedName())) {
         newState =
             addInterval(
                 newState,
                 funcExp.getLeftHandSide(),
-                stateBeforeTransferRelation.getInterval(retVar.orElseThrow().getQualifiedName()));
+                transferRelationState.getInterval(retVar.orElseThrow().getQualifiedName()));
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -143,12 +143,12 @@ public class IntervalAnalysisTransferRelation
       assert parameters.size() == arguments.size();
     }
 
-    IntervalAnalysisState newState = stateBeforeTransferRelation;
+    IntervalAnalysisState newState = transferRelationState;
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
     for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
-      Interval interval = evaluateInterval(stateBeforeTransferRelation, arguments.get(i), callEdge);
+      Interval interval = evaluateInterval(transferRelationState, arguments.get(i), callEdge);
       String formalParameterName = parameters.get(i).getQualifiedName();
       newState = newState.addInterval(formalParameterName, interval, threshold);
     }
@@ -166,7 +166,8 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleReturnStatementEdge(
       CReturnStatementEdge returnEdge) throws UnrecognizedCodeException {
-    IntervalAnalysisState newState = stateBeforeTransferRelation.dropFrame(stackFrameFunctionName);
+    IntervalAnalysisState newState =
+        transferRelationState.dropFrame(getFunctionNameBeforeTransferRelation());
 
     // assign the value of the function return to a new variable
     if (returnEdge.asAssignment().isPresent()) {
@@ -174,7 +175,7 @@ public class IntervalAnalysisTransferRelation
       newState =
           newState.addInterval(
               ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-              evaluateInterval(stateBeforeTransferRelation, ass.getRightHandSide(), returnEdge),
+              evaluateInterval(transferRelationState, ass.getRightHandSide(), returnEdge),
               threshold);
     }
 
@@ -196,7 +197,7 @@ public class IntervalAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     if ((truthValue ? Interval.ZERO : Interval.ONE)
-        .equals(evaluateInterval(stateBeforeTransferRelation, expression, cfaEdge))) {
+        .equals(evaluateInterval(transferRelationState, expression, cfaEdge))) {
       // the assumption is unsatisfiable
       return noSuccessors();
     }
@@ -216,8 +217,8 @@ public class IntervalAnalysisTransferRelation
     // and the other one represented with an interval (example "x<[3;5]").
     // If none of the operands is an identifier, nothing is done.
 
-    IntervalAnalysisState newState = stateBeforeTransferRelation;
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(stateBeforeTransferRelation, cfaEdge);
+    IntervalAnalysisState newState = transferRelationState;
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(transferRelationState, cfaEdge);
     Interval interval1 = operand1.accept(visitor);
     Interval interval2 = operand2.accept(visitor);
 
@@ -344,7 +345,7 @@ public class IntervalAnalysisTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = stateBeforeTransferRelation;
+    IntervalAnalysisState newState = transferRelationState;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
 
       // ignore pointer variables
@@ -358,7 +359,7 @@ public class IntervalAnalysisTransferRelation
       // variable may be initialized explicitly on the spot ...
       if (init instanceof CInitializerExpression cInitializerExpression) {
         CExpression exp = cInitializerExpression.getExpression();
-        interval = evaluateInterval(stateBeforeTransferRelation, exp, declarationEdge);
+        interval = evaluateInterval(transferRelationState, exp, declarationEdge);
       } else {
         interval = Interval.UNBOUND;
       }
@@ -379,14 +380,15 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
-    IntervalAnalysisState successor = stateBeforeTransferRelation;
+    IntervalAnalysisState successor = transferRelationState;
     // expression is an assignment operation, e.g. a = b;
     if (expression instanceof CAssignment assignExpression) {
       CExpression op1 = assignExpression.getLeftHandSide();
       CRightHandSide op2 = assignExpression.getRightHandSide();
 
       // a = ?
-      successor = addInterval(successor, op1, evaluateInterval(stateBeforeTransferRelation, op2, cfaEdge));
+      successor =
+          addInterval(successor, op1, evaluateInterval(transferRelationState, op2, cfaEdge));
     }
     return soleSuccessor(successor);
   }

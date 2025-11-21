@@ -392,7 +392,7 @@ public class ValueAnalysisTransferRelation
       List<? extends AParameterDeclaration> parameters,
       String calledFunctionName)
       throws UnrecognizedCodeException {
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(transferRelationState);
 
     assert (parameters.size() == arguments.size())
         || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
@@ -442,11 +442,11 @@ public class ValueAnalysisTransferRelation
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       // clone state, because will be changed through removing all variables of current function's
       // scope
-      stateBeforeTransferRelation = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
-      stateBeforeTransferRelation.dropFrame(stackFrameFunctionName);
+      transferRelationState = ValueAnalysisState.copyOf(transferRelationState);
+      transferRelationState.dropFrame(getFunctionNameBeforeTransferRelation());
     }
 
-    return stateBeforeTransferRelation;
+    return transferRelationState;
   }
 
   @Override
@@ -461,8 +461,8 @@ public class ValueAnalysisTransferRelation
     // scope.
     // The assignment of the global 'state' is safe, because the 'old state'
     // is available in the visitor and is not used for further computation.
-    stateBeforeTransferRelation = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
-    stateBeforeTransferRelation.dropFrame(stackFrameFunctionName);
+    transferRelationState = ValueAnalysisState.copyOf(transferRelationState);
+    transferRelationState.dropFrame(getFunctionNameBeforeTransferRelation());
 
     AExpression expression = returnEdge.getExpression().orElse(null);
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
@@ -485,7 +485,7 @@ public class ValueAnalysisTransferRelation
 
       return handleAssignmentToVariable(functionReturnVar, functionReturnType, expression, evv);
     } else {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
   }
 
@@ -500,7 +500,7 @@ public class ValueAnalysisTransferRelation
       FunctionReturnEdge functionReturnEdge, AFunctionCall exprOnSummary, String callerFunctionName)
       throws UnrecognizedCodeException {
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(transferRelationState);
 
     Optional<? extends AVariableDeclaration> returnVarName =
         functionReturnEdge.getFunctionEntry().getReturnVariable();
@@ -518,9 +518,10 @@ public class ValueAnalysisTransferRelation
       ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
 
       Value newValue = null;
-      boolean valueExists = returnVarName.isPresent() && stateBeforeTransferRelation.contains(functionReturnVar);
+      boolean valueExists =
+          returnVarName.isPresent() && transferRelationState.contains(functionReturnVar);
       if (valueExists) {
-        newValue = stateBeforeTransferRelation.getValueFor(functionReturnVar);
+        newValue = transferRelationState.getValueFor(functionReturnVar);
       }
 
       // We have to handle Java arrays in a special way, because they are stored as ArrayValue
@@ -576,7 +577,9 @@ public class ValueAnalysisTransferRelation
 
           } else {
             newElement.assignConstant(
-                memLoc.orElseThrow(), newValue, stateBeforeTransferRelation.getTypeForMemoryLocation(functionReturnVar));
+                memLoc.orElseThrow(),
+                newValue,
+                transferRelationState.getTypeForMemoryLocation(functionReturnVar));
           }
         }
       }
@@ -629,7 +632,7 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge)
       throws CPATransferException {
-    ValueAnalysisState newState = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newState = ValueAnalysisState.copyOf(transferRelationState);
     AFunctionCall functionCall = cfaEdge.getExpression();
 
     if (functionCall instanceof AFunctionCallAssignmentStatement assignment) {
@@ -676,15 +679,15 @@ public class ValueAnalysisTransferRelation
     }
 
     if (!value.isExplicitlyKnown()) {
-      ValueAnalysisState element = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+      ValueAnalysisState element = ValueAnalysisState.copyOf(transferRelationState);
 
       AssigningValueVisitor avv =
           new AssigningValueVisitor(
               element,
               truthValue,
               booleanVariables,
-              stackFrameFunctionName,
-              stateBeforeTransferRelation,
+              getFunctionNameBeforeTransferRelation(),
+              transferRelationState,
               machineModel,
               logger,
               options);
@@ -713,7 +716,7 @@ public class ValueAnalysisTransferRelation
       // old state
       // we need to return a copy, otherwise precision adjustment might reset too much information,
       // even on the original state
-      return ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+      return ValueAnalysisState.copyOf(transferRelationState);
 
     } else {
       // assumption not fulfilled
@@ -764,10 +767,10 @@ public class ValueAnalysisTransferRelation
     if (!(declaration instanceof AVariableDeclaration decl)
         || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(transferRelationState);
 
     Type declarationType = decl.getType();
 
@@ -793,7 +796,8 @@ public class ValueAnalysisTransferRelation
     if (decl.isGlobal()) {
       memoryLocation = MemoryLocation.forIdentifier(varName);
     } else {
-      memoryLocation = MemoryLocation.forLocalVariable(stackFrameFunctionName, varName);
+      memoryLocation =
+          MemoryLocation.forLocalVariable(getFunctionNameBeforeTransferRelation(), varName);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
@@ -915,7 +919,7 @@ public class ValueAnalysisTransferRelation
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
 
-    return stateBeforeTransferRelation;
+    return transferRelationState;
   }
 
   /**
@@ -936,7 +940,7 @@ public class ValueAnalysisTransferRelation
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(transferRelationState);
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
 
@@ -958,7 +962,7 @@ public class ValueAnalysisTransferRelation
     // Needed for erasing values
     missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
-    return stateBeforeTransferRelation;
+    return transferRelationState;
   }
 
   private ValueAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
@@ -967,7 +971,7 @@ public class ValueAnalysisTransferRelation
     ARightHandSide op2 = assignExpression.getRightHandSide();
 
     if (!isTrackedType(op1.getExpressionType())) {
-      return stateBeforeTransferRelation;
+      return transferRelationState;
     }
 
     if (op1 instanceof AIdExpression aIdExpression) {
@@ -1047,7 +1051,7 @@ public class ValueAnalysisTransferRelation
 
           // changes array value in old state
           handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+          return ValueAnalysisState.copyOf(transferRelationState);
         }
       }
     } else {
@@ -1055,7 +1059,7 @@ public class ValueAnalysisTransferRelation
           "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
-    return stateBeforeTransferRelation; // the default return-value is the old state
+    return transferRelationState; // the default return-value is the old state
   }
 
   private boolean isTrackedType(Type pType) {
@@ -1070,7 +1074,7 @@ public class ValueAnalysisTransferRelation
     if (isGlobal(pIdExpression)) {
       return MemoryLocation.parseExtendedQualifiedName(varName);
     } else {
-      return MemoryLocation.forLocalVariable(stackFrameFunctionName, varName);
+      return MemoryLocation.forLocalVariable(getFunctionNameBeforeTransferRelation(), varName);
     }
   }
 
@@ -1089,7 +1093,7 @@ public class ValueAnalysisTransferRelation
       ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(stateBeforeTransferRelation);
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(transferRelationState);
     handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
     return newElement;
   }
@@ -1233,8 +1237,8 @@ public class ValueAnalysisTransferRelation
       if (arrayDeclaration != null) {
         MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
 
-        if (stateBeforeTransferRelation.contains(idName)) {
-          Value idValue = stateBeforeTransferRelation.getValueFor(idName);
+        if (transferRelationState.contains(idName)) {
+          Value idValue = transferRelationState.getValueFor(idName);
           if (idValue.isExplicitlyKnown()) {
             return (ArrayValue) idValue;
           }
@@ -1282,7 +1286,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      stateBeforeTransferRelation.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
+      transferRelationState.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =
@@ -1305,7 +1309,7 @@ public class ValueAnalysisTransferRelation
     private final RTTState jortState;
 
     FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
-      super(pState, stackFrameFunctionName, machineModel, logger);
+      super(pState, getFunctionNameBeforeTransferRelation(), machineModel, logger);
       jortState = pJortState;
     }
 
@@ -1323,9 +1327,11 @@ public class ValueAnalysisTransferRelation
       }
 
       NameProvider nameProvider = NameProvider.getInstance();
-      String objectScope = nameProvider.getObjectScope(jortState, stackFrameFunctionName, expr);
+      String objectScope =
+          nameProvider.getObjectScope(jortState, getFunctionNameBeforeTransferRelation(), expr);
 
-      return nameProvider.getScopedVariableName(decl, stackFrameFunctionName, objectScope);
+      return nameProvider.getScopedVariableName(
+          decl, getFunctionNameBeforeTransferRelation(), objectScope);
     }
 
     @Override
@@ -1657,7 +1663,7 @@ public class ValueAnalysisTransferRelation
       if (newState == null) {
         break;
       } else {
-        setInfo(newState, precision, pCfaEdge);
+        setInfo(newState, getPrecision(), pCfaEdge);
       }
     }
 
@@ -1757,7 +1763,8 @@ public class ValueAnalysisTransferRelation
       RTTState rttState, ValueAnalysisState newElement) {
 
     String objectScope =
-        NameProvider.getInstance().getObjectScope(rttState, stackFrameFunctionName, notScopedField);
+        NameProvider.getInstance()
+            .getObjectScope(rttState, getFunctionNameBeforeTransferRelation(), notScopedField);
 
     if (objectScope != null) {
 
@@ -1826,7 +1833,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private ExpressionValueVisitor getVisitor() {
-    return getVisitor(stateBeforeTransferRelation, stackFrameFunctionName);
+    return getVisitor(transferRelationState, getFunctionNameBeforeTransferRelation());
   }
 
   /**

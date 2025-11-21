@@ -113,18 +113,23 @@ import org.sosy_lab.cpachecker.util.Pair;
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     extends SingleEdgeTransferRelation {
 
-  /** the given state, casted to correct type, for local access */
-  protected @Nullable T stateBeforeTransferRelation;
+  /** The state, casted to correct type, for local access. */
+  protected @Nullable T transferRelationState;
 
-  /** the given precision, casted to correct type, for local access */
-  protected @Nullable P precision;
+  /** The given precision, casted to correct type, for local access. */
+  private @Nullable P precision;
 
-  /** the function BEFORE the current edge */
-  protected @Nullable String stackFrameFunctionName;
+  /** The function BEFORE the current edge. */
+  private @Nullable String stackFrameFunctionName;
 
-  /** The state to apply the transfer-relation on. */
+  /**
+   * Safe method to retrieve the {@link #transferRelationState} of this transfer-relation. Initially
+   * (i.e. at the beginning of each call to a transfer-relation) the state to apply the
+   * transfer-relation on, but since state can be re-assigned (from within a transfer-relation), it
+   * might return the changed state of a transfer-relation.
+   */
   protected T getState() {
-    return checkNotNull(stateBeforeTransferRelation);
+    return checkNotNull(transferRelationState);
   }
 
   /** The precision given to the transfer-relation before applying the transfer-relation. */
@@ -151,7 +156,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<T> preCheck = preCheck(stateBeforeTransferRelation, precision);
+    final Collection<T> preCheck = preCheck(transferRelationState, precision);
     if (preCheck != null) {
       return preCheck;
     }
@@ -206,13 +211,13 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @SuppressWarnings("unchecked")
   protected void setInfo(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge) {
-    stateBeforeTransferRelation = (T) abstractState;
+    transferRelationState = (T) abstractState;
     precision = (P) abstractPrecision;
     stackFrameFunctionName = cfaEdge.getPredecessor().getFunctionName();
   }
 
   protected void resetInfo() {
-    stateBeforeTransferRelation = null;
+    transferRelationState = null;
     precision = null;
     stackFrameFunctionName = null;
   }
@@ -523,7 +528,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   @SuppressWarnings("unchecked")
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    return (S) stateBeforeTransferRelation;
+    return (S) transferRelationState;
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
