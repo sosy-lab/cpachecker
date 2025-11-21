@@ -139,7 +139,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       try {
         newCfa = preprocessCfaUsingSequentialization(config, logger, shutdownNotifier, cfa);
       } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
-        throw new UnsupportedOperationException(e);
+        throw new CPAException(e.getMessage());
       }
     }
 
@@ -152,7 +152,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       cpa = coreComponents.createCPA(specification);
       innerAlgorithm = coreComponents.createAlgorithm(cpa, specification);
     } catch (InvalidConfigurationException e) {
-      throw new UnsupportedOperationException(e);
+      throw new CPAException(e.getMessage());
     }
 
     // Prepare new reached set
