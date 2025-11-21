@@ -575,7 +575,7 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (useMporPreprocessing && MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
+    } else if (useMporPreprocessing && !MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
       // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
