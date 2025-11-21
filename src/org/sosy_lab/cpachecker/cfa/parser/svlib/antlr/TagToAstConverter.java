@@ -16,12 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Ensure
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.InvariantPropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.RequiresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.TagAttributeContext;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagAttribute;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   private final TermToAstConverter termToAstConverter;

@@ -15,7 +15,7 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 
 public final class SvLibAnnotateTagCommand implements SvLibCommand {
   @Serial private static final long serialVersionUID = 5333102692293273124L;

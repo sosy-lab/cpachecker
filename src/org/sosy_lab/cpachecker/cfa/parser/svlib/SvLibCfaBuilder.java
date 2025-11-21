@@ -68,12 +68,12 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclar
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 

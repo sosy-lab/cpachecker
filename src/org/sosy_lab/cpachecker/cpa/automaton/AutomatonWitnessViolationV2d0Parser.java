@@ -189,8 +189,8 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   /**
    * Transform a branching waypoint into automata transitions
    *
-   * @param pAstCfaRelation the relation between the CFA and ast to find out which if statement is
-   *     being considered
+   * @param pAstCfaRelation the relation between the CFA and specification to find out which if
+   *     statement is being considered
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is

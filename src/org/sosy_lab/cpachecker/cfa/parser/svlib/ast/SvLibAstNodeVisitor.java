@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommandVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibControlFlowStatementVisitor;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagAttributeVisitor;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTrace;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTraceComponentVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttributeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceComponentVisitor;
 
 public interface SvLibAstNodeVisitor<R, X extends Exception>
     extends SvLibControlFlowStatementVisitor<R, X>,

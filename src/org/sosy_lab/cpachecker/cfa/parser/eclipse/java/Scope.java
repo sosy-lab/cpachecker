@@ -76,7 +76,7 @@ class Scope {
   // Stores enclosing classes
   private final Deque<JClassOrInterfaceType> classStack = new ArrayDeque<>();
 
-  // fully Qualified main Class (not the ast name, but the real name with . instead of _)
+  // fully Qualified main Class (not the specification name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
 
   // Track and deliver Classes that need to be parsed
