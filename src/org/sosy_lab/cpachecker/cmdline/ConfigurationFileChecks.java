@@ -546,7 +546,7 @@ public class ConfigurationFileChecks {
               // program used in this test, they requires a
               // concurrent C program with at least one call to pthread_create
               Path.of("mpor.properties"),
-              Path.of("sequentialization-concurrency--memsafety.properties"),
+              Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
               Path.of("sequentialization-concurrency.properties"));
     }
