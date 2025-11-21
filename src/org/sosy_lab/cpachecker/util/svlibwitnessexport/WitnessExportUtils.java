@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -26,7 +25,7 @@ public class WitnessExportUtils {
   public static void writeCommandsAsWitness(
       Path pOutputPath, List<? extends SvLibCommand> pCommands, LogManager pLogger) {
     FluentIterable<String> witnessContentLines =
-        FluentIterable.from(ImmutableList.of("("))
+        FluentIterable.of("(")
             .append(
                 FluentIterable.from(pCommands).transform(SvLibCommand::toASTString).append(")"));
 
