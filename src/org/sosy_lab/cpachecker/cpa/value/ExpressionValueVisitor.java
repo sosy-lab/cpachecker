@@ -342,8 +342,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
-        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType)
-        throws UnrecognizedCodeException {
+        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType) {
 
       CType canonicalOwnerType = pOwnerType.getCanonicalType();
 
@@ -356,8 +355,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       return pStartLocation.withAddedOffset(offset.orElseThrow());
     }
 
-    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
-        throws UnrecognizedCodeException {
+    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName) {
 
       if (ownerType instanceof CElaboratedType cElaboratedType) {
         return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
