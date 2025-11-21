@@ -727,7 +727,7 @@ int main() {
     overallResult = overallResult || __builtin_mul_overflow_p(1, 1, (int)0);
   }
 
-  if (overallResult) {
+  if (!overallResult) {
     assert(0);
     goto ERROR;
   }
