@@ -113,10 +113,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     extends SingleEdgeTransferRelation {
 
-  /** the given state, casted to correct type, for local access */
+  /** the given state, cast to correct type, for local access */
   protected @Nullable T state;
 
-  /** the given precision, casted to correct type, for local access */
+  /** the given precision, cast to correct type, for local access */
   protected @Nullable P precision;
 
   /** the function BEFORE the current edge */
