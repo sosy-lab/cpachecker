@@ -114,24 +114,24 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     extends SingleEdgeTransferRelation {
 
   /** the given state, casted to correct type, for local access */
-  protected @Nullable T state;
+  protected @Nullable T stateBeforeTransferRelation;
 
   /** the given precision, casted to correct type, for local access */
   protected @Nullable P precision;
 
   /** the function BEFORE the current edge */
-  protected @Nullable String functionName;
+  protected @Nullable String stackFrameFunctionName;
 
   protected T getState() {
-    return checkNotNull(state);
+    return checkNotNull(stateBeforeTransferRelation);
   }
 
   protected P getPrecision() {
     return checkNotNull(precision);
   }
 
-  protected String getFunctionName() {
-    return checkNotNull(functionName);
+  protected String getFunctionNameBeforeTransferRelation() {
+    return checkNotNull(stackFrameFunctionName);
   }
 
   /**
@@ -145,7 +145,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
 
-    final Collection<T> preCheck = preCheck(state, precision);
+    final Collection<T> preCheck = preCheck(stateBeforeTransferRelation, precision);
     if (preCheck != null) {
       return preCheck;
     }
@@ -200,15 +200,15 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   @SuppressWarnings("unchecked")
   protected void setInfo(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge) {
-    state = (T) abstractState;
+    stateBeforeTransferRelation = (T) abstractState;
     precision = (P) abstractPrecision;
-    functionName = cfaEdge.getPredecessor().getFunctionName();
+    stackFrameFunctionName = cfaEdge.getPredecessor().getFunctionName();
   }
 
   protected void resetInfo() {
-    state = null;
+    stateBeforeTransferRelation = null;
     precision = null;
-    functionName = null;
+    stackFrameFunctionName = null;
   }
 
   /**
@@ -517,7 +517,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   @SuppressWarnings("unchecked")
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    return (S) state;
+    return (S) stateBeforeTransferRelation;
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {

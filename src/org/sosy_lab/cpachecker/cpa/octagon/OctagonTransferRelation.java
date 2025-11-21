@@ -153,7 +153,7 @@ public class OctagonTransferRelation
     // instead it would be much better if we could omit creating them, p.e. through
     // creating the temporary vars in the CFA, before analyzing the program
     for (OctagonState st : successors) {
-      cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
+      cleanedUpStates.add(st.removeTempVars(stackFrameFunctionName, TEMP_VAR_PREFIX));
     }
 
     if (loopHeads.contains(edge.getSuccessor())) {
@@ -169,7 +169,7 @@ public class OctagonTransferRelation
 
   @Override
   protected Set<OctagonState> handleBlankEdge(BlankEdge cfaEdge) {
-    return Collections.singleton(state);
+    return Collections.singleton(stateBeforeTransferRelation);
   }
 
   @SuppressWarnings("deprecation")
@@ -180,13 +180,14 @@ public class OctagonTransferRelation
 
     // Binary operation
     if (expression instanceof CBinaryExpression cBinaryExpression) {
-      return handleBinaryBooleanExpression(cBinaryExpression, truthAssumption, state);
+      return handleBinaryBooleanExpression(cBinaryExpression, truthAssumption,
+          stateBeforeTransferRelation);
 
       // Unary operation
     } else if (expression instanceof CUnaryExpression unaryExp) {
       return switch (unaryExp.getOperator()) {
         case MINUS -> handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
-        case SIZEOF, TILDE, AMPER -> Collections.singleton(state);
+        case SIZEOF, TILDE, AMPER -> Collections.singleton(stateBeforeTransferRelation);
         default -> throw new CPATransferException("Unhandled case: " + unaryExp.getOperator());
       };
 
@@ -196,10 +197,10 @@ public class OctagonTransferRelation
         || (expression instanceof CPointerExpression cPointerExpression
             && cPointerExpression.getOperand() instanceof CIdExpression)) {
       if (isHandleableVariable(expression)) {
-        MemoryLocation varName = buildVarName((CLeftHandSide) expression, functionName);
-        return handleSingleBooleanExpression(varName, truthAssumption, state);
+        MemoryLocation varName = buildVarName((CLeftHandSide) expression, stackFrameFunctionName);
+        return handleSingleBooleanExpression(varName, truthAssumption, stateBeforeTransferRelation);
       } else {
-        return Collections.singleton(state);
+        return Collections.singleton(stateBeforeTransferRelation);
       }
 
       // A constant value
@@ -207,17 +208,17 @@ public class OctagonTransferRelation
       return switch (expression) {
         case CIntegerLiteralExpression cIntegerLiteralExpression ->
             handleLiteralBooleanExpression(
-                cIntegerLiteralExpression.asLong(), truthAssumption, state);
+                cIntegerLiteralExpression.asLong(), truthAssumption, stateBeforeTransferRelation);
         case CCharLiteralExpression cCharLiteralExpression ->
             handleLiteralBooleanExpression(
-                cCharLiteralExpression.getCharacter(), truthAssumption, state);
+                cCharLiteralExpression.getCharacter(), truthAssumption, stateBeforeTransferRelation);
         case CFloatLiteralExpression floatLiteral -> {
           // only when the float is exactly zero the condition is wrong, for all other float values
           // it is true
           int val = floatLiteral.getValue().isZero() ? 0 : 1;
-          yield handleLiteralBooleanExpression(val, truthAssumption, state);
+          yield handleLiteralBooleanExpression(val, truthAssumption, stateBeforeTransferRelation);
         }
-        default -> Collections.singleton(state);
+        default -> Collections.singleton(stateBeforeTransferRelation);
       };
 
       // a cast, we ignore this cast and call this method again with the casts operand
@@ -276,10 +277,10 @@ public class OctagonTransferRelation
       case MINUS, PLUS, MULTIPLY, DIVIDE -> {
         MemoryLocation tempVarName =
             MemoryLocation.forLocalVariable(
-                functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+                stackFrameFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         COctagonCoefficientVisitor coeffVisitor =
-            new COctagonCoefficientVisitor(pState, functionName);
+            new COctagonCoefficientVisitor(pState, stackFrameFunctionName);
         Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = binExp.accept(coeffVisitor);
         Set<OctagonState> possibleStates = new HashSet<>();
         for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsList) {
@@ -421,17 +422,17 @@ public class OctagonTransferRelation
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
-      leftVarName = buildVarName((CLeftHandSide) left, functionName);
+      leftVarName = buildVarName((CLeftHandSide) left, stackFrameFunctionName);
 
       // create a temp var for the left side of the expression
     } else {
       COctagonCoefficientVisitor coeffVisitor =
-          new COctagonCoefficientVisitor(pState, functionName);
+          new COctagonCoefficientVisitor(pState, stackFrameFunctionName);
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
           MemoryLocation.forLocalVariable(
-              functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+              stackFrameFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       List<OctagonState> tmpList = new ArrayList<>();
       for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsLeft) {
@@ -553,7 +554,7 @@ public class OctagonTransferRelation
     }
 
     if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
-      return Collections.singleton(state);
+      return Collections.singleton(stateBeforeTransferRelation);
     } else {
       return ImmutableSet.of();
     }
@@ -597,17 +598,17 @@ public class OctagonTransferRelation
 
     // check left side
     if (left instanceof CIdExpression || left instanceof CFieldReference) {
-      leftVarName = buildVarName((CLeftHandSide) left, functionName);
+      leftVarName = buildVarName((CLeftHandSide) left, stackFrameFunctionName);
 
       // create a temp var for the left side of the expression
     } else {
       COctagonCoefficientVisitor coeffVisitor =
-          new COctagonCoefficientVisitor(pState, functionName);
+          new COctagonCoefficientVisitor(pState, stackFrameFunctionName);
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
           MemoryLocation.forLocalVariable(
-              functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+              stackFrameFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       Set<OctagonState> tmpSet = new HashSet<>();
       for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsLeft) {
@@ -630,7 +631,7 @@ public class OctagonTransferRelation
 
     // check right side
     if (right instanceof CIdExpression || right instanceof CFieldReference) {
-      rightVarName = buildVarName((CLeftHandSide) right, functionName);
+      rightVarName = buildVarName((CLeftHandSide) right, stackFrameFunctionName);
 
       // create a temp var for the right side of the expression
     } else {
@@ -639,12 +640,13 @@ public class OctagonTransferRelation
       // so we have the same name everywhere for the variable
       MemoryLocation tempRight =
           MemoryLocation.forLocalVariable(
-              functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
+              stackFrameFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
       temporaryVariableCounter++;
       Set<OctagonState> tmpSet = new HashSet<>();
 
       for (OctagonState st : states) {
-        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(st, functionName);
+        COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(st,
+            stackFrameFunctionName);
         Set<Pair<IOctagonCoefficients, OctagonState>> coeffsRight = right.accept(coeffVisitor);
 
         for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsRight) {
@@ -781,8 +783,8 @@ public class OctagonTransferRelation
 
     CType returnType = functionType.getReturnType().getCanonicalType();
     if (isHandleAbleType(returnType) && !(returnType instanceof CVoidType)) {
-      state =
-          state.declareVariable(
+      stateBeforeTransferRelation =
+          stateBeforeTransferRelation.declareVariable(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
@@ -807,11 +809,11 @@ public class OctagonTransferRelation
         continue;
       }
 
-      state = state.declareVariable(nameOfParam, getCorrespondingOctStateType(typeOfParam));
+      stateBeforeTransferRelation = stateBeforeTransferRelation.declareVariable(nameOfParam, getCorrespondingOctStateType(typeOfParam));
       handleAbleParams.add(Pair.of(nameOfParam, arguments.get(i)));
     }
 
-    possibleStates.add(state);
+    possibleStates.add(stateBeforeTransferRelation);
     for (Pair<MemoryLocation, CExpression> pair : handleAbleParams) {
       MemoryLocation paramName = pair.getFirst();
       CExpression argument = pair.getSecond();
@@ -851,25 +853,26 @@ public class OctagonTransferRelation
       if (!isHandleableVariable(op1)
           || !precision.isTracking(
               assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
-        return Collections.singleton(state.removeLocalVars(calledFunctionName));
+        return Collections.singleton(stateBeforeTransferRelation.removeLocalVars(calledFunctionName));
       }
 
       int returnVarIndex =
-          state.getVariableIndexFor(
+          stateBeforeTransferRelation.getVariableIndexFor(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
       if (returnVarIndex == -1) {
-        state = state.forget(assignedVarName);
-        return Collections.singleton(state.removeLocalVars(calledFunctionName));
+        stateBeforeTransferRelation = stateBeforeTransferRelation.forget(assignedVarName);
+        return Collections.singleton(stateBeforeTransferRelation.removeLocalVars(calledFunctionName));
       }
 
       IOctagonCoefficients right =
           new OctagonSimpleCoefficients(
-              state.sizeOfVariables(), returnVarIndex, OctagonIntValue.ONE, state);
+              stateBeforeTransferRelation.sizeOfVariables(), returnVarIndex, OctagonIntValue.ONE,
+              stateBeforeTransferRelation);
 
-      state = state.makeAssignment(assignedVarName, right);
+      stateBeforeTransferRelation = stateBeforeTransferRelation.makeAssignment(assignedVarName, right);
 
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
       // g(b), do nothing
@@ -878,7 +881,7 @@ public class OctagonTransferRelation
       throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
     }
 
-    return Collections.singleton(state.removeLocalVars(calledFunctionName));
+    return Collections.singleton(stateBeforeTransferRelation.removeLocalVars(calledFunctionName));
   }
 
   @Override
@@ -894,11 +897,11 @@ public class OctagonTransferRelation
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
       if (!isHandleAbleType(declaration.getType())) {
-        return Collections.singleton(state);
+        return Collections.singleton(stateBeforeTransferRelation);
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
-        return Collections.singleton(state);
+        return Collections.singleton(stateBeforeTransferRelation);
       }
 
       CInitializer init = declaration.getInitializer();
@@ -906,10 +909,10 @@ public class OctagonTransferRelation
       // for global declarations, there may be forwards declarations, so we do
       // not need to declarate them a second time, but if there is an initializer
       // we assign it to the before declared variable
-      if (!state.existsVariable(variableName)
+      if (!stateBeforeTransferRelation.existsVariable(variableName)
           && (init == null || init instanceof CInitializerExpression)) {
-        state =
-            state.declareVariable(
+        stateBeforeTransferRelation =
+            stateBeforeTransferRelation.declareVariable(
                 variableName, getCorrespondingOctStateType(declaration.getType()));
       }
 
@@ -920,7 +923,7 @@ public class OctagonTransferRelation
           CExpression exp = cInitializerExpression.getExpression();
 
           COctagonCoefficientVisitor coeffVisitor =
-              new COctagonCoefficientVisitor(state, functionName);
+              new COctagonCoefficientVisitor(stateBeforeTransferRelation, stackFrameFunctionName);
           Set<Pair<IOctagonCoefficients, OctagonState>> initCoeffs = exp.accept(coeffVisitor);
 
           for (Pair<IOctagonCoefficients, OctagonState> pairs : initCoeffs) {
@@ -930,7 +933,7 @@ public class OctagonTransferRelation
           // if there is an initializerlist, the variable is either an array or a struct/union
           // we cannot handle them, so simply return the previous state
         } else if (init instanceof CInitializerList) {
-          return Collections.singleton(state);
+          return Collections.singleton(stateBeforeTransferRelation);
 
         } else {
           throw new AssertionError("Unhandled Expression Type: " + init.getClass());
@@ -939,21 +942,23 @@ public class OctagonTransferRelation
         // global variables without initializer are set to 0 in C
       } else if (decl.isGlobal()) {
         possibleStates.add(
-            state.makeAssignment(
+            stateBeforeTransferRelation.makeAssignment(
                 variableName,
-                new OctagonSimpleCoefficients(state.sizeOfVariables(), state)
-                    .expandToSize(state.sizeOfVariables(), state)));
+                new OctagonSimpleCoefficients(stateBeforeTransferRelation.sizeOfVariables(),
+                    stateBeforeTransferRelation)
+                    .expandToSize(stateBeforeTransferRelation.sizeOfVariables(),
+                        stateBeforeTransferRelation)));
       }
 
       if (possibleStates.isEmpty()) {
-        possibleStates.add(state);
+        possibleStates.add(stateBeforeTransferRelation);
       }
 
       return possibleStates;
 
     } else if (cfaEdge.getDeclaration() instanceof CTypeDeclaration
         || cfaEdge.getDeclaration() instanceof CFunctionDeclaration) {
-      return Collections.singleton(state);
+      return Collections.singleton(stateBeforeTransferRelation);
     }
 
     throw new AssertionError(
@@ -979,19 +984,19 @@ public class OctagonTransferRelation
       CLeftHandSide left = cAssignment.getLeftHandSide();
       CRightHandSide right = cAssignment.getRightHandSide();
 
-      MemoryLocation variableName = buildVarName(left, functionName);
+      MemoryLocation variableName = buildVarName(left, stackFrameFunctionName);
 
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
           || !precision.isTracking(
               variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
-        assert !state.existsVariable(variableName)
+        assert !stateBeforeTransferRelation.existsVariable(variableName)
             : "variablename '" + variableName + "' is in map although it can not be handled";
-        return Collections.singleton(state);
+        return Collections.singleton(stateBeforeTransferRelation);
       } else {
         COctagonCoefficientVisitor coeffVisitor =
-            new COctagonCoefficientVisitor(state, functionName);
+            new COctagonCoefficientVisitor(stateBeforeTransferRelation, stackFrameFunctionName);
         Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = right.accept(coeffVisitor);
 
         Set<OctagonState> possibleStates = new HashSet<>();
@@ -1002,7 +1007,7 @@ public class OctagonTransferRelation
           // to forget the variables value and then break out of this loop so we do not
           // have to evaluete further states even if there were some
           if (newState.isEmpty()) {
-            possibleStates.add(state.forget(variableName));
+            possibleStates.add(stateBeforeTransferRelation.forget(variableName));
             break;
           }
 
@@ -1016,7 +1021,7 @@ public class OctagonTransferRelation
       // => do nothing
     } else if (statement instanceof CFunctionCallStatement
         || statement instanceof CExpressionStatement) {
-      return Collections.singleton(state);
+      return Collections.singleton(stateBeforeTransferRelation);
     }
 
     throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
@@ -1049,7 +1054,7 @@ public class OctagonTransferRelation
     // this is for functions without return value, which just have returns
     // in them to end the function
     if (!cfaEdge.getExpression().isPresent()) {
-      return Collections.singleton(state);
+      return Collections.singleton(stateBeforeTransferRelation);
     }
 
     MemoryLocation tempVarName =
@@ -1059,13 +1064,13 @@ public class OctagonTransferRelation
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
-    if (!state.existsVariable(tempVarName)) {
-      return Collections.singleton(state);
+    if (!stateBeforeTransferRelation.existsVariable(tempVarName)) {
+      return Collections.singleton(stateBeforeTransferRelation);
     }
 
     Set<OctagonState> possibleStates = new HashSet<>();
     COctagonCoefficientVisitor coeffVisitor =
-        new COctagonCoefficientVisitor(state, cfaEdge.getPredecessor().getFunctionName());
+        new COctagonCoefficientVisitor(stateBeforeTransferRelation, cfaEdge.getPredecessor().getFunctionName());
     Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList =
         cfaEdge.getExpression().orElseThrow().accept(coeffVisitor);
 
@@ -1506,7 +1511,7 @@ public class OctagonTransferRelation
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CIdExpression e)
         throws CPATransferException {
-      MemoryLocation varName = buildVarName(e, functionName);
+      MemoryLocation varName = buildVarName(e, stackFrameFunctionName);
       Integer varIndex = visitorState.getVariableIndexFor(varName);
       // TODO following if-part may be imprecise, check again
       if (varIndex == -1) {

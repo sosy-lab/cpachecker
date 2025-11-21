@@ -104,7 +104,7 @@ public class LocalTransferRelation
   protected LocalState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption) {
     // Do not try to remove clone() - leads to problems in BAM's cache
-    return state.copy();
+    return stateBeforeTransferRelation.copy();
   }
 
   @Override
@@ -113,7 +113,7 @@ public class LocalTransferRelation
     // TODO is it necessary to clone every time?
     // Guess, it is possible to return the same state (we add only in cloned states)
     Optional<CExpression> returnExpression = cfaEdge.getExpression();
-    LocalState newState = state.copy();
+    LocalState newState = stateBeforeTransferRelation.copy();
     if (returnExpression.isPresent()) {
 
       int potentialDereference =
@@ -131,7 +131,7 @@ public class LocalTransferRelation
 
     // NOTE! getFunctionName() return inner function name!
 
-    LocalState newElement = state.getClonedPreviousState();
+    LocalState newElement = stateBeforeTransferRelation.getClonedPreviousState();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {
       // Need to prepare id as left id is from caller function and the right id is from called
@@ -146,7 +146,7 @@ public class LocalTransferRelation
     // Update the outer parameters:
     CFunctionEntryNode entry = cfaEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
-    assert funcName.equals(getFunctionName());
+    assert funcName.equals(getFunctionNameBeforeTransferRelation());
 
     int allocParameter = isParameterAllocatedFunction(funcName) ? allocateInfo.get(funcName) : 0;
     List<String> paramNames = entry.getFunctionParameterNames();
@@ -175,13 +175,17 @@ public class LocalTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> parameterTypes,
       String calledFunctionName) {
-    LocalState newState = LocalState.createNextLocalState(state);
+    LocalState newState = LocalState.createNextLocalState(stateBeforeTransferRelation);
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
     List<Identifier> toProcess =
         extractIdentifiers(
-            arguments, paramNames, parameterTypes, getFunctionName(), calledFunctionName);
+            arguments,
+            paramNames,
+            parameterTypes,
+            getFunctionNameBeforeTransferRelation(),
+            calledFunctionName);
     // TODO Make it with config
     boolean isThreadCreate = cfaEdge.getFunctionCall() instanceof CThreadCreateStatement;
 
@@ -199,7 +203,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
-    LocalState newState = state.copy();
+    LocalState newState = stateBeforeTransferRelation.copy();
     if (statement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
       assign(newState, assignment.getLeftHandSide(), assignment.getRightHandSide());
@@ -209,12 +213,13 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleDeclarationEdge(CDeclarationEdge declEdge, CDeclaration decl) {
-    LocalState newState = state.copy();
+    LocalState newState = stateBeforeTransferRelation.copy();
     if (decl instanceof CVariableDeclaration cVariableDeclaration) {
       CInitializer init = cVariableDeclaration.getInitializer();
 
       int deref = findDereference(decl.getType());
-      AbstractIdentifier id = IdentifierCreator.createIdentifier(decl, getFunctionName(), 0);
+      AbstractIdentifier id =
+          IdentifierCreator.createIdentifier(decl, getFunctionNameBeforeTransferRelation(), 0);
       CType type = decl.getType();
       if (type instanceof CComplexType) {
         if (type instanceof CElaboratedType) {
@@ -307,7 +312,8 @@ public class LocalTransferRelation
   }
 
   private AbstractIdentifier createId(CExpression expression, int dereference) {
-    return createId(expression, dereference, new IdentifierCreator(getFunctionName()));
+    return createId(
+        expression, dereference, new IdentifierCreator(getFunctionNameBeforeTransferRelation()));
   }
 
   private void assign(LocalState pSuccessor, CExpression left, CRightHandSide right) {
@@ -387,7 +393,7 @@ public class LocalTransferRelation
   }
 
   private DataType getMemoryType(AbstractIdentifier id) {
-    DataType type = state.getType(id);
+    DataType type = stateBeforeTransferRelation.getType(id);
     if (type == null) {
       if (id instanceof ConstantIdentifier) {
         // return (struct myStruct *) 0; - consider the value as local

@@ -102,34 +102,34 @@ public class ConstraintsTransferRelation
       List<? extends AExpression> pArguments,
       List<? extends AParameterDeclaration> pParameters,
       String pCalledFunctionName) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleFunctionReturnEdge(
       FunctionReturnEdge pCfaEdge, AFunctionCall pSummaryExpression, String pCallerFunctionName) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleReturnStatementEdge(AReturnStatementEdge pCfaEdge) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleFunctionSummaryEdge(FunctionSummaryEdge pCfaEdge) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleDeclarationEdge(
       ADeclarationEdge pCfaEdge, ADeclaration pDeclaration) throws CPATransferException {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
@@ -138,13 +138,13 @@ public class ConstraintsTransferRelation
     if (cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
       SymbolicValueFactory.reset();
     }
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected ConstraintsState handleAssumption(
       AssumeEdge pCfaEdge, AExpression pExpression, boolean pTruthAssumption) {
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   private ConstraintsState getNewState(
@@ -172,7 +172,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsatWithOptionDefinedSolverReuse(newConstraint, functionName)
+        if (solver.checkUnsatWithOptionDefinedSolverReuse(newConstraint, stackFrameFunctionName)
             == Satisfiability.UNSAT) {
           return null;
         }
@@ -380,7 +380,7 @@ public class ConstraintsTransferRelation
         if (newState != null) {
           newState = simplify(newState, valueState);
           if (checkStrategy == CheckStrategy.AT_ASSUME) {
-            newState = getIfSatisfiable(newState, functionName, solver);
+            newState = getIfSatisfiable(newState, stackFrameFunctionName, solver);
           }
           if (newState != null) {
             if (newState.equals(pStateToStrengthen)) {
@@ -421,7 +421,7 @@ public class ConstraintsTransferRelation
 
       try {
         if (automatonState.isTarget()
-            && getIfSatisfiable(pStateToStrengthen, functionName, solver) == null) {
+            && getIfSatisfiable(pStateToStrengthen, stackFrameFunctionName, solver) == null) {
 
           return Optional.of(ImmutableSet.of());
 

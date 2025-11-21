@@ -240,10 +240,10 @@ public class SMGTransferRelation
     if ((cfaEdge.getSuccessor() instanceof FunctionExitNode) && isEntryFunction(cfaEdge)) {
       // Entry functions need special handling as they don't have a return edge
       // (i.e. check for memory leaks)
-      return handleReturnEntryFunction(Collections.singleton(state), cfaEdge);
+      return handleReturnEntryFunction(Collections.singleton(stateBeforeTransferRelation), cfaEdge);
     }
 
-    return Collections.singleton(state);
+    return Collections.singleton(stateBeforeTransferRelation);
   }
 
   /**
@@ -288,7 +288,7 @@ public class SMGTransferRelation
       throws CPATransferException {
     ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
     // Check that there is a return object and if there is one we can write the return to it
-    if (state.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
+    if (stateBeforeTransferRelation.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
       // retType == left hand side type of the return statement, i.e. the type in the function
@@ -301,10 +301,10 @@ public class SMGTransferRelation
         rightHandSideType = returnAssignment.orElseThrow().getRightHandSide().getExpressionType();
       }
 
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, stateBeforeTransferRelation, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
-        BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
+        BigInteger sizeInBits = evaluator.getBitSizeof(stateBeforeTransferRelation, retType);
 
         // Iff the target and source are a struct, we need to copy the struct.
         // The value visitor gives us a pointer (singular value) that is then used to find the
@@ -360,7 +360,7 @@ public class SMGTransferRelation
         }
       }
     } else {
-      successorsBuilder.add(state);
+      successorsBuilder.add(stateBeforeTransferRelation);
     }
 
     // Handle entry function return (check for mem leaks)
@@ -393,7 +393,7 @@ public class SMGTransferRelation
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     Preconditions.checkArgument(
-        state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
+        stateBeforeTransferRelation.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
@@ -402,9 +402,9 @@ public class SMGTransferRelation
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
       CType rightValueType =
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
-      BigInteger sizeInBits = evaluator.getBitSizeof(state, rightValueType);
+      BigInteger sizeInBits = evaluator.getBitSizeof(stateBeforeTransferRelation, rightValueType);
       Optional<SMGObject> returnObject =
-          state.getMemoryModel().getReturnObjectForCurrentStackFrame();
+          stateBeforeTransferRelation.getMemoryModel().getReturnObjectForCurrentStackFrame();
       // There should always be a return memory object in the case of a
       // CFunctionCallAssignmentStatement!
       Preconditions.checkArgument(returnObject.isPresent());
@@ -413,7 +413,7 @@ public class SMGTransferRelation
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(leftValueType)
           && SMGCPAExpressionEvaluator.isStructOrUnionType(rightValueType)) {
 
-        SMGState currentState = state;
+        SMGState currentState = stateBeforeTransferRelation;
 
         for (SMGState stateWithNewVar :
             createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
@@ -439,7 +439,7 @@ public class SMGTransferRelation
         }
       } else {
         for (ValueAndSMGState readValueAndState :
-            state.readValue(
+            stateBeforeTransferRelation.readValue(
                 returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType)) {
 
           // Now we can drop the stack frame as we left the function and have the return value
@@ -454,7 +454,7 @@ public class SMGTransferRelation
       }
       return stateBuilder.build();
     } else {
-      return ImmutableList.of(state.dropStackFrame());
+      return ImmutableList.of(stateBeforeTransferRelation.dropStackFrame());
     }
   }
 
@@ -550,7 +550,7 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.of(handleFunctionCall(state, callEdge, arguments, paramDecl));
+    return ImmutableList.of(handleFunctionCall(stateBeforeTransferRelation, callEdge, arguments, paramDecl));
   }
 
   /**
@@ -872,7 +872,7 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, stateBeforeTransferRelation, cfaEdge, logger, options);
     for (ValueAndSMGState valueAndState :
         vv.evaluate(
             cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
@@ -898,7 +898,7 @@ public class SMGTransferRelation
                 truthValue,
                 options,
                 booleanVariables,
-                functionName);
+                stackFrameFunctionName);
         try {
           List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
           if (maybeFeasiblePaths == null) {
@@ -968,7 +968,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
+      for (SMGState currentState : createVariableOnTheSpot(lValue, stateBeforeTransferRelation)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
@@ -982,7 +982,8 @@ public class SMGTransferRelation
       List<ValueAndSMGState> handledFunReturn =
           evaluator
               .getBuiltinFunctionHandler()
-              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, state, pCfaEdge);
+              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName,
+                  stateBeforeTransferRelation, pCfaEdge);
 
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
@@ -993,7 +994,7 @@ public class SMGTransferRelation
 
     } else {
       // Fall through for unneeded cases
-      return ImmutableList.of(state);
+      return ImmutableList.of(stateBeforeTransferRelation);
     }
   }
 
@@ -1045,7 +1046,7 @@ public class SMGTransferRelation
               "Error: unexpected return value "
                   + funReturn
                   + " encountered in post-processing of function call to "
-                  + functionName
+                  + stackFrameFunctionName
                   + "() without assigning the functions return value at "
                   + pCfaEdge);
         }
@@ -1059,7 +1060,7 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
-    SMGState currentState = state;
+    SMGState currentState = stateBeforeTransferRelation;
     // CEGAR checks inside the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration cFuncDecl) {

@@ -118,7 +118,7 @@ public class BDDTransferRelation
   protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
       throws UnsupportedCodeException {
 
-    BDDState result = state;
+    BDDState result = stateBeforeTransferRelation;
 
     // normal assignment, "a = ..."
     if (statement instanceof CAssignment cAssignment) {
@@ -151,17 +151,17 @@ public class BDDTransferRelation
     if (lhs instanceof CIdExpression cIdExpression) {
       varName = cIdExpression.getDeclaration().getQualifiedName();
     } else {
-      varName = functionName + "::" + lhs;
+      varName = stackFrameFunctionName + "::" + lhs;
     }
 
     final CType targetType = lhs.getExpressionType();
 
     // next line is a shortcut, not necessary
     if (!precision.isTracking(MemoryLocation.fromQualifiedName(varName), targetType, successor)) {
-      return state;
+      return stateBeforeTransferRelation;
     }
 
-    BDDState newState = state;
+    BDDState newState = stateBeforeTransferRelation;
     CRightHandSide rhs = assignment.getRightHandSide();
     if (rhs instanceof CExpression exp) {
       final Partition partition = varClass.getPartitionForEdge(edge);
@@ -290,7 +290,7 @@ public class BDDTransferRelation
       if (vdecl.getType().isIncomplete()) {
         // Variables of such types cannot store values, only their address can be taken.
         // We can ignore them.
-        return state;
+        return stateBeforeTransferRelation;
       }
 
       CInitializer initializer = vdecl.getInitializer();
@@ -310,7 +310,7 @@ public class BDDTransferRelation
               cfaEdge.getSuccessor(),
               bvComputer.getBitsize(partition, vdecl.getType()),
               precision);
-      BDDState newState = state.forget(var);
+      BDDState newState = stateBeforeTransferRelation.forget(var);
 
       // initializer on RIGHT SIDE available, make region for it
       if (init != null) {
@@ -323,7 +323,7 @@ public class BDDTransferRelation
       return newState;
     }
 
-    return state; // if we know nothing, we return the old state
+    return stateBeforeTransferRelation; // if we know nothing, we return the old state
   }
 
   /**
@@ -338,7 +338,7 @@ public class BDDTransferRelation
       List<CParameterDeclaration> params,
       String calledFunction)
       throws UnsupportedCodeException {
-    BDDState newState = state;
+    BDDState newState = stateBeforeTransferRelation;
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
     assert args.size() >= params.size();
@@ -373,7 +373,7 @@ public class BDDTransferRelation
   @Override
   protected BDDState handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String outerFunctionName) {
-    BDDState newState = state;
+    BDDState newState = stateBeforeTransferRelation;
 
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -424,7 +424,7 @@ public class BDDTransferRelation
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws UnsupportedCodeException {
-    BDDState newState = state;
+    BDDState newState = stateBeforeTransferRelation;
     String returnVar = "";
 
     if (cfaEdge.getExpression().isPresent()) {
@@ -464,7 +464,7 @@ public class BDDTransferRelation
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
     for (String var : predmgr.getTrackedVars()) {
-      if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
+      if (isLocalVariableForFunction(var, stackFrameFunctionName) && !returnVar.equals(var)) {
         newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
       }
     }
@@ -481,16 +481,16 @@ public class BDDTransferRelation
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
       // this results in a smaller BDD and allows to call a function twice.
-      BDDState newState = state;
+      BDDState newState = stateBeforeTransferRelation;
       for (String var : predmgr.getTrackedVars()) {
-        if (isLocalVariableForFunction(var, functionName)) {
+        if (isLocalVariableForFunction(var, stackFrameFunctionName)) {
           newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
         }
       }
       return newState;
     }
 
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   /**
@@ -508,7 +508,7 @@ public class BDDTransferRelation
         bvComputer.evaluateVectorExpression(
             partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor(), precision);
     if (operand == null) {
-      return state;
+      return stateBeforeTransferRelation;
     } // assumption cannot be evaluated
     Region evaluated = bvmgr.makeOr(operand);
 
@@ -517,7 +517,7 @@ public class BDDTransferRelation
     }
 
     // get information from region into evaluated region
-    Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
+    Region newRegion = rmgr.makeAnd(stateBeforeTransferRelation.getRegion(), evaluated);
     if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
       return null;
     } else {
@@ -542,7 +542,7 @@ public class BDDTransferRelation
             pPointerInfo,
             precision);
     if (operand == null) {
-      return state;
+      return stateBeforeTransferRelation;
     } // assumption cannot be evaluated
     Region evaluated = bvmgr.makeOr(operand);
 
@@ -551,7 +551,7 @@ public class BDDTransferRelation
     }
 
     // get information from region into evaluated region
-    Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
+    Region newRegion = rmgr.makeAnd(stateBeforeTransferRelation.getRegion(), evaluated);
     if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
       return null;
     } else {
@@ -568,7 +568,7 @@ public class BDDTransferRelation
     if (exp instanceof CIdExpression cIdExpression) {
       return cIdExpression.getDeclaration().getQualifiedName();
     } else {
-      return functionName + "::" + exp.toASTString();
+      return stackFrameFunctionName + "::" + exp.toASTString();
     }
   }
 
@@ -637,7 +637,7 @@ public class BDDTransferRelation
 
     // without a target, nothing can be done.
     if (target == null) {
-      return state;
+      return stateBeforeTransferRelation;
     }
 
     // get value for RHS
@@ -654,7 +654,7 @@ public class BDDTransferRelation
 
     // without a value, nothing can be done.
     if (value == null) {
-      return state;
+      return stateBeforeTransferRelation;
     }
 
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -667,7 +667,7 @@ public class BDDTransferRelation
     final Region[] evaluation =
         predmgr.createPredicate(
             value.getExtendedQualifiedName(), valueType, cfaEdge.getSuccessor(), size, precision);
-    BDDState newState = state.forget(rhs);
+    BDDState newState = stateBeforeTransferRelation.forget(rhs);
     return newState.addAssignment(rhs, evaluation);
   }
 

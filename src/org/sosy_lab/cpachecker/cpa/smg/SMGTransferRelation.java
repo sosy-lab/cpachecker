@@ -189,7 +189,7 @@ public class SMGTransferRelation
       // so we have to check for memleaks here
       if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
         // TODO: Handle leaks at any program exit point (abort, etc.)
-        SMGState successor = state.copyOf();
+        SMGState successor = stateBeforeTransferRelation.copyOf();
         if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
           successor.dropStackFrame();
         }
@@ -197,13 +197,13 @@ public class SMGTransferRelation
         return Collections.singleton(successor);
       }
     }
-    return Collections.singleton(state);
+    return Collections.singleton(stateBeforeTransferRelation);
   }
 
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
-    SMGState smgState = state.copyOf();
+    SMGState smgState = stateBeforeTransferRelation.copyOf();
     Collection<SMGState> successors;
     SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
@@ -258,7 +258,7 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     CFunctionCall exprOnSummary = functionReturnEdge.getFunctionCall();
-    SMGState newState = state.copyOf();
+    SMGState newState = stateBeforeTransferRelation.copyOf();
 
     assert Iterables.getLast(newState.getHeap().getStackFrames())
         .getFunctionDeclaration()
@@ -327,7 +327,7 @@ public class SMGTransferRelation
       assert (paramDecl.size() == arguments.size());
     }
 
-    SMGState initialNewState = state.copyOf();
+    SMGState initialNewState = stateBeforeTransferRelation.copyOf();
     SequencedMap<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap =
         new LinkedHashMap<>();
     List<Pair<SMGRegion, SMGValue>> initialValuesList = new ArrayList<>();
@@ -516,8 +516,8 @@ public class SMGTransferRelation
   protected void setInfo(
       AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
-    state = state.copyOf();
-    state.cleanCurrentChain();
+    stateBeforeTransferRelation = stateBeforeTransferRelation.copyOf();
+    stateBeforeTransferRelation.cleanCurrentChain();
   }
 
   @Override
@@ -535,17 +535,18 @@ public class SMGTransferRelation
     expression = eliminateOuterEquals(expression);
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
-    AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, state);
+    AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge,
+        stateBeforeTransferRelation);
     List<SMGState> result = new ArrayList<>();
     for (SMGValueAndState valueAndState : expression.accept(visitor)) {
 
       SMGValue value = valueAndState.getObject();
-      state = valueAndState.getSmgState();
+      stateBeforeTransferRelation = valueAndState.getSmgState();
 
       if (!value.isUnknown()) {
         if ((truthValue && value.equals(SMGKnownSymValue.TRUE))
             || (!truthValue && value.equals(SMGZeroValue.INSTANCE))) {
-          result.add(state);
+          result.add(stateBeforeTransferRelation);
         } else {
           // This signals that there are no new States reachable from this State,
           // i.e., the Assumption does not hold.
@@ -571,15 +572,15 @@ public class SMGTransferRelation
       AssumeVisitor visitor, CFAEdge cfaEdge, boolean truthValue, CExpression expression)
       throws CPATransferException, InterruptedException {
 
-    boolean impliesEqOn = visitor.impliesEqOn(truthValue, state);
-    boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, state);
+    boolean impliesEqOn = visitor.impliesEqOn(truthValue, stateBeforeTransferRelation);
+    boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, stateBeforeTransferRelation);
 
     SMGValue val1ImpliesOn;
     SMGValue val2ImpliesOn;
 
     if (impliesEqOn || impliesNeqOn) {
-      val1ImpliesOn = visitor.impliesVal1(state);
-      val2ImpliesOn = visitor.impliesVal2(state);
+      val1ImpliesOn = visitor.impliesVal1(stateBeforeTransferRelation);
+      val2ImpliesOn = visitor.impliesVal2(stateBeforeTransferRelation);
     } else {
       val1ImpliesOn = SMGUnknownValue.INSTANCE;
       val2ImpliesOn = SMGUnknownValue.INSTANCE;
@@ -588,7 +589,7 @@ public class SMGTransferRelation
     List<SMGState> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState explicitValueAndState :
-        expressionEvaluator.evaluateExplicitValue(state, cfaEdge, expression)) {
+        expressionEvaluator.evaluateExplicitValue(stateBeforeTransferRelation, cfaEdge, expression)) {
       shutdownNotifier.shutdownIfNecessary();
 
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
@@ -702,7 +703,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
 
-      return handleAssignment(state, pCfaEdge, lValue, rValue);
+      return handleAssignment(stateBeforeTransferRelation, pCfaEdge, lValue, rValue);
     } else if (cStmt instanceof CFunctionCallStatement cFCall) {
 
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
@@ -710,13 +711,13 @@ public class SMGTransferRelation
       String calledFunctionName = fileNameExpression.toASTString();
 
       SequencedSet<SMGState> states = new LinkedHashSet<>();
-      states.add(state.copyOf());
+      states.add(stateBeforeTransferRelation.copyOf());
 
       // check that we can safely read all args,
       // to avoid invalid-derefs like   int*p; printf("%d",*p);
       for (CExpression param : cFCExpression.getParameterExpressions()) {
         if (param instanceof CPointerExpression) {
-          for (SMGValueAndState valueAndState : readValueToBeAssiged(state, pCfaEdge, param)) {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(stateBeforeTransferRelation, pCfaEdge, param)) {
             // we are only interested in the errorinfo for invalid reads
             states.add(valueAndState.getSmgState());
           }
@@ -730,7 +731,7 @@ public class SMGTransferRelation
       }
       return result.build();
     } else {
-      return ImmutableList.of(state);
+      return ImmutableList.of(stateBeforeTransferRelation);
     }
   }
 
@@ -973,10 +974,10 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     if (!(cDecl instanceof CVariableDeclaration cVariableDeclaration)) {
-      return ImmutableList.of(state);
+      return ImmutableList.of(stateBeforeTransferRelation);
     }
 
-    SMGState newState = state.copyOf();
+    SMGState newState = stateBeforeTransferRelation.copyOf();
     return handleVariableDeclaration(newState, cVariableDeclaration, edge);
   }
 
@@ -1513,7 +1514,7 @@ public class SMGTransferRelation
       assumeDesc.append(assume.toASTString());
 
       // only create new SMGState if necessary
-      state = newElement; // handleAssumptions accesses 'state'
+      stateBeforeTransferRelation = newElement; // handleAssumptions accesses 'state'
       List<SMGState> newElements = handleAssumption(assume, pCfaEdge, true);
 
       if (newElements.isEmpty()) {

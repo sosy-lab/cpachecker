@@ -62,7 +62,7 @@ public class SignTransferRelation
   }
 
   public String getScopedVariableName(AExpression pVariableName) {
-    return getScopedVariableName(pVariableName, functionName);
+    return getScopedVariableName(pVariableName, stackFrameFunctionName);
   }
 
   @Override
@@ -71,8 +71,9 @@ public class SignTransferRelation
 
     CExpression expression =
         pCfaEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
-    String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
-    return handleAssignmentToVariable(state, assignedVar, expression, pCfaEdge);
+    String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR,
+        stackFrameFunctionName);
+    return handleAssignmentToVariable(stateBeforeTransferRelation, assignedVar, expression, pCfaEdge);
   }
 
   @Override
@@ -96,12 +97,13 @@ public class SignTransferRelation
           getScopedVariableNameForNonGlobalVariable(
               pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(
-          scopedVarId, cRightHandSide.accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
+          scopedVarId, cRightHandSide.accept(new SignCExpressionVisitor(pCfaEdge,
+              stateBeforeTransferRelation, this)));
     }
     ImmutableMap<String, Sign> argumentMap = mapBuilder.buildOrThrow();
     logger.log(
         Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
-    return state.enterFunction(argumentMap);
+    return stateBeforeTransferRelation.enterFunction(argumentMap);
   }
 
   @Override
@@ -115,30 +117,31 @@ public class SignTransferRelation
       if (!(leftSide instanceof AIdExpression)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
-      String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
+      String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR,
+          stackFrameFunctionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
       logger.log(
           Level.FINE,
           "Leave function "
-              + functionName
+              + stackFrameFunctionName
               + " with return assignment: "
               + assignedVarName
               + " = "
-              + state.getSignForVariable(returnVarName));
+              + stateBeforeTransferRelation.getSignForVariable(returnVarName));
       SignState result =
-          state
-              .leaveFunction(functionName)
-              .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
+          stateBeforeTransferRelation
+              .leaveFunction(stackFrameFunctionName)
+              .assignSignToVariable(assignedVarName, stateBeforeTransferRelation.getSignForVariable(returnVarName));
       return result;
     }
 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
-      logger.log(Level.FINE, "Leave function " + functionName);
-      return state
+      logger.log(Level.FINE, "Leave function " + stackFrameFunctionName);
+      return stateBeforeTransferRelation
           .removeSignAssumptionOfVariable(
-              getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName))
-          .leaveFunction(functionName);
+              getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, stackFrameFunctionName))
+          .leaveFunction(stackFrameFunctionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -171,7 +174,8 @@ public class SignTransferRelation
             : pAssumeExp.getOperator().getOppositLogicalOperator();
     Sign resultSign;
     try {
-      resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+      resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge,
+          stateBeforeTransferRelation, this));
     } catch (UnrecognizedCodeException e) {
       return Optional.empty();
     }
@@ -267,9 +271,9 @@ public class SignTransferRelation
     }
     try {
       Sign leftResultSign =
-          result.getFirst().accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+          result.getFirst().accept(new SignCExpressionVisitor(pCFAEdge, stateBeforeTransferRelation, this));
       Sign rightResultSign =
-          result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+          result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, stateBeforeTransferRelation, this));
       if (leftResultSign.covers(rightResultSign)) {
         return Optional.of(result.getFirst());
       } else {
@@ -286,7 +290,7 @@ public class SignTransferRelation
       throws CPATransferException { // TODO more complex things
     // Analyse only expressions of the form x op y
     if (!(pExpression instanceof CBinaryExpression cBinaryExpression)) {
-      return state;
+      return stateBeforeTransferRelation;
     }
     Optional<IdentifierValuePair> result =
         evaluateAssumption(cBinaryExpression, pTruthAssumption, pCfaEdge);
@@ -300,10 +304,10 @@ public class SignTransferRelation
               + " = "
               + result.orElseThrow().value);
       // assure that does not become more abstract after assumption
-      if (state
+      if (stateBeforeTransferRelation
           .getSignForVariable(getScopedVariableName(result.orElseThrow().identifier))
           .covers(result.orElseThrow().value)) {
-        return state.assignSignToVariable(
+        return stateBeforeTransferRelation.assignSignToVariable(
             getScopedVariableName(result.orElseThrow().identifier), result.orElseThrow().value);
       }
       // check if results distinct, then no successor exists
@@ -311,36 +315,36 @@ public class SignTransferRelation
           .orElseThrow()
           .value
           .intersects(
-              state.getSignForVariable(getScopedVariableName(result.orElseThrow().identifier)))) {
+              stateBeforeTransferRelation.getSignForVariable(getScopedVariableName(result.orElseThrow().identifier)))) {
         return null;
       }
     }
-    return state;
+    return stateBeforeTransferRelation;
   }
 
   @Override
   protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl)
       throws CPATransferException {
     if (!(pDecl instanceof AVariableDeclaration decl)) {
-      return state;
+      return stateBeforeTransferRelation;
     }
 
     String scopedId;
     if (decl.isGlobal()) {
       scopedId = decl.getName();
     } else {
-      scopedId = getScopedVariableNameForNonGlobalVariable(decl.getName(), functionName);
+      scopedId = getScopedVariableNameForNonGlobalVariable(decl.getName(), stackFrameFunctionName);
     }
     AInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
     if (init instanceof AInitializerExpression aInitializerExpression) {
       return handleAssignmentToVariable(
-          state, scopedId, aInitializerExpression.getExpression(), pCfaEdge);
+          stateBeforeTransferRelation, scopedId, aInitializerExpression.getExpression(), pCfaEdge);
     }
     // type x;
     // since it is C, we assume it may have any value here
-    return state.assignSignToVariable(scopedId, Sign.ALL);
+    return stateBeforeTransferRelation.assignSignToVariable(scopedId, Sign.ALL);
   }
 
   @Override
@@ -353,12 +357,12 @@ public class SignTransferRelation
 
     // only expression expr; does not change state
     if (pStatement instanceof AExpressionStatement) {
-      return state;
+      return stateBeforeTransferRelation;
     }
     // only function call f(); to external method: assume that it does not change global state
     // TODO check really only external methods?
     if (pStatement instanceof AFunctionCallStatement) {
-      return state;
+      return stateBeforeTransferRelation;
     }
     throw new UnrecognizedCodeException("only assignments are supported at this time", pCfaEdge);
   }
@@ -370,23 +374,24 @@ public class SignTransferRelation
     if (left instanceof AIdExpression) { // TODO also consider arrays, pointer, etc.?
       if (!((left.getExpressionType() instanceof CSimpleType)
           || (left.getExpressionType() instanceof CTypedefType))) {
-        return state;
+        return stateBeforeTransferRelation;
       }
-      String scopedId = getScopedVariableName(left, functionName);
-      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide(), edge);
+      String scopedId = getScopedVariableName(left, stackFrameFunctionName);
+      return handleAssignmentToVariable(stateBeforeTransferRelation, scopedId, pAssignExpr.getRightHandSide(), edge);
     }
     // TODO become more precise, handle &x, (int *) x on right hand side, deal with int* x = s;
     // p->x = .., c.x =
     if (left instanceof CFieldReference) {
-      String scopedId = getScopedVariableName(left, functionName);
-      return handleAssignmentToVariable(state, scopedId, pAssignExpr.getRightHandSide(), edge);
+      String scopedId = getScopedVariableName(left, stackFrameFunctionName);
+      return handleAssignmentToVariable(stateBeforeTransferRelation, scopedId, pAssignExpr.getRightHandSide(), edge);
     }
 
     // x[index] = ..,
     if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
-      return state.assignSignToVariable(
-          getScopedVariableName(cArraySubscriptExpression.getArrayExpression(), functionName),
+      return stateBeforeTransferRelation.assignSignToVariable(
+          getScopedVariableName(cArraySubscriptExpression.getArrayExpression(),
+              stackFrameFunctionName),
           Sign.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
