@@ -21,15 +21,18 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Parallel test case generation algorithm Divides global test targets into multiple subsets and
  * processes each subset in parallel using multiple threads
  */
 @Options(prefix = "parallelTestGeneration")
-public class ParallelTestSuiteGenerationAlgorithm {
+public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
   // Configuration option: Number of threads for parallel execution
   @Option(description = "Number of threads for parallel test generation", secure = true)
@@ -60,6 +63,27 @@ public class ParallelTestSuiteGenerationAlgorithm {
     // Validate thread count configuration
     if (numberOfThreads <= 0) {
       throw new InvalidConfigurationException("Number of threads must be positive");
+    }
+  }
+
+  /**
+   * Main algorithm entry point as required by Algorithm interface Delegates to the existing
+   * generateTestSuite method
+   *
+   * @param reachedSet the reached set (may be unused for test generation)
+   * @return AlgorithmStatus indicating the result of test generation
+   * @throws CPAException if CPA-related errors occur
+   * @throws InterruptedException if the algorithm is interrupted
+   */
+  @Override
+  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    try {
+      generateTestSuite();
+      // If we reach here, test generation completed successfully
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, "Error during parallel test generation", e);
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
   }
 
@@ -121,6 +145,7 @@ public class ParallelTestSuiteGenerationAlgorithm {
 
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Error during parallel test generation", e);
+      throw new RuntimeException("Parallel test generation failed", e);
     }
   }
 

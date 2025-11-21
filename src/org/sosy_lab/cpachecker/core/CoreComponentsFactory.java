@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase.ParallelTestSuiteGenerationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
@@ -95,6 +96,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
 @Options(prefix = "analysis")
 public class CoreComponentsFactory {
+
+  @Option(
+      secure = true,
+      name = "useParallelTestSuiteGeneration",
+      description = "Generate test suites in parallel using configurable partitioning strategies")
+  private boolean useParallelTestSuiteGeneration = false;
 
   @Option(
       secure = true,
@@ -790,6 +797,10 @@ public class CoreComponentsFactory {
       if (useSamplingAlgorithm) {
         algorithm =
             new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
+      }
+      if (useParallelTestSuiteGeneration) {
+        logger.log(Level.INFO, "Using Parallel Test Suite Generation Algorithm");
+        algorithm = new ParallelTestSuiteGenerationAlgorithm(config, logger, cfa);
       }
     }
 
