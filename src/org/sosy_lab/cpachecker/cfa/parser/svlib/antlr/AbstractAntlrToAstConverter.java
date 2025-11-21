@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibBaseVisitor;
 
 class AbstractAntlrToAstConverter<T> extends SvLibBaseVisitor<T> {
 

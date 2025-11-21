@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ParametricSortContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SimpleSortContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ParametricSortContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SimpleSortContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 

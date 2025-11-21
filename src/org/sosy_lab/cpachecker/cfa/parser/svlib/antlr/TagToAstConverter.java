@@ -11,17 +11,17 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.CheckTruePropertyContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.EnsuresPropertyContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.InvariantPropertyContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.RequiresPropertyContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.TagAttributeContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.CheckTruePropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.EnsuresPropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.InvariantPropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.RequiresPropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.TagAttributeContext;
 
 class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   private final TermToAstConverter termToAstConverter;

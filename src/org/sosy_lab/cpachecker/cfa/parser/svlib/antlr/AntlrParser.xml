@@ -55,7 +55,7 @@
       <arg value="-o"/>
       <arg value="generated"/>
       <arg value="-package"/>
-      <arg value="org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated"/>
+      <arg value="org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated"/>
       <arg value="-visitor"/>
       <arg value="-no-listener"/>
       <arg value="${parser.source}.g4"/>

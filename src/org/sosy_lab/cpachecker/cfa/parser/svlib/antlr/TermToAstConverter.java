@@ -26,12 +26,12 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.ApplicationTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.QualIdentifierTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Qual_identiferContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.SpecConstantTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser.Spec_constantContext;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ApplicationTermContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.QualIdentifierTermContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 

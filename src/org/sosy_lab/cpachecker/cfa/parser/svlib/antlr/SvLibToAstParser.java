@@ -23,8 +23,8 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibLexer;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated.SvLibParser;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibLexer;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 
 public class SvLibToAstParser {
