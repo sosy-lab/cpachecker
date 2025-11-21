@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 
 public final class SvLibProcedureCallEdge extends FunctionCallEdge implements SvLibCfaEdge {
   public SvLibProcedureCallEdge(

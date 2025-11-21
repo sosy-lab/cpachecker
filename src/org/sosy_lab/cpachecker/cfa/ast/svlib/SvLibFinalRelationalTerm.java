@@ -12,7 +12,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 // TODO: distinguish between relational, relational final and non-relational terms

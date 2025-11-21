@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -14,15 +14,14 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.ast.AStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibCfaEdgeStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
-public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
+public final class SvLibAssignmentStatement extends SvLibStatement {
   @Serial private static final long serialVersionUID = 5878865332404007544L;
   private final ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> assignments;
 
@@ -41,12 +40,12 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(assign "
         + ("("
             + Joiner.on(") (")
@@ -59,11 +58,6 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
                                     + entry.getValue().toASTString()))
             + ")")
         + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
   }
 
   public ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> getAssignments() {
@@ -88,10 +82,5 @@ public final class SvLibAssignmentStatement extends SvLibCfaEdgeStatement {
     result = result * prime + assignments.hashCode();
     result = prime * result + super.hashCode();
     return result;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 }

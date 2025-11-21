@@ -12,7 +12,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibVariableDeclarationCommand implements SvLibCommand {
 
@@ -53,8 +53,8 @@ public final class SvLibVariableDeclarationCommand implements SvLibCommand {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(declare-var " + variableDeclaration.toASTString(pAAstNodeRepresentation) + ")";
+  public String toASTString() {
+    return "(declare-var " + variableDeclaration.toASTString() + ")";
   }
 
   @Override
@@ -63,7 +63,7 @@ public final class SvLibVariableDeclarationCommand implements SvLibCommand {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }

@@ -17,7 +17,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCommand {
   @Serial private static final long serialVersionUID = 3049346957426478591L;
@@ -43,7 +43,7 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -53,7 +53,7 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(define-funs-rec (("
         + Joiner.on(") (")
             .join(
@@ -64,8 +64,7 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
                                 + pFunctionDeclaration.getType().toPlainString())
                     .toList())
         + ")) ("
-        + Joiner.on(") (")
-            .join(bodies.stream().map(b -> b.toASTString(pAAstNodeRepresentation)).toList())
+        + Joiner.on(") (").join(bodies.stream().map(b -> b.toASTString()).toList())
         + "))";
   }
 

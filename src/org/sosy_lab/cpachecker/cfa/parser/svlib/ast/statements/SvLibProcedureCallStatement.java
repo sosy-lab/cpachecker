@@ -6,23 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibCfaEdgeStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
-public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
-    implements AFunctionCall {
+public final class SvLibProcedureCallStatement extends SvLibStatement {
   @Serial private static final long serialVersionUID = -2879361994769890189L;
 
   private final SvLibProcedureDeclaration procedureDeclaration;
@@ -52,12 +49,7 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
   }
 
   @Override
-  public <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -67,38 +59,17 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(call "
         + procedureDeclaration.getOrigName()
         + " ("
-        + String.join(
-            " ", arguments.stream().map(arg -> arg.toASTString(pAAstNodeRepresentation)).toList())
+        + String.join(" ", arguments.stream().map(arg -> arg.toASTString()).toList())
         + ") ("
-        + String.join(
-            " ",
-            returnVariables.stream().map(var -> var.toASTString(pAAstNodeRepresentation)).toList())
+        + String.join(" ", returnVariables.stream().map(var -> var.toASTString()).toList())
         + "))";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
   }
 
   public ImmutableList<SvLibSimpleDeclaration> getReturnVariables() {
     return returnVariables;
-  }
-
-  @Override
-  public AFunctionCallExpression getFunctionCallExpression() {
-    throw new RuntimeException(
-        "SvLibProcedureCallStatement does not have a function call expression. This is due to"
-            + " design choices in the language, where function calls are only statements and not"
-            + " expressions.");
-  }
-
-  @Override
-  public String toASTString() {
-    return toASTString(AAstNodeRepresentation.ORIGINAL_NAMES);
   }
 }

@@ -13,9 +13,9 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 6120083959916315980L;
@@ -36,20 +36,15 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(choice"
         + Joiner.on(" ").join(choices.stream().map(SvLibStatement::toASTString).toList())
         + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
   }
 
   public ImmutableList<SvLibStatement> getChoices() {

@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
+
 public interface SvLibCfaEdgeStatementVisitor<R, X extends Exception> {
   R visit(SvLibAssignmentStatement pSvLibAssignmentStatement) throws X;
 

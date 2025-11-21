@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import java.io.Serializable;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 
-public sealed interface SvLibCommand extends Serializable, SvLibAstNode
+public sealed interface SvLibCommand extends Serializable, SvLibParsingAstNode
     permits SmtLibDefineFunCommand,
         SmtLibDefineFunRecCommand,
         SmtLibDefineFunsRecCommand,
@@ -30,10 +30,4 @@ public sealed interface SvLibCommand extends Serializable, SvLibAstNode
         SvLibVerifyCallCommand {
 
   <R, X extends Exception> R accept(SvLibCommandVisitor<R, X> v) throws X;
-
-  @Override
-  // By default, all commands are already parenthesized in their AST string representation
-  default String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
-  }
 }

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 /**
  * Interface for all AST Nodes of the Java AST. All classes representing Java AST Nodes have to

@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibSelectTraceCommand implements SvLibCommand {
   @Serial private static final long serialVersionUID = -8963792521896393722L;
@@ -29,7 +29,7 @@ public final class SvLibSelectTraceCommand implements SvLibCommand {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -39,10 +39,10 @@ public final class SvLibSelectTraceCommand implements SvLibCommand {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(select-trace "
         + System.lineSeparator()
-        + trace.toASTString(pAAstNodeRepresentation)
+        + trace.toASTString()
         + System.lineSeparator()
         + ")";
   }

@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibCommand {
 
@@ -33,7 +33,7 @@ public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibComma
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(declare-const " + variable.getOrigName() + " " + variable.getType() + ")";
   }
 
@@ -61,7 +61,7 @@ public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibComma
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }

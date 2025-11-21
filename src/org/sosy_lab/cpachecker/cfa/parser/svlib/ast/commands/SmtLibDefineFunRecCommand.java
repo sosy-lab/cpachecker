@@ -12,7 +12,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SmtLibDefineFunRecCommand implements SmtLibCommand, SvLibCommand {
   @Serial private static final long serialVersionUID = 3049346957426478591L;
@@ -35,7 +35,7 @@ public final class SmtLibDefineFunRecCommand implements SmtLibCommand, SvLibComm
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -45,12 +45,12 @@ public final class SmtLibDefineFunRecCommand implements SmtLibCommand, SvLibComm
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(define-fun-rec "
         + functionDeclaration.getProcedureName()
         + functionDeclaration.getType().toPlainString()
         + " "
-        + body.toASTString(pAAstNodeRepresentation)
+        + body.toASTString()
         + ")";
   }
 

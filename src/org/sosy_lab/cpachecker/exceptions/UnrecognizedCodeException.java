@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 /** Exception thrown when a CPA cannot handle some code attached to a CFAEdge. */
@@ -76,7 +76,7 @@ public class UnrecognizedCodeException extends CPATransferException {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
-    } else if (astNode instanceof SvLibAstNode) {
+    } else if (astNode instanceof SvLibParsingAstNode) {
       return Language.SVLIB;
     }
     throw new AssertionError();

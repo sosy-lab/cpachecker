@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 
 public sealed interface SvLibTagAttribute extends SvLibAstNode
     permits SvLibTagProperty, SvLibTagReference {}

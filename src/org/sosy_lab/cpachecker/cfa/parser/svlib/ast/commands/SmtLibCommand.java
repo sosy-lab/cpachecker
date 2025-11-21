@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 
-public sealed interface SmtLibCommand extends SvLibAstNode
+public sealed interface SmtLibCommand extends SvLibParsingAstNode
     permits SmtLibDefineFunCommand,
         SmtLibDefineFunRecCommand,
         SmtLibDefineFunsRecCommand,

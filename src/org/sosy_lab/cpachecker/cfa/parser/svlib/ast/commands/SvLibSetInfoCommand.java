@@ -13,7 +13,7 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibSetInfoCommand implements SmtLibCommand, SvLibCommand {
 
@@ -45,7 +45,7 @@ public final class SvLibSetInfoCommand implements SmtLibCommand, SvLibCommand {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(set-info " + option + " " + value + ")";
   }
 
@@ -71,7 +71,7 @@ public final class SvLibSetInfoCommand implements SmtLibCommand, SvLibCommand {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }

@@ -13,12 +13,15 @@ import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 
-public abstract sealed class SvLibStatement implements SvLibAstNode
-    permits SvLibCfaEdgeStatement, SvLibControlFlowStatement {
+public abstract sealed class SvLibStatement implements SvLibParsingAstNode
+    permits SvLibAssignmentStatement,
+        SvLibControlFlowStatement,
+        SvLibHavocStatement,
+        SvLibProcedureCallStatement {
 
   @Serial private static final long serialVersionUID = -2682818218051235918L;
   private final FileLocation fileLocation;

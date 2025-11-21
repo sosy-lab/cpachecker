@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibSetLogicCommand implements SvLibCommand, SmtLibCommand {
 
@@ -30,7 +30,7 @@ public final class SvLibSetLogicCommand implements SvLibCommand, SmtLibCommand {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(set-logic " + logic + ")";
   }
 
@@ -58,7 +58,7 @@ public final class SvLibSetLogicCommand implements SvLibCommand, SmtLibCommand {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }

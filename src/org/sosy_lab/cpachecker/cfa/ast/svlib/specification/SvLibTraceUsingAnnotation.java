@@ -13,8 +13,8 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public final class SvLibTraceUsingAnnotation extends SvLibTraceComponent {
   @Serial private static final long serialVersionUID = 5489687141447266694L;

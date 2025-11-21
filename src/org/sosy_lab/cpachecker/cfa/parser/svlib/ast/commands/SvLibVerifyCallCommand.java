@@ -14,7 +14,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibVerifyCallCommand implements SvLibCommand {
 
@@ -62,14 +62,11 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(verify-call "
         + procedureDeclaration.getName()
         + " ("
-        + terms.stream()
-            .map(t -> t.toASTString(pAAstNodeRepresentation))
-            .reduce((t1, t2) -> t1 + " " + t2)
-            .orElse("")
+        + terms.stream().map(t -> t.toASTString()).reduce((t1, t2) -> t1 + " " + t2).orElse("")
         + "))";
   }
 
@@ -79,7 +76,7 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }

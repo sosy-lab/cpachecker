@@ -12,7 +12,7 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 
 public final class SvLibSortDeclaration extends AVariableDeclaration implements SvLibDeclaration {
@@ -43,7 +43,7 @@ public final class SvLibSortDeclaration extends AVariableDeclaration implements 
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

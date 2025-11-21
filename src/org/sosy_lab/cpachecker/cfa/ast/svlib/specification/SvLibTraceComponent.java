@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 
 public abstract sealed class SvLibTraceComponent implements SvLibAstNode
     permits SmtLibModel,

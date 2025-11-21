@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
 public final class SvLibTraceEntryProcedure extends SvLibTraceComponent {
   @Serial private static final long serialVersionUID = 5543731065650175240L;

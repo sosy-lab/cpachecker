@@ -8,6 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 
-public sealed interface SvLibTerm extends SvLibAstNode, SvLibFinalRelationalTerm
-    permits SvLibSymbolApplicationTerm, SvLibConstantTerm, SvLibIdTerm {}
+public interface SvLibRightHandSide extends ARightHandSide {}

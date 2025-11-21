@@ -13,9 +13,10 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   @Serial private static final long serialVersionUID = 8121014592707608414L;
@@ -42,7 +43,7 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -52,13 +53,11 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(" + Joiner.on(" ) ( ").join(statements) + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
+  public String toASTString() {
+    return "("
+        + Joiner.on(" ) ( ")
+            .join(statements.stream().map(SvLibParsingAstNode::toASTString).toList())
+        + ")";
   }
 
   @Override

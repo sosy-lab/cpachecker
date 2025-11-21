@@ -17,12 +17,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotatedStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssignStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssumeStatementContext;
@@ -39,20 +39,20 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Retu
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SequenceStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.StatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.WhileStatementContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibBreakStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibChoiceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibContinueStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibGotoStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibIfStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibLabelStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement> {
 

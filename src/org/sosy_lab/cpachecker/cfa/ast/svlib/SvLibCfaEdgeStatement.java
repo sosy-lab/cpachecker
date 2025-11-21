@@ -6,30 +6,33 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
+package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCfaEdgeStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
-public abstract non-sealed class SvLibCfaEdgeStatement extends SvLibStatement
-    implements AStatement {
+public abstract sealed class SvLibCfaEdgeStatement implements AStatement {
   @Serial private static final long serialVersionUID = 5250154309306501123L;
+
+  private final FileLocation fileLocation;
+  private final ImmutableList<SvLibTagProperty> tagAttributes;
+  private final ImmutableList<SvLibTagReference> tagReferences;
 
   protected SvLibCfaEdgeStatement(
       FileLocation pFileLocation,
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
-    super(pFileLocation, pTagAttributes, pTagReferences);
+    fileLocation = pFileLocation;
+    tagAttributes = ImmutableList.copyOf(pTagAttributes);
+    tagReferences = ImmutableList.copyOf(pTagReferences);
   }
 
-  public <R, X extends Exception> R accept(SvLibCfaEdgeStatementVisitor<R, X> v) throws X {
-    return accept((SvLibStatementVisitor<R, X>) v);
-  }
+  public abstract <R, X extends Exception> R accept(SvLibCfaEdgeStatementVisitor<R, X> v) throws X;
 
   @Override
   public boolean equals(Object pO) {

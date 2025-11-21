@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibHavocStatement;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 
 public interface AStatementVisitor<R, X extends Exception> {
 

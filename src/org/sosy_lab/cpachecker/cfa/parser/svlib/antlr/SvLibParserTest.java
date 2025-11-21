@@ -17,7 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
@@ -29,6 +28,10 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
@@ -43,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicComman
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibIfStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
@@ -50,10 +54,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 public class SvLibParserTest {
 

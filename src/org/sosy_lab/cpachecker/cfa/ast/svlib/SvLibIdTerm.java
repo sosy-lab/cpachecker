@@ -12,7 +12,7 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
@@ -23,7 +23,7 @@ public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 

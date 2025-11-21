@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttributeVisi
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceComponentVisitor;
 
-public interface SvLibAstNodeVisitor<R, X extends Exception>
+public interface SvLibParsingAstNodeVisitor<R, X extends Exception>
     extends SvLibControlFlowStatementVisitor<R, X>,
         SvLibCfaEdgeStatementVisitor<R, X>,
         SvLibTagAttributeVisitor<R, X>,

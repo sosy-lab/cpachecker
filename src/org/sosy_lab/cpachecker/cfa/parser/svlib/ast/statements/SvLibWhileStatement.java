@@ -12,9 +12,9 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibWhileStatement extends SvLibControlFlowStatement {
 
@@ -39,26 +39,13 @@ public final class SvLibWhileStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(while "
-        + condition.toASTString(pAAstNodeRepresentation)
-        + " "
-        + body.toASTString(pAAstNodeRepresentation)
-        + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(while "
-        + condition.toParenthesizedASTString(pAAstNodeRepresentation)
-        + " "
-        + body.toParenthesizedASTString(pAAstNodeRepresentation)
-        + ")";
+  public String toASTString() {
+    return "(while " + condition.toASTString() + " " + body.toASTString() + ")";
   }
 
   public SvLibTerm getCondition() {
