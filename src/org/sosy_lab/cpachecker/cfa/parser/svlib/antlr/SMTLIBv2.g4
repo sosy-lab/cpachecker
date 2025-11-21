@@ -437,6 +437,10 @@ PK_WitnessOutputChannel
     : ':witness-output-channel'
     ;
 
+PK_EnableProductionWitnesses
+    : ':produce-witnesses'
+    ;
+
 PK_EnableProductionCorrectnessWitnesses
     : ':produce-correctness-witnesses'
     ;
@@ -1076,6 +1080,7 @@ option
     | PK_ReproducibleResourceLimit numeral
     | PK_Verbosity numeral
     | PK_WitnessOutputChannel string
+    | PK_EnableProductionWitnesses b_value
     | PK_EnableProductionCorrectnessWitnesses b_value
     | PK_EnableProductionViolationWitnesses b_value
     | attribute
