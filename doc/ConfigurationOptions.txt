@@ -1260,7 +1260,7 @@ counterexample.export.source = "Counterexample.%d.c"
 
 # The file into which to write the violation witness for SV-LIB programs. In
 # case no output files are requested 
-counterexample.export.svlib = "witness.svlib"
+counterexample.export.svlib = "Counterexample.%d.svlib"
 
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
@@ -1472,7 +1472,7 @@ cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-inf
 cpa.arg.errorPath.source = "Counterexample.%d.c"
 
 # deprecated name for counterexample.export.svlib
-cpa.arg.errorPath.svlib = "witness.svlib"
+cpa.arg.errorPath.svlib = "Counterexample.%d.svlib"
 
 # deprecated name for counterexample.export.witnessGraph
 cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
@@ -3011,21 +3011,6 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
-
-# Whether to give up immediately if a very large array is encountered
-# (heuristic, often we would just waste time otherwise)
-cpa.predicate.svlib.abortOnLargeArrays = true
-
-# Ignore variables that are not relevant for reachability properties.
-cpa.predicate.svlib.ignoreIrrelevantVariables = true
-
-# Insert tmp-variables for parameters at function-entries. The variables are
-# similar to return-variables at function-exit.
-cpa.predicate.svlib.useParameterVariables = false
-
-# Insert tmp-parameters for global variables at function-entries. The global
-# variables are also encoded with return-variables at function-exit.
-cpa.predicate.svlib.useParameterVariablesForGlobals = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
