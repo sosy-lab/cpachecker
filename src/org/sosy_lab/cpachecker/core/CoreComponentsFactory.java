@@ -500,7 +500,7 @@ public class CoreComponentsFactory {
       ShutdownNotifier pShutdownNotifier,
       AggregatedReachedSets pAggregatedReachedSets,
       CFA pCFA)
-      throws InvalidConfigurationException, InterruptedException {
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 
