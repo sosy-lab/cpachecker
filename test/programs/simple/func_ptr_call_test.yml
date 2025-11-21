@@ -16,4 +16,4 @@ properties:
 
 options:
   language: C
-  data_model: ILP64
+  data_model: LP64
