@@ -208,15 +208,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
 
-    public void addInnerStatisticsProvider(StatisticsProvider provider) {
+    private void addInnerStatisticsProvider(StatisticsProvider provider) {
       innerStatisticsProviders.add(provider);
     }
 
-    public void startSequentializationTimer() {
+    private void startSequentializationTimer() {
       sequentializationTime.start();
     }
 
-    public void stopSequentializationTimer() {
+    private void stopSequentializationTimer() {
       sequentializationTime.stop();
     }
 
