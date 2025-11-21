@@ -328,27 +328,14 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CLeftHandSide fieldOwner = resolveToLhsOrNull(pIastFieldReference.getFieldOwner());
-      if (fieldOwner == null) {
-        return null;
-      }
-
+      CExpression fieldOwner = pIastFieldReference.getFieldOwner();
       MemoryLocation memLocOfFieldOwner = fieldOwner.accept(this);
-
       if (memLocOfFieldOwner == null) {
         return null;
       }
 
       return getStructureFieldLocationFromRelativePoint(
           memLocOfFieldOwner, pIastFieldReference.getFieldName(), fieldOwner.getExpressionType());
-    }
-
-    private CLeftHandSide resolveToLhsOrNull(CExpression pExpression) {
-      return switch (pExpression) {
-        case CLeftHandSide validLhs -> validLhs;
-        case CCastExpression cast -> resolveToLhsOrNull(cast.getOperand());
-        default -> null;
-      };
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
