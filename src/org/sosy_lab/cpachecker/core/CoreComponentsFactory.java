@@ -586,9 +586,6 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    CfaTransformationMetadata transformationMetadata =
-        cfa.getMetadata().getTransformationMetadata();
-
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
