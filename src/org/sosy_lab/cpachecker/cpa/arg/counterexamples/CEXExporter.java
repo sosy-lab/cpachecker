@@ -330,7 +330,8 @@ public class CEXExporter {
             Level.INFO,
             "The program analyzed by sequentializing the original program and verifying the"
                 + " sequentialized version. Currently there is no way to map the result for the"
-                + " sequentialized program back to the original program, therefore no witness will be exported.");
+                + " sequentialized program back to the original program, therefore no witness will"
+                + " be exported.");
         Optional<String> witnessString =
             SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
                 transformationMetadata.originalCfa(), specification);

@@ -487,7 +487,7 @@ public class CoreComponentsFactory {
       ShutdownNotifier pShutdownNotifier,
       AggregatedReachedSets pAggregatedReachedSets,
       ImmutableCFA pCFA)
-      throws InvalidConfigurationException, InterruptedException {
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 

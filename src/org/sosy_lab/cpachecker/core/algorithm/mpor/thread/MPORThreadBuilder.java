@@ -313,7 +313,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
 
     // use ImmutableMap to retain insertion order
-    ImmutableMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges =
+        ImmutableListMultimap.builder();
     for (CFAEdge cfaEdge : pCfaEdges) {
       rThreadEdges.put(new CFAEdgeForThread(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
