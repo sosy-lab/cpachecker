@@ -68,7 +68,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   }
 
   // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<BlockGraph, Modification> modifiedBlockGraphCache = new HashMap<>();
+  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
@@ -107,36 +107,28 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Modification modifyBlockGraph(BlockGraph blockGraph) {
     dssStats.getInstrumentationTimer().start();
-    synchronized (modifiedBlockGraphCache) {
-      if (modifiedBlockGraphCache.containsKey(blockGraph)) {
-        logger.logf(Level.INFO, "Using cached modified block graph.");
-        dssStats.getInstrumentationTimer().stop();
-        return modifiedBlockGraphCache.get(blockGraph);
-      }
-      Modification modification =
-          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-      modifiedBlockGraphCache.put(blockGraph, modification);
+    Modification modification =
+        BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
 
-      dssStats.getInstrumentationTimer().stop();
-      ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
-      dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
-      if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
-        for (BlockNode node : blockGraph.getRoots()) {
-          if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-            throw new AssertionError(
-                "Direct successors of the root node are required to have an abstraction"
-                    + " location.");
-          }
+    dssStats.getInstrumentationTimer().stop();
+    ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
+    dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
+    if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
+      for (BlockNode node : blockGraph.getRoots()) {
+        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
+          throw new AssertionError(
+              "Direct successors of the root node are required to have an abstraction"
+                  + " location.");
         }
       }
-      if (!abstractionDeadEnds.isEmpty()) {
-        logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
-      }
-      for (BlockNode node : modification.blockGraph().getNodes()) {
-        dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
-      }
-      return modification;
     }
+    if (!abstractionDeadEnds.isEmpty()) {
+      logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
+    }
+    for (BlockNode node : modification.blockGraph().getNodes()) {
+      dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
+    }
+    return modification;
   }
 
   private AlgorithmStatus interpretResult(StatusAndResult statusAndResult, ReachedSet reachedSet) {
@@ -161,15 +153,26 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     logger.log(Level.INFO, "Starting block analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      BlockGraph blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
+
+      BlockGraph blockGraph;
       if (decompositionOptions.generateBlockGraphOnly()) {
+        blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
         blockGraph.export(decompositionOptions.getBlockCFAFile(), initialCFA);
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
-
-      Modification modification = modifyBlockGraph(blockGraph);
+      Modification modification;
+      synchronized (modifiedBlockGraphCache) {
+        if (modifiedBlockGraphCache.containsKey(initialCFA)) {
+          logger.logf(Level.INFO, "Using cached modified block graph.");
+          modification = modifiedBlockGraphCache.get(initialCFA);
+        } else {
+          blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
+          modification = modifyBlockGraph(blockGraph);
+          modifiedBlockGraphCache.put(initialCFA, modification);
+        }
+      }
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
       logger.logf(
