@@ -6,22 +6,24 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.specification.svlib.ast;
+package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import java.io.Serial;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
-public final class SvLibCheckTrueTag implements SvLibTagProperty {
-
-  @Serial private static final long serialVersionUID = 1135747516635566858L;
-  private final SvLibFinalRelationalTerm term;
+public final class SvLibTagReference implements SvLibTagAttribute {
+  @Serial private static final long serialVersionUID = 7437989844963398076L;
+  private final String tagName;
   private final FileLocation fileLocation;
+  private final SvLibScope scope;
 
-  public SvLibCheckTrueTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
-    term = pTerm;
+  public SvLibTagReference(String pTagName, FileLocation pFileLocation, SvLibScope pScope) {
+    tagName = pTagName;
     fileLocation = pFileLocation;
+    scope = pScope;
   }
 
   @Override
@@ -36,16 +38,16 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toASTString(pAAstNodeRepresentation);
+    return ":tag " + tagName;
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toParenthesizedASTString(pAAstNodeRepresentation);
+    return ":tag " + tagName;
   }
 
-  public SvLibFinalRelationalTerm getTerm() {
-    return term;
+  public @NonNull String getTagName() {
+    return tagName;
   }
 
   @Override
@@ -53,11 +55,15 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof SvLibCheckTrueTag other && term.equals(other.term);
+    return pO instanceof SvLibTagReference other && tagName.equals(other.tagName);
   }
 
   @Override
   public int hashCode() {
-    return term.hashCode();
+    return tagName.hashCode();
+  }
+
+  public SvLibScope getScope() {
+    return scope;
   }
 }

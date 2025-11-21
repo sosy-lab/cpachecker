@@ -14,8 +14,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 public record SvLibCfaMetadata(
     ImmutableList<SmtLibCommand> smtLibCommands,

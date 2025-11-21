@@ -50,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatem
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagAttribute;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement> {
 

@@ -14,8 +14,8 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNode;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
-import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 public abstract sealed class SvLibStatement implements SvLibAstNode
     permits SvLibCfaEdgeStatement, SvLibControlFlowStatement {

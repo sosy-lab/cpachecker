@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.specification.svlib.ast;
+package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
