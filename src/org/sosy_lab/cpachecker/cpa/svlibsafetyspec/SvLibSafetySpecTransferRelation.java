@@ -21,11 +21,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.core.specification.svlib.ast.SvLibTagProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 

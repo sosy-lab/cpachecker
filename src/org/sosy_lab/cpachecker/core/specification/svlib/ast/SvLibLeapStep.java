@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.core.specification.svlib.ast;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -17,14 +17,19 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
-public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
-  @Serial private static final long serialVersionUID = -1341873304472826329L;
-  private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
+public final class SvLibLeapStep extends SvLibTraceStep {
 
-  public SvLibInitProcVariablesStep(
-      Map<SvLibIdTerm, SvLibConstantTerm> pValues, FileLocation pFileLocation) {
+  @Serial private static final long serialVersionUID = 8365995208626503450L;
+  private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
+  private final String leapTag;
+
+  SvLibLeapStep(
+      FileLocation pFileLocation,
+      Map<SvLibIdTerm, SvLibConstantTerm> pAssignments,
+      String pLeapTag) {
     super(pFileLocation);
-    assignments = ImmutableMap.copyOf(pValues);
+    assignments = ImmutableMap.copyOf(pAssignments);
+    leapTag = pLeapTag;
   }
 
   @Override
@@ -39,7 +44,9 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(init-proc-vars "
+    return "(leap "
+        + leapTag
+        + " "
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
@@ -59,14 +66,11 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
-    return assignments;
-  }
-
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + leapTag.hashCode();
     result = prime * result + assignments.hashCode();
     return result;
   }
@@ -77,6 +81,16 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
       return true;
     }
 
-    return obj instanceof SvLibInitProcVariablesStep other && assignments.equals(other.assignments);
+    return obj instanceof SvLibLeapStep other
+        && leapTag.equals(other.leapTag)
+        && assignments.equals(other.assignments);
+  }
+
+  public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
+    return assignments;
+  }
+
+  public String getLeapTag() {
+    return leapTag;
   }
 }

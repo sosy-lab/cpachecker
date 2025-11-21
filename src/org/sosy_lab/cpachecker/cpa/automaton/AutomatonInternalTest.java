@@ -379,7 +379,7 @@ public class AutomatonInternalTest {
 
   /**
    * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
-   * assert_().about(astMatcher).that("specification pattern").matches(...)).
+   * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
   private class ASTMatcherSubject extends Subject {
 

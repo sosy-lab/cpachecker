@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.core.specification.svlib.ast;
 
 public interface SvLibTagAttributeVisitor<R, X extends Exception> {
 

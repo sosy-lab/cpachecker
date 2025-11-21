@@ -316,10 +316,7 @@ class FunctionCloner implements CFAVisitor {
     return list;
   }
 
-  /**
-   * returns a deep copy of the specification-node, and changes old functionname to new one, if
-   * needed.
-   */
+  /** returns a deep copy of the ast-node, and changes old functionname to new one, if needed. */
   private AAstNode cloneAstDirect(AAstNode ast) {
     final FileLocation loc = ast.getFileLocation();
 

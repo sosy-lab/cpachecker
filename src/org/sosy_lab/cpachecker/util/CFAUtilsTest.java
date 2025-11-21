@@ -38,7 +38,7 @@ public class CFAUtilsTest {
             .setOption("--config", "config/generateCFA.properties")
             .build();
 
-    String test_dir = "test/programs/cfa-specification-relation/";
+    String test_dir = "test/programs/cfa-ast-relation/";
     Path program = Path.of(test_dir, pProgramName);
 
     return CPATestRunner.run(config, program.toString(), Level.FINEST);

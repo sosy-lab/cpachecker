@@ -6,20 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.core.specification.svlib.ast;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
-public final class SvLibRequiresTag implements SvLibTagProperty {
+public final class SvLibInvariantTag implements SvLibTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
-  private final SvLibTerm term;
+  private final SvLibFinalRelationalTerm term;
   private final FileLocation fileLocation;
 
-  public SvLibRequiresTag(SvLibTerm pTerm, FileLocation pFileLocation) {
+  public SvLibInvariantTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -36,15 +36,15 @@ public final class SvLibRequiresTag implements SvLibTagProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":requires " + term.toASTString(pAAstNodeRepresentation);
+    return ":invariant " + term.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":requires " + term.toParenthesizedASTString(pAAstNodeRepresentation);
+    return ":invariant " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
-  public SvLibTerm getTerm() {
+  public SvLibFinalRelationalTerm getTerm() {
     return term;
   }
 
@@ -53,7 +53,7 @@ public final class SvLibRequiresTag implements SvLibTagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof SvLibRequiresTag other && term.equals(other.term);
+    return pO instanceof SvLibInvariantTag other && term.equals(other.term);
   }
 
   @Override
