@@ -141,7 +141,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       try {
         newCfa = preprocessCfaUsingSequentialization(config, logger, shutdownNotifier, cfa);
       } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
-        throw new CPAException(e.getMessage());
+        throw new CPAException("Sequentialization of the input program failed", e);
       }
     }
 
@@ -155,7 +155,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       cpa = coreComponents.createCPA(specification);
       innerAlgorithm = coreComponents.createAlgorithm(cpa, specification);
     } catch (InvalidConfigurationException e) {
-      throw new CPAException(e.getMessage());
+      throw new CPAException(
+          "Building the algorithm which should be run on the sequentialized program failed", e);
     }
 
     // Prepare new reached set
