@@ -347,21 +347,6 @@ public class ARGStatistics implements Statistics {
       return;
     }
 
-    CfaTransformationMetadata transformationMetadata =
-        cfa.getMetadata().getTransformationMetadata();
-    if (transformationMetadata != null
-        && transformationMetadata
-            .transformation()
-            .equals(ProgramTransformation.SEQUENTIALIZATION)) {
-      logger.log(
-          Level.INFO,
-          "The program analyzed by sequentializing the original program and verifying the"
-              + " sequentialized version. Currently there is no way to map the result for the"
-              + " sequentialized program back to the original program, therefore no output will be"
-              + " exported.");
-      return;
-    }
-
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
     if (!counterexampleOptions.disabledCompletely()

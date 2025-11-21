@@ -38,6 +38,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -114,6 +116,7 @@ public class CEXExporter {
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
+  private final Specification specification;
 
   public CEXExporter(
       Configuration config,
@@ -126,6 +129,7 @@ public class CEXExporter {
       ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
+    specification = pSpecification;
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
@@ -316,39 +320,66 @@ public class CEXExporter {
     if (options.getWitnessFile() != null
         || options.getWitnessDotFile() != null
         || options.getYamlWitnessPathTemplate() != null) {
-      try {
-        final Witness witness =
-            witnessExporter.generateErrorWitness(
-                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-
-        writeErrorPathFile(
-            options.getWitnessFile(),
-            uniqueId,
-            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-            compressWitness);
-
-        writeErrorPathFile(
-            options.getWitnessDotFile(),
-            uniqueId,
-            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-            compressWitness);
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-            try {
-              cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-            } catch (IOException e) {
-              logger.logUserException(
-                  Level.WARNING, e, "Could not generate YAML violation witness.");
-            }
-          }
+      CfaTransformationMetadata transformationMetadata =
+          cfa.getMetadata().getTransformationMetadata();
+      if (transformationMetadata != null
+          && transformationMetadata
+              .transformation()
+              .equals(ProgramTransformation.SEQUENTIALIZATION)) {
+        logger.log(
+            Level.INFO,
+            "The program analyzed by sequentializing the original program and verifying the"
+                + " sequentialized version. Currently there is no way to map the result for the"
+                + " sequentialized program back to the original program, therefore no witness will be exported.");
+        Optional<String> witnessString =
+            SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
+                transformationMetadata.originalCfa(), specification);
+        if (witnessString.isPresent()) {
+          writeErrorPathFile(
+              options.getWitnessFile(), uniqueId, witnessString.orElseThrow(), compressWitness);
         } else {
           logger.log(
               Level.WARNING,
-              "Cannot export violation witness to YAML format for languages other than C.");
+              "Could not export default witness for sequentialized program due to an internal"
+                  + " error.");
         }
 
-      } catch (InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+      } else {
+
+        try {
+          final Witness witness =
+              witnessExporter.generateErrorWitness(
+                  rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+
+          writeErrorPathFile(
+              options.getWitnessFile(),
+              uniqueId,
+              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+              compressWitness);
+
+          writeErrorPathFile(
+              options.getWitnessDotFile(),
+              uniqueId,
+              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+              compressWitness);
+          if (cfa.getMetadata().getInputLanguage() == Language.C) {
+            if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+              try {
+                cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+              } catch (IOException e) {
+                logger.logUserException(
+                    Level.WARNING, e, "Could not generate YAML violation witness.");
+              }
+            }
+          } else {
+            logger.log(
+                Level.WARNING,
+                "Cannot export violation witness to YAML format for languages other than C.");
+          }
+
+        } catch (InterruptedException e) {
+          logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        }
       }
     }
 
