@@ -154,7 +154,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         logger.logUserException(
             Level.WARNING,
             e,
-            "Sequentialization of the input program failed, falling back to using the original program.");
+            "Sequentialization of the input program failed, falling back to using the original"
+                + " program.");
         CfaMetadata newMetadata =
             getNewMetadata(cfa, ProgramTransformation.SEQUENTIALIZATION_FAILED);
         // Mark the CFA as having failed sequentialization
