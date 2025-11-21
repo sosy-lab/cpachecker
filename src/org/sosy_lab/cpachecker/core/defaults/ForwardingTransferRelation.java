@@ -113,6 +113,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 public abstract class ForwardingTransferRelation<S, T extends AbstractState, P extends Precision>
     extends SingleEdgeTransferRelation {
 
+  // TODO: refactor this and make if private and final?
+  //  it is dangerous to (re)-assign and re-use this in nested/complex code, as it is sometimes not
+  //  clear whether this was re-assigned or not, and whether you get the start state or an updated
+  //  state
   /** The state, casted to correct type, for local access. */
   protected @Nullable T transferRelationState;
 
