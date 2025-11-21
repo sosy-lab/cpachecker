@@ -108,7 +108,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     newCFA =
         newCFA.copyWithMetadata(
-            pCFA.getMetadata()
+            newCFA
+                .getMetadata()
                 .withTransformationMetadata(
                     new CfaTransformationMetadata(pCFA, ProgramTransformation.SEQUENTIALIZATION)));
 
