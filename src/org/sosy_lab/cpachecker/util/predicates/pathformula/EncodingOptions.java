@@ -14,13 +14,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibFormulaEncodingOptions;
 
-@Options(prefix = "cpa.predicate")
-/**
+/*
  * This class collects some configurations options for the encoding process.
  *
  * <p>This class is not specific to any programming language, and should therefore never be
  * instantiated, please use the language-specific subclasses instead.
  */
+@Options(prefix = "cpa.predicate")
 public abstract class EncodingOptions {
 
   @Option(
