@@ -8,7 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
+
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -19,17 +23,23 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
@@ -37,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * state space. Sequentializations can be given to any verifier capable of verifying sequential C
  * programs, hence modular.
  */
-public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics? */ {
+public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final MPOROptions options;
 
@@ -48,7 +58,11 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
   private final Configuration config;
   private final Specification specification;
 
+  private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
+
   private final ImmutableCFA cfa;
+
+  private Algorithm innerAlgorithm;
 
   public MporPreprocessingAlgorithm(
       Configuration pConfiguration,
@@ -127,7 +141,6 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
       }
     }
 
-    final Algorithm innerAlgorithm;
     final CoreComponentsFactory coreComponents;
     final ConfigurableProgramAnalysis cpa;
     try {
@@ -152,5 +165,27 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
     // just use the first input file name for naming purposes
     return Sequentialization.tryBuildProgramString(
         options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new Stats());
+    if (innerAlgorithm instanceof StatisticsProvider pStatisticsProvider) {
+      pStatisticsProvider.collectStatistics(statsCollection);
+    }
+  }
+
+  private class Stats implements Statistics {
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+      StatisticsWriter w0 = writingStatisticsTo(out);
+      w0.put(sequentializationTime);
+    }
+
+    @Override
+    public String getName() {
+      return "Sequentialization Preprocessing Statistics";
+    }
   }
 }
