@@ -1209,12 +1209,7 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(
         SvLibProcedureCallStatement pSvLibProcedureCallStatement) throws NoException {
-      ImmutableList.Builder<SvLibAstNode> builder = ImmutableList.builder();
-      return builder
-          .add(pSvLibProcedureCallStatement.getFunctionDeclaration())
-          .addAll(pSvLibProcedureCallStatement.getParameterExpressions())
-          .addAll(pSvLibProcedureCallStatement.getReturnVariables())
-          .build();
+      return FluentIterable.of(pSvLibProcedureCallStatement.getFunctionCallExpression());
     }
 
     @Override

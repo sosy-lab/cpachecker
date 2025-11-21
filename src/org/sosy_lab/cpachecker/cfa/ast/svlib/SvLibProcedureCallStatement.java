@@ -98,16 +98,6 @@ public final class SvLibProcedureCallStatement extends SvLibCfaEdgeStatement
   }
 
   @Override
-  public SvLibProcedureDeclaration getFunctionDeclaration() {
-    return procedureDeclaration;
-  }
-
-  @Override
-  public ImmutableList<SvLibTerm> getParameterExpressions() {
-    return arguments;
-  }
-
-  @Override
   public String toASTString() {
     return toASTString(AAstNodeRepresentation.ORIGINAL_NAMES);
   }

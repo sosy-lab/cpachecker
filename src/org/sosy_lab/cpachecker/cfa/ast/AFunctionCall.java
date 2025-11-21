@@ -8,17 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import com.google.common.collect.ImmutableList;
 
 public interface AFunctionCall extends AStatement {
 
   AFunctionCallExpression getFunctionCallExpression();
-
-  default AFunctionDeclaration getFunctionDeclaration() {
-    return getFunctionCallExpression().getDeclaration();
-  }
-
-  default ImmutableList<? extends AExpression> getParameterExpressions() {
-    return getFunctionCallExpression().getParameterExpressions();
-  }
 }

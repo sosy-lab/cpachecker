@@ -143,7 +143,7 @@ public class CFASecondPassBuilder {
 
   /** returns True, iff the called function has a body (and a CFA). */
   private boolean shouldCreateCallEdges(final AFunctionCall call) {
-    final ADeclaration functionDecl = call.getFunctionDeclaration();
+    final ADeclaration functionDecl = call.getFunctionCallExpression().getDeclaration();
 
     // If we have a function declaration, it is a normal call to this function,
     // and neither a call to an undefined function nor a function pointer call.
@@ -182,7 +182,7 @@ public class CFASecondPassBuilder {
       successorNode = tmp;
     }
 
-    String functionName = functionCall.getFunctionDeclaration().getName();
+    String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
@@ -191,7 +191,8 @@ public class CFASecondPassBuilder {
     // check if the number of function parameters are right
     if (!checkParamSizes(functionCall, fDefNode.getFunctionDefinition().getType())) {
       int declaredParameters = fDefNode.getFunctionDefinition().getType().getParameters().size();
-      int actualParameters = functionCall.getParameterExpressions().size();
+      int actualParameters =
+          functionCall.getFunctionCallExpression().getParameterExpressions().size();
 
       switch (language) {
         case JAVA ->
@@ -347,7 +348,8 @@ public class CFASecondPassBuilder {
 
   private boolean checkParamSizes(AFunctionCall pFunctionCall, AFunctionType functionType) {
     // get the parameter expression
-    List<? extends AExpression> parameters = pFunctionCall.getParameterExpressions();
+    List<? extends AExpression> parameters =
+        pFunctionCall.getFunctionCallExpression().getParameterExpressions();
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();

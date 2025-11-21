@@ -270,7 +270,8 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
       @SuppressWarnings("unused") final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
-    List<SvLibTerm> actualParams = edge.getFunctionCall().getParameterExpressions();
+    List<SvLibTerm> actualParams =
+        (List<SvLibTerm>) edge.getFunctionCallExpression().getParameterExpressions();
 
     SvLibProcedureEntryNode fn = edge.getSuccessor();
     List<SvLibParameterDeclaration> formalParams = fn.getFunctionParameters();

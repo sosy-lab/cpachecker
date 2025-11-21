@@ -51,12 +51,12 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   public ImmutableList<? extends AExpression> getArguments() {
-    return getFunctionCall().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
   public String getCode() {
-    return functionCall.toASTString();
+    return functionCall.getFunctionCallExpression().toASTString();
   }
 
   @Override
