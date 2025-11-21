@@ -130,14 +130,6 @@ public class CPAcheckerTest {
     assertWithMessage("SV-LIB CFA Metadata should be present for every SV-LIB program")
         .that(svLibCfaMetadataOptional)
         .isPresent();
-    SvLibCfaMetadata svLibCfaMetadata = svLibCfaMetadataOptional.orElseThrow();
-
-    assertWithMessage(
-            "For the safe SV-LIB program '"
-                + pProgramPath
-                + "', the witness export should be enabled")
-        .that(svLibCfaMetadata.exportCorrectnessWitness())
-        .isTrue();
 
     assertWithMessage(
             "For the safe SV-LIB program '"

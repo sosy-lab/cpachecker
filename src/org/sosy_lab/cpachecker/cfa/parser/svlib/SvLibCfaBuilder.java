@@ -37,6 +37,12 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -68,12 +74,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclar
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -286,11 +286,6 @@ class SvLibCfaBuilder {
     List<SvLibCommand> commands = script.getCommands();
     int indexOfFirstVerifyCall = -1;
 
-    // In order to determine whether correctness or violation witness production
-    // has been enabled, we need to keep track of this information while parsing.
-    boolean correctnessWitnessProductionEnabled = false;
-    boolean violationWitnessProductionEnabled = false;
-
     for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
 
       SvLibCommand command = commands.get(i);
@@ -410,32 +405,8 @@ class SvLibCfaBuilder {
         case SvLibDeclareSortCommand pSvLibDeclareSortCommand ->
             smtLibCommandsBuilder.add(pSvLibDeclareSortCommand);
         case SvLibSetOptionCommand pSvLibSetOptionCommand -> {
-          if (pSvLibSetOptionCommand
-              .getOption()
-              .equals(SvLibSetOptionCommand.OPTION_PRODUCE_CORRECTNESS)) {
-            Optional<Boolean> booleanValue = pSvLibSetOptionCommand.getBooleanValue();
-            if (booleanValue.isEmpty()) {
-              throw new SvLibParserException(
-                  "The value for the option "
-                      + SvLibSetOptionCommand.OPTION_PRODUCE_CORRECTNESS
-                      + " must be either 'true' or 'false'.");
-            }
-            correctnessWitnessProductionEnabled = booleanValue.orElseThrow();
-          } else if (pSvLibSetOptionCommand
-              .getOption()
-              .equals(SvLibSetOptionCommand.OPTION_PRODUCE_VIOLATION)) {
-            Optional<Boolean> booleanValue = pSvLibSetOptionCommand.getBooleanValue();
-            if (booleanValue.isEmpty()) {
-              throw new SvLibParserException(
-                  "The value for the option "
-                      + SvLibSetOptionCommand.OPTION_PRODUCE_VIOLATION
-                      + " must be either 'true' or 'false'.");
-            }
-            violationWitnessProductionEnabled = booleanValue.orElseThrow();
-          } else {
-            // For all other options we simply add them to the SMT-LIB commands.
-            smtLibCommandsBuilder.add(pSvLibSetOptionCommand);
-          }
+          // For all options we simply add them to the SMT-LIB commands.
+          smtLibCommandsBuilder.add(pSvLibSetOptionCommand);
         }
         case SvLibSelectTraceCommand pSvLibSelectTraceCommand -> {
           throw new SvLibParserException(
@@ -457,25 +428,6 @@ class SvLibCfaBuilder {
     }
 
     Verify.verify(indexOfFirstVerifyCall >= 0, "There must be at least one verify call command");
-
-    // We now see if we should export a witness after the verify call.
-    // After the verify call command we stop parsing the script, since we need to execute
-    // this command first before continuing. Therefore, we need to stop here.
-    // We will print a warning if there are any commands after this one.
-    boolean exportWitness = false;
-
-    if (indexOfFirstVerifyCall + 1 < commands.size()) {
-      switch (commands.get(indexOfFirstVerifyCall + 1)) {
-        case SvLibGetWitnessCommand pSvLibGetWitnessCommand -> {
-          exportWitness = true;
-        }
-        default ->
-            logger.log(
-                Level.WARNING,
-                "The command after the verify call command is neither a get-proof nor a"
-                    + " get-counterexample command. It will be ignored.");
-      }
-    }
 
     if (indexOfFirstVerifyCall + 2 < commands.size()) {
       logger.log(

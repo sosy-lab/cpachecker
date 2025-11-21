@@ -295,7 +295,7 @@ public class ARGStatistics implements Statistics {
       argToWitnessWriter = null;
     }
 
-    if (counterexampleOptions.disabledCompletely() && (svLibMetadata.isEmpty())) {
+    if (counterexampleOptions.disabledCompletely() && svLibMetadata.isEmpty()) {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
@@ -374,7 +374,7 @@ public class ARGStatistics implements Statistics {
 
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if ((!counterexampleOptions.disabledCompletely())
+    if (!counterexampleOptions.disabledCompletely()
         && pResult == Result.FALSE
         && !counterexampleOptions.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
