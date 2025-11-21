@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 public class SequentializedProgramCexExporter {
@@ -129,7 +131,8 @@ public class SequentializedProgramCexExporter {
     StringWriter stringWriter = new StringWriter();
     try {
       DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-      Document document = documentBuilder.parse(trivialWitness());
+      Document document =
+          documentBuilder.parse(new InputSource(new StringReader(trivialWitness())));
       document.getDocumentElement().normalize();
       updateDefaultGraphml(pOriginalCfa, pSpecification, document);
 
