@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -14,6 +14,8 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;

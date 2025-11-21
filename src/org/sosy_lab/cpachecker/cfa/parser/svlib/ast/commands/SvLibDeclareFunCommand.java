@@ -12,7 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 

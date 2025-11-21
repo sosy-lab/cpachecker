@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SvLibSmtFunctionDeclaration;
 
 public sealed interface SvLibDeclaration extends SvLibSimpleDeclaration, ADeclaration
     permits SvLibSmtFunctionDeclaration,

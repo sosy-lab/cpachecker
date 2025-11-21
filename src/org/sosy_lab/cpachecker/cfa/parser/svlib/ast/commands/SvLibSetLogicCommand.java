@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibAstNodeVisitor;
 
 public final class SvLibSetLogicCommand implements SvLibCommand, SmtLibCommand {
