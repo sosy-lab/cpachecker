@@ -502,8 +502,6 @@ class SvLibCfaBuilder {
         new SvLibCfaMetadata(
             smtLibCommandsBuilder.build(),
             nodeToTagAnnotations.build(),
-            nodesToTagReferences.build(),
-            exportWitness && correctnessWitnessProductionEnabled,
-            exportWitness && violationWitnessProductionEnabled));
+            nodesToTagReferences.build()));
   }
 }
