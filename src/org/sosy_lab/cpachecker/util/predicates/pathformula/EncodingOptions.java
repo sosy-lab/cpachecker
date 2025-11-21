@@ -12,7 +12,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibFormulaEncodingOptions;
 
 /*
  * This class collects some configurations options for the encoding process.
@@ -50,7 +49,7 @@ public abstract class EncodingOptions {
   private boolean useParameterVariablesForGlobals = false;
 
   public EncodingOptions(Configuration config) throws InvalidConfigurationException {
-    config.inject(this, SvLibFormulaEncodingOptions.class);
+    config.inject(this, EncodingOptions.class);
   }
 
   public boolean ignoreIrrelevantVariables() {
