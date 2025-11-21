@@ -329,7 +329,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
+      CLeftHandSide fieldOwner = resolveToLhsOrNull(pIastFieldReference.getFieldOwner());
+      if (fieldOwner == null) {
+        return null;
+      }
 
       MemoryLocation memLocOfFieldOwner = fieldOwner.accept(this);
 
@@ -339,6 +342,14 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       return getStructureFieldLocationFromRelativePoint(
           memLocOfFieldOwner, pIastFieldReference.getFieldName(), fieldOwner.getExpressionType());
+    }
+
+    private CLeftHandSide resolveToLhsOrNull(CExpression pExpression) {
+      return switch (pExpression) {
+        case CLeftHandSide validLhs -> validLhs;
+        case CCastExpression cast -> resolveToLhsOrNull(cast.getOperand());
+        default -> null;
+      };
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
