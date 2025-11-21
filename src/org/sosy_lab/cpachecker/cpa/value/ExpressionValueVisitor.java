@@ -241,8 +241,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @return the memory location of the struct member
    */
   public @Nullable MemoryLocation evaluateRelativeMemLocForStructMember(
-      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
-      throws UnrecognizedCodeException {
+      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType) {
 
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
