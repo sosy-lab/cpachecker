@@ -44,7 +44,5 @@ public class WitnessExportUtils {
               + pOutputPath
               + ". Therefore no SV-LIB witness will be exported.");
     }
-
-    return;
   }
 }
