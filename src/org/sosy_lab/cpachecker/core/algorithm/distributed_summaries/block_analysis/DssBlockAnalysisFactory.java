@@ -14,7 +14,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -42,7 +42,7 @@ public class DssBlockAnalysisFactory {
   public static AnalysisComponents createAlgorithm(
       final LogManager logger,
       final Specification specification,
-      final CFA cfa,
+      final ImmutableCFA cfa,
       final Configuration globalConfig,
       final ShutdownManager singleShutdownManager,
       final BlockNode node)

@@ -15,10 +15,10 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
@@ -49,13 +49,13 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
   private final Configuration config;
   private final Specification specification;
 
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
 
   public MporPreprocessingAlgorithm(
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      CFA pInputCfa,
+      ImmutableCFA pInputCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
 
@@ -68,20 +68,23 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
     specification = pSpecification;
   }
 
-  private boolean alreadySequentialized(CFA pCFA) {
+  private boolean alreadySequentialized(ImmutableCFA pCFA) {
     CfaTransformationMetadata transformationMetadata =
         pCFA.getMetadata().getTransformationMetadata();
     return transformationMetadata != null
         && transformationMetadata.transformation().equals(ProgramTransformation.SEQUENTIALIZATION);
   }
 
-  private CFA preprocessCfaUsingSequentialization(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+  private ImmutableCFA preprocessCfaUsingSequentialization(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      ImmutableCFA pCFA)
       throws UnrecognizedCodeException,
           InterruptedException,
           ParserException,
           InvalidConfigurationException {
-    CFA originalCfa = pCFA;
+    ImmutableCFA originalCfa = pCFA;
     String sequentializedCode = buildSequentializedProgram();
     pCFA =
         new CFACreator(pConfig, pLogger, pShutdownNotifier)
@@ -104,7 +107,7 @@ public class MporPreprocessingAlgorithm implements Algorithm /* TODO statistics?
 
     // Only sequentialize if not already done and requested.
     // We replace the CFA for its sequentialized version.
-    CFA newCfa = cfa;
+    ImmutableCFA newCfa = cfa;
     if (alreadySequentialized(cfa)) {
       logger.log(
           Level.INFO,

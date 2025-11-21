@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,7 +67,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
   protected NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode initialNode,
-      CFA pCfa,
+      ImmutableCFA pCfa,
       ShutdownManager singleShutdownManager,
       AggregatedReachedSets aggregateReached,
       Collection<String> ignoreOptions,

@@ -25,7 +25,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -111,7 +111,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final Algorithm analysisAlgorithm;
-  private final CFA analyzedProgram;
+  private final ImmutableCFA analyzedProgram;
   private final Specification specification;
   private final ResultCheckStatistics stats;
 
@@ -132,7 +132,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   public ResultCheckAlgorithm(
       Algorithm pAlgorithm,
-      CFA pCfa,
+      ImmutableCFA pCfa,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,

@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ResidualProgramConstructionAfterAnalysisAlgorithm
     extends ResidualProgramConstructionAlgorithm implements StatisticsProvider {
 
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
   private final Algorithm innerAlgorithm;
 
   private final Collection<Statistics> stats = new ArrayList<>();
@@ -78,7 +78,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
   }
 
   public ResidualProgramConstructionAfterAnalysisAlgorithm(
-      final CFA pCfa,
+      final ImmutableCFA pCfa,
       final Algorithm pAlgorithm,
       final Configuration pConfig,
       final LogManager pLogger,

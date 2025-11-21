@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 
 /** Contains the status of an array abstraction and its resulting transformed CFA. */
 public final class ArrayAbstractionResult {
@@ -35,14 +35,14 @@ public final class ArrayAbstractionResult {
   }
 
   private final Status status;
-  private final CFA transformedCfa;
+  private final ImmutableCFA transformedCfa;
 
   private final ImmutableSet<TransformableArray> transformedArrays;
   private final ImmutableSet<TransformableLoop> transformedLoops;
 
   ArrayAbstractionResult(
       Status pStatus,
-      CFA pTransformedCfa,
+      ImmutableCFA pTransformedCfa,
       ImmutableSet<TransformableArray> pTransformedArrays,
       ImmutableSet<TransformableLoop> pTransformedLoops) {
     status = pStatus;
@@ -51,7 +51,7 @@ public final class ArrayAbstractionResult {
     transformedLoops = pTransformedLoops;
   }
 
-  static ArrayAbstractionResult createUnchanged(CFA pCfa) {
+  static ArrayAbstractionResult createUnchanged(ImmutableCFA pCfa) {
     return new ArrayAbstractionResult(Status.UNCHANGED, pCfa, ImmutableSet.of(), ImmutableSet.of());
   }
 
@@ -72,7 +72,7 @@ public final class ArrayAbstractionResult {
    *
    * @return the transformed CFA of this array abstraction result
    */
-  public CFA getTransformedCfa() {
+  public ImmutableCFA getTransformedCfa() {
     return transformedCfa;
   }
 

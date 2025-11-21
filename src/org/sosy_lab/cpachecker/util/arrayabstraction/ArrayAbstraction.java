@@ -26,6 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -740,7 +741,7 @@ public class ArrayAbstraction {
   }
 
   public static ArrayAbstractionResult transformCfa(
-      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+      Configuration pConfiguration, LogManager pLogger, ImmutableCFA pCfa) {
 
     checkNotNull(pConfiguration);
     checkNotNull(pLogger);
@@ -817,7 +818,7 @@ public class ArrayAbstraction {
       }
     }
 
-    CFA transformedCfa =
+    ImmutableCFA transformedCfa =
         CCfaTransformer.createCfa(
             pConfiguration,
             pLogger,

@@ -26,6 +26,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
@@ -102,14 +103,14 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   private final ShutdownManager shutdownManager;
   private final ArrayAbstractionAlgorithmStatistics statistics;
   private final ArrayAbstractionResult arrayAbstractionResult;
-  private final CFA originalCfa;
+  private final ImmutableCFA originalCfa;
 
   public ArrayAbstractionAlgorithm(
       Configuration pConfiguration,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      ImmutableCFA pCfa)
       throws InvalidConfigurationException {
     super(pConfiguration, pLogger, pShutdownNotifier, pSpecification);
 
@@ -139,7 +140,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   }
 
   private AlgorithmStatus runDelegateAnalysis(
-      CFA pCfa,
+      ImmutableCFA pCfa,
       ForwardingReachedSet pForwardingReachedSet,
       AggregatedReachedSets pAggregatedReached)
       throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
@@ -184,7 +185,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
     AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
 
-    CFA cfa = useTransformedCfa() ? arrayAbstractionResult.getTransformedCfa() : originalCfa;
+    ImmutableCFA cfa =
+        useTransformedCfa() ? arrayAbstractionResult.getTransformedCfa() : originalCfa;
     AlgorithmStatus status = runDelegateAnalysis(cfa, forwardingReachedSet, aggregatedReached);
 
     if (checkCounterexamples

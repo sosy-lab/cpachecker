@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
@@ -106,7 +106,7 @@ public class CounterexampleCheckAlgorithm
       Specification pSpecification,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
-      CFA cfa)
+      ImmutableCFA cfa)
       throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;

@@ -27,8 +27,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -67,7 +67,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
 
   private final LogManager logger;
   private final ShutdownNotifier shutdown;
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
   private final Specification spec;
   private final Configuration globalConfig;
   private final ConditionalVerifierStats stats = new ConditionalVerifierStats();
@@ -77,7 +77,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Specification pSpecification,
-      final CFA pCfa)
+      final ImmutableCFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -216,7 +216,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
 
         logger.log(Level.FINE, "Parse constructed residual program");
         stats.residParse.start();
-        CFA cfaResidProg =
+        ImmutableCFA cfaResidProg =
             new CFACreator(config, logger, shutdown)
                 .parseFileAndCreateCFA(Collections.singletonList(pResidProgPath));
 

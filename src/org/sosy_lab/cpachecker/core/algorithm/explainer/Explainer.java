@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -88,14 +88,14 @@ public class Explainer extends NestingAlgorithm {
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
 
   public Explainer(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      ImmutableCFA pCfa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pSpecification);
     pConfig.inject(this);
@@ -257,7 +257,7 @@ public class Explainer extends NestingAlgorithm {
 
   private NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
-      CFA pCfa,
+      ImmutableCFA pCfa,
       ShutdownManager singleShutdownManager,
       ReachedSet currentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {

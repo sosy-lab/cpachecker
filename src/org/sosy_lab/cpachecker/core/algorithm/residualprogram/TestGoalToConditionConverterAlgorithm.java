@@ -29,6 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
@@ -73,7 +74,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
+      ImmutableCFA pCfa,
       Algorithm pOuter,
       ConfigurableProgramAnalysis pOuterCpa)
       throws InvalidConfigurationException, InterruptedException {

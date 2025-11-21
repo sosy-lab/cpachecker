@@ -48,7 +48,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -213,7 +213,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
   private AlgorithmCompositionStrategy selectionStrategy; // TODO initialize, set up
 
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
   private final Configuration globalConfig;
   private final LogManager logger;
   private final ShutdownRequestListener logShutdownListener;
@@ -226,7 +226,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      ImmutableCFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 

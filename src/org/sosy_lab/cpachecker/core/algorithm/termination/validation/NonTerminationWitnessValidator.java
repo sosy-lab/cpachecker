@@ -37,9 +37,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -163,7 +163,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdown;
-  private final CFA cfa;
+  private final ImmutableCFA cfa;
   private final Automaton witness;
   private final String witnessAutomatonName;
   private final Automaton terminationAutomaton;
@@ -172,7 +172,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private final NonTerminationValidationStatistics statistics;
 
   public NonTerminationWitnessValidator(
-      final CFA pCfa,
+      final ImmutableCFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
