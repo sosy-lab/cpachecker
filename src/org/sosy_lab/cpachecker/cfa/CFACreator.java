@@ -563,7 +563,7 @@ public class CFACreator {
 
   private FunctionEntryNode getSvLibMainFunction(
       NavigableMap<String, FunctionEntryNode> pFunctions) {
-    String mainFunctioName = SvLibProcedureDeclaration.mainFunctionDeclaration().getOrigName();
+    String mainFunctioName = SvLibProcedureDeclaration.mainFunctionDeclaration().getName();
     return pFunctions.get(mainFunctioName);
   }
 
