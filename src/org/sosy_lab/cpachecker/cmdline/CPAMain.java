@@ -541,7 +541,6 @@ public class CPAMain {
           .loadFromFile(subconfig)
           .setOptions(pCmdLineOptions)
           .clearOption("c.config")
-          .clearOption("svlib.config")
           .clearOption("llvm.config")
           .clearOption("java.config")
           .build();
