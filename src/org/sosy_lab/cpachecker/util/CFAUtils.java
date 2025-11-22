@@ -1068,9 +1068,9 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> accept(SvLibReturnStatement pSvLibReturnStatement)
         throws NoException {
-      Optional<? extends AExpression> returnValue = pSvLibReturnStatement.getReturnValue();
+      Optional<SvLibIdTermTuple> returnValue = pSvLibReturnStatement.getReturnValue();
       if (returnValue.isPresent()) {
-        return FluentIterable.of(returnValue.orElseThrow()).toList();
+        return FluentIterable.of(returnValue.orElseThrow());
       }
 
       return ImmutableList.of();

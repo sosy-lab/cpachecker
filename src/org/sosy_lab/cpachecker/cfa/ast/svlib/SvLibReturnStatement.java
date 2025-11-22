@@ -27,4 +27,10 @@ public final class SvLibReturnStatement extends AbstractReturnStatement implemen
   public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Optional<SvLibIdTermTuple> getReturnValue() {
+    return (Optional<SvLibIdTermTuple>) super.getReturnValue();
+  }
 }
