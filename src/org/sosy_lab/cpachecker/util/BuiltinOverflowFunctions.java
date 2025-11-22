@@ -367,7 +367,8 @@ public class BuiltinOverflowFunctions {
    */
   public static BuiltinOverflowFunctionStatementsToApply handleBuiltinOverflowFunction(
       final CFunctionCallExpression funCallExpr,
-      final String builtinOverflowFunctionName, boolean useOverflowManager,
+      final String builtinOverflowFunctionName,
+      boolean useOverflowManager,
       final CFAEdge edge,
       MachineModel pMachineModel,
       LogManager pLogger)
@@ -441,7 +442,7 @@ public class BuiltinOverflowFunctions {
     } else {
       CExpression uncastArithmeticResult =
           getUncastArithmeticResultWithCastArguments(
-              arg0, arg1, pFunctionName, edge, pMachineModel, pLogger);
+              arg0, Optional.empty(), arg1, pFunctionName, edge, pMachineModel, pLogger);
 
       CExpression castArithmeticResult =
           castExpression(
@@ -547,7 +548,7 @@ public class BuiltinOverflowFunctions {
     } else {
       CExpression uncastArithmeticResult =
           getUncastArithmeticResultWithCastArguments(
-              arg0, arg1, pFunctionName, edge, pMachineModel, pLogger);
+              arg0, Optional.empty(), arg1, pFunctionName, edge, pMachineModel, pLogger);
       castArithmeticResult =
           castExpression(
               uncastArithmeticResult, getTargetType(pFunctionName, targetArgument, false, edge));
@@ -672,13 +673,18 @@ public class BuiltinOverflowFunctions {
             edge);
       }
 
-      // TODO: add alternative based on overflow manager and normal calculations
       CExpression resOfFirstTwoArgs =
           getUncastArithmeticResultWithCastArguments(
-              arg0, arg1, functionName, edge, pMachineModel, pLogger);
+              arg0, Optional.empty(), arg1, functionName, edge, pMachineModel, pLogger);
       CExpression uncastArithmeticResult =
           getUncastArithmeticResultWithCastArguments(
-              resOfFirstTwoArgs, arg2, functionName, edge, pMachineModel, pLogger);
+              resOfFirstTwoArgs,
+              Optional.of(ImmutableList.of(arg0, arg1)),
+              arg2,
+              functionName,
+              edge,
+              pMachineModel,
+              pLogger);
       castArithmeticResult =
           castExpression(
               uncastArithmeticResult, getTargetType(functionName, targetArgument, false, edge));
@@ -779,10 +785,13 @@ public class BuiltinOverflowFunctions {
   /**
    * Casts the arguments to int128 and calculates the result of the operation. The result is of type
    * int128 and still needs to be cast back to the target type! Can not be used with arguments of
-   * types larger than 64 bits!
+   * types larger than 64 bits! originalLeftArgs is only to be set if the left argument is not a
+   * parameter, but built by this class somehow, and originalLeftArgs is then supposed to include
+   * the original arguments!
    */
   private static CExpression getUncastArithmeticResultWithCastArguments(
       CExpression left,
+      Optional<List<CExpression>> originalLeftArgs,
       CExpression right,
       String functionName,
       CFAEdge edge,
@@ -802,6 +811,17 @@ public class BuiltinOverflowFunctions {
             .getSizeofInBits(leftType)
             .add(pMachineModel.getSizeofInBits(rightType))
             .intValueExact();
+
+    // Special case when left is (arg0 +/- arg1) already
+    if (originalLeftArgs.isPresent()) {
+      typeBitSizesAdded = pMachineModel.getSizeofInBits(rightType).intValueExact();
+      for (CExpression origLeft : originalLeftArgs.orElseThrow()) {
+        typeBitSizesAdded +=
+            pMachineModel
+                .getSizeofInBits(origLeft.getExpressionType().getCanonicalType())
+                .intValueExact();
+      }
+    }
     if (typeBitSizesAdded == 128 && op == BinaryOperator.MULTIPLY) {
       // Additions and subtractions of smaller types can not hit this limit, only multiplications
       // can, in the wurst case, add their bit-counts.
@@ -812,9 +832,7 @@ public class BuiltinOverflowFunctions {
       CSimpleType rightUsedType = getUsedType(rightType, edge);
       boolean rightSignedCalculationType = rightUsedType.hasSignedSpecifier();
       checkState(rightSignedCalculationType != rightUsedType.hasUnsignedSpecifier());
-      if (leftSignedCalculationType == rightSignedCalculationType) {
-        signedCalculationType = leftSignedCalculationType;
-      } else {
+      if (leftSignedCalculationType != rightSignedCalculationType || originalLeftArgs.isPresent()) {
         throw new UnsupportedCodeException(
             "Builtin overflow function "
                 + functionName
@@ -825,6 +843,7 @@ public class BuiltinOverflowFunctions {
                 + ", as we can't evaluate types with distinct signage this large",
             edge);
       }
+      signedCalculationType = leftSignedCalculationType;
 
     } else if (typeBitSizesAdded > 128) {
       // Unsupported for now
