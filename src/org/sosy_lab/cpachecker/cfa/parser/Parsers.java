@@ -28,6 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibToCfaParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
@@ -107,8 +108,6 @@ public class Parsers {
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
   private static final String LLVM_CLANG_PARSER_CLASS =
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParserWithClang";
-  private static final String SV_LIB_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibToCfaParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
@@ -281,26 +280,9 @@ public class Parsers {
       final Configuration pConfig,
       final MachineModel pMachineModel,
       final ShutdownNotifier pShutdownNotifier) {
-
-    try {
-      Constructor<? extends Parser> parserConstructor = loadedSvLibParser.get();
-
-      if (parserConstructor == null) {
-        ClassLoader classLoader = getClassLoader(pLogger);
-
-        @SuppressWarnings("unchecked")
-        Class<? extends Parser> parserClass =
-            (Class<? extends Parser>) classLoader.loadClass(SV_LIB_PARSER_CLASS);
-        parserConstructor =
-            parserClass.getConstructor(
-                LogManager.class, Configuration.class, MachineModel.class, ShutdownNotifier.class);
-        parserConstructor.setAccessible(true);
-        loadedSvLibParser = new WeakReference<>(parserConstructor);
-      }
-
-      return parserConstructor.newInstance(pLogger, pConfig, pMachineModel, pShutdownNotifier);
-    } catch (ReflectiveOperationException e) {
-      throw new Classes.UnexpectedCheckedException("Failed to create SV-LIB parser", e);
-    }
+    // TODO: Maybe use classloader like for the other parsers?
+    //       But this would require an even stricter separation of SvLib parser code from the rest
+    //       of CPAchecker.
+    return new SvLibToCfaParser(pLogger, pConfig, pMachineModel, pShutdownNotifier);
   }
 }
