@@ -30,14 +30,14 @@ public class SSAMapMerger {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final ShutdownNotifier shutdownNotifier;
-  private final LanguageToSmtConverter converter;
+  private final LanguageToSmtConverter<? extends Type> converter;
   private final boolean useNondetFlags;
   private final FormulaType<?> nondetFormulaType;
 
   SSAMapMerger(
       boolean pUseNondetFlags,
       FormulaManagerView pFmgr,
-      LanguageToSmtConverter pConverter,
+      LanguageToSmtConverter<? extends Type> pConverter,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;

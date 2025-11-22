@@ -116,7 +116,7 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Class containing all the code that converts C code into a formula. */
-public class CtoFormulaConverter extends LanguageToSmtConverter {
+public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
   // Name prefix for variables that represent function parameters.
   public static final String PARAM_VARIABLE_NAME = "__param__";
@@ -298,9 +298,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
   }
 
   @Override
-  public final FormulaType<?> getFormulaTypeFromType(Type pType) {
-    CType type = (CType) pType;
-
+  public final FormulaType<?> getFormulaTypeFromType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
@@ -364,6 +362,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  @Override
   protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);

@@ -56,7 +56,6 @@ public abstract class FormulaEncodingOptions {
     return ignoreIrrelevantVariables;
   }
 
-  @SuppressWarnings("unused")
   public boolean shouldAbortOnLargeArrays() {
     return abortOnLargeArrays;
   }

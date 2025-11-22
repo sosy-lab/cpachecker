@@ -119,8 +119,6 @@ public class Parsers {
       new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmClangParser =
       new WeakReference<>(null);
-  private static WeakReference<Constructor<? extends Parser>> loadedSvLibParser =
-      new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
 

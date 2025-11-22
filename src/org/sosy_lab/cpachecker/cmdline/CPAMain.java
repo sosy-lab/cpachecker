@@ -617,13 +617,6 @@ public class CPAMain {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
     String propertyFile = propertyFiles.getFirst();
-    List<Path> programFiles =
-        Splitter.on(',')
-            .trimResults()
-            .omitEmptyStrings()
-            .splitToStream(cmdLineOptions.getOrDefault(PROGRAMS_OPTION, ""))
-            .map(Path::of)
-            .collect(ImmutableList.toImmutableList());
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));

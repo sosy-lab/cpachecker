@@ -219,7 +219,8 @@ public class SmtLibTheoryDeclarations {
   }
 
   /** Array stuff */
-  public static SvLibFunctionDeclaration arraySelect(SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
+  public static SvLibFunctionDeclaration arraySelect(
+      SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
@@ -230,7 +231,8 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  public static SvLibFunctionDeclaration arrayStore(SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
+  public static SvLibFunctionDeclaration arrayStore(
+      SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(

@@ -91,7 +91,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     // be proven correct
     outStates.add(
         new SvLibSafetySpecState(
-            ImmutableSet.of(SvLibFinalRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
+            ImmutableSet.of(
+                SvLibFinalRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
             state.hasPropertyViolation()));
 
     return outStates.build();
