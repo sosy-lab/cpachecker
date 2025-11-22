@@ -172,7 +172,8 @@ public class ConfigurationFileChecks {
           // options for delegating based on the programming language
           "java.config",
           "c.config",
-          "llvm.config");
+          "llvm.config",
+          "svlib.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
