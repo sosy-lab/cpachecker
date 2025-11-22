@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
@@ -71,7 +70,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             case SvLibCheckTrueTag pSvLibCheckTrueTag -> {
               assumptionsBuilder.add(pSvLibCheckTrueTag.getTerm());
               yield new SvLibSafetySpecState(
-                  ImmutableSet.of(SvLibTermBuilder.booleanNegation(pSvLibCheckTrueTag.getTerm())),
+                  ImmutableSet.of(
+                      SvLibFinalRelationalTerm.booleanNegation(pSvLibCheckTrueTag.getTerm())),
                   true);
             }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
@@ -91,7 +91,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     // be proven correct
     outStates.add(
         new SvLibSafetySpecState(
-            ImmutableSet.of(SvLibTermBuilder.booleanConjunction(assumptionsBuilder.build())),
+            ImmutableSet.of(SvLibFinalRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
             state.hasPropertyViolation()));
 
     return outStates.build();

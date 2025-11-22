@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
@@ -77,12 +76,12 @@ public class ArgToSvLibCorrectnessWitnessExport {
         }
       }
       SvLibFinalRelationalTerm disjunctionOfClass =
-          SvLibTermBuilder.booleanDisjunction(expressionsMatchingClass.build().asList());
+          SvLibFinalRelationalTerm.booleanDisjunction(expressionsMatchingClass.build().asList());
 
       expressionsPerClass.add(disjunctionOfClass);
     }
 
-    return SvLibTermBuilder.booleanConjunction(expressionsPerClass.build().asList());
+    return SvLibFinalRelationalTerm.booleanConjunction(expressionsPerClass.build().asList());
   }
 
   @NonNull
@@ -128,14 +127,14 @@ public class ArgToSvLibCorrectnessWitnessExport {
           };
       postcondition = postcondition.accept(finalReplacer);
 
-      ensuresTerms.add(SvLibTermBuilder.implication(precondition, postcondition));
+      ensuresTerms.add(SvLibFinalRelationalTerm.implication(precondition, postcondition));
     }
 
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
         ImmutableList.of(
             new SvLibEnsuresTag(
-                SvLibTermBuilder.booleanConjunction(ensuresTerms.build().asList()),
+                SvLibFinalRelationalTerm.booleanConjunction(ensuresTerms.build().asList()),
                 FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
