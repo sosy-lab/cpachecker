@@ -30,6 +30,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -71,7 +72,7 @@ public class TestDataTools {
     return new CIdExpression(loc, decl);
   }
 
-  public static CFA makeCFA(String... lines) throws ParserException, InterruptedException {
+  public static ImmutableCFA makeCFA(String... lines) throws ParserException, InterruptedException {
     try {
       return makeCFA(configurationForTest().build(), lines);
     } catch (InvalidConfigurationException e) {
@@ -79,7 +80,7 @@ public class TestDataTools {
     }
   }
 
-  public static CFA makeCFA(Configuration config, String... lines)
+  public static ImmutableCFA makeCFA(Configuration config, String... lines)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =
@@ -144,12 +145,12 @@ public class TestDataTools {
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
-  public static CFA toSingleFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String... parts)
       throws InvalidConfigurationException, ParserException, InterruptedException {
     return creator.parseSourceAndCreateCFA(getProgram(parts));
   }
 
-  public static CFA toMultiFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String... parts)
       throws InvalidConfigurationException, ParserException, InterruptedException {
     return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
   }

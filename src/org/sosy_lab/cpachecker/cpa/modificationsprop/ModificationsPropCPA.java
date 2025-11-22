@@ -36,6 +36,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -121,7 +122,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfaOrig;
+  private final ImmutableCFA cfaOrig;
   private final TransferRelation transfer;
   private final DelegateAbstractDomain<ModificationsPropState> domain;
   private final Solver solver;

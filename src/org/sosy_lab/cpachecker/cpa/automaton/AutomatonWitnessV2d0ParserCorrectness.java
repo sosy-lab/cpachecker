@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -43,6 +44,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserCommon {
+
+  protected static String ENTRY_STATE_ID = "singleState";
 
   AutomatonWitnessV2d0ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -64,8 +67,36 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
       throws InterruptedException, WitnessParseException {
     String automatonName = "No Loop Invariant Present";
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
-    String entryStateId = "singleState";
+    ImmutableList.Builder<AutomatonTransition> transitions = createTransitionsFromEntries(entries);
 
+    for (AbstractEntry entry : entries) {
+      if (entry instanceof InvariantSetEntry invariantSetEntry) {
+        automatonName = invariantSetEntry.metadata.getUuid();
+      }
+    }
+    List<AutomatonInternalState> automatonStates =
+        ImmutableList.of(
+            new AutomatonInternalState(ENTRY_STATE_ID, transitions.build(), false, true, true),
+            AutomatonInternalState.ERROR);
+
+    Automaton automaton;
+    try {
+      automaton = new Automaton(automatonName, automatonVariables, automatonStates, ENTRY_STATE_ID);
+    } catch (InvalidAutomatonException e) {
+      throw new WitnessParseException(
+          "The witness automaton generated from the provided Witness V2 is invalid!", e);
+    }
+
+    automaton =
+        getInvariantsSpecAutomaton().build(automaton, config, logger, shutdownNotifier, cfa);
+
+    dumpAutomatonIfRequested(automaton);
+
+    return automaton;
+  }
+
+  protected ImmutableList.Builder<AutomatonTransition> createTransitionsFromEntries(
+      List<AbstractEntry> entries) throws InterruptedException, WitnessParseException {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
 
     ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
@@ -135,8 +166,17 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                   new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow()));
 
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
-
               passTransitionWhenCheckSucceeds = new CheckCoversColumnAndLine(column, line);
+              // Check for transition loop invariants and do not throw an exception as they are in
+              // the
+              // future formats.
+            } else if (invariantType.equals(
+                    InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())
+                && invariantSetEntry
+                    .metadata
+                    .getFormatVersion()
+                    .equals(YAMLWitnessVersion.V2d1.toString())) {
+              continue;
             } else {
               throw new WitnessParseException(
                   "The witness contained other statements than Loop and Location Invariants!");
@@ -145,7 +185,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
             // Add the transition for where we already know that the invariant is valid at this
             // location
             transitions.add(
-                new AutomatonTransition.Builder(passTransitionWhenCheckSucceeds, entryStateId)
+                new AutomatonTransition.Builder(passTransitionWhenCheckSucceeds, ENTRY_STATE_ID)
                     .withCandidateInvariants(invariant)
                     .withAssumptions(ImmutableList.of(invariantAsCExpression))
                     .build());
@@ -162,31 +202,11 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
             }
           }
         }
-        automatonName = invariantSetEntry.metadata.getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");
       }
     }
-
-    List<AutomatonInternalState> automatonStates =
-        ImmutableList.of(
-            new AutomatonInternalState(entryStateId, transitions.build(), false, true, true),
-            AutomatonInternalState.ERROR);
-
-    Automaton automaton;
-    try {
-      automaton = new Automaton(automatonName, automatonVariables, automatonStates, entryStateId);
-    } catch (InvalidAutomatonException e) {
-      throw new WitnessParseException(
-          "The witness automaton generated from the provided Witness V2 is invalid!", e);
-    }
-
-    automaton =
-        getInvariantsSpecAutomaton().build(automaton, config, logger, shutdownNotifier, cfa);
-
-    dumpAutomatonIfRequested(automaton);
-
-    return automaton;
+    return transitions;
   }
 }

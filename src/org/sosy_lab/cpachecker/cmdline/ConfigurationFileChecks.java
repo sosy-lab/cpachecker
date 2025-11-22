@@ -131,7 +131,7 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "datarace.config",
           "termination.config",
-          "termination.violation.witness",
+          "termination.violation.witness.graphml",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
           "witness.validation.correctness.acsl",
