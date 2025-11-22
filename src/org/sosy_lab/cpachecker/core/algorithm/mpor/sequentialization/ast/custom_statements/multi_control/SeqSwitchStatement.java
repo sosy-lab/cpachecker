@@ -21,7 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Represents the entirety of a switch statement.
+ * Represents the entirety of a switch statement. Note that every statement is followed by a {@code
+ * break;} so that no fall through happens.
  *
  * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
  *
@@ -52,7 +53,7 @@ public record SeqSwitchStatement(
     for (var entry : statements.entrySet()) {
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
-      // this may be overridden by e.g. 'continue;' in the statement, but it is safer to always add
+      // always add "break;" suffix so that no fall through happens
       String breakSuffix = "break" + SeqSyntax.SEMICOLON;
       switchCase.add(casePrefix + statement.toASTString() + breakSuffix);
     }

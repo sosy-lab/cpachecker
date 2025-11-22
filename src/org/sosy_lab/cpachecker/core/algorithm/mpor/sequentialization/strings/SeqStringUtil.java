@@ -71,17 +71,18 @@ public class SeqStringUtil {
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement());
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (pOptions.loopUnrolling()) {
-          // with loop unrolling enabled, always return to main()
+          // with loop unrolling (and separate thread functions) enabled, always return to main()
           yield "return" + SeqSyntax.SEMICOLON;
         }
-        // if this is not the last thread, add "goto T{next_thread_ID}", otherwise continue
+        // if this is not the last thread, add "goto T{next_thread_ID};"
         if (pNextThreadLabel.isPresent()) {
           yield new SeqGotoStatement(pNextThreadLabel.orElseThrow()).toASTString();
         }
+        // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;
       }
-      // it is best to always use break; for switch cases, tests showed it is more efficient
-      case SWITCH_CASE -> "break" + SeqSyntax.SEMICOLON;
+      // for switch cases, do nothing, because SeqSwitchStatement adds "break;" after all statements
+      case SWITCH_CASE -> "";
     };
   }
 
