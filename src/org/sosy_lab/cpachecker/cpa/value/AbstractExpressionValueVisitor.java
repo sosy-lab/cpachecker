@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
@@ -806,8 +807,19 @@ public abstract class AbstractExpressionValueVisitor
               functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          return BuiltinOverflowFunctions.evaluateFunctionCall(
-              pIastFunctionCallExpression, this, machineModel, logger);
+          // We can not handle side effects (e.g. assignments) here at all currently. We need to
+          // refactor the Value Analysis for that.
+          if (BuiltinOverflowFunctions.functionReturnsNoValuesUsingSideEffects(functionName)) {
+            return BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
+                    pIastFunctionCallExpression, calledFunctionName, null, machineModel, logger)
+                .getFunctionReturnExpression()
+                .accept(this);
+          }
+          throw new UnsupportedCodeException(
+              "Value Analysis can not handle overflow functions with side effects that are not used"
+                  + " as direct assignment currently. Used function: "
+                  + functionName,
+              null);
 
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
