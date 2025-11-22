@@ -153,7 +153,8 @@ public class PropertyFileParserTest {
       String fileContent = String.format("CHECK( init(%s()), LTL(G assert) )", entryFunction);
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       parser.parse();
-      expect.that(parser.getEntryFunction()).isEqualTo(entryFunction.trim());
+      expect.that(parser.getEntryFunction()).isPresent();
+      expect.that(parser.getEntryFunction().orElseThrow()).isEqualTo(entryFunction.trim());
     }
   }
 

@@ -154,7 +154,8 @@ public final class Specification {
         if (cfa.getLanguage() != Language.SVLIB) {
           @SuppressWarnings("deprecation") // just a sanity check, not real option usage
           String configuredEntryFunction = config.getProperty("analysis.entryFunction");
-          if (!parser.getEntryFunction().equals(configuredEntryFunction)) {
+          if (parser.getEntryFunction().isPresent()
+              && !parser.getEntryFunction().orElseThrow().equals(configuredEntryFunction)) {
             // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
             // is used as library instead of from CPAMain.
             throw new InvalidConfigurationException(

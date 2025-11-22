@@ -5303,6 +5303,10 @@ statistics.print = false
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# When checking SV-LIB programs use this configuration file instead of the
+# current one.
+svlib.config = no default value
+
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
 

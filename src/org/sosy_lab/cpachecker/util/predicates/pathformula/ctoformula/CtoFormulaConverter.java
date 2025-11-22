@@ -293,6 +293,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     return true;
   }
 
+  @Override
   public final FormulaType<?> getFormulaTypeFromType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
