@@ -13,7 +13,6 @@ import com.google.common.collect.FluentIterable;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.io.IO;
@@ -23,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 public class WitnessExportUtils {
 
   public static void writeCommandsAsWitness(
-      Path pOutputPath, List<? extends SvLibCommand> pCommands, LogManager pLogger) {
+      Path pOutputPath, Iterable<? extends SvLibCommand> pCommands, LogManager pLogger) {
     FluentIterable<String> witnessContentLines =
         FluentIterable.of("(")
             .append(
