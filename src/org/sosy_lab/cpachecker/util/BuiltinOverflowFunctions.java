@@ -367,14 +367,13 @@ public class BuiltinOverflowFunctions {
    */
   public static BuiltinOverflowFunctionStatementsToApply handleBuiltinOverflowFunction(
       final CFunctionCallExpression funCallExpr,
-      final String builtinOverflowFunctionName,
+      final String builtinOverflowFunctionName, boolean useOverflowManager,
       final CFAEdge edge,
       MachineModel pMachineModel,
       LogManager pLogger)
       throws UnrecognizedCodeException {
     checkArgument(BuiltinOverflowFunctions.isBuiltinOverflowFunction(builtinOverflowFunctionName));
 
-    boolean useOverflowManager = false;
     if (functionReturnsArithmeticResult(builtinOverflowFunctionName)) {
       // __builtin_addc{l|ll}, __builtin_subc{l|ll}
       verify(funCallExpr.getParameterExpressions().size() == 4);

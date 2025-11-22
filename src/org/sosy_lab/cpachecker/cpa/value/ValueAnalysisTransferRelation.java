@@ -887,7 +887,7 @@ public class ValueAnalysisTransferRelation
 
           BuiltinOverflowFunctionStatementsToApply overflowFunctionExpressions =
               BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
-                  functionCallExp, func, cfaEdge, machineModel, logger);
+                  functionCallExp, func, false, cfaEdge, machineModel, logger);
           ValueAnalysisState currentState = inputState;
           if (overflowFunctionExpressions.hasSideEffectAssignment()) {
             currentState =

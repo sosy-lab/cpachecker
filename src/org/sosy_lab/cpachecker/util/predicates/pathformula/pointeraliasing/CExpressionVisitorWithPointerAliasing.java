@@ -739,7 +739,7 @@ class CExpressionVisitorWithPointerAliasing
 
         BuiltinOverflowFunctionStatementsToApply overflowExpressions =
             BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
-                e, functionName, edge, conv.machineModel, conv.logger);
+                e, functionName, false, edge, conv.machineModel, conv.logger);
         CExpression rhsOfResult = overflowExpressions.getFunctionReturnExpression();
         Expression overflows = rhsOfResult.accept(this);
         Formula f = asValueFormula(overflows, BuiltinOverflowFunctions.getReturnType(functionName));
