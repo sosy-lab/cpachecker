@@ -653,13 +653,15 @@ public class BuiltinOverflowFunctions {
       CType typeArg1 = params.get(0).getExpressionType().getCanonicalType();
       CType typeArg2 = params.get(1).getExpressionType().getCanonicalType();
       CType typeArg3 = params.get(2).getExpressionType().getCanonicalType();
-      int typeBitSizesAdded =
-          pMachineModel
-              .getSizeofInBits(typeArg1)
-              .add(pMachineModel.getSizeofInBits(typeArg2))
-              .add(pMachineModel.getSizeofInBits(typeArg3))
-              .intValueExact();
-      if (typeBitSizesAdded > 128) {
+      int maxTypeBitSize =
+          Integer.max(
+              Integer.max(
+                  pMachineModel.getSizeofInBits(typeArg1).intValueExact(),
+                  pMachineModel.getSizeofInBits(typeArg2).intValueExact()),
+              pMachineModel.getSizeofInBits(typeArg3).intValueExact());
+      // We can't have multiplication for these functions, so we need (I think) 2 times 2 bits
+      // buffer for +/-. Use 10 as buffer to make sure.
+      if (maxTypeBitSize + 10 >= 128) {
         // Unsupported for now
         throw new UnsupportedCodeException(
             "Builtin overflow function "
@@ -812,15 +814,21 @@ public class BuiltinOverflowFunctions {
             .getSizeofInBits(leftType)
             .add(pMachineModel.getSizeofInBits(rightType))
             .intValueExact();
+    int maxTypeBitSize =
+        Integer.max(
+            pMachineModel.getSizeofInBits(leftType).intValueExact(),
+            pMachineModel.getSizeofInBits(rightType).intValueExact());
 
     // Special case when left is (arg0 +/- arg1) already
     if (originalLeftArgs.isPresent()) {
       typeBitSizesAdded = pMachineModel.getSizeofInBits(rightType).intValueExact();
+      maxTypeBitSize = pMachineModel.getSizeofInBits(rightType).intValueExact();
       for (CExpression origLeft : originalLeftArgs.orElseThrow()) {
-        typeBitSizesAdded +=
-            pMachineModel
-                .getSizeofInBits(origLeft.getExpressionType().getCanonicalType())
-                .intValueExact();
+        CType origLeftType = origLeft.getExpressionType().getCanonicalType();
+        typeBitSizesAdded += pMachineModel.getSizeofInBits(origLeftType).intValueExact();
+        maxTypeBitSize =
+            Integer.max(
+                pMachineModel.getSizeofInBits(origLeftType).intValueExact(), maxTypeBitSize);
       }
     }
     if (typeBitSizesAdded == 128 && op == BinaryOperator.MULTIPLY) {
@@ -846,8 +854,10 @@ public class BuiltinOverflowFunctions {
       }
       signedCalculationType = leftSignedCalculationType;
 
-    } else if (typeBitSizesAdded > 128) {
-      // Unsupported for now
+    } else if ((typeBitSizesAdded > 128 && op == BinaryOperator.MULTIPLY)
+        || maxTypeBitSize + 10 >= 128) {
+      // Multiplication adds the bit sizes, while +/- only adds 2 (?) bits (we assume 10 as buffer
+      // as there might be 3 arguments). We can not exceed 128 ever with this technique.
       throw new UnsupportedCodeException(
           "Builtin overflow function "
               + functionName
