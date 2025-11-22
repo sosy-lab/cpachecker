@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -224,7 +225,7 @@ public final class AstCfaRelation {
    * @return the IfElement that starts after the given column at the same line
    */
   public Optional<IfElement> getIfStructureFollowingColumnAtTheSameLine(
-      Integer pLine, Optional<Integer> pColumn) {
+      Integer pLine, OptionalInt pColumn) {
     if (lineAndStartColumnToIfStructure == null) {
       initializeMapFromLineAndStartColumnToIfStructure();
     }
@@ -265,7 +266,7 @@ public final class AstCfaRelation {
    * @return the IterationElement that starts after the given column at the same line
    */
   public Optional<IterationElement> getIterationStructureFollowingColumnAtTheSameLine(
-      Optional<Integer> pColumn, Integer pLine) {
+      OptionalInt pColumn, Integer pLine) {
     if (lineAndStartColumnToIterationStructure == null) {
       initializeMapFromLineAndStartColumnToIterationStructure();
     }
@@ -312,8 +313,7 @@ public final class AstCfaRelation {
     startingLocationToTightestStatement = builder.buildOrThrow();
   }
 
-  public Optional<ASTElement> getTightestStatementForStarting(
-      int pLine, Optional<Integer> pColumn) {
+  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }

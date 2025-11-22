@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,7 +58,7 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
     ImmutableList.Builder<AutomatonTransition> transitions =
         super.createTransitionsFromEntries(entries);
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
-    SetMultimap<Pair<Integer, Optional<Integer>>, Pair<String, String>> lineToSeenInvariants =
+    SetMultimap<Pair<Integer, OptionalInt>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
 
     for (AbstractEntry entry : entries) {
@@ -68,8 +69,8 @@ class AutomatonWitnessV2d1ParserCorrectness extends AutomatonWitnessV2d0ParserCo
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
-            Optional<Integer> column = invariantEntry.getLocation().getColumn();
-            Pair<Integer, Optional<Integer>> position = Pair.of(line, column);
+            OptionalInt column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, OptionalInt> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it

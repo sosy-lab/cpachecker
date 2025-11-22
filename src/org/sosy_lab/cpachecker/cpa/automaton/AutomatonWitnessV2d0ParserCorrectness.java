@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -102,7 +103,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
 
     ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
 
-    SetMultimap<Pair<Integer, Optional<Integer>>, Pair<String, String>> lineToSeenInvariants =
+    SetMultimap<Pair<Integer, OptionalInt>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
 
     CBinaryExpressionBuilder cBinaryExpressionBuilder =
@@ -116,8 +117,8 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
-            Optional<Integer> column = invariantEntry.getLocation().getColumn();
-            Pair<Integer, Optional<Integer>> position = Pair.of(line, column);
+            OptionalInt column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, OptionalInt> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it

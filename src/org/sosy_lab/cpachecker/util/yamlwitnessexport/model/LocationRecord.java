@@ -12,7 +12,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.OptionalInt;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -24,6 +25,7 @@ public class LocationRecord {
   @JsonProperty("line")
   private final Integer line;
 
+  @Nullable
   @JsonProperty("column")
   private final Integer column;
 
@@ -72,8 +74,12 @@ public class LocationRecord {
   }
 
   @JsonIgnore
-  public Optional<Integer> getColumn() {
-    return Optional.ofNullable(column);
+  public OptionalInt getColumn() {
+    if (column != null) {
+      return OptionalInt.of(column);
+    } else {
+      return OptionalInt.empty();
+    }
   }
 
   public String getFunction() {

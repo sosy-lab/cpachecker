@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -108,7 +109,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleTarget(
       String nextStateId,
       Integer followLine,
-      Optional<Integer> followColumn,
+      OptionalInt followColumn,
       Integer pDistanceToViolation,
       String currentStateId,
       ImmutableList.Builder<AutomatonTransition> transitions,
@@ -208,7 +209,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
-      Optional<Integer> followColumn,
+      OptionalInt followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
@@ -269,12 +270,18 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       // here, to continue with validating the witness we just log this and skip the waypoint.
       // This does not conform to the witness spec, but will be complete, i.e., we will not
       // miss violations due to this.
-      ImmutableList<@NonNull CAssumeEdge> edges =
+      ImmutableList<CAssumeEdge> edges =
           FluentIterable.from(astElement.orElseThrow().edges()).filter(CAssumeEdge.class).toList();
 
       if (edges.isEmpty()) {
         logger.log(
-            Level.INFO, "Could not find if or iteration structure for waypoint, skipping it");
+            Level.INFO,
+            "Could not find a "
+                + "statement corresponding to the location at line "
+                + followLine
+                + " and column "
+                + followColumn
+                + " of the statement, skipping it");
         return;
       }
 
@@ -332,7 +339,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFunctionReturn(
       String nextStateId,
       Integer followLine,
-      Optional<Integer> followColumn,
+      OptionalInt followColumn,
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
@@ -533,7 +540,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
             .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
 
     Integer followLine = follow.getLocation().getLine();
-    Optional<Integer> followColumn = follow.getLocation().getColumn();
+    OptionalInt followColumn = follow.getLocation().getColumn();
 
     for (WaypointRecord avoid : pEntry.avoids()) {
       // Handle all avoid waypoints. They can be handled similarly to follow waypoints, but
