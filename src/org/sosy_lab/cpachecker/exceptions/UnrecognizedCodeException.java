@@ -76,7 +76,7 @@ public class UnrecognizedCodeException extends CPATransferException {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
-    } else if (astNode instanceof SvLibParsingAstNode) {
+    } else if (astNode instanceof SvLibAstNode) {
       return Language.SVLIB;
     }
     throw new AssertionError();
