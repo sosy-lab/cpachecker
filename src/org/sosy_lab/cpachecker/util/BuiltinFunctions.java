@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -75,8 +74,7 @@ public class BuiltinFunctions {
     }
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {
-      return Objects.requireNonNullElse(
-          BuiltinOverflowFunctions.getParameterType(pFunctionName).orElse(null), UNSPECIFIED_TYPE);
+      return BuiltinOverflowFunctions.getReturnType(pFunctionName);
     }
 
     if (isPopcountFunction(pFunctionName)) {
