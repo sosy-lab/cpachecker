@@ -383,9 +383,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    *
    * @return the index of the variable
    */
-  protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
+  @Override
+  public int getExistingOrNewIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    return getExistingOrNewIndex(name, type, ssa);
+    return super.getExistingOrNewIndex(name, type, ssa);
   }
 
   protected void checkSsaSavedType(String name, CType type, CType t) {
@@ -466,7 +467,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * <p>This method does not update the index of the variable.
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, type, ssa);
+    int useIndex = getExistingOrNewIndex(name, type, ssa);
     return fmgr.makeVariable(getFormulaTypeFromType(type), name, useIndex);
   }
 
@@ -522,7 +523,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, type, ssa);
+      useIndex = getExistingOrNewIndex(name, type, ssa);
     } else {
       useIndex = makeFreshIndex(name, type, ssa);
     }

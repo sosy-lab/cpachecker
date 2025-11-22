@@ -368,7 +368,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       CType type, final Formula address, final SSAMapBuilder ssa, final MemoryRegion region) {
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
-    final int index = getIndex(ufName, type, ssa);
+    final int index = getExistingOrNewIndex(ufName, type, ssa);
     final FormulaType<?> returnType = getFormulaTypeFromType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
@@ -1415,14 +1415,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+  public int getExistingOrNewIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
       // Types of pointer-target variables in SSAMap need special treatment
       // (signed and unsigned types need to be treated as equal).
       // SSAMap requires canonical types, which will add a signed modifier, but that is irrelevant.
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
     }
-    return super.getIndex(pName, pType, pSsa);
+    return super.getExistingOrNewIndex(pName, pType, pSsa);
   }
 
   /** {@inheritDoc} */
