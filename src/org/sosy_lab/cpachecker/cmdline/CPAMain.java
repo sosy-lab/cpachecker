@@ -93,11 +93,13 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
     String outputDirectory = null;
+    ImmutableList<String> programs = null;
     try {
       try {
         Config p = createConfiguration(args);
         cpaConfig = p.configuration;
         outputDirectory = p.outputPath;
+        programs = p.programs;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
@@ -132,14 +134,11 @@ public class CPAMain {
     MainOptions options = new MainOptions();
     try {
       cpaConfig.inject(options);
-      if (options.programs.isEmpty()) {
+      if (programs.isEmpty()) {
         throw new InvalidConfigurationException(
             "Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
-
-      // generate correct frontend based on file language
-      cpaConfig = detectFrontendLanguageIfNecessary(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
@@ -149,7 +148,7 @@ public class CPAMain {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
       reportGenerator =
-          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), options.programs);
+          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -167,7 +166,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs);
+    CPAcheckerResult result = cpachecker.run(programs);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -217,8 +216,26 @@ public class CPAMain {
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
   public static final String APPROACH_NAME_OPTION = "analysis.name";
 
+  @VisibleForTesting
   @Options
-  private static class BootstrapOptions {
+  public static class BootstrapOptions {
+    @Option(
+        secure = true,
+        name = "analysis.programNames",
+        // required=true, NOT required because we want to give a nicer user message ourselves
+        description = "A String, denoting the programs to be analyzed")
+    private ImmutableList<String> programs = ImmutableList.of();
+
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+    // keep option name in sync with {@link CPAMain#language} and {@link
+    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
+    private Language language = null;
+
     @Option(
         secure = true,
         name = "memorysafety.config",
@@ -279,22 +296,6 @@ public class CPAMain {
   @VisibleForTesting
   @Options
   public static class MainOptions {
-    @Option(
-        secure = true,
-        name = "analysis.programNames",
-        // required=true, NOT required because we want to give a nicer user message ourselves
-        description = "A String, denoting the programs to be analyzed")
-    private ImmutableList<String> programs = ImmutableList.of();
-
-    @Option(
-        secure = true,
-        description =
-            "Programming language of the input program. If not given explicitly, auto-detection"
-                + " will occur. LLVM IR is currently unsupported as input (cf."
-                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
-    // keep option name in sync with {@link CPAMain#language} and {@link
-    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
-    private Language language = null;
 
     @Option(
         secure = true,
@@ -396,11 +397,12 @@ public class CPAMain {
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
 
-    // Read witness file if present, switch to appropriate config and adjust cmdline options
-    config = handleWitnessOptions(config, cmdLineOptions, configFile);
-
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
+    config = detectFrontendLanguageIfNecessary(options, config);
+
+    // Read witness file if present, switch to appropriate config and adjust cmdline options
+    config = handleWitnessOptions(config, cmdLineOptions, configFile);
 
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(config, options, cmdLineOptions, properties);
@@ -409,7 +411,7 @@ public class CPAMain {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return new Config(config, outputDirectory);
+    return new Config(config, outputDirectory, options.programs);
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
@@ -431,8 +433,7 @@ public class CPAMain {
    */
   @VisibleForTesting
   static Configuration detectFrontendLanguageIfNecessary(
-      MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
-      throws InvalidConfigurationException {
+      BootstrapOptions pOptions, Configuration pConfig) throws InvalidConfigurationException {
     if (pOptions.language == null) {
       // if language was not specified by option, we determine the best matching language
       Language frontendLanguage;
@@ -447,7 +448,6 @@ public class CPAMain {
       configBuilder.setOption("language", frontendLanguage.name());
       pConfig = configBuilder.build();
       pOptions.language = frontendLanguage;
-      pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
     }
     Preconditions.checkNotNull(pOptions.language);
     return pConfig;
@@ -909,5 +909,6 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  public record Config(Configuration configuration, String outputPath) {}
+  public record Config(
+      Configuration configuration, String outputPath, ImmutableList<String> programs) {}
 }
