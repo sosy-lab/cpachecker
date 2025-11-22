@@ -139,7 +139,7 @@ public class CEXExporter {
     cfa = pCFA;
 
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
-    if (svLibMetadata.isPresent()) {
+    if (svLibMetadata.isPresent() && options.getSvLibViolationWitnessPath() != null) {
       svLibWitnessOutputPath = options.getSvLibViolationWitnessPath();
       cexToSvLibWitness = new CounterexampleToSvLibWitnessExport(pLogger, pCFA);
     } else {
