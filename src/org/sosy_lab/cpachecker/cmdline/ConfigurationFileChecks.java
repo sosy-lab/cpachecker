@@ -168,7 +168,11 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize");
+          "pcc.partial.stopAddingAtReachedSetSize",
+          // options for delegating based on the programming language
+          "java.config",
+          "c.config",
+          "llvm.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {

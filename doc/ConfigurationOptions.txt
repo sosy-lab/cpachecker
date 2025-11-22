@@ -855,6 +855,10 @@ bmc.simplifyBooleanFormula = false
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
+# When checking C programs use this configuration file instead of the current
+# one.
+c.config = no default value
+
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -4549,6 +4553,10 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 # definitions
 java.classpath = ""
 
+# When checking Java programs use this configuration file instead of the
+# current one.
+java.config = no default value
+
 # use the following encoding for java files
 java.encoding = StandardCharsets.UTF_8
 
@@ -4607,6 +4615,10 @@ liveVar.overallLivenessCheckTime = 0ns
 # function wise approach will have the same time-limit afterward to compute
 # the live variables).(use seconds or specify a unit; 0 for infinite)
 liveVar.partwiseLivenessCheckTime = 20s
+
+# When checking LLVM programs use this configuration file instead of the
+# current one.
+llvm.config = no default value
 
 # Write the tokenized version of the input program to this file.
 locmapper.dumpTokenizedProgramToFile = no default value
