@@ -164,7 +164,17 @@ public final class SSAMap implements Serializable {
 
     @SuppressWarnings("CheckReturnValue")
     @CanIgnoreReturnValue
-    private SSAMapBuilder setTypeIndex(String name, Type type, int idx) {
+    public SSAMapBuilder setIndex(String name, Type type, int idx) {
+      if (type instanceof CType pCType) {
+        // First obtain the true type which is being handled
+        type = pCType.getCanonicalType();
+        assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
+        if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+          // Type needs to be overwritten
+          type = CNumericTypes.CHAR;
+        }
+      }
+
       Preconditions.checkArgument(
           idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
       int oldIdx = getIndex(name);
@@ -192,27 +202,6 @@ public final class SSAMap implements Serializable {
       }
 
       return this;
-    }
-
-    @SuppressWarnings("CheckReturnValue")
-    @CanIgnoreReturnValue
-    public SSAMapBuilder setIndex(String name, Type type, int idx) {
-      if (type instanceof CType pCType) {
-        // First obtain the true type which is being handled
-        pCType = pCType.getCanonicalType();
-        assert !(pCType instanceof CFunctionType)
-            : "Variable " + name + " has function type " + type;
-        if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
-          // Type needs to be overwritten
-          pCType = CNumericTypes.CHAR;
-        }
-        // Then set the index for that type
-        return setTypeIndex(name, pCType, idx);
-      } else if (type instanceof SvLibType pSvLibType) {
-        return setTypeIndex(name, pSvLibType, idx);
-      }
-
-      throw new IllegalArgumentException("Unsupported type " + type + " for variable " + name);
     }
 
     public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
