@@ -626,7 +626,7 @@ public class CPAMain {
             .collect(ImmutableList.toImmutableList());
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile), programFiles);
+    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {

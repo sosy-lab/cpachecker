@@ -141,7 +141,7 @@ public final class Specification {
 
     for (Path specFile : specFiles) {
       if (MoreFiles.getFileExtension(specFile).equals("prp")) {
-        PropertyFileParser parser = new PropertyFileParser(specFile, cfa.getFileNames());
+        PropertyFileParser parser = new PropertyFileParser(specFile);
         try {
           parser.parse();
         } catch (InvalidPropertyFileException | IOException e) {

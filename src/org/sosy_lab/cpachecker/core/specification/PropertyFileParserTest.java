@@ -110,8 +110,7 @@ public class PropertyFileParserTest {
   @Test
   public void testSingleProperty() throws InvalidPropertyFileException, IOException {
     for (Map.Entry<String, Property> entry : TEST_PROPERTIES.entrySet()) {
-      PropertyFileParser parser =
-          new PropertyFileParser(CharSource.wrap(entry.getKey()), ImmutableList.of());
+      PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(entry.getKey()));
       parser.parse();
       expect.that(parser.getProperties()).containsExactly(entry.getValue());
     }
@@ -121,8 +120,7 @@ public class PropertyFileParserTest {
   public void testRedundant() throws InvalidPropertyFileException, IOException {
     String fileContent = VALID_ASSERT_PROPERTY + "\n" + VALID_ASSERT_PROPERTY;
 
-    PropertyFileParser parser =
-        new PropertyFileParser(CharSource.wrap(fileContent), ImmutableList.of());
+    PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
     parser.parse();
     assertThat(parser.getProperties()).containsExactly(CommonVerificationProperty.ASSERT);
   }
@@ -138,8 +136,7 @@ public class PropertyFileParserTest {
         Maps.filterValues(TEST_PROPERTIES, v -> properties.contains(v)).keySet();
     String fileContent = Joiner.on('\n').join(propertyStrings);
 
-    PropertyFileParser parser =
-        new PropertyFileParser(CharSource.wrap(fileContent), ImmutableList.of());
+    PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
     parser.parse();
     assertThat(parser.getProperties()).containsExactlyElementsIn(properties).inOrder();
   }
@@ -148,8 +145,7 @@ public class PropertyFileParserTest {
   public void testEntryFunction() throws InvalidPropertyFileException, IOException {
     for (String entryFunction : ImmutableList.of("main", "foo", "package.Class.method")) {
       String fileContent = String.format("CHECK( init(%s()), LTL(G assert) )", entryFunction);
-      PropertyFileParser parser =
-          new PropertyFileParser(CharSource.wrap(fileContent), ImmutableList.of());
+      PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       parser.parse();
       expect.that(parser.getEntryFunction()).isEqualTo(entryFunction.trim());
     }
@@ -175,8 +171,7 @@ public class PropertyFileParserTest {
             VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )");
 
     for (String fileContent : invalidFiles) {
-      PropertyFileParser parser =
-          new PropertyFileParser(CharSource.wrap(fileContent), ImmutableList.of());
+      PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       assertThrows(InvalidPropertyFileException.class, () -> parser.parse());
     }
   }

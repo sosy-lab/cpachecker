@@ -22,7 +22,6 @@ import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,9 +53,6 @@ public class PropertyFileParser {
 
   private final CharSource propertyFile;
 
-  @SuppressWarnings("unused")
-  private final List<Path> programFiles;
-
   private @Nullable String entryFunction;
   private @Nullable ImmutableSet<Property> properties;
 
@@ -84,14 +80,12 @@ public class PropertyFileParser {
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
 
-  public PropertyFileParser(final CharSource pPropertyFile, List<Path> pProgramFiles) {
+  public PropertyFileParser(final CharSource pPropertyFile) {
     propertyFile = checkNotNull(pPropertyFile);
-    programFiles = checkNotNull(pProgramFiles);
   }
 
-  public PropertyFileParser(final Path pPropertyFile, List<Path> pProgramFiles) {
+  public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
-    programFiles = checkNotNull(pProgramFiles);
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
