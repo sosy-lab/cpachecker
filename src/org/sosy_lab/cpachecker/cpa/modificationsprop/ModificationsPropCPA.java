@@ -149,7 +149,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
 
     // create CFA here to avoid handling of checked exceptions in #getInitialState
-    CFACreator cfaCreator = CFACreator.of(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     try {
       cfaOrig = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
       final ImmutableSet<CFANode> errorLocsOrig = findErrorLocations(cfaOrig);

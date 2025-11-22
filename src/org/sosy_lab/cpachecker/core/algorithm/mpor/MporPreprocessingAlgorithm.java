@@ -111,8 +111,10 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     String sequentializedCode =
         Sequentialization.tryBuildProgramString(
             options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
-    CFACreator cfaCreator =
-        CFACreator.of(config, logger, shutdownNotifier, ProgramTransformation.SEQUENTIALIZATION);
+    // disable preprocessing in the updated config, since input cfa was preprocessed already
+    Configuration configWithoutPreprocessor =
+        Configuration.builder().copyFrom(config).setOption("parser.preProcessor", "false").build();
+    CFACreator cfaCreator = new CFACreator(configWithoutPreprocessor, logger, shutdownNotifier);
     ImmutableCFA newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
 
     newCFA =

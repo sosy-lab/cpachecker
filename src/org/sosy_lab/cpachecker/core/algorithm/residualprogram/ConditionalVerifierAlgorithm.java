@@ -217,7 +217,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         logger.log(Level.FINE, "Parse constructed residual program");
         stats.residParse.start();
         CFA cfaResidProg =
-            CFACreator.of(config, logger, shutdown)
+            new CFACreator(config, logger, shutdown)
                 .parseFileAndCreateCFA(Collections.singletonList(pResidProgPath));
 
         stats.residParse.stop();

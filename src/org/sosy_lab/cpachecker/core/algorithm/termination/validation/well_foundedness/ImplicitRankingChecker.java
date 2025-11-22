@@ -130,7 +130,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       // Therefore, we have to remove the --preprocess from the config
       Configuration cfaParsingConfig =
           Configuration.builder().copyFrom(config).clearOption("parser.usePreprocessor").build();
-      CFACreator cfaCreator = CFACreator.of(cfaParsingConfig, logger, shutdownNotifier);
+      CFACreator cfaCreator = new CFACreator(cfaParsingConfig, logger, shutdownNotifier);
 
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();

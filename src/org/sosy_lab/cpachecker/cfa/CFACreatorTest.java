@@ -282,7 +282,7 @@ public class CFACreatorTest {
       throws InvalidConfigurationException {
     final LogManager logger = LogManager.createTestLogManager();
     final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    return CFACreator.of(config, logger, shutdownNotifier);
+    return new CFACreator(config, logger, shutdownNotifier);
   }
 
   /**

@@ -50,7 +50,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -421,28 +420,7 @@ public class CFACreator {
   private final CFACreatorStatistics stats;
   private final Configuration config;
 
-  public static CFACreator of(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-
-    return new CFACreator(pConfig, pLogger, pShutdownNotifier, ProgramTransformation.NONE);
-  }
-
-  public static CFACreator of(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      ProgramTransformation pProgramTransformation)
-      throws InvalidConfigurationException {
-
-    return new CFACreator(pConfig, pLogger, pShutdownNotifier, pProgramTransformation);
-  }
-
-  private CFACreator(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      ProgramTransformation pProgramTransformation)
+  public CFACreator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -481,19 +459,14 @@ public class CFACreator {
                 outerParser,
                 readLineDirectives || (usePreprocessor != PreprocessorUsage.FALSE) || useClang);
 
-        // use preprocessor only without any program transformation, because input program of
-        // transformation was preprocessed already. Additionally, CParserWithPreprocessor does not
-        // support parsing by String, only by input files.
-        if (pProgramTransformation.equals(ProgramTransformation.NONE)) {
-          if (usePreprocessor != PreprocessorUsage.FALSE) {
-            CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
-            CParserWithPreprocessor parserWithPreprocessor =
-                new CParserWithPreprocessor(outerParser, preprocessor);
-            if (usePreprocessor == PreprocessorUsage.AUTO) {
-              backupParserForPreprocessing = Optional.of(parserWithPreprocessor);
-            } else {
-              outerParser = parserWithPreprocessor;
-            }
+        if (usePreprocessor != PreprocessorUsage.FALSE) {
+          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger);
+          CParserWithPreprocessor parserWithPreprocessor =
+              new CParserWithPreprocessor(outerParser, preprocessor);
+          if (usePreprocessor == PreprocessorUsage.AUTO) {
+            backupParserForPreprocessing = Optional.of(parserWithPreprocessor);
+          } else {
+            outerParser = parserWithPreprocessor;
           }
         }
 

@@ -114,7 +114,7 @@ public abstract class AbstractTranslationTest {
     final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
     final Configuration parseConfig =
         Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
-    final CFACreator cfaCreator = CFACreator.of(parseConfig, logger, shutdown);
+    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
 
     try {
       cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(program.toString()));
