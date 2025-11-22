@@ -161,14 +161,6 @@ public class PropertyFileParserTest {
   public void testInvalid() {
     List<String> invalidFiles =
         ImmutableList.of(
-            // Empty properties are now allowed due to SV-LIB, which
-            // may pass an empty property file to indicate that the properties
-            // given in the program need to be checked.
-            // "",
-            // "  \n  ",
-            // Comments are now allowed, since we need it for SV-LIB
-            // "# " + VALID_ASSERT_PROPERTY,
-            // VALID_ASSERT_PROPERTY + "\n#",
             " " + VALID_ASSERT_PROPERTY, // TODO trim first?
             "CHECK( init(main), LTL(G assert) )",
             // "CHECK( init(()), LTL(G assert) )", TODO fix
@@ -179,6 +171,38 @@ public class PropertyFileParserTest {
     for (String fileContent : invalidFiles) {
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       assertThrows(InvalidPropertyFileException.class, () -> parser.parse());
+    }
+  }
+
+  @Test
+  public void testValid() {
+    Map<String, Integer> validFiles =
+        ImmutableMap.of(
+            // Empty properties are allowed due to SV-LIB, which
+            // may pass an empty property file to indicate that the properties
+            // given in the program need to be checked.
+            "",
+            0,
+            "#  \n",
+            0,
+            // Comments are allowed, since we need it for SV-LIB
+            "# " + VALID_ASSERT_PROPERTY,
+            0,
+            VALID_ASSERT_PROPERTY + "\n#",
+            1,
+            "#\n# Another comment\n",
+            0);
+
+    for (Map.Entry<String, Integer> entry : validFiles.entrySet()) {
+      String fileContent = entry.getKey();
+      int expectedPropertyCount = entry.getValue();
+      PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
+      try {
+        parser.parse();
+        assertThat(parser.getProperties()).hasSize(expectedPropertyCount);
+      } catch (InvalidPropertyFileException | IOException e) {
+        throw new AssertionError("Parsing failed for valid file content", e);
+      }
     }
   }
 }
