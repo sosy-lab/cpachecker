@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib;
+package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 public enum SmtLibLogic {
   ALL,
