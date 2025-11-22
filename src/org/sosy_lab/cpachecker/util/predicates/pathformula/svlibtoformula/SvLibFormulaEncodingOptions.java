@@ -18,5 +18,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.FormulaEncodingOption
 public class SvLibFormulaEncodingOptions extends FormulaEncodingOptions {
   public SvLibFormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
+    config.inject(this);
   }
 }
