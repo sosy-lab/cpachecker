@@ -10,5 +10,10 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 
+/**
+ * A tag attribute in an SV-LIB specification, which can either be a property (like `:assert`,
+ * `:invariant`, etc.) or a named reference which can then be used to annotate the statement tagged
+ * with that reference with further attributes.
+ */
 public sealed interface SvLibTagAttribute extends SvLibAstNode
     permits SvLibTagProperty, SvLibTagReference {}

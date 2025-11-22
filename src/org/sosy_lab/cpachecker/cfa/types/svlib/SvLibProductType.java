@@ -11,6 +11,12 @@ package org.sosy_lab.cpachecker.cfa.types.svlib;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 
+/**
+ * A product type in SV-LIB, representing a tuple of types, should only ever be used for {@link
+ * org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple} and similar classes which are classes
+ * internal to CPAchecker. In particular this type should never appear on a {@link
+ * org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm}.
+ */
 public final class SvLibProductType implements SvLibType {
 
   @Serial private static final long serialVersionUID = 265032494258079236L;

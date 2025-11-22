@@ -23,6 +23,15 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 
 // TODO: seal once we have modules
+
+/**
+ * A final relational term is a term that can appear as a formula in a specification. This
+ * distinguishes it from other terms that may appear in the program code.
+ *
+ * <p>In contrast to {@link org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm} which can appear
+ * anywhere, final relational terms are only allowed in specification formulas. Because they are
+ * used to represent relations between different states of variables.
+ */
 public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode {
 
   <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X;

@@ -14,6 +14,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
+/**
+ * This is the base interface for all SV-LIB expressions in the CPAchecker framework. It encompasses
+ * internal data structures, which only inherit from this class and are mostly used to map SV-LIB
+ * concepts into idiomatic CPAchecker concepts. Actual SV-LIB expressions all inherit from {@link
+ * SvLibTerm}. This distinction should be strict, since terms correspond to SMT-LIB S-Expressions,
+ * and thus form the basis for logical formulas.
+ */
 public interface SvLibExpression extends AExpression, SvLibAstNode {
 
   @NonNull
