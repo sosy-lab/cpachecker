@@ -13,7 +13,7 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclaration {
@@ -45,7 +45,7 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
 
   public static SvLibParsingVariableDeclaration dummyVariableForName(String pName) {
     return new SvLibParsingVariableDeclaration(
-        FileLocation.DUMMY, true, false, SvLibCustomType.InternalAnyType, pName, pName, pName);
+        FileLocation.DUMMY, true, false, new SvLibAnyType(), pName, pName, pName);
   }
 
   @Override

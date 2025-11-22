@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 
 class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
@@ -154,9 +154,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         } else if (pArguments
             .getFirst()
             .getExpressionType()
-            .equals(SvLibCustomType.InternalAnyType)) {
+            .equals(new SvLibAnyType())) {
           return SmtLibTheoryDeclarations.arraySelect(
-              SvLibCustomType.InternalAnyType, SvLibCustomType.InternalAnyType);
+              new SvLibAnyType(), new SvLibAnyType());
         }
 
         throw new IllegalArgumentException(

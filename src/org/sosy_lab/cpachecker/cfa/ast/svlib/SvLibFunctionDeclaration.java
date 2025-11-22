@@ -13,6 +13,7 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -33,7 +34,7 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
   public static SvLibFunctionDeclaration mainFunctionDeclaration() {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
-        new SvLibFunctionType(ImmutableList.of(), SvLibCustomType.InternalAnyType),
+        new SvLibFunctionType(ImmutableList.of(), new SvLibAnyType()),
         "#VERIFIER_MAIN",
         "#VERIFIER_MAIN",
         ImmutableList.of());

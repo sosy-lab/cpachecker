@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibVariableDeclaration extends AVariableDeclaration
@@ -38,7 +38,7 @@ public final class SvLibVariableDeclaration extends AVariableDeclaration
 
   public static SvLibVariableDeclaration dummyVariableForName(String pName) {
     return new SvLibVariableDeclaration(
-        FileLocation.DUMMY, false, SvLibCustomType.InternalAnyType, pName, pName, pName);
+        FileLocation.DUMMY, false, new SvLibAnyType(), pName, pName, pName);
   }
 
   @Override

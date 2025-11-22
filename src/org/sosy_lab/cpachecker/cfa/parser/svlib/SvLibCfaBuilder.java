@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclar
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -267,7 +267,7 @@ class SvLibCfaBuilder {
 
           @Override
           public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
-            if (pIdTerm.getDeclaration().getType().equals(SvLibCustomType.InternalAnyType)) {
+            if (pIdTerm.getDeclaration().getType().equals(new SvLibAnyType())) {
               return new SvLibIdTerm(
                   pScope.getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),
                   FileLocation.DUMMY);

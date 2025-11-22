@@ -15,7 +15,8 @@ import org.sosy_lab.java_smt.api.FormulaType;
 // TODO: This needs to be refactored into actual SMT-LIB types, and those which
 //    can only appear in SV-LIB
 public sealed interface SvLibType extends Type
-    permits SvLibCustomType,
+    permits SvLibAnyType,
+        SvLibCustomType,
         SvLibFunctionType,
         SvLibProcedureType,
         SvLibProductType,
@@ -24,7 +25,7 @@ public sealed interface SvLibType extends Type
   FormulaType<?> toFormulaType();
 
   static boolean canBeCastTo(SvLibType t1, SvLibType t2) {
-    if (t1.equals(SvLibCustomType.InternalAnyType) || t2.equals(SvLibCustomType.InternalAnyType)) {
+    if (t1 instanceof SvLibAnyType || t2 instanceof SvLibAnyType) {
       return true;
     }
     // TODO: This may need to be refactored into a more general subtyping mechanism

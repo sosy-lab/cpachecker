@@ -8,19 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.types.svlib;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibCustomType implements SvLibType {
 
-  public static final SvLibCustomType InternalAnyType = new SvLibCustomType("#any", -1);
-
   @Serial private static final long serialVersionUID = -1560683119379278009L;
   private final String type;
   private final int arity;
 
   public SvLibCustomType(String pType, int pArity) {
+    checkArgument(!pType.isBlank(), "Type name must not be blank");
+    checkArgument(pArity >= 0, "Arity must be >= 0");
     type = pType;
     arity = pArity;
   }
