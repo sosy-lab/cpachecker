@@ -371,9 +371,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
    */
+  @Override
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    return getFreshIndex(name, ssa);
+    return super.getFreshIndex(name, type, ssa);
   }
 
   /**

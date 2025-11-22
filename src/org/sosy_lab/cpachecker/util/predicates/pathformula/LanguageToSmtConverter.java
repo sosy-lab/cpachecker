@@ -32,7 +32,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
   protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
-    int idx = getFreshIndex(name, ssa);
+    int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
   }
@@ -44,7 +44,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
    */
-  protected int getFreshIndex(String name, SSAMapBuilder ssa) {
+  protected int getFreshIndex(String name, T pType, SSAMapBuilder ssa) {
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
       idx = LanguageToSmtConverter.VARIABLE_FIRST_ASSIGNMENT;
