@@ -243,6 +243,14 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "svlib.config",
+        description =
+            "When checking SV-LIB programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path svlibConfig = null;
+
+    @Option(
+        secure = true,
         description =
             "Programming language of the input program. If not given explicitly, auto-detection"
                 + " will occur. LLVM IR is currently unsupported as input (cf."
@@ -548,6 +556,7 @@ public class CPAMain {
           case C -> pBootstrapLangOptions.cConfig;
           case JAVA -> pBootstrapLangOptions.javaConfig;
           case LLVM -> pBootstrapLangOptions.llvmConfig;
+          case SVLIB -> pBootstrapLangOptions.svlibConfig;
         };
 
     if (subconfig != null) {
@@ -557,6 +566,7 @@ public class CPAMain {
           .clearOption("c.config")
           .clearOption("llvm.config")
           .clearOption("java.config")
+          .clearOption("svlib.config")
           .build();
     }
 
