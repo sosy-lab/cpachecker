@@ -19,17 +19,6 @@ public class SvLibFunctionCallExpression extends AFunctionCallExpression
     implements SvLibRightHandSide, SvLibAstNode {
   @Serial private static final long serialVersionUID = -6970061545000762188L;
 
-  public static SvLibFunctionCallExpression callNondetFunctionWithReturnType(SvLibType pType) {
-    SvLibFunctionDeclaration pHavocFunctionDeclaration =
-        SvLibFunctionDeclaration.nondetFunctionWithReturnType(pType);
-    return new SvLibFunctionCallExpression(
-        FileLocation.DUMMY,
-        pType,
-        new SvLibIdTerm(pHavocFunctionDeclaration, FileLocation.DUMMY),
-        ImmutableList.of(),
-        pHavocFunctionDeclaration);
-  }
-
   public SvLibFunctionCallExpression(
       FileLocation pFileLocation,
       SvLibType pType,

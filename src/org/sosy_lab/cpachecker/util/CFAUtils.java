@@ -109,7 +109,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -1062,17 +1061,6 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> accept(SvLibParameterDeclaration pSvLibParameterDeclaration)
         throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibReturnStatement pSvLibReturnStatement)
-        throws NoException {
-      Optional<SvLibIdTermTuple> returnValue = pSvLibReturnStatement.getReturnValue();
-      if (returnValue.isPresent()) {
-        return FluentIterable.of(returnValue.orElseThrow());
-      }
-
       return ImmutableList.of();
     }
 

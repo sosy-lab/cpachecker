@@ -12,14 +12,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.IntStream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -275,12 +272,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     // We do not need to handle initializers in SV-LIB, since they do not exist.
 
     return result;
-  }
-
-  public static <K, V> Map<K, V> zipToMap(List<? extends K> keys, List<? extends V> values) {
-    return IntStream.range(0, keys.size())
-        .boxed()
-        .collect(ImmutableMap.toImmutableMap(keys::get, values::get));
   }
 
   protected BooleanFormula makeProcedureCall(

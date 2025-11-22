@@ -24,7 +24,5 @@ public interface SvLibAstNodeVisitor<R, X extends Exception>
 
   R accept(SvLibParameterDeclaration pSvLibParameterDeclaration) throws X;
 
-  R accept(SvLibReturnStatement pSvLibReturnStatement) throws X;
-
   R accept(SvLibVariableDeclarationTuple pSvLibVariableDeclarationTuple) throws X;
 }
