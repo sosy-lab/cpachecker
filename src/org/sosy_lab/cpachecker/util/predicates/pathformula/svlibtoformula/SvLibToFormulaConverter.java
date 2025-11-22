@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatemen
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -230,12 +231,15 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
       SvLibTerm rhs =
           new SvLibIdTerm(
               svLibVariableDeclarationTuple.getDeclarations().get(i), FileLocation.DUMMY);
+
+      SvLibTermAssignmentCfaStatement svLibTermAssignmentCfaStatement =
+          new SvLibTermAssignmentCfaStatement(lhs, rhs, FileLocation.DUMMY);
+
       formula =
           fmgr.makeAnd(
               formula,
-              fmgr.assignment(
-                  SvLibTermToFormulaConverter.convertTerm(lhs, ssa, fmgr, this),
-                  SvLibTermToFormulaConverter.convertTerm(rhs, ssa, fmgr, this)));
+              SvLibStatementToFormulaConverter.convertStatement(
+                  svLibTermAssignmentCfaStatement, ssa, fmgr, this));
     }
     return formula;
   }
@@ -299,13 +303,18 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     BooleanFormula result = bfmgr.makeTrue();
     for (int i = 0; i < formalParams.size(); i++) {
       SvLibParameterDeclaration formalParam = formalParams.get(i);
+
+      SvLibIdTerm lhs = new SvLibIdTerm(formalParam, FileLocation.DUMMY);
+      SvLibTerm rhs = actualParams.get(i);
+
+      SvLibTermAssignmentCfaStatement svLibTermAssignmentCfaStatement =
+          new SvLibTermAssignmentCfaStatement(lhs, rhs, FileLocation.DUMMY);
+
       result =
           fmgr.makeAnd(
               result,
-              fmgr.assignment(
-                  SvLibTermToFormulaConverter.convertTerm(
-                      new SvLibIdTerm(formalParam, FileLocation.DUMMY), ssa, fmgr, this),
-                  SvLibTermToFormulaConverter.convertTerm(actualParams.get(i), ssa, fmgr, this)));
+              SvLibStatementToFormulaConverter.convertStatement(
+                  svLibTermAssignmentCfaStatement, ssa, fmgr, this));
     }
 
     return result;
