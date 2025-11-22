@@ -238,6 +238,30 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "c.config",
+        description =
+            "When checking C programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path cConfig = null;
+
+    @Option(
+        secure = true,
+        name = "java.config",
+        description =
+            "When checking Java programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path javaConfig = null;
+
+    @Option(
+        secure = true,
+        name = "llvm.config",
+        description =
+            "When checking LLVM programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path llvmConfig = null;
+
+    @Option(
+        secure = true,
         name = "memorysafety.config",
         description =
             "When checking for memory safety properties, use this configuration file instead of the"
@@ -401,6 +425,9 @@ public class CPAMain {
     config.inject(options);
     config = detectFrontendLanguageIfNecessary(options, config);
 
+    // Handle frontend-language-specific subconfig if necessary
+    config = handleFrontendLanguageOptions(config, options, cmdLineOptions, options.language);
+
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
 
@@ -469,6 +496,7 @@ public class CPAMain {
       language =
           switch (suffix) {
             case "ll", "bc" -> Language.LLVM;
+            case "java" -> Language.JAVA;
             case "c", "i", "h" -> Language.C;
             default -> Language.C;
           };
@@ -494,6 +522,33 @@ public class CPAMain {
           .put(CommonCoverageProperty.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageProperty.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
           .buildOrThrow();
+
+  private static Configuration handleFrontendLanguageOptions(
+      Configuration config,
+      BootstrapOptions pBootstrapLangOptions,
+      Map<String, String> pCmdLineOptions,
+      Language frontendLanguage)
+      throws InvalidConfigurationException, IOException {
+    Path subconfig =
+        switch (frontendLanguage) {
+          case C -> pBootstrapLangOptions.cConfig;
+          case JAVA -> pBootstrapLangOptions.javaConfig;
+          case LLVM -> pBootstrapLangOptions.llvmConfig;
+        };
+
+    if (subconfig != null) {
+      return Configuration.builder()
+          .loadFromFile(subconfig)
+          .setOptions(pCmdLineOptions)
+          .clearOption("c.config")
+          .clearOption("svlib.config")
+          .clearOption("llvm.config")
+          .clearOption("java.config")
+          .build();
+    }
+
+    return config;
+  }
 
   private static Configuration handlePropertyOptions(
       Configuration config,
