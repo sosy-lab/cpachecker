@@ -811,7 +811,12 @@ public abstract class AbstractExpressionValueVisitor
           // refactor the Value Analysis for that.
           if (BuiltinOverflowFunctions.functionReturnsNoValuesUsingSideEffects(functionName)) {
             return BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
-                    pIastFunctionCallExpression, calledFunctionName, false, null, machineModel, logger)
+                    pIastFunctionCallExpression,
+                    calledFunctionName,
+                    false,
+                    null,
+                    machineModel,
+                    logger)
                 .getFunctionReturnExpression()
                 .accept(this);
           }
