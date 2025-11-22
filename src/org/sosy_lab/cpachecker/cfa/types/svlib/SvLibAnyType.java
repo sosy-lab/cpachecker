@@ -26,7 +26,7 @@ public final class SvLibAnyType implements SvLibSmtLibType {
   @Serial private static final long serialVersionUID = -2771387240943229018L;
 
   @Override
-  public String toPlainString() {
+  public String toASTString() {
     return "any";
   }
 

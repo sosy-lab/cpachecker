@@ -61,7 +61,7 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
                     .map(
                         pFunctionDeclaration ->
                             pFunctionDeclaration.getName()
-                                + pFunctionDeclaration.getType().toPlainString())
+                                + pFunctionDeclaration.getType().toASTString())
                     .toList())
         + ")) ("
         + Joiner.on(") (").join(bodies.stream().map(b -> b.toASTString()).toList())

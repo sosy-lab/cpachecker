@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibProcedureType implements SvLibType, AFunctionType {
 
@@ -60,7 +59,7 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   }
 
   @Override
-  public String toPlainString() {
+  public String toASTString() {
     return "("
         + Joiner.on(") (").join(inputTypes)
         + ") ("

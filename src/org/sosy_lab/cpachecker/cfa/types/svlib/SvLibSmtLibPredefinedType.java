@@ -33,7 +33,7 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
   }
 
   @Override
-  public String toPlainString() {
+  public String toASTString() {
     return switch (this) {
       case INT -> "Int";
       case BOOL -> "Bool";

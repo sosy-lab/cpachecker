@@ -29,7 +29,7 @@ public final class SvLibProductType implements SvLibType {
   }
 
   @Override
-  public String toPlainString() {
+  public String toASTString() {
     return "[" + String.join(", ", elementTypes.stream().map(SvLibType::toString).toList()) + "]";
   }
 

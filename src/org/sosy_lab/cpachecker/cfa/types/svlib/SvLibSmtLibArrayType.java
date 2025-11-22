@@ -46,8 +46,8 @@ public final class SvLibSmtLibArrayType implements SvLibSmtLibType {
   }
 
   @Override
-  public String toPlainString() {
-    return "(Array " + keysType.toPlainString() + " " + valuesType.toPlainString() + ")";
+  public String toASTString() {
+    return "(Array " + keysType.toASTString() + " " + valuesType.toASTString() + ")";
   }
 
   @Override

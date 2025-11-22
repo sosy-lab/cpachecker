@@ -38,7 +38,7 @@ public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibComma
     return "(declare-const "
         + variable.toASTString()
         + " "
-        + variable.getType().toPlainString()
+        + variable.getType().toASTString()
         + ")";
   }
 

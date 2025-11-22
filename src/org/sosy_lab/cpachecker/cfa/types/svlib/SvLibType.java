@@ -34,7 +34,12 @@ public sealed interface SvLibType extends Type
     return t1.equals(t2);
   }
 
-  String toPlainString();
+  /**
+   * This method returns a string representation of the type suitable for AST output.
+   *
+   * @return AST string representation of the type
+   */
+  String toASTString();
 
   static Optional<SvLibType> fromString(String pType) {
     return Optional.ofNullable(

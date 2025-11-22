@@ -48,7 +48,7 @@ public final class SmtLibDefineFunCommand implements SmtLibCommand, SvLibCommand
   public String toASTString() {
     return "(define-fun "
         + functionDeclaration.getName()
-        + functionDeclaration.getType().toPlainString()
+        + functionDeclaration.getType().toASTString()
         + " "
         + body.toASTString()
         + ")";

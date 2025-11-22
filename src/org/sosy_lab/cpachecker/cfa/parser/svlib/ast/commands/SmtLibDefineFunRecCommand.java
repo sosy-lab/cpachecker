@@ -48,7 +48,7 @@ public final class SmtLibDefineFunRecCommand implements SmtLibCommand, SvLibComm
   public String toASTString() {
     return "(define-fun-rec "
         + functionDeclaration.getName()
-        + functionDeclaration.getType().toPlainString()
+        + functionDeclaration.getType().toASTString()
         + " "
         + body.toASTString()
         + ")";
