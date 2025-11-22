@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -26,9 +28,7 @@ public class SvLibVariableDeclarationTuple extends AVariableDeclaration implemen
         pFileLocation,
         false,
         new SvLibProductType(
-            FluentIterable.from(pDeclarations)
-                .transform(SvLibVariableDeclaration::getType)
-                .toList()),
+            transformedImmutableListCopy(pDeclarations, SvLibVariableDeclaration::getType)),
         "tuple of variables",
         "tuple of variables",
         "tuple of variables",

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
@@ -27,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.TagA
 
 class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   private final TermToAstConverter termToAstConverter;
-  private Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
+  private ImmutableMap.Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
 
   public TagToAstConverter(
       SvLibScope pScope,

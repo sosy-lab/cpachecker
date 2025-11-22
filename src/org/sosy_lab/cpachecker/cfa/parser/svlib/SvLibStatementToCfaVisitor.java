@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
@@ -85,8 +84,8 @@ public class SvLibStatementToCfaVisitor
       SvLibProcedureDeclaration pProcedure,
       LogManager pLogger,
       FunctionExitNode pFunctionExitNode,
-      Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
-      Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
+      ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
+      ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
       ImmutableMap.Builder<CFANode, String> pGotoNodesToLabels,
       ImmutableMap.Builder<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,

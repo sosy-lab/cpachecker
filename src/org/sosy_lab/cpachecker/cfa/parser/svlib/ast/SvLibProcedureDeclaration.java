@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -61,18 +60,14 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
     return new SvLibFunctionDeclaration(
         fileLocation,
         new SvLibFunctionType(
-            FluentIterable.from(parameters)
-                .transform(SvLibParsingParameterDeclaration::getType)
-                .toList(),
+            transformedImmutableListCopy(parameters, SvLibParsingParameterDeclaration::getType),
             new SvLibProductType(
-                FluentIterable.from(returnValues)
-                    .transform(SvLibParsingParameterDeclaration::getType)
-                    .toList())),
+                transformedImmutableListCopy(
+                    returnValues, SvLibParsingParameterDeclaration::getType))),
         name,
         name,
-        FluentIterable.from(parameters)
-            .transform(SvLibParsingParameterDeclaration::toSimpleDeclaration)
-            .toList());
+        transformedImmutableListCopy(
+            parameters, SvLibParsingParameterDeclaration::toSimpleDeclaration));
   }
 
   @Override

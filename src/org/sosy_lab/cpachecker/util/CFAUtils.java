@@ -1070,7 +1070,7 @@ public class CFAUtils {
         throws NoException {
       Optional<? extends AExpression> returnValue = pSvLibReturnStatement.getReturnValue();
       if (returnValue.isPresent()) {
-        return FluentIterable.of(returnValue.orElseThrow());
+        return FluentIterable.of(returnValue.orElseThrow()).toList();
       }
 
       return ImmutableList.of();

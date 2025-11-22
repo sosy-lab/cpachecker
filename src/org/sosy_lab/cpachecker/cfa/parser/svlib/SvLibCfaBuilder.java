@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -181,9 +183,9 @@ class SvLibCfaBuilder {
             functionDeclaration,
             new SvLibVariableDeclarationTuple(
                 FileLocation.DUMMY,
-                FluentIterable.from(procedureDeclaration.getReturnValues())
-                    .transform(SvLibParsingParameterDeclaration::toVariableDeclaration)
-                    .toList()),
+                transformedImmutableListCopy(
+                    procedureDeclaration.getReturnValues(),
+                    SvLibParsingParameterDeclaration::toVariableDeclaration)),
             x -> {},
             node -> allNodesCollector.add(node));
 
@@ -532,9 +534,9 @@ class SvLibCfaBuilder {
         new SvLibCfaMetadata(
             smtLibCommandsBuilder.build(),
             tagReferenceToScope,
-            functionToProcedureDeclaration.build(),
-            nodesToActualProcedureDefinitionEnd.build(),
-            nodesToActualHavocStatementEnd.build(),
+            functionToProcedureDeclaration.buildOrThrow(),
+            nodesToActualProcedureDefinitionEnd.buildOrThrow(),
+            nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
             nodesToTagReferences.build()));
   }

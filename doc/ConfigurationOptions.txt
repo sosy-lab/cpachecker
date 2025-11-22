@@ -2295,7 +2295,6 @@ cpa.pointerA.stop = "SEP"
 
 # Whether to give up immediately if a very large array is encountered
 # (heuristic, often we would just waste time otherwise)
-cpa.predicate.abortOnLargeArrays = no default value
 cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
@@ -2577,7 +2576,6 @@ cpa.predicate.ignoreExtractExtend = true
 cpa.predicate.ignoreIrrelevantFields = true
 
 # Ignore variables that are not relevant for reachability properties.
-cpa.predicate.ignoreIrrelevantVariables = no default value
 cpa.predicate.ignoreIrrelevantVariables = true
 
 # do not include assumptions of states into path formula during strengthening
@@ -3079,12 +3077,10 @@ cpa.predicate.useNonlinearArithmeticForIntAsBv = false
 
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
-cpa.predicate.useParameterVariables = no default value
 cpa.predicate.useParameterVariables = false
 
 # Insert tmp-parameters for global variables at function-entries. The global
 # variables are also encoded with return-variables at function-exit.
-cpa.predicate.useParameterVariablesForGlobals = no default value
 cpa.predicate.useParameterVariablesForGlobals = false
 
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
