@@ -13,25 +13,25 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 
 public final class SvLibHavocStatement extends SvLibStatement {
   @Serial private static final long serialVersionUID = 3102375106958425786L;
-  private final ImmutableList<SvLibSimpleDeclaration> variables;
+  private final ImmutableList<SvLibSimpleParsingDeclaration> variables;
 
   public SvLibHavocStatement(
       FileLocation pFileLocation,
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences,
-      List<SvLibSimpleDeclaration> pVariables) {
+      List<SvLibSimpleParsingDeclaration> pVariables) {
     super(pFileLocation, pTagAttributes, pTagReferences);
     variables = ImmutableList.copyOf(pVariables);
   }
 
-  public ImmutableList<SvLibSimpleDeclaration> getVariables() {
+  public ImmutableList<SvLibSimpleParsingDeclaration> getVariables() {
     return variables;
   }
 

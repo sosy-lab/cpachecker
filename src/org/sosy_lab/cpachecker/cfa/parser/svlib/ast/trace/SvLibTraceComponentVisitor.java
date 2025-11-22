@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 public interface SvLibTraceComponentVisitor<R, X extends Exception> {
 

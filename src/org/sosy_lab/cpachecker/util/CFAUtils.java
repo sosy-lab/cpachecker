@@ -101,30 +101,26 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SmtLibModel;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibChoiceStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibHavocVariablesStep;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibIncorrectTagProperty;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInitProcVariablesStep;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibLeapStep;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceEntryProcedure;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceSetGlobalVariable;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceUsingAnnotation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -135,9 +131,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -1050,16 +1043,43 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        SvLibProcedureDeclaration pSvLibProcedureDeclaration) {
-      return FluentIterable.from(pSvLibProcedureDeclaration.getParameters())
-          .append(pSvLibProcedureDeclaration.getLocalVariables())
-          .append(pSvLibProcedureDeclaration.getReturnValues());
+        SvLibParameterDeclaration pSvLibParameterDeclaration) {
+      return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(
-        SvLibParameterDeclaration pSvLibParameterDeclaration) {
+    public Iterable<? extends AAstNode> accept(
+        SvLibFunctionCallExpression pSvLibFunctionCallExpression) throws NoException {
+      return FluentIterable.from(pSvLibFunctionCallExpression.getParameterExpressions());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibFunctionDeclaration pSvLibFunctionDeclaration)
+        throws NoException {
+      return FluentIterable.from(pSvLibFunctionDeclaration.getParameters());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibParameterDeclaration pSvLibParameterDeclaration)
+        throws NoException {
       return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(SvLibReturnStatement pSvLibReturnStatement)
+        throws NoException {
+      Optional<? extends AExpression> returnValue = pSvLibReturnStatement.getReturnValue();
+      if (returnValue.isPresent()) {
+        return FluentIterable.of(returnValue.orElseThrow());
+      }
+
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(
+        SvLibVariableDeclarationTuple pSvLibVariableDeclarationTuple) throws NoException {
+      return pSvLibVariableDeclarationTuple.getDeclarations();
     }
 
     @Override
@@ -1106,23 +1126,6 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(SvLibAssignmentStatement pSvLibAssignmentStatement) {
-      return ImmutableList.copyOf(pSvLibAssignmentStatement.getAssignments().values());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(
-        SvLibProcedureCallStatement pSvLibProcedureCallStatement) throws NoException {
-      return FluentIterable.of(pSvLibProcedureCallStatement.getFunctionCallExpression());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> visit(SvLibHavocStatement pSvLibHavocStatement)
-        throws NoException {
-      return pSvLibHavocStatement.getVariables();
-    }
-
-    @Override
     public Iterable<? extends AAstNode> accept(SvLibTagReference pSvLibTagReference) {
       return ImmutableList.of();
     }
@@ -1152,73 +1155,25 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(
-        SvLibTraceSetGlobalVariable pSvLibTraceSetGlobalVariable) throws NoException {
+        SvLibTermAssignmentCfaStatement pSvLibTermAssignmentCfaStatement) throws NoException {
       return ImmutableList.of(
-          pSvLibTraceSetGlobalVariable.getSymbol(), pSvLibTraceSetGlobalVariable.getConstantTerm());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibTraceEntryProcedure pSvLibTraceEntryProcedure)
-        throws NoException {
-      return ImmutableList.of(pSvLibTraceEntryProcedure.getDeclaration());
+          pSvLibTermAssignmentCfaStatement.getLeftHandSide(),
+          pSvLibTermAssignmentCfaStatement.getRightHandSide());
     }
 
     @Override
     public Iterable<? extends AAstNode> accept(
-        SvLibInitProcVariablesStep pSvLibInitProcVariablesStep) throws NoException {
-      return FluentIterable.concat(
-          pSvLibInitProcVariablesStep.getAssignments().keySet(),
-          pSvLibInitProcVariablesStep.getAssignments().values());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibHavocVariablesStep pSvLibHavocVariablesStep)
+        SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement)
         throws NoException {
-      return FluentIterable.concat(
-          pSvLibHavocVariablesStep.getAssignments().keySet(),
-          pSvLibHavocVariablesStep.getAssignments().values());
+      return ImmutableList.of(
+          pSvLibFunctionCallAssignmentStatement.getLeftHandSide(),
+          pSvLibFunctionCallAssignmentStatement.getRightHandSide());
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(SvLibChoiceStep pSvLibChoiceStep)
+    public Iterable<? extends AAstNode> accept(SvLibIdTermTuple pSvLibIdTermTuple)
         throws NoException {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibLeapStep pSvLibLeapStep) throws NoException {
-      return FluentIterable.concat(
-          pSvLibLeapStep.getAssignments().values(), pSvLibLeapStep.getAssignments().keySet());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibTrace pSvLibTrace) throws NoException {
-      return FluentIterable.concat(
-          pSvLibTrace.getSetGlobalVariables(),
-          ImmutableList.of(pSvLibTrace.getEntryProc()),
-          pSvLibTrace.getSteps(),
-          ImmutableList.of(pSvLibTrace.getViolatedProperty()),
-          pSvLibTrace.getUsingAnnotations());
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibIncorrectTagProperty pSvLibIncorrectTagProperty)
-        throws NoException {
-      return pSvLibIncorrectTagProperty.getViolatedProperties();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SvLibTraceUsingAnnotation pSvLibTraceUsingAnnotation)
-        throws NoException {
-      return pSvLibTraceUsingAnnotation.getAttributes();
-    }
-
-    @Override
-    public Iterable<? extends AAstNode> accept(SmtLibModel pSmtLibModel) throws NoException {
-      return FluentIterable.concat(
-          pSmtLibModel.getSmtLibDefineFunCommands(),
-          pSmtLibModel.getSmtLibDefineFunRecCommands(),
-          pSmtLibModel.getSmtLibDefineFunsRecCommands());
+      return pSvLibIdTermTuple.getIdTerms();
     }
   }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -32,9 +34,13 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
@@ -49,10 +55,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunRecCommand;
@@ -71,7 +80,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicComman
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
@@ -97,6 +106,12 @@ class SvLibCfaBuilder {
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodesToTagReferences =
       ImmutableSetMultimap.builder();
 
+  // Required to reconstruct violation witnesses properly
+  private final ImmutableMap.Builder<CFANode, SvLibProcedureDeclaration>
+      nodesToActualProcedureDefinitionEnd = ImmutableMap.builder();
+  private final ImmutableMap.Builder<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd =
+      ImmutableMap.builder();
+
   public SvLibCfaBuilder(
       LogManager pLogger,
       Configuration pConfig,
@@ -110,27 +125,34 @@ class SvLibCfaBuilder {
 
   private Pair<ADeclaration, String> parseGlobalVariable(SvLibVariableDeclarationCommand pCommand) {
     return Pair.of(
-        pCommand.getVariableDeclaration(), pCommand.getVariableDeclaration().toASTString());
+        pCommand.getVariableDeclaration().toSimpleDeclaration(),
+        pCommand.getVariableDeclaration().toASTString());
   }
 
   private Pair<ADeclaration, String> parseGlobalConstant(SvLibDeclareConstCommand pCommand) {
-    return Pair.of(pCommand.getVariable(), pCommand.getVariable().toASTString());
+    return Pair.of(
+        pCommand.getVariable().toSimpleDeclaration(), pCommand.getVariable().toASTString());
   }
 
   private CFANode newNodeAddedToBuilder(
-      SvLibProcedureDeclaration pProcedure, Consumer<CFANode> pMetadataFunctionAllNodes) {
+      SvLibFunctionDeclaration pProcedure, Consumer<CFANode> pMetadataFunctionAllNodes) {
     CFANode newNode = new CFANode(pProcedure);
     pMetadataFunctionAllNodes.accept(newNode);
     return newNode;
   }
 
   private Pair<FunctionEntryNode, FunctionExitNode> newFunctionNodesWithMetadataTracking(
-      SvLibProcedureDeclaration pProcedure,
+      SvLibFunctionDeclaration pFunctionDeclaration,
+      SvLibVariableDeclarationTuple pReturnValues,
       Consumer<FunctionEntryNode> pMetadataFunctionEntryNodes,
       Consumer<CFANode> pMetadataFunctionAllNodes) {
-    FunctionExitNode functionExitNode = new FunctionExitNode(pProcedure);
+    FunctionExitNode functionExitNode = new FunctionExitNode(pFunctionDeclaration);
     FunctionEntryNode functionEntryNode =
-        new SvLibProcedureEntryNode(pProcedure.getFileLocation(), functionExitNode, pProcedure);
+        new SvLibProcedureEntryNode(
+            pFunctionDeclaration.getFileLocation(),
+            functionExitNode,
+            pFunctionDeclaration,
+            pReturnValues);
 
     // TODO: I'm unsure why this is handled like this and not directly in the constructor of
     //  FunctionEntryNode.
@@ -152,16 +174,44 @@ class SvLibCfaBuilder {
     ImmutableSet.Builder<CFANode> allNodesCollector = ImmutableSet.builder();
 
     // Create the entry and exit nodes for the function
+    SvLibFunctionDeclaration functionDeclaration = procedureDeclaration.toSimpleDeclaration();
     Pair<FunctionEntryNode, FunctionExitNode> functionNodes =
         newFunctionNodesWithMetadataTracking(
-            procedureDeclaration, x -> {}, node -> allNodesCollector.add(node));
+            functionDeclaration,
+            new SvLibVariableDeclarationTuple(
+                FileLocation.DUMMY,
+                FluentIterable.from(procedureDeclaration.getReturnValues())
+                    .transform(SvLibParsingParameterDeclaration::toVariableDeclaration)
+                    .toList()),
+            x -> {},
+            node -> allNodesCollector.add(node));
 
     FunctionExitNode functionExitNode = functionNodes.getSecondNotNull();
     FunctionEntryNode functionEntryNode = functionNodes.getFirstNotNull();
 
+    // Declare the local and output variables
+    CFANode currentStartingNode = functionEntryNode;
+    CFANode newNode;
+    for (SvLibParsingParameterDeclaration localVar :
+        FluentIterable.concat(
+            procedureDeclaration.getLocalVariables(), procedureDeclaration.getReturnValues())) {
+      newNode = newNodeAddedToBuilder(functionDeclaration, node -> allNodesCollector.add(node));
+      CFAEdge declEdge =
+          new SvLibDeclarationEdge(
+              localVar.toASTString(),
+              FileLocation.DUMMY,
+              currentStartingNode,
+              newNode,
+              localVar.toVariableDeclaration());
+      CFACreationUtils.addEdgeToCFA(declEdge, logger);
+      currentStartingNode = newNode;
+    }
+
+    nodesToActualProcedureDefinitionEnd.put(currentStartingNode, procedureDeclaration);
+
     SvLibStatementToCfaVisitor statementVisitor =
         new SvLibStatementToCfaVisitor(
-            functionEntryNode,
+            currentStartingNode,
             procedureDeclaration,
             logger,
             functionExitNode,
@@ -170,7 +220,8 @@ class SvLibCfaBuilder {
             gotoNodesToLabels,
             labelsToNodes,
             allNodesCollector,
-            tagReferencesToAnnotations.build());
+            tagReferencesToAnnotations.build(),
+            nodesToActualHavocStatementEnd);
 
     Optional<CFANode> optionalEndNode = pCommand.getBody().accept(statementVisitor);
     if (optionalEndNode.isPresent()) {
@@ -215,7 +266,8 @@ class SvLibCfaBuilder {
             idTerm -> {
               if (idTerm.getDeclaration().getType().equals(SvLibCustomType.InternalAnyType)) {
                 return new SvLibIdTerm(
-                    pScope.getVariable(idTerm.getDeclaration().getName()), FileLocation.DUMMY);
+                    pScope.getVariable(idTerm.getDeclaration().getName()).toSimpleDeclaration(),
+                    FileLocation.DUMMY);
               } else {
                 return idTerm;
               }
@@ -240,7 +292,8 @@ class SvLibCfaBuilder {
     };
   }
 
-  public ParseResult buildCfaFromScript(SvLibScript script) throws SvLibParserException {
+  public ParseResult buildCfaFromScript(SvLibParsingResult pParsingResult)
+      throws SvLibParserException {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -255,12 +308,13 @@ class SvLibCfaBuilder {
     List<Path> fileNames = ImmutableList.of();
 
     // Keep track of the invented main function
-    SvLibProcedureDeclaration mainFunctionDeclaration =
-        SvLibProcedureDeclaration.mainFunctionDeclaration();
-    String mainFunctionName = mainFunctionDeclaration.getOrigName();
+    SvLibFunctionDeclaration mainFunctionDeclaration =
+        SvLibFunctionDeclaration.mainFunctionDeclaration();
+    String mainFunctionName = mainFunctionDeclaration.getName();
     Pair<FunctionEntryNode, FunctionExitNode> mainFunctionNodes =
         newFunctionNodesWithMetadataTracking(
             mainFunctionDeclaration,
+            new SvLibVariableDeclarationTuple(FileLocation.DUMMY, ImmutableList.of()),
             entryNode -> functions.put(mainFunctionName, entryNode),
             node -> cfaNodes.put(mainFunctionName, node));
 
@@ -282,8 +336,15 @@ class SvLibCfaBuilder {
     // Keep track of the metadata for the CFA, like the specification, and the SMT-LIB commands.
     ImmutableList.Builder<SmtLibCommand> smtLibCommandsBuilder = new ImmutableList.Builder<>();
 
+    // Get the map from tags to their scopes
+    ImmutableMap<SvLibTagReference, SvLibScope> tagReferenceToScope =
+        pParsingResult.tagReferenceScopes();
+
+    ImmutableMap.Builder<SvLibFunctionDeclaration, SvLibProcedureDeclaration>
+        functionToProcedureDeclaration = ImmutableMap.builder();
+
     // Go through all the commands in the script and parse them.
-    List<SvLibCommand> commands = script.getCommands();
+    List<SvLibCommand> commands = pParsingResult.script().getCommands();
     int indexOfFirstVerifyCall = -1;
 
     for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
@@ -300,9 +361,12 @@ class SvLibCfaBuilder {
           Pair<FunctionEntryNode, Set<CFANode>> functionDefinitionParseResult =
               parseProcedureDefinition(procedureDefinitionCommand);
 
-          String functionName = procedureDeclaration.getOrigName();
+          String functionName = procedureDeclaration.getName();
           functions.put(functionName, functionDefinitionParseResult.getFirstNotNull());
           cfaNodes.putAll(functionName, functionDefinitionParseResult.getSecondNotNull());
+
+          functionToProcedureDeclaration.put(
+              procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
         }
         case SvLibVerifyCallCommand pVerifyCallCommand -> {
           // In theory the idea behind SV-LIB is to have an interactive shell with the ability to
@@ -312,14 +376,21 @@ class SvLibCfaBuilder {
           // incremental/dialgue mode.
           // The simplification makes it such that we will create an artificial main function which
           // calls all the functions to be verified with the corresponding parameters.
-          SvLibProcedureCallStatement procedureCallStatement =
-              new SvLibProcedureCallStatement(
+          SvLibProcedureDeclaration procedureDeclaration =
+              pVerifyCallCommand.getProcedureDeclaration();
+          SvLibFunctionDeclaration functionDeclaration = procedureDeclaration.toSimpleDeclaration();
+          SvLibFunctionCallAssignmentStatement functionCallStatement =
+              new SvLibFunctionCallAssignmentStatement(
                   FileLocation.DUMMY,
-                  ImmutableList.of(),
-                  ImmutableList.of(),
-                  pVerifyCallCommand.getProcedureDeclaration(),
-                  pVerifyCallCommand.getTerms(),
-                  ImmutableList.of());
+                  new SvLibIdTermTuple(
+                      FileLocation.DUMMY,
+                      ImmutableList.of()), // No lvalues, since we ignore return values here
+                  new SvLibFunctionCallExpression(
+                      FileLocation.DUMMY,
+                      functionDeclaration.getType(),
+                      new SvLibIdTerm(functionDeclaration, FileLocation.DUMMY),
+                      pVerifyCallCommand.getTerms(),
+                      functionDeclaration));
 
           CFANode successorNode =
               newNodeAddedToBuilder(
@@ -327,9 +398,9 @@ class SvLibCfaBuilder {
 
           CFAEdge procedureCallEdge =
               new SvLibStatementEdge(
-                  procedureCallStatement.toASTString(),
-                  procedureCallStatement,
-                  procedureCallStatement.getFileLocation(),
+                  functionCallStatement.toASTString(),
+                  functionCallStatement,
+                  FileLocation.DUMMY,
                   currentMainFunctionNode,
                   successorNode);
           CFACreationUtils.addEdgeToCFA(procedureCallEdge, logger);
@@ -351,7 +422,10 @@ class SvLibCfaBuilder {
             if (tagReference.getTagName().equals(tagName)) {
               for (SvLibTagProperty tagProperty : tagProperties) {
                 nodeToTagAnnotations.put(
-                    node, instantiateTagProperty(tagReference.getScope(), tagProperty));
+                    node,
+                    instantiateTagProperty(
+                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)),
+                        tagProperty));
               }
             }
           }
@@ -453,6 +527,10 @@ class SvLibCfaBuilder {
         fileNames,
         new SvLibCfaMetadata(
             smtLibCommandsBuilder.build(),
+            tagReferenceToScope,
+            functionToProcedureDeclaration.build(),
+            nodesToActualProcedureDefinitionEnd.build(),
+            nodesToActualHavocStatementEnd.build(),
             nodeToTagAnnotations.build(),
             nodesToTagReferences.build()));
   }

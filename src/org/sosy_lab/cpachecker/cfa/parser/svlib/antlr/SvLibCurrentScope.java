@@ -14,23 +14,23 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 
 class SvLibCurrentScope extends SvLibScope {
 
-  private PersistentMap<String, SvLibSimpleDeclaration> globalVariables;
+  private PersistentMap<String, SvLibSimpleParsingDeclaration> globalVariables;
 
-  private PersistentMap<String, SvLibSimpleDeclaration> globalVariablesQualifiedNames;
+  private PersistentMap<String, SvLibSimpleParsingDeclaration> globalVariablesQualifiedNames;
 
-  private PersistentMap<String, SvLibParameterDeclaration> procedureDeclarationVariables;
+  private PersistentMap<String, SvLibParsingParameterDeclaration> procedureDeclarationVariables;
 
-  private PersistentMap<String, SvLibParameterDeclaration>
+  private PersistentMap<String, SvLibParsingParameterDeclaration>
       procedureDeclarationVariablesQualifiedNames;
 
   private PersistentMap<String, SvLibProcedureDeclaration> procedureDeclarations;
@@ -45,10 +45,11 @@ class SvLibCurrentScope extends SvLibScope {
   }
 
   private SvLibCurrentScope(
-      PersistentMap<String, SvLibSimpleDeclaration> pGlobalVariables,
-      PersistentMap<String, SvLibSimpleDeclaration> pGlobalVariablesQualifiedNames,
-      PersistentMap<String, SvLibParameterDeclaration> pProcedureDeclarationVariables,
-      PersistentMap<String, SvLibParameterDeclaration> pProcedureDeclarationVariablesQualifiedNames,
+      PersistentMap<String, SvLibSimpleParsingDeclaration> pGlobalVariables,
+      PersistentMap<String, SvLibSimpleParsingDeclaration> pGlobalVariablesQualifiedNames,
+      PersistentMap<String, SvLibParsingParameterDeclaration> pProcedureDeclarationVariables,
+      PersistentMap<String, SvLibParsingParameterDeclaration>
+          pProcedureDeclarationVariablesQualifiedNames,
       PersistentMap<String, SvLibProcedureDeclaration> pProcedureDeclarations,
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, SvLibSortDeclaration> pSortDeclarations,
@@ -75,12 +76,14 @@ class SvLibCurrentScope extends SvLibScope {
   }
 
   @Override
-  public void enterProcedure(List<SvLibParameterDeclaration> pParameters) {
-    for (SvLibParameterDeclaration parameter : pParameters) {
+  public void enterProcedure(List<SvLibParsingParameterDeclaration> pParameters) {
+    for (SvLibParsingParameterDeclaration parameter : pParameters) {
       if (globalVariables.containsKey(parameter.getName())
           || procedureDeclarationVariables.containsKey(parameter.getName())) {
         throw new IllegalArgumentException(
-            "Parameter with name " + parameter.getName() + " already exists in the scope.");
+            "Parameter with name "
+                + parameter.getQualifiedName()
+                + " already exists in the scope.");
       }
       procedureDeclarationVariables =
           procedureDeclarationVariables.putAndCopy(parameter.getName(), parameter);
@@ -97,7 +100,7 @@ class SvLibCurrentScope extends SvLibScope {
   }
 
   @Override
-  public SvLibSimpleDeclaration getVariable(String pText) {
+  public SvLibSimpleParsingDeclaration getVariable(String pText) {
     if (globalVariables.containsKey(pText)) {
       return globalVariables.get(pText);
     } else if (procedureDeclarationVariables.containsKey(pText)) {
@@ -109,7 +112,7 @@ class SvLibCurrentScope extends SvLibScope {
   }
 
   @Override
-  public SvLibSimpleDeclaration getVariableForQualifiedName(String pText) {
+  public SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pText) {
     if (globalVariablesQualifiedNames.containsKey(pText)) {
       return globalVariablesQualifiedNames.get(pText);
     } else if (procedureDeclarationVariablesQualifiedNames.containsKey(pText)) {
@@ -121,7 +124,7 @@ class SvLibCurrentScope extends SvLibScope {
   }
 
   @Override
-  public void addVariable(SvLibVariableDeclaration pVariableDeclaration) {
+  public void addVariable(SvLibParsingVariableDeclaration pVariableDeclaration) {
     if (globalVariables.containsKey(pVariableDeclaration.getName())
         || procedureDeclarationVariables.containsKey(pVariableDeclaration.getName())) {
       throw new IllegalArgumentException(

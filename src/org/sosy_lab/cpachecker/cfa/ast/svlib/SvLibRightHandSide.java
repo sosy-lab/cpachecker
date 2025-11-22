@@ -10,4 +10,4 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 
-public interface SvLibRightHandSide extends ARightHandSide {}
+public interface SvLibRightHandSide extends ARightHandSide, SvLibAstNode {}

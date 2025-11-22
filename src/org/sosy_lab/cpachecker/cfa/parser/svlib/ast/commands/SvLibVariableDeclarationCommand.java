@@ -11,24 +11,24 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 
 public final class SvLibVariableDeclarationCommand implements SvLibCommand {
 
   @Serial private static final long serialVersionUID = -1300405431265108107L;
 
-  private final SvLibVariableDeclaration variableDeclaration;
+  private final SvLibParsingVariableDeclaration variableDeclaration;
 
   private final FileLocation fileLocation;
 
   public SvLibVariableDeclarationCommand(
-      SvLibVariableDeclaration pVariableDeclaration, FileLocation pFileLocation) {
+      SvLibParsingVariableDeclaration pVariableDeclaration, FileLocation pFileLocation) {
     variableDeclaration = pVariableDeclaration;
     fileLocation = pFileLocation;
   }
 
-  public SvLibVariableDeclaration getVariableDeclaration() {
+  public SvLibParsingVariableDeclaration getVariableDeclaration() {
     return variableDeclaration;
   }
 

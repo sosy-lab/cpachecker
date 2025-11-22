@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import com.google.common.base.Joiner;
 import java.io.Serial;
@@ -14,7 +14,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
@@ -51,24 +53,17 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return "(incorrect-annotation "
-        + (svLibTagReference.isPresent()
-            ? svLibTagReference.orElseThrow().toASTString(pAAstNodeRepresentation)
-            : "")
+        + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().toASTString() : "")
         + " "
         + Joiner.on(" ").join(violatedProperties.stream().map(SvLibAstNode::toASTString).toList())
         + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

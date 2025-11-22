@@ -8,38 +8,50 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.CheckTruePropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.EnsuresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.InvariantPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.RequiresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.TagAttributeContext;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 
 class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   private final TermToAstConverter termToAstConverter;
+  private Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
 
-  public TagToAstConverter(SvLibScope pScope, Path pFilePath) {
+  public TagToAstConverter(
+      SvLibScope pScope,
+      Path pFilePath,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope, pFilePath);
+    tagReferenceToScopeBuilder = pTagReferenceToScopeBuilder;
     termToAstConverter = new TermToAstConverter(pScope, pFilePath);
   }
 
-  public TagToAstConverter(SvLibScope pScope) {
+  public TagToAstConverter(
+      SvLibScope pScope,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope);
     termToAstConverter = new TermToAstConverter(pScope);
+    tagReferenceToScopeBuilder = pTagReferenceToScopeBuilder;
   }
 
   @Override
   public SvLibTagAttribute visitTagAttribute(TagAttributeContext pContext) {
-    return new SvLibTagReference(
-        pContext.symbol().getText(), fileLocationFromContext(pContext), scope.copy());
+    SvLibTagReference tagReference =
+        new SvLibTagReference(pContext.symbol().getText(), fileLocationFromContext(pContext));
+    tagReferenceToScopeBuilder.put(tagReference, scope.copy());
+    return tagReference;
   }
 
   @Override

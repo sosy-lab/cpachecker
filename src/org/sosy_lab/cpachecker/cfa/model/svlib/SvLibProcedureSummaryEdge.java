@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 
 public final class SvLibProcedureSummaryEdge extends FunctionSummaryEdge implements SvLibCfaEdge {
   public SvLibProcedureSummaryEdge(
@@ -19,13 +19,18 @@ public final class SvLibProcedureSummaryEdge extends FunctionSummaryEdge impleme
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      SvLibProcedureCallStatement pExpression,
+      SvLibFunctionCallAssignmentStatement pStatement,
       SvLibProcedureEntryNode pFunctionEntry) {
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pFunctionEntry);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pStatement, pFunctionEntry);
   }
 
   @Override
-  public SvLibProcedureCallStatement getExpression() {
-    return (SvLibProcedureCallStatement) super.getExpression();
+  public SvLibFunctionCallAssignmentStatement getExpression() {
+    return (SvLibFunctionCallAssignmentStatement) super.getExpression();
+  }
+
+  @Override
+  public SvLibProcedureEntryNode getFunctionEntry() {
+    return (SvLibProcedureEntryNode) super.getFunctionEntry();
   }
 }

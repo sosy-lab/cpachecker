@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -20,12 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
@@ -33,9 +29,16 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
@@ -69,16 +72,28 @@ public class SvLibParserTest {
     } catch (IOException e) {
       throw new SvLibAstParseException("Could not read input file: " + inputPath, e);
     }
-    SvLibScript parsed = SvLibToAstParser.parseScript(programString);
-    assert parsed.equals(output) : "Parsed object does not match expected object";
+    SvLibParsingResult parsed = SvLibToAstParser.parseScript(programString);
+
+    Truth.assertWithMessage("Scripts have different number of commands")
+        .that(parsed.script().getCommands().size())
+        .isEqualTo(output.getCommands().size());
+    for (int i = 0; i < parsed.script().getCommands().size(); i++) {
+      SvLibCommand parsedCommand = parsed.script().getCommands().get(i);
+      SvLibCommand expectedCommand = output.getCommands().get(i);
+      Truth.assertWithMessage("Command %s differs", i)
+          .that(parsedCommand)
+          .isEqualTo(expectedCommand);
+    }
   }
 
   @Test
   public void parseSimpleCorrectProgram() throws SvLibAstParseException {
-    SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
-    SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
+    SvLibParsingParameterDeclaration x =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
+    SvLibParsingParameterDeclaration y =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
             FileLocation.DUMMY,
@@ -86,11 +101,11 @@ public class SvLibParserTest {
             ImmutableList.of(x, y),
             ImmutableList.of(),
             ImmutableList.of());
-    SvLibVariableDeclaration w =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration w =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "w", "w", "w");
-    SvLibVariableDeclaration z =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration z =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "z", "z", "z");
 
     SvLibScript output =
@@ -111,8 +126,10 @@ public class SvLibParserTest {
                                     new SvLibIdTerm(
                                         SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new SvLibIdTerm(x, FileLocation.DUMMY),
-                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                        new SvLibIdTerm(
+                                            x.toSimpleDeclaration(), FileLocation.DUMMY),
+                                        new SvLibIdTerm(
+                                            y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(),
                                 ImmutableList.of()),
@@ -122,8 +139,10 @@ public class SvLibParserTest {
                                     new SvLibIdTerm(
                                         SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new SvLibIdTerm(x, FileLocation.DUMMY),
-                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                        new SvLibIdTerm(
+                                            x.toSimpleDeclaration(), FileLocation.DUMMY),
+                                        new SvLibIdTerm(
+                                            y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new SvLibCheckTrueTag(
@@ -132,8 +151,10 @@ public class SvLibParserTest {
                                                 SmtLibTheoryDeclarations.INT_EQUALITY,
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
-                                                new SvLibIdTerm(x, FileLocation.DUMMY),
-                                                new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                                new SvLibIdTerm(
+                                                    x.toSimpleDeclaration(), FileLocation.DUMMY),
+                                                new SvLibIdTerm(
+                                                    y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
                                 ImmutableList.of())),
@@ -143,8 +164,8 @@ public class SvLibParserTest {
                 new SvLibVerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
-                        new SvLibIdTerm(w, FileLocation.DUMMY),
-                        new SvLibIdTerm(z, FileLocation.DUMMY)),
+                        new SvLibIdTerm(w.toSimpleDeclaration(), FileLocation.DUMMY),
+                        new SvLibIdTerm(z.toSimpleDeclaration(), FileLocation.DUMMY)),
                     FileLocation.DUMMY)));
     Path filePath = Path.of(examplesPath(), "simple-correct.svlib");
 
@@ -153,10 +174,12 @@ public class SvLibParserTest {
 
   @Test
   public void parseSimpleIncorrectProgram() throws SvLibAstParseException {
-    SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
-    SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
+    SvLibParsingParameterDeclaration x =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "f1");
+    SvLibParsingParameterDeclaration y =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "f1");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
             FileLocation.DUMMY,
@@ -164,11 +187,11 @@ public class SvLibParserTest {
             ImmutableList.of(x, y),
             ImmutableList.of(),
             ImmutableList.of());
-    SvLibVariableDeclaration w =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration w =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "w", "w", "w");
-    SvLibVariableDeclaration z =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration z =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, false, SvLibSmtLibPredefinedType.INT, "z", "z", "z");
 
     SvLibScript output =
@@ -189,8 +212,10 @@ public class SvLibParserTest {
                                     new SvLibIdTerm(
                                         SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new SvLibIdTerm(x, FileLocation.DUMMY),
-                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                        new SvLibIdTerm(
+                                            x.toSimpleDeclaration(), FileLocation.DUMMY),
+                                        new SvLibIdTerm(
+                                            y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(),
                                 ImmutableList.of()),
@@ -200,8 +225,10 @@ public class SvLibParserTest {
                                     new SvLibIdTerm(
                                         SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new SvLibIdTerm(x, FileLocation.DUMMY),
-                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                        new SvLibIdTerm(
+                                            x.toSimpleDeclaration(), FileLocation.DUMMY),
+                                        new SvLibIdTerm(
+                                            y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new SvLibCheckTrueTag(
@@ -215,8 +242,12 @@ public class SvLibParserTest {
                                                         SmtLibTheoryDeclarations.INT_EQUALITY,
                                                         FileLocation.DUMMY),
                                                     ImmutableList.of(
-                                                        new SvLibIdTerm(x, FileLocation.DUMMY),
-                                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                                        new SvLibIdTerm(
+                                                            x.toSimpleDeclaration(),
+                                                            FileLocation.DUMMY),
+                                                        new SvLibIdTerm(
+                                                            y.toSimpleDeclaration(),
+                                                            FileLocation.DUMMY)),
                                                     FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
@@ -227,8 +258,8 @@ public class SvLibParserTest {
                 new SvLibVerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
-                        new SvLibIdTerm(w, FileLocation.DUMMY),
-                        new SvLibIdTerm(z, FileLocation.DUMMY)),
+                        new SvLibIdTerm(w.toSimpleDeclaration(), FileLocation.DUMMY),
+                        new SvLibIdTerm(z.toSimpleDeclaration(), FileLocation.DUMMY)),
                     FileLocation.DUMMY)));
     Path filePath = Path.of(examplesPath(), "simple-incorrect.svlib");
 
@@ -238,23 +269,23 @@ public class SvLibParserTest {
   @Test
   public void parseLoopAdd() throws SvLibAstParseException {
 
-    SvLibParameterDeclaration x0 =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration x0 =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x0", "add");
-    SvLibParameterDeclaration y0 =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration y0 =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y0", "add");
-    SvLibVariableDeclaration w0Const =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration w0Const =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, true, SvLibSmtLibPredefinedType.INT, "w0", "w0", "w0");
-    SvLibVariableDeclaration z0Const =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration z0Const =
+        new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, true, SvLibSmtLibPredefinedType.INT, "z0", "z0", "z0");
-    SvLibParameterDeclaration x =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration x =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "x", "add");
-    SvLibParameterDeclaration y =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration y =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "y", "add");
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
@@ -277,9 +308,9 @@ public class SvLibParserTest {
                             new SvLibAssignmentStatement(
                                 ImmutableMap.of(
                                     x,
-                                    new SvLibIdTerm(x0, FileLocation.DUMMY),
+                                    new SvLibIdTerm(x0.toSimpleDeclaration(), FileLocation.DUMMY),
                                     y,
-                                    new SvLibIdTerm(y0, FileLocation.DUMMY)),
+                                    new SvLibIdTerm(y0.toSimpleDeclaration(), FileLocation.DUMMY)),
                                 FileLocation.DUMMY,
                                 ImmutableList.of(),
                                 ImmutableList.of()),
@@ -290,7 +321,8 @@ public class SvLibParserTest {
                                     ImmutableList.of(
                                         new SvLibIntegerConstantTerm(
                                             BigInteger.ZERO, FileLocation.DUMMY),
-                                        new SvLibIdTerm(y, FileLocation.DUMMY)),
+                                        new SvLibIdTerm(
+                                            y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 new SvLibAssignmentStatement(
                                     ImmutableMap.of(
@@ -300,7 +332,8 @@ public class SvLibParserTest {
                                                 SmtLibTheoryDeclarations.intAddition(2),
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
-                                                new SvLibIdTerm(x, FileLocation.DUMMY),
+                                                new SvLibIdTerm(
+                                                    x.toSimpleDeclaration(), FileLocation.DUMMY),
                                                 new SvLibIntegerConstantTerm(
                                                     BigInteger.ONE, FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
@@ -310,7 +343,8 @@ public class SvLibParserTest {
                                                 SmtLibTheoryDeclarations.intSubtraction(2),
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
-                                                new SvLibIdTerm(y, FileLocation.DUMMY),
+                                                new SvLibIdTerm(
+                                                    y.toSimpleDeclaration(), FileLocation.DUMMY),
                                                 new SvLibIntegerConstantTerm(
                                                     BigInteger.ONE, FileLocation.DUMMY)),
                                             FileLocation.DUMMY)),
@@ -322,14 +356,14 @@ public class SvLibParserTest {
                                     // Using null for the scope is not the best solution but works
                                     // for tests, since equality over tags must be based on the
                                     // nameonly.
-                                    new SvLibTagReference("while-1", FileLocation.DUMMY, null)),
+                                    new SvLibTagReference("while-1", FileLocation.DUMMY)),
                                 FileLocation.DUMMY)),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of(
                             // Using null for the scope is not the best solution but works for
                             // tests, since equality over tags must be based on the name only.
-                            new SvLibTagReference("proc-add", FileLocation.DUMMY, null)))),
+                            new SvLibTagReference("proc-add", FileLocation.DUMMY)))),
                 new SvLibAnnotateTagCommand(
                     "proc-add",
                     ImmutableList.of(
@@ -342,7 +376,8 @@ public class SvLibParserTest {
                                     new SvLibIntegerConstantTerm(
                                         BigInteger.ZERO, FileLocation.DUMMY),
                                     new SvLibIdTerm(
-                                        SvLibVariableDeclaration.dummyVariableForName("y0"),
+                                        SvLibParsingVariableDeclaration.dummyVariableForName("y0")
+                                            .toSimpleDeclaration(),
                                         FileLocation.DUMMY)),
                                 FileLocation.DUMMY),
                             FileLocation.DUMMY),
@@ -352,7 +387,8 @@ public class SvLibParserTest {
                                     SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new SvLibIdTerm(
-                                        SvLibVariableDeclaration.dummyVariableForName("x"),
+                                        SvLibParsingVariableDeclaration.dummyVariableForName("x")
+                                            .toSimpleDeclaration(),
                                         FileLocation.DUMMY),
                                     new SvLibSymbolApplicationTerm(
                                         new SvLibIdTerm(
@@ -360,10 +396,14 @@ public class SvLibParserTest {
                                             FileLocation.DUMMY),
                                         ImmutableList.of(
                                             new SvLibIdTerm(
-                                                SvLibVariableDeclaration.dummyVariableForName("x0"),
+                                                SvLibParsingVariableDeclaration
+                                                    .dummyVariableForName("x0")
+                                                    .toSimpleDeclaration(),
                                                 FileLocation.DUMMY),
                                             new SvLibIdTerm(
-                                                SvLibVariableDeclaration.dummyVariableForName("y0"),
+                                                SvLibParsingVariableDeclaration
+                                                    .dummyVariableForName("y0")
+                                                    .toSimpleDeclaration(),
                                                 FileLocation.DUMMY)),
                                         FileLocation.DUMMY)),
                                 FileLocation.DUMMY),
@@ -377,14 +417,14 @@ public class SvLibParserTest {
                             SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN, FileLocation.DUMMY),
                         ImmutableList.of(
                             new SvLibIntegerConstantTerm(BigInteger.ZERO, FileLocation.DUMMY),
-                            new SvLibIdTerm(w0Const, FileLocation.DUMMY)),
+                            new SvLibIdTerm(w0Const.toSimpleDeclaration(), FileLocation.DUMMY)),
                         FileLocation.DUMMY),
                     FileLocation.DUMMY),
                 new SvLibVerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
-                        new SvLibIdTerm(w0Const, FileLocation.DUMMY),
-                        new SvLibIdTerm(z0Const, FileLocation.DUMMY)),
+                        new SvLibIdTerm(w0Const.toSimpleDeclaration(), FileLocation.DUMMY),
+                        new SvLibIdTerm(z0Const.toSimpleDeclaration(), FileLocation.DUMMY)),
                     FileLocation.DUMMY),
                 new SvLibGetWitnessCommand(FileLocation.DUMMY)));
 
@@ -396,11 +436,11 @@ public class SvLibParserTest {
   @Test
   public void parseSimpleLoop() throws SvLibAstParseException {
 
-    SvLibParameterDeclaration resultVar =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration resultVar =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "|c#result|", "main");
-    SvLibParameterDeclaration a =
-        new SvLibParameterDeclaration(
+    SvLibParsingParameterDeclaration a =
+        new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "a", "main");
 
     SvLibProcedureDeclaration mainProcedureDeclaration =
@@ -425,23 +465,19 @@ public class SvLibParserTest {
                 new SvLibDeclareSortCommand(
                     new SvLibSortDeclaration(
                         FileLocation.DUMMY,
-                        true,
                         new SvLibCustomType("|c#ptr|", 1),
-                        "|c#ptr|",
                         "|c#ptr|",
                         "|c#ptr|"),
                     FileLocation.DUMMY),
                 new SvLibDeclareSortCommand(
                     new SvLibSortDeclaration(
                         FileLocation.DUMMY,
-                        true,
                         new SvLibCustomType("|c#heap|", 0),
-                        "|c#heap|",
                         "|c#heap|",
                         "|c#heap|"),
                     FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(
-                    new SvLibVariableDeclaration(
+                    new SvLibParsingVariableDeclaration(
                         FileLocation.DUMMY,
                         true,
                         false,
@@ -500,7 +536,8 @@ public class SvLibParserTest {
                                     new SvLibIdTerm(
                                         SmtLibTheoryDeclarations.INT_LESS_THAN, FileLocation.DUMMY),
                                     ImmutableList.of(
-                                        new SvLibIdTerm(a, FileLocation.DUMMY),
+                                        new SvLibIdTerm(
+                                            a.toSimpleDeclaration(), FileLocation.DUMMY),
                                         new SvLibIntegerConstantTerm(
                                             BigInteger.valueOf(6), FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
@@ -512,7 +549,8 @@ public class SvLibParserTest {
                                                 SmtLibTheoryDeclarations.intAddition(2),
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
-                                                new SvLibIdTerm(a, FileLocation.DUMMY),
+                                                new SvLibIdTerm(
+                                                    a.toSimpleDeclaration(), FileLocation.DUMMY),
                                                 new SvLibIntegerConstantTerm(
                                                     BigInteger.ONE, FileLocation.DUMMY)),
                                             FileLocation.DUMMY)),
@@ -521,7 +559,7 @@ public class SvLibParserTest {
                                     ImmutableList.of()),
                                 ImmutableList.of(),
                                 ImmutableList.of(
-                                    new SvLibTagReference("while-loop", FileLocation.DUMMY, null)),
+                                    new SvLibTagReference("while-loop", FileLocation.DUMMY)),
                                 FileLocation.DUMMY),
                             new SvLibIfStatement(
                                 FileLocation.DUMMY,
@@ -536,7 +574,8 @@ public class SvLibParserTest {
                                                 SmtLibTheoryDeclarations.INT_EQUALITY,
                                                 FileLocation.DUMMY),
                                             ImmutableList.of(
-                                                new SvLibIdTerm(a, FileLocation.DUMMY),
+                                                new SvLibIdTerm(
+                                                    a.toSimpleDeclaration(), FileLocation.DUMMY),
                                                 new SvLibIntegerConstantTerm(
                                                     BigInteger.valueOf(6), FileLocation.DUMMY)),
                                             FileLocation.DUMMY)),
@@ -561,8 +600,7 @@ public class SvLibParserTest {
                                 FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of())),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
-                        ImmutableList.of(
-                            new SvLibTagReference("proc-main", FileLocation.DUMMY, null)))),
+                        ImmutableList.of(new SvLibTagReference("proc-main", FileLocation.DUMMY)))),
                 new SvLibVerifyCallCommand(
                     mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
                 new SvLibGetWitnessCommand(FileLocation.DUMMY)));

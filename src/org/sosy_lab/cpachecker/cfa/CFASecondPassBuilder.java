@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -55,11 +56,10 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -269,16 +269,16 @@ public class CFASecondPassBuilder {
                 fileLocation,
                 predecessorNode,
                 successorNode,
-                (SvLibProcedureCallStatement) functionCall,
+                (SvLibFunctionCallAssignmentStatement) functionCall,
                 (SvLibProcedureEntryNode) fDefNode);
 
         callEdge =
-            new SvLibProcedureCallEdge(
+            new SvLibFunctionCallEdge(
                 edge.getRawStatement(),
                 fileLocation,
                 predecessorNode,
                 fDefNode,
-                (SvLibProcedureCallStatement) functionCall,
+                (SvLibFunctionCallAssignmentStatement) functionCall,
                 calltoReturnEdge);
       }
       case JAVA -> {

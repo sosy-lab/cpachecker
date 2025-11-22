@@ -12,10 +12,9 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
-public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
+public final class SvLibIdTerm extends AIdExpression implements SvLibTerm, SvLibLeftHandSide {
   @Serial private static final long serialVersionUID = 5782817996036730363L;
 
   public SvLibIdTerm(SvLibSimpleDeclaration pVariable, FileLocation pFileLocation) {
@@ -23,7 +22,17 @@ public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(SvLibExpressionVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -31,11 +40,6 @@ public final class SvLibIdTerm extends AIdExpression implements SvLibTerm {
   @NonNull
   public SvLibSimpleDeclaration getDeclaration() {
     return (SvLibSimpleDeclaration) super.getDeclaration();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X {
-    return v.accept(this);
   }
 
   @Override

@@ -9,19 +9,22 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttributeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceComponentVisitor;
 
 public interface SvLibAstNodeVisitor<R, X extends Exception>
     extends SvLibCfaEdgeStatementVisitor<R, X>,
         SvLibTagAttributeVisitor<R, X>,
-        SvLibTermVisitor<R, X>,
-        SvLibTraceComponentVisitor<R, X> {
+        SvLibExpressionVisitor<R, X> {
   R visit(SvLibVariableDeclaration pSvLibVariableDeclaration) throws X;
-
-  R visit(SvLibProcedureDeclaration pSvLibProcedureDeclaration) throws X;
 
   R visit(SvLibParameterDeclaration pSvLibParameterDeclaration) throws X;
 
-  R accept(SvLibTrace pSvLibTrace) throws X;
+  R accept(SvLibFunctionCallExpression pSvLibFunctionCallExpression) throws X;
+
+  R accept(SvLibFunctionDeclaration pSvLibFunctionDeclaration) throws X;
+
+  R accept(SvLibParameterDeclaration pSvLibParameterDeclaration) throws X;
+
+  R accept(SvLibReturnStatement pSvLibReturnStatement) throws X;
+
+  R accept(SvLibVariableDeclarationTuple pSvLibVariableDeclarationTuple) throws X;
 }

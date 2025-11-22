@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -39,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Retu
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SequenceStatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.StatementContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.WhileStatementContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibBreakStatement;
@@ -63,16 +63,21 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
 
   private Optional<List<SvLibTagReference>> tagReferences = Optional.empty();
 
-  public StatementToAstConverter(SvLibScope pScope, Path pFilePath) {
+  public StatementToAstConverter(
+      SvLibScope pScope,
+      Path pFilePath,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope, pFilePath);
     termToAstConverter = new TermToAstConverter(pScope, pFilePath);
-    tagToAstConverter = new TagToAstConverter(pScope, pFilePath);
+    tagToAstConverter = new TagToAstConverter(pScope, pFilePath, pTagReferenceToScopeBuilder);
   }
 
-  public StatementToAstConverter(SvLibScope pScope) {
+  public StatementToAstConverter(
+      SvLibScope pScope,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope);
     termToAstConverter = new TermToAstConverter(pScope);
-    tagToAstConverter = new TagToAstConverter(pScope);
+    tagToAstConverter = new TagToAstConverter(pScope, pTagReferenceToScopeBuilder);
   }
 
   private List<SvLibTagProperty> getTagAttributes() {
@@ -194,7 +199,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTagProperty> properties = getTagAttributes();
     List<SvLibTagReference> references = getTagReferences();
 
-    List<SvLibSimpleDeclaration> variables =
+    List<SvLibSimpleParsingDeclaration> variables =
         transformedImmutableListCopy(
             ctx.symbol(), x -> scope.getVariable(Objects.requireNonNull(x).getText()));
     FileLocation location = fileLocationFromContext(ctx);
@@ -226,9 +231,10 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTagProperty> properties = getTagAttributes();
     List<SvLibTagReference> references = getTagReferences();
 
-    ImmutableMap.Builder<SvLibSimpleDeclaration, SvLibTerm> assignments = ImmutableMap.builder();
+    ImmutableMap.Builder<SvLibSimpleParsingDeclaration, SvLibTerm> assignments =
+        ImmutableMap.builder();
     for (int i = 0; i < ctx.symbol().size(); i++) {
-      SvLibSimpleDeclaration leftHandSide =
+      SvLibSimpleParsingDeclaration leftHandSide =
           scope.getVariable(Objects.requireNonNull(ctx.symbol(i)).getText());
       SvLibTerm rightHandSide = termToAstConverter.visit(Objects.requireNonNull(ctx.term(i)));
       assignments.put(leftHandSide, rightHandSide);
@@ -262,7 +268,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTerm> arguments =
         transformedImmutableListCopy(
             pContext.term(), termContext -> termToAstConverter.visit(termContext));
-    List<SvLibSimpleDeclaration> returnVariables =
+    List<SvLibSimpleParsingDeclaration> returnVariables =
         transformedImmutableListCopy(
             pContext.symbol().subList(1, pContext.symbol().size()),
             symbolContext -> scope.getVariable(Objects.requireNonNull(symbolContext).getText()));

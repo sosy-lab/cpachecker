@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 
-public abstract sealed class SvLibTraceComponent implements SvLibAstNode
+public abstract sealed class SvLibTraceComponent implements SvLibParsingAstNode
     permits SmtLibModel,
         SvLibTraceEntryProcedure,
         SvLibTraceSetGlobalVariable,

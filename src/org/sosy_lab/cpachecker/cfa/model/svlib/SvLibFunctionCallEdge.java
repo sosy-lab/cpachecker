@@ -8,26 +8,39 @@
 
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 
-public final class SvLibProcedureCallEdge extends FunctionCallEdge implements SvLibCfaEdge {
-  public SvLibProcedureCallEdge(
+public final class SvLibFunctionCallEdge extends FunctionCallEdge implements SvLibCfaEdge {
+  public SvLibFunctionCallEdge(
       String pRawStatement,
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      SvLibProcedureCallStatement pFunctionCall,
+      SvLibFunctionCallAssignmentStatement pFunctionCall,
       FunctionSummaryEdge pSummaryEdge) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
   }
 
   @Override
-  public SvLibProcedureCallStatement getFunctionCall() {
-    return (SvLibProcedureCallStatement) super.getFunctionCall();
+  public SvLibFunctionCallAssignmentStatement getFunctionCall() {
+    return (SvLibFunctionCallAssignmentStatement) super.getFunctionCall();
+  }
+
+  @Override
+  public SvLibFunctionCallExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
+
+  @Override
+  public ImmutableList<SvLibTerm> getArguments() {
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override

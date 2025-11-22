@@ -9,14 +9,25 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -26,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibBlankChoiceEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibBreakStatement;
@@ -64,18 +77,21 @@ public class SvLibStatementToCfaVisitor
   private final ImmutableMap.Builder<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;
   private final ImmutableSetMultimap<String, SvLibTagProperty> tagReferencesToAnnotations;
+  // Required to reconstruct violation witnesses properly
+  private final ImmutableMap.Builder<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd;
 
   public SvLibStatementToCfaVisitor(
       CFANode pInitialNode,
       SvLibProcedureDeclaration pProcedure,
       LogManager pLogger,
       FunctionExitNode pFunctionExitNode,
-      ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
-      ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
+      Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
+      Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
       ImmutableMap.Builder<CFANode, String> pGotoNodesToLabels,
       ImmutableMap.Builder<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,
-      ImmutableSetMultimap<String, SvLibTagProperty> pTagReferencesToAnnotations) {
+      ImmutableSetMultimap<String, SvLibTagProperty> pTagReferencesToAnnotations,
+      ImmutableMap.Builder<CFANode, SvLibHavocStatement> pNodesToActualHavocStatementEnd) {
     currentStartingNode = pInitialNode;
     procedure = pProcedure;
     logger = pLogger;
@@ -86,10 +102,11 @@ public class SvLibStatementToCfaVisitor
     labelsToNodes = pLabelsToNodes;
     allNodesCollector = pAllNodesCollector;
     tagReferencesToAnnotations = pTagReferencesToAnnotations;
+    nodesToActualHavocStatementEnd = pNodesToActualHavocStatementEnd;
   }
 
   private CFANode getNewNode() {
-    CFANode newNode = new CFANode(procedure);
+    CFANode newNode = new CFANode(procedure.toSimpleDeclaration());
     allNodesCollector.add(newNode);
     return newNode;
   }
@@ -108,17 +125,31 @@ public class SvLibStatementToCfaVisitor
   public Optional<CFANode> visit(SvLibAssignmentStatement pSvLibAssignmentStatement)
       throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibAssignmentStatement, currentStartingNode);
-    // Handle assignment statements.
-    CFANode newNode = getNewNode();
-    CFAEdge edge =
-        new SvLibStatementEdge(
-            pSvLibAssignmentStatement.toASTString(),
-            pSvLibAssignmentStatement,
-            pSvLibAssignmentStatement.getFileLocation(),
-            currentStartingNode,
-            newNode);
-    CFACreationUtils.addEdgeToCFA(edge, logger);
-    return Optional.of(newNode);
+    // Handle assignment statements, by splitting them into multiple edges if necessary.
+
+    CFANode currentNode = currentStartingNode;
+    for (Entry<SvLibSimpleParsingDeclaration, SvLibTerm> assignment :
+        pSvLibAssignmentStatement.getAssignments().entrySet()) {
+      CFANode newNode = getNewNode();
+      SvLibSimpleDeclaration variable = assignment.getKey().toSimpleDeclaration();
+      SvLibTerm value = assignment.getValue();
+      SvLibTermAssignmentCfaStatement singleAssignmentStatement =
+          new SvLibTermAssignmentCfaStatement(
+              new SvLibIdTerm(variable, FileLocation.DUMMY),
+              value,
+              pSvLibAssignmentStatement.getFileLocation());
+      CFAEdge edge =
+          new SvLibStatementEdge(
+              singleAssignmentStatement.toASTString(),
+              singleAssignmentStatement,
+              singleAssignmentStatement.getFileLocation(),
+              currentNode,
+              newNode);
+      CFACreationUtils.addEdgeToCFA(edge, logger);
+      currentNode = newNode;
+    }
+
+    return Optional.of(currentNode);
   }
 
   @Override
@@ -126,11 +157,32 @@ public class SvLibStatementToCfaVisitor
       throws NoException {
     trackTagPropertiesForStatementStartingWithNode(
         pSvLibProcedureCallStatement, currentStartingNode);
+    // Rewrite this to calling the function and assigning return values.
     CFANode newNode = getNewNode();
+
+    SvLibProcedureDeclaration procedureDeclaration =
+        pSvLibProcedureCallStatement.getProcedureDeclaration();
+    SvLibFunctionDeclaration functionDeclaration = procedureDeclaration.toSimpleDeclaration();
+    SvLibFunctionCallAssignmentStatement functionCallAssignmentStatement =
+        new SvLibFunctionCallAssignmentStatement(
+            FileLocation.DUMMY,
+            new SvLibIdTermTuple(
+                FileLocation.DUMMY,
+                FluentIterable.from(pSvLibProcedureCallStatement.getReturnVariables())
+                    .transform(SvLibSimpleParsingDeclaration::toSimpleDeclaration)
+                    .transform(decl -> new SvLibIdTerm(decl, FileLocation.DUMMY))
+                    .toList()),
+            new SvLibFunctionCallExpression(
+                FileLocation.DUMMY,
+                functionDeclaration.getType(),
+                new SvLibIdTerm(functionDeclaration, FileLocation.DUMMY),
+                pSvLibProcedureCallStatement.getArguments(),
+                functionDeclaration));
+
     CFAEdge edge =
         new SvLibStatementEdge(
             pSvLibProcedureCallStatement.toASTString(),
-            pSvLibProcedureCallStatement,
+            functionCallAssignmentStatement,
             pSvLibProcedureCallStatement.getFileLocation(),
             currentStartingNode,
             newNode);
@@ -143,15 +195,40 @@ public class SvLibStatementToCfaVisitor
     trackTagPropertiesForStatementStartingWithNode(pSvLibHavocStatement, currentStartingNode);
 
     CFANode newNode = getNewNode();
-    CFAEdge egde =
-        new SvLibStatementEdge(
-            pSvLibHavocStatement.toASTString(),
-            pSvLibHavocStatement,
-            pSvLibHavocStatement.getFileLocation(),
-            currentStartingNode,
-            newNode);
-    CFACreationUtils.addEdgeToCFA(egde, logger);
-    return Optional.of(newNode);
+    CFANode currentNode = currentStartingNode;
+    // Rewrite this into a function call assignment with a special "havoc" function.
+    for (SvLibSimpleParsingDeclaration variable : pSvLibHavocStatement.getVariables()) {
+      SvLibFunctionDeclaration havocFunctionDeclaration =
+          SvLibFunctionDeclaration.nondetFunctionWithReturnType(variable.getType());
+
+      SvLibFunctionCallAssignmentStatement havocCallAssignmentStatement =
+          new SvLibFunctionCallAssignmentStatement(
+              FileLocation.DUMMY,
+              new SvLibIdTermTuple(
+                  FileLocation.DUMMY,
+                  ImmutableList.of(
+                      new SvLibIdTerm(variable.toSimpleDeclaration(), FileLocation.DUMMY))),
+              new SvLibFunctionCallExpression(
+                  FileLocation.DUMMY,
+                  havocFunctionDeclaration.getType(),
+                  new SvLibIdTerm(havocFunctionDeclaration, FileLocation.DUMMY),
+                  ImmutableList.of(),
+                  havocFunctionDeclaration));
+
+      CFAEdge edge =
+          new SvLibStatementEdge(
+              havocCallAssignmentStatement.toASTString(),
+              havocCallAssignmentStatement,
+              havocCallAssignmentStatement.getFileLocation(),
+              currentNode,
+              newNode);
+      CFACreationUtils.addEdgeToCFA(edge, logger);
+      currentNode = newNode;
+    }
+
+    nodesToActualHavocStatementEnd.put(currentNode, pSvLibHavocStatement);
+
+    return Optional.of(currentNode);
   }
 
   @Override

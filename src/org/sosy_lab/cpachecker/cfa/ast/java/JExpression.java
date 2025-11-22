@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /** Interface of side-effect free Expressions. */
@@ -45,7 +45,8 @@ public sealed interface JExpression extends JRightHandSide, AExpression
           X2 extends Exception,
           X3 extends Exception,
           V extends
-              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2> & SvLibTermVisitor<R3, X3>>
+              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
+                  & SvLibExpressionVisitor<R3, X3>>
       R accept_(V pV) throws X2 {
     return accept(pV);
   }

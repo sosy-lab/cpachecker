@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibSymbolApplicationTerm extends SvLibGeneralSymbolApplicationTerm
     implements SvLibTerm {
@@ -30,12 +29,17 @@ public final class SvLibSymbolApplicationTerm extends SvLibGeneralSymbolApplicat
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
   @Override
   public <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(SvLibExpressionVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 

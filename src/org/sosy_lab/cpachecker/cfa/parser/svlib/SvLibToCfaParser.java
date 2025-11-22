@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
@@ -54,7 +54,7 @@ public class SvLibToCfaParser implements Parser {
     cfaBuilder = new SvLibCfaBuilder(logger, config, machineModel, shutdownNotifier);
   }
 
-  private ParseResult buildCfaFromScript(SvLibScript script) throws ParserException {
+  private ParseResult buildCfaFromScript(SvLibParsingResult script) throws ParserException {
     cfaTimer.start();
 
     ParseResult result = cfaBuilder.buildCfaFromScript(script);
@@ -74,7 +74,7 @@ public class SvLibToCfaParser implements Parser {
     Path path = Path.of(filenames.getFirst());
 
     parseTimer.start();
-    SvLibScript script;
+    SvLibParsingResult script;
     try {
       script = SvLibToAstParser.parseScript(path);
     } catch (SvLibAstParseException e) {
@@ -93,7 +93,7 @@ public class SvLibToCfaParser implements Parser {
   public ParseResult parseString(Path filename, String code)
       throws ParserException, InterruptedException {
     parseTimer.start();
-    SvLibScript script;
+    SvLibParsingResult script;
     try {
       script = SvLibToAstParser.parseScript(filename, code);
     } catch (SvLibAstParseException e) {

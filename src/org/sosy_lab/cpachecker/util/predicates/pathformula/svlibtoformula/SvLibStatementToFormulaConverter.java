@@ -10,14 +10,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
-import java.util.Map.Entry;
+import com.google.common.base.Verify;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCfaEdgeStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibCfaEdgeStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -29,54 +28,63 @@ public class SvLibStatementToFormulaConverter {
   public static @NonNull BooleanFormula convertStatement(
       SvLibCfaEdgeStatement pSvLibCfaEdgeStatement, SSAMapBuilder ssa, FormulaManagerView fmgr) {
     return switch (pSvLibCfaEdgeStatement) {
-      case SvLibAssignmentStatement pSvLibAssignmentStatement ->
-          handleAssignment(pSvLibAssignmentStatement, ssa, fmgr);
-      case SvLibHavocStatement pSvLibHavocStatement -> handleHavoc(pSvLibHavocStatement, ssa, fmgr);
-      case SvLibProcedureCallStatement pSvLibProcedureCallStatement -> null;
-      // TODO: Once we have modules in CPAchecker, we can make sealed classes across packages. Then
-      //    this can be removed
-      default -> throw new IllegalStateException("Unexpected value: " + pSvLibCfaEdgeStatement);
+      case SvLibTermAssignmentCfaStatement pSvLibAssignment ->
+          handleTermAssignment(pSvLibAssignment, ssa, fmgr);
+      case SvLibFunctionCallAssignmentStatement pSvLibProcedureCallStatement ->
+          handleCallAssignment(pSvLibProcedureCallStatement, ssa, fmgr);
     };
   }
 
-  private static @NonNull BooleanFormula handleAssignment(
-      SvLibAssignmentStatement pSvLibAssignmentStatement,
+  private static @NonNull BooleanFormula handleTermAssignment(
+      SvLibTermAssignmentCfaStatement pSvLibAssignment,
       SSAMapBuilder ssa,
       FormulaManagerView fmgr) {
     BooleanFormula result = fmgr.getBooleanFormulaManager().makeTrue();
-    for (Entry<SvLibSimpleDeclaration, SvLibTerm> assignment :
-        pSvLibAssignmentStatement.getAssignments().entrySet()) {
-      Formula rightHandSideTerm =
-          SvLibTermToFormulaConverter.convertTerm(assignment.getValue(), ssa, fmgr);
-      Formula assignedVariable =
-          LanguageToSmtConverter.makeFreshVariable(
-              cleanVariableNameForJavaSMT(assignment.getKey().getQualifiedName()),
-              assignment.getKey().getType(),
-              ssa,
-              fmgr);
+    Formula rightHandSideTerm =
+        SvLibTermToFormulaConverter.convertTerm(pSvLibAssignment.getRightHandSide(), ssa, fmgr);
 
-      result =
-          fmgr.getBooleanFormulaManager()
-              .and(result, fmgr.assignment(assignedVariable, rightHandSideTerm));
-    }
+    // TODO: This feels like a hack
+    SvLibSimpleDeclaration declaration = pSvLibAssignment.getLeftHandSide().getDeclaration();
+    Formula assignedVariable =
+        LanguageToSmtConverter.makeFreshVariable(
+            cleanVariableNameForJavaSMT(declaration.getQualifiedName()),
+            declaration.getType(),
+            ssa,
+            fmgr);
 
-    return result;
+    return fmgr.getBooleanFormulaManager()
+        .and(result, fmgr.assignment(assignedVariable, rightHandSideTerm));
   }
 
-  private static @NonNull BooleanFormula handleHavoc(
-      SvLibHavocStatement pSvLibHavocStatement, SSAMapBuilder ssa, FormulaManagerView fmgr) {
-    for (SvLibSimpleDeclaration variableToHavoc : pSvLibHavocStatement.getVariables()) {
-      // In JavaSMT, we cannot directly express "havoc", so we assign a fresh variable without
-      // any constraints.
-      // This is effectively equivalent to havoc in the context of SSA.
-      // Therefore, we do not need to add any additional constraints to the result formula.
+  private static @NonNull BooleanFormula handleCallAssignment(
+      SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr) {
+    SvLibFunctionDeclaration functionDeclaration =
+        pSvLibFunctionCallAssignmentStatement.getRightHandSide().getDeclaration();
+    if (functionDeclaration.equals(
+        SvLibFunctionDeclaration.nondetFunctionWithReturnType(
+            functionDeclaration.getType().getReturnType()))) {
+      Verify.verify(
+          pSvLibFunctionCallAssignmentStatement.getLeftHandSide().getIdTerms().size() == 1,
+          "Havoc function calls can only assign to a single variable.");
+
+      SvLibSimpleDeclaration variableToHavoc =
+          pSvLibFunctionCallAssignmentStatement
+              .getLeftHandSide()
+              .getIdTerms()
+              .getFirst()
+              .getDeclaration();
+
+      // Handle nondet function call
       LanguageToSmtConverter.makeFreshVariable(
           cleanVariableNameForJavaSMT(variableToHavoc.getQualifiedName()),
           variableToHavoc.getType(),
           ssa,
           fmgr);
+      return fmgr.getBooleanFormulaManager().makeTrue();
     }
 
-    return fmgr.getBooleanFormulaManager().makeTrue();
+    throw new UnsupportedOperationException("Function calls are not yet supported.");
   }
 }

@@ -12,18 +12,15 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 
 public final class SvLibTagReference implements SvLibTagAttribute {
   @Serial private static final long serialVersionUID = 7437989844963398076L;
   private final String tagName;
   private final FileLocation fileLocation;
-  private final SvLibScope scope;
 
-  public SvLibTagReference(String pTagName, FileLocation pFileLocation, SvLibScope pScope) {
+  public SvLibTagReference(String pTagName, FileLocation pFileLocation) {
     tagName = pTagName;
     fileLocation = pFileLocation;
-    scope = pScope;
   }
 
   @Override
@@ -61,9 +58,5 @@ public final class SvLibTagReference implements SvLibTagAttribute {
   @Override
   public int hashCode() {
     return tagName.hashCode();
-  }
-
-  public SvLibScope getScope() {
-    return scope;
   }
 }

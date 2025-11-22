@@ -11,16 +11,17 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 import com.google.common.base.Preconditions;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 
 public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibCommand {
 
   @Serial private static final long serialVersionUID = 3470911008796570701L;
-  private final SvLibVariableDeclaration variable;
+  private final SvLibParsingVariableDeclaration variable;
   private final FileLocation fileLocation;
 
-  public SvLibDeclareConstCommand(SvLibVariableDeclaration pVariable, FileLocation pFileLocation) {
+  public SvLibDeclareConstCommand(
+      SvLibParsingVariableDeclaration pVariable, FileLocation pFileLocation) {
     Preconditions.checkArgument(pVariable.isConstant());
     Preconditions.checkArgument(pVariable.isGlobal());
     variable = pVariable;
@@ -34,10 +35,14 @@ public final class SvLibDeclareConstCommand implements SvLibCommand, SmtLibComma
 
   @Override
   public String toASTString() {
-    return "(declare-const " + variable.getOrigName() + " " + variable.getType() + ")";
+    return "(declare-const "
+        + variable.toASTString()
+        + " "
+        + variable.getType().toPlainString()
+        + ")";
   }
 
-  public SvLibVariableDeclaration getVariable() {
+  public SvLibParsingVariableDeclaration getVariable() {
     return variable;
   }
 

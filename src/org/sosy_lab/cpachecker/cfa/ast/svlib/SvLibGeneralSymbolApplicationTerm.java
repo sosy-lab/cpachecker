@@ -15,11 +15,11 @@ import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
-public abstract sealed class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRelationalTerm
-    permits SvLibSymbolApplicationRelationalTerm, SvLibSymbolApplicationTerm {
+public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRelationalTerm {
 
   @Serial private static final long serialVersionUID = -1896197197042124013L;
 

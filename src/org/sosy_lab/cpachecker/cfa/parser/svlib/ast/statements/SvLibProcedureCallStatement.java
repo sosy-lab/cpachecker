@@ -12,19 +12,19 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 
 public final class SvLibProcedureCallStatement extends SvLibStatement {
   @Serial private static final long serialVersionUID = -2879361994769890189L;
 
   private final SvLibProcedureDeclaration procedureDeclaration;
   private final ImmutableList<SvLibTerm> arguments;
-  private final ImmutableList<SvLibSimpleDeclaration> returnVariables;
+  private final ImmutableList<SvLibSimpleParsingDeclaration> returnVariables;
 
   public SvLibProcedureCallStatement(
       FileLocation pFileLocation,
@@ -32,7 +32,7 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
       List<SvLibTagReference> pTagReferences,
       SvLibProcedureDeclaration pProcedureDeclaration,
       List<SvLibTerm> pArguments,
-      List<SvLibSimpleDeclaration> pReturnVariables) {
+      List<SvLibSimpleParsingDeclaration> pReturnVariables) {
     super(pFileLocation, pTagAttributes, pTagReferences);
     procedureDeclaration = pProcedureDeclaration;
     arguments = ImmutableList.copyOf(pArguments);
@@ -61,7 +61,7 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
   @Override
   public String toASTString() {
     return "(call "
-        + procedureDeclaration.getOrigName()
+        + procedureDeclaration.getName()
         + " ("
         + String.join(" ", arguments.stream().map(arg -> arg.toASTString()).toList())
         + ") ("
@@ -69,7 +69,11 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
         + "))";
   }
 
-  public ImmutableList<SvLibSimpleDeclaration> getReturnVariables() {
+  public ImmutableList<SvLibSimpleParsingDeclaration> getReturnVariables() {
     return returnVariables;
+  }
+
+  public ImmutableList<SvLibTerm> getArguments() {
+    return arguments;
   }
 }

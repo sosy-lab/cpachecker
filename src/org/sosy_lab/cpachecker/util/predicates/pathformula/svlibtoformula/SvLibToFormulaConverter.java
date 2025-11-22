@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
@@ -27,21 +25,21 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -143,12 +141,12 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
           case BlankEdge ignored -> bfmgr.makeTrue();
           case SvLibDeclarationEdge declarationEdge ->
               makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibProcedureCallEdge procedureCallEdge ->
+          case SvLibFunctionCallEdge procedureCallEdge ->
               makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
           case SvLibAssumeEdge assumeEdge ->
               makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
           case SvLibProcedureReturnEdge returnEdge ->
-              makeExitProcedure(
+              makeExitFunction(
                   returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
           case SvLibStatementEdge statementEdge ->
               SvLibStatementToFormulaConverter.convertStatement(
@@ -200,27 +198,31 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
     return booleanFormula;
   }
 
-  private BooleanFormula makeExitProcedure(
+  private BooleanFormula makeExitFunction(
       final SvLibProcedureSummaryEdge pEdge,
       @SuppressWarnings("unused") final String calledFunction,
       final SSAMapBuilder ssa,
       @SuppressWarnings("unused") final Constraints constraints,
       @SuppressWarnings("unused") final ErrorConditions errorConditions) {
 
-    SvLibProcedureCallStatement procedureCall = pEdge.getExpression();
+    SvLibFunctionCallAssignmentStatement procedureCall = pEdge.getExpression();
+    SvLibVariableDeclarationTuple svLibVariableDeclarationTuple =
+        pEdge.getFunctionEntry().getReturnVariable().orElseThrow();
 
-    return SvLibStatementToFormulaConverter.convertStatement(
-        new SvLibAssignmentStatement(
-            zipToMap(
-                procedureCall.getReturnVariables(),
-                transformedImmutableListCopy(
-                    procedureCall.getProcedureDeclaration().getReturnValues(),
-                    var -> new SvLibIdTerm(var, FileLocation.DUMMY))),
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of()),
-        ssa,
-        fmgr);
+    BooleanFormula formula = fmgr.getBooleanFormulaManager().makeTrue();
+    for (int i = 0; i < procedureCall.getLeftHandSide().getIdTerms().size(); i++) {
+      SvLibIdTerm lhs = procedureCall.getLeftHandSide().getIdTerms().get(i);
+      SvLibTerm rhs =
+          new SvLibIdTerm(
+              svLibVariableDeclarationTuple.getDeclarations().get(i), FileLocation.DUMMY);
+      formula =
+          fmgr.makeAnd(
+              formula,
+              fmgr.assignment(
+                  SvLibTermToFormulaConverter.convertTerm(lhs, ssa, fmgr),
+                  SvLibTermToFormulaConverter.convertTerm(rhs, ssa, fmgr)));
+    }
+    return formula;
   }
 
   private BooleanFormula makeDeclaration(
@@ -263,15 +265,14 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
   }
 
   protected BooleanFormula makeProcedureCall(
-      final SvLibProcedureCallEdge edge,
+      final SvLibFunctionCallEdge edge,
       @SuppressWarnings("unused") final String callerFunction,
       final SSAMapBuilder ssa,
       @SuppressWarnings("unused") final Constraints constraints,
       @SuppressWarnings("unused") final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
-    List<SvLibTerm> actualParams =
-        (List<SvLibTerm>) edge.getFunctionCallExpression().getParameterExpressions();
+    List<SvLibTerm> actualParams = edge.getFunctionCallExpression().getParameterExpressions();
 
     SvLibProcedureEntryNode fn = edge.getSuccessor();
     List<SvLibParameterDeclaration> formalParams = fn.getFunctionParameters();
@@ -280,33 +281,19 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
       throw new UnrecognizedCodeException(
           "Number of parameters on function call does not match function definition", edge);
     }
-
-    // Initialize return variables to default values (nondet)
-    for (SvLibParameterDeclaration returnVarDecl :
-        edge.getFunctionCall().getProcedureDeclaration().getReturnValues()) {
-      LanguageToSmtConverter.makeFreshIndex(
-          cleanVariableNameForJavaSMT(returnVarDecl.getQualifiedName()),
-          returnVarDecl.getType(),
-          ssa);
+    BooleanFormula result = bfmgr.makeTrue();
+    for (int i = 0; i < formalParams.size(); i++) {
+      SvLibParameterDeclaration formalParam = formalParams.get(i);
+      result =
+          fmgr.makeAnd(
+              result,
+              fmgr.assignment(
+                  SvLibTermToFormulaConverter.convertTerm(
+                      new SvLibIdTerm(formalParam, FileLocation.DUMMY), ssa, fmgr),
+                  SvLibTermToFormulaConverter.convertTerm(actualParams.get(i), ssa, fmgr)));
     }
 
-    // Initialize local variables to default values (nondet)
-    for (SvLibParameterDeclaration localVarDecl :
-        edge.getFunctionCall().getProcedureDeclaration().getLocalVariables()) {
-      LanguageToSmtConverter.makeFreshIndex(
-          cleanVariableNameForJavaSMT(localVarDecl.getQualifiedName()),
-          localVarDecl.getType(),
-          ssa);
-    }
-
-    return SvLibStatementToFormulaConverter.convertStatement(
-        new SvLibAssignmentStatement(
-            zipToMap(formalParams, actualParams),
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of()),
-        ssa,
-        fmgr);
+    return result;
   }
 
   @SuppressWarnings("unused")

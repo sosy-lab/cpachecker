@@ -20,13 +20,17 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibTermBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -34,10 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
@@ -88,7 +88,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
   public SvLibAnnotateTagCommand createRequires(
       Collection<ARGState> argStates, SvLibTagReference pTag) {
     SvLibFinalRelationalTerm precondition =
-        getOverapproximationOfStates(argStates, pTag.getScope());
+        getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
     if (!(precondition instanceof SvLibTerm term)) {
       throw new AssertionError(
           "Precondition is not a SV-LIB term, it contains final commands: " + precondition);
@@ -106,9 +106,11 @@ public class ArgToSvLibCorrectnessWitnessExport {
     ImmutableSet.Builder<SvLibFinalRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
       SvLibFinalRelationalTerm precondition =
-          getOverapproximationOfStates(ImmutableList.of(pair.entry()), pTag.getScope());
+          getOverapproximationOfStates(
+              ImmutableList.of(pair.entry()), svLibMetadata.tagReferenceToScope().get(pTag));
       SvLibFinalRelationalTerm postcondition =
-          getOverapproximationOfStates(ImmutableList.of(pair.exit()), pTag.getScope());
+          getOverapproximationOfStates(
+              ImmutableList.of(pair.exit()), svLibMetadata.tagReferenceToScope().get(pTag));
 
       // Replace all variables in the postcondition with their final(...) counterparts
       SvLibIdTermReplacer finalReplacer =
@@ -141,7 +143,9 @@ public class ArgToSvLibCorrectnessWitnessExport {
         pTag.getTagName(),
         ImmutableList.of(
             new SvLibInvariantTag(
-                getOverapproximationOfStates(argStates, pTag.getScope()), FileLocation.DUMMY)),
+                getOverapproximationOfStates(
+                    argStates, svLibMetadata.tagReferenceToScope().get(pTag)),
+                FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
 

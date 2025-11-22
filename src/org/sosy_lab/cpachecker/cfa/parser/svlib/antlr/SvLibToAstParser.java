@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.Serial;
 import java.nio.file.Files;
@@ -23,11 +24,21 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibLexer;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
 
 public class SvLibToAstParser {
+
+  public record SvLibParsingResult(
+      SvLibScript script, ImmutableMap<SvLibTagReference, SvLibScope> tagReferenceScopes) {
+    public SvLibParsingResult {
+      checkNotNull(script);
+      checkNotNull(tagReferenceScopes);
+    }
+  }
+
   private static ParseTree generateParseTree(
       String pInput, Function<@NonNull SvLibParser, ParseTree> pRuleToBeApplied)
       throws SvLibAstParseException {
@@ -50,33 +61,34 @@ public class SvLibToAstParser {
     return Objects.requireNonNull(tree);
   }
 
-  private static SvLibScript parseScript(String pInput, Optional<Path> pFilePath)
+  private static SvLibParsingResult parseScript(String pInput, Optional<Path> pFilePath)
       throws SvLibAstParseException {
     // For some reason the ANTLR grammar expects at least one white-space after a comment
     String inputFixedComments = pInput.replaceAll(";", "; ");
     ParseTree tree = generateParseTree(inputFixedComments, pParser -> pParser.script());
     ScriptToAstConverter converter;
+
     if (pFilePath.isEmpty()) {
       converter = new ScriptToAstConverter(new SvLibCurrentScope());
     } else {
       converter = new ScriptToAstConverter(new SvLibCurrentScope(), pFilePath.orElseThrow());
     }
 
-    SvLibScript script = converter.visit(tree);
+    SvLibParsingResult script = converter.visit(tree);
 
     return script;
   }
 
-  public static SvLibScript parseScript(String pInput) throws SvLibAstParseException {
+  public static SvLibParsingResult parseScript(String pInput) throws SvLibAstParseException {
     return parseScript(pInput, Optional.empty());
   }
 
-  public static SvLibScript parseScript(Path pFilename, String pInput)
+  public static SvLibParsingResult parseScript(Path pFilename, String pInput)
       throws SvLibAstParseException {
     return parseScript(pInput, Optional.of(pFilename));
   }
 
-  public static SvLibScript parseScript(Path pFilePath) throws SvLibAstParseException {
+  public static SvLibParsingResult parseScript(Path pFilePath) throws SvLibAstParseException {
     String programString;
     try {
       programString = Joiner.on("\n").join(Files.readAllLines(pFilePath));

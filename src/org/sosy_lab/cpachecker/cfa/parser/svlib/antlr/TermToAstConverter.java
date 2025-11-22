@@ -20,11 +20,11 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ApplicationTermContext;
@@ -55,7 +55,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     }
 
     // We now handle the general case of a variable
-    return new SvLibIdTerm(scope.getVariable(identifier), fileLocation);
+    return new SvLibIdTerm(scope.getVariable(identifier).toSimpleDeclaration(), fileLocation);
   }
 
   @Override
@@ -70,7 +70,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     }
   }
 
-  private SvLibVariableDeclaration getVariableDeclarationForSymbol(
+  private SvLibFunctionDeclaration getVariableDeclarationForSymbol(
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
 
     // Match Integer Arithmetic logic

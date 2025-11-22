@@ -13,17 +13,14 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssertCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AttributeContext;
@@ -42,6 +39,11 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SetO
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SortContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SymbolContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.VerifyCallContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
@@ -71,21 +73,29 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   private final SvLibSortToAstTypeConverter sortToAstTypeConverter;
 
-  public CommandToAstConverter(SvLibScope pScope, Path pFilePath) {
+  public CommandToAstConverter(
+      SvLibScope pScope,
+      Path pFilePath,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope, pFilePath);
     uninterpretedScope = new SvLibUninterpretedScope();
-    statementConverter = new StatementToAstConverter(pScope, pFilePath);
+    statementConverter =
+        new StatementToAstConverter(pScope, pFilePath, pTagReferenceToScopeBuilder);
     termConverter = new TermToAstConverter(pScope, pFilePath);
-    tagToAstConverter = new TagToAstConverter(uninterpretedScope, pFilePath);
+    tagToAstConverter =
+        // The map can be ignored, since here we are not interested in resolving the tags.
+        new TagToAstConverter(uninterpretedScope, pFilePath, ImmutableMap.builder());
     sortToAstTypeConverter = new SvLibSortToAstTypeConverter(scope, pFilePath);
   }
 
-  public CommandToAstConverter(SvLibScope pScope) {
+  public CommandToAstConverter(
+      SvLibScope pScope,
+      ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope);
     uninterpretedScope = new SvLibUninterpretedScope();
-    statementConverter = new StatementToAstConverter(pScope);
+    statementConverter = new StatementToAstConverter(pScope, pTagReferenceToScopeBuilder);
     termConverter = new TermToAstConverter(pScope);
-    tagToAstConverter = new TagToAstConverter(uninterpretedScope);
+    tagToAstConverter = new TagToAstConverter(uninterpretedScope, ImmutableMap.builder());
     sortToAstTypeConverter = new SvLibSortToAstTypeConverter(scope);
   }
 
@@ -94,8 +104,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     String variableName = ctx.symbol().getText();
 
     SvLibType variableType = sortToAstTypeConverter.visit(ctx.sort());
-    SvLibVariableDeclaration variableDeclaration =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration variableDeclaration =
+        new SvLibParsingVariableDeclaration(
             fileLocationFromContext(ctx),
             true,
             false,
@@ -114,8 +124,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     String variableName = ctx.cmd_declareConst().symbol().getText();
 
     SvLibType variableType = sortToAstTypeConverter.visit(ctx.cmd_declareConst().sort());
-    SvLibVariableDeclaration variableDeclaration =
-        new SvLibVariableDeclaration(
+    SvLibParsingVariableDeclaration variableDeclaration =
+        new SvLibParsingVariableDeclaration(
             fileLocationFromContext(ctx),
             true,
             true,
@@ -129,15 +139,15 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     return new SvLibDeclareConstCommand(variableDeclaration, fileLocationFromContext(ctx));
   }
 
-  private List<SvLibParameterDeclaration> createParameterDeclarations(
+  private List<SvLibParsingParameterDeclaration> createParameterDeclarations(
       ProcDeclarationArgumentsContext pContext, String pProcedureName) {
-    ImmutableList.Builder<SvLibParameterDeclaration> parameters = ImmutableList.builder();
+    ImmutableList.Builder<SvLibParsingParameterDeclaration> parameters = ImmutableList.builder();
     for (int i = 0; i < pContext.symbol().size(); i++) {
 
       SymbolContext parameter = pContext.symbol(i);
       SortContext sort = pContext.sort(i);
       parameters.add(
-          new SvLibParameterDeclaration(
+          new SvLibParsingParameterDeclaration(
               fileLocationFromContext(parameter, sort),
               sortToAstTypeConverter.visit(sort),
               parameter.getText(),
@@ -150,11 +160,11 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
   @Override
   public SvLibCommand visitDefineProc(DefineProcContext ctx) {
     String procedureName = ctx.symbol().getText();
-    List<SvLibParameterDeclaration> inputParameter =
+    List<SvLibParsingParameterDeclaration> inputParameter =
         createParameterDeclarations(ctx.procDeclarationArguments(0), procedureName);
-    List<SvLibParameterDeclaration> outputParameter =
+    List<SvLibParsingParameterDeclaration> outputParameter =
         createParameterDeclarations(ctx.procDeclarationArguments(1), procedureName);
-    List<SvLibParameterDeclaration> localVariables =
+    List<SvLibParsingParameterDeclaration> localVariables =
         createParameterDeclarations(ctx.procDeclarationArguments(2), procedureName);
     SvLibProcedureDeclaration procedureDeclaration =
         new SvLibProcedureDeclaration(
@@ -230,9 +240,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     SvLibSortDeclaration sortDeclaration =
         new SvLibSortDeclaration(
             fileLocationFromContext(symbolContext),
-            true,
             new SvLibCustomType(sortName, arity),
-            sortName,
             sortName,
             sortName);
 

@@ -6,17 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
-public final class SvLibTrace implements SvLibAstNode {
+public final class SvLibTrace implements SvLibParsingAstNode {
 
   @Serial private static final long serialVersionUID = 6210509388439561283L;
   private final SmtLibModel model;
@@ -45,7 +45,7 @@ public final class SvLibTrace implements SvLibAstNode {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
@@ -55,26 +55,22 @@ public final class SvLibTrace implements SvLibAstNode {
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+  public String toASTString() {
     return Joiner.on(System.lineSeparator())
         .join(
-            "(model " + model.toASTString(pAAstNodeRepresentation) + ")",
+            "(model " + model.toASTString() + ")",
             "(init-global-vars "
                 + Joiner.on(" ")
-                    .join(setGlobalVariables.stream().map(SvLibAstNode::toASTString).toList())
+                    .join(
+                        setGlobalVariables.stream().map(SvLibParsingAstNode::toASTString).toList())
                 + ")",
-            entryProc.toASTString(pAAstNodeRepresentation),
+            entryProc.toASTString(),
             "(steps "
-                + Joiner.on(" ").join(steps.stream().map(SvLibAstNode::toASTString).toList())
+                + Joiner.on(" ").join(steps.stream().map(SvLibParsingAstNode::toASTString).toList())
                 + ")",
-            violatedProperty.toASTString(pAAstNodeRepresentation),
+            violatedProperty.toASTString(),
             Joiner.on(System.lineSeparator())
-                .join(usingAnnotations.stream().map(SvLibAstNode::toASTString).toList()));
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toASTString(pAAstNodeRepresentation);
+                .join(usingAnnotations.stream().map(SvLibParsingAstNode::toASTString).toList()));
   }
 
   public ImmutableList<SvLibTraceSetGlobalVariable> getSetGlobalVariables() {

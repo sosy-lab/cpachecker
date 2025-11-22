@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
 
 public final class SvLibCheckTrueTag implements SvLibTagProperty {
 

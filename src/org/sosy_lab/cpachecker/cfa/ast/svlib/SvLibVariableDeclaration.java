@@ -8,25 +8,20 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import com.google.common.base.Splitter;
 import java.io.Serial;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibVariableDeclaration extends AVariableDeclaration
     implements SvLibDeclaration {
-  @Serial private static final long serialVersionUID = 3038552857008234831L;
-  private final boolean isDummyVariable;
-  private final boolean isConstant;
+
+  @Serial private static final long serialVersionUID = -6558791317019048432L;
 
   public SvLibVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
-      boolean pIsConstant,
       SvLibType pType,
       String pName,
       String pOrigName,
@@ -39,68 +34,20 @@ public final class SvLibVariableDeclaration extends AVariableDeclaration
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in SV-LIB */);
-    isConstant = pIsConstant;
-    isDummyVariable = false;
-  }
-
-  private SvLibVariableDeclaration(
-      FileLocation pFileLocation,
-      boolean pIsGlobal,
-      boolean pIsConstant,
-      SvLibType pType,
-      String pName,
-      String pOrigName,
-      String pQualifiedName,
-      boolean pIsDummyVariable) {
-    super(
-        pFileLocation,
-        pIsGlobal,
-        pType,
-        pName,
-        pOrigName,
-        pQualifiedName,
-        null /* There are no initializers in SV-LIB */);
-    isConstant = pIsConstant;
-    isDummyVariable = pIsDummyVariable;
   }
 
   public static SvLibVariableDeclaration dummyVariableForName(String pName) {
     return new SvLibVariableDeclaration(
-        FileLocation.DUMMY,
-        false,
-        false,
-        SvLibCustomType.InternalAnyType,
-        pName,
-        pName,
-        pName,
-        true);
+        FileLocation.DUMMY, false, SvLibCustomType.InternalAnyType, pName, pName, pName);
   }
 
   @Override
-  @Nullable
-  public String getProcedureName() {
-    if (getQualifiedName().contains("::")) {
-      return Splitter.on("::").splitToList(getQualifiedName()).getFirst();
-    } else {
-      return null;
-    }
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  public boolean isDummyVariable() {
-    return isDummyVariable;
   }
 
   @Override
   public SvLibType getType() {
     return (SvLibType) super.getType();
-  }
-
-  public boolean isConstant() {
-    return isConstant;
   }
 }

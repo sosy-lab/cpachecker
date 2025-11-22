@@ -42,4 +42,18 @@ public final class SvLibProductType implements SvLibType {
   public ImmutableList<SvLibType> getElementTypes() {
     return elementTypes;
   }
+
+  @Override
+  public int hashCode() {
+    return elementTypes.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof SvLibProductType other && elementTypes.equals(other.elementTypes);
+  }
 }

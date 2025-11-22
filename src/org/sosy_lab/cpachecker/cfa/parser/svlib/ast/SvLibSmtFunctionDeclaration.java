@@ -6,15 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
@@ -22,42 +21,49 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
  * Corresponds to a mathematical function declaration i.e. as given in SMT-LIB. It has neither
  * parameters, nor a return variable, since this is handled by assumptions in SMT-LIB
  */
-public final class SvLibSmtFunctionDeclaration extends AFunctionDeclaration
-    implements SvLibDeclaration {
+public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaration {
 
   @Serial private static final long serialVersionUID = 5745608767872283746L;
+  private final FileLocation fileLocation;
+  private final String name;
+  private final ImmutableList<SvLibType> inputTypes;
+  private final SvLibType returnType;
 
   public SvLibSmtFunctionDeclaration(
       FileLocation pFileLocation,
       String pName,
       List<SvLibType> pInputTypes,
       SvLibType pReturnType) {
-    // The type of the procedure declaration can be inferred from the parameters, since there is no
-    // anonymous parameters and no function declaration using only the types
-    super(
-        pFileLocation,
-        new SvLibFunctionType(pFileLocation, pInputTypes, pReturnType),
-        pName,
-        pName,
-        // Functions are declared anonymously in SMT-LIB, so there are no parameters
-        // only from the function definition do we get the parameters
-        ImmutableList.of());
+    fileLocation = pFileLocation;
+    name = pName;
+    inputTypes = ImmutableList.copyOf(pInputTypes);
+    returnType = pReturnType;
+  }
+
+  public String getName() {
+    return name;
   }
 
   @Override
-  @Nullable
-  public String getProcedureName() {
-    return null;
-  }
-
-  @Override
-  public String getQualifiedName() {
-    return getName();
+  public @Nullable String getProcedureName() {
+    return name;
   }
 
   @Override
   public SvLibFunctionType getType() {
-    return (SvLibFunctionType) super.getType();
+    return new SvLibFunctionType(inputTypes, returnType);
+  }
+
+  @Override
+  public SvLibFunctionDeclaration toSimpleDeclaration() {
+    return new SvLibFunctionDeclaration(
+        fileLocation,
+        new SvLibFunctionType(inputTypes, returnType),
+        name,
+        name,
+        // No parameters, since it is a mathematical function
+        // TODO: Fix this design decision later
+        null);
   }
 
   @Override
@@ -66,14 +72,28 @@ public final class SvLibSmtFunctionDeclaration extends AFunctionDeclaration
   }
 
   @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
+  }
+
+  @Override
   public String toASTString() {
     return getType().toASTString(getName());
   }
 
   @Override
-  public ImmutableList<SvLibParameterDeclaration> getParameters() {
-    throw new UnsupportedOperationException(
-        "SvLibSmtFunctionDeclaration has no parameters, since it is a "
-            + "mathematical function declaration.");
+  public int hashCode() {
+    return name.hashCode() * 31 + getType().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+
+    return pO instanceof SvLibSmtFunctionDeclaration other
+        && name.equals(other.name)
+        && getType().equals(other.getType());
   }
 }

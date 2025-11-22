@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public abstract class SvLibScope {
@@ -42,15 +42,15 @@ public abstract class SvLibScope {
 
   abstract SvLibScope copy();
 
-  abstract void enterProcedure(List<SvLibParameterDeclaration> pParameters);
+  abstract void enterProcedure(List<SvLibParsingParameterDeclaration> pParameters);
 
   abstract void leaveProcedure();
 
-  public abstract SvLibSimpleDeclaration getVariable(String pText);
+  public abstract SvLibSimpleParsingDeclaration getVariable(String pText);
 
-  public abstract SvLibSimpleDeclaration getVariableForQualifiedName(String pQualifiedName);
+  public abstract SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pQualifiedName);
 
-  abstract void addVariable(SvLibVariableDeclaration pDeclaration);
+  abstract void addVariable(SvLibParsingVariableDeclaration pDeclaration);
 
   abstract void addProcedureDeclaration(SvLibProcedureDeclaration pDeclaration);
 

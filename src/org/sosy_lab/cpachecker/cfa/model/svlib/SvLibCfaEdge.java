@@ -12,7 +12,7 @@ public sealed interface SvLibCfaEdge
     permits SvLibAssumeEdge,
         SvLibBlankChoiceEdge,
         SvLibDeclarationEdge,
-        SvLibProcedureCallEdge,
+        SvLibFunctionCallEdge,
         SvLibProcedureReturnEdge,
         SvLibProcedureSummaryEdge,
         SvLibStatementEdge {}

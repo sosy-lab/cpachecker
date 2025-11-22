@@ -6,40 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 
-// TODO: distinguish between relational, relational final and non-relational terms
-public sealed interface SvLibFinalRelationalTerm extends AExpression, SvLibAstNode
-    permits SvLibGeneralSymbolApplicationTerm,
-        SvLibFinalTerm,
-        SvLibSymbolApplicationRelationalTerm,
-        SvLibTerm {
-
-  @NonNull
-  @Override
-  SvLibType getExpressionType();
+// TODO: seal once we have modules
+public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode {
 
   <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X;
-
-  @Deprecated // Call accept() directly
-  @Override
-  default <
-          R,
-          R1 extends R,
-          R2 extends R,
-          R3 extends R,
-          X1 extends Exception,
-          X2 extends Exception,
-          X3 extends Exception,
-          V extends
-              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2> & SvLibTermVisitor<R3, X3>>
-      R accept_(V pV) throws X3 {
-    return accept(pV);
-  }
 }

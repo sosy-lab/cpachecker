@@ -13,13 +13,13 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.smtlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 
 /**
  * This scope represents an uninterpreted scope in SV-LIB, which is used for building tags, for
@@ -50,23 +50,23 @@ public class SvLibUninterpretedScope extends SvLibScope {
   }
 
   @Override
-  public void enterProcedure(List<SvLibParameterDeclaration> pParameters) {}
+  public void enterProcedure(List<SvLibParsingParameterDeclaration> pParameters) {}
 
   @Override
   public void leaveProcedure() {}
 
   @Override
-  public SvLibSimpleDeclaration getVariable(String pText) {
-    return SvLibVariableDeclaration.dummyVariableForName(pText);
+  public SvLibSimpleParsingDeclaration getVariable(String pText) {
+    return SvLibParsingVariableDeclaration.dummyVariableForName(pText);
   }
 
   @Override
-  public SvLibSimpleDeclaration getVariableForQualifiedName(String pText) {
-    return SvLibVariableDeclaration.dummyVariableForName(pText);
+  public SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pText) {
+    return SvLibParsingVariableDeclaration.dummyVariableForName(pText);
   }
 
   @Override
-  public void addVariable(SvLibVariableDeclaration pDeclaration) {}
+  public void addVariable(SvLibParsingVariableDeclaration pDeclaration) {}
 
   @Override
   public void addProcedureDeclaration(SvLibProcedureDeclaration pDeclaration) {

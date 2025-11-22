@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -563,7 +563,7 @@ public class CFACreator {
 
   private FunctionEntryNode getSvLibMainFunction(
       NavigableMap<String, FunctionEntryNode> pFunctions) {
-    String mainFunctioName = SvLibProcedureDeclaration.mainFunctionDeclaration().getName();
+    String mainFunctioName = SvLibFunctionDeclaration.mainFunctionDeclaration().getName();
     return pFunctions.get(mainFunctioName);
   }
 

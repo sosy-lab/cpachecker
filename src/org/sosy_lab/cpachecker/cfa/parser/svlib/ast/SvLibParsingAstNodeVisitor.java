@@ -8,22 +8,17 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCfaEdgeStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibProcedureDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSmtFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSortDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommandVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibControlFlowStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttributeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTrace;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTraceComponentVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommandVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceComponentVisitor;
 
 public interface SvLibParsingAstNodeVisitor<R, X extends Exception>
-    extends SvLibControlFlowStatementVisitor<R, X>,
-        SvLibCfaEdgeStatementVisitor<R, X>,
+    extends SvLibStatementVisitor<R, X>,
         SvLibTagAttributeVisitor<R, X>,
         SvLibTermVisitor<R, X>,
         SvLibCommandVisitor<R, X>,
@@ -39,4 +34,10 @@ public interface SvLibParsingAstNodeVisitor<R, X extends Exception>
   R visit(SvLibSmtFunctionDeclaration pSvLibSmtFunctionDeclaration) throws X;
 
   R accept(SvLibTrace pSvLibTrace) throws X;
+
+  R visit(SvLibParsingVariableDeclaration pSvLibParsingVariableDeclaration) throws X;
+
+  R visit(SvLibParsingParameterDeclaration pSvLibParsingParameterDeclaration) throws X;
+
+  R accept(SvLibSortDeclaration pSvLibSortDeclaration) throws X;
 }

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 

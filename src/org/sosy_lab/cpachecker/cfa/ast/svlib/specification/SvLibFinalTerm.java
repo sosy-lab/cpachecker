@@ -6,11 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.svlib;
+package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibFinalTerm implements SvLibFinalRelationalTerm {
@@ -45,12 +48,17 @@ public final class SvLibFinalTerm implements SvLibFinalRelationalTerm {
   }
 
   @Override
-  public <R, X extends Exception> R accept(SvLibParsingAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 
   @Override
   public <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(SvLibExpressionVisitor<R, X> v) throws X {
     return v.accept(this);
   }
 

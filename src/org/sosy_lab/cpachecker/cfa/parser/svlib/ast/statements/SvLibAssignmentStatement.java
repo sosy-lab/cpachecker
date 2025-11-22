@@ -15,18 +15,18 @@ import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 
 public final class SvLibAssignmentStatement extends SvLibStatement {
   @Serial private static final long serialVersionUID = 5878865332404007544L;
-  private final ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> assignments;
+  private final ImmutableMap<SvLibSimpleParsingDeclaration, SvLibTerm> assignments;
 
   public SvLibAssignmentStatement(
-      Map<SvLibSimpleDeclaration, SvLibTerm> pAssignments,
+      Map<SvLibSimpleParsingDeclaration, SvLibTerm> pAssignments,
       FileLocation pFileLocation,
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
@@ -53,14 +53,14 @@ public final class SvLibAssignmentStatement extends SvLibStatement {
                     FluentIterable.from(assignments.entrySet())
                         .transform(
                             entry ->
-                                entry.getKey().getOrigName()
+                                entry.getKey().toASTString()
                                     + " "
                                     + entry.getValue().toASTString()))
             + ")")
         + ")";
   }
 
-  public ImmutableMap<SvLibSimpleDeclaration, SvLibTerm> getAssignments() {
+  public ImmutableMap<SvLibSimpleParsingDeclaration, SvLibTerm> getAssignments() {
     return assignments;
   }
 
