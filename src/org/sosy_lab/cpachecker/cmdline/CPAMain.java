@@ -436,11 +436,11 @@ public class CPAMain {
     config =
         handleFrontendLanguageOptions(config, langOptions, cmdLineOptions, langOptions.language);
 
-    BootstrapOptions options = new BootstrapOptions();
-    config.inject(options);
-
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
+
+    BootstrapOptions options = new BootstrapOptions();
+    config.inject(options);
 
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(config, options, cmdLineOptions, properties);
