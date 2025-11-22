@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -142,8 +143,8 @@ public class PropertyFileParser {
     return property;
   }
 
-  public String getEntryFunction() {
-    return entryFunction;
+  public Optional<String> getEntryFunction() {
+    return Optional.ofNullable(entryFunction);
   }
 
   public ImmutableSet<Property> getProperties() {
