@@ -490,8 +490,9 @@ public class BuiltinOverflowFunctions {
         indexForSideEffectTarget != 2 || sideEffectResultToAssign instanceof CCastExpression);
     checkArgument(
         indexForSideEffectTarget != 3
-            || (sideEffectResultToAssign instanceof CBinaryExpression binExpr
-                && binExpr.getOperator() == BinaryOperator.NOT_EQUALS));
+            || (sideEffectResultToAssign instanceof CCastExpression castExpr
+                && castExpr.getOperand() instanceof CBinaryExpression binExprFromCast
+                && binExprFromCast.getOperator() == BinaryOperator.NOT_EQUALS));
 
     CExpression sideEffectTargetArgument =
         pFunCall.getParameterExpressions().get(indexForSideEffectTarget);
