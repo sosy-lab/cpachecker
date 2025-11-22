@@ -171,7 +171,6 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
               Optional<ASTElement> closestStatementAfterColumnAtTheSameLine =
                   astCfaRelation.getTightestStatementForStarting(line, column);
               passTransitionWhenCheckSucceeds =
-                  // TODO: FIX
                   new CheckCoversColumnAndLine(
                       closestStatementAfterColumnAtTheSameLine
                           .orElseThrow()
