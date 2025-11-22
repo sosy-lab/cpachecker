@@ -63,7 +63,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 // TODO: Figure out if we actually need all the paramters which are currently being suppressed
 //      as unused.
-public class SvLibToFormulaConverter extends LanguageToSmtConverter {
+public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
   private final FormulaManagerView fmgr;
   private final SvLibFormulaEncodingOptions options;
@@ -122,8 +122,21 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
   }
 
   @Override
-  public FormulaType<?> getFormulaTypeFromType(Type type) {
+  public FormulaType<?> getFormulaTypeFromType(SvLibType type) {
     throw new RuntimeException("Not implemented yet");
+  }
+
+  /**
+   * Create a formula for a given variable with a fresh index for the left-hand side of an
+   * assignment. This method does not handle scoping and the NON_DET_VARIABLE!
+   */
+  protected Formula makeFreshVariable(
+      String name, SvLibType type, SSAMapBuilder ssa, FormulaManagerView pFmgr) {
+    int useIndex = makeFreshIndex(name, type, ssa);
+
+    Formula result = pFmgr.makeVariable(type.toFormulaType(), name, useIndex);
+
+    return result;
   }
 
   @Override
@@ -150,7 +163,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
                   returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
           case SvLibStatementEdge statementEdge ->
               SvLibStatementToFormulaConverter.convertStatement(
-                  statementEdge.getStatement(), ssa, fmgr);
+                  statementEdge.getStatement(), ssa, fmgr, this);
 
           default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
         };
@@ -186,7 +199,8 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
       @SuppressWarnings("unused") ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
-    Formula formula = SvLibTermToFormulaConverter.convertTerm(edge.getExpression(), ssa, fmgr);
+    Formula formula =
+        SvLibTermToFormulaConverter.convertTerm(edge.getExpression(), ssa, fmgr, this);
     if (!(formula instanceof BooleanFormula booleanFormula)) {
       throw new UnrecognizedCodeException(
           "Expected boolean formula for assume edge, but got: " + formula, edge);
@@ -219,8 +233,8 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
           fmgr.makeAnd(
               formula,
               fmgr.assignment(
-                  SvLibTermToFormulaConverter.convertTerm(lhs, ssa, fmgr),
-                  SvLibTermToFormulaConverter.convertTerm(rhs, ssa, fmgr)));
+                  SvLibTermToFormulaConverter.convertTerm(lhs, ssa, fmgr, this),
+                  SvLibTermToFormulaConverter.convertTerm(rhs, ssa, fmgr, this)));
     }
     return formula;
   }
@@ -249,7 +263,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
       return bfmgr.makeTrue();
     }
 
-    LanguageToSmtConverter.makeFreshIndex(varName, decl.getType(), ssa);
+    makeFreshIndex(varName, decl.getType(), ssa);
 
     BooleanFormula result = bfmgr.makeTrue();
 
@@ -289,8 +303,8 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter {
               result,
               fmgr.assignment(
                   SvLibTermToFormulaConverter.convertTerm(
-                      new SvLibIdTerm(formalParam, FileLocation.DUMMY), ssa, fmgr),
-                  SvLibTermToFormulaConverter.convertTerm(actualParams.get(i), ssa, fmgr)));
+                      new SvLibIdTerm(formalParam, FileLocation.DUMMY), ssa, fmgr, this),
+                  SvLibTermToFormulaConverter.convertTerm(actualParams.get(i), ssa, fmgr, this)));
     }
 
     return result;

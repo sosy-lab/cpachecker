@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -44,12 +43,14 @@ public class SvLibTermToFormulaConverter {
   public static @NonNull Formula convertTerm(
       SvLibFinalRelationalTerm pSvLibFinalRelationalTerm,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      // TODO: This is very ugly, but I don't see an easy way around it at the moment
+      SvLibToFormulaConverter pConverter) {
     return switch (pSvLibFinalRelationalTerm) {
       case SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm ->
-          convertApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
+          convertApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
       case SvLibConstantTerm pSvLibConstantTerm -> convertConstant(pSvLibConstantTerm, fmgr);
-      case SvLibIdTerm pSvLibIdTerm -> convertVariable(pSvLibIdTerm, ssa, fmgr);
+      case SvLibIdTerm pSvLibIdTerm -> convertVariable(pSvLibIdTerm, ssa, fmgr, pConverter);
       case SvLibFinalTerm pSvLibFinalTerm ->
           throw new UnsupportedOperationException("Not yet implemented");
       // TODO: remove once we have modules such that we can seal the classes
@@ -63,13 +64,14 @@ public class SvLibTermToFormulaConverter {
    *
    * @return the index of the variable
    */
-  protected static int getIndex(String name, Type type, SSAMapBuilder ssa) {
+  protected static int getIndex(
+      String name, SvLibType type, SSAMapBuilder ssa, SvLibToFormulaConverter pConverter) {
     Type existingType = ssa.getType(name);
     if (existingType != null && !type.equals(existingType)) {
       throw new IllegalArgumentException(
           "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
     }
-    return LanguageToSmtConverter.getExistingOrNewIndex(name, type, ssa);
+    return pConverter.getExistingOrNewIndex(name, type, ssa);
   }
 
   private static @NonNull Formula convertConstant(
@@ -85,28 +87,32 @@ public class SvLibTermToFormulaConverter {
   }
 
   private static @NonNull Formula convertVariable(
-      SvLibIdTerm pSvLibIdTerm, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      SvLibIdTerm pSvLibIdTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     SvLibSimpleDeclaration variable = pSvLibIdTerm.getDeclaration();
     String varName = cleanVariableNameForJavaSMT(variable.getQualifiedName());
-    int useIndex = getIndex(varName, variable.getType(), ssa);
+    int useIndex = getIndex(varName, variable.getType(), ssa, pConverter);
     return fmgr.makeVariable(pSvLibIdTerm.getExpressionType().toFormulaType(), varName, useIndex);
   }
 
   private static @NonNull Formula convertApplication(
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && isArrayAccess(pTerm)) {
-      return convertArrayAccess(pTerm, ssa, fmgr);
+      return convertArrayAccess(pTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibFinalRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
-      return convertIntegerApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
+      return convertIntegerApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibFinalRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.BOOL))) {
-      return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr);
+      return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     }
 
     throw new UnsupportedOperationException(
@@ -117,12 +123,13 @@ public class SvLibTermToFormulaConverter {
   private static @NonNull Formula convertIntegerApplication(
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     String functionName = pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration().getName();
     List<IntegerFormula> args =
         transformedImmutableListCopy(
             pSvLibGeneralSymbolApplicationTerm.getTerms(),
-            term -> (IntegerFormula) convertTerm(term, ssa, fmgr));
+            term -> (IntegerFormula) convertTerm(term, ssa, fmgr, pConverter));
     IntegerFormulaManagerView imgr = fmgr.getIntegerFormulaManager();
     return switch (functionName) {
       case "+" -> {
@@ -179,14 +186,15 @@ public class SvLibTermToFormulaConverter {
   private static @NonNull Formula convertBooleanApplication(
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     String functionName =
         cleanVariableNameForJavaSMT(
             pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration().getQualifiedName());
     List<BooleanFormula> args =
         transformedImmutableListCopy(
             pSvLibGeneralSymbolApplicationTerm.getTerms(),
-            term -> (BooleanFormula) convertTerm(term, ssa, fmgr));
+            term -> (BooleanFormula) convertTerm(term, ssa, fmgr, pConverter));
     BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
     switch (functionName) {
       case "not" -> {
@@ -213,17 +221,20 @@ public class SvLibTermToFormulaConverter {
   // match.
   @SuppressWarnings("unchecked")
   private static @NonNull <T1 extends Formula, T2 extends Formula> Formula convertArrayAccess(
-      SvLibSymbolApplicationTerm pTerm, SSAMapBuilder pSsa, FormulaManagerView pFmgr) {
+      SvLibSymbolApplicationTerm pTerm,
+      SSAMapBuilder pSsa,
+      FormulaManagerView pFmgr,
+      SvLibToFormulaConverter pConverter) {
     if (pTerm.getSymbol().getName().equals("select")) {
-      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr);
+      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr, pConverter);
       ArrayFormula<T1, T2> arrayFormula =
-          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr);
+          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr, pConverter);
       return pFmgr.getArrayFormulaManager().select(arrayFormula, indexFormula);
     } else if (pTerm.getSymbol().getName().equals("store")) {
       ArrayFormula<T1, T2> arrayFormula =
-          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr);
-      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr);
-      T2 valueFormula = (T2) convertTerm(pTerm.getTerms().get(2), pSsa, pFmgr);
+          (ArrayFormula<T1, T2>) convertTerm(pTerm.getTerms().getFirst(), pSsa, pFmgr, pConverter);
+      T1 indexFormula = (T1) convertTerm(pTerm.getTerms().get(1), pSsa, pFmgr, pConverter);
+      T2 valueFormula = (T2) convertTerm(pTerm.getTerms().get(2), pSsa, pFmgr, pConverter);
       return pFmgr.getArrayFormulaManager().store(arrayFormula, indexFormula, valueFormula);
     } else {
       throw new IllegalStateException(

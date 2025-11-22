@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatemen
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -26,27 +25,32 @@ import org.sosy_lab.java_smt.api.Formula;
 public class SvLibStatementToFormulaConverter {
 
   public static @NonNull BooleanFormula convertStatement(
-      SvLibCfaEdgeStatement pSvLibCfaEdgeStatement, SSAMapBuilder ssa, FormulaManagerView fmgr) {
+      SvLibCfaEdgeStatement pSvLibCfaEdgeStatement,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      // TODO: This is very ugly, but I don't see an easy way around it at the moment
+      SvLibToFormulaConverter pConverter) {
     return switch (pSvLibCfaEdgeStatement) {
       case SvLibTermAssignmentCfaStatement pSvLibAssignment ->
-          handleTermAssignment(pSvLibAssignment, ssa, fmgr);
+          handleTermAssignment(pSvLibAssignment, ssa, fmgr, pConverter);
       case SvLibFunctionCallAssignmentStatement pSvLibProcedureCallStatement ->
-          handleCallAssignment(pSvLibProcedureCallStatement, ssa, fmgr);
+          handleCallAssignment(pSvLibProcedureCallStatement, ssa, fmgr, pConverter);
     };
   }
 
   private static @NonNull BooleanFormula handleTermAssignment(
       SvLibTermAssignmentCfaStatement pSvLibAssignment,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     BooleanFormula result = fmgr.getBooleanFormulaManager().makeTrue();
     Formula rightHandSideTerm =
-        SvLibTermToFormulaConverter.convertTerm(pSvLibAssignment.getRightHandSide(), ssa, fmgr);
+        SvLibTermToFormulaConverter.convertTerm(
+            pSvLibAssignment.getRightHandSide(), ssa, fmgr, pConverter);
 
-    // TODO: This feels like a hack
     SvLibSimpleDeclaration declaration = pSvLibAssignment.getLeftHandSide().getDeclaration();
     Formula assignedVariable =
-        LanguageToSmtConverter.makeFreshVariable(
+        pConverter.makeFreshVariable(
             cleanVariableNameForJavaSMT(declaration.getQualifiedName()),
             declaration.getType(),
             ssa,
@@ -59,7 +63,8 @@ public class SvLibStatementToFormulaConverter {
   private static @NonNull BooleanFormula handleCallAssignment(
       SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement,
       SSAMapBuilder ssa,
-      FormulaManagerView fmgr) {
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
     SvLibFunctionDeclaration functionDeclaration =
         pSvLibFunctionCallAssignmentStatement.getRightHandSide().getDeclaration();
     if (functionDeclaration.equals(
@@ -77,7 +82,7 @@ public class SvLibStatementToFormulaConverter {
               .getDeclaration();
 
       // Handle nondet function call
-      LanguageToSmtConverter.makeFreshVariable(
+      pConverter.makeFreshVariable(
           cleanVariableNameForJavaSMT(variableToHavoc.getQualifiedName()),
           variableToHavoc.getType(),
           ssa,

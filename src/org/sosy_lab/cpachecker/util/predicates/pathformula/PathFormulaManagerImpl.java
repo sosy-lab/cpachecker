@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -111,7 +112,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final LanguageToSmtConverter converter;
+  private final LanguageToSmtConverter<? extends Type> converter;
   private final @Nullable CtoWpConverter wpConverter;
   private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
@@ -239,7 +240,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                       new CBinaryExpressionBuilder(pMachineModel, pLogger));
             };
 
-        NONDET_FORMULA_TYPE = converter.getFormulaTypeFromType(NONDET_TYPE);
+        NONDET_FORMULA_TYPE = ((CtoFormulaConverter) converter).getFormulaTypeFromType(NONDET_TYPE);
       }
       case SVLIB -> {
         converter =

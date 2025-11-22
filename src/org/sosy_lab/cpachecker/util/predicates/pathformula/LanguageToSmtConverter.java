@@ -18,12 +18,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public abstract class LanguageToSmtConverter {
+public abstract class LanguageToSmtConverter<T extends Type> {
 
   // Index that is used to read from variables that were not assigned yet
   private static final int VARIABLE_UNINITIALIZED = 1;
@@ -33,23 +32,10 @@ public abstract class LanguageToSmtConverter {
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  public static int makeFreshIndex(String name, SvLibType type, SSAMapBuilder ssa) {
+  protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
-  }
-
-  /**
-   * Create a formula for a given variable with a fresh index for the left-hand side of an
-   * assignment. This method does not handle scoping and the NON_DET_VARIABLE!
-   */
-  public static Formula makeFreshVariable(
-      String name, SvLibType type, SSAMapBuilder ssa, FormulaManagerView fmgr) {
-    int useIndex = makeFreshIndex(name, type, ssa);
-
-    Formula result = fmgr.makeVariable(type.toFormulaType(), name, useIndex);
-
-    return result;
   }
 
   /**
@@ -59,9 +45,7 @@ public abstract class LanguageToSmtConverter {
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
    */
-  public static int getFreshIndex(String name, SSAMapBuilder ssa) {
-    // TODO: Check that the variable for its type has been declared before?
-    // checkSsaSavedType(name, type, ssa.getType(name));
+  protected int getFreshIndex(String name, SSAMapBuilder ssa) {
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
       idx = LanguageToSmtConverter.VARIABLE_FIRST_ASSIGNMENT;
@@ -78,7 +62,7 @@ public abstract class LanguageToSmtConverter {
    *
    * @return the index of the variable
    */
-  public static int getExistingOrNewIndex(String name, Type type, SSAMapBuilder ssa) {
+  public int getExistingOrNewIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx <= 0) {
       idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
@@ -95,7 +79,7 @@ public abstract class LanguageToSmtConverter {
     return idx;
   }
 
-  public abstract FormulaType<?> getFormulaTypeFromType(Type type);
+  public abstract FormulaType<?> getFormulaTypeFromType(T type);
 
   public abstract PathFormula makeAnd(
       PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)

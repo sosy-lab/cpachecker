@@ -379,7 +379,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
    */
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    return LanguageToSmtConverter.getFreshIndex(name, ssa);
+    return getFreshIndex(name, ssa);
   }
 
   /**
@@ -390,7 +390,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter {
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, (CType) ssa.getType(name));
-    return LanguageToSmtConverter.getExistingOrNewIndex(name, type, ssa);
+    return getExistingOrNewIndex(name, type, ssa);
   }
 
   protected void checkSsaSavedType(String name, CType type, CType t) {
