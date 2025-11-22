@@ -184,6 +184,7 @@ public final class CEXExportOptions {
         && getWitnessFile() == null
         && getExtendedWitnessFile() == null
         && getYamlWitnessPathTemplate() == null
+        && getSvLibViolationWitnessPath() == null
         && !exportTest;
   }
 

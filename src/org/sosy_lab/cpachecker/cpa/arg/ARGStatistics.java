@@ -274,7 +274,7 @@ public class ARGStatistics implements Statistics {
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
         && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
-        && (svLibCorrectnessWitnessPath == null)) {
+        && svLibCorrectnessWitnessPath == null) {
       exportARG = false;
     }
 
