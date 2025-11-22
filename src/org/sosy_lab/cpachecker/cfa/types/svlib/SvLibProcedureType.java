@@ -19,21 +19,21 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public final class SvLibProcedureType implements SvLibType, AFunctionType {
 
   @Serial private static final long serialVersionUID = 5728816904538462642L;
-  private final ImmutableList<SvLibType> inputType;
+  private final ImmutableList<SvLibType> inputTypes;
   private final ImmutableList<SvLibType> localVariableTypes;
-  private final ImmutableList<SvLibType> outputType;
+  private final ImmutableList<SvLibType> outputTypes;
 
   public SvLibProcedureType(
-      List<SvLibType> pInputType,
+      List<SvLibType> pInputTypes,
       List<SvLibType> pLocalVariableTypes,
-      List<SvLibType> pOutputType) {
-    inputType = ImmutableList.copyOf(pInputType);
+      List<SvLibType> pOutputTypes) {
+    inputTypes = ImmutableList.copyOf(pInputTypes);
     localVariableTypes = ImmutableList.copyOf(pLocalVariableTypes);
-    outputType = ImmutableList.copyOf(pOutputType);
+    outputTypes = ImmutableList.copyOf(pOutputTypes);
   }
 
-  public ImmutableList<SvLibType> getInputType() {
-    return inputType;
+  public ImmutableList<SvLibType> getInputTypes() {
+    return inputTypes;
   }
 
   public ImmutableList<SvLibType> getLocalVariableTypes() {
@@ -50,7 +50,7 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
     return declarator
         + " ("
         + String.join(
-            "", FluentIterable.from(getInputType()).transform(x -> "(" + x.toASTString("") + ")"))
+            "", FluentIterable.from(getInputTypes()).transform(x -> "(" + x.toASTString("") + ")"))
         + ") ("
         + String.join(
             ", ",
@@ -67,11 +67,11 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   @Override
   public String toPlainString() {
     return "("
-        + Joiner.on(") (").join(inputType)
+        + Joiner.on(") (").join(inputTypes)
         + ") ("
         + Joiner.on(", ").join(localVariableTypes)
         + ") ("
-        + Joiner.on(", ").join(outputType)
+        + Joiner.on(", ").join(outputTypes)
         + ")";
   }
 
@@ -82,29 +82,29 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
     }
 
     return obj instanceof SvLibProcedureType other
-        && inputType.equals(other.inputType)
+        && inputTypes.equals(other.inputTypes)
         && localVariableTypes.equals(other.localVariableTypes)
-        && outputType.equals(other.outputType);
+        && outputTypes.equals(other.outputTypes);
   }
 
   @Override
   public int hashCode() {
     int prime = 31;
     int result = 1;
-    result = prime * result + inputType.hashCode();
+    result = prime * result + inputTypes.hashCode();
     result = prime * result + localVariableTypes.hashCode();
-    result = prime * result + outputType.hashCode();
+    result = prime * result + outputTypes.hashCode();
     return result;
   }
 
   @Override
   public SvLibProductType getReturnType() {
-    return new SvLibProductType(outputType);
+    return new SvLibProductType(outputTypes);
   }
 
   @Override
   public ImmutableList<SvLibType> getParameters() {
-    return getInputType();
+    return getInputTypes();
   }
 
   @Override

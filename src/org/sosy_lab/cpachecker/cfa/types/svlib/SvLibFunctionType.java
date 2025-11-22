@@ -19,16 +19,16 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public final class SvLibFunctionType implements SvLibType, AFunctionType {
   @Serial private static final long serialVersionUID = -6676402211597555266L;
 
-  private final ImmutableList<SvLibType> inputType;
+  private final ImmutableList<SvLibType> inputTypes;
   private final SvLibType outputType;
 
-  public SvLibFunctionType(List<SvLibType> pInputType, SvLibType pOutputType) {
-    inputType = ImmutableList.copyOf(pInputType);
+  public SvLibFunctionType(List<SvLibType> pInputTypes, SvLibType pOutputType) {
+    inputTypes = ImmutableList.copyOf(pInputTypes);
     outputType = pOutputType;
   }
 
-  public ImmutableList<SvLibType> getInputType() {
-    return inputType;
+  public ImmutableList<SvLibType> getInputTypes() {
+    return inputTypes;
   }
 
   @Override
@@ -41,7 +41,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
     return declarator
         + " ("
         + String.join(
-            "", FluentIterable.from(getInputType()).transform(x -> "(" + x.toASTString("") + ")"))
+            "", FluentIterable.from(getInputTypes()).transform(x -> "(" + x.toASTString("") + ")"))
         + ") ("
         + getReturnType()
         + ")";
@@ -49,7 +49,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
 
   @Override
   public String toPlainString() {
-    return "(" + Joiner.on(") (").join(inputType) + ") " + outputType;
+    return "(" + Joiner.on(") (").join(inputTypes) + ") " + outputType;
   }
 
   @Override
@@ -59,7 +59,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
     }
 
     return obj instanceof SvLibFunctionType other
-        && inputType.equals(other.inputType)
+        && inputTypes.equals(other.inputTypes)
         && outputType.equals(other.outputType);
   }
 
@@ -67,7 +67,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
   public int hashCode() {
     int prime = 31;
     int result = 1;
-    result = prime * result + inputType.hashCode();
+    result = prime * result + inputTypes.hashCode();
     result = prime * result + outputType.hashCode();
     return result;
   }
@@ -79,7 +79,7 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
 
   @Override
   public ImmutableList<SvLibType> getParameters() {
-    return getInputType();
+    return getInputTypes();
   }
 
   @Override
