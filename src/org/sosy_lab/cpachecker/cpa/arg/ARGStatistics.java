@@ -266,15 +266,6 @@ public class ARGStatistics implements Statistics {
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, pCFA.getMachineModel());
 
-    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
-    if (svLibMetadata.isPresent()) {
-      argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
-    } else {
-      // We do not have SV-LIB metadata, or do not want to export witnesses
-      argToSvLibWitnessWriter = null;
-      svLibCorrectnessWitnessPath = null;
-    }
-
     if (argFile == null
         && simplifiedArgFile == null
         && refinementGraphFile == null
@@ -295,7 +286,16 @@ public class ARGStatistics implements Statistics {
       argToWitnessWriter = null;
     }
 
-    if (counterexampleOptions.disabledCompletely() && svLibMetadata.isEmpty()) {
+    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
+    if (svLibMetadata.isPresent() && svLibCorrectnessWitnessPath != null) {
+      argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
+    } else {
+      // We do not have SV-LIB metadata, or do not want to export witnesses
+      argToSvLibWitnessWriter = null;
+      svLibCorrectnessWitnessPath = null;
+    }
+
+    if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
     } else {
       ExtendedWitnessExporter extendedWitnessExporter =
