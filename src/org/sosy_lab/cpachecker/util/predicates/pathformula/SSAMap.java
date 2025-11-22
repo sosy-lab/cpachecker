@@ -60,9 +60,8 @@ public final class SSAMap implements Serializable {
               return type1;
             }
 
-            return (Type)
-                PersistentSortedMaps.getExceptionMergeConflictHandler()
-                    .resolveConflict(name, type1, type2);
+            return PersistentSortedMaps.<String, Type>getExceptionMergeConflictHandler()
+                .resolveConflict(name, type1, type2);
           } else if (type1 instanceof CType pCType1 && type2 instanceof CType pCType2) {
             Preconditions.checkArgument(
                 (type1 instanceof CFunctionType && type2 instanceof CFunctionType)
