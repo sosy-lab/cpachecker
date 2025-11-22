@@ -466,7 +466,7 @@ class AssignmentQuantifierHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     // the encoded quantified variable should be of pointerAsUnsignedIntType
-    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
+    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromType(pointerAsUnsignedIntType);
 
     // create encoded quantified variable
     final Formula encodedVariable =
@@ -522,7 +522,7 @@ class AssignmentQuantifierHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     // the unrolled index should be of pointerAsUnsignedIntType
-    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
+    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromType(pointerAsUnsignedIntType);
     final long unrollingSize;
     final Optional<Formula> sliceSizeFormula;
 

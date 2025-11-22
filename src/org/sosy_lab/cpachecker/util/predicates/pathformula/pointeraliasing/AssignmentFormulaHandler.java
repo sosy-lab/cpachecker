@@ -691,7 +691,7 @@ class AssignmentFormulaHandler {
       final String ufName = regionMgr.getPointerAccessName(region);
       final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       // forall counter : !condition => retentionConstraint
       // is equivalent to:
@@ -777,7 +777,7 @@ class AssignmentFormulaHandler {
       final String ufName = regionMgr.getPointerAccessName(region);
       final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       for (final PointerTarget target : targetLookup.apply(region)) {
         regionMgr.addTargetToStats(ufName);
@@ -902,7 +902,7 @@ class AssignmentFormulaHandler {
     checkArgument(isSimpleType(rvalueType));
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
+    final FormulaType<?> targetType = conv.getFormulaTypeFromType(lvalueType);
     BooleanFormula result;
 
     Formula rhs;

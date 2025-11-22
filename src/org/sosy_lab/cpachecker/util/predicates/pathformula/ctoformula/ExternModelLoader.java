@@ -106,7 +106,7 @@ public class ExternModelLoader {
                 // this variable was already declared in the program
                 Formula formulaVar =
                     fmgr.makeVariable(
-                        conv.getFormulaTypeFromCType((CType) ssa.getType(predName)),
+                        conv.getFormulaTypeFromType((CType) ssa.getType(predName)),
                         predName,
                         ssaIndex);
                 if (elem > 0) {

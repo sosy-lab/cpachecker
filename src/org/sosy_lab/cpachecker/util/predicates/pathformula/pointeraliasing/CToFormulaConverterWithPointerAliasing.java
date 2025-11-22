@@ -280,7 +280,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int pOldIndex,
       final int pNewIndex) {
 
-    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(pReturnType);
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromType(pReturnType);
     final ArrayFormula<?, ?> newArray =
         afmgr.makeArray(pFunctionName, pNewIndex, voidPointerFormulaType, returnFormulaType);
     final ArrayFormula<?, ?> oldArray =
@@ -296,7 +296,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSet pts)
       throws InterruptedException {
 
-    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromType(returnType);
 
     if (options.useQuantifiersOnArrays()) {
       Formula counter =
@@ -369,7 +369,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
     final int index = getIndex(ufName, type, ssa);
-    final FormulaType<?> returnType = getFormulaTypeFromCType(type);
+    final FormulaType<?> returnType = getFormulaTypeFromType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
@@ -1344,7 +1344,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final Formula address;
 
     if (forcePointerDereference) {
-      address = fmgr.makeVariable(getFormulaTypeFromCType(CTypeUtils.getBaseType(pType)), pVarName);
+      address = fmgr.makeVariable(getFormulaTypeFromType(CTypeUtils.getBaseType(pType)), pVarName);
 
     } else if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
@@ -1358,7 +1358,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkIsSimplified(pType);
     final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
     final String ufName = regionMgr.getPointerAccessName(region);
-    final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
+    final FormulaType<?> returnType = getFormulaTypeFromType(pType);
     return ptsMgr.makePointerDereference(ufName, returnType, address);
   }
 

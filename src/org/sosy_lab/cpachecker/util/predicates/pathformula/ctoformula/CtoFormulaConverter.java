@@ -293,11 +293,6 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     return true;
   }
 
-  public final FormulaType<?> getFormulaTypeFromCType(CType type) {
-    return getFormulaTypeFromType(type);
-  }
-
-  @Override
   public final FormulaType<?> getFormulaTypeFromType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
@@ -405,7 +400,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     //      : "Saving variables with mutliple types is not possible!";
     if (t != null && !areEqualWithMatchingPointerArray(t, type)) {
 
-      if (!getFormulaTypeFromCType(t).equals(getFormulaTypeFromCType(type))) {
+      if (!getFormulaTypeFromType(t).equals(getFormulaTypeFromType(type))) {
         throw new UnsupportedOperationException(
             "Variable "
                 + name
@@ -448,7 +443,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
     checkArgument(variableType instanceof CType);
 
-    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType((CType) variableType);
+    final FormulaType<?> variableFormulaType = getFormulaTypeFromType((CType) variableType);
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
 
@@ -460,7 +455,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * handle scoping!
    */
   protected Formula makeConstant(String name, CType type) {
-    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name);
+    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromType(type), name);
   }
 
   /**
@@ -471,7 +466,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
+    return fmgr.makeVariable(getFormulaTypeFromType(type), name, useIndex);
   }
 
   /**
@@ -489,7 +484,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
-    return fmgr.makeVariable(getFormulaTypeFromCType(pType), pVarName);
+    return fmgr.makeVariable(getFormulaTypeFromType(pType), pVarName);
   }
 
   /**
@@ -531,7 +526,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       useIndex = makeFreshIndex(name, type, ssa);
     }
 
-    Formula result = fmgr.makeVariable(getFormulaTypeFromCType(type), name, useIndex);
+    Formula result = fmgr.makeVariable(getFormulaTypeFromType(type), name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);
@@ -544,7 +539,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
     final int index = makeFreshIndex(name, type, ssa);
     Formula newVariable =
-        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromType(type), name + "!" + index);
 
     if (options.addRangeConstraintsForNondet() || CTypes.isBoolType(type)) {
       // For bool we always need the constraint that it is 0 or 1 and not 8 nondet bits
@@ -588,8 +583,8 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
 
-    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
-    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromType(fromType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromType(toType);
 
     if (fromFormulaType.isBitvectorType() && toFormulaType.isFloatingPointType()) {
       int sourceSize = ((BitvectorType) fromFormulaType).getSize();
@@ -654,7 +649,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
       final CType pFromType, Formula formula) {
     CType fromType = handlePointerAndEnumAsInt(pFromType);
-    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromType(fromType);
 
     if (fromFormulaType.isBitvectorType()) {
       // already a bitvector
@@ -677,7 +672,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
       final CType pToType, BitvectorFormula formula) {
     CType toType = handlePointerAndEnumAsInt(pToType);
-    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromType(toType);
 
     if (toFormulaType.isFloatingPointType()) {
       return fmgr.getFloatingPointFormulaManager()
@@ -906,8 +901,8 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           throw new AssertionError("Not a simple type: " + t);
         };
 
-    final FormulaType<?> fromType = getFormulaTypeFromCType(pFromCType);
-    final FormulaType<?> toType = getFormulaTypeFromCType(pToCType);
+    final FormulaType<?> fromType = getFormulaTypeFromType(pFromCType);
+    final FormulaType<?> toType = getFormulaTypeFromType(pToCType);
 
     final Formula ret;
     if (fromType.equals(toType)) {
@@ -1361,7 +1356,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();
-        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
+        FormulaType<?> elementFormulaType = getFormulaTypeFromType(elementCType);
         Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
         result = bfmgr.and(result, fmgr.assignment(var, zero));
       }
