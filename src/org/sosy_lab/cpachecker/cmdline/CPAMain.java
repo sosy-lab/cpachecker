@@ -563,6 +563,7 @@ public class CPAMain {
       return Configuration.builder()
           .loadFromFile(subconfig)
           .setOptions(pCmdLineOptions)
+          .setOption("language", frontendLanguage.name())
           .clearOption("c.config")
           .clearOption("llvm.config")
           .clearOption("java.config")
@@ -570,7 +571,10 @@ public class CPAMain {
           .build();
     }
 
-    return config;
+    return Configuration.builder()
+        .copyFrom(config)
+        .setOption("language", frontendLanguage.name())
+        .build();
   }
 
   private static Configuration handlePropertyOptions(
