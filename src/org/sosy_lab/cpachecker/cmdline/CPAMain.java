@@ -638,7 +638,7 @@ public class CPAMain {
     }
 
     String entryFunctionInPropertyFile = parser.getEntryFunction();
-    if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
+    if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION) && entryFunctionInPropertyFile != null) {
       if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(entryFunctionInPropertyFile)) {
         throw new InvalidCmdlineArgumentException(
             "Mismatching names for entry function on command line and in property file");
