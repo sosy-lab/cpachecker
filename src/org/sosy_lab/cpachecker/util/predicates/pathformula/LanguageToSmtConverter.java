@@ -44,6 +44,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
    */
+  @SuppressWarnings("unused") // The parameter in the middle is there only to prohibit subclassing
   protected int getFreshIndex(String name, T pType, SSAMapBuilder ssa) {
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
