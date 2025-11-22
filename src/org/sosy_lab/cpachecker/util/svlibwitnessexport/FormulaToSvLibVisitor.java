@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicatio
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -48,7 +49,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
     scope = pScope;
   }
 
-  private SvLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
+  private SvLibSmtLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
     if (formulaType.equals(FormulaType.BooleanType)) {
       return SvLibSmtLibPredefinedType.BOOL;
     } else if (formulaType.equals(FormulaType.IntegerType)) {
@@ -56,8 +57,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
     } else if (formulaType.equals(FormulaType.RationalType)) {
       return SvLibSmtLibPredefinedType.REAL;
     } else if (formulaType instanceof ArrayFormulaType<?, ?> pFormulaType) {
-      SvLibType indexType = formulaTypeToSvLibType(pFormulaType.getIndexType());
-      SvLibType elementType = formulaTypeToSvLibType(pFormulaType.getElementType());
+      SvLibSmtLibType indexType = formulaTypeToSvLibType(pFormulaType.getIndexType());
+      SvLibSmtLibType elementType = formulaTypeToSvLibType(pFormulaType.getElementType());
       return new SvLibSmtLibArrayType(indexType, elementType);
     }
 
@@ -65,7 +66,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
   }
 
   private SvLibIdTerm functionToIdTerm(
-      String pName, SvLibType pReturnType, List<@NonNull SvLibType> pArgTypes) {
+      String pName, SvLibType pReturnType, List<@NonNull SvLibSmtLibType> pArgTypes) {
 
     String actualName =
         pName
@@ -176,7 +177,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
 
     SvLibType formulaType = formulaTypeToSvLibType(pFunctionDeclaration.getType());
-    List<SvLibType> argTypes =
+    List<SvLibSmtLibType> argTypes =
         pFunctionDeclaration.getArgumentTypes().stream().map(this::formulaTypeToSvLibType).toList();
     String functionName = pFunctionDeclaration.getName().replace("`", "");
 

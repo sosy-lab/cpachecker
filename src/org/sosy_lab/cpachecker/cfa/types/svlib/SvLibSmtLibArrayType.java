@@ -14,19 +14,19 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public final class SvLibSmtLibArrayType implements SvLibSmtLibType {
 
   @Serial private static final long serialVersionUID = -6428452921599985756L;
-  private final SvLibType keysType;
-  private final SvLibType valuesType;
+  private final SvLibSmtLibType keysType;
+  private final SvLibSmtLibType valuesType;
 
-  public SvLibSmtLibArrayType(SvLibType pKeysType, SvLibType pValuesType) {
+  public SvLibSmtLibArrayType(SvLibSmtLibType pKeysType, SvLibSmtLibType pValuesType) {
     keysType = pKeysType;
     valuesType = pValuesType;
   }
 
-  public SvLibType getKeysType() {
+  public SvLibSmtLibType getKeysType() {
     return keysType;
   }
 
-  public SvLibType getValuesType() {
+  public SvLibSmtLibType getValuesType() {
     return valuesType;
   }
 

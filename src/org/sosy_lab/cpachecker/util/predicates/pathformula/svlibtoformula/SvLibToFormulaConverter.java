@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -134,7 +135,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
       String name, SvLibType type, SSAMapBuilder ssa, FormulaManagerView pFmgr) {
     int useIndex = makeFreshIndex(name, type, ssa);
 
-    Formula result = pFmgr.makeVariable(type.toFormulaType(), name, useIndex);
+    Formula result = pFmgr.makeVariable(((SvLibSmtLibType) type).toFormulaType(), name, useIndex);
 
     return result;
   }
@@ -332,7 +333,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     checkArgument(pOldIndex > 0 && pNewIndex > pOldIndex);
     checkArgument(pSymbolType instanceof SvLibType);
 
-    final FormulaType<?> variableFormulaType = ((SvLibType) pSymbolType).toFormulaType();
+    final FormulaType<?> variableFormulaType = ((SvLibSmtLibType) pSymbolType).toFormulaType();
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, pSymbolName, pOldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, pSymbolName, pNewIndex);
     return fmgr.assignment(newVariable, oldVariable);

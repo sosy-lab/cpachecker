@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ParametricSortContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SimpleSortContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvLibType> {
@@ -32,8 +33,8 @@ public class SvLibSortToAstTypeConverter extends AbstractAntlrToAstConverter<SvL
   @Override
   public SvLibType visitParametricSort(ParametricSortContext pContext) {
     if (pContext.sort().size() == 2 && pContext.identifier().getText().equals("Array")) {
-      SvLibType indexType = visit(pContext.sort(0));
-      SvLibType elementType = visit(pContext.sort(1));
+      SvLibSmtLibType indexType = (SvLibSmtLibType) visit(pContext.sort(0));
+      SvLibSmtLibType elementType = (SvLibSmtLibType) visit(pContext.sort(1));
       return new SvLibSmtLibArrayType(indexType, elementType);
     }
 

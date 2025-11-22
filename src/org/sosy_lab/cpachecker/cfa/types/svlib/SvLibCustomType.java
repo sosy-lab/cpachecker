@@ -14,7 +14,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public final class SvLibCustomType implements SvLibType {
+public final class SvLibCustomType implements SvLibSmtLibType {
 
   @Serial private static final long serialVersionUID = -1560683119379278009L;
   private final String type;

@@ -41,11 +41,6 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   }
 
   @Override
-  public FormulaType<?> toFormulaType() {
-    throw new UnsupportedOperationException("JavaSMT does not support custom types");
-  }
-
-  @Override
   public String toASTString(String declarator) {
     return declarator
         + " ("

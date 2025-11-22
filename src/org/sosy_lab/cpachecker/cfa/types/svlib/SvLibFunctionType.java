@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibFunctionType implements SvLibType, AFunctionType {
   @Serial private static final long serialVersionUID = -6676402211597555266L;
@@ -29,11 +28,6 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
 
   public ImmutableList<SvLibType> getInputTypes() {
     return inputTypes;
-  }
-
-  @Override
-  public FormulaType<?> toFormulaType() {
-    throw new UnsupportedOperationException("JavaSMT does not support custom types");
   }
 
   @Override

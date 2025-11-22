@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.types.svlib;
 
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 public final class SvLibProductType implements SvLibType {
 
@@ -19,11 +18,6 @@ public final class SvLibProductType implements SvLibType {
 
   public SvLibProductType(ImmutableList<SvLibType> pElementTypes) {
     elementTypes = ImmutableList.copyOf(pElementTypes);
-  }
-
-  @Override
-  public FormulaType<?> toFormulaType() {
-    throw new UnsupportedOperationException("JavaSMT does not support custom types");
   }
 
   @Override

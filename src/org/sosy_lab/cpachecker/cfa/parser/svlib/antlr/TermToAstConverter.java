@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 
 class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   public TermToAstConverter(SvLibScope pScope, Path pFilePath) {
@@ -151,12 +152,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
           return SmtLibTheoryDeclarations.arraySelect(
               arrayType.getKeysType(), arrayType.getValuesType());
-        } else if (pArguments
-            .getFirst()
-            .getExpressionType()
-            .equals(new SvLibAnyType())) {
-          return SmtLibTheoryDeclarations.arraySelect(
-              new SvLibAnyType(), new SvLibAnyType());
+        } else if (pArguments.getFirst().getExpressionType().equals(new SvLibAnyType())) {
+          return SmtLibTheoryDeclarations.arraySelect(new SvLibAnyType(), new SvLibAnyType());
         }
 
         throw new IllegalArgumentException(
@@ -166,7 +163,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       case "store" -> {
         Verify.verify(pArguments.size() == 3);
         return SmtLibTheoryDeclarations.arrayStore(
-            pArguments.get(1).getExpressionType(), pArguments.get(2).getExpressionType());
+            (SvLibSmtLibType) pArguments.get(1).getExpressionType(),
+            (SvLibSmtLibType) pArguments.get(2).getExpressionType());
       }
     }
 

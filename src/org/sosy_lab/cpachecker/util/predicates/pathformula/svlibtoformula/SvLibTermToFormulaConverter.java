@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -94,7 +95,8 @@ public class SvLibTermToFormulaConverter {
     SvLibSimpleDeclaration variable = pSvLibIdTerm.getDeclaration();
     String varName = cleanVariableNameForJavaSMT(variable.getQualifiedName());
     int useIndex = getIndex(varName, variable.getType(), ssa, pConverter);
-    return fmgr.makeVariable(pSvLibIdTerm.getExpressionType().toFormulaType(), varName, useIndex);
+    return fmgr.makeVariable(
+        ((SvLibSmtLibType) pSvLibIdTerm.getExpressionType()).toFormulaType(), varName, useIndex);
   }
 
   private static @NonNull Formula convertApplication(
@@ -248,14 +250,15 @@ public class SvLibTermToFormulaConverter {
           && SvLibType.canBeCastTo(
               pTerm.getTerms().getFirst().getExpressionType(),
               new SvLibSmtLibArrayType(
-                  pTerm.getTerms().get(1).getExpressionType(), pTerm.getExpressionType()));
+                  (SvLibSmtLibType) pTerm.getTerms().get(1).getExpressionType(),
+                  (SvLibSmtLibType) pTerm.getExpressionType()));
     } else if (pTerm.getSymbol().getName().equals("store")) {
       return pTerm.getTerms().size() == 3
           && SvLibType.canBeCastTo(
               pTerm.getTerms().getFirst().getExpressionType(),
               new SvLibSmtLibArrayType(
-                  pTerm.getTerms().get(1).getExpressionType(),
-                  pTerm.getTerms().get(2).getExpressionType()))
+                  (SvLibSmtLibType) pTerm.getTerms().get(1).getExpressionType(),
+                  (SvLibSmtLibType) pTerm.getTerms().get(2).getExpressionType()))
           && SvLibType.canBeCastTo(
               pTerm.getExpressionType(), pTerm.getTerms().getFirst().getExpressionType());
     } else {

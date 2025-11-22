@@ -22,13 +22,8 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * <p>TODO: Actually only relevant for parsing, consider moving to AST package. But currently we
  * leave it here to have a sealed type hierarchy for SvLibType.
  */
-public final class SvLibAnyType implements SvLibType {
+public final class SvLibAnyType implements SvLibSmtLibType {
   @Serial private static final long serialVersionUID = -2771387240943229018L;
-
-  @Override
-  public FormulaType<?> toFormulaType() {
-    throw new UnsupportedOperationException("JavaSMT does not support an 'any' type");
-  }
 
   @Override
   public String toPlainString() {
@@ -52,5 +47,10 @@ public final class SvLibAnyType implements SvLibType {
     }
 
     return obj instanceof SvLibAnyType;
+  }
+
+  @Override
+  public FormulaType<?> toFormulaType() {
+    throw new UnsupportedOperationException("SvLibAnyType cannot be converted to a FormulaType");
   }
 }

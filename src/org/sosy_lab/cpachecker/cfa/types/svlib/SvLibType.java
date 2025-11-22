@@ -10,19 +10,11 @@ package org.sosy_lab.cpachecker.cfa.types.svlib;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 // TODO: This needs to be refactored into actual SMT-LIB types, and those which
 //    can only appear in SV-LIB
 public sealed interface SvLibType extends Type
-    permits SvLibAnyType,
-        SvLibCustomType,
-        SvLibFunctionType,
-        SvLibProcedureType,
-        SvLibProductType,
-        SvLibSmtLibType {
-
-  FormulaType<?> toFormulaType();
+    permits SvLibFunctionType, SvLibProcedureType, SvLibProductType, SvLibSmtLibType {
 
   static boolean canBeCastTo(SvLibType t1, SvLibType t2) {
     if (t1 instanceof SvLibAnyType || t2 instanceof SvLibAnyType) {
@@ -45,15 +37,13 @@ public sealed interface SvLibType extends Type
   String toPlainString();
 
   static Optional<SvLibType> fromString(String pType) {
-    return Optional.of(
+    return Optional.ofNullable(
         switch (pType) {
           case "Int" -> SvLibSmtLibPredefinedType.INT;
           case "Bool" -> SvLibSmtLibPredefinedType.BOOL;
           case "String" -> SvLibSmtLibPredefinedType.STRING;
           case "Real" -> SvLibSmtLibPredefinedType.REAL;
-          default ->
-              throw new UnsupportedOperationException(
-                  "Cannot create SV-LIB type for string: " + pType);
+          default -> null;
         });
   }
 }

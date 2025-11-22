@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 
 public class SmtLibTheoryDeclarations {
 
@@ -219,7 +219,7 @@ public class SmtLibTheoryDeclarations {
   }
 
   /** Array stuff */
-  public static SvLibFunctionDeclaration arraySelect(SvLibType indexType, SvLibType elementType) {
+  public static SvLibFunctionDeclaration arraySelect(SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
@@ -230,7 +230,7 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
-  public static SvLibFunctionDeclaration arrayStore(SvLibType indexType, SvLibType elementType) {
+  public static SvLibFunctionDeclaration arrayStore(SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
