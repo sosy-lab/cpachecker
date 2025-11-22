@@ -99,7 +99,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         || transformation.equals(ProgramTransformation.SEQUENTIALIZATION_FAILED);
   }
 
-  private CFA preprocessCfaUsingSequentialization(CFA pCFA)
+  private CFA preprocessCfaUsingSequentialization(CFA pOldCFA)
       throws UnrecognizedCodeException,
           InterruptedException,
           ParserException,
@@ -115,7 +115,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         CFACreator.of(config, logger, shutdownNotifier, ProgramTransformation.SEQUENTIALIZATION);
     ImmutableCFA newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
 
-    newCFA = newCFA.copyWithMetadata(getNewMetadata(pCFA, ProgramTransformation.SEQUENTIALIZATION));
+    newCFA =
+        newCFA.copyWithMetadata(
+            getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION));
 
     sequentializationStatistics.stopSequentializationTimer();
     logger.log(Level.INFO, "Finished sequentialization of the program.");
@@ -123,9 +125,14 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     return newCFA;
   }
 
-  private CfaMetadata getNewMetadata(CFA pCFA, ProgramTransformation pSequentializationStatus) {
-    return pCFA.getMetadata()
-        .withTransformationMetadata(new CfaTransformationMetadata(cfa, pSequentializationStatus));
+  private CfaMetadata getNewMetadata(
+      CFA pOldCFA, CFA pNewCfa, ProgramTransformation pSequentializationStatus) {
+
+    return pOldCFA
+        .getMetadata()
+        .withTransformationMetadata(new CfaTransformationMetadata(cfa, pSequentializationStatus))
+        // update main() FunctionEntryNode, since cfa.getMainFunction() returns it from metadata
+        .withMainFunctionEntry(pNewCfa.getFunctionHead("main"));
   }
 
   @CanIgnoreReturnValue
@@ -146,17 +153,14 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     } else {
       try {
         newCfa = preprocessCfaUsingSequentialization(cfa);
-      } catch (UnrecognizedCodeException
-          | UnsupportedOperationException
-          | ParserException
-          | InvalidConfigurationException e) {
+      } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
         logger.logUserException(
             Level.WARNING,
             e,
             "Sequentialization of the input program failed, falling back to using the original"
                 + " program.");
         CfaMetadata newMetadata =
-            getNewMetadata(cfa, ProgramTransformation.SEQUENTIALIZATION_FAILED);
+            getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_FAILED);
         // Mark the CFA as having failed sequentialization
         // TODO: Simplify with sealed classes
         if (cfa instanceof ImmutableCFA immutableCfa) {
