@@ -62,8 +62,6 @@ public class PropertyFileParser {
               + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
               + "|"
               + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
-              + "|"
-              + CFACreator.VALID_SVLIB_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
   private static final Pattern COVERAGE_PATTERN =
