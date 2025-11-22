@@ -76,7 +76,7 @@ public abstract class SvLibScope {
    * @return the SvLibType
    */
   SvLibType getTypeForName(String pName) {
-    Optional<SvLibType> builtInType = SvLibType.getTypeForString(pName);
+    Optional<SvLibType> builtInType = SvLibType.fromString(pName);
     if (builtInType.isPresent()) {
       return builtInType.orElseThrow();
     }

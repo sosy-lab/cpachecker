@@ -43,7 +43,7 @@ public sealed interface SvLibType extends Type
 
   String toPlainString();
 
-  static Optional<SvLibType> getTypeForString(String pType) {
+  static Optional<SvLibType> fromString(String pType) {
     return Optional.of(
         switch (pType) {
           case "Int" -> SvLibSmtLibPredefinedType.INT;
