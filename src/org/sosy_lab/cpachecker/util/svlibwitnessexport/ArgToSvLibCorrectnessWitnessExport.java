@@ -20,6 +20,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -114,14 +115,17 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
       // Replace all variables in the postcondition with their final(...) counterparts
       SvLibIdTermReplacer finalReplacer =
-          new SvLibIdTermReplacer(
-              idTerm -> {
-                if (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
-                    || idTerm.getDeclaration() instanceof SvLibParameterDeclaration) {
-                  return new SvLibFinalTerm(FileLocation.DUMMY, idTerm);
-                }
-                return idTerm;
-              });
+          new SvLibIdTermReplacer() {
+
+            @Override
+            public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
+              if (pIdTerm.getDeclaration() instanceof SvLibVariableDeclaration
+                  || pIdTerm.getDeclaration() instanceof SvLibParameterDeclaration) {
+                return new SvLibFinalTerm(FileLocation.DUMMY, pIdTerm);
+              }
+              return pIdTerm;
+            }
+          };
       postcondition = postcondition.accept(finalReplacer);
 
       ensuresTerms.add(SvLibTermBuilder.implication(precondition, postcondition));

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.builder;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.base.Function;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,14 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class SvLibIdTermReplacer
+public abstract class SvLibIdTermReplacer
     implements SvLibTermVisitor<SvLibFinalRelationalTerm, NoException> {
 
-  private final Function<SvLibIdTerm, SvLibFinalRelationalTerm> replacementFunction;
-
-  public SvLibIdTermReplacer(Function<SvLibIdTerm, SvLibFinalRelationalTerm> pReplacementFunction) {
-    replacementFunction = pReplacementFunction;
-  }
+  public abstract SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm);
 
   @Override
   public SvLibFinalRelationalTerm accept(SvLibFinalTerm pSvLibFinalTerm) throws NoException {
@@ -73,7 +68,7 @@ public class SvLibIdTermReplacer
 
   @Override
   public SvLibFinalRelationalTerm accept(SvLibIdTerm pSvLibIdTerm) throws NoException {
-    return replacementFunction.apply(pSvLibIdTerm);
+    return replace(pSvLibIdTerm);
   }
 
   @Override

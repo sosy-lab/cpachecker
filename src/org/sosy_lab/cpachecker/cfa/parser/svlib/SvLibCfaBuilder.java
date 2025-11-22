@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.builder.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -262,16 +263,19 @@ class SvLibCfaBuilder {
   private static SvLibTagProperty instantiateTagProperty(
       SvLibScope pScope, SvLibTagProperty pTagProperty) {
     SvLibIdTermReplacer variableInstantiation =
-        new SvLibIdTermReplacer(
-            idTerm -> {
-              if (idTerm.getDeclaration().getType().equals(SvLibCustomType.InternalAnyType)) {
-                return new SvLibIdTerm(
-                    pScope.getVariable(idTerm.getDeclaration().getName()).toSimpleDeclaration(),
-                    FileLocation.DUMMY);
-              } else {
-                return idTerm;
-              }
-            });
+        new SvLibIdTermReplacer() {
+
+          @Override
+          public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
+            if (pIdTerm.getDeclaration().getType().equals(SvLibCustomType.InternalAnyType)) {
+              return new SvLibIdTerm(
+                  pScope.getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),
+                  FileLocation.DUMMY);
+            } else {
+              return pIdTerm;
+            }
+          }
+        };
 
     return switch (pTagProperty) {
       case SvLibCheckTrueTag pCheckTrueTag ->
