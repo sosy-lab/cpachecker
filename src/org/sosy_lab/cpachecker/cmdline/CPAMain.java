@@ -211,7 +211,6 @@ public class CPAMain {
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
   public static final String APPROACH_NAME_OPTION = "analysis.name";
-  public static final String PROGRAMS_OPTION = "analysis.programNames";
 
   @VisibleForTesting
   @Options
