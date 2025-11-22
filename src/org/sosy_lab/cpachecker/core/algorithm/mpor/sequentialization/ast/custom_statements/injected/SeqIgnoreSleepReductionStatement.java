@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
+import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -21,31 +21,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public final class SeqIgnoreSleepReductionStatement extends SeqInjectedStatement {
-
-  private final CIdExpression roundMaxVariable;
-
-  private final BitVectorEvaluationExpression bitVectorEvaluationExpression;
-
-  public final ImmutableList<SeqInjectedStatement> reductionAssumptions;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final SeqBlockLabelStatement targetGoto;
-
-  public SeqIgnoreSleepReductionStatement(
-      CIdExpression pRoundMaxVariable,
-      BitVectorEvaluationExpression pBitVectorEvaluationExpression,
-      ImmutableList<SeqInjectedStatement> pReductionAssumptions,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      SeqBlockLabelStatement pTargetGoto) {
-
-    roundMaxVariable = pRoundMaxVariable;
-    bitVectorEvaluationExpression = pBitVectorEvaluationExpression;
-    reductionAssumptions = pReductionAssumptions;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    targetGoto = pTargetGoto;
-  }
+public record SeqIgnoreSleepReductionStatement(
+    CIdExpression roundMaxVariable,
+    BitVectorEvaluationExpression bitVectorEvaluationExpression,
+    ImmutableList<SeqInjectedStatement> reductionAssumptions,
+    CBinaryExpressionBuilder binaryExpressionBuilder,
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
@@ -70,7 +52,7 @@ public final class SeqIgnoreSleepReductionStatement extends SeqInjectedStatement
     }
 
     // reduction assumptions are present -> build else branch with assumptions
-    ImmutableList.Builder<String> elseStatements = ImmutableList.builder();
+    Builder<String> elseStatements = ImmutableList.builder();
     for (SeqInjectedStatement reductionAssumption : reductionAssumptions) {
       elseStatements.add(reductionAssumption.toASTString());
     }
@@ -83,18 +65,13 @@ public final class SeqIgnoreSleepReductionStatement extends SeqInjectedStatement
   }
 
   @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return Optional.of(targetGoto);
-  }
-
-  @Override
-  public SeqIgnoreSleepReductionStatement withLabelNumber(int pLabelNumber) {
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqIgnoreSleepReductionStatement(
         roundMaxVariable,
         bitVectorEvaluationExpression,
         reductionAssumptions,
         binaryExpressionBuilder,
-        targetGoto.withLabelNumber(pLabelNumber));
+        targetGoto.withLabelNumber(pTargetNumber));
   }
 
   public SeqIgnoreSleepReductionStatement withReductionAssumptions(

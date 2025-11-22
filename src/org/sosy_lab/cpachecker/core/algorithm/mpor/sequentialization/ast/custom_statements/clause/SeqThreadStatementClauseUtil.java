@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatementWithTargetGoto;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
@@ -200,13 +201,12 @@ public class SeqThreadStatementClauseUtil {
       // for injected statements (e.g. bitvector gotos), use the block label
       int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
       ImmutableList<SeqInjectedStatement> replacingInjectedStatements =
-          FluentIterable.from(pCurrentStatement.getInjectedStatements())
-              .transform(
-                  injected ->
-                      Objects.requireNonNull(injected).getTargetGoto().isPresent()
-                          ? injected.withLabelNumber(blockIndex)
-                          : injected)
-              .toList();
+          transformedImmutableListCopy(
+              pCurrentStatement.getInjectedStatements(),
+              injected ->
+                  injected instanceof SeqInjectedStatementWithTargetGoto injectedWithGoto
+                      ? injectedWithGoto.withTargetNumber(blockIndex)
+                      : injected);
       return pCurrentStatement
           .withTargetPc(clauseIndex)
           .withInjectedStatements(replacingInjectedStatements);

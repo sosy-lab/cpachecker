@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
@@ -17,23 +16,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public final class SeqRoundGotoStatement extends SeqInjectedStatement {
-
-  private final CBinaryExpression roundSmallerMax;
-
-  private final CExpressionAssignmentStatement roundIncrement;
-
-  private final SeqBlockLabelStatement targetGoto;
-
-  public SeqRoundGotoStatement(
-      CBinaryExpression pRoundSmallerMax,
-      CExpressionAssignmentStatement pRoundIncrement,
-      SeqBlockLabelStatement pTargetGoto) {
-
-    roundSmallerMax = pRoundSmallerMax;
-    roundIncrement = pRoundIncrement;
-    targetGoto = pTargetGoto;
-  }
+public record SeqRoundGotoStatement(
+    CBinaryExpression roundSmallerMax,
+    CExpressionAssignmentStatement roundIncrement,
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
@@ -46,13 +33,8 @@ public final class SeqRoundGotoStatement extends SeqInjectedStatement {
   }
 
   @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return Optional.of(targetGoto);
-  }
-
-  @Override
-  public SeqRoundGotoStatement withLabelNumber(int pLabelNumber) {
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqRoundGotoStatement(
-        roundSmallerMax, roundIncrement, targetGoto.withLabelNumber(pLabelNumber));
+        roundSmallerMax, roundIncrement, targetGoto.withLabelNumber(pTargetNumber));
   }
 }

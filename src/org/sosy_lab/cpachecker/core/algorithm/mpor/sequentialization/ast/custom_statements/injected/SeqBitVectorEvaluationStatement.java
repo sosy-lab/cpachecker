@@ -24,22 +24,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * The statement for evaluating bit vectors (including {@code if (...)}). Used for both {@link
  * ReductionMode#ACCESS_ONLY} and {@link ReductionMode#READ_AND_WRITE}.
  */
-public final class SeqBitVectorEvaluationStatement extends SeqInjectedStatement {
-
-  private final MPOROptions options;
-
-  public final Optional<BitVectorEvaluationExpression> evaluationExpression;
-
-  private final SeqBlockLabelStatement targetGoto;
-
-  public SeqBitVectorEvaluationStatement(
-      MPOROptions pOptions,
-      Optional<BitVectorEvaluationExpression> pEvaluationExpression,
-      SeqBlockLabelStatement pTargetGoto) {
-    options = pOptions;
-    evaluationExpression = pEvaluationExpression;
-    targetGoto = pTargetGoto;
-  }
+public record SeqBitVectorEvaluationStatement(
+    MPOROptions options,
+    Optional<BitVectorEvaluationExpression> evaluationExpression,
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
@@ -63,12 +52,7 @@ public final class SeqBitVectorEvaluationStatement extends SeqInjectedStatement 
   }
 
   @Override
-  public Optional<SeqBlockLabelStatement> getTargetGoto() {
-    return Optional.of(targetGoto);
-  }
-
-  @Override
-  public SeqBitVectorEvaluationStatement withLabelNumber(int pTargetNumber) {
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqBitVectorEvaluationStatement(
         options, evaluationExpression, targetGoto.withLabelNumber(pTargetNumber));
   }
