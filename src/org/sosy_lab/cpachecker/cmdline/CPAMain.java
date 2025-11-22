@@ -134,10 +134,6 @@ public class CPAMain {
     MainOptions options = new MainOptions();
     try {
       cpaConfig.inject(options);
-      if (programs.isEmpty()) {
-        throw new InvalidConfigurationException(
-            "Please specify a program to analyze on the command line.");
-      }
       dumpConfiguration(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
@@ -429,6 +425,11 @@ public class CPAMain {
 
     BootstrapLanguageOptions langOptions = new BootstrapLanguageOptions();
     config.inject(langOptions);
+    if (langOptions.programs.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "Please specify a program to analyze on the command line.");
+    }
+
     config = detectFrontendLanguageIfNecessary(langOptions, config);
 
     // Handle frontend-language-specific subconfig if necessary
