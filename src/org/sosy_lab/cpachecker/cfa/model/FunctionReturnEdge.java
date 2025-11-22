@@ -41,7 +41,7 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
         + " to "
         + getSuccessor().getFunctionName()
         + ": "
-        + summaryEdge.getExpression().toASTString();
+        + summaryEdge.getExpression();
   }
 
   @Override
