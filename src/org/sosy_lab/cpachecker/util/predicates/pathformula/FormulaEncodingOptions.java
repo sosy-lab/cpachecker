@@ -20,7 +20,7 @@ import org.sosy_lab.common.configuration.Options;
  * instantiated, please use the language-specific subclasses instead.
  */
 @Options(prefix = "cpa.predicate")
-public abstract class EncodingOptions {
+public abstract class FormulaEncodingOptions {
 
   @Option(
       secure = true,
@@ -48,8 +48,8 @@ public abstract class EncodingOptions {
               + "The global variables are also encoded with return-variables at function-exit.")
   private boolean useParameterVariablesForGlobals = false;
 
-  public EncodingOptions(Configuration config) throws InvalidConfigurationException {
-    config.inject(this, EncodingOptions.class);
+  public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
+    config.inject(this, FormulaEncodingOptions.class);
   }
 
   public boolean ignoreIrrelevantVariables() {

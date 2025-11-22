@@ -15,11 +15,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.EncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.FormulaEncodingOptions;
 
 /** This class collects some configurations options for the C-to-formula encoding process. */
 @Options(prefix = "cpa.predicate")
-public class CFormulaEncodingOptions extends EncodingOptions {
+public class CFormulaEncodingOptions extends FormulaEncodingOptions {
 
   @Option(
       secure = true,
