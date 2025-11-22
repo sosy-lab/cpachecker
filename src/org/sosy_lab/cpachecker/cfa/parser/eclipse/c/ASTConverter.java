@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -1446,15 +1445,34 @@ class ASTConverter {
     }
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(name)) {
-      var parameterTypes = BuiltinOverflowFunctions.getParameterTypes(name);
-      CFunctionType functionType = new CFunctionType(CNumericTypes.BOOL, parameterTypes, false);
-      var parameterDeclarations =
-          transformedImmutableListCopy(
-              parameterTypes,
-              paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"));
+      List<CType> parameterTypes = BuiltinOverflowFunctions.getParameterTypes(name);
+      CFunctionType functionType =
+          new CFunctionType(BuiltinOverflowFunctions.getReturnType(name), parameterTypes, false);
+      ImmutableList<String> paramNamesInOrder;
+      if (BuiltinOverflowFunctions.functionReturnsBooleanOverflowCheck(name)) {
+        if (BuiltinOverflowFunctions.functionReturnsNoValuesUsingSideEffects(name)) {
+          paramNamesInOrder = ImmutableList.of("a", "b", "c");
+        } else {
+          paramNamesInOrder = ImmutableList.of("a", "b", "res");
+        }
+      } else {
+        paramNamesInOrder = ImmutableList.of("a", "b", "carry_in", "carry_out");
+      }
+      ImmutableList.Builder<CParameterDeclaration> parameterDeclarations = ImmutableList.builder();
+      for (int i = 0; i < parameterTypes.size(); i++) {
+        // TODO: is the file location really dummy?
+        parameterDeclarations.add(
+            new CParameterDeclaration(
+                FileLocation.DUMMY, parameterTypes.get(i), paramNamesInOrder.get(i)));
+      }
+      // TODO: is the file location really dummy?
       declaration =
           new CFunctionDeclaration(
-              FileLocation.DUMMY, functionType, name, parameterDeclarations, ImmutableSet.of());
+              FileLocation.DUMMY,
+              functionType,
+              name,
+              parameterDeclarations.build(),
+              ImmutableSet.of());
     }
 
     // declaration may still be null here,
