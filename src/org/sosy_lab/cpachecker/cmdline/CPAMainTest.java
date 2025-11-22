@@ -23,7 +23,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.BootstrapOptions;
 
@@ -39,7 +38,6 @@ public class CPAMainTest {
   @Parameter(0)
   public Language language;
 
-  private final LogManager logManager = LogManager.createTestLogManager();
   private final Multimap<Language, String> languageToInputFile = HashMultimap.create();
 
   private ConfigurationBuilder configBuilder;
