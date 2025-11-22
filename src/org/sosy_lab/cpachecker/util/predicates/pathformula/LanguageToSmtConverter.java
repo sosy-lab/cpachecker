@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
@@ -40,7 +39,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
   /**
    * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, SvLibType, SSAMapBuilder)} instead, because using
+   * you should use {@link #makeFreshIndex(String, T, SSAMapBuilder)} instead, because using
    * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.

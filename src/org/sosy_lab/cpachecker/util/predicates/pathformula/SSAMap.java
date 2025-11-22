@@ -91,7 +91,7 @@ public final class SSAMap implements Serializable {
         }
       };
 
-  private static final Equivalence<Type> cTypeCanonicalTypeEquivalence =
+  private static final Equivalence<Type> CANONICAL_TYPE_EQUIVALENCE =
       new Equivalence<>() {
 
         final Equivalence<CType> equivalenceCheck = CTypes.canonicalTypeEquivalence();
@@ -306,7 +306,7 @@ public final class SSAMap implements Serializable {
         PersistentSortedMaps.merge(
             s1.varTypes,
             s2.varTypes,
-            cTypeCanonicalTypeEquivalence,
+            CANONICAL_TYPE_EQUIVALENCE,
             TYPE_CONFLICT_CHECKER,
             MapsDifference.ignoreMapsDifference());
 
