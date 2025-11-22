@@ -14,11 +14,6 @@ SPDX-License-Identifier: Apache-2.0
   "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="360 s" memlimit="5 GB" cpuCores="2">
 
-  <!--
-    SV-LIB programs can overwrite the default behavior of a verifier,
-    so we can set no output files, and still get witnesses,
-    because the task sets their production to true
-  -->
   <option name="--no-output-files"/>
   <option name="--heap">2000M</option>
   <option name="--option">counterexample.export.svlib=witness.svlib</option>
