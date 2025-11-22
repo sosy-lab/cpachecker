@@ -388,7 +388,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   private boolean isValidResidualProgram(String mainFunction) throws InterruptedException {
     try {
       CFACreator cfaCreator =
-          new CFACreator(
+          CFACreator.of(
               Configuration.builder()
                   .setOption("analysis.entryFunction", mainFunction)
                   .setOption("analysis.useLoopStructure", "false")
@@ -533,7 +533,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     private @Nullable CFA getResidualProgram(final AbstractState root) {
       try {
         CFACreator cfaCreator =
-            new CFACreator(
+            CFACreator.of(
                 Configuration.builder()
                     .setOption(
                         "analysis.entryFunction",

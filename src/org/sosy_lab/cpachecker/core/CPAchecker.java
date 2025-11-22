@@ -472,7 +472,7 @@ public class CPAchecker {
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = CFACreator.of(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
     final ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa);

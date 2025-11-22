@@ -47,7 +47,7 @@ public class ACSLParserTest {
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
             .build();
     cfaCreator =
-        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
+        CFACreator.of(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
   }
 
   @Parameters(name = "{0}")

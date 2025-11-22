@@ -99,22 +99,21 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         || transformation.equals(ProgramTransformation.SEQUENTIALIZATION_FAILED);
   }
 
-  private CFA preprocessCfaUsingSequentialization(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+  private CFA preprocessCfaUsingSequentialization(CFA pCFA)
       throws UnrecognizedCodeException,
           InterruptedException,
           ParserException,
           InvalidConfigurationException {
 
-    pLogger.log(Level.INFO, "Starting sequentialization of the program.");
+    logger.log(Level.INFO, "Starting sequentialization of the program.");
     sequentializationStatistics.startSequentializationTimer();
 
     String sequentializedCode =
         Sequentialization.tryBuildProgramString(
             options, cfa, SequentializationUtils.of(cfa, config, logger, shutdownNotifier));
-    ImmutableCFA newCFA =
-        new CFACreator(pConfig, pLogger, pShutdownNotifier)
-            .parseSourceAndCreateCFA(sequentializedCode);
+    CFACreator cfaCreator =
+        CFACreator.of(config, logger, shutdownNotifier, ProgramTransformation.SEQUENTIALIZATION);
+    ImmutableCFA newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
 
     newCFA = newCFA.copyWithMetadata(getNewMetadata(pCFA, ProgramTransformation.SEQUENTIALIZATION));
 
@@ -146,7 +145,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
               + "If this is part of a parallel algorithm, this may be expected.");
     } else {
       try {
-        newCfa = preprocessCfaUsingSequentialization(config, logger, shutdownNotifier, cfa);
+        newCfa = preprocessCfaUsingSequentialization(cfa);
       } catch (UnrecognizedCodeException
           | UnsupportedOperationException
           | ParserException

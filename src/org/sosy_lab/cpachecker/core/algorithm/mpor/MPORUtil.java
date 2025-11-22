@@ -320,13 +320,13 @@ public final class MPORUtil {
   public static CFACreator buildTestCfaCreator(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CFACreator(TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
+    return CFACreator.of(TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
   }
 
   public static CFACreator buildTestCfaCreatorWithPreprocessor(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CFACreator(
+    return CFACreator.of(
         TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);

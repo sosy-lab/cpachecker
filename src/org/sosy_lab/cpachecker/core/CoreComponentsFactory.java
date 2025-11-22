@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
@@ -858,6 +859,10 @@ public class CoreComponentsFactory {
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm =
             new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
+      }
+
+      if (useMporAlgorithm) {
+        algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, null);
       }
 
       if (useMPV) {
