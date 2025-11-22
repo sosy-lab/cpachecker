@@ -44,13 +44,15 @@ public sealed interface SvLibType extends Type
   String toPlainString();
 
   static Optional<SvLibType> getTypeForString(String pType) {
-    return Optional.ofNullable(
+    return Optional.of(
         switch (pType) {
           case "Int" -> SvLibSmtLibPredefinedType.INT;
           case "Bool" -> SvLibSmtLibPredefinedType.BOOL;
           case "String" -> SvLibSmtLibPredefinedType.STRING;
           case "Real" -> SvLibSmtLibPredefinedType.REAL;
-          default -> null;
+          default ->
+              throw new UnsupportedOperationException(
+                  "Cannot create SV-LIB type for string: " + pType);
         });
   }
 }
