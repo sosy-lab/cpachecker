@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -126,7 +127,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.BuiltinOverflowFunctionReturn;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.BuiltinOverflowFunctionStatementsToApply;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -386,7 +387,7 @@ public class ValueAnalysisTransferRelation
         || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
 
     // visitor for getting the values of the actual parameters in caller function context
-    final ExpressionValueVisitor visitor = getVisitor();
+    final ExpressionValueVisitor visitor = getVisitor(state);
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
@@ -443,7 +444,7 @@ public class ValueAnalysisTransferRelation
 
     // visitor must use the initial (previous) state, because there we have all information about
     // variables
-    ExpressionValueVisitor evv = getVisitor();
+    ExpressionValueVisitor evv = getVisitor(state);
 
     // clone state, because will be changed through removing all variables of current function's
     // scope.
@@ -471,7 +472,8 @@ public class ValueAnalysisTransferRelation
       final Type functionReturnType =
           functionEntryNode.getFunctionDefinition().getType().getReturnType();
 
-      return handleAssignmentToVariable(functionReturnVar, functionReturnType, expression, evv);
+      return handleAssignmentToVariable(
+          state, functionReturnVar, functionReturnType, expression, evv);
     } else {
       return state;
     }
@@ -514,14 +516,14 @@ public class ValueAnalysisTransferRelation
       // We have to handle Java arrays in a special way, because they are stored as ArrayValue
       // objects
       if (op1 instanceof JArraySubscriptExpression arraySubscriptExpression) {
-        ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+        ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression, state);
+        OptionalInt maybeIndex = getIndex(arraySubscriptExpression, state);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
           assignedArray.setValue(newValue, maybeIndex.orElseThrow());
 
         } else {
-          assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
+          assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression, state);
         }
 
       } else {
@@ -603,8 +605,9 @@ public class ValueAnalysisTransferRelation
         && !jFieldDeclaration.isStatic();
   }
 
-  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
-    final ExpressionValueVisitor evv = getVisitor();
+  private OptionalInt getIndex(
+      JArraySubscriptExpression pExpression, ValueAnalysisState usedState) {
+    final ExpressionValueVisitor evv = getVisitor(usedState);
     final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
@@ -624,7 +627,8 @@ public class ValueAnalysisTransferRelation
       AExpression leftHandSide = assignment.getLeftHandSide();
 
       if (leftHandSide instanceof CLeftHandSide cLeftHandSide) {
-        MemoryLocation assignedMemoryLocation = getVisitor().evaluateMemoryLocation(cLeftHandSide);
+        MemoryLocation assignedMemoryLocation =
+            getVisitor(state).evaluateMemoryLocation(cLeftHandSide);
 
         if (newState.contains(assignedMemoryLocation)) {
           newState.forget(assignedMemoryLocation);
@@ -653,7 +657,7 @@ public class ValueAnalysisTransferRelation
     expression = simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
-    final ExpressionValueVisitor evv = getVisitor();
+    final ExpressionValueVisitor evv = getVisitor(state);
     final Type booleanType = getBooleanType(expression);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
@@ -789,7 +793,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (init instanceof AInitializerExpression aInitializerExpression) {
-      ExpressionValueVisitor evv = getVisitor();
+      ExpressionValueVisitor evv = getVisitor(state);
       AExpression exp = aInitializerExpression.getExpression();
       initialValue = getExpressionValue(exp, declarationType, evv);
 
@@ -811,7 +815,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor(state));
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -856,6 +860,12 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
       throws UnrecognizedCodeException {
 
+    return handleStatement(expression, state, cfaEdge);
+  }
+
+  private ValueAnalysisState handleStatement(
+      AStatement expression, ValueAnalysisState inputState, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
     if (expression instanceof CFunctionCall functionCall) {
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
@@ -868,29 +878,39 @@ public class ValueAnalysisTransferRelation
           }
 
         } else if (func.equals("free")) {
-          return handleCallToFree(functionCall);
+          return handleCallToFree(functionCall, inputState);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           // TODO: handle overflow func
-          // TODO: collect all function handlings into method and call that instead of having 2 handlings, one here, one in the visitor!
+          // TODO: collect all function handlings into method and call that instead of having 2
+          // handlings, one here, one in the visitor!
 
-          BuiltinOverflowFunctionReturn overflowFunctionExpressions =
-              BuiltinOverflowFunctions.handleOverflowFunction(
+          BuiltinOverflowFunctionStatementsToApply overflowFunctionExpressions =
+              BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
                   functionCallExp, func, cfaEdge, machineModel, logger);
-          ValueAnalysisState updatedState = state;
+          ValueAnalysisState currentState = inputState;
           if (overflowFunctionExpressions.hasSideEffectAssignment()) {
-            updatedState = handleAssignment(
-                overflowFunctionExpressions.getSideEffectAssignmentExpression().orElseThrow(), cfaEdge);
+            currentState =
+                handleStatement(
+                    overflowFunctionExpressions.getSideEffectAssignmentExpression().orElseThrow(),
+                    currentState,
+                    cfaEdge);
           }
-          return
+          CExpression functionReturnExpr =
+              overflowFunctionExpressions.getFunctionReturnExpression();
+          CStatement funStatement =
+              BuiltinOverflowFunctions.getResultStatementFromExpression(
+                  functionCall, functionReturnExpr);
+          return handleStatement(funStatement, currentState, cfaEdge);
 
         } else if (expression
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
-          return handleFunctionAssignment(cFunctionCallAssignmentStatement);
+          return handleFunctionAssignment(cFunctionCallAssignmentStatement, inputState);
         } else if (BuiltinIoFunctions.matchesFscanf(func)) {
           return handleFunctionAssignment(
-              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge));
+              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge),
+              inputState);
         }
       }
     }
@@ -898,7 +918,7 @@ public class ValueAnalysisTransferRelation
     // expression is a binary operation, e.g. a = b;
 
     if (expression instanceof AAssignment aAssignment) {
-      return handleAssignment(aAssignment, cfaEdge);
+      return handleAssignment(aAssignment, inputState, cfaEdge);
 
     } else if (expression instanceof AFunctionCallStatement) {
       // external function call - do nothing
@@ -910,19 +930,20 @@ public class ValueAnalysisTransferRelation
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
 
-    return state;
+    return inputState;
   }
 
   private ValueAnalysisState handleFunctionAssignment(
-      CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
+      CFunctionCallAssignmentStatement pFunctionCallAssignment, ValueAnalysisState inputState)
+      throws UnrecognizedCodeException {
 
     final CFunctionCallExpression functionCallExp =
         pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
-    final ExpressionValueVisitor evv = getVisitor();
+    final ExpressionValueVisitor evv = getVisitor(inputState);
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    ValueAnalysisState newState = ValueAnalysisState.copyOf(inputState);
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
 
@@ -930,30 +951,32 @@ public class ValueAnalysisTransferRelation
 
     if (memLoc.isPresent()) {
       if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
+        newState.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newState, evv);
       }
     }
 
-    return newElement;
+    return newState;
   }
 
-  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) {
+  private ValueAnalysisState handleCallToFree(
+      CFunctionCall pExpression, ValueAnalysisState inputState) {
     // Needed for erasing values
     missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
-    return state;
+    return inputState;
   }
 
-  private ValueAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
+  private ValueAnalysisState handleAssignment(
+      AAssignment assignExpression, ValueAnalysisState inputState, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
     AExpression op1 = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
 
     if (!isTrackedType(op1.getExpressionType())) {
-      return state;
+      return inputState;
     }
 
     if (op1 instanceof AIdExpression aIdExpression) {
@@ -969,7 +992,8 @@ public class ValueAnalysisTransferRelation
 
       MemoryLocation memloc = getMemoryLocation(aIdExpression);
 
-      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
+      return handleAssignmentToVariable(
+          inputState, memloc, op1.getExpressionType(), op2, getVisitor(inputState));
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
@@ -979,7 +1003,7 @@ public class ValueAnalysisTransferRelation
 
     } else if (op1 instanceof CFieldReference cFieldReference) {
 
-      ExpressionValueVisitor v = getVisitor();
+      ExpressionValueVisitor v = getVisitor(inputState);
 
       MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
@@ -988,14 +1012,14 @@ public class ValueAnalysisTransferRelation
       }
 
       if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+        return handleAssignmentToVariable(inputState, memLoc, op1.getExpressionType(), op2, v);
       }
 
     } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
       if (op1 instanceof CArraySubscriptExpression) {
 
-        ExpressionValueVisitor v = getVisitor();
+        ExpressionValueVisitor v = getVisitor(inputState);
 
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
@@ -1004,16 +1028,16 @@ public class ValueAnalysisTransferRelation
         }
 
         if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
+          return handleAssignmentToVariable(inputState, memLoc, op1.getExpressionType(), op2, v);
         }
       } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
-        ExpressionValueVisitor evv = getVisitor();
+        ExpressionValueVisitor evv = getVisitor(inputState);
 
-        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
+        ArrayValue arrayToChange = getInnerMostArray(arrayExpression, inputState);
         Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
 
         if (arrayToChange == null || maybeIndex.isUnknown()) {
-          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
+          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression, inputState);
 
         } else {
           long concreteIndex = ((NumericValue) maybeIndex).longValue();
@@ -1032,8 +1056,8 @@ public class ValueAnalysisTransferRelation
           }
 
           // changes array value in old state
-          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(state);
+          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2, inputState);
+          return ValueAnalysisState.copyOf(inputState);
         }
       }
     } else {
@@ -1041,7 +1065,7 @@ public class ValueAnalysisTransferRelation
           "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
-    return state; // the default return-value is the old state
+    return inputState; // the default return-value is the old state
   }
 
   private boolean isTrackedType(Type pType) {
@@ -1065,43 +1089,48 @@ public class ValueAnalysisTransferRelation
   }
 
   /**
-   * This method analyses the expression with the visitor and assigns the value to lParam. The
-   * method returns a new state, that contains (a copy of) the old state and the new assignment.
+   * This method analyses the expression with the visitor and assigns the value to varToAssignTo.
+   * The method returns a new state, that contains (a copy of) the old state and the new assignment.
+   * The given state is not changed, even if mutable.
    */
   private ValueAnalysisState handleAssignmentToVariable(
-      MemoryLocation assignedVar,
+      ValueAnalysisState stateToAssignTo,
+      MemoryLocation varToAssignTo,
       final Type lType,
-      ARightHandSide exp,
+      ARightHandSide expToAssign,
       ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-    handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
-    return newElement;
+    // TODO: why does the visitor have the state and then we still give it to the method using the
+    // visitor? And why can the visitors state be distinct to the given?
+    return handleAssignmentToVariableWithMutableState(
+        ValueAnalysisState.copyOf(stateToAssignTo), varToAssignTo, lType, expToAssign, visitor);
   }
 
   /**
    * This method analyses the expression with the visitor and assigns the value to lParam to the
-   * given value Analysis state.
+   * given value Analysis state. The state is assumed to be mutable and is mutably changed! The
+   * given state and the returned state are equal in the end, but this is subject to change! The
+   * input state needs to be an independent copy that may be changed freely!
    */
-  private void handleAssignmentToVariable(
-      ValueAnalysisState newElement,
+  // TODO: return the state directly and remove the additional method above
+  private ValueAnalysisState handleAssignmentToVariableWithMutableState(
+      ValueAnalysisState stateToAssignTo,
       MemoryLocation assignedVar,
       final Type lType,
       ARightHandSide exp,
       ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
 
-    // c structs have to be handled seperatly, because we do not have a value object representing
+    // c structs have to be handled separately, because we do not have a value object representing
     // structs
     if (lType instanceof CType cType) {
       CType canonicaltype = cType.getCanonicalType();
       if (canonicaltype instanceof CCompositeType cCompositeType
           && cCompositeType.getKind() == ComplexTypeKind.STRUCT
           && exp instanceof CLeftHandSide) {
-        handleAssignmentToStruct(
-            newElement, assignedVar, cCompositeType, (CExpression) exp, visitor);
-        return;
+        return handleAssignmentToStruct(
+            stateToAssignTo, assignedVar, cCompositeType, (CExpression) exp, visitor);
       }
     }
 
@@ -1127,8 +1156,8 @@ public class ValueAnalysisTransferRelation
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (!value.isUnknown()) {
-        newElement.forget(assignedVar);
-        return;
+        stateToAssignTo.forget(assignedVar);
+        return stateToAssignTo;
       } else {
         missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
@@ -1149,19 +1178,20 @@ public class ValueAnalysisTransferRelation
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
+        unknownValueHandler.handle(assignedVar, lType, stateToAssignTo, visitor);
 
       } else {
-        newElement.assignConstant(assignedVar, value, lType);
+        stateToAssignTo.assignConstant(assignedVar, value, lType);
       }
     }
+    return stateToAssignTo;
   }
 
   /**
    * This method transforms the assignment of the struct into assignments of its respective field
    * references and assigns them to the given value state.
    */
-  private void handleAssignmentToStruct(
+  private ValueAnalysisState handleAssignmentToStruct(
       ValueAnalysisState pNewElement,
       MemoryLocation pAssignedVar,
       CCompositeType pLType,
@@ -1178,14 +1208,15 @@ public class ValueAnalysisTransferRelation
       CExpression fieldReference =
           new CFieldReference(
               pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
-      handleAssignmentToVariable(
+      handleAssignmentToVariableWithMutableState(
           pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
 
       offset = offset + machineModel.getSizeof(memberType.getType()).longValueExact();
     }
+    return pNewElement;
   }
 
-  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
+  private static MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
     return pStruct.withAddedOffset(pOffset);
   }
 
@@ -1204,13 +1235,13 @@ public class ValueAnalysisTransferRelation
    * Returns the {@link ArrayValue} object that represents the innermost array of the given {@link
    * JArraySubscriptExpression}.
    *
-   * @param pArraySubscriptExpression the subscript expression to get the inner most array of
+   * @param pArraySubscriptExpression the subscript expression to get the innermost array of
    * @return <code>null</code> if the complete array or a part significant for the given array
    *     subscript expression is unknown, the <code>ArrayValue</code> representing the innermost
    *     array, otherwise
    */
   private @Nullable ArrayValue getInnerMostArray(
-      JArraySubscriptExpression pArraySubscriptExpression) {
+      JArraySubscriptExpression pArraySubscriptExpression, ValueAnalysisState usedState) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
     if (arrayExpression instanceof JIdExpression jIdExpression) {
@@ -1219,8 +1250,8 @@ public class ValueAnalysisTransferRelation
       if (arrayDeclaration != null) {
         MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
 
-        if (state.contains(idName)) {
-          Value idValue = state.getValueFor(idName);
+        if (usedState.contains(idName)) {
+          Value idValue = usedState.getValueFor(idName);
           if (idValue.isExplicitlyKnown()) {
             return (ArrayValue) idValue;
           }
@@ -1232,9 +1263,9 @@ public class ValueAnalysisTransferRelation
       final JArraySubscriptExpression arraySubscriptExpression =
           (JArraySubscriptExpression) arrayExpression;
       // the array enclosing the array specified in the given array subscript expression
-      ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
+      ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression, usedState);
 
-      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+      OptionalInt maybeIndex = getIndex(arraySubscriptExpression, usedState);
       int index;
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
@@ -1253,14 +1284,15 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private void handleAssignmentToArray(ArrayValue pArray, int index, ARightHandSide exp) {
+  private void handleAssignmentToArray(
+      ArrayValue pArray, int index, ARightHandSide exp, ValueAnalysisState inputState) {
     assert exp instanceof JExpression;
 
-    pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
+    pArray.setValue(((JExpression) exp).accept(getVisitor(inputState)), index);
   }
 
   private void assignUnknownValueToEnclosingInstanceOfArray(
-      JArraySubscriptExpression pArraySubscriptExpression) {
+      JArraySubscriptExpression pArraySubscriptExpression, ValueAnalysisState stateToAssignTo) {
 
     JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
@@ -1268,13 +1300,13 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
+      stateToAssignTo.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =
           (JArraySubscriptExpression) enclosingExpression;
-      ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
+      ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression, stateToAssignTo);
+      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression, stateToAssignTo);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
         enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
@@ -1282,7 +1314,7 @@ public class ValueAnalysisTransferRelation
       } else {
         // if the index of unknown array in the enclosing array is also unknown, we assign unknown
         // at this array's position in the enclosing array
-        assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
+        assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression, stateToAssignTo);
       }
     }
   }
@@ -1493,7 +1525,7 @@ public class ValueAnalysisTransferRelation
                     targetPointer.getFileLocation(),
                     targetPointer.getExpressionType(),
                     targetPointer);
-            ExpressionValueVisitor evv = getVisitor();
+            ExpressionValueVisitor evv = getVisitor(state);
             Value value;
             if (exp instanceof JRightHandSide jRightHandSide) {
               value = evv.evaluate(jRightHandSide, (JType) exp.getExpressionType());
@@ -1811,7 +1843,11 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private ExpressionValueVisitor getVisitor() {
-    return getVisitor(state, functionName);
+  private ExpressionValueVisitor getVisitor(ValueAnalysisState inputState) {
+    // TODO: The usage of this method and the visitor is inconsistent! Why is the state (that is
+    // only used to read from) not the up-to-date state, but most of the time just the state of the
+    // transfer relation before any changes? Why do we hand ANOTHER state to the first method of the
+    // visitor that may be distinct?!??!?
+    return getVisitor(inputState, functionName);
   }
 }
