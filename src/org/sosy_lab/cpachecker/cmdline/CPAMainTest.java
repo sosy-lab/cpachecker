@@ -24,7 +24,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cmdline.CPAMain.BootstrapOptions;
+import org.sosy_lab.cpachecker.cmdline.CPAMain.BootstrapLanguageOptions;
 
 @SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
@@ -67,7 +67,7 @@ public class CPAMainTest {
       for (String inputPrograms : languageToInputFile.get(languageToTest)) {
         configBuilder.setOption("analysis.programNames", inputPrograms);
         Configuration config = configBuilder.build();
-        BootstrapOptions options = new BootstrapOptions();
+        BootstrapLanguageOptions options = new BootstrapLanguageOptions();
         config.inject(options);
 
         Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
@@ -85,7 +85,7 @@ public class CPAMainTest {
       configBuilder.setOption("analysis.programNames", inputPrograms);
       configBuilder.setOption("java.classpath", "lib");
       Configuration config = configBuilder.build();
-      BootstrapOptions options = new BootstrapOptions();
+      BootstrapLanguageOptions options = new BootstrapLanguageOptions();
       config.inject(options);
 
       Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
@@ -102,7 +102,7 @@ public class CPAMainTest {
       configBuilder.setOption("analysis.programNames", inputPrograms);
       configBuilder.setOption("java.classpath", "src");
       Configuration config = configBuilder.build();
-      BootstrapOptions options = new BootstrapOptions();
+      BootstrapLanguageOptions options = new BootstrapLanguageOptions();
       config.inject(options);
 
       Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
@@ -124,7 +124,7 @@ public class CPAMainTest {
         configBuilder.setOption("analysis.programNames", file);
         Configuration config = configBuilder.build();
 
-        BootstrapOptions options = new BootstrapOptions();
+        BootstrapLanguageOptions options = new BootstrapLanguageOptions();
         config.inject(options);
         Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
@@ -141,7 +141,7 @@ public class CPAMainTest {
         "analysis.programNames", "test.c, test.i, test.h, test.java, test.ll, test.bc");
     Configuration config = configBuilder.build();
 
-    BootstrapOptions options = new BootstrapOptions();
+    BootstrapLanguageOptions options = new BootstrapLanguageOptions();
     config.inject(options);
 
     CPAMain.detectFrontendLanguageIfNecessary(options, config);

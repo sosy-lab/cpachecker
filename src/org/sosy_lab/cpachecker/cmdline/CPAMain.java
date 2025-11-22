@@ -218,23 +218,7 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  public static class BootstrapOptions {
-    @Option(
-        secure = true,
-        name = "analysis.programNames",
-        // required=true, NOT required because we want to give a nicer user message ourselves
-        description = "A String, denoting the programs to be analyzed")
-    private ImmutableList<String> programs = ImmutableList.of();
-
-    @Option(
-        secure = true,
-        description =
-            "Programming language of the input program. If not given explicitly, auto-detection"
-                + " will occur. LLVM IR is currently unsupported as input (cf."
-                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
-    // keep option name in sync with {@link CPAMain#language} and {@link
-    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
-    private Language language = null;
+  public static class BootstrapLanguageOptions {
 
     @Option(
         secure = true,
@@ -259,6 +243,28 @@ public class CPAMain {
             "When checking LLVM programs use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path llvmConfig = null;
+
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+    // keep option name in sync with {@link CPAMain#language} and {@link
+    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
+    private Language language = null;
+
+    @Option(
+        secure = true,
+        name = "analysis.programNames",
+        // required=true, NOT required because we want to give a nicer user message ourselves
+        description = "A String, denoting the programs to be analyzed")
+    private ImmutableList<String> programs = ImmutableList.of();
+  }
+
+  @VisibleForTesting
+  @Options
+  public static class BootstrapOptions {
 
     @Option(
         secure = true,
@@ -421,12 +427,16 @@ public class CPAMain {
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
 
-    BootstrapOptions options = new BootstrapOptions();
-    config.inject(options);
-    config = detectFrontendLanguageIfNecessary(options, config);
+    BootstrapLanguageOptions langOptions = new BootstrapLanguageOptions();
+    config.inject(langOptions);
+    config = detectFrontendLanguageIfNecessary(langOptions, config);
 
     // Handle frontend-language-specific subconfig if necessary
-    config = handleFrontendLanguageOptions(config, options, cmdLineOptions, options.language);
+    config =
+        handleFrontendLanguageOptions(config, langOptions, cmdLineOptions, langOptions.language);
+
+    BootstrapOptions options = new BootstrapOptions();
+    config.inject(options);
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
@@ -438,7 +448,7 @@ public class CPAMain {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return new Config(config, outputDirectory, options.programs);
+    return new Config(config, outputDirectory, langOptions.programs);
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
@@ -460,7 +470,8 @@ public class CPAMain {
    */
   @VisibleForTesting
   static Configuration detectFrontendLanguageIfNecessary(
-      BootstrapOptions pOptions, Configuration pConfig) throws InvalidConfigurationException {
+      BootstrapLanguageOptions pOptions, Configuration pConfig)
+      throws InvalidConfigurationException {
     if (pOptions.language == null) {
       // if language was not specified by option, we determine the best matching language
       Language frontendLanguage;
@@ -525,7 +536,7 @@ public class CPAMain {
 
   private static Configuration handleFrontendLanguageOptions(
       Configuration config,
-      BootstrapOptions pBootstrapLangOptions,
+      BootstrapLanguageOptions pBootstrapLangOptions,
       Map<String, String> pCmdLineOptions,
       Language frontendLanguage)
       throws InvalidConfigurationException, IOException {
