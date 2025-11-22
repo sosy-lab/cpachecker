@@ -1313,7 +1313,9 @@ class ASTConverter {
     if (functionNameExpression instanceof CIdExpression
         && BuiltinOverflowFunctions.isBuiltinOverflowFunction(
             ((CIdExpression) functionNameExpression).getName())) {
-      CType returnType = CNumericTypes.BOOL;
+      CType returnType =
+          BuiltinOverflowFunctions.getReturnType(
+              ((CIdExpression) functionNameExpression).getName());
       return new CFunctionCallExpression(
           loc, returnType, functionNameExpression, params, declaration);
     }
