@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -52,7 +53,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
-import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.BuiltinOverflowFunctionStatementsToApply;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -164,7 +165,6 @@ class CExpressionVisitorWithPointerAliasing
 
     conv = cToFormulaConverter;
     typeHandler = cToFormulaConverter.typeHandler;
-    ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
     edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
@@ -736,30 +736,30 @@ class CExpressionVisitorWithPointerAliasing
       }
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
-        List<CExpression> parameters = e.getParameterExpressions();
-        verify(parameters.size() == 3);
-        CExpression var1 = parameters.getFirst();
-        CExpression var2 = parameters.get(1);
-        CExpression var3 = parameters.get(2);
-        Expression overflows =
-            BuiltinOverflowFunctions.getOverflowFunctionResult(
-                    ofmgr, var1, var2, var3, functionName)
-                .accept(this);
-        Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
 
-        if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(functionName)) {
-          CLeftHandSide lhs =
-              new CPointerExpression(
-                  FileLocation.DUMMY, ((CPointerType) var3.getExpressionType()).getType(), var3);
-          CRightHandSide rhs =
-              BuiltinOverflowFunctions.handleOverflowSideEffects(
-                  ofmgr, var1, var2, var3, functionName);
+        BuiltinOverflowFunctionStatementsToApply overflowExpressions =
+            BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
+                e, functionName, edge, conv.machineModel, conv.logger);
+        CExpression rhsOfResult = overflowExpressions.getFunctionReturnExpression();
+        Expression overflows = rhsOfResult.accept(this);
+        Formula f = asValueFormula(overflows, BuiltinOverflowFunctions.getReturnType(functionName));
 
+        if (overflowExpressions.hasSideEffectAssignment()) {
+          CExpressionAssignmentStatement sideEffectAssignment =
+              overflowExpressions.getSideEffectAssignmentExpression().orElseThrow();
           BooleanFormula form = null;
           try {
             form =
                 conv.makeAssignment(
-                    lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+                    sideEffectAssignment.getLeftHandSide(),
+                    sideEffectAssignment.getLeftHandSide(),
+                    sideEffectAssignment.getRightHandSide(),
+                    edge,
+                    function,
+                    ssa,
+                    pts,
+                    constraints,
+                    errorConditions);
           } catch (InterruptedException e1) {
             CtoFormulaConverter.propagateInterruptedException(e1);
           }
@@ -954,7 +954,6 @@ class CExpressionVisitorWithPointerAliasing
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
-  private final OverflowAssumptionManager ofmgr;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;
