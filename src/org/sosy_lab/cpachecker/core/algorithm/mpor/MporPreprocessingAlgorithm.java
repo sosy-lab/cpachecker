@@ -11,15 +11,24 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -51,6 +60,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * state space. Sequentializations can be given to any verifier capable of verifying sequential C
  * programs, hence modular.
  */
+@Options(prefix = "sequentialization")
 public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final MPOROptions options;
@@ -66,6 +76,13 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
   private final SequentializationStatistics sequentializationStatistics;
 
+  @Option(
+      secure = true,
+      name = "outputFile",
+      description = "export the sequentialized program into the given file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path sequentializedProgramPath = Path.of("sequentializedProgram.c");
+
   public MporPreprocessingAlgorithm(
       Configuration pConfiguration,
       LogManager pLogManager,
@@ -73,13 +90,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       CFA pInputCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     options = new MPOROptions(pConfiguration);
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     cfa = pInputCfa;
     config = pConfiguration;
     specification = pSpecification;
-    sequentializationStatistics = new SequentializationStatistics();
+    sequentializationStatistics =
+        new SequentializationStatistics(sequentializedProgramPath, logger);
   }
 
   public static boolean alreadySequentialized(CFA pCFA) {
@@ -106,6 +125,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       SequentializationUtils utils =
           SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
       String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
+      sequentializationStatistics.sequentializedProgramString = sequentializedCode;
       // disable preprocessing in the updated config, since input cfa was preprocessed already
       Configuration configWithoutPreprocessor =
           Configuration.builder()
@@ -153,11 +173,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     } else {
       try {
         newCfa = preprocessCfaUsingSequentialization(cfa);
-      } catch (UnrecognizedCodeException
-          | ParserException
-          | InvalidConfigurationException
-          | IllegalArgumentException
-          | UnsupportedOperationException e) {
+      } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
         logger.logUserException(
             Level.WARNING,
             e,
@@ -214,6 +230,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     private final List<Statistics> innerStatistics = new ArrayList<>();
 
     private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
+    private final Path programOutputPath;
+    private final LogManager statisticsLogger;
+
+    private @Nullable String sequentializedProgramString = null;
+
+    public SequentializationStatistics(Path pProgramOutputPath, LogManager pLogger) {
+      programOutputPath = pProgramOutputPath;
+      statisticsLogger = pLogger;
+    }
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
@@ -228,6 +253,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       for (Statistics stat : innerStatistics) {
         stat.writeOutputFiles(pResult, pReached);
+      }
+
+      if (sequentializedProgramString != null) {
+        try (Writer writer = IO.openOutputFile(programOutputPath, Charset.defaultCharset())) {
+          writer.write(sequentializedProgramString);
+        } catch (IOException e) {
+          statisticsLogger.logUserException(
+              Level.WARNING, e, "Failed to write sequentialized program.");
+        }
       }
     }
 
