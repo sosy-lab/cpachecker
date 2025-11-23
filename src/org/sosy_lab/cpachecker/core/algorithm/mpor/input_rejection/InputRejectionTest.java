@@ -50,8 +50,7 @@ public class InputRejectionTest {
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     UnsupportedCodeException unsupportedCodeException =
         assertThrows(
-            UnsupportedCodeException.class,
-            () -> new MPORAlgorithm(testConfig, logger, shutdownNotifier, inputCfa, pOptions));
+            UnsupportedCodeException.class, () -> InputRejection.handleRejections(inputCfa));
     assertThat(unsupportedCodeException.getMessage()).contains(pExpected.message);
   }
 

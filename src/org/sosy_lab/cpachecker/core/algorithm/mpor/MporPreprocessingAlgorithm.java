@@ -105,7 +105,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics.sequentializationTime.start();
     ImmutableCFA newCFA;
     try {
-
       SequentializationUtils utils =
           SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
       String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
