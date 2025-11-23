@@ -14,10 +14,10 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 
 @Options(prefix = "cpa.predicate")
-public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOptions {
+public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncodingOptions {
 
   @Option(
       secure = true,
@@ -151,10 +151,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
               + "Only relevant if enableMemoryAssignmentFunctions is set to true.")
   private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
 
-  public FormulaEncodingWithPointerAliasingOptions(Configuration config)
+  public CFormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
-    config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
+    config.inject(this, CFormulaEncodingWithPointerAliasingOptions.class);
 
     if (useByteArrayForHeap) {
       useArraysForHeap = true;

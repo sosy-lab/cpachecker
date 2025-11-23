@@ -910,9 +910,7 @@ class CExpressionVisitorWithPointerAliasing
     BooleanFormula condition =
         conv.fmgr.makeEqual(asValueFormula(parameterAtIndex, CNumericTypes.CHAR), nullTerminator);
     return conv.bfmgr.ifThenElse(
-        condition,
-        conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(returnType), index),
-        otherwise);
+        condition, conv.fmgr.makeNumber(conv.getFormulaTypeFromType(returnType), index), otherwise);
   }
 
   /**

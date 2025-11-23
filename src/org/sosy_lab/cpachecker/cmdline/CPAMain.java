@@ -242,6 +242,14 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "svlib.config",
+        description =
+            "When checking SV-LIB programs use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path svlibConfig = null;
+
+    @Option(
+        secure = true,
         description =
             "Programming language of the input program. If not given explicitly, auto-detection"
                 + " will occur. LLVM IR is currently unsupported as input (cf."
@@ -510,6 +518,7 @@ public class CPAMain {
             case "ll", "bc" -> Language.LLVM;
             case "java" -> Language.JAVA;
             case "c", "i", "h" -> Language.C;
+            case "svlib" -> Language.SVLIB;
             default -> Language.C;
           };
       Preconditions.checkNotNull(language);
@@ -546,19 +555,25 @@ public class CPAMain {
           case C -> pBootstrapLangOptions.cConfig;
           case JAVA -> pBootstrapLangOptions.javaConfig;
           case LLVM -> pBootstrapLangOptions.llvmConfig;
+          case SVLIB -> pBootstrapLangOptions.svlibConfig;
         };
 
     if (subconfig != null) {
       return Configuration.builder()
           .loadFromFile(subconfig)
           .setOptions(pCmdLineOptions)
+          .setOption("language", frontendLanguage.name())
           .clearOption("c.config")
           .clearOption("llvm.config")
           .clearOption("java.config")
+          .clearOption("svlib.config")
           .build();
     }
 
-    return config;
+    return Configuration.builder()
+        .copyFrom(config)
+        .setOption("language", frontendLanguage.name())
+        .build();
   }
 
   private static Configuration handlePropertyOptions(
@@ -694,13 +709,18 @@ public class CPAMain {
           "Could not read property file: " + e.getMessage(), e);
     }
 
-    if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
-      if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
+    Optional<String> entryFunctionInPropertyFile = parser.getEntryFunction();
+    if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)
+        && entryFunctionInPropertyFile.isPresent()) {
+      if (!cmdLineOptions
+          .get(ENTRYFUNCTION_OPTION)
+          .equals(entryFunctionInPropertyFile.orElseThrow())) {
         throw new InvalidCmdlineArgumentException(
             "Mismatching names for entry function on command line and in property file");
       }
-    } else {
-      cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
+      // Not all properties need an entry function, for example for SV-LIB properties.
+    } else if (entryFunctionInPropertyFile.isPresent()) {
+      cmdLineOptions.put(ENTRYFUNCTION_OPTION, entryFunctionInPropertyFile.orElseThrow());
     }
     return parser.getProperties();
   }

@@ -34,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -66,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -78,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CParsingFailureRequiringPreprocessingException;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
@@ -105,6 +110,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -485,6 +491,9 @@ public class CFACreator {
         language = Language.C;
         // After parsing, we will have a CFA representing C code
       }
+      case SVLIB -> {
+        parser = Parsers.getSvLibParser(logger, config, machineModel, shutdownNotifier);
+      }
       default -> throw new AssertionError();
     }
 
@@ -568,6 +577,7 @@ public class CFACreator {
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
         }
         case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
+        case SVLIB -> mainFunction = getSvLibMainFunction(c.functions());
         default -> throw new AssertionError();
       }
 
@@ -587,6 +597,12 @@ public class CFACreator {
     } finally {
       stats.totalTime.stop();
     }
+  }
+
+  private FunctionEntryNode getSvLibMainFunction(
+      NavigableMap<String, FunctionEntryNode> pFunctions) {
+    String mainFunctioName = SvLibFunctionDeclaration.mainFunctionDeclaration().getName();
+    return pFunctions.get(mainFunctioName);
   }
 
   @VisibleForTesting
@@ -723,6 +739,10 @@ public class CFACreator {
       cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
+    if (pParseResult.svLibCfaMetadata().isPresent()) {
+      cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
+    }
+
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
@@ -789,6 +809,10 @@ public class CFACreator {
       switch (language) {
         case JAVA -> throw new JParserException("No methods found in program");
         case C -> throw new CParserException("No functions found in program");
+        case SVLIB ->
+            throw new SvLibParserException(
+                "No verification call found in the SV-LIB program. Please check the syntax of your"
+                    + " SV-LIB program.");
         default -> throw new AssertionError();
       }
     }
@@ -1106,6 +1130,13 @@ public class CFACreator {
                 new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
             case JAVA ->
                 new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            case SVLIB ->
+                new SvLibDeclarationEdge(
+                    Objects.requireNonNull(rawSignature),
+                    d.getFileLocation(),
+                    cur,
+                    n,
+                    (SvLibDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
