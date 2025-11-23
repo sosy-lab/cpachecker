@@ -357,20 +357,12 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     return (function + "::" + exprToVarNameUnscoped(e)).intern();
   }
 
-  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  @Override
-  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    int idx = getFreshIndex(name, type, ssa);
-    ssa.setIndex(name, type, idx);
-    return idx;
-  }
-
   /**
    * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)} instead, because using
-   * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
-   * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
-   * correctly.
+   * you should use {@link LanguageToSmtConverter#makeFreshIndex(String, CType, SSAMapBuilder)}
+   * instead, because using variables with indices that are not stored in the SSAMap is not a good
+   * idea (c.f. the comment inside getIndex()). If you use this method, you need to make sure to
+   * update the SSAMap correctly.
    */
   @Override
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
