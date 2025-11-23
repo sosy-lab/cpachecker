@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1204,6 +1205,20 @@ public class SMGTransferRelation
 
     CType rightHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(rValue);
     CType leftHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(lValue);
+
+    // TODO: we resolve the target memory correctly below for cases like *&(...), but never update
+    //  the type, so we assume that we assign a pointer in all cases, even if we resolve to a
+    //  non-pointer type in reality. This is a consequence of our incorrect resolving of types here
+    //  in general! We need a check that the types (left = right) (or at least sizes) match, and
+    //  need to resolve cases in which they don't. We resolve the most basic cases correctly,
+    //  but not all.
+    if (lValue instanceof CPointerExpression pointerExpr
+        && pointerExpr.getOperand() instanceof CUnaryExpression unaryExpr
+        && unaryExpr.getOperator() == UnaryOperator.AMPER) {
+      // Shortcut for *& expressions
+      return handleAssignment(
+          pState, cfaEdge, unaryExpr.getOperand(), rValue, evaluator, options, logger);
+    }
 
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
     SMGState currentState = pState;
