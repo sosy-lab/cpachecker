@@ -37,11 +37,10 @@ public class InputRejectionTest {
    * Tests if {@link MPORAlgorithm} throws a {@link UnsupportedCodeException} when invoked with the
    * program in {@code pInputFilePath}.
    */
-  private void testExpectedRejection(
-      MPOROptions pOptions, Path pInputFilePath, InputRejectionMessage pExpected) throws Exception {
+  private void testExpectedRejection(Path pInputFilePath, InputRejectionMessage pExpected)
+      throws Exception {
 
     // create cfa for test program pFileName
-    Configuration testConfig = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
@@ -69,8 +68,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(), inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
   }
 
   @Test
@@ -78,19 +76,13 @@ public class InputRejectionTest {
     // this program uses pthread_getspecific
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/unsupported-function-pthread_key_create.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.UNSUPPORTED_FUNCTION);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
   @Ignore
@@ -98,37 +90,25 @@ public class InputRejectionTest {
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_RETURN_VALUE);
   }
 
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread-create-loop.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.PTHREAD_CREATE_LOOP);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
   @Test
   public void testRejectDirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/direct-recursion.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.RECURSIVE_FUNCTION);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectIndirectRecursion() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indirect-recursion.c");
-    testExpectedRejection(
-        MPOROptions.getDefaultTestInstance(),
-        inputFilePath,
-        InputRejectionMessage.RECURSIVE_FUNCTION);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
