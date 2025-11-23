@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpressio
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -101,7 +103,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
 
     ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
 
-    SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
+    SetMultimap<Pair<Integer, OptionalInt>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
 
     CBinaryExpressionBuilder cBinaryExpressionBuilder =
@@ -115,8 +117,8 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                 Optional.ofNullable(invariantEntry.getLocation().getFunction());
             String invariantString = invariantEntry.getValue();
             Integer line = invariantEntry.getLocation().getLine();
-            Integer column = invariantEntry.getLocation().getColumn();
-            Pair<Integer, Integer> position = Pair.of(line, column);
+            OptionalInt column = invariantEntry.getLocation().getColumn();
+            Pair<Integer, OptionalInt> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 
             // Parsing is expensive for long invariants, we therefore try to reduce it
@@ -153,7 +155,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
 
             if (invariantType.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
               Optional<IterationElement> optionalIterationStructure =
-                  astCfaRelation.getIterationStructureStartingAtColumn(column, line);
+                  astCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(column, line);
 
               IterationElement iterationElement = optionalIterationStructure.orElseThrow();
               Optional<CFANode> optionalLoopHead = iterationElement.getLoopHead();
@@ -166,7 +168,16 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                   new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow()));
 
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
-              passTransitionWhenCheckSucceeds = new CheckCoversColumnAndLine(column, line);
+
+              Optional<ASTElement> closestStatementAfterColumnAtTheSameLine =
+                  astCfaRelation.getTightestStatementForStarting(line, column);
+              passTransitionWhenCheckSucceeds =
+                  new CheckCoversColumnAndLine(
+                      closestStatementAfterColumnAtTheSameLine
+                          .orElseThrow()
+                          .location()
+                          .getStartColumnInLine(),
+                      line);
               // Check for transition loop invariants and do not throw an exception as they are in
               // the
               // future formats.
