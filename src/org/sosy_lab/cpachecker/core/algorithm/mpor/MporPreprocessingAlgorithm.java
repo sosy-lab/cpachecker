@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -116,7 +117,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       throws UnrecognizedCodeException,
           InterruptedException,
           ParserException,
-          InvalidConfigurationException {
+          InvalidConfigurationException,
+          UnsupportedSequentializationException {
 
     logger.log(Level.INFO, "Starting sequentialization of the program.");
     sequentializationStatistics.sequentializationTime.start();
@@ -148,7 +150,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private static CfaMetadata getNewMetadata(
-      CFA pOldCFA, CFA pNewCfa, ProgramTransformation pSequentializationStatus) {
+      CFA pOldCFA, CFA pNewCfa, ProgramTransformation pSequentializationStatus)
+      throws UnsupportedSequentializationException {
+    if (!pOldCFA
+        .getMainFunction()
+        .getFunctionName()
+        .equals(pNewCfa.getMainFunction().getFunctionName())) {
+      throw new UnsupportedSequentializationException(
+          "We can only sequentialize programs without changing the main function name.");
+    }
 
     return pNewCfa
         .getMetadata()
@@ -211,7 +221,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
       }
     } catch (InvalidConfigurationException e) {
-      throw new CPAException(
+      throw new UnsupportedSequentializationException(
           "Building the algorithm which should be run on the sequentialized program failed", e);
     }
 
@@ -270,6 +280,18 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     @Override
     public String getName() {
       return "Sequentialization Preprocessing Statistics";
+    }
+  }
+
+  public static class UnsupportedSequentializationException extends CPAException {
+    @Serial private static final long serialVersionUID = 7637130884987670847L;
+
+    public UnsupportedSequentializationException(String msg) {
+      super(msg);
+    }
+
+    public UnsupportedSequentializationException(String msg, Throwable cause) {
+      super(msg, cause);
     }
   }
 }
