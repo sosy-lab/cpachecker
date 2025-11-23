@@ -104,24 +104,29 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           InvalidConfigurationException {
 
     logger.log(Level.INFO, "Starting sequentialization of the program.");
-    sequentializationStatistics.startSequentializationTimer();
+    sequentializationStatistics.sequentializationTime.start();
+    ImmutableCFA newCFA;
+    try {
 
-    SequentializationUtils utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
-    String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
-    // disable preprocessing in the updated config, since input cfa was preprocessed already
-    Configuration configWithoutPreprocessor =
-        Configuration.builder()
-            .copyFrom(config)
-            .setOption("parser.usePreprocessor", "false")
-            .build();
-    CFACreator cfaCreator = new CFACreator(configWithoutPreprocessor, logger, shutdownNotifier);
-    ImmutableCFA newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
+      SequentializationUtils utils =
+          SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
+      String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
+      // disable preprocessing in the updated config, since input cfa was preprocessed already
+      Configuration configWithoutPreprocessor =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption("parser.usePreprocessor", "false")
+              .build();
+      CFACreator cfaCreator = new CFACreator(configWithoutPreprocessor, logger, shutdownNotifier);
+      newCFA = cfaCreator.parseSourceAndCreateCFA(sequentializedCode);
 
-    newCFA =
-        newCFA.copyWithMetadata(
-            getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION));
+      newCFA =
+          newCFA.copyWithMetadata(
+              getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION));
+    } finally {
+      sequentializationStatistics.sequentializationTime.stop();
+    }
 
-    sequentializationStatistics.stopSequentializationTimer();
     logger.log(Level.INFO, "Finished sequentialization of the program.");
 
     return newCFA;
@@ -214,14 +219,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     private void addInnerStatisticsProvider(StatisticsProvider provider) {
       innerStatisticsProviders.add(provider);
-    }
-
-    private void startSequentializationTimer() {
-      sequentializationTime.start();
-    }
-
-    private void stopSequentializationTimer() {
-      sequentializationTime.stop();
     }
 
     @Override
