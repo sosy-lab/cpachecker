@@ -172,7 +172,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     } else {
       try {
         newCfa = preprocessCfaUsingSequentialization(cfa);
-      } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
+      } catch (UnrecognizedCodeException | ParserException e) {
         logger.logUserException(
             Level.WARNING,
             e,
@@ -187,6 +187,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         } else {
           throw new AssertionError("Expected ImmutableCFA here.");
         }
+      } catch (InvalidConfigurationException e) {
+        throw new CPAException(
+            "The configuration used to build the CFA from the sequentialized program is wrong.", e);
       }
     }
 
@@ -202,7 +205,11 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       if (cpa instanceof StatisticsProvider statisticsProvider) {
         statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
       }
+
       innerAlgorithm = coreComponents.createAlgorithm(cpa, specification);
+      if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
+      }
     } catch (InvalidConfigurationException e) {
       throw new CPAException(
           "Building the algorithm which should be run on the sequentialized program failed", e);
@@ -211,10 +218,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     // Prepare new reached set
     pReachedSet.clear();
     coreComponents.initializeReachedSet(pReachedSet, newCfa.getMainFunction(), cpa);
-
-    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
-      statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
-    }
 
     return innerAlgorithm.run(pReachedSet);
   }
