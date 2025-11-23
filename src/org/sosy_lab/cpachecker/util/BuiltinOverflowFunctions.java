@@ -836,11 +836,9 @@ public class BuiltinOverflowFunctions {
       // can, in the wurst case, add their bit-counts.
       // Since we can hit that limit with 2 long longs, the signage is important in this case!
       CSimpleType leftUsedType = getUsedType(leftType, edge);
-      boolean leftSignedCalculationType = leftUsedType.hasSignedSpecifier();
-      checkState(leftSignedCalculationType != leftUsedType.hasUnsignedSpecifier());
+      boolean leftSignedCalculationType = pMachineModel.isSigned(leftUsedType);
       CSimpleType rightUsedType = getUsedType(rightType, edge);
-      boolean rightSignedCalculationType = rightUsedType.hasSignedSpecifier();
-      checkState(rightSignedCalculationType != rightUsedType.hasUnsignedSpecifier());
+      boolean rightSignedCalculationType = pMachineModel.isSigned(rightUsedType);
       if (leftSignedCalculationType != rightSignedCalculationType || originalLeftArgs.isPresent()) {
         throw new UnsupportedCodeException(
             "Builtin overflow function "
