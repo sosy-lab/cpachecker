@@ -862,7 +862,7 @@ public class CoreComponentsFactory {
       }
 
       if (useMporAlgorithm) {
-        algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, null);
+        algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa);
       }
 
       if (useMPV) {
