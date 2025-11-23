@@ -40,12 +40,14 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -75,6 +77,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions.BuiltinOverflowFunctionStatementsToApply;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -263,7 +267,10 @@ public class SMGCPABuiltins {
       CFunctionCallExpression funCallExpr, String functionName, SMGState state, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    if (isMemoryAllocatingFunction(functionName)) {
+    if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+      // __builtin_{s|u}add{l|ll}_overflow etc.
+      return evaluateBuiltinOverflowFunction(funCallExpr, functionName, state, cfaEdge);
+    } else if (isMemoryAllocatingFunction(functionName)) {
       // malloc(), calloc() etc.
       return evaluateConfigurableAllocationFunctionWithManualMemoryCleanup(
           funCallExpr, functionName, state, cfaEdge);
@@ -321,6 +328,35 @@ public class SMGCPABuiltins {
 
       default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
+  }
+
+  private List<ValueAndSMGState> evaluateBuiltinOverflowFunction(
+      CFunctionCallExpression pFunCallExpr, String pFunctionName, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    BuiltinOverflowFunctionStatementsToApply overflowFunRes =
+        BuiltinOverflowFunctions.handleBuiltinOverflowFunction(
+            pFunCallExpr, pFunctionName, false, pCfaEdge, machineModel, logger);
+
+    List<SMGState> assignedStates = ImmutableList.of(pState);
+    if (overflowFunRes.hasSideEffectAssignment()) {
+      CExpressionAssignmentStatement sideEffectAssignment =
+          overflowFunRes.getSideEffectAssignmentExpression().orElseThrow();
+      CExpression lValue = sideEffectAssignment.getLeftHandSide();
+      CRightHandSide rValue = sideEffectAssignment.getRightHandSide();
+      assignedStates =
+          SMGTransferRelation.handleAssignment(
+              pState, pCfaEdge, lValue, rValue, evaluator, options, logger);
+    }
+    CExpression resultExpr = overflowFunRes.getFunctionReturnExpression();
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    for (SMGState state : assignedStates) {
+      SMGCPAValueVisitor valueVisitor =
+          new SMGCPAValueVisitor(evaluator, state, pCfaEdge, logger, options);
+      List<ValueAndSMGState> resValuesAndStates = resultExpr.accept(valueVisitor);
+      resultBuilder.addAll(resValuesAndStates);
+    }
+
+    return resultBuilder.build();
   }
 
   /*
