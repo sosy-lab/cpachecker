@@ -969,7 +969,8 @@ public class SMGTransferRelation
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
       for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
-        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
+        stateBuilder.addAll(
+            handleAssignment(currentState, pCfaEdge, lValue, rValue, evaluator, options, logger));
       }
       return stateBuilder.build();
 
@@ -1190,8 +1191,15 @@ public class SMGTransferRelation
    * The lValue is transformed into its memory (SMG) counterpart in which the rValue,
    * evaluated by the value visitor, is then saved.
    */
-  private List<SMGState> handleAssignment(
-      SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
+  // TODO: move to state or helper class
+  protected static List<SMGState> handleAssignment(
+      SMGState pState,
+      CFAEdge cfaEdge,
+      CExpression lValue,
+      CRightHandSide rValue,
+      SMGCPAExpressionEvaluator evaluator,
+      SMGOptions options,
+      LogManagerWithoutDuplicates logger)
       throws CPATransferException {
 
     CType rightHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(rValue);
@@ -1273,7 +1281,9 @@ public class SMGTransferRelation
                 rightHandSideType,
                 rValue,
                 valueAndState.getState(),
-                cfaEdge));
+                cfaEdge,
+                evaluator,
+                options));
       }
     }
 
@@ -1283,7 +1293,7 @@ public class SMGTransferRelation
   /*
    * Handles the concrete assignment of the value to its destination based on the types given.
    */
-  private List<SMGState> handleAssignmentOfValueTo(
+  private static List<SMGState> handleAssignmentOfValueTo(
       Value valueToWrite,
       CType leftHandSideType,
       CExpression lValueExpr,
@@ -1292,7 +1302,9 @@ public class SMGTransferRelation
       CType rightHandSideType,
       CRightHandSide rValueExpr,
       SMGState pCurrentState,
-      CFAEdge edge)
+      CFAEdge edge,
+      SMGCPAExpressionEvaluator evaluator,
+      SMGOptions options)
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;
