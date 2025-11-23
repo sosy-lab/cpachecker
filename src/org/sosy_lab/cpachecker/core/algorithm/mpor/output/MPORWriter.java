@@ -14,8 +14,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -46,6 +46,13 @@ public class MPORWriter {
         SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
     // write output program
     Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
+    if (programPath == null) {
+      pLogger.log(
+          Level.WARNING,
+          "Could not determine path for sequentialization. Sequentialization was not created.");
+      return;
+    }
+
     try {
       try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
         writer.write(pOutputProgram);
@@ -62,10 +69,13 @@ public class MPORWriter {
     MetadataWriter.tryWrite(pOptions, programName, pInputFilePaths, pLogger);
   }
 
-  static Path buildOutputPath(
+  static @Nullable Path buildOutputPath(
       MPOROptions pOptions, String pProgramName, FileExtension pFileExtension) {
+    if (pOptions.outputPath() == null) {
+      return null;
+    }
 
-    String templateWithExtension = pOptions.outputPath().getTemplate() + pFileExtension.getSuffix();
-    return PathTemplate.ofFormatString(templateWithExtension).getPath(pProgramName);
+    String pathString = pOptions.outputPath().getPath(pProgramName) + pFileExtension.getSuffix();
+    return Path.of(pathString);
   }
 }

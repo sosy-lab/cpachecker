@@ -81,8 +81,9 @@ public class SeqStringUtil {
         // otherwise, continue i.e. go to next loop iteration
         yield "continue" + SeqSyntax.SEMICOLON;
       }
-      // for switch cases, do nothing, because SeqSwitchStatement adds "break;" after all statements
-      case SWITCH_CASE -> "";
+      // for switch cases, add additional "break;" after each block, because SeqSwitchStatement
+      // only adds "break;" after an entire clause i.e. after the last block
+      case SWITCH_CASE -> "break" + SeqSyntax.SEMICOLON;
     };
   }
 
