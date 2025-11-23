@@ -160,7 +160,12 @@ public class TestDataTools {
   }
 
   /**
-   * Returns and, if necessary, creates a new empty C or Java program in the given temporary folder.
+   * Returns and, if necessary, creates a new empty program of the given programming language in the
+   * given temporary folder.
+   *
+   * @param pTempFolder The temporary folder to create the program file in.
+   * @param pLanguage The programming language of the program.
+   * @return The path to the program file (for C, LLVM, SV-LIB)
    */
   public static String getEmptyProgram(TemporaryFolder pTempFolder, Language pLanguage)
       throws IOException {
@@ -181,6 +186,11 @@ public class TestDataTools {
       case LLVM -> {
         tempFile = getTempFile(pTempFolder, "program.ll");
         fileContent = "define i32 @main() { entry:  ret i32 0}";
+        program = tempFile.toString();
+      }
+      case SVLIB -> {
+        tempFile = getTempFile(pTempFolder, "program.svlib");
+        fileContent = "(define-proc f1 () () () (sequence))\n" + "(verify-call f1 ())";
         program = tempFile.toString();
       }
       default -> throw new AssertionError("Unhandled language: " + pLanguage);

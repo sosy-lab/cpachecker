@@ -28,6 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibToCfaParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
@@ -270,5 +271,16 @@ public class Parsers {
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
     }
+  }
+
+  public static Parser getSvLibParser(
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final MachineModel pMachineModel,
+      final ShutdownNotifier pShutdownNotifier) {
+    // TODO: Maybe use classloader like for the other parsers?
+    //       But this would require an even stricter separation of SvLib parser code from the rest
+    //       of CPAchecker.
+    return new SvLibToCfaParser(pLogger, pConfig, pMachineModel, pShutdownNotifier);
   }
 }

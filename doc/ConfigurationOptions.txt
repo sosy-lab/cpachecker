@@ -1449,6 +1449,10 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
+# The file into which to write the violation witness for SV-LIB programs. In
+# case no output files are requested 
+counterexample.export.svlib = "Counterexample.%d.svlib"
+
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
@@ -1658,6 +1662,9 @@ cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-inf
 # deprecated name for counterexample.export.source
 cpa.arg.errorPath.source = "Counterexample.%d.c"
 
+# deprecated name for counterexample.export.svlib
+cpa.arg.errorPath.svlib = "Counterexample.%d.svlib"
+
 # deprecated name for counterexample.export.witnessGraph
 cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
 
@@ -1748,6 +1755,10 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
+# The file into which to write the correctness witness for SV-LIB programs.
+# If not set no witness will be exported.
+cpa.arg.svLibCorrectnessWitness = "witness.svlib"
 
 # translate final ARG into C program
 cpa.arg.translateToC = false
@@ -4760,11 +4771,11 @@ java.version = JavaCore.VERSION_1_7
 # auto-detection will occur. LLVM IR is currently unsupported as input (cf.
 # https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = no default value
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, SVLIB]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
@@ -5477,6 +5488,10 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# When checking SV-LIB programs use this configuration file instead of the
+# current one.
+svlib.config = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

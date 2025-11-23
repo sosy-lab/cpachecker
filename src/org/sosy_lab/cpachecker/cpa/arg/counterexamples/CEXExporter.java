@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -66,6 +68,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.CounterexampleToSvLibWitnessExport;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.xml.sax.SAXException;
@@ -115,6 +119,8 @@ public class CEXExporter {
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
   private final CounterexampleToWitness cexToWitness;
+  private final CounterexampleToSvLibWitnessExport cexToSvLibWitness;
+  private final PathTemplate svLibWitnessOutputPath;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
@@ -138,6 +144,16 @@ public class CEXExporter {
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
     cfa = pCFA;
+
+    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
+    if (svLibMetadata.isPresent() && options.getSvLibViolationWitnessPath() != null) {
+      svLibWitnessOutputPath = options.getSvLibViolationWitnessPath();
+      cexToSvLibWitness = new CounterexampleToSvLibWitnessExport(pLogger, pCFA);
+    } else {
+      // We do not have SV-LIB metadata, or do not want to export witnesses
+      svLibWitnessOutputPath = null;
+      cexToSvLibWitness = null;
+    }
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -212,6 +228,13 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
 
+    if (cexToSvLibWitness != null && svLibWitnessOutputPath != null) {
+      List<SvLibCommand> witnessCommands =
+          cexToSvLibWitness.generateWitnessCommands(counterexample);
+      WitnessExportUtils.writeCommandsAsWitness(
+          svLibWitnessOutputPath.getPath(uniqueId), witnessCommands, logger);
+    }
+
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
@@ -256,13 +279,15 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
-        pathProgram =
-            switch (codeStyle) {
-              case CONCRETE_EXECUTION ->
-                  PathToConcreteProgramTranslator.translateSinglePath(
-                      targetPath, counterexample.getCFAPathWithAssignments());
-              case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
-            };
+        if (cfa.getLanguage() == Language.C) {
+          pathProgram =
+              switch (codeStyle) {
+                case CONCRETE_EXECUTION ->
+                    PathToConcreteProgramTranslator.translateSinglePath(
+                        targetPath, counterexample.getCFAPathWithAssignments());
+                case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
+              };
+        }
       }
 
     } else {
@@ -319,70 +344,73 @@ public class CEXExporter {
         writeErrorPathFile(info.getSecond(), uniqueId, info.getFirst());
       }
     }
-
-    if (options.getWitnessFile() != null
-        || options.getWitnessDotFile() != null
-        || options.getYamlWitnessPathTemplate() != null) {
-      CfaTransformationMetadata transformationMetadata =
-          cfa.getMetadata().getTransformationMetadata();
-      if (transformationMetadata != null
-          && transformationMetadata
-              .transformation()
-              .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
-        logger.log(
-            Level.INFO,
-            "The program analyzed by sequentializing the original program and verifying the"
-                + " sequentialized version. Currently there is no way to map the result for the"
-                + " sequentialized program back to the original program, therefore no witness will"
-                + " be exported.");
-        try {
-          String witnessString =
-              SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
-                  transformationMetadata.originalCfa(), specification);
-          writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
-        } catch (ParserConfigurationException
-            | IOException
-            | SAXException
-            | TransformerException e) {
-          logger.logUserException(
-              Level.WARNING, e, "Could not export default witness for sequentialized program");
-        }
-
-      } else {
-
-        try {
-          final Witness witness =
-              witnessExporter.generateErrorWitness(
-                  rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-
-          writeErrorPathFile(
-              options.getWitnessFile(),
-              uniqueId,
-              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
-              compressWitness);
-
-          writeErrorPathFile(
-              options.getWitnessDotFile(),
-              uniqueId,
-              (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
-              compressWitness);
-          if (cfa.getMetadata().getInputLanguage() == Language.C) {
-            if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-              try {
-                cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-              } catch (IOException e) {
-                logger.logUserException(
-                    Level.WARNING, e, "Could not generate YAML violation witness.");
-              }
-            }
-          } else {
-            logger.log(
-                Level.WARNING,
-                "Cannot export violation witness to YAML format for languages other than C.");
+    if (cfa.getLanguage() != Language.SVLIB) {
+      if (options.getWitnessFile() != null
+          || options.getWitnessDotFile() != null
+          || options.getYamlWitnessPathTemplate() != null) {
+        CfaTransformationMetadata transformationMetadata =
+            cfa.getMetadata().getTransformationMetadata();
+        if (transformationMetadata != null
+            && transformationMetadata
+                .transformation()
+                .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
+          logger.log(
+              Level.INFO,
+              "The program analyzed by sequentializing the original program and verifying the"
+                  + " sequentialized version. Currently there is no way to map the result for the"
+                  + " sequentialized program back to the original program, therefore no witness will"
+                  + " be exported.");
+          try {
+            String witnessString =
+                SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
+                    transformationMetadata.originalCfa(), specification);
+            writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
+          } catch (ParserConfigurationException
+              | IOException
+              | SAXException
+              | TransformerException e) {
+            logger.logUserException(
+                Level.WARNING, e, "Could not export default witness for sequentialized program");
           }
 
-        } catch (InterruptedException e) {
-          logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        } else {
+
+          try {
+            final Witness witness =
+                witnessExporter.generateErrorWitness(
+                    rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+
+            writeErrorPathFile(
+                options.getWitnessFile(),
+                uniqueId,
+                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+                compressWitness);
+
+            writeErrorPathFile(
+                options.getWitnessDotFile(),
+                uniqueId,
+                (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+                compressWitness);
+            if (cfa.getMetadata().getInputLanguage() == Language.C) {
+              if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+                try {
+                  cexToWitness.export(
+                      counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+                } catch (IOException e) {
+                  logger.logUserException(
+                      Level.WARNING, e, "Could not generate YAML violation witness.");
+                }
+              }
+            } else {
+              logger.log(
+                  Level.WARNING,
+                  "Cannot export violation witness to YAML format for languages other than C.");
+            }
+
+          } catch (InterruptedException e) {
+            logger.logUserException(
+                Level.WARNING, e, "Could not export witness due to interruption");
+          }
         }
       }
     }

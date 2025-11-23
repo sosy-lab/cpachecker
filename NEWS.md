@@ -18,6 +18,8 @@ Changes since CPAchecker 4.1
   To use the previous behavior, which
   did not use an external pre-processor,
   set the option `cfa.usePreprocessor` to `false`.
+* There is now support for analyzing [SV-LIB](https://gitlab.com/sosy-lab/benchmarking/sv-lib)
+  programs with predicate analysis in CPAchecker.
 
 
 Changes from CPAchecker 4.0 to CPAchecker 4.1
