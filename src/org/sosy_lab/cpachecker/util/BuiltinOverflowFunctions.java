@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT128;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -208,8 +209,8 @@ public class BuiltinOverflowFunctions {
   }
 
   @VisibleForTesting
-  static ImmutableMap<String, BuiltinOverflowFunction> getAllFunctions() {
-    return allFunctions;
+  static ImmutableSet<String> getAllOverflowFunctionNames() {
+    return allFunctions.keySet();
   }
 
   /**

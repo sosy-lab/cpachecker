@@ -64,7 +64,7 @@ public class BuiltinOverflowFunctionsTest {
   @Test
   public void allFunctionsAvailableTest() {
     // With functionNameRecognizedTest() this makes sure all are recognized
-    assertThat(BuiltinOverflowFunctions.getAllFunctions())
+    assertThat(BuiltinOverflowFunctions.getAllOverflowFunctionNames())
         .hasSize(allGNUBuiltinOverflowFunctions.size());
   }
 
