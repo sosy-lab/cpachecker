@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -143,8 +142,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   @Override
   public AlgorithmStatus run(@NonNull ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    InputRejection.handleRejections(cfa);
-
     // Only sequentialize if not already done and requested.
     // We replace the CFA for its sequentialized version.
     CFA newCfa = cfa;
@@ -157,7 +154,10 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     } else {
       try {
         newCfa = preprocessCfaUsingSequentialization(cfa);
-      } catch (UnrecognizedCodeException | ParserException | InvalidConfigurationException e) {
+      } catch (UnrecognizedCodeException
+          | ParserException
+          | InvalidConfigurationException
+          | IllegalArgumentException e) {
         logger.logUserException(
             Level.WARNING,
             e,
