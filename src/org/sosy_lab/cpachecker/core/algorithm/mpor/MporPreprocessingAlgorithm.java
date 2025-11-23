@@ -232,7 +232,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     private final List<Statistics> innerStatistics = new ArrayList<>();
 
     private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
-    private final Path programOutputPath;
+    private final @Nullable Path programOutputPath;
     private final LogManager statisticsLogger;
 
     private @Nullable String sequentializedProgramString = null;
@@ -257,7 +257,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         stat.writeOutputFiles(pResult, pReached);
       }
 
-      if (sequentializedProgramString != null) {
+      if (sequentializedProgramString != null && programOutputPath != null) {
         try (Writer writer = IO.openOutputFile(programOutputPath, Charset.defaultCharset())) {
           writer.write(sequentializedProgramString);
         } catch (IOException e) {
