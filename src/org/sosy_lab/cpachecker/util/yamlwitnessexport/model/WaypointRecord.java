@@ -140,13 +140,13 @@ public class WaypointRecord {
     }
 
     @JsonCreator
-    public static WaypointType fromKeyword(String keyword) {
+    public static WaypointType fromKeyword(String keyword) throws InvalidWitnessException {
       for (WaypointType type : WaypointType.values()) {
         if (type.getKeyword().equals(keyword)) {
           return type;
         }
       }
-      throw new UnsupportedOperationException("Unknown WaypointType keyword: " + keyword);
+      throw new InvalidWitnessException("Unknown WaypointType keyword: " + keyword);
     }
 
     @JsonValue
