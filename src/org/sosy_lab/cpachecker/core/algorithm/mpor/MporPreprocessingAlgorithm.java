@@ -237,7 +237,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     private @Nullable String sequentializedProgramString = null;
 
-    public SequentializationStatistics(Path pProgramOutputPath, LogManager pLogger) {
+    private SequentializationStatistics(Path pProgramOutputPath, LogManager pLogger) {
       programOutputPath = pProgramOutputPath;
       statisticsLogger = pLogger;
     }
