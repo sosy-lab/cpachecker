@@ -147,14 +147,13 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     return newCFA;
   }
 
-  private CfaMetadata getNewMetadata(
+  private static CfaMetadata getNewMetadata(
       CFA pOldCFA, CFA pNewCfa, ProgramTransformation pSequentializationStatus) {
 
-    return pOldCFA
+    return pNewCfa
         .getMetadata()
-        .withTransformationMetadata(new CfaTransformationMetadata(cfa, pSequentializationStatus))
-        // update main() FunctionEntryNode, since cfa.getMainFunction() returns it from metadata
-        .withMainFunctionEntry(pNewCfa.getFunctionHead("main"));
+        .withTransformationMetadata(
+            new CfaTransformationMetadata(pOldCFA, pSequentializationStatus));
   }
 
   @CanIgnoreReturnValue
