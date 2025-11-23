@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -532,7 +533,11 @@ public class CoreComponentsFactory {
     // when using some analyses which support concurrency natively alongside analyses which need
     // sequentialization in a parallel portfolio we want the analyses which natively support
     // concurrency to use the original CFA.
-    if (preferOriginalCfaOverSequentialized && transformationMetadata != null) {
+    if (preferOriginalCfaOverSequentialized
+        && transformationMetadata != null
+        && transformationMetadata
+            .transformation()
+            .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
       cfa = transformationMetadata.originalCfa();
     }
 
