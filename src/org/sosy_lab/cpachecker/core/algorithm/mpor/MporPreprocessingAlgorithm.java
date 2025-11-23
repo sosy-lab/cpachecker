@@ -73,8 +73,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       CFA pInputCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
-
-    // the options are not null when unit testing
     options = new MPOROptions(pConfiguration);
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
