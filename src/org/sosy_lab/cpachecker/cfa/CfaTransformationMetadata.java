@@ -12,7 +12,6 @@ public record CfaTransformationMetadata(CFA originalCfa, ProgramTransformation t
 
   public enum ProgramTransformation {
     NONE,
-    SEQUENTIALIZATION,
-    SEQUENTIALIZATION_FAILED,
+    SEQUENTIALIZATION_ATTEMPTED,
   }
 }

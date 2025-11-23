@@ -328,7 +328,7 @@ public class CEXExporter {
       if (transformationMetadata != null
           && transformationMetadata
               .transformation()
-              .equals(ProgramTransformation.SEQUENTIALIZATION)) {
+              .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
         logger.log(
             Level.INFO,
             "The program analyzed by sequentializing the original program and verifying the"

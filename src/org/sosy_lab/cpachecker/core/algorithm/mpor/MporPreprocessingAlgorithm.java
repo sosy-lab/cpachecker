@@ -92,7 +92,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     }
 
     ProgramTransformation transformation = transformationMetadata.transformation();
-    return transformation.equals(ProgramTransformation.SEQUENTIALIZATION)
+    return transformation.equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)
         || transformation.equals(ProgramTransformation.SEQUENTIALIZATION_FAILED);
   }
 
@@ -121,7 +121,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
       newCFA =
           newCFA.copyWithMetadata(
-              getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION));
+              getNewMetadata(pOldCFA, newCFA, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED));
     } finally {
       sequentializationStatistics.sequentializationTime.stop();
     }
