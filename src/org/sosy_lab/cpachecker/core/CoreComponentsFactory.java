@@ -412,8 +412,8 @@ public class CoreComponentsFactory {
           "in case the CFA was modified in a pre-processing step (e.g., by sequentialization), if"
               + " this option is set to true the original CFA is used instead of the modified one"
               + " for the analysis. This is useful when the pre-processing should be done for"
-              + " multiple algorithms in a parallel portfolio,but some of them should analyze the"
-              + " original CFA.For example, when using some analyses which support concurrency"
+              + " multiple algorithms in a parallel portfolio, but some of them should analyze the"
+              + " original CFA. For example, when using some analyses which support concurrency"
               + " natively alongside analyses which need sequentialization in a parallel portfolio"
               + " we want the analyses which natively support concurrency to use the original CFA.")
   private boolean preferOriginalCfaOverSequentialized = false;
