@@ -92,8 +92,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     }
 
     ProgramTransformation transformation = transformationMetadata.transformation();
-    return transformation.equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)
-        || transformation.equals(ProgramTransformation.SEQUENTIALIZATION_FAILED);
+    return transformation.equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
   }
 
   private CFA preprocessCfaUsingSequentialization(CFA pOldCFA)
@@ -167,7 +166,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
             "Sequentialization of the input program failed, falling back to using the original"
                 + " program.");
         CfaMetadata newMetadata =
-            getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_FAILED);
+            getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
         // Mark the CFA as having failed sequentialization
         // TODO: Simplify with sealed classes
         if (cfa instanceof ImmutableCFA immutableCfa) {
