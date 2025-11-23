@@ -309,7 +309,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
   // (Private) Helpers =============================================================================
 
-  private ImmutableMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
+  private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
       int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
 
     // use ImmutableMap to retain insertion order

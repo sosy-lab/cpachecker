@@ -96,23 +96,22 @@ public class SeqThreadStatementClause implements SeqStatement {
     return rAll.build();
   }
 
-  public SeqThreadStatementClause cloneWithFirstBlock(SeqThreadStatementBlock pBlock) {
+  public SeqThreadStatementClause withFirstBlock(SeqThreadStatementBlock pBlock) {
     return new SeqThreadStatementClause(id, labelNumber, pBlock, getMergedBlocks());
   }
 
-  public SeqThreadStatementClause cloneWithMergedBlocks(
+  public SeqThreadStatementClause withMergedBlocks(
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     return new SeqThreadStatementClause(id, labelNumber, getFirstBlock(), pMergedBlocks);
   }
 
-  public SeqThreadStatementClause cloneWithBlocks(
-      ImmutableList<SeqThreadStatementBlock> pAllBlocks) {
+  public SeqThreadStatementClause withBlocks(ImmutableList<SeqThreadStatementBlock> pAllBlocks) {
 
     return new SeqThreadStatementClause(id, labelNumber, pAllBlocks);
   }
 
-  public SeqThreadStatementClause cloneWithLabelNumber(int pLabelNumber) {
+  public SeqThreadStatementClause withLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementClause(id, pLabelNumber, blocks);
   }
 

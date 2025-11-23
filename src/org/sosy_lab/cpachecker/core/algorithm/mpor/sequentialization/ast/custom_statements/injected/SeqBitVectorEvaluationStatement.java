@@ -27,20 +27,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record SeqBitVectorEvaluationStatement(
     MPOROptions options,
     Optional<BitVectorEvaluationExpression> evaluationExpression,
-    SeqBlockLabelStatement gotoLabel)
-    implements SeqInjectedStatement {
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     if (evaluationExpression.isEmpty()) {
       // no evaluation due to no global accesses -> just goto
-      SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto);
       return gotoStatement.toASTString();
 
     } else if (options.nondeterminismSource().equals(NondeterminismSource.NEXT_THREAD)) {
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       String ifExpression = evaluationExpression.orElseThrow().toNegatedASTString();
-      SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto);
       SeqBranchStatement ifStatement =
           new SeqBranchStatement(ifExpression, ImmutableList.of(gotoStatement.toASTString()));
       return ifStatement.toASTString();
@@ -51,8 +51,9 @@ public record SeqBitVectorEvaluationStatement(
     }
   }
 
-  public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+  @Override
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqBitVectorEvaluationStatement(
-        options, evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+        options, evaluationExpression, targetGoto.withLabelNumber(pTargetNumber));
   }
 }

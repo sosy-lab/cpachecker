@@ -54,8 +54,8 @@ public class SeqPruner {
                   // ensure that the single thread exit case clause has label INIT_PC
                   threadExit.labelNumber == ProgramCounterVariables.INIT_PC
                       ? threadExit
-                      : threadExit.cloneWithFirstBlock(
-                          firstBlock.cloneWithLabelNumber(ProgramCounterVariables.INIT_PC))));
+                      : threadExit.withFirstBlock(
+                          firstBlock.withLabelNumber(ProgramCounterVariables.INIT_PC))));
         } else {
           rPruned.putAll(thread, pruneSingleThreadClauses(clauses));
         }
@@ -135,8 +135,8 @@ public class SeqPruner {
           newStatements.add(statement);
         }
         SeqThreadStatementBlock firstBlock = clause.getFirstBlock();
-        SeqThreadStatementBlock newBlock = firstBlock.cloneWithStatements(newStatements.build());
-        rUpdatedTargetPc.add(clause.cloneWithFirstBlock(newBlock));
+        SeqThreadStatementBlock newBlock = firstBlock.withStatements(newStatements.build());
+        rUpdatedTargetPc.add(clause.withFirstBlock(newBlock));
       }
     }
     return rUpdatedTargetPc.build();

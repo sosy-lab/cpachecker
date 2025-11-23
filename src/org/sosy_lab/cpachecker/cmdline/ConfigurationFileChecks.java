@@ -168,7 +168,11 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize");
+          "pcc.partial.stopAddingAtReachedSetSize",
+          // options for delegating based on the programming language
+          "java.config",
+          "c.config",
+          "llvm.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -544,8 +548,7 @@ public class ConfigurationFileChecks {
               Path.of("randomTesting.properties"),
               // All configurations based on sequentialization reject the default empty
               // program used in this test, they requires a
-              // concurrent C program with at least one call to pthread_create
-              Path.of("mpor.properties"),
+              Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
               Path.of("sequentialization-concurrency.properties"));

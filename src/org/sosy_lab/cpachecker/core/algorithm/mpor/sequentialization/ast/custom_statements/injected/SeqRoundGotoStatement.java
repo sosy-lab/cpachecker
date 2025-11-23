@@ -12,23 +12,29 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record SeqRoundGotoStatement(
     CBinaryExpression roundSmallerMax,
     CExpressionAssignmentStatement roundIncrement,
-    SeqLabelStatement gotoLabel)
-    implements SeqInjectedStatement {
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
+    SeqGotoStatement gotoStatement = new SeqGotoStatement(targetGoto);
     SeqBranchStatement ifStatement =
         new SeqBranchStatement(
             roundSmallerMax.toASTString(),
             ImmutableList.of(roundIncrement.toASTString(), gotoStatement.toASTString()));
     return ifStatement.toASTString();
+  }
+
+  @Override
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
+    return new SeqRoundGotoStatement(
+        roundSmallerMax, roundIncrement, targetGoto.withLabelNumber(pTargetNumber));
   }
 }

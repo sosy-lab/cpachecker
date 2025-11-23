@@ -126,7 +126,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
                 labelClauseMap);
         newBlocks.add(withSyncUpdate);
       }
-      updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
+      updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }
     return updatedClauses.build();
   }

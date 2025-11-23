@@ -109,13 +109,12 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return isLoopStart;
   }
 
-  public SeqThreadStatementBlock cloneWithLabelNumber(int pLabelNumber) {
+  public SeqThreadStatementBlock withLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementBlock(
-        options, nextThreadLabel, label.cloneWithLabelNumber(pLabelNumber), statements);
+        options, nextThreadLabel, label.withLabelNumber(pLabelNumber), statements);
   }
 
-  public SeqThreadStatementBlock cloneWithStatements(
-      ImmutableList<CSeqThreadStatement> pStatements) {
+  public SeqThreadStatementBlock withStatements(ImmutableList<CSeqThreadStatement> pStatements) {
 
     return new SeqThreadStatementBlock(options, nextThreadLabel, label, pStatements);
   }

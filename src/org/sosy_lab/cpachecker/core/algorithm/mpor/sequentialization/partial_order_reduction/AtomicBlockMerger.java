@@ -55,8 +55,8 @@ public class AtomicBlockMerger {
       for (CSeqThreadStatement statement : firstBlock.getStatements()) {
         newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelBlockMap));
       }
-      SeqThreadStatementBlock newBlock = firstBlock.cloneWithStatements(newStatements.build());
-      rWithGotos.add(clause.cloneWithFirstBlock(newBlock));
+      SeqThreadStatementBlock newBlock = firstBlock.withStatements(newStatements.build());
+      rWithGotos.add(clause.withFirstBlock(newBlock));
     }
     return rWithGotos.build();
   }
@@ -92,7 +92,7 @@ public class AtomicBlockMerger {
           // start at i + 1 so that atomic_begin is not inside mergedBlocks, but block itself
           ImmutableList<SeqThreadStatementBlock> newMergedBlocks =
               collectAllBlocksFromTo(i + 1, exclusiveTo, pClauses);
-          rMerged.add(clause.cloneWithMergedBlocks(newMergedBlocks));
+          rMerged.add(clause.withMergedBlocks(newMergedBlocks));
         } else {
           rMerged.add(clause);
         }

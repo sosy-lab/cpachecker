@@ -32,9 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatementWithTargetGoto;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
@@ -45,16 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
-
-  /** Searches for all target {@code pc} in {@code pStatement}. */
-  public static ImmutableSet<Integer> collectAllIntegerTargetPc(CSeqThreadStatement pStatement) {
-    ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
-    if (pStatement.getTargetPc().isPresent()) {
-      // add the direct target pc, if present
-      rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());
-    }
-    return rAllTargetPc.build();
-  }
 
   public static ImmutableSet<SubstituteEdge> collectAllSubstituteEdges(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
@@ -168,11 +157,10 @@ public class SeqThreadStatementClauseUtil {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
         int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().number()));
-        newBlocks.add(
-            block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build()));
+        newBlocks.add(block.withLabelNumber(blockIndex).withStatements(newStatements.build()));
       }
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
-      rNewClauses.add(clause.cloneWithLabelNumber(clauseIndex).cloneWithBlocks(newBlocks.build()));
+      rNewClauses.add(clause.withLabelNumber(clauseIndex).withBlocks(newBlocks.build()));
     }
     return rNewClauses.build();
   }
@@ -213,8 +201,12 @@ public class SeqThreadStatementClauseUtil {
       // for injected statements (e.g. bitvector gotos), use the block label
       int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
       ImmutableList<SeqInjectedStatement> replacingInjectedStatements =
-          SeqThreadStatementClauseUtil.replaceTargetGotoLabel(
-              pCurrentStatement.getInjectedStatements(), blockIndex);
+          transformedImmutableListCopy(
+              pCurrentStatement.getInjectedStatements(),
+              injected ->
+                  injected instanceof SeqInjectedStatementWithTargetGoto injectedWithGoto
+                      ? injectedWithGoto.withTargetNumber(blockIndex)
+                      : injected);
       return pCurrentStatement
           .withTargetPc(clauseIndex)
           .withInjectedStatements(replacingInjectedStatements);
@@ -223,33 +215,10 @@ public class SeqThreadStatementClauseUtil {
       SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
       int index = Objects.requireNonNull(pLabelBlockMap.get(label.number()));
-      return pCurrentStatement.withTargetGoto(label.cloneWithLabelNumber(index));
+      return pCurrentStatement.withTargetGoto(label.withLabelNumber(index));
     }
-    // no target pc or target goto -> no replacement
+    // no valid target pc or target goto -> no replacement
     return pCurrentStatement;
-  }
-
-  /**
-   * Searches {@code pInjectedStatements} for {@link SeqBitVectorEvaluationStatement}s and replaces
-   * their {@code goto} labels with the updated {@code pc}.
-   */
-  public static ImmutableList<SeqInjectedStatement> replaceTargetGotoLabel(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements, int pNewTargetPc) {
-
-    ImmutableList.Builder<SeqInjectedStatement> rNewInjected = ImmutableList.builder();
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqBitVectorEvaluationStatement bitVectorEvaluation) {
-        rNewInjected.add(bitVectorEvaluation.cloneWithGotoLabelNumber(pNewTargetPc));
-
-      } else if (injectedStatement
-          instanceof SeqIgnoreSleepReductionStatement ignoreSleepStatement) {
-        rNewInjected.add(ignoreSleepStatement.cloneWithGotoLabelNumber(pNewTargetPc));
-
-      } else {
-        rNewInjected.add(injectedStatement);
-      }
-    }
-    return rNewInjected.build();
   }
 
   // Loops =========================================================================================

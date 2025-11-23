@@ -326,7 +326,7 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> reductionAssumptions =
           ignoreSleepStatement.reductionAssumptions();
       return ImmutableList.of(
-          ignoreSleepStatement.cloneWithReductionAssumptions(
+          ignoreSleepStatement.withReductionAssumptions(
               ImmutableList.<SeqInjectedStatement>builder()
                   .addAll(getInjectedStatementsByClass(reductionAssumptions, pFirstClass))
                   .addAll(getInjectedStatementsByClass(reductionAssumptions, pSecondClass))
