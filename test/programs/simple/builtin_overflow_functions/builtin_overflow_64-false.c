@@ -83,6 +83,9 @@ int getIntMax() {
 
 int * getIntMinPointer() {
   int * intMinPtr = malloc(sizeof(int));
+  if (intMinPtr == 0) {
+    exit(1);
+  }
   *intMinPtr = signedIntMin;
   return intMinPtr;
 }
@@ -93,6 +96,9 @@ long long getLongLongMax() {
 
 long long * getLongLongMinPointer() {
   long long * longLongMinPtr = malloc(sizeof(long long));
+  if (longLongMinPtr == 0) {
+    exit(1);
+  }
   *longLongMinPtr = signedLongLongMin;
   return longLongMinPtr;
 }
