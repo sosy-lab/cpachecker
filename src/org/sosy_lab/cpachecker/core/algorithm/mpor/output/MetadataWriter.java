@@ -37,6 +37,14 @@ class MetadataWriter {
 
     if (pOptions.outputMetadata()) {
       Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
+      if (metadataPath == null) {
+        pLogger.log(
+            Level.WARNING,
+            "Could not determine path for sequentialization metadata. Sequentialization"
+                + " metadata was not created.");
+        return;
+      }
+
       YAMLMapper yamlMapper = new YAMLMapper();
       MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
       try {
