@@ -26,6 +26,9 @@ Changes since CPAchecker 4.1
 * There is an export of termination witnesses in YAML format version 2.1
   that constructs transition invariants from ranking functions.
 * CPAchecker can now validate correctness witnesses for termination in YAML format 2.1. 
+* CPAchecker now support the sequentialization of
+  concurrent programs which is can then export
+  and verify internally.
 
 
 Changes from CPAchecker 4.0 to CPAchecker 4.1
