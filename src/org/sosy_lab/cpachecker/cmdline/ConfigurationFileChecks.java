@@ -172,7 +172,8 @@ public class ConfigurationFileChecks {
           // options for delegating based on the programming language
           "java.config",
           "c.config",
-          "llvm.config");
+          "llvm.config",
+          "svlib.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -408,7 +409,11 @@ public class ConfigurationFileChecks {
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (options.language == Language.JAVA) {
+    if (options.language == Language.SVLIB) {
+      // For SV-LIB Programs the specification is inside the program itself, so we do not need to
+      // check anything
+      assertThat(spec).isEqualTo("specification/correct-tags.spc");
+    } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
       assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
