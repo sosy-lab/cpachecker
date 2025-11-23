@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -1615,19 +1614,7 @@ public class SMGCPAValueVisitor
         List<Value> parameterValues = parameterValuesBuilder.build();
 
         // TODO: split this mess into functions
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          /*
-           * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
-           * but this class is not correctly abstracted such that we can inherit it here
-           * (because it essentially is the same except for 1 method that would need to be
-           * abstract)
-           *
-           * return BuiltinOverflowFunctions.evaluateFunctionCall(
-           *   pIastFunctionCallExpression, this, machineModel, logger);
-           */
-          return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
-
-        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           return handleBuiltinFunction1(
               calledFunctionName,
               parameterValues,
