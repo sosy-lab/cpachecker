@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -169,11 +168,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
         // TODO: Simplify with sealed classes
         if (cfa instanceof ImmutableCFA immutableCfa) {
           newCfa = immutableCfa.copyWithMetadata(newMetadata);
-        } else if (cfa instanceof MutableCFA mutableCfa) {
-          mutableCfa.setMetadata(newMetadata);
-
         } else {
-          throw new AssertionError("Unknown CFA implementation");
+          throw new AssertionError("Expected ImmutableCFA here.");
         }
       }
     }
