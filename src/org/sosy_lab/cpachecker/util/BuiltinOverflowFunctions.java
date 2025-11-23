@@ -17,6 +17,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT128;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -201,14 +202,14 @@ public class BuiltinOverflowFunctions {
     }
   }
 
-  private static final Map<String, BuiltinOverflowFunction> allFunctions;
+  private static final ImmutableMap<String, BuiltinOverflowFunction> allFunctions;
 
   static {
     allFunctions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
 
   @VisibleForTesting
-  static Map<String, BuiltinOverflowFunction> getAllFunctions() {
+  static ImmutableMap<String, BuiltinOverflowFunction> getAllFunctions() {
     return allFunctions;
   }
 
