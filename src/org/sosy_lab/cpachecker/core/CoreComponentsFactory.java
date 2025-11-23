@@ -407,7 +407,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "preprocessing.preferOriginalCfaOverPreprocessed",
+      name = "preprocessing.preferOriginalCfaOverSequentialized",
       description =
           "in case the CFA was modified in a pre-processing step (e.g., by sequentialization), if"
               + " this option is set to true the original CFA is used instead of the modified one"
@@ -416,7 +416,7 @@ public class CoreComponentsFactory {
               + " original CFA.For example, when using some analyses which support concurrency"
               + " natively alongside analyses which need sequentialization in a parallel portfolio"
               + " we want the analyses which natively support concurrency to use the original CFA.")
-  private boolean preferOriginalCfaOverPreprocessed = false;
+  private boolean preferOriginalCfaOverSequentialized = false;
 
   @Option(
       secure = true,
@@ -532,7 +532,7 @@ public class CoreComponentsFactory {
     // when using some analyses which support concurrency natively alongside analyses which need
     // sequentialization in a parallel portfolio we want the analyses which natively support
     // concurrency to use the original CFA.
-    if (preferOriginalCfaOverPreprocessed && transformationMetadata != null) {
+    if (preferOriginalCfaOverSequentialized && transformationMetadata != null) {
       cfa = transformationMetadata.originalCfa();
     }
 
@@ -590,7 +590,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useMporPreprocessing
-        && !preferOriginalCfaOverPreprocessed
+        && !preferOriginalCfaOverSequentialized
         && !MporPreprocessingAlgorithm.alreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
