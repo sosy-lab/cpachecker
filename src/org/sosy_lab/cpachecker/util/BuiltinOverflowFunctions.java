@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -364,7 +363,14 @@ public class BuiltinOverflowFunctions {
    * functions are documented <a
    * href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">here</a>. You can
    * check whether a function is one of these functions with {@link
-   * #isBuiltinOverflowFunction(String)}.
+   * #isBuiltinOverflowFunction(String)}. The results can be derived as defined by the <a
+   * href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">definition</a>, i.e.
+   * casting to a larger type (we don't have infinite precision, so we use int128) and then casting
+   * back for argument useOverflowManager being false. This approach does not allow the single
+   * largest input parameters type, used to calculate the arithmetic result, to exceed the bit size
+   * of 118 for plus or minus operations. For multiplication the sum of the bit sizes of all input
+   * types used in the arithmetic calculations may not exceed 128! You can try deriving the results
+   * from the OverflowCPAs components by setting useOverflowManager to true.
    */
   public static BuiltinOverflowFunctionStatementsToApply handleBuiltinOverflowFunction(
       final CFunctionCallExpression funCallExpr,
