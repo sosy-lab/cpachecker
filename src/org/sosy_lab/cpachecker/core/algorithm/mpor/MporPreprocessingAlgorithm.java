@@ -156,7 +156,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       } catch (UnrecognizedCodeException
           | ParserException
           | InvalidConfigurationException
-          | IllegalArgumentException e) {
+          | IllegalArgumentException
+          | UnsupportedOperationException e) {
         logger.logUserException(
             Level.WARNING,
             e,
