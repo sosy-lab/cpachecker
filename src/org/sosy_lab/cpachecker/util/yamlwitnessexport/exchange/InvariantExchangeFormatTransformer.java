@@ -255,8 +255,8 @@ public class InvariantExchangeFormatTransformer {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
         for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
           if (entryElement instanceof InvariantEntry invariantEntry) {
-            int line = invariantEntry.getLocation().getLine();
-            int column = invariantEntry.getLocation().getColumn();
+            Integer line = invariantEntry.getLocation().getLine();
+            Integer column = invariantEntry.getLocation().getColumn().orElseThrow();
             Pair<Integer, Integer> cacheLookupKey = Pair.of(line, column);
             String invariantString = invariantEntry.getValue();
 
