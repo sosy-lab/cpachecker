@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -188,6 +187,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           new CoreComponentsFactory(
               config, logger, shutdownNotifier, AggregatedReachedSets.empty(), newCfa);
       cpa = coreComponents.createCPA(specification);
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
+      }
       innerAlgorithm = coreComponents.createAlgorithm(cpa, specification);
     } catch (InvalidConfigurationException e) {
       throw new CPAException(
@@ -199,7 +201,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     coreComponents.initializeReachedSet(pReachedSet, newCfa.getMainFunction(), cpa);
 
     if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
-      sequentializationStatistics.addInnerStatisticsProvider(statisticsProvider);
+      statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);
     }
 
     return innerAlgorithm.run(pReachedSet);
@@ -212,37 +214,22 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
   private static class SequentializationStatistics implements Statistics {
 
-    private final ImmutableList.Builder<StatisticsProvider> innerStatisticsProviders =
-        ImmutableList.builder();
+    private final List<Statistics> innerStatistics = new ArrayList<>();
 
     private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
-
-    private void addInnerStatisticsProvider(StatisticsProvider provider) {
-      innerStatisticsProviders.add(provider);
-    }
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
       w0.put(sequentializationTime);
-      List<Statistics> stats = new ArrayList<>();
-      for (StatisticsProvider statisticsProvider : innerStatisticsProviders.build()) {
-        statisticsProvider.collectStatistics(stats);
-      }
-
-      for (Statistics stat : stats) {
+      for (Statistics stat : innerStatistics) {
         stat.printStatistics(out, result, reached);
       }
     }
 
     @Override
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      List<Statistics> stats = new ArrayList<>();
-      for (StatisticsProvider statisticsProvider : innerStatisticsProviders.build()) {
-        statisticsProvider.collectStatistics(stats);
-      }
-
-      for (Statistics stat : stats) {
+      for (Statistics stat : innerStatistics) {
         stat.writeOutputFiles(pResult, pReached);
       }
     }
