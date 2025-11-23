@@ -658,7 +658,7 @@ public class BuiltinOverflowFunctions {
       // Our type restriction gets worse here as long long * long long * long long can exceed
       // int128!
       List<CExpression> params = funCallExpr.getParameterExpressions();
-      CType typeArg1 = params.get(0).getExpressionType().getCanonicalType();
+      CType typeArg1 = params.getFirst().getExpressionType().getCanonicalType();
       CType typeArg2 = params.get(1).getExpressionType().getCanonicalType();
       CType typeArg3 = params.get(2).getExpressionType().getCanonicalType();
       int maxTypeBitSize =
