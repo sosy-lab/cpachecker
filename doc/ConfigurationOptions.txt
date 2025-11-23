@@ -5354,6 +5354,9 @@ sampling.random.samplesToBeGenerated = 10
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
 
+# export the sequentialized program into the given file
+sequentialization.outputFile = "sequentializedProgram.c"
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
