@@ -53,9 +53,13 @@ public record SeqSwitchStatement(
     for (var entry : statements.entrySet()) {
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
-      // always add "break;" suffix so that no fall through happens
-      String breakSuffix = "break" + SeqSyntax.SEMICOLON;
-      switchCase.add(casePrefix + statement.toASTString() + breakSuffix);
+      String suffix = "";
+      if (statement instanceof SeqMultiControlStatement) {
+        // for inner multi control statements, add "break;" suffix. for clauses this is not
+        // necessary, because each block within the clause has its own "break;" suffix
+        suffix = "break" + SeqSyntax.SEMICOLON;
+      }
+      switchCase.add(casePrefix + statement.toASTString() + suffix);
     }
     switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return switchCase.toString();
