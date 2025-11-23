@@ -148,10 +148,12 @@ public class CtoFormulaConverter {
           // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/664
           "memcpy", "memcpy",
           "memmove", "memmove",
-          "memset", "memset");
+          "memset", "memset",
+          // strcpy is not a pure function, it modifies the first argument
+          "strcpy", "strcpy");
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset");
+      ImmutableSet.of("memcpy", "memmove", "memset", "strcpy");
 
   // names for special variables needed to deal with functions
   @Deprecated
