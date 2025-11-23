@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.Immutable;
 import java.io.IOException;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointDeserializer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointSerializer;
 
@@ -167,13 +168,13 @@ public class WaypointRecord {
     }
 
     @JsonCreator
-    public static WaypointAction fromKeyword(String keyword) {
+    public static WaypointAction fromKeyword(String keyword) throws InvalidWitnessException {
       for (WaypointAction action : WaypointAction.values()) {
         if (action.getKeyword().equals(keyword)) {
           return action;
         }
       }
-      throw new UnsupportedOperationException("Unknown WaypointAction keyword: " + keyword);
+      throw new InvalidWitnessException("Unknown WaypointAction keyword: " + keyword);
     }
 
     @JsonValue
