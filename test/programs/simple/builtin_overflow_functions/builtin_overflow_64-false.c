@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <limits.h>
 
 int zero = 0;
@@ -734,12 +733,11 @@ int main() {
   }
 
   if (!overallResult) {
-    assert(0);
-    goto ERROR;
+    goto ERROR; // Expected
   }
   return 0;
 
 ERROR:
-  printf("Error\n");
+  // printf("Error\n");
   return 1;
 }
