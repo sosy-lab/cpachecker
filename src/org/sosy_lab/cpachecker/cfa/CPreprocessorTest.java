@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class CPreprocessorTest {
@@ -21,13 +22,30 @@ public class CPreprocessorTest {
   private static final String TEST_FILE = "../foo/test file.c";
 
   @Test
-  public void testCommandLine() throws InvalidConfigurationException {
+  public void testCommandLine32() throws InvalidConfigurationException {
     CPreprocessor preprocessor =
         new CPreprocessor(
-            TestDataTools.configurationForTest().build(), LogManager.createTestLogManager());
+            TestDataTools.configurationForTest().build(),
+            LogManager.createTestLogManager(),
+            MachineModel.LINUX32);
 
     Iterable<String> cmdLine = preprocessor.getFullCommandLine(Path.of(TEST_FILE));
 
     assertThat(cmdLine).contains(TEST_FILE);
+    assertThat(cmdLine).contains("-m32");
+  }
+
+  @Test
+  public void testCommandLine64() throws InvalidConfigurationException {
+    CPreprocessor preprocessor =
+        new CPreprocessor(
+            TestDataTools.configurationForTest().build(),
+            LogManager.createTestLogManager(),
+            MachineModel.LINUX64);
+
+    Iterable<String> cmdLine = preprocessor.getFullCommandLine(Path.of(TEST_FILE));
+
+    assertThat(cmdLine).contains(TEST_FILE);
+    assertThat(cmdLine).contains("-m64");
   }
 }

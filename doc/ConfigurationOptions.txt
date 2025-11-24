@@ -4763,8 +4763,9 @@ parallelAlgorithm.configFiles = no default value
 parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
-# name and arguments, but won't be expanded by a shell. The source file name
-# will be appended to this string. Clang needs to print the output to stdout.
+# name and arguments, but won't be expanded by a shell. The argument for the
+# architecture and the source file name will be appended to this string.
+# Clang needs to print the output to stdout.
 parser.clang = "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
 
 # Whether to dump the results of the preprocessor to disk.
@@ -4778,9 +4779,9 @@ parser.dialect = GNUC
   enum:     [C99, GNUC]
 
 # The command line for calling the preprocessor. May contain binary name and
-# arguments, but won't be expanded by a shell. The source file name will be
-# appended to this string. The preprocessor needs to print the output to
-# stdout.
+# arguments, but won't be expanded by a shell. The argument for the
+# architecture and the source file name will be appended to this string. The
+# preprocessor needs to print the output to stdout.
 parser.preprocessor = "cpp"
 
 # Directory where to dump the results of the preprocessor.

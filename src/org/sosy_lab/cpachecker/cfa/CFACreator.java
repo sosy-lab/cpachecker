@@ -466,7 +466,7 @@ public class CFACreator {
                 readLineDirectives || (usePreprocessor != PreprocessorUsage.FALSE) || useClang);
 
         if (usePreprocessor != PreprocessorUsage.FALSE) {
-          CPreprocessor preprocessor = new CPreprocessor(config, logger);
+          CPreprocessor preprocessor = new CPreprocessor(config, logger, machineModel);
           CParserWithPreprocessor parserWithPreprocessor =
               new CParserWithPreprocessor(outerParser, preprocessor);
           if (usePreprocessor == PreprocessorUsage.AUTO) {

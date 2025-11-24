@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
@@ -157,6 +158,24 @@ public abstract class Preprocessor {
 
   private String getCapitalizedName() {
     return Ascii.toUpperCase(getName().charAt(0)) + getName().substring(1);
+  }
+
+  /**
+   * Return a command-line argument that is suitable for setting the correct architecture according
+   * to the given machine model for common C compilers and tools (gcc, cpp, clang, etc.). For
+   * example, it returns <code>-m32</code> for a 32-bit machine. This can be useful for implementing
+   * {@link #getCommandLine()}. The output may be empty.
+   *
+   * <p>Currently this is implemented only for x86.
+   */
+  protected static String getStandardCCompilerArchitectureArgument(MachineModel pMachineModel) {
+    return switch (pMachineModel) {
+      // TODO take cross-architecture verification (ARM on x86 machines etc.) into account
+      case LINUX32 -> "-m32";
+      case LINUX64 -> "-m64";
+      case ARM -> "";
+      case ARM64 -> "";
+    };
   }
 
   private static class PreprocessorExecutor extends ProcessExecutor<IOException> {
