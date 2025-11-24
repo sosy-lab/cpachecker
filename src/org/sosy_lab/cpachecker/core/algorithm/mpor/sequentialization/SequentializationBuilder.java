@@ -237,8 +237,9 @@ public class SequentializationBuilder {
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isAnyPthreadObjectType(startRoutineArgDeclaration.getType())) {
-        // add trailing ; as CParameterDeclaration is without semicolons
-        rDeclarations.add(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
+        rDeclarations.add(
+            SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
+                startRoutineArgDeclaration, AAstNodeRepresentation.DEFAULT));
       }
     }
     return rDeclarations.toString();
