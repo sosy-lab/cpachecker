@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -120,10 +122,6 @@ public final class MPORUtil {
 
   // Functions =====================================================================================
 
-  public static boolean isVariadicFunction(CFunctionDeclaration pFunctionDeclaration) {
-    return pFunctionDeclaration.getType().takesVarArgs();
-  }
-
   /**
    * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
    * CParameterDeclaration} if it is out of bounds. This is useful vor variadic functions, where the
@@ -132,12 +130,15 @@ public final class MPORUtil {
   public static CParameterDeclaration getParameterDeclarationByIndex(
       int pIndex, CFunctionDeclaration pFunctionDeclaration) {
 
+    checkArgument(pIndex >= 0, "pIndex must be at least 0");
     List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
     if (pIndex < parameterDeclarations.size()) {
       return parameterDeclarations.get(pIndex);
     } else {
       // handle variadic function (more arguments than parameter declarations)
-      assert isVariadicFunction(pFunctionDeclaration) : "function must take variable arguments";
+      checkArgument(
+          pFunctionDeclaration.getType().takesVarArgs(),
+          "If pIndex >= parameters.size(), then pFunctionDeclaration must be variadic.");
       return parameterDeclarations.getLast();
     }
   }
@@ -195,25 +196,30 @@ public final class MPORUtil {
    * {@link Optional#empty()} otherwise.
    */
   public static Optional<CSimpleDeclaration> tryGetPointerDeclaration(CExpression pExpression) {
-    // unary expression i.e. 'ptr = &var;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          return Optional.of(idExpression.getDeclaration());
+    switch (pExpression) {
+      // unary expression i.e. 'ptr = &var;'
+      case CUnaryExpression unaryExpression -> {
+        if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+            return Optional.of(idExpression.getDeclaration());
+          }
         }
       }
       // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
-    } else if (pExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getDeclaration().getType() instanceof CPointerType) {
-        return Optional.of(idExpression.getDeclaration());
-      }
-      // cast expression e.g. 'ptr = (int *) arg;'
-    } else if (pExpression instanceof CCastExpression castExpression) {
-      if (castExpression.getCastType() instanceof CPointerType) {
-        if (castExpression.getOperand() instanceof CIdExpression idExpression) {
+      case CIdExpression idExpression -> {
+        if (idExpression.getDeclaration().getType() instanceof CPointerType) {
           return Optional.of(idExpression.getDeclaration());
         }
       }
+      // cast expression e.g. 'ptr = (int *) arg;'
+      case CCastExpression castExpression -> {
+        if (castExpression.getCastType() instanceof CPointerType) {
+          if (castExpression.getOperand() instanceof CIdExpression idExpression) {
+            return Optional.of(idExpression.getDeclaration());
+          }
+        }
+      }
+      default -> {}
     }
     return Optional.empty();
   }

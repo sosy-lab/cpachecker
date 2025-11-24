@@ -121,7 +121,7 @@ public record FunctionStatementBuilder(
     return rAssignments.build();
   }
 
-  private static ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
+  private ImmutableMap<CFAEdgeForThread, FunctionParameterAssignment>
       buildStartRoutineArgAssignments(MPORSubstitution pSubstitution)
           throws UnrecognizedCodeException {
 
