@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
@@ -73,11 +75,8 @@ public abstract class Preprocessor {
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
   protected String preprocess0(Path file) throws ParserException, InterruptedException {
     // create command line
-    List<String> argList =
-        Lists.newArrayList(
-            Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()));
-    argList.add(file.toString());
-    String[] args = argList.toArray(new String[0]);
+    FluentIterable<String> argList = getFullCommandLine(file);
+    String[] args = argList.toArray(String.class);
 
     logger.log(Level.FINE, "Running", MoreStrings.lazyString(this::getName), argList);
     try {
@@ -109,6 +108,12 @@ public abstract class Preprocessor {
     } catch (IOException e) {
       throw createCorrespondingParserException(getCapitalizedName() + " failed", e);
     }
+  }
+
+  @VisibleForTesting
+  protected final FluentIterable<String> getFullCommandLine(Path file) {
+    return from(Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()))
+        .append(file.toString());
   }
 
   protected @Nullable Path getAndWriteDumpFile(String programCode, Path file) {
