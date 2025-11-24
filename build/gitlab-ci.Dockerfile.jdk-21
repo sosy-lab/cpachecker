@@ -16,7 +16,7 @@
 
 FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-21
 RUN apt-get update && apt-get install -y \
-  gcc \
+  gcc-multilib \
   graphviz \
   libgmp10 \
   libgomp1 \
