@@ -351,7 +351,6 @@ public class AssumptionToEdgeAllocator {
 
     if (!(pCFAEdge instanceof CAssumeEdge cAssumeEdge)) {
       return ImmutableList.of();
-
     } else {
       CExpression pCExpression = cAssumeEdge.getExpression();
 

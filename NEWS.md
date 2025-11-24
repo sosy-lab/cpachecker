@@ -11,6 +11,21 @@ SPDX-License-Identifier: Apache-2.0
 Changes since CPAchecker 4.1
 ----------------------------
 * Java 21 or later is required now.
+* When parsing C code, CPAchecker
+  now immediately attempts to parse the code with
+  an external pre-processor to resolve system headers
+  in case the usual parsing failed.
+  To use the previous behavior, which
+  did not use an external pre-processor,
+  set the option `cfa.usePreprocessor` to `false`.
+* There is now support for analyzing [SV-LIB](https://gitlab.com/sosy-lab/benchmarking/sv-lib)
+  programs with predicate analysis in CPAchecker.
+* CPAchecker can now validate violation witnesses for termination 
+  in YAML format version 2.1. Moreover, there is a new validation
+  technique that can also be used for witnesses in version 1.0.
+* There is an export of termination witnesses in YAML format version 2.1
+  that constructs transition invariants from ranking functions.
+* CPAchecker can now validate correctness witnesses for termination in YAML format 2.1. 
 
 
 Changes from CPAchecker 4.0 to CPAchecker 4.1

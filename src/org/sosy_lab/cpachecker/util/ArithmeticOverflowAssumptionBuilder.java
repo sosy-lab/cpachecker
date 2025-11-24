@@ -290,7 +290,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       throws UnrecognizedCodeException {
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
-          CFAUtils.getIdExpressionsOfExpression(exp)
+          CFAUtils.getCIdExpressionsOfExpression(exp)
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
