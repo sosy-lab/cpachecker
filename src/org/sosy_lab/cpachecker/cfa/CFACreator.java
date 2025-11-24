@@ -426,15 +426,15 @@ public class CFACreator {
   private final CFACreatorStatistics stats;
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    config.inject(this);
+    pConfig.inject(this);
 
-    this.config = config;
-    this.logger = logger;
+    this.config = pConfig;
+    this.logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    stats = new CFACreatorStatistics(logger);
+    stats = new CFACreatorStatistics(pLogger);
 
     stats.parserInstantiationTime.start();
     String regExPattern;
@@ -446,7 +446,7 @@ public class CFACreator {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
-        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
+        parser = Parsers.getJavaParser(pLogger, pConfig, mainFunctionName);
       }
       case C -> {
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
@@ -456,17 +456,17 @@ public class CFACreator {
         }
         CParser outerParser =
             CParser.Factory.getParser(
-                logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
+                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
 
         outerParser =
             new CParserWithLocationMapper(
-                config,
-                logger,
+                pConfig,
+                pLogger,
                 outerParser,
                 readLineDirectives || (usePreprocessor != PreprocessorUsage.FALSE) || useClang);
 
         if (usePreprocessor != PreprocessorUsage.FALSE) {
-          CPreprocessor preprocessor = new CPreprocessor(config, logger, machineModel);
+          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger, machineModel);
           CParserWithPreprocessor parserWithPreprocessor =
               new CParserWithPreprocessor(outerParser, preprocessor);
           if (usePreprocessor == PreprocessorUsage.AUTO) {
@@ -478,16 +478,16 @@ public class CFACreator {
 
         if (useClang) {
           if (usePreprocessor != PreprocessorUsage.FALSE) {
-            logger.log(
+            pLogger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          parser = Parsers.getLlvmClangParser(config, logger, machineModel);
+          parser = Parsers.getLlvmClangParser(pConfig, pLogger, machineModel);
         } else {
           parser = outerParser;
         }
       }
       case LLVM -> {
-        parser = Parsers.getLlvmParser(logger, machineModel);
+        parser = Parsers.getLlvmParser(pLogger, machineModel);
         language = Language.C;
         // After parsing, we will have a CFA representing C code
       }
