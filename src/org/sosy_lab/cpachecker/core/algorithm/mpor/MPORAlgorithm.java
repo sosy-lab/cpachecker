@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
@@ -38,26 +38,37 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final SequentializationUtils utils;
 
+  @VisibleForTesting
   public MPORAlgorithm(
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa,
-      @Nullable MPOROptions pOptions)
-      throws InvalidConfigurationException, UnsupportedCodeException {
-
-    // the options are not null when unit testing
-    options = pOptions != null ? pOptions : new MPOROptions(pConfiguration);
+      MPOROptions pOptions)
+      throws InvalidConfigurationException {
+    // the options are not null when unit testing, since we create them manually, in any other case
+    // they are created from the configuration
+    options = pOptions;
     cfa = pInputCfa;
     utils = SequentializationUtils.of(cfa, pConfiguration, pLogManager, pShutdownNotifier);
-    InputRejection.handleRejections(cfa);
+  }
+
+  public MPORAlgorithm(
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pInputCfa)
+      throws InvalidConfigurationException {
+    options = new MPOROptions(pConfiguration);
+    cfa = pInputCfa;
+    utils = SequentializationUtils.of(cfa, pConfiguration, pLogManager, pShutdownNotifier);
   }
 
   @CanIgnoreReturnValue
   @Override
   public AlgorithmStatus run(@Nullable ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-
+    InputRejection.handleRejections(cfa);
     String sequentializedProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
     MPORWriter.write(options, sequentializedProgram, cfa.getFileNames(), utils.logger());
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
