@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -120,6 +122,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -766,6 +769,34 @@ public class CFAUtils {
       }
     }
     return false;
+  }
+
+  /**
+   * Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global, including
+   * duplicates, e.g. {@code int x; int x = 0;}.
+   */
+  public static ImmutableList<AVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
+    ImmutableList.Builder<AVariableDeclaration> rGlobalVariables = ImmutableList.builder();
+
+    CFAEdge currentEdge = Iterables.getOnlyElement(pCfa.getMainFunction().getLeavingEdges());
+    // consider only if currentEdge is declaration or blank, since all global variables
+    // declarations are before any actual statement
+    while (currentEdge instanceof ADeclarationEdge || currentEdge instanceof BlankEdge) {
+      // if declaration edge, check for global CVariableDeclarations
+      if (currentEdge instanceof ADeclarationEdge declarationEdge) {
+        ADeclaration declaration = declarationEdge.getDeclaration();
+        if (declaration.isGlobal()) {
+          if (declaration instanceof AVariableDeclaration variableDeclaration) {
+            rGlobalVariables.add(variableDeclaration);
+          }
+        }
+      }
+      if (currentEdge.getSuccessor().getLeavingEdges().size() > 1) {
+        break;
+      }
+      currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());
+    }
+    return rGlobalVariables.build();
   }
 
   /**

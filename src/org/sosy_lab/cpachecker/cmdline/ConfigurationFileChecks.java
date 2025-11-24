@@ -550,7 +550,13 @@ public class ConfigurationFileChecks {
               Path.of("describerr-portfolio.properties"),
               Path.of("parallel-randomSampling.properties"),
               Path.of("randomSampling.properties"),
-              Path.of("randomTesting.properties"));
+              Path.of("randomTesting.properties"),
+              // All configurations based on sequentialization reject the default empty
+              // program used in this test, they requires a
+              Path.of("sequentializeProgram.properties"),
+              Path.of("sequentialization-concurrency--memorysafety.properties"),
+              Path.of("sequentialization-concurrency--overflow.properties"),
+              Path.of("sequentialization-concurrency.properties"));
     }
 
     CPAcheckerResult result;
