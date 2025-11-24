@@ -48,7 +48,6 @@ void *t2(void *arg) {
 
 int cur = 1, prev = 0, next = 0;
 int x;
-int a;
 int fib() {
   for (x = 0; x < 16; x++) {
     next = prev + cur;
@@ -58,9 +57,7 @@ int fib() {
   return prev;
 }
 
-const int global_const = 0;
 int main(int argc, char **argv) {
-  const int local_const = 7;
   pthread_t id1, id2;
 
   // atomic_init(&i, 1);
@@ -68,7 +65,6 @@ int main(int argc, char **argv) {
   __VERIFIER_atomic_begin();
   i = 1;
   __VERIFIER_atomic_end();
-  a = 42;
   __VERIFIER_atomic_begin();
   j = 1;
   __VERIFIER_atomic_end();

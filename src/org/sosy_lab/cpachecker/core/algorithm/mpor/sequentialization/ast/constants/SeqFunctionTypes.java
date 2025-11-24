@@ -13,12 +13,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 public class SeqFunctionTypes {
-
-  public static final CFunctionType ABORT =
-      new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
 
   public static final CFunctionType VERIFIER_NONDET_INT =
       new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
@@ -26,33 +22,9 @@ public class SeqFunctionTypes {
   public static final CFunctionType VERIFIER_NONDET_UINT =
       new CFunctionType(CNumericTypes.UNSIGNED_INT, ImmutableList.of(), false);
 
-  public static final CFunctionTypeWithNames REACH_ERROR =
-      new CFunctionTypeWithNames(
-          CVoidType.VOID,
-          ImmutableList.of(
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
-          false);
-
-  public static final CFunctionTypeWithNames ASSERT_FAIL =
-      new CFunctionTypeWithNames(
-          CVoidType.VOID,
-          ImmutableList.of(
-              SeqParameterDeclarations.ASSERTION,
-              SeqParameterDeclarations.FILE,
-              SeqParameterDeclarations.LINE,
-              SeqParameterDeclarations.FUNCTION),
-          false);
-
-  public static final CFunctionTypeWithNames ASSUME =
-      new CFunctionTypeWithNames(
-          CVoidType.VOID, ImmutableList.of(SeqParameterDeclarations.COND), false);
-
-  public static final CFunctionType MAIN =
-      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
-
   public static final CFunctionTypeWithNames MALLOC =
       new CFunctionTypeWithNames(
-          CPointerType.POINTER_TO_VOID, ImmutableList.of(SeqParameterDeclarations.SIZE), false);
+          CPointerType.POINTER_TO_VOID,
+          ImmutableList.of(SeqParameterDeclarations.SIZE_PARAMETER_MALLOC),
+          false);
 }

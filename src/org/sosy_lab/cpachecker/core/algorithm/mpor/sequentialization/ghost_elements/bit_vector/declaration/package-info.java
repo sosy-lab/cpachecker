@@ -6,4 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/** Contains classes to declare bit vectors based on memory locations and settings. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration;

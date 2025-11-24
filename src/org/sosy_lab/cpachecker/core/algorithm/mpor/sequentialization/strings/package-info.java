@@ -7,4 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Everything to create strings for the sequentialization, including hard-coded strings. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;

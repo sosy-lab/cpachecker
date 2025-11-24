@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.ProgramTransformation;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -47,8 +47,8 @@ public record ParseResult(
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
-    Optional<CFA> originalCfa,
-    ProgramTransformation programTransformation) {
+    // Only relevant for SV-LIB scripts
+    Optional<SvLibCfaMetadata> svLibCfaMetadata) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -65,8 +65,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
-        ProgramTransformation.NONE);
+        Optional.empty());
   }
 
   public ParseResult(
@@ -86,8 +85,26 @@ public record ParseResult(
         Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty());
+  }
+
+  public ParseResult(
+      NavigableMap<String, FunctionEntryNode> pFunctions,
+      TreeMultimap<String, CFANode> pCfaNodes,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
+      List<Path> pFileNames,
+      SvLibCfaMetadata pSvLibCfaMetadata) {
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
         Optional.empty(),
-        ProgramTransformation.NONE);
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(pSvLibCfaMetadata));
   }
 
   public boolean isEmpty() {
@@ -106,14 +123,12 @@ public record ParseResult(
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        originalCfa,
-        programTransformation);
+        svLibCfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
-
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
     return new ParseResult(
@@ -126,29 +141,20 @@ public record ParseResult(
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
-        originalCfa,
-        programTransformation);
+        svLibCfaMetadata);
   }
 
-  /**
-   * If there exists an original {@link CFA}, then the {@link ProgramTransformation} must be set, so
-   * we use a single function for this.
-   */
-  public ParseResult withOriginalCfaAndProgramTransformation(
-      CFA pOriginalCfa, ProgramTransformation pProgramTransformation) {
-
-    Verify.verify(pProgramTransformation.isEnabled(), "pProgramTransformation must be set");
+  public ParseResult withFileNames(List<Path> pFileNames) {
     return new ParseResult(
         functions,
         cfaNodes,
         globalDeclarations,
-        fileNames,
+        pFileNames,
         astStructure,
         commentLocations,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        Optional.of(pOriginalCfa),
-        pProgramTransformation);
+        svLibCfaMetadata);
   }
 }

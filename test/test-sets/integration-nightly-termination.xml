@@ -10,7 +10,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -35,12 +36,12 @@ SPDX-License-Identifier: Apache-2.0
     CPAchecker can compress and handle compressed witnesses automatically.
     Please disable compression for real SVComp benchmarks!
   -->
-  <resultfiles>**.graphml*</resultfiles>
+  <resultfiles>**/witness*.*</resultfiles>
   <option name="--option">cpa.arg.compressWitness=true</option>
   <option name="--option">counterexample.export.compressWitness=true</option>
   <option name="--option">counterexample.export.graphml=witness.graphml</option>
   <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
-  <option name="--option">termination.violation.witness=witness.graphml</option>
+  <option name="--option">termination.violation.witness.graphml=witness.graphml</option>
 
   <tasks name="Termination-BitVectors">
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>

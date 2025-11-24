@@ -64,7 +64,7 @@ public final class CInitializers {
    * @param edge The current CFA edge.
    * @return A (possibly empty) list of assignment statements.
    */
-  public static List<CExpressionAssignmentStatement> convertToAssignments(
+  public static ImmutableList<CExpressionAssignmentStatement> convertToAssignments(
       CVariableDeclaration decl, CFAEdge edge) throws UnrecognizedCodeException {
 
     CInitializer init = decl.getInitializer();
@@ -96,7 +96,7 @@ public final class CInitializers {
    * @param currentObject The "current object".
    * @param initializerList The initializer list for the "current object".
    */
-  private static List<CExpressionAssignmentStatement> handleInitializerList(
+  private static ImmutableList<CExpressionAssignmentStatement> handleInitializerList(
       final CExpression currentObject,
       final CInitializerList initializerList,
       final FileLocation loc,
@@ -153,6 +153,10 @@ public final class CInitializers {
             "Unexpected initializer for " + currentType + " that is not fully defined",
             edge,
             initializerList);
+      } else if (initializerList.getInitializers().isEmpty()) {
+        // mark that the initializer list was empty. This is possible for scalar values as well,
+        // not only arrays and composite types.
+        successful = false;
       } else {
         throw new UnrecognizedCodeException(
             "Unexpected initializer list for " + currentObject + " with type " + currentType,

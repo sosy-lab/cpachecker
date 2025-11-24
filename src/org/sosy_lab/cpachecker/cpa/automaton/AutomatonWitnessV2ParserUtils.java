@@ -29,7 +29,9 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class AutomatonWitnessV2ParserUtils {
@@ -78,7 +80,7 @@ public class AutomatonWitnessV2ParserUtils {
     Scope result = pScope;
     if (result instanceof CProgramScope r) {
       result = r.withLocationDescriptor(pLocationDescriptor);
-      if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
+      if (pExplicitScope.isPresent() || (pFunctionStack != null && !pFunctionStack.isEmpty())) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
           functionName = pExplicitScope.orElseThrow();
@@ -135,6 +137,27 @@ public class AutomatonWitnessV2ParserUtils {
       return Optional.empty();
     }
     return getWitnessTypeIfYAML(entries);
+  }
+
+  public static Optional<YAMLWitnessVersion> getWitnessVersion(List<AbstractEntry> entries) {
+    if (entries.isEmpty()) {
+      return Optional.empty();
+    } else if (allEntriesHaveVersion("2.0", entries)) {
+      return Optional.of(YAMLWitnessVersion.V2);
+    } else if (allEntriesHaveVersion("2.1", entries)) {
+      return Optional.of(YAMLWitnessVersion.V2d1);
+    }
+    return Optional.empty();
+  }
+
+  private static boolean allEntriesHaveVersion(String pVersion, List<AbstractEntry> entries) {
+    return FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry pViolationEntry
+                        && pViolationEntry.getMetadata().getFormatVersion().equals(pVersion))
+                    || (e instanceof InvariantSetEntry pInvariantEntry
+                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {

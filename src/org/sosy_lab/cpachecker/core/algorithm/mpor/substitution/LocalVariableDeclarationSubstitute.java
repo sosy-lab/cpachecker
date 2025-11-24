@@ -13,38 +13,26 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
-public class LocalVariableDeclarationSubstitute {
+public record LocalVariableDeclarationSubstitute(
+    CIdExpression expression, Optional<MPORSubstitutionTracker> tracker) {
 
-  private final CIdExpression idExpression;
-
-  private final Optional<MPORSubstitutionTracker> tracker;
-
-  LocalVariableDeclarationSubstitute(
-      CIdExpression pIdExpression, Optional<MPORSubstitutionTracker> pTracker) {
-
-    idExpression = pIdExpression;
-    tracker = pTracker;
-  }
-
-  CIdExpression getIdExpression() {
-    return idExpression;
-  }
-
-  CVariableDeclaration getSubstituteVariableDeclaration() {
-    return (CVariableDeclaration) idExpression.getDeclaration();
-  }
-
-  boolean isTrackerPresent() {
+  public boolean isTrackerPresent() {
     return tracker.isPresent();
   }
 
-  MPORSubstitutionTracker getTracker() {
+  public CVariableDeclaration getSubstituteVariableDeclaration() {
+    assert expression.getDeclaration() instanceof CVariableDeclaration;
+    return (CVariableDeclaration) expression.getDeclaration();
+  }
+
+  public MPORSubstitutionTracker getTracker() {
+    assert tracker.isPresent() : "cannot get tracker, tracker is not present";
     return tracker.orElseThrow();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(idExpression, tracker);
+    return Objects.hash(expression, tracker);
   }
 
   @Override
@@ -52,8 +40,12 @@ public class LocalVariableDeclarationSubstitute {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof LocalVariableDeclarationSubstitute other
-        && idExpression.equals(other.idExpression)
-        && tracker.equals(other.tracker);
+    return pOther
+            instanceof
+            LocalVariableDeclarationSubstitute(
+                CIdExpression pExpression,
+                Optional<MPORSubstitutionTracker> pTracker)
+        && expression.equals(pExpression)
+        && tracker.equals(pTracker);
   }
 }

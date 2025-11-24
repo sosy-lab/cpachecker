@@ -13,16 +13,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class CondSignaledFlag {
+public record CondSignaledFlag(CIdExpression idExpression, CBinaryExpression isSignaledExpression) {
 
-  public final CIdExpression idExpression;
-
-  public final CBinaryExpression isSignaledExpression;
-
-  public CondSignaledFlag(CIdExpression pIdExpression, CBinaryExpression pIsSignaledExpression) {
-    checkNotNull(pIdExpression);
-    checkNotNull(pIsSignaledExpression);
-    idExpression = pIdExpression;
-    isSignaledExpression = pIsSignaledExpression;
+  public CondSignaledFlag {
+    checkNotNull(idExpression);
+    checkNotNull(isSignaledExpression);
   }
 }

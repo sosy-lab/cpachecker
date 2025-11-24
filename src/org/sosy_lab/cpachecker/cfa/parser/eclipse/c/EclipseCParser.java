@@ -112,9 +112,6 @@ class EclipseCParser implements CParser {
     Preconditions.checkNotNull(pSourceOriginMapping);
     Preconditions.checkNotNull(pWrapperFunction);
 
-    // reset anon_type counter so that parsing identical programs in one run result in the same CFA
-    ASTConverter.resetAnonTypeCounter();
-
     Map<Path, Path> fileNameMapping = new HashMap<>();
     for (FileToParse f : pInput) {
       fileNameMapping.put(fixPath(f.getFileName()), f.getFileName());
@@ -276,7 +273,7 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException(
+            throw new CParsingFailureRequiringPreprocessingException(
                 "File includes system headers, either preprocess it manually or specify"
                     + " --preprocess.");
           } else {
@@ -451,7 +448,7 @@ class EclipseCParser implements CParser {
       CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
-      if (result.getFileName().equals(analysisFile)) {
+      if (result.fileName().equals(analysisFile)) {
         // reverse mapping
         result = result.withFileName(pAnalysisFile);
       }

@@ -10,25 +10,23 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Tests if programs with different characteristics and options parse correctly. The programs are in
@@ -53,33 +51,20 @@ public class SequentializationParseTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/13-privatized_04-priv_multi_true.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.DECIMAL,
-            true,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            false,
-            true,
-            true,
-            0,
-            false,
-            true,
-            false,
-            true,
-            NondeterminismSource.NUM_STATEMENTS,
-            true,
-            false,
-            false,
-            false,
-            true,
-            true,
-            ReductionMode.READ_AND_WRITE,
-            ReductionOrder.LAST_THREAD_THEN_CONFLICT,
-            true,
-            false,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -90,35 +75,18 @@ public class SequentializationParseTest {
         Path.of(
             "./test/programs/mpor/sequentialization/13-privatized_69-refine-protected-loop-interval_true.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.BINARY,
-            true,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            MultiControlStatementEncoding.NONE,
-            true,
-            true,
-            true,
-            0,
-            false,
-            // keep enabled
-            true,
-            true,
-            false,
-            NondeterminismSource.NUM_STATEMENTS,
-            true,
-            false,
-            false,
-            false,
-            false,
-            false,
-            ReductionMode.NONE,
-            ReductionOrder.NONE,
-            false,
-            false,
-            // keep enabled
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -127,33 +95,18 @@ public class SequentializationParseTest {
     // this program contains a start_routine argument passed via pthread_create
     Path path = Path.of("./test/programs/mpor/sequentialization/28-race_reach_45-escape_racing.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.NONE,
-            false,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            true,
-            true,
-            true,
-            42,
-            true,
-            false,
-            true,
-            true,
-            NondeterminismSource.NUM_STATEMENTS,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            ReductionMode.NONE,
-            ReductionOrder.NONE,
-            true,
-            false,
-            false);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "42")
+            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -164,33 +117,22 @@ public class SequentializationParseTest {
         Path.of(
             "./test/programs/mpor/sequentialization/36-apron_41-threadenter-no-locals_unknown_1_pos.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.BINARY,
-            false,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            false,
-            true,
-            true,
-            1,
-            false,
-            true,
-            false,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            true,
-            false,
-            false,
-            false,
-            false,
-            true,
-            ReductionMode.READ_AND_WRITE,
-            ReductionOrder.NONE,
-            false,
-            false,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "1")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -200,33 +142,24 @@ public class SequentializationParseTest {
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
     Path path = Path.of("./test/programs/mpor/sequentialization/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.DECIMAL,
-            true,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            true,
-            true,
-            true,
-            0,
-            false,
-            false,
-            true,
-            true,
-            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
-            false,
-            false,
-            false,
-            true,
-            true,
-            true,
-            ReductionMode.ACCESS_ONLY,
-            ReductionOrder.CONFLICT_THEN_LAST_THREAD,
-            true,
-            true,
-            false);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.reduceIgnoreSleep", "true")
+            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.reductionOrder", "CONFLICT_THEN_LAST_THREAD")
+            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -234,33 +167,19 @@ public class SequentializationParseTest {
   public void test_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor/sequentialization/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.DECIMAL,
-            false,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            false,
-            true,
-            true,
-            7,
-            true,
-            true,
-            true,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true,
-            ReductionMode.ACCESS_ONLY,
-            ReductionOrder.NONE,
-            false,
-            true,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "7")
+            .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -270,33 +189,23 @@ public class SequentializationParseTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.HEXADECIMAL,
-            false,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            true,
-            false,
-            true,
-            0,
-            false,
-            false,
-            false,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            true,
-            false,
-            false,
-            false,
-            true,
-            false,
-            ReductionMode.READ_AND_WRITE,
-            ReductionOrder.NONE,
-            false,
-            false,
-            false);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
+            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -305,33 +214,19 @@ public class SequentializationParseTest {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor/sequentialization/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.NONE,
-            false,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            true,
-            true,
-            false,
-            Integer.MAX_VALUE,
-            false,
-            true,
-            false,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            ReductionMode.NONE,
-            ReductionOrder.NONE,
-            true,
-            false,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.linkReduction", "false")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "2000000000")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -340,35 +235,22 @@ public class SequentializationParseTest {
     // this program had issues with infinite recursion when reordering blocks
     Path path = Path.of("./test/programs/mpor/sequentialization/race-4_1-thread_local_vars.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.DECIMAL,
-            true,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            true,
-            true,
-            true,
-            0,
-            false,
-            // keep enabled
-            true,
-            true,
-            false,
-            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
-            true,
-            false,
-            false,
-            false,
-            true,
-            false,
-            ReductionMode.READ_AND_WRITE,
-            ReductionOrder.NONE,
-            false,
-            false,
-            // keep enabled
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
+            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -379,33 +261,24 @@ public class SequentializationParseTest {
     // at the bottom of a thread simulation.
     Path path = Path.of("./test/programs/mpor/sequentialization/read_write_lock-2.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.BINARY,
-            true,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            true,
-            true,
-            true,
-            0,
-            false,
-            false,
-            true,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            false,
-            false,
-            false,
-            false,
-            true,
-            true,
-            ReductionMode.ACCESS_ONLY,
-            ReductionOrder.LAST_THREAD_THEN_CONFLICT,
-            true,
-            false,
-            false);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -414,33 +287,24 @@ public class SequentializationParseTest {
     // this program contains no return statements for the created threads
     Path path = Path.of("./test/programs/mpor/sequentialization/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.SPARSE,
-            false,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            false,
-            false,
-            true,
-            9999,
-            false,
-            true,
-            true,
-            false,
-            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
-            true,
-            true,
-            true,
-            true,
-            false,
-            true,
-            ReductionMode.READ_AND_WRITE,
-            ReductionOrder.NONE,
-            false,
-            false,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables", "true")
+            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
+            .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
+            .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -450,33 +314,20 @@ public class SequentializationParseTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.NONE,
-            true,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            true,
-            false,
-            true,
-            16,
-            true,
-            false,
-            false,
-            false,
-            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            ReductionMode.NONE,
-            ReductionOrder.NONE,
-            true,
-            true,
-            false);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "16")
+            .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
+            .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption(
+                "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -484,33 +335,22 @@ public class SequentializationParseTest {
   public void test_stack_1() throws Exception {
     Path path = Path.of("./test/programs/mpor/sequentialization/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            BitVectorEncoding.SPARSE,
-            true,
-            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
-            false,
-            false,
-            true,
-            32,
-            false,
-            true,
-            false,
-            true,
-            NondeterminismSource.NEXT_THREAD,
-            false,
-            true,
-            false,
-            false,
-            false,
-            true,
-            ReductionMode.ACCESS_ONLY,
-            ReductionOrder.NONE,
-            false,
-            true,
-            true);
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
+            .setOption("analysis.algorithm.MPOR.comments", "true")
+            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "false")
+            .setOption("analysis.algorithm.MPOR.loopIterations", "32")
+            .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
+            .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
   }
 
@@ -519,29 +359,35 @@ public class SequentializationParseTest {
       throws Exception {
 
     // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator =
+        MPORUtil.buildTestCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
     return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
   }
 
   private String buildTestOutputProgram(
       MPOROptions pOptions,
       Path pInputFilePath,
+      Configuration pConfiguration,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger)
       throws Exception {
 
     CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
-    return Sequentialization.tryBuildProgramString(
-        pOptions, cfa, "test", pShutdownNotifier, pLogger);
+    SequentializationUtils utils =
+        SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
+    return Sequentialization.tryBuildProgramString(pOptions, cfa, utils);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
+    Configuration configuration = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
     // create two sequentializations A, B of the same input program with the same option
-    String programA = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
-    String programB = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
+    String programA =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
+    String programB =
+        buildTestOutputProgram(pOptions, pInputFilePath, configuration, shutdownNotifier, logger);
 
     // test that the output programs of A, B are equal
     // (this does not imply that our algorithm is deterministic)
@@ -550,7 +396,8 @@ public class SequentializationParseTest {
     testParse(programA, logger, shutdownNotifier);
   }
 
-  // TODO also try to compare SequentializationFields for equality
+  private static final String ANON_TYPE_KEYWORD = "__anon_type_";
+
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
@@ -558,14 +405,19 @@ public class SequentializationParseTest {
   private void testEqualOutput(String pStringA, String pStringB) {
     ImmutableList<String> linesA = SeqStringUtil.splitOnNewline(pStringA);
     ImmutableList<String> linesB = SeqStringUtil.splitOnNewline(pStringB);
-    assertThat(linesA.size() == linesB.size()).isTrue();
+    assertThat(linesA).hasSize(linesB.size());
     for (int i = 0; i < linesA.size(); i++) {
       String lineA = linesA.get(i);
       String lineB = linesB.get(i);
-      assertWithMessage(
-              "lineA, lineB with number " + (i + Sequentialization.FIRST_LINE) + " are not equal: ")
-          .that(lineA)
-          .isEqualTo(lineB);
+      // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
+      if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
+        assertWithMessage(
+                "lineA, lineB with number "
+                    + (i + Sequentialization.FIRST_LINE)
+                    + " are not equal: ")
+            .that(lineA)
+            .isEqualTo(lineB);
+      }
     }
   }
 
@@ -573,24 +425,18 @@ public class SequentializationParseTest {
       String pSequentialization, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    assertThat(pSequentialization.isEmpty()).isFalse();
+    assertThat(pSequentialization).isNotEmpty();
 
     // test that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(pLogger, pShutdownNotifier);
     CFA seqCfa = cfaCreator.parseSourceAndCreateCFA(pSequentialization);
-    assertThat(seqCfa != null).isTrue();
+    assertThat(seqCfa).isNotNull();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
     String faultySeq = pSequentialization.substring(0, pSequentialization.length() - 100);
-    assertThat(faultySeq.isEmpty()).isFalse();
+    assertThat(faultySeq).isNotEmpty();
 
     // test that we get an exception while parsing the new "faulty" program
-    boolean fail = false;
-    try {
-      cfaCreator.parseSourceAndCreateCFA(faultySeq);
-    } catch (Exception exception) {
-      fail = true;
-    }
-    assertThat(fail).isTrue();
+    assertThrows(ParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(faultySeq));
   }
 }

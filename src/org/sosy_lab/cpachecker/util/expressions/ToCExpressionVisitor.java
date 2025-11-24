@@ -37,13 +37,20 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.getFirst();
+    CExpression result =
+        builder.buildBinaryExpression(
+            elements.getFirst(), CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
-      // TODO: AFAIK this should be wrong, since the result of a binary AND operation must not
+      // This is needed, since the result of a binary AND operation must not
       //   be the same as a boolean AND, e.g. 01 & 10 = 00, but 01 && 10 = true.
-      //   but I don't know how to fix this. Therefore I leave it as a comment.
-      result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_AND);
+      //   To map any non-zero value to 1 we use expr != 0 here
+
+      CExpression boolExpr =
+          builder.buildBinaryExpression(
+              expr, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
+
+      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BINARY_AND);
     }
 
     return result;
@@ -56,10 +63,16 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.getFirst();
+    CExpression result =
+        builder.buildBinaryExpression(
+            elements.getFirst(), CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
-      result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_OR);
+      CExpression boolExpr =
+          builder.buildBinaryExpression(
+              expr, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
+
+      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BINARY_OR);
     }
 
     return result;
@@ -69,7 +82,13 @@ public class ToCExpressionVisitor
   protected CExpression cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
       throws UnrecognizedCodeException {
     if (pLeafExpression.getExpression() instanceof CExpression cExpression) {
-      return cExpression;
+      if (pLeafExpression.assumeTruth()) {
+        return cExpression;
+      } else {
+        // We need to negate the expression
+        return builder.buildBinaryExpression(
+            cExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+      }
     }
     throw new AssertionError("Unsupported expression type.");
   }

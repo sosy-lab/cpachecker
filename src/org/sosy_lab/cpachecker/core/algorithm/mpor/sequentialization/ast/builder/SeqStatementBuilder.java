@@ -13,13 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStatementBuilder {
@@ -53,47 +48,5 @@ public class SeqStatementBuilder {
       CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
 
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLeftHandSide, pRightHandSide);
-  }
-
-  public static CFunctionCallStatement buildFunctionCallStatement(
-      CFunctionCallExpression pFunctionCallExpression) {
-
-    return new CFunctionCallStatement(FileLocation.DUMMY, pFunctionCallExpression);
-  }
-
-  public static CFunctionCallAssignmentStatement buildFunctionCallAssignmentStatement(
-      CLeftHandSide pLeftHandSide, CFunctionCallExpression pFunctionCallExpression) {
-
-    return new CFunctionCallAssignmentStatement(
-        FileLocation.DUMMY, pLeftHandSide, pFunctionCallExpression);
-  }
-
-  public static CExpressionAssignmentStatement buildLastThreadAssignment(
-      CExpression pRightHandSide) {
-
-    return buildExpressionAssignmentStatement(SeqIdExpressions.LAST_THREAD, pRightHandSide);
-  }
-
-  /**
-   * Returns {@code next_thread = __VERIFIER_nondet_{u}int} with {@code uint} for unsigned, {@code
-   * int} for signed.
-   */
-  public static CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
-    return buildFunctionCallAssignmentStatement(
-        SeqIdExpressions.NEXT_THREAD,
-        pIsSigned
-            ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
-            : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
-  }
-
-  /**
-   * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
-   * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
-   */
-  public static CExpressionAssignmentStatement buildPcWrite(
-      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-
-    return buildExpressionAssignmentStatement(
-        pPcLeftHandSide, SeqExpressionBuilder.buildIntegerLiteralExpression(pTargetPc));
   }
 }

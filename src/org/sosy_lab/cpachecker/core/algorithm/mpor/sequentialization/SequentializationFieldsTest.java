@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -17,16 +18,18 @@ import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Tests if {@link SequentializationFields} are expected depending on the input program, e.g. number
@@ -42,17 +45,17 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 4).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 4).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -62,22 +65,22 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 2).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(2);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // mutex1, mutex2, i (implicit global with pthread_create) and __global_lock (from racemacros.h)
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 4).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
     // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
-    assertThat(memoryModel.pointerAssignments.size() == 1).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerAssignments.size()).isEqualTo(1);
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     // access(*p); is a deref of p
-    assertThat(memoryModel.pointerDereferences.size() == 1).isTrue();
+    assertThat(memoryModel.pointerDereferences).hasSize(1);
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
-    assertThat(memoryModel.startRoutineArgAssignments.size() == 1).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(1);
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -89,19 +92,19 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 2).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(2);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // only local variables
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 0).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(0);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -111,25 +114,32 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 3).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 8).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
-    // check that each __CPAchecker_TMP variable storing function return values is present once
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
+
+    // check that each __CPAchecker_TMP variable storing function return values is present once.
+    // this program contains a lot of __CPAchecker_TMP variables, and we want to ensure that they
+    // are in their correct place and not mixed up during the substitution process.
     Set<CLeftHandSide> visited = new HashSet<>();
     for (FunctionStatements functionStatements :
-        fields.ghostElements.getFunctionStatements().values()) {
+        fields.ghostElements.functionStatements().values()) {
       for (FunctionReturnValueAssignment returnValueAssignment :
-          functionStatements.returnValueAssignments.values()) {
-        assertThat(visited.add(returnValueAssignment.statement.getLeftHandSide())).isTrue();
+          functionStatements.returnValueAssignments().values()) {
+        assertWithMessage(
+                "Duplicate __CPAchecker_TMP variable encountered in assignment: %s",
+                returnValueAssignment.statement().toASTString())
+            .that(visited.add(returnValueAssignment.statement().getLeftHandSide()))
+            .isTrue();
       }
     }
   }
@@ -142,18 +152,18 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 3).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 9).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -162,19 +172,19 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 4).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // mutex and data
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 2).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(2);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -184,20 +194,20 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 5).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(5);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // 49 global variables, but 4 are never accessed -> not identified by tracker
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 45).isTrue();
-    assertThat(memoryModel.parameterAssignments.size() == 2).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(45);
+    assertThat(memoryModel.parameterAssignments.size()).isEqualTo(2);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -208,20 +218,20 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 5).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(5);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // 32 global variables, but _Bool a$read_delayed; and int *a$read_delayed_var; are never
     // accessed, i.e. never substituted -> tracker does not identify them
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 30).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(30);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -231,23 +241,23 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 3).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
     // TODO should actually be 9, though 5 is still fine (overapproximation)
     // check that each member of queue struct is identified as relevant individually
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 5).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(5);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
-    assertThat(memoryModel.pointerParameterAssignments.size() == 6).isTrue();
-    assertThat(memoryModel.pointerDereferences.size() == 17).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.size()).isEqualTo(6);
+    assertThat(memoryModel.pointerDereferences).hasSize(16);
     // both pthread_create calls take &queue as arguments
-    assertThat(memoryModel.startRoutineArgAssignments.size() == 2).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.size()).isEqualTo(2);
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -259,17 +269,17 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 5).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(5);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 4).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -279,18 +289,18 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 3).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(1);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
+    assertThat(memoryModel.pointerDereferences).isEmpty();
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -301,19 +311,19 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 7).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(7);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(1);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
+    assertThat(memoryModel.pointerParameterAssignments).isEmpty();
     // v[0] counts as pointer dereference, but only once (same declaration)
-    assertThat(memoryModel.pointerDereferences.size() == 1).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences).hasSize(1);
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   @Test
@@ -322,33 +332,34 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads == 3).isTrue();
-    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
-    assertThat(fields.memoryModel.isPresent()).isTrue();
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 3).isTrue();
-    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount()).isEqualTo(3);
+    assertThat(memoryModel.pointerAssignments).isEmpty();
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
-    assertThat(memoryModel.pointerParameterAssignments.size() == 2).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.size()).isEqualTo(2);
     // stack[get_top()] count as pointer dereferences
-    assertThat(memoryModel.pointerDereferences.size() == 2).isTrue();
-    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences).hasSize(2);
+    assertThat(memoryModel.startRoutineArgAssignments).isEmpty();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
-    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id()).isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.thread.threadObject()).isEmpty();
   }
 
   private SequentializationFields getSequentializationFields(
       Path pInputFilePath, MPOROptions pOptions) throws Exception {
 
     // create cfa for test program pInputFilePath
+    Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
     CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-    CBinaryExpressionBuilder binaryExpressionBuilder =
-        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
-    return new SequentializationFields(pOptions, inputCfa, binaryExpressionBuilder, logger);
+    SequentializationUtils utils =
+        SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier);
+    return new SequentializationFields(pOptions, inputCfa, utils);
   }
 }

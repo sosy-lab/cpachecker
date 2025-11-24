@@ -11,17 +11,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 
 class MetadataWriter {
 
@@ -33,25 +32,32 @@ class MetadataWriter {
       @JsonProperty("utc_creation_time") String pUtcCreationTime,
       @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
 
-  private record RootRecord(
-      @JsonProperty("metadata") MetadataRecord pMetadata,
-      @JsonProperty("algorithm_options") Map<String, Object> pAlgorithmOptions) {}
+  static void tryWrite(
+      MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
 
-  static void write(MPOROptions pOptions, String pMetadataPath, List<Path> pInputFilePaths)
-      throws IOException, IllegalAccessException {
+    if (pOptions.outputMetadata()) {
+      Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
+      if (metadataPath == null) {
+        pLogger.log(
+            Level.WARNING,
+            "Could not determine path for sequentialization metadata. Sequentialization"
+                + " metadata was not created.");
+        return;
+      }
 
-    YAMLMapper yamlMapper = new YAMLMapper();
-    File metadataFile = new File(pMetadataPath);
-    RootRecord yamlRoot = buildMetadataYamlRoot(pInputFilePaths, pOptions);
-    yamlMapper.writeValue(metadataFile, yamlRoot);
-  }
-
-  private static RootRecord buildMetadataYamlRoot(List<Path> pInputFilePaths, MPOROptions pOptions)
-      throws IllegalAccessException {
-
-    MetadataRecord metadata = buildMetadataRecord(pInputFilePaths);
-    ImmutableMap<String, Object> algorithmOptions = buildAlgorithmOptionMap(pOptions);
-    return new RootRecord(metadata, algorithmOptions);
+      YAMLMapper yamlMapper = new YAMLMapper();
+      MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
+      try {
+        yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
+        pLogger.log(Level.INFO, "Sequentialization metadata created in: ", metadataPath.toString());
+      } catch (IOException e) {
+        pLogger.logUserException(
+            Level.WARNING,
+            e,
+            "An error occurred while writing metadata. Sequentialization metadata was not"
+                + " created.");
+      }
+    }
   }
 
   private static MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
@@ -66,15 +72,5 @@ class MetadataWriter {
       rInputFileRecords.add(new InputFileRecord(path.getFileName().toString(), path.toString()));
     }
     return rInputFileRecords.build();
-  }
-
-  private static ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
-      throws IllegalAccessException {
-
-    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
-    for (Field field : pOptions.getClass().getDeclaredFields()) {
-      rMap.put(field.getName(), field.get(pOptions));
-    }
-    return rMap.buildOrThrow();
   }
 }

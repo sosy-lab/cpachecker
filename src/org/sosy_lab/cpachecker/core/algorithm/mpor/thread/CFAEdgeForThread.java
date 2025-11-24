@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class CFAEdgeForThread {
@@ -36,9 +37,9 @@ public class CFAEdgeForThread {
   /** Not all edges have a calling context, e.g. {@code main()} function statements. */
   public final Optional<CFAEdgeForThread> callContext;
 
-  private CFANodeForThread predecessor = null;
+  @Nullable private CFANodeForThread predecessor = null;
 
-  private CFANodeForThread successor = null;
+  @Nullable private CFANodeForThread successor = null;
 
   public CFAEdgeForThread(
       int pThreadId, CFAEdge pCfaEdge, Optional<CFAEdgeForThread> pCallContext) {

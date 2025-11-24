@@ -8,177 +8,74 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 
 /** A class to write the sequentialized program to a file. */
 public class MPORWriter {
 
-  public enum FileExtension {
+  enum FileExtension {
     I(".i"),
     YML(".yml");
 
-    public final String suffix;
+    private final String suffix;
 
     FileExtension(String pSuffix) {
       suffix = pSuffix;
     }
-  }
 
-  private enum OutputMessageType {
-    FAIL("MPOR FAIL. "),
-    INFO("MPOR INFO. "),
-    SUCCESS("MPOR SUCCESS. ");
-
-    final String prefix;
-
-    OutputMessageType(String pPrefix) {
-      prefix = pPrefix;
+    private String getSuffix() {
+      return suffix;
     }
   }
-
-  private enum OutputMessage {
-    DIRECTORY_CREATED(OutputMessageType.INFO, "Directory created:"),
-    IO_ERROR(OutputMessageType.FAIL, "An IO error occurred while writing the output program:"),
-    OPTION_ACCESS_ERROR(OutputMessageType.FAIL, "Could not access algorithm option fields:"),
-    OVERWRITE_ERROR(OutputMessageType.FAIL, "File exists already:"),
-    PARSE_ERROR(OutputMessageType.FAIL, "Error while parsing sequentialization:"),
-    SEQUENTIALIZATION_CREATED(OutputMessageType.SUCCESS, "Sequentialization created in:"),
-    TARGET_DIRECTORY_ERROR(OutputMessageType.FAIL, "Could not create target directory:");
-
-    final OutputMessageType type;
-
-    final String message;
-
-    OutputMessage(OutputMessageType pType, String pMessage) {
-      type = pType;
-      message = pMessage;
-    }
-
-    String getMessage() {
-      return type.prefix + message;
-    }
-  }
-
-  public static final String DEFAULT_OUTPUT_PATH = "output/";
 
   public static void write(
-      MPOROptions pOptions,
-      String pOutputProgram,
-      String pOutputProgramName,
-      String pOutputProgramPath,
-      List<Path> pInputFilePaths,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      MPOROptions pOptions, String pOutputProgram, List<Path> pInputFilePaths, LogManager pLogger) {
+
+    // use first input file name as output program name
+    String programName =
+        SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
+    // write output program
+    Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
+    if (programPath == null) {
+      pLogger.log(
+          Level.WARNING,
+          "Could not determine path for sequentialization. Sequentialization was not created.");
+      return;
+    }
 
     try {
-      String metadataPath = buildPath(pOptions, pOutputProgramName, FileExtension.YML);
-      File outputProgramFile = new File(pOutputProgramPath);
-      File parentDir = outputProgramFile.getParentFile();
-
-      handleDirectoryCreation(pOptions, parentDir, pLogger);
-      handleOverwriting(pOptions, outputProgramFile, pLogger);
-
-      // write sequentialized program to file
-      Path filePath = outputProgramFile.toPath();
-      try (Writer writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+      try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
         writer.write(pOutputProgram);
-        // option: validate that CPAchecker can parse output
-        if (pOptions.validateParse && !pOptions.inputTypeDeclarations) {
-          handleParsing(pOptions, pOutputProgramPath, metadataPath, pShutdownNotifier, pLogger);
-        }
-        // option: create metadata file
-        if (pOptions.outputMetadata) {
-          MetadataWriter.write(pOptions, metadataPath, pInputFilePaths);
-        }
-        handleOutputMessage(
-            Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
+        pLogger.log(Level.INFO, "Sequentialization created in: ", programPath.toString());
       }
-
     } catch (IOException e) {
-      handleOutputMessage(Level.SEVERE, OutputMessage.IO_ERROR, e.getMessage(), pLogger);
-
-    } catch (IllegalAccessException e) {
-      handleOutputMessage(Level.SEVERE, OutputMessage.OPTION_ACCESS_ERROR, e.getMessage(), pLogger);
+      pLogger.logUserException(
+          Level.WARNING,
+          e,
+          "An IO error occurred while writing the output program. Sequentialization was not"
+              + " created.");
     }
+    // if enabled: write metadata file
+    MetadataWriter.tryWrite(pOptions, programName, pInputFilePaths, pLogger);
   }
 
-  public static String buildPath(
-      MPOROptions pOptions, String pOutputFileName, FileExtension pFileExtension) {
-
-    return pOptions.outputPath + pOutputFileName + pFileExtension.suffix;
-  }
-
-  private static void handleOutputMessage(
-      Level pLevel, OutputMessage pOutputMessage, String pMessage, LogManager pLogger) {
-
-    pLogger.log(pLevel, pOutputMessage.getMessage(), pMessage);
-    if (pOutputMessage.type.equals(OutputMessageType.FAIL)) {
-      throw new RuntimeException(pMessage);
+  static @Nullable Path buildOutputPath(
+      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension) {
+    if (pOptions.outputPath() == null) {
+      return null;
     }
-  }
 
-  private static void handleDirectoryCreation(
-      MPOROptions pOptions, File pParentDir, LogManager pLogger) {
-
-    if (!pParentDir.exists()) {
-      String outputPath = pOptions.outputPath;
-      if (pParentDir.mkdirs()) {
-        handleOutputMessage(Level.INFO, OutputMessage.DIRECTORY_CREATED, outputPath, pLogger);
-      } else {
-        handleOutputMessage(
-            Level.SEVERE, OutputMessage.TARGET_DIRECTORY_ERROR, outputPath, pLogger);
-      }
-    }
-  }
-
-  private static void handleOverwriting(
-      MPOROptions pOptions, File pOutputProgramFile, LogManager pLogger) throws IOException {
-
-    // ensure the file does not exist already (if overwriting is disabled)
-    if (!pOutputProgramFile.createNewFile() && !pOptions.overwriteFiles) {
-      handleOutputMessage(
-          Level.SEVERE,
-          OutputMessage.OVERWRITE_ERROR,
-          pOutputProgramFile.getAbsolutePath(),
-          pLogger);
-    }
-  }
-
-  private static void handleParsing(
-      MPOROptions pOptions,
-      String pOutputProgramPath,
-      String pMetadataPath,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
-      throws IOException {
-
-    Path seqPath = Path.of(pOutputProgramPath);
-    try {
-      SeqValidator.validateProgramParsing(seqPath, pOptions, pShutdownNotifier, pLogger);
-      handleOutputMessage(
-          Level.INFO, OutputMessage.SEQUENTIALIZATION_CREATED, pOutputProgramPath, pLogger);
-
-    } catch (InvalidConfigurationException
-        | ParserException
-        | InterruptedException
-        | IOException e) {
-      // delete output again if parsing fails
-      Files.delete(seqPath);
-      Files.delete(Path.of(pMetadataPath));
-      handleOutputMessage(Level.SEVERE, OutputMessage.PARSE_ERROR, e.getMessage(), pLogger);
-    }
+    String pathString = pOptions.outputPath().getPath(pProgramName) + pFileExtension.getSuffix();
+    return Path.of(pathString);
   }
 }

@@ -13,9 +13,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -56,13 +57,12 @@ public class MPORSubstitution {
 
   public final MPORThread thread;
 
-  // TODO these data structures are bloating up a bit, we should use custom classes.
-
   /**
-   * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
-   * instance serves as a dummy.
+   * The list of entries mapping global variable declarations to their substitutes. This does not
+   * use a map because there may be multiple {@link CVariableDeclaration}s for the same variable,
+   * e.g. {@code int x; int x = 1;}.
    */
-  private final ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes;
+  private final ImmutableList<Entry<CVariableDeclaration, CIdExpression>> globalVariableSubstitutes;
 
   /** The map of call context-sensitive thread local variable declarations to their substitutes. */
   private final ImmutableTable<
@@ -85,13 +85,11 @@ public class MPORSubstitution {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  private final LogManager logger;
-
   MPORSubstitution(
       boolean pIsDummy,
       MPOROptions pOptions,
       MPORThread pThread,
-      ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVariableSubstitutes,
+      ImmutableList<Entry<CVariableDeclaration, CIdExpression>> pGlobalVariableSubstitutes,
       ImmutableTable<
               Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
@@ -100,8 +98,7 @@ public class MPORSubstitution {
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
           pStartRoutineArgSubstitutes,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+      SequentializationUtils pUtils) {
 
     isDummy = pIsDummy;
     options = pOptions;
@@ -111,8 +108,7 @@ public class MPORSubstitution {
     parameterSubstitutes = pParameterSubstitutes;
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    logger = pLogger;
+    binaryExpressionBuilder = pUtils.binaryExpressionBuilder();
   }
 
   // Substitute Functions ==========================================================================
@@ -122,7 +118,8 @@ public class MPORSubstitution {
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
-      boolean pIsFieldReference) {
+      boolean pIsFieldReference)
+      throws UnrecognizedCodeException {
 
     return substitute(
         pExpression,
@@ -141,7 +138,8 @@ public class MPORSubstitution {
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
-      boolean pIsFieldReference) {
+      boolean pIsFieldReference)
+      throws UnrecognizedCodeException {
 
     return substitute(
         pExpression,
@@ -160,7 +158,8 @@ public class MPORSubstitution {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      MPORSubstitutionTracker pTracker) {
+      MPORSubstitutionTracker pTracker)
+      throws UnrecognizedCodeException {
 
     return substitute(
         pExpression,
@@ -184,7 +183,8 @@ public class MPORSubstitution {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
@@ -201,13 +201,7 @@ public class MPORSubstitution {
         CSimpleDeclaration declaration = idExpression.getDeclaration();
         if (SubstituteUtil.isSubstitutable(declaration)) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
-              options,
-              idExpression,
-              pIsWrite,
-              pIsPointerDereference,
-              pIsFieldReference,
-              pTracker,
-              logger);
+              options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
           return getSimpleDeclarationSubstitute(
               idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
         }
@@ -236,12 +230,7 @@ public class MPORSubstitution {
                 pTracker);
         // only create a new expression if any operand was substituted (compare references)
         if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
-          try {
-            return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
-          } catch (UnrecognizedCodeException e) {
-            // "convert" exception -> no UnrecognizedCodeException in signature
-            throw new RuntimeException(e);
-          }
+          return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
         }
       }
       case CArraySubscriptExpression arraySubscript -> {
@@ -337,17 +326,19 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
+    FileLocation fileLocation = pStatement.getFileLocation();
+
+    // e.g. n = fib(42); or arr[n] = fib(42);
     switch (pStatement) {
-
-      // e.g. n = fib(42); or arr[n] = fib(42);
       case CFunctionCallAssignmentStatement functionCallAssignment -> {
         CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
         CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
         return new CFunctionCallAssignmentStatement(
-            pStatement.getFileLocation(),
+            fileLocation,
             (CLeftHandSide) leftHandSideSubstitute,
             substitute(functionCallAssignment.getRightHandSide(), pCallContext, pTracker));
       }
@@ -355,7 +346,7 @@ public class MPORSubstitution {
       // e.g. fib(42);
       case CFunctionCallStatement functionCall -> {
         return new CFunctionCallStatement(
-            functionCall.getFileLocation(),
+            fileLocation,
             substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
       }
 
@@ -367,7 +358,7 @@ public class MPORSubstitution {
         CExpression leftHandSideSubstitute =
             substitute(leftHandSide, pCallContext, false, true, false, false, pTracker);
         return new CExpressionAssignmentStatement(
-            pStatement.getFileLocation(),
+            fileLocation,
             (CLeftHandSide) leftHandSideSubstitute,
             // for the RHS, it's not a left hand side of an assignment
             substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
@@ -375,7 +366,7 @@ public class MPORSubstitution {
 
       case CExpressionStatement expression -> {
         return new CExpressionStatement(
-            pStatement.getFileLocation(),
+            fileLocation,
             substitute(
                 expression.getExpression(), pCallContext, false, false, false, false, pTracker));
       }
@@ -387,7 +378,8 @@ public class MPORSubstitution {
   private CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
@@ -417,17 +409,19 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnrecognizedCodeException {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute
       return pReturnStatement;
     } else {
       CExpression expression = pReturnStatement.getReturnValue().orElseThrow();
-      // TODO it would be cleaner to also substitute the assignment...
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
           Optional.of(substitute(expression, pCallContext, false, false, false, false, pTracker)),
+          // substituting the assignment is not necessary because it is never used
+          // + the return variable from the function entry node does not have a substitute
           pReturnStatement.asAssignment());
     }
   }
@@ -448,9 +442,14 @@ public class MPORSubstitution {
             Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
         MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
             pIsDeclaration, localSubstitute, pTracker);
-        return localSubstitute.getIdExpression();
+        return localSubstitute.expression();
       } else {
-        return Objects.requireNonNull(globalVariableSubstitutes.get(variableDeclaration));
+        // for substitution, it is fine to use the first entry that matches the declaration
+        for (Entry<CVariableDeclaration, CIdExpression> entry : globalVariableSubstitutes) {
+          if (entry.getKey().equals(variableDeclaration)) {
+            return entry.getValue();
+          }
+        }
       }
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
@@ -469,15 +468,46 @@ public class MPORSubstitution {
         return Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
 
       } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
-        return startRoutineArgSubstitutes.get(callContext, parameterDeclaration);
+        return Objects.requireNonNull(
+            startRoutineArgSubstitutes.get(callContext, parameterDeclaration));
       }
-      throw new IllegalArgumentException("parameter declaration could not be found");
+      throw new IllegalArgumentException(
+          "parameter declaration could not be substituted: " + parameterDeclaration.toASTString());
     }
     throw new IllegalArgumentException(
-        "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
+        "pSimpleDeclaration must be variable or parameter declaration, got: "
+            + pSimpleDeclaration.toASTString());
   }
 
-  CVariableDeclaration getVariableDeclarationSubstitute(
+  // CParameterDeclaration substitutes =============================================================
+
+  public ImmutableList<CIdExpression> getParameterDeclarationSubstitute(
+      CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
+
+    if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
+      return Objects.requireNonNull(parameterSubstitutes.get(pCallContext, pParameterDeclaration));
+    } else {
+      // no substitute found -> function declaration contains only parameter types, not names
+      // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
+      // -> void assume_abort_if_not(int);
+      assert pCallContext.cfaEdge instanceof CFunctionCallEdge
+          : "call context of parameter declaration must be CFunctionCallEdge";
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
+      List<CParameterDeclaration> parameterDeclarations =
+          functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
+      // search for the corresponding parameter, throw if not found
+      for (CParameterDeclaration parameterDeclarationWithoutName : parameterDeclarations) {
+        if (parameterSubstitutes.containsColumn(parameterDeclarationWithoutName)) {
+          return Objects.requireNonNull(
+              parameterSubstitutes.get(pCallContext, parameterDeclarationWithoutName));
+        }
+      }
+    }
+    throw new IllegalArgumentException(
+        "parameter declaration could not be found for given call context");
+  }
+
+  public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
@@ -489,37 +519,13 @@ public class MPORSubstitution {
     return (CVariableDeclaration) idExpression.getDeclaration();
   }
 
-  // CParameterDeclaration substitutes =============================================================
-
-  public ImmutableList<CIdExpression> getParameterDeclarationSubstitute(
-      CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
-
-    if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
-      return parameterSubstitutes.get(pCallContext, pParameterDeclaration);
-    } else {
-      // no substitute found -> function declaration contains only parameter types, not names
-      // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
-      // -> void assume_abort_if_not(int);
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
-      List<CParameterDeclaration> parameterDeclarations =
-          functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
-      // search for the corresponding parameter, throw if not found
-      for (CParameterDeclaration parameterDeclarationWithoutName : parameterDeclarations) {
-        if (parameterSubstitutes.containsColumn(parameterDeclarationWithoutName)) {
-          return parameterSubstitutes.get(pCallContext, parameterDeclarationWithoutName);
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        "parameter declaration could not be found for given call context");
-  }
-
   // Declaration Extraction ========================================================================
 
   public ImmutableList<CVariableDeclaration> getGlobalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
-    for (CIdExpression globalVariable : globalVariableSubstitutes.values()) {
-      rGlobalDeclarations.add((CVariableDeclaration) globalVariable.getDeclaration());
+    for (Entry<CVariableDeclaration, CIdExpression> entry : globalVariableSubstitutes) {
+      CIdExpression substitute = entry.getValue();
+      rGlobalDeclarations.add((CVariableDeclaration) substitute.getDeclaration());
     }
     return rGlobalDeclarations.build();
   }

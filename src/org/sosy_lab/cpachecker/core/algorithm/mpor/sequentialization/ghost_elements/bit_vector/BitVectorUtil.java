@@ -17,11 +17,11 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BinaryBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.DecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
@@ -48,18 +48,18 @@ public class BitVectorUtil {
   // Creation ======================================================================================
 
   public static BitVectorValueExpression buildBitVectorExpression(
-      MPOROptions pOptions,
+      BitVectorEncoding pBitVectorEncoding,
       MemoryModel pMemoryModel,
       ImmutableSet<SeqMemoryLocation> pMemoryLocations) {
 
-    checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
+    checkArgument(pBitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
         pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // retrieve all relevant memory location IDs
     ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
-    return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
+    return buildBitVectorExpressionByEncoding(pBitVectorEncoding, pMemoryModel, setBits);
   }
 
   /**
@@ -196,12 +196,15 @@ public class BitVectorUtil {
    * {@link ReachType} is required based on the specified options.
    */
   public static boolean isAccessReachPairNeeded(
-      MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
+      boolean pReduceIgnoreSleep,
+      ReductionMode pReductionMode,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
 
-    if (pReachType.equals(ReachType.DIRECT) && !pOptions.reduceIgnoreSleep) {
+    if (pReachType.equals(ReachType.DIRECT) && !pReduceIgnoreSleep) {
       return false;
     }
-    return switch (pOptions.reductionMode) {
+    return switch (pReductionMode) {
       case NONE -> throw new IllegalArgumentException("cannot check for reductionMode NONE");
       case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->

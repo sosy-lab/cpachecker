@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -185,10 +185,8 @@ public class CPAchecker {
   // To change the version, update the property in build.xml.
   private static final String version;
 
-  public static final String unknownVersion = "(unknown version)";
-
   static {
-    String v = unknownVersion;
+    String v = "(unknown version)";
     try {
       URL url =
           CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
@@ -279,16 +277,14 @@ public class CPAchecker {
     config.inject(this);
   }
 
-  public CPAcheckerResult run(
-      List<String> programDenotation, ProgramTransformation pProgramTransformation) {
-
+  public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     CoreComponentsFactory factory;
     MainCPAStatistics stats = null;
-    CFA finalCfa = null;
+    ImmutableCFA cfa = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -297,32 +293,20 @@ public class CPAchecker {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
       stats.creationTime.start();
 
-      CFA baseCfa = parse(programDenotation, stats);
+      cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
-
-      // select CFA based on program transformation type
-      finalCfa =
-          switch (pProgramTransformation) {
-            case NONE -> baseCfa;
-            case SEQUENTIALIZATION -> {
-              MPORAlgorithm mporAlgorithm =
-                  new MPORAlgorithm(null, config, logger, shutdownNotifier, baseCfa, null);
-              String sequentializedProgram = mporAlgorithm.buildSequentializedProgram();
-              yield parse(sequentializedProgram, baseCfa, stats, pProgramTransformation);
-            }
-          };
-
       factory =
           new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), finalCfa);
-      return run0(finalCfa, factory, stats);
+              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), cfa);
+
+      return run0(cfa, factory, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
         | IOException
         | InterruptedException e) {
       logErrorMessage(e, logger);
-      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, finalCfa, stats);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
@@ -342,6 +326,7 @@ public class CPAchecker {
   }
 
   private CPAcheckerResult run0(CFA cfa, CoreComponentsFactory factory, MainCPAStatistics stats) {
+
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
@@ -393,7 +378,7 @@ public class CPAchecker {
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+        initializeReachedSet(reached, cpa, factory.getCfa().getMainFunction(), factory.getCfa());
       }
 
       printConfigurationWarnings();
@@ -483,33 +468,14 @@ public class CPAchecker {
     }
   }
 
-  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
+  public ImmutableCFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-    CFACreator cfaCreator = CFACreator.construct(config, logger, shutdownNotifier);
-    stats.setCFACreator(cfaCreator, ProgramTransformation.NONE);
-    final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-    stats.setCFA(cfa, ProgramTransformation.NONE);
-    return cfa;
-  }
-
-  public CFA parse(
-      String pSourceCode,
-      CFA pOriginalCfa,
-      MainCPAStatistics pStats,
-      ProgramTransformation pProgramTransformation)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-
-    logger.logf(
-        Level.INFO, "Parsing CFA from program transformation type %s", pProgramTransformation);
-    CFACreator cfaCreator =
-        CFACreator.constructForProgramTransformation(
-            config, logger, shutdownNotifier, pProgramTransformation);
-    pStats.setCFACreator(cfaCreator, pProgramTransformation);
-    final CFA cfa =
-        cfaCreator.parseSourceAndCreateCFA(pSourceCode, pOriginalCfa, pProgramTransformation);
-    pStats.setCFA(cfa, pProgramTransformation);
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    stats.setCFACreator(cfaCreator);
+    final ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+    stats.setCFA(cfa);
     return cfa;
   }
 

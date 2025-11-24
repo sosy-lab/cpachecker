@@ -19,7 +19,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.ProgramTransformation;
 
 /** Helper class for running CPA tests. */
 public class CPATestRunner {
@@ -50,8 +49,7 @@ public class CPATestRunner {
 
     ShutdownManager shutdownManager = ShutdownManager.create();
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
-    CPAcheckerResult results =
-        cpaChecker.run(ImmutableList.of(pSourceCodeFilePath), ProgramTransformation.NONE);
+    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }

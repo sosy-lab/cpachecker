@@ -148,9 +148,7 @@ void *t2(void *arg)
     pthread_mutex_unlock(&m);
   }
 
-  int *ultimate_question = malloc(sizeof(int));
-  *ultimate_question = 42;
-  pthread_exit((void*)ultimate_question);
+  return NULL;
 }
 int main(void) 
 {
@@ -172,8 +170,6 @@ int main(void)
   pthread_create(&id2, NULL, t2, &queue);
 
   pthread_join(id1, NULL);
-  void *retval;
-  pthread_join(id2, &retval);
 
   return 0;
 }

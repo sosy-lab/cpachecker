@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -78,6 +79,8 @@ public class MemoryModelStartRoutineArgTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
 
+  public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
+
   @Test
   public void test_local_start_routine_arg_implicit_global() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
@@ -86,10 +89,10 @@ public class MemoryModelStartRoutineArgTest {
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(startRoutineArgAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
-    assertThat(pointerParameterAssignments.size() == 1).isTrue();
+    assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
     assertThat(LOCAL_L1_MEMORY_LOCATION.isExplicitGlobal()).isFalse();

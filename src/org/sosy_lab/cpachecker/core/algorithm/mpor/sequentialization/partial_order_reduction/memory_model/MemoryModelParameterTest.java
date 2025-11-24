@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -226,6 +227,8 @@ public class MemoryModelParameterTest {
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_R);
 
+  public MemoryModelParameterTest() throws InvalidConfigurationException {}
+
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
@@ -234,7 +237,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
@@ -245,8 +248,8 @@ public class MemoryModelParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test
@@ -257,7 +260,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -274,8 +277,8 @@ public class MemoryModelParameterTest {
             pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test
@@ -286,7 +289,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
     ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
@@ -326,7 +329,7 @@ public class MemoryModelParameterTest {
             .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
             .buildOrThrow();
     ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+        MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // all are not explicit global memory locations
     assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
@@ -341,7 +344,7 @@ public class MemoryModelParameterTest {
             ImmutableMap.of(),
             pointerParameterAssignments);
 
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(LOCAL_Z_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(LOCAL_Z_MEMORY_LOCATION);
   }
 }

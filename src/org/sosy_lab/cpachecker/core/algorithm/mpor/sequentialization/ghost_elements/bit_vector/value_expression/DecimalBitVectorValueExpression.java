@@ -15,7 +15,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 
-public class DecimalBitVectorValueExpression implements BitVectorValueExpression {
+public class DecimalBitVectorValueExpression extends BitVectorValueExpression {
 
   private final ImmutableSet<Integer> setBits;
 

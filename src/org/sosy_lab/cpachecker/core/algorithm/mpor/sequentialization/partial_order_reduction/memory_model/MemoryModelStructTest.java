@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -175,6 +176,8 @@ public class MemoryModelStructTest {
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_MEMBER_DECLARATION);
 
+  public MemoryModelStructTest() throws InvalidConfigurationException {}
+
   @Test
   public void test_field_owner_field_member() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment
@@ -193,8 +196,8 @@ public class MemoryModelStructTest {
 
     // mem location 'outer_struct.outer_member' should be associated with dereference of
     // 'global_ptr_A'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION);
   }
 
   @Test
@@ -215,8 +218,8 @@ public class MemoryModelStructTest {
             ImmutableMap.of(),
             ImmutableMap.of());
     // mem location 'outer_struct.outer_member' should be associated with deref of 'global_ptr_A'
-    assertThat(memoryLocationsA.size() == 1).isTrue();
-    assertThat(memoryLocationsA.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocationsA).hasSize(1);
+    assertThat(memoryLocationsA).contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<SeqMemoryLocation> memoryLocationsB =
@@ -227,7 +230,7 @@ public class MemoryModelStructTest {
             ImmutableMap.of());
     // mem location 'outer_struct.inner_struct.member' should be associated with deref
     // 'global_ptr_B'
-    assertThat(memoryLocationsB.size() == 1).isTrue();
-    assertThat(memoryLocationsB.contains(INNER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocationsB).hasSize(1);
+    assertThat(memoryLocationsB).contains(INNER_STRUCT_MEMBER_MEMORY_LOCATION);
   }
 }

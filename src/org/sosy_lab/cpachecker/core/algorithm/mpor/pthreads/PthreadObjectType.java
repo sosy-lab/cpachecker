@@ -20,9 +20,7 @@ public enum PthreadObjectType {
   PTHREAD_ONCE_T("pthread_once_t"),
   PTHREAD_RWLOCK_T("pthread_rwlock_t"),
   PTHREAD_T("pthread_t"),
-  // TODO should be void * type
   RETURN_VALUE(""),
-  // TODO should be void * type
   START_ROUTINE(""),
   START_ROUTINE_ARGUMENT("");
 

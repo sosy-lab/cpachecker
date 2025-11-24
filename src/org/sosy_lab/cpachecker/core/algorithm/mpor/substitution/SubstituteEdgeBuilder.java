@@ -31,18 +31,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SubstituteEdgeBuilder {
 
   public static ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
     // using map so that we can use .containsKey (+ linked hash map retains insertion order)
     Map<CFAEdgeForThread, SubstituteEdge> rSubstituteEdges = new LinkedHashMap<>();
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
 
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -67,7 +69,8 @@ public class SubstituteEdgeBuilder {
    * function declarations from the input program are included if specified by {@link MPOROptions}.
    */
   private static Optional<SubstituteEdge> trySubstituteEdge(
-      MPOROptions pOptions, MPORSubstitution pSubstitution, CFAEdgeForThread pThreadEdge) {
+      MPOROptions pOptions, MPORSubstitution pSubstitution, CFAEdgeForThread pThreadEdge)
+      throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<CFAEdgeForThread> callContext =

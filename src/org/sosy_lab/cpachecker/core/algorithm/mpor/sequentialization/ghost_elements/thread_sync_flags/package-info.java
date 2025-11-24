@@ -10,4 +10,7 @@
  * Contains ghost variables used to simulate functions that synchronize threads, e.g. {@code
  * pthread_mutex_lock}.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags;

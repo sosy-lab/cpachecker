@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
@@ -90,9 +89,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -124,6 +125,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -136,9 +138,6 @@ import org.xml.sax.SAXException;
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<
         ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
-  // set of functions that may not appear in the source code
-  // the value of the map entry is the explanation for the user
-  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
 
@@ -169,6 +168,16 @@ public class ValueAnalysisTransferRelation
 
     @Option(secure = true, description = "Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
+
+    @Option(
+        secure = true,
+        description =
+            "In case the value analysis encounters a unhandled or unknown function, and this is set"
+                + " to true, a warning is logged and the function call is ignored. Ignoring"
+                + " function calls is unsound! If this is set to false, a exception is raised."
+                + " Functions listed in option allowedUnsupportedFunctions are considered pure and"
+                + " are exempt from this.")
+    private boolean ignoreCallsToUnknownFunctions = true;
 
     @Option(
         secure = true,
@@ -210,11 +219,12 @@ public class ValueAnalysisTransferRelation
 
     @Option(
         secure = true,
+        name = "allowedUnsupportedFunctions",
         description =
-            "Allow the given extern functions and interpret them as pure functions"
-                + " although the value analysis does not support their semantics"
-                + " and this can produce wrong results.")
-    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
+            "If given functions are not handled by the analysis, they are interpret as functions"
+                + " without side-effects and return a new nondeterministic value every time they"
+                + " are called. This can be unsound!")
+    private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -244,8 +254,8 @@ public class ValueAnalysisTransferRelation
       return functionValuesForRandom;
     }
 
-    boolean isAllowedUnsupportedOption(String func) {
-      return allowedUnsupportedFunctions.contains(func);
+    boolean isUserDefinedAllowedUnsupportedFunction(String funcName) {
+      return additionalAllowedUnsupportedFunctions.contains(funcName);
     }
 
     public boolean randomlySampleFunctionReturnValues() {
@@ -297,6 +307,10 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> booleanVariables;
   private Map<Integer, String> valuesFromFile;
   @LazyInit private Random randomSampler = null;
+
+  // Functions that we know are safe to ignore
+  private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
+      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -860,17 +874,12 @@ public class ValueAnalysisTransferRelation
 
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
-        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          if (!options.isAllowedUnsupportedOption(func)) {
-            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
-          }
-
-        } else if (func.equals("free")) {
+        if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (!options.isAllowedUnsupportedOption(func)) {
+            if (isUnsupportedFunction(func)) {
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
@@ -878,7 +887,16 @@ public class ValueAnalysisTransferRelation
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
+        } else if (BuiltinIoFunctions.matchesFscanf(func)) {
+          return handleFunctionAssignment(
+              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge));
+        } else {
+
+          handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
         }
+      } else {
+
+        handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
       }
     }
 
@@ -898,6 +916,15 @@ public class ValueAnalysisTransferRelation
     }
 
     return state;
+  }
+
+  /**
+   * Returns true for all functions (i.e. function names) not known to the analysis and are
+   * unsupported. Else false.
+   */
+  private boolean isUnsupportedFunction(String nameOfFunction) {
+    return !(IGNORED_UNSUPPORTED_FUNCTIONS.contains(nameOfFunction)
+        || options.isUserDefinedAllowedUnsupportedFunction(nameOfFunction));
   }
 
   private ValueAnalysisState handleFunctionAssignment(
@@ -1800,5 +1827,53 @@ public class ValueAnalysisTransferRelation
 
   private ExpressionValueVisitor getVisitor() {
     return getVisitor(state, functionName);
+  }
+
+  /**
+   * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
+   * either trigger a warning or a {@link UnsupportedCodeException} depending on option
+   * 'ignoreCallsToUnknownFunctions'.
+   */
+  private void handleUnknownOrUnhandledFunctionCalls(
+      AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
+      throws UnsupportedCodeException {
+    // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
+    String calledFunctionName;
+    CFunctionCallExpression funcCallExpr = functionCall.getFunctionCallExpression();
+    if (funcCallExpr.getDeclaration() != null) {
+      calledFunctionName = funcCallExpr.getDeclaration().getName();
+    } else if (funcCallExpr.getFunctionNameExpression() instanceof CIdExpression funNameIdExpr) {
+      calledFunctionName = funNameIdExpr.getName();
+    } else {
+      // Ignore function calls from pointers for now, as its hard to get the correct function name
+      // TODO: add them as well
+      return;
+    }
+
+    if (isUnsupportedFunction(calledFunctionName)) {
+      if (options.ignoreCallsToUnknownFunctions) {
+        String additionalMsg = "";
+        if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
+            .anyMatch(
+                p ->
+                    p.getExpressionType().getCanonicalType() instanceof CPointerType
+                        || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
+          // It is UNSOUND to ignore these (in case of side effects)!!!!
+          // It might be that the variable of the side effect is already overapproximated though.
+          additionalMsg =
+              " Side-effects of the function call are ignored! The analysis may no longer be"
+                  + " sound!";
+        }
+        logger.logOnce(
+            Level.WARNING,
+            "Return value for unknown and unhandled function call "
+                + functionCall
+                + " is overapproximated."
+                + additionalMsg);
+      } else {
+        throw new UnsupportedCodeException(
+            "Unhandled call to function " + functionCall, cfaEdge, fn);
+      }
+    }
   }
 }

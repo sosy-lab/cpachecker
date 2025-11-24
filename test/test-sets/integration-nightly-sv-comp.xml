@@ -36,7 +36,7 @@ SPDX-License-Identifier: Apache-2.0
     CPAchecker can compress and handle compressed witnesses automatically.
     Please disable compression for real SVComp benchmarks!
   -->
-  <resultfiles>**.graphml*</resultfiles>
+  <resultfiles>**/witness*.*</resultfiles>
   <option name="--option">cpa.arg.compressWitness=true</option>
   <option name="--option">counterexample.export.compressWitness=true</option>
 

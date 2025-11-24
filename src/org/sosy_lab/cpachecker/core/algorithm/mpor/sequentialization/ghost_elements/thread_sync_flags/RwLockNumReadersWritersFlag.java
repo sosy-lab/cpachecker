@@ -14,35 +14,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class RwLockNumReadersWritersFlag {
+public record RwLockNumReadersWritersFlag(
+    CIdExpression readersIdExpression,
+    CIdExpression writersIdExpression,
+    CBinaryExpression readersEqualsZero,
+    CBinaryExpression writerEqualsZero,
+    CExpressionAssignmentStatement readersIncrement,
+    CExpressionAssignmentStatement readersDecrement) {
 
-  public final CIdExpression readersIdExpression;
-
-  public final CIdExpression writersIdExpression;
-
-  public final CBinaryExpression readersEqualsZero;
-
-  public final CBinaryExpression writerEqualsZero;
-
-  public final CExpressionAssignmentStatement readersIncrement;
-
-  public final CExpressionAssignmentStatement readersDecrement;
-
-  public RwLockNumReadersWritersFlag(
-      CIdExpression pReadersIdExpression,
-      CIdExpression pWritersIdExpression,
-      CBinaryExpression pReadersEqualsZero,
-      CBinaryExpression pWritersEqualsZero,
-      CExpressionAssignmentStatement pReadersIncrement,
-      CExpressionAssignmentStatement pReadersDecrement) {
-
-    checkNotNull(pReadersIdExpression);
-    checkNotNull(pWritersIdExpression);
-    readersIdExpression = pReadersIdExpression;
-    writersIdExpression = pWritersIdExpression;
-    readersEqualsZero = pReadersEqualsZero;
-    writerEqualsZero = pWritersEqualsZero;
-    readersIncrement = pReadersIncrement;
-    readersDecrement = pReadersDecrement;
+  public RwLockNumReadersWritersFlag {
+    checkNotNull(readersIdExpression);
+    checkNotNull(writersIdExpression);
   }
 }

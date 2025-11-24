@@ -25,6 +25,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -62,7 +63,7 @@ public class ModificationsRcdCPA implements ConfigurableProgramAnalysis {
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfaForComparison;
+  private final ImmutableCFA cfaForComparison;
   private final TransferRelation transfer;
   private final DelegateAbstractDomain<ModificationsRcdState> domain;
 
@@ -83,7 +84,7 @@ public class ModificationsRcdCPA implements ConfigurableProgramAnalysis {
     shutdownNotifier = pShutdownNotifier;
 
     // create CFA here to avoid handling of checked exceptions in #getInitialState
-    CFACreator cfaCreator = CFACreator.construct(config, logger, shutdownNotifier);
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     try {
       cfaForComparison =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));

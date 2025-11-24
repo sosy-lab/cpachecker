@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -157,16 +158,18 @@ public class MemoryModelTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
+  public MemoryModelTest() throws InvalidConfigurationException {}
+
   @Test
-  public void test_memory_location_equals() {
+  public void test_memory_location_equals() throws InvalidConfigurationException {
     // create new MemoryLocation with the same parameters
     SeqMemoryLocation int_pointer_a_memory_location_alt =
         SeqMemoryLocation.of(
             MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isTrue();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION).isEqualTo(int_pointer_a_memory_location_alt);
     // test that .equals returns false
-    assertThat(GLOBAL_X_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isFalse();
+    assertThat(GLOBAL_X_MEMORY_LOCATION).isNotEqualTo(int_pointer_a_memory_location_alt);
   }
 
   @Test
@@ -186,8 +189,8 @@ public class MemoryModelTest {
             ImmutableMap.of());
 
     // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test
@@ -208,9 +211,9 @@ public class MemoryModelTest {
             ImmutableMap.of());
 
     // mem location of 'global_X' and 'global_Y' should be associated with deref of 'global_ptr_A'
-    assertThat(memoryLocations.size() == 2).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_Y_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(2);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
+    assertThat(memoryLocations).contains(GLOBAL_Y_MEMORY_LOCATION);
   }
 
   @Test
@@ -233,8 +236,8 @@ public class MemoryModelTest {
 
     // memory location of 'global_X' should be associated with dereference of 'global_ptr_B'
     // even without direct assignment, due to transitive assignment of 'global_ptr_B = global_ptr_A'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations).hasSize(1);
+    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
   }
 
   @Test

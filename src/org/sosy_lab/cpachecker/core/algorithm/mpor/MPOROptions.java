@@ -8,449 +8,377 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import com.google.common.collect.ImmutableSet;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.ClangFormatStyle;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
+import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/**
- * For better overview so that {@link Option}s do not have to be accessed through {@link
- * MPORAlgorithm}.
- */
+/** Contains all {@link Option} fields used to adjust {@link MPORAlgorithm}. */
+@Options(prefix = "analysis.algorithm.MPOR")
 public class MPOROptions {
 
-  public final boolean allowPointerWrites;
+  // using Optional for @Option is not allowed, so we use 'NONE' for enums that can be disabled.
 
-  public final boolean atomicBlockMerge;
+  @Option(secure = true, description = "allow input programs that write pointer variables?")
+  private boolean allowPointerWrites = true;
 
-  public final BitVectorEncoding bitVectorEncoding;
+  @Option(
+      secure = true,
+      description =
+          "merge statements between __VERIFIER_atomic_begin() and __VERIFIER_atomic_end() via goto?"
+              + " setting this to false does not model the input programs behavior correctly.")
+  private boolean atomicBlockMerge = true;
 
-  public final ClangFormatStyle clangFormatStyle;
+  @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
+  private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
 
-  public final boolean comments;
+  @Option(
+      secure = false,
+      description =
+          "the style preset used by clang-format to format the output program. use NONE to disable"
+              + " formatting.")
+  private ClangFormatStyle clangFormatStyle = ClangFormatStyle.WEBKIT;
 
-  public final boolean consecutiveLabels;
+  @Option(
+      secure = true,
+      description = "include comments with trivia explaining the sequentialization?")
+  private boolean comments = false;
 
-  public final MultiControlStatementEncoding controlEncodingStatement;
+  @Option(
+      secure = true,
+      description =
+          "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the number of"
+              + " statements. disabling may result in the first statement being unreachable, but"
+              + " can be useful for debugging.")
+  private boolean consecutiveLabels = true;
 
-  public final MultiControlStatementEncoding controlEncodingThread;
+  @Option(
+      secure = true,
+      description =
+          "defines the syntax in which the next statement of a thread simulation is chosen.")
+  private MultiControlStatementEncoding controlEncodingStatement =
+      MultiControlStatementEncoding.SWITCH_CASE;
 
-  public final boolean inputFunctionDeclarations;
+  @Option(
+      secure = true,
+      description = "defines the syntax in which the next thread executing a statement is chosen.")
+  private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
 
-  public final boolean inputTypeDeclarations;
+  @Option(
+      secure = true,
+      description =
+          "include original function declarations from input file? including them may result in"
+              + " unsound analysis (e.g. false alarms for CBMC + ignored function calls through"
+              + " function pointers for CPAchecker)")
+  private boolean inputFunctionDeclarations = false;
 
-  public final boolean license;
+  @Option(
+      secure = true,
+      description =
+          "include original type declarations from input file? disabling may result in parse errors"
+              + " for the output program.")
+  private boolean inputTypeDeclarations = true;
 
-  public final boolean linkReduction;
+  @Option(
+      secure = true,
+      description = "link commuting statements via goto to reduce the state space?")
+  private boolean linkReduction = true;
 
-  public final int loopIterations;
+  @Option(
+      secure = true,
+      description =
+          "the number of loop iterations to perform thread simulations. use 0 for an infinite loop"
+              + " (while (1)). any number other than 0 is unsound, because the entire state space"
+              + " is not searched.")
+  private int loopIterations = 0;
 
-  public final boolean loopUnrolling;
+  @Option(
+      secure = true,
+      description =
+          "unroll the loop used for thread simulation? not unrolling loops can be unsound, e.g. for"
+              + " CBMC. only use with loopIterations > 0.")
+  private boolean loopUnrolling = false;
 
-  public final boolean noBackwardGoto;
+  @Option(
+      secure = true,
+      description =
+          "removes backward goto, i.e. jumping to a line higher up in the program, by reordering"
+              + " statements. only works for if-else constructs, not loops. use noBackwardLoopGoto"
+              + " to ensure that backward loop goto are removed.")
+  private boolean noBackwardGoto = true;
 
-  public final boolean noBackwardLoopGoto;
+  @Option(
+      secure = true,
+      description =
+          "removes backward goto from loops. this option is independent from noBackwardGoto.")
+  private boolean noBackwardLoopGoto = true;
 
-  public final boolean nondeterminismSigned;
+  @Option(
+      secure = true,
+      description =
+          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?")
+  private boolean nondeterminismSigned = false;
 
-  public final NondeterminismSource nondeterminismSource;
+  @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
+  private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
 
-  public final boolean outputMetadata;
+  @Option(
+      secure = true,
+      description =
+          "create additional output file with metadata such as input file(s) and algorithm"
+              + " options?")
+  private boolean outputMetadata = true;
 
-  public final String outputPath;
+  @Option(
+      secure = true,
+      description =
+          "the file name for the sequentialization and metadata. uses the first input file name as"
+              + " the default prefix.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
 
-  public final boolean outputProgram;
+  @Option(secure = true, description = "export the sequentialized program in a .i file?")
+  private boolean outputProgram = true;
 
-  public final boolean overwriteFiles;
+  @Option(
+      secure = true,
+      description =
+          "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
+              + " if it is known that the left hand side in an & expression is 0, then the entire"
+              + " evaluation can be pruned.")
+  private boolean pruneBitVectorEvaluations = false;
 
-  public final boolean pruneBitVectorEvaluations;
+  @Option(
+      secure = true,
+      description = "prune empty statements (with only pc writes) from the sequentialization?")
+  private boolean pruneEmptyStatements = true;
 
-  public final boolean pruneEmptyStatements;
+  @Option(
+      secure = true,
+      description =
+          "only bit vectors for memory locations that are reachable for a thread are included,"
+              + " reducing the amount of variables, evaluations, and writes in the output program.")
+  private boolean pruneSparseBitVectors = false;
 
-  public final boolean pruneSparseBitVectors;
+  @Option(
+      secure = true,
+      description =
+          "bit vectors are only written to 0 if the corresponding memory location is not reachable"
+              + " anymore, removing all unnecessary writes to 1 in the output program.")
+  private boolean pruneSparseBitVectorWrites = false;
 
-  public final boolean pruneSparseBitVectorWrites;
+  @Option(
+      secure = true,
+      description =
+          "ignore that the current thread should not execute if it is not in conflict with any"
+              + " other thread? only works when nondeterminismSource contains NUM_STATEMENTS.")
+  private boolean reduceIgnoreSleep = false;
 
-  public final boolean reduceIgnoreSleep;
+  @Option(
+      secure = true,
+      description = "enforce an execution order when the current and previous thread commute?")
+  private boolean reduceLastThreadOrder = false;
 
-  public final boolean reduceLastThreadOrder;
+  @Option(
+      secure = true,
+      description =
+          "continue executing the current thread until it is in conflict with at least another"
+              + " thread?")
+  private boolean reduceUntilConflict = false;
 
-  public final boolean reduceUntilConflict;
+  @Option(
+      secure = true,
+      description =
+          "how to determine if two threads commute from a location. READ_AND_WRITE reduces the"
+              + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
+              + " number of variables, assignments, and expression evaluations)")
+  private ReductionMode reductionMode = ReductionMode.NONE;
 
-  public final ReductionMode reductionMode;
+  @Option(
+      secure = true,
+      description =
+          "if both reduceLastThreadOrder and reduceUntilConflict are enabled, define the order"
+              + " in which their statements are placed in the output program.")
+  private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
-  public final ReductionOrder reductionOrder;
+  @Option(
+      secure = true,
+      description =
+          "use separate int values (scalars) for tracking thread pcs instead of int arrays?")
+  private boolean scalarPc = true;
 
-  public final boolean scalarPc;
+  @Option(secure = true, description = "use shortened variable names, e.g. THREAD0 -> T0")
+  private boolean shortVariableNames = true;
 
-  public final boolean shortVariableNames;
+  @Option(
+      secure = true,
+      description =
+          "check if all goto statements jump forward, i.e. to a higher line of code in the"
+              + " program?")
+  private boolean validateNoBackwardGoto = true;
 
-  public final boolean validateNoBackwardGoto;
+  @Option(
+      secure = true,
+      description =
+          "check if CPAchecker can parse sequentialization? note that it may take several seconds"
+              + " to parse a program")
+  private boolean validateParse = true;
 
-  public final boolean validateParse;
+  @Option(
+      secure = true,
+      description =
+          "check if all label pc (except initial) are target pc and all target pc (except "
+              + " termination) are label pc within a thread simulation?")
+  private boolean validatePc = true;
 
-  public final boolean validatePc;
-
-  public MPOROptions(
-      boolean pAllowPointerWrites,
-      boolean pAtomicBlockMerge,
-      BitVectorEncoding pBitVectorEncoding,
-      ClangFormatStyle pClangFormatStyle,
-      boolean pComments,
-      boolean pConsecutiveLabels,
-      MultiControlStatementEncoding pControlEncodingStatement,
-      MultiControlStatementEncoding pControlEncodingThread,
-      boolean pInputFunctionDeclarations,
-      boolean pInputTypeDeclarations,
-      boolean pLicense,
-      boolean pLinkReduction,
-      int pLoopIterations,
-      boolean pLoopUnrolling,
-      boolean pNoBackwardGoto,
-      boolean pNoBackwardLoopGoto,
-      boolean pNondeterminismSigned,
-      NondeterminismSource pNondeterminismSource,
-      boolean pOutputMetadata,
-      String pOutputPath,
-      boolean pOutputProgram,
-      boolean pOverwriteFiles,
-      boolean pPruneBitVectorEvaluations,
-      boolean pPruneEmptyStatements,
-      boolean pPruneSparseBitVectors,
-      boolean pPruneSparseBitVectorWrites,
-      boolean pReduceIgnoreSleep,
-      boolean pReduceLastThreadOrder,
-      boolean pReduceUntilConflict,
-      ReductionMode pReductionMode,
-      ReductionOrder pReductionOrder,
-      boolean pScalarPc,
-      boolean pShortVariableNames,
-      boolean pValidateNoBackwardGoto,
-      boolean pValidateParse,
-      boolean pValidatePc) {
-
-    checkCorrectParameterCount();
-    checkEqualFieldNames();
-
-    allowPointerWrites = pAllowPointerWrites;
-    atomicBlockMerge = pAtomicBlockMerge;
-    bitVectorEncoding = pBitVectorEncoding;
-    clangFormatStyle = pClangFormatStyle;
-    comments = pComments;
-    consecutiveLabels = pConsecutiveLabels;
-    controlEncodingStatement = pControlEncodingStatement;
-    controlEncodingThread = pControlEncodingThread;
-    inputFunctionDeclarations = pInputFunctionDeclarations;
-    inputTypeDeclarations = pInputTypeDeclarations;
-    license = pLicense;
-    linkReduction = pLinkReduction;
-    loopIterations = pLoopIterations;
-    loopUnrolling = pLoopUnrolling;
-    noBackwardGoto = pNoBackwardGoto;
-    noBackwardLoopGoto = pNoBackwardLoopGoto;
-    nondeterminismSigned = pNondeterminismSigned;
-    nondeterminismSource = pNondeterminismSource;
-    outputMetadata = pOutputMetadata;
-    outputPath = pOutputPath;
-    outputProgram = pOutputProgram;
-    overwriteFiles = pOverwriteFiles;
-    pruneBitVectorEvaluations = pPruneBitVectorEvaluations;
-    pruneEmptyStatements = pPruneEmptyStatements;
-    pruneSparseBitVectors = pPruneSparseBitVectors;
-    pruneSparseBitVectorWrites = pPruneSparseBitVectorWrites;
-    reduceIgnoreSleep = pReduceIgnoreSleep;
-    reduceLastThreadOrder = pReduceLastThreadOrder;
-    reduceUntilConflict = pReduceUntilConflict;
-    reductionMode = pReductionMode;
-    reductionOrder = pReductionOrder;
-    scalarPc = pScalarPc;
-    shortVariableNames = pShortVariableNames;
-    validateNoBackwardGoto = pValidateNoBackwardGoto;
-    validateParse = pValidateParse;
-    validatePc = pValidatePc;
+  /**
+   * Returns an instance of {@link MPOROptions} with the {@link Option}s set based on {@code
+   * pConfig}.
+   */
+  public MPOROptions(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    handleOptionRejections();
   }
 
-  public static MPOROptions getDefaultTestInstance() {
-    // we don't want this to be a constant field so that we can compare all fields with @Options
-    return new MPOROptions(
-        true,
-        true,
-        BitVectorEncoding.NONE,
-        ClangFormatStyle.WEBKIT,
-        false,
-        true,
-        MultiControlStatementEncoding.SWITCH_CASE,
-        MultiControlStatementEncoding.NONE,
-        false,
-        true,
-        false,
-        // linkReduction = true so that MemoryModel is created
-        true,
-        0,
-        false,
-        true,
-        true,
-        false,
-        NondeterminismSource.NUM_STATEMENTS,
-        true,
-        MPORWriter.DEFAULT_OUTPUT_PATH,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        ReductionMode.NONE,
-        ReductionOrder.NONE,
-        true,
-        true,
-        true,
-        true,
-        true);
+  /** Returns an instance of {@link MPOROptions} with all standard {@link Option}s. */
+  public static MPOROptions getDefaultTestInstance() throws InvalidConfigurationException {
+    return new MPOROptions(TestDataTools.configurationForTest().build());
   }
 
-  /** Returns a test instance where only the program customization, not output, can be specified. */
-  public static MPOROptions testInstance(
-      boolean pAllowPointerWrites,
-      BitVectorEncoding pBitVectorEncoding,
-      boolean pComments,
-      MultiControlStatementEncoding pControlEncodingStatement,
-      MultiControlStatementEncoding pControlEncodingThread,
-      boolean pInputFunctionDeclarations,
-      boolean pLicense,
-      boolean pLinkReduction,
-      int pLoopIterations,
-      boolean pLoopUnrolling,
-      boolean pNoBackwardGoto,
-      boolean pNoBackwardLoopGoto,
-      boolean pNondeterminismSigned,
-      NondeterminismSource pNondeterminismSource,
-      boolean pPruneBitVectorEvaluations,
-      boolean pPruneSparseBitVectors,
-      boolean pPruneSparseBitVectorWrites,
-      boolean pReduceIgnoreSleep,
-      boolean pReduceLastThreadOrder,
-      boolean pReduceUntilConflict,
-      ReductionMode pReductionMode,
-      ReductionOrder pReductionOrder,
-      boolean pScalarPc,
-      boolean pShortVariableNames,
-      boolean pValidateNoBackwardGoto) {
+  // Rejection =====================================================================================
 
-    return new MPOROptions(
-        pAllowPointerWrites,
-        // always merge atomic blocks because not doing so may add additional interleavings
-        true,
-        pBitVectorEncoding,
-        // never format output code so that unit test is independent of clang-format
-        ClangFormatStyle.NONE,
-        pComments,
-        // always use consecutive labels, disabling is only for debugging, not for release
-        true,
-        pControlEncodingStatement,
-        pControlEncodingThread,
-        pInputFunctionDeclarations,
-        // always include type declarations at the moment, excluding them is unsafe
-        true,
-        pLicense,
-        pLinkReduction,
-        pLoopIterations,
-        pLoopUnrolling,
-        pNoBackwardGoto,
-        pNoBackwardLoopGoto,
-        pNondeterminismSigned,
-        pNondeterminismSource,
-        // never output for unit tests
-        false,
-        MPORWriter.DEFAULT_OUTPUT_PATH,
-        false,
-        false,
-        pPruneBitVectorEvaluations,
-        // always prune empty, disabling is only for debugging, not for release
-        true,
-        pPruneSparseBitVectors,
-        pPruneSparseBitVectorWrites,
-        pReduceIgnoreSleep,
-        pReduceLastThreadOrder,
-        pReduceUntilConflict,
-        pReductionMode,
-        pReductionOrder,
-        pScalarPc,
-        pShortVariableNames,
-        pValidateNoBackwardGoto,
-        // no parse validation is done separately in unit tests
-        false,
-        true);
-  }
-
-  private void checkCorrectParameterCount() {
-    // extract amount of MPOROptions constructor parameters
-    Constructor<?>[] constructors = MPOROptions.class.getDeclaredConstructors();
-    checkArgument(constructors.length == 1, "MPOROptions can have one constructor only");
-    int parameterCount = constructors[0].getParameterCount();
-    // extract amount of fields marked as @Option in MPORAlgorithm
-    int optionCount =
-        (int)
-            Arrays.stream(MPORAlgorithm.class.getDeclaredFields())
-                .filter(pField -> pField.isAnnotationPresent(Option.class))
-                .count();
-    checkArgument(
-        parameterCount == optionCount,
-        "the amount of constructor parameters must match the amount of @Option fields in"
-            + " MPORAlgorithm");
-  }
-
-  private void checkEqualFieldNames() {
-    // extract string of all fields in MPOROptions
-    ImmutableSet<String> optionsFieldNames =
-        Arrays.stream(MPOROptions.class.getDeclaredFields())
-            .map(Field::getName)
-            .collect(ImmutableSet.toImmutableSet());
-    // check if fields from MPORAlgorithm with @Option have a field with same name in this class
-    for (Field algorithmField : MPORAlgorithm.class.getDeclaredFields()) {
-      if (algorithmField.isAnnotationPresent(Option.class)) {
-        if (!optionsFieldNames.contains(algorithmField.getName())) {
-          throw new IllegalArgumentException(
-              String.format(
-                  "MPOROptions fields does not contain field from MPORAlgorithm annotated as"
-                      + " @Option: %s",
-                  algorithmField.getName()));
-        }
-      }
-    }
-  }
-
-  void handleOptionRejections(LogManager pLogger) {
+  /**
+   * Rejects specific option values or combinations of option values that are not allowed. Throws an
+   * {@link AssertionError} if a rejection occurs.
+   */
+  private void handleOptionRejections() throws InvalidConfigurationException {
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
-      handleOptionRejection(
-          pLogger, "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE);
+      throw new InvalidConfigurationException(
+          String.format(
+              "controlEncodingStatement cannot be %s", MultiControlStatementEncoding.NONE));
+    }
+    if (nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!controlEncodingThread.isEnabled()) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "controlEncodingThread cannot be %s when nondeterminismSource contains NEXT_THREAD",
+                MultiControlStatementEncoding.NONE));
+      }
     }
     if (!linkReduction) {
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "bitVectorEncoding cannot be set when linkReduction is disabled.");
+        throw new InvalidConfigurationException(
+            "bitVectorEncoding cannot be set when linkReduction is disabled.");
       }
       if (reduceLastThreadOrder) {
-        handleOptionRejection(
-            pLogger, "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
+        throw new InvalidConfigurationException(
+            "reduceLastThreadOrder cannot be enabled when linkReduction is disabled");
       }
       if (reduceUntilConflict) {
-        handleOptionRejection(
-            pLogger, "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
+        throw new InvalidConfigurationException(
+            "reduceUntilConflict cannot be enabled when linkReduction is disabled.");
       }
     }
     if (loopIterations < 0) {
-      handleOptionRejection(
-          pLogger, "loopIterations must be 0 or greater, cannot be %s", loopIterations);
+      throw new InvalidConfigurationException(
+          String.format("loopIterations must be 0 or greater, cannot be %s", loopIterations));
     }
     if (loopIterations == 0) {
       if (loopUnrolling) {
-        handleOptionRejection(pLogger, "loopUnrolling can only be enabled when loopIterations > 0");
+        throw new InvalidConfigurationException(
+            "loopUnrolling can only be enabled when loopIterations > 0");
       }
     }
     if (reduceLastThreadOrder && reduceUntilConflict) {
       if (!reductionOrder.isEnabled()) {
-        handleOptionRejection(
-            pLogger,
+        throw new InvalidConfigurationException(
             "both reduceLastThreadOrder and reduceUntilConflict are enabled, but no reductionOrder"
                 + " is specified.");
       }
     }
     if (!noBackwardGoto) {
       if (validateNoBackwardGoto) {
-        handleOptionRejection(
-            pLogger, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
+        throw new InvalidConfigurationException(
+            "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
       }
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (controlEncodingThread.isEnabled()) {
-        handleOptionRejection(
-            pLogger,
+        throw new InvalidConfigurationException(
             "controlEncodingThread is set, but nondeterminismSource does not contain NEXT_THREAD.");
       }
     }
     if (!nondeterminismSource.isNumStatementsNondeterministic()) {
       if (reduceIgnoreSleep) {
-        handleOptionRejection(
-            pLogger,
+        throw new InvalidConfigurationException(
             "reduceIgnoreSleep cannot be enabled when nondeterminismSource does not contain"
                 + " NUM_STATEMENTS");
       }
     }
     if (pruneBitVectorEvaluations) {
-      if (!isAnyReductionEnabled()) {
-        handleOptionRejection(
-            pLogger, "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
+      if (!isAnyBitVectorReductionEnabled()) {
+        throw new InvalidConfigurationException(
+            "pruneBitVectorEvaluations is enabled, but no reduce* option is enabled.");
       }
       if (!bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
+        throw new InvalidConfigurationException(
+            "pruneBitVectorEvaluations is enabled, but no bitVectorEncoding is set.");
       }
     }
     if (pruneSparseBitVectors) {
       if (!bitVectorEncoding.isSparse) {
-        handleOptionRejection(
-            pLogger, "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
+        throw new InvalidConfigurationException(
+            "pruneSparseBitVectors is enabled, but bitVectorEncoding is not sparse.");
       }
       if (reduceIgnoreSleep) {
-        handleOptionRejection(
-            pLogger, "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
+        throw new InvalidConfigurationException(
+            "pruneSparseBitVectors cannot be enabled when reduceIgnoreSleep is enabled.");
       }
       if (reduceLastThreadOrder) {
-        handleOptionRejection(
-            pLogger,
+        throw new InvalidConfigurationException(
             "pruneSparseBitVectors cannot be enabled when reduceLastThreadOrder is enabled.");
       }
     }
     if (pruneSparseBitVectorWrites) {
       if (!bitVectorEncoding.isSparse) {
-        handleOptionRejection(
-            pLogger, "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
+        throw new InvalidConfigurationException(
+            "pruneSparseBitVectorWrites is enabled, but bitVectorEncoding is not SPARSE.");
       }
     }
-    if (isAnyReductionEnabled()) {
+    if (isAnyBitVectorReductionEnabled()) {
       if (!reductionMode.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "a reduce* option is enabled, but reductionMode is not set.");
+        throw new InvalidConfigurationException(
+            "a reduce* option is enabled, but reductionMode is not set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "a reduce* option is enabled, but bitVectorEncoding is not set.");
+        throw new InvalidConfigurationException(
+            "a reduce* option is enabled, but bitVectorEncoding is not set.");
       }
     } else {
       if (reductionMode.isEnabled()) {
-        handleOptionRejection(pLogger, "reductionMode is set, but no reduce* option is enabled");
+        throw new InvalidConfigurationException(
+            "reductionMode is set, but no reduce* option is enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
-        handleOptionRejection(
-            pLogger, "bitVectorEncoding is set, but no reduce* option is enabled");
+        throw new InvalidConfigurationException(
+            "bitVectorEncoding is set, but no reduce* option is enabled");
       }
     }
-  }
-
-  private void handleOptionRejection(LogManager pLogger, Object... pMessage) {
-    pLogger.log(Level.SEVERE, pMessage);
-    throw new AssertionError(Arrays.toString(pMessage));
   }
 
   // boolean helpers ===============================================================================
 
-  public boolean isAnyReductionEnabled() {
+  public boolean isAnyBitVectorReductionEnabled() {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 
@@ -470,5 +398,143 @@ public class MPOROptions {
       }
     }
     return false;
+  }
+
+  // public getters ================================================================================
+
+  public boolean allowPointerWrites() {
+    return allowPointerWrites;
+  }
+
+  public boolean atomicBlockMerge() {
+    return atomicBlockMerge;
+  }
+
+  public BitVectorEncoding bitVectorEncoding() {
+    return bitVectorEncoding;
+  }
+
+  public ClangFormatStyle clangFormatStyle() {
+    return clangFormatStyle;
+  }
+
+  public boolean comments() {
+    return comments;
+  }
+
+  public boolean consecutiveLabels() {
+    return consecutiveLabels;
+  }
+
+  public MultiControlStatementEncoding controlEncodingStatement() {
+    return controlEncodingStatement;
+  }
+
+  public MultiControlStatementEncoding controlEncodingThread() {
+    return controlEncodingThread;
+  }
+
+  public boolean inputFunctionDeclarations() {
+    return inputFunctionDeclarations;
+  }
+
+  public boolean inputTypeDeclarations() {
+    return inputTypeDeclarations;
+  }
+
+  public boolean linkReduction() {
+    return linkReduction;
+  }
+
+  public int loopIterations() {
+    return loopIterations;
+  }
+
+  public boolean loopUnrolling() {
+    return loopUnrolling;
+  }
+
+  public boolean noBackwardGoto() {
+    return noBackwardGoto;
+  }
+
+  public boolean noBackwardLoopGoto() {
+    return noBackwardLoopGoto;
+  }
+
+  public boolean nondeterminismSigned() {
+    return nondeterminismSigned;
+  }
+
+  public NondeterminismSource nondeterminismSource() {
+    return nondeterminismSource;
+  }
+
+  public boolean outputMetadata() {
+    return outputMetadata;
+  }
+
+  public PathTemplate outputPath() {
+    return outputPath;
+  }
+
+  public boolean outputProgram() {
+    return outputProgram;
+  }
+
+  public boolean pruneBitVectorEvaluations() {
+    return pruneBitVectorEvaluations;
+  }
+
+  public boolean pruneEmptyStatements() {
+    return pruneEmptyStatements;
+  }
+
+  public boolean pruneSparseBitVectors() {
+    return pruneSparseBitVectors;
+  }
+
+  public boolean pruneSparseBitVectorWrites() {
+    return pruneSparseBitVectorWrites;
+  }
+
+  public boolean reduceIgnoreSleep() {
+    return reduceIgnoreSleep;
+  }
+
+  public boolean reduceLastThreadOrder() {
+    return reduceLastThreadOrder;
+  }
+
+  public boolean reduceUntilConflict() {
+    return reduceUntilConflict;
+  }
+
+  public ReductionMode reductionMode() {
+    return reductionMode;
+  }
+
+  public ReductionOrder reductionOrder() {
+    return reductionOrder;
+  }
+
+  public boolean scalarPc() {
+    return scalarPc;
+  }
+
+  public boolean shortVariableNames() {
+    return shortVariableNames;
+  }
+
+  public boolean validateNoBackwardGoto() {
+    return validateNoBackwardGoto;
+  }
+
+  public boolean validateParse() {
+    return validateParse;
+  }
+
+  public boolean validatePc() {
+    return validatePc;
   }
 }

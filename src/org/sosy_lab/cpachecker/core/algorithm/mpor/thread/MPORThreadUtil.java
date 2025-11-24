@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -23,8 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORThreadUtil {
 
@@ -35,7 +36,7 @@ public class MPORThreadUtil {
   public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
       Optional<CFAEdgeForThread> pCallContext, MPORThread pThread) {
 
-    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall;
+    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall();
   }
 
   public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
@@ -63,7 +64,7 @@ public class MPORThreadUtil {
    */
   public static ImmutableList<CDeclaration> extractNonVariableDeclarations(MPORThread pThread) {
     ImmutableList.Builder<CDeclaration> rNonVariableDeclarations = ImmutableList.builder();
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (!(declaration instanceof CVariableDeclaration)) {
@@ -80,17 +81,19 @@ public class MPORThreadUtil {
     return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
   }
 
-  public static MPORThread getThreadByCfaEdge(
-      ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
+  public static MPORThread getThreadByCFunctionCall(
+      ImmutableCollection<MPORThread> pThreads, CFunctionCall pFunctionCall)
+      throws UnsupportedCodeException {
 
     checkArgument(
-        PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
-        "pEdge must be call to a pthread method with a pthread_t param");
+        PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+            pFunctionCall, PthreadObjectType.PTHREAD_T),
+        "pFunctionCall must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);
+    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pFunctionCall);
+    int pthreadTIndex = functionType.getParameterIndex(PthreadObjectType.PTHREAD_T);
     CExpression pthreadTParameter =
-        CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
+        pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(pthreadTIndex);
 
     return getThreadByObject(
         pThreads,
@@ -105,24 +108,24 @@ public class MPORThreadUtil {
       ImmutableCollection<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
 
     for (MPORThread rThread : pThreads) {
-      if (rThread.threadObject.equals(pThreadObject)) {
+      if (rThread.threadObject().equals(pThreadObject)) {
         return rThread;
       }
     }
-    throw new IllegalArgumentException("no MPORThread with pThreadObject found in pThreads");
+    throw new IllegalArgumentException("no MPORThread with pThreadObject found in threads");
   }
 
   public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
     for (MPORThread thread : pThreads) {
-      if (thread.getId() == pId) {
+      if (thread.id() == pId) {
         return thread;
       }
     }
-    throw new IllegalArgumentException("no MPORThread with pId found in pThreads");
+    throw new IllegalArgumentException("no MPORThread with pId found in threads");
   }
 
   static int getHighestPc(ImmutableList<CFANodeForThread> pThreadNodes) {
-    int highestPc = Sequentialization.EXIT_PC;
+    int highestPc = ProgramCounterVariables.EXIT_PC;
     for (CFANodeForThread threadNode : pThreadNodes) {
       if (threadNode.pc > highestPc) {
         highestPc = threadNode.pc;

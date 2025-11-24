@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -634,11 +633,6 @@ public final class AutomatonGraphmlCommon {
   public static boolean isFunctionStartDummyEdge(CFAEdge pEdge) {
     return pEdge instanceof BlankEdge edge
         && edge.getDescription().equals("Function start dummy edge");
-  }
-
-  public static String getSpecificationAutomaton(Specification pSpecification) throws IOException {
-    return Files.readString(pSpecification.getFiles().iterator().next(), StandardCharsets.UTF_8)
-        .trim();
   }
 
   public static String getArchitecture(MachineModel pMachineModel) {

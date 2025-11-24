@@ -17,11 +17,13 @@ import com.google.common.collect.ImmutableTable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -31,112 +33,100 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public class MPORSubstitutionBuilder {
+public record MPORSubstitutionBuilder(
+    MPOROptions options,
+    ImmutableList<AVariableDeclaration> globalVariableDeclarations,
+    ImmutableList<MPORThread> threads,
+    SequentializationUtils utils) {
 
-  public static ImmutableList<MPORSubstitution> buildSubstitutions(
-      MPOROptions pOptions,
-      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      ImmutableList<MPORThread> pThreads,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
-
+  public ImmutableList<MPORSubstitution> buildSubstitutions() throws UnrecognizedCodeException {
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
-    MPORThread mainThread = MPORThreadUtil.extractMainThread(pThreads);
-    ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes =
-        buildGlobalVariableSubstitutes(
-            pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder, pLogger);
+    MPORThread mainThread = MPORThreadUtil.extractMainThread(threads);
+    ImmutableList<Entry<CVariableDeclaration, CIdExpression>> globalVariableSubstitutes =
+        buildGlobalVariableSubstitutes(mainThread);
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
-        getMainFunctionArgSubstitutes(pOptions, mainThread);
+        getMainFunctionArgSubstitutes(mainThread);
     // use same start_routine arg substitutes across threads, so that all threads can access them
     ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
-        startRoutineArgSubstitutes = buildStartRoutineArgSubstitutes(pOptions, pThreads);
+        startRoutineArgSubstitutes = buildStartRoutineArgSubstitutes();
 
     ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
 
     // step 2: for each thread, create substitution
-    for (MPORThread thread : pThreads) {
+    for (MPORThread thread : threads) {
       ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
-          parameterSubstitutes = buildParameterSubstitutes(pOptions, thread);
+          parameterSubstitutes = buildParameterSubstitutes(thread);
       ImmutableTable<
               Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           localVariableSubstitutes =
               buildVariableDeclarationSubstitutes(
-                  pOptions,
                   thread,
                   globalVariableSubstitutes,
                   parameterSubstitutes,
                   mainFunctionArgSubstitutes,
                   startRoutineArgSubstitutes,
-                  thread.getId(),
-                  thread.localVariables,
-                  pBinaryExpressionBuilder,
-                  pLogger);
+                  thread.id(),
+                  thread.localVariables());
       rSubstitutions.add(
           new MPORSubstitution(
               false,
-              pOptions,
+              options,
               thread,
               globalVariableSubstitutes,
               localVariableSubstitutes,
               parameterSubstitutes,
               mainFunctionArgSubstitutes,
               startRoutineArgSubstitutes,
-              pBinaryExpressionBuilder,
-              pLogger));
+              utils));
     }
     return rSubstitutions.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> buildGlobalVariableSubstitutes(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger) {
+  private ImmutableList<Entry<CVariableDeclaration, CIdExpression>> buildGlobalVariableSubstitutes(
+      MPORThread pThread) throws UnrecognizedCodeException {
 
     checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
-    ImmutableMap<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
-        initGlobalSubstitutes(pOptions, pGlobalVariableDeclarations);
+    ImmutableList<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
+        initGlobalSubstitutes();
 
     // create dummy substitution. we can use empty maps for local and parameter substitutions
     // because initializers of global variables are always global variables, if present
     MPORSubstitution dummySubstitution =
         new MPORSubstitution(
             true,
-            pOptions,
+            options,
             pThread,
             dummyGlobalSubstitutes,
             ImmutableTable.of(),
             ImmutableTable.of(),
             ImmutableMap.of(),
             ImmutableTable.of(),
-            pBinaryExpressionBuilder,
-            pLogger);
+            utils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
-    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
-        ImmutableMap.builder();
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> rFinalSubstitutes =
+        ImmutableList.builder();
 
-    for (var entry : dummyGlobalSubstitutes.entrySet()) {
+    for (Entry<CVariableDeclaration, CIdExpression> entry : dummyGlobalSubstitutes) {
       CVariableDeclaration variableDeclaration = entry.getKey();
       CIdExpression idExpression = entry.getValue();
-      assert idExpression.getDeclaration() instanceof CVariableDeclaration;
       CInitializer initializer = variableDeclaration.getInitializer();
       // TODO handle CInitializerList
       if (initializer instanceof CInitializerExpression initializerExpression) {
@@ -152,31 +142,30 @@ public class MPORSubstitutionBuilder {
                 substituteInitializerExpression);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newSubstituteDeclaration);
-        rFinalSubstitutes.put(variableDeclaration, newIdExpression);
+        rFinalSubstitutes.add(Map.entry(variableDeclaration, newIdExpression));
       } else {
-        rFinalSubstitutes.put(variableDeclaration, idExpression);
+        rFinalSubstitutes.add(Map.entry(variableDeclaration, idExpression));
       }
     }
-    return rFinalSubstitutes.buildOrThrow();
+    return rFinalSubstitutes.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> initGlobalSubstitutes(
-      MPOROptions pOptions, ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations) {
-
-    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
-        ImmutableMap.builder();
-    for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
+  private ImmutableList<Entry<CVariableDeclaration, CIdExpression>> initGlobalSubstitutes() {
+    ImmutableList.Builder<Entry<CVariableDeclaration, CIdExpression>> dummyGlobalSubstitutes =
+        ImmutableList.builder();
+    for (AVariableDeclaration aVariableDeclaration : globalVariableDeclarations) {
+      CVariableDeclaration variableDeclaration = (CVariableDeclaration) aVariableDeclaration;
       CStorageClass storageClass = variableDeclaration.getCStorageClass();
       // if type declarations are not included, the storage class cannot be extern
-      if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
-        String substituteName = SeqNameUtil.buildGlobalVariableName(pOptions, variableDeclaration);
+      if (options.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
+        String substituteName = SeqNameUtil.buildGlobalVariableName(options, variableDeclaration);
         CVariableDeclaration substitute =
             substituteVariableDeclaration(variableDeclaration, substituteName);
         CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
-        dummyGlobalSubstitutes.put(variableDeclaration, substituteExpression);
+        dummyGlobalSubstitutes.add(Map.entry(variableDeclaration, substituteExpression));
       }
     }
-    return dummyGlobalSubstitutes.buildOrThrow();
+    return dummyGlobalSubstitutes.build();
   }
 
   // Parameter =====================================================================================
@@ -185,15 +174,14 @@ public class MPORSubstitutionBuilder {
    * For each {@link CFunctionCallEdge} (i.e. calling context), we map the {@link
    * CParameterDeclaration} of the functions to the created parameter variables.
    */
-  private static ImmutableTable<
-          CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
-      buildParameterSubstitutes(MPOROptions pOptions, MPORThread pThread) {
+  private ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+      buildParameterSubstitutes(MPORThread pThread) {
 
     ImmutableTable.Builder<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
         rParameterSubstitutes = ImmutableTable.builder();
     Map<CFunctionDeclaration, Integer> callCounts = new HashMap<>();
 
-    for (CFAEdgeForThread threadEdge : pThread.cfa.threadEdges) {
+    for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
         CFunctionDeclaration functionDeclaration =
             functionCallEdge.getFunctionCallExpression().getDeclaration();
@@ -201,16 +189,14 @@ public class MPORSubstitutionBuilder {
         callCounts.merge(functionDeclaration, 1, Integer::sum);
         int callNumber = callCounts.get(functionDeclaration);
         rParameterSubstitutes.putAll(
-            buildParameterSubstitutes(pOptions, pThread, threadEdge, functionCallEdge, callNumber));
+            buildParameterSubstitutes(pThread, threadEdge, functionCallEdge, callNumber));
       }
     }
     return rParameterSubstitutes.buildOrThrow();
   }
 
-  private static ImmutableTable<
-          CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+  private ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
       buildParameterSubstitutes(
-          MPOROptions pOptions,
           MPORThread pThread,
           CFAEdgeForThread pCallContext,
           CFunctionCallEdge pFunctionCallEdge,
@@ -224,13 +210,12 @@ public class MPORSubstitutionBuilder {
           pCallContext,
           parameterDeclaration,
           getSubstituteParametersByDeclaration(
-              pOptions, pThread, pFunctionCallEdge, parameterDeclaration, pCallNumber));
+              pThread, pFunctionCallEdge, parameterDeclaration, pCallNumber));
     }
     return rSubstitutes.buildOrThrow();
   }
 
-  private static ImmutableList<CIdExpression> getSubstituteParametersByDeclaration(
-      MPOROptions pOptions,
+  private ImmutableList<CIdExpression> getSubstituteParametersByDeclaration(
       MPORThread pThread,
       CFunctionCallEdge pFunctionCallEdge,
       CParameterDeclaration pParameterDeclaration,
@@ -246,11 +231,11 @@ public class MPORSubstitutionBuilder {
       if (parameterDeclaration.equals(pParameterDeclaration)) {
         String substituteName =
             SeqNameUtil.buildSubstituteParameterDeclarationName(
-                pOptions,
-                functionDeclaration.getOrigName(),
-                pThread.getId(),
-                pCallNumber,
+                options,
                 parameterDeclaration,
+                pThread.id(),
+                functionDeclaration.getOrigName(),
+                pCallNumber,
                 i);
         CInitializerExpression initializerExpression =
             new CInitializerExpression(
@@ -267,12 +252,12 @@ public class MPORSubstitutionBuilder {
 
   // Main Function Args ============================================================================
 
-  private static ImmutableMap<CParameterDeclaration, CIdExpression> getMainFunctionArgSubstitutes(
-      MPOROptions pOptions, MPORThread pMainThread) {
+  private ImmutableMap<CParameterDeclaration, CIdExpression> getMainFunctionArgSubstitutes(
+      MPORThread pMainThread) {
 
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rArgs = ImmutableMap.builder();
-    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine.getParameters()) {
-      String varName = SeqNameUtil.buildMainFunctionArgName(pOptions, parameterDeclaration);
+    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine().getParameters()) {
+      String varName = SeqNameUtil.buildMainFunctionArgName(options, parameterDeclaration);
       // we use variable declarations for main function args in the sequentialization
       CVariableDeclaration variableDeclaration =
           substituteVariableDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
@@ -284,53 +269,66 @@ public class MPORSubstitutionBuilder {
 
   // Start Routine Args ============================================================================
 
-  // TODO improve overview
-  private static ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
-      buildStartRoutineArgSubstitutes(MPOROptions pOptions, ImmutableList<MPORThread> pAllThreads) {
+  private ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+      buildStartRoutineArgSubstitutes() throws UnsupportedCodeException {
 
     ImmutableTable.Builder<CFAEdgeForThread, CParameterDeclaration, CIdExpression> rArgSubstitutes =
         ImmutableTable.builder();
 
-    for (MPORThread thread : pAllThreads) {
-      for (CFAEdgeForThread threadEdge : thread.cfa.threadEdges) {
+    for (MPORThread thread : threads) {
+      for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-          // TODO if we support pthread return values, this may not hold
-          assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
-          CIdExpression pthreadT =
-              PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
-          MPORThread createdThread =
-              MPORThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-          // pthread_t matches
-          if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
-            CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(cfaEdge);
-            CFunctionDeclaration startRoutineDeclaration =
-                (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
-            // start_routine matches
-            if (startRoutineDeclaration.getType().equals(startRoutineType)) {
-              if (!startRoutineDeclaration.getParameters().isEmpty()) {
-                assert startRoutineDeclaration.getParameters().size() == 1
-                    : "start_routines can have either 0 or 1 arguments";
-                CParameterDeclaration parameterDeclaration =
-                    startRoutineDeclaration.getParameters().getFirst();
-                String substituteName =
-                    SeqNameUtil.buildStartRoutineArgName(
-                        pOptions,
-                        parameterDeclaration,
-                        createdThread.getId(),
-                        startRoutineDeclaration.getOrigName());
-                CVariableDeclaration substituteParameterDeclaration =
-                    substituteParameterDeclaration(parameterDeclaration, null, substituteName);
-                CIdExpression substitute =
-                    SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
-                rArgSubstitutes.put(threadEdge, parameterDeclaration, substitute);
-              }
-            }
+        Optional<CFunctionCall> optionalFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+        if (optionalFunctionCall.isPresent()) {
+          CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
+          if (PthreadUtil.isCallToPthreadFunction(
+              functionCall, PthreadFunctionType.PTHREAD_CREATE)) {
+            CIdExpression pthreadT =
+                PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
+            MPORThread createdThread =
+                MPORThreadUtil.getThreadByObject(threads, Optional.of(pthreadT));
+            tryBuildStartRoutineArgSubstitute(functionCall, pthreadT, createdThread)
+                .ifPresent(
+                    entry -> rArgSubstitutes.put(threadEdge, entry.getKey(), entry.getValue()));
           }
         }
       }
     }
     return rArgSubstitutes.buildOrThrow();
+  }
+
+  private Optional<Entry<CParameterDeclaration, CIdExpression>> tryBuildStartRoutineArgSubstitute(
+      CFunctionCall pFunctionCall, CIdExpression pPthreadT, MPORThread pCreatedThread) {
+
+    // pthread_t matches
+    if (pPthreadT.equals(pCreatedThread.threadObject().orElseThrow())) {
+      CFunctionDeclaration functionCallDeclaration =
+          PthreadUtil.extractStartRoutineDeclaration(pFunctionCall);
+      CFunctionDeclaration startRoutineDeclaration =
+          (CFunctionDeclaration) pCreatedThread.cfa().entryNode.getFunctionDefinition();
+      // start_routine matches
+      if (startRoutineDeclaration.equals(functionCallDeclaration)) {
+        if (!startRoutineDeclaration.getParameters().isEmpty()) {
+          assert startRoutineDeclaration.getParameters().size() == 1
+              : "start_routines can have either 0 or 1 arguments";
+          CParameterDeclaration parameterDeclaration =
+              startRoutineDeclaration.getParameters().getFirst();
+          String substituteName =
+              SeqNameUtil.buildStartRoutineArgName(
+                  options,
+                  parameterDeclaration,
+                  pCreatedThread.id(),
+                  startRoutineDeclaration.getOrigName());
+          CVariableDeclaration substituteParameterDeclaration =
+              substituteParameterDeclaration(parameterDeclaration, null, substituteName);
+          CIdExpression substitute =
+              SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
+          return Optional.of(Map.entry(parameterDeclaration, substitute));
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   // Variable Declarations =========================================================================
@@ -340,12 +338,11 @@ public class MPORSubstitutionBuilder {
    * Creates substitutes for all variables in the program and maps them to their original. The
    * substitutes differ only in their name.
    */
-  private static ImmutableTable<
+  private ImmutableTable<
           Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       buildVariableDeclarationSubstitutes(
-          MPOROptions pOptions,
           MPORThread pThread,
-          ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
+          ImmutableList<Entry<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
           ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
               pParameterSubstitutes,
           ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
@@ -353,29 +350,27 @@ public class MPORSubstitutionBuilder {
               pStartRoutineArgSubstitutes,
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
-              pLocalVariableDeclarations,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder,
-          LogManager pLogger) {
+              pLocalVariableDeclarations)
+          throws UnrecognizedCodeException {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableTable<
             Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
         dummySubstitutes =
-            buildLocalVariableDummySubstitutes(pOptions, pThreadId, pLocalVariableDeclarations);
+            buildLocalVariableDummySubstitutes(pThreadId, pLocalVariableDeclarations);
 
     // create dummy substitution
     MPORSubstitution dummySubstitution =
         new MPORSubstitution(
             true,
-            pOptions,
+            options,
             pThread,
             pGlobalSubstitutes,
             dummySubstitutes,
             pParameterSubstitutes,
             pMainFunctionArgSubstitutes,
             pStartRoutineArgSubstitutes,
-            pBinaryExpressionBuilder,
-            pLogger);
+            utils);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableTable.Builder<
@@ -410,10 +405,9 @@ public class MPORSubstitutionBuilder {
     return rFinalSubstitutes.build();
   }
 
-  private static ImmutableTable<
+  private ImmutableTable<
           Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       buildLocalVariableDummySubstitutes(
-          MPOROptions pOptions,
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
               pVariableDeclarations) {
@@ -430,11 +424,11 @@ public class MPORSubstitutionBuilder {
           CStorageClass storageClass = variableDeclaration.getCStorageClass();
 
           // if type declarations are not included, the storage class cannot be extern
-          if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+          if (options.inputTypeDeclarations() || !storageClass.equals(CStorageClass.EXTERN)) {
             Optional<String> functionName = getFunctionNameByCallContext(callContext);
             String substituteName =
                 SeqNameUtil.buildLocalVariableName(
-                    pOptions, variableDeclaration, pThreadId, call++, functionName);
+                    options, variableDeclaration, pThreadId, call++, functionName);
             CVariableDeclaration substituteDeclaration =
                 substituteVariableDeclaration(variableDeclaration, substituteName);
             CIdExpression substituteExpression =
@@ -452,9 +446,7 @@ public class MPORSubstitutionBuilder {
 
   // Helpers =======================================================================================
 
-  private static Optional<String> getFunctionNameByCallContext(
-      Optional<CFAEdgeForThread> pCallContext) {
-
+  private Optional<String> getFunctionNameByCallContext(Optional<CFAEdgeForThread> pCallContext) {
     if (pCallContext.isPresent()) {
       CFAEdge callContext = pCallContext.orElseThrow().cfaEdge;
 
@@ -464,9 +456,11 @@ public class MPORSubstitutionBuilder {
         return Optional.of(functionDeclaration.getOrigName());
 
       } else if (callContext instanceof CStatementEdge statementEdge) {
-        CFunctionDeclaration functionDeclaration =
-            CFAUtils.getFunctionDeclarationByStatementEdge(statementEdge);
-        return Optional.of(functionDeclaration.getOrigName());
+        if (statementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement) {
+          CFunctionDeclaration functionDeclaration =
+              functionCallStatement.getFunctionCallExpression().getDeclaration();
+          return Optional.of(functionDeclaration.getOrigName());
+        }
       }
       throw new IllegalArgumentException(
           "call context must be CFunctionCallEdge or CStatementEdge");
@@ -474,7 +468,7 @@ public class MPORSubstitutionBuilder {
     return Optional.empty();
   }
 
-  private static CInitializerExpression substituteInitializerExpression(
+  private CInitializerExpression substituteInitializerExpression(
       CInitializerExpression pOriginal, CExpression pExpression) {
 
     return new CInitializerExpression(pOriginal.getFileLocation(), pExpression);
@@ -485,7 +479,7 @@ public class MPORSubstitutionBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVariableDeclaration(
+  private CVariableDeclaration substituteVariableDeclaration(
       CVariableDeclaration pOriginal, String pName) {
 
     return new CVariableDeclaration(
@@ -504,7 +498,7 @@ public class MPORSubstitutionBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVariableDeclaration(
+  private CVariableDeclaration substituteVariableDeclaration(
       CVariableDeclaration pOriginal, CInitializerExpression pInitializerExpression) {
 
     return new CVariableDeclaration(

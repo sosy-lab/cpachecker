@@ -47,8 +47,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -138,7 +138,7 @@ public final class MainCPAStatistics implements Statistics {
   private long analysisCpuTime = 0;
 
   private @Nullable Statistics cfaCreatorStatistics;
-  private @Nullable CFA cfa;
+  private @Nullable ImmutableCFA cfa;
   private @Nullable ConfigurableProgramAnalysis cpa;
 
   public MainCPAStatistics(
@@ -396,8 +396,8 @@ public final class MainCPAStatistics implements Statistics {
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
     assert pReached != null : "ReachedSet may be null only if analysis not yet started";
 
-    for (Statistics statistic : subStats) {
-      StatisticsUtils.writeOutputFiles(statistic, logger, pResult, pReached);
+    for (Statistics s : subStats) {
+      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
     }
   }
 
@@ -558,15 +558,13 @@ public final class MainCPAStatistics implements Statistics {
     }
   }
 
-  public void setCFACreator(CFACreator pCfaCreator, ProgramTransformation pProgramTransformation) {
-    // when transforming program, the cfaCreatorStatistics may be set already
-    Preconditions.checkState(cfaCreatorStatistics == null || pProgramTransformation.isEnabled());
+  public void setCFACreator(CFACreator pCfaCreator) {
+    Preconditions.checkState(cfaCreatorStatistics == null);
     cfaCreatorStatistics = pCfaCreator.getStatistics();
   }
 
-  public void setCFA(CFA pCfa, ProgramTransformation pProgramTransformation) {
-    // when transforming program, the cfa may be set already
-    Preconditions.checkState(cfa == null || pProgramTransformation.isEnabled());
+  public void setCFA(ImmutableCFA pCfa) {
+    Preconditions.checkState(cfa == null);
     cfa = pCfa;
   }
 

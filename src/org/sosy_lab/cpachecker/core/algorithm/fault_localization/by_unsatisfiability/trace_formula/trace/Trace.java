@@ -97,7 +97,7 @@ public class Trace extends ForwardingList<TraceAtom> {
                   minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
                   typeMap.put(
                       pair.getFirst(),
-                      traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
+                      (CType) traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
                 }
               });
     }

@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -79,5 +82,20 @@ public enum VerifierNondetFunctionType {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns {@code next_thread = __VERIFIER_nondet_{u}int} with {@code uint} for unsigned, {@code
+   * int} for signed.
+   */
+  public static CFunctionCallAssignmentStatement buildNondetIntegerAssignment(
+      MPOROptions pOptions, CIdExpression pIdExpression) {
+
+    return new CFunctionCallAssignmentStatement(
+        FileLocation.DUMMY,
+        pIdExpression,
+        pOptions.nondeterminismSigned()
+            ? INT.getFunctionCallExpression()
+            : UINT.getFunctionCallExpression());
   }
 }

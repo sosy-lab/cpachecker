@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -19,38 +19,26 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public abstract class SeqFunction {
+public abstract sealed class SeqFunction
+    permits SeqAssumeFunction, SeqMainFunction, SeqThreadSimulationFunction {
 
-  abstract ImmutableList<String> buildBody() throws UnrecognizedCodeException;
+  /**
+   * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but
+   * a {@link CFunctionCallExpression} requires a {@link CIdExpression}, so we keep this separate.
+   */
+  final CIdExpression name;
 
-  abstract CType getReturnType();
+  public final CFunctionDeclaration declaration;
 
-  abstract CIdExpression getFunctionName();
+  final String body;
 
-  abstract ImmutableList<CParameterDeclaration> getParameterDeclarations();
-
-  public final CFunctionType getFunctionType() {
-    return new CFunctionType(
-        getReturnType(),
-        getParameterDeclarations().stream()
-            .map(CParameterDeclaration::getType)
-            .collect(ImmutableList.toImmutableList()),
-        false);
-  }
-
-  public final CFunctionDeclaration getFunctionDeclaration() {
-    return new CFunctionDeclaration(
-        FileLocation.DUMMY,
-        getFunctionType(),
-        getFunctionName().toASTString(),
-        getParameterDeclarations(),
-        ImmutableSet.of());
+  SeqFunction(CFunctionDeclaration pDeclaration, String pBody) {
+    name = new CIdExpression(FileLocation.DUMMY, pDeclaration);
+    declaration = pDeclaration;
+    body = pBody;
   }
 
   /**
@@ -59,48 +47,40 @@ public abstract class SeqFunction {
    */
   private String buildSignature() {
     StringBuilder parameters = new StringBuilder();
-    for (int i = 0; i < getParameterDeclarations().size(); i++) {
-      CParameterDeclaration param = getParameterDeclarations().get(i);
+    for (int i = 0; i < declaration.getParameters().size(); i++) {
+      CParameterDeclaration param = declaration.getParameters().get(i);
       String suffix =
-          i == getParameterDeclarations().size() - 1
+          i == declaration.getParameters().size() - 1
               ? SeqSyntax.EMPTY_STRING
               : SeqSyntax.COMMA + SeqSyntax.SPACE;
       parameters.append(param.toASTString()).append(suffix);
     }
-    return getReturnType().toASTString(SeqSyntax.EMPTY_STRING)
+    return declaration.getType().getReturnType().toASTString(SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SPACE
-        + getFunctionName().getName()
+        + declaration.getName()
         + SeqSyntax.BRACKET_LEFT
         + parameters
         + SeqSyntax.BRACKET_RIGHT;
   }
 
-  public final ImmutableList<String> buildDefinition() throws UnrecognizedCodeException {
-    ImmutableList.Builder<String> rDefinition = ImmutableList.builder();
+  /** Returns a {@link String} of the entire function, including signature and body. */
+  public final String buildDefinition() {
+    StringJoiner rDefinition = new StringJoiner(SeqSyntax.NEWLINE);
     rDefinition.add(SeqStringUtil.appendCurlyBracketLeft(buildSignature()));
-    rDefinition.addAll(buildBody());
+    rDefinition.add(body);
     rDefinition.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return rDefinition.build();
-  }
-
-  public final CFunctionCallExpression buildFunctionCallExpression(
-      ImmutableList<CExpression> pParameters) {
-
-    return new CFunctionCallExpression(
-        FileLocation.DUMMY,
-        getReturnType(),
-        getFunctionName(),
-        pParameters,
-        getFunctionDeclaration());
+    return rDefinition.toString();
   }
 
   public final CFunctionCallStatement buildFunctionCallStatement(
       ImmutableList<CExpression> pParameters) {
 
     checkArgument(
-        getParameterDeclarations().size() == pParameters.size(),
+        declaration.getParameters().size() == pParameters.size(),
         "pParameters.size() must equal parameter declaration amount");
-    CFunctionCallExpression functionCallExpression = buildFunctionCallExpression(pParameters);
+    CFunctionCallExpression functionCallExpression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY, declaration.getType(), name, pParameters, declaration);
     return new CFunctionCallStatement(FileLocation.DUMMY, functionCallExpression);
   }
 }

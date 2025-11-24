@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Builders for ASTNodes. */
+/** Builder classes and methods for CASTNodes, used to simplify syntax. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;

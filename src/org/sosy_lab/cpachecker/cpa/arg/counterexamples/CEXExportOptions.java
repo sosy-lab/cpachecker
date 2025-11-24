@@ -85,6 +85,12 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportWitnessV2",
+      description = "export counterexample as witness/YML file")
+  private boolean exportWitnessV2 = true;
+
+  @Option(
+      secure = true,
       name = "graphml",
       description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -103,6 +109,17 @@ public final class CEXExportOptions {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("Counterexample.%d.witness-%s.yml");
+
+  @Option(
+      secure = true,
+      name = "svlib",
+      description =
+          "The file into which to write the violation "
+              + "witness for SV-LIB programs. "
+              + "In case no output files are requested ")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate svLibViolationWitnessPathTemplate =
+      PathTemplate.ofFormatString("Counterexample.%d.svlib");
 
   @Option(
       secure = true,
@@ -167,6 +184,7 @@ public final class CEXExportOptions {
         && getWitnessFile() == null
         && getExtendedWitnessFile() == null
         && getYamlWitnessPathTemplate() == null
+        && getSvLibViolationWitnessPath() == null
         && !exportTest;
   }
 
@@ -230,7 +248,14 @@ public final class CEXExportOptions {
     if (!exportErrorPath) {
       return null;
     }
-    return yamlWitnessOutputFileTemplate;
+    return exportWitnessV2 ? yamlWitnessOutputFileTemplate : null;
+  }
+
+  @Nullable PathTemplate getSvLibViolationWitnessPath() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return svLibViolationWitnessPathTemplate;
   }
 
   @Nullable PathTemplate getWitnessDotFile() {

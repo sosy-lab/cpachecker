@@ -9,29 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 
 public class SeqFunctionCallExpressions {
 
-  public static final CFunctionCallExpression ABORT =
-      SeqExpressionBuilder.buildFunctionCallExpression(
-          CVoidType.VOID,
-          SeqIdExpressions.ABORT,
-          ImmutableList.of(),
-          SeqFunctionDeclarations.ABORT);
-
   public static final CFunctionCallExpression VERIFIER_NONDET_INT =
-      SeqExpressionBuilder.buildFunctionCallExpression(
+      new CFunctionCallExpression(
+          FileLocation.DUMMY,
           CNumericTypes.INT,
           SeqIdExpressions.VERIFIER_NONDET_INT,
           ImmutableList.of(),
           SeqFunctionDeclarations.VERIFIER_NONDET_INT);
 
   public static final CFunctionCallExpression VERIFIER_NONDET_UINT =
-      SeqExpressionBuilder.buildFunctionCallExpression(
+      new CFunctionCallExpression(
+          FileLocation.DUMMY,
           CNumericTypes.UNSIGNED_INT,
           SeqIdExpressions.VERIFIER_NONDET_UINT,
           ImmutableList.of(),

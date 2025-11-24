@@ -1,0 +1,103 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.svlib;
+
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+
+public abstract class SvLibIdTermReplacer
+    implements SvLibTermVisitor<SvLibFinalRelationalTerm, NoException> {
+
+  public abstract SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm);
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibFinalTerm pSvLibFinalTerm) throws NoException {
+    SvLibFinalRelationalTerm innerTerm = pSvLibFinalTerm.getTerm().accept(this);
+    if (!(innerTerm instanceof SvLibIdTerm pIdTerm)) {
+      throw new IllegalStateException(
+          "Using a non-id term inside SvLibFinalTerm is not supported: " + innerTerm);
+    }
+
+    return new SvLibFinalTerm(pSvLibFinalTerm.getFileLocation(), pIdTerm);
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm)
+      throws NoException {
+    SvLibFinalRelationalTerm symbolReplacedTerm =
+        pSvLibSymbolApplicationTerm.getSymbol().accept(this);
+    if (!(symbolReplacedTerm instanceof SvLibIdTerm pIdTerm)) {
+      throw new IllegalStateException(
+          "Using a non-id term as symbol in SvLibSymbolApplicationTerm is not supported: "
+              + symbolReplacedTerm);
+    }
+
+    List<SvLibFinalRelationalTerm> argsReplacedTerms =
+        transformedImmutableListCopy(pSvLibSymbolApplicationTerm.getTerms(), t -> t.accept(this));
+    if (!argsReplacedTerms.stream().allMatch(t -> t instanceof SvLibTerm)) {
+      throw new IllegalStateException(
+          "The handling of (final) relational terms as arguments is not yet implemented for: "
+              + argsReplacedTerms.stream().map(AAstNode::toASTString).toList());
+    }
+
+    List<SvLibTerm> argsAsTerms =
+        transformedImmutableListCopy(argsReplacedTerms, t -> (SvLibTerm) t);
+
+    return new SvLibSymbolApplicationTerm(pIdTerm, argsAsTerms, FileLocation.DUMMY);
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibIdTerm pSvLibIdTerm) throws NoException {
+    return replace(pSvLibIdTerm);
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibIntegerConstantTerm pSvLibIntegerConstantTerm)
+      throws NoException {
+    return pSvLibIntegerConstantTerm;
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(
+      SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
+      throws NoException {
+    SvLibFinalRelationalTerm symbolReplacedTerm =
+        pSvLibSymbolApplicationRelationalTerm.getSymbol().accept(this);
+    if (!(symbolReplacedTerm instanceof SvLibIdTerm pIdTerm)) {
+      throw new IllegalStateException(
+          "Using a non-id term as symbol in SvLibSymbolApplicationTerm is not supported: "
+              + symbolReplacedTerm);
+    }
+
+    List<SvLibFinalRelationalTerm> argsReplacedTerms =
+        transformedImmutableListCopy(
+            pSvLibSymbolApplicationRelationalTerm.getTerms(), t -> t.accept(this));
+
+    return new SvLibSymbolApplicationRelationalTerm(pIdTerm, argsReplacedTerms, FileLocation.DUMMY);
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
+      throws NoException {
+    return pSvLibBooleanConstantTerm;
+  }
+
+  @Override
+  public SvLibFinalRelationalTerm accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
+      throws NoException {
+    return pSvLibRealConstantTerm;
+  }
+}

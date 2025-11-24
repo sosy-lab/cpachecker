@@ -7,4 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Used to create the program counter (pc) i.e. current location variables for all threads. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter;

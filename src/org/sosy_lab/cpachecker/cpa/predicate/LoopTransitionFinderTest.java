@@ -26,6 +26,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -83,8 +84,9 @@ public class LoopTransitionFinderTest {
             notifier,
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.FORWARD);
-    creator = CFACreator.construct(config, logger, notifier);
+            AnalysisDirection.FORWARD,
+            Language.C);
+    creator = new CFACreator(config, logger, notifier);
   }
 
   @Test
