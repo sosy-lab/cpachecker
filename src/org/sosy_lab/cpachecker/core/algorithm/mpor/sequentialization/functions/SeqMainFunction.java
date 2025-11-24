@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
@@ -47,10 +45,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** A class to represent the {@code main()} function in the sequentialization. */
@@ -68,28 +64,34 @@ public final class SeqMainFunction extends SeqFunction {
           FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
 
   public SeqMainFunction(
-      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      MPOROptions pOptions,
+      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions,
+      SequentializationFields pFields,
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
+    super(
+        MAIN_FUNCTION_DECLARATION,
+        buildBody(pOptions, pFields, pThreadSimulationFunctions, pUtils));
   }
 
   private static String buildBody(
-      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
+      MPOROptions pOptions,
+      SequentializationFields pFields,
+      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions,
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     StringBuilder rBody = new StringBuilder();
 
     // add main function argument non-deterministic assignments
-    rBody.append(
-        buildMainFunctionArgNondetAssignments(
-            pFields.mainSubstitution, pFields.clauses, pUtils.logger()));
+    rBody.append(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
 
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
-              pOptions, pFields);
+              pOptions, pThreadSimulationFunctions.orElseThrow());
       functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
     } else {
@@ -182,19 +184,17 @@ public final class SeqMainFunction extends SeqFunction {
    * = __VERIFIER_nondet_int;}
    */
   private static String buildMainFunctionArgNondetAssignments(
-      MPORSubstitution pMainSubstitution,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      LogManager pLogger) {
+      SequentializationFields pFields, LogManager pLogger) {
 
     // first extract all accesses to main function arguments
     ImmutableSet<SubstituteEdge> allSubstituteEdges =
-        SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pClauses);
+        SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
     ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs =
         SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
 
     // then add main function arg nondet assignments, if necessary
     StringJoiner rAssignments = new StringJoiner(SeqSyntax.NEWLINE);
-    for (var entry : pMainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
+    for (var entry : pFields.mainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
       // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
       if (accessedMainFunctionArgs.contains(entry.getKey())) {
         CIdExpression mainArgSubstitute = entry.getValue();

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermi
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -48,7 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -63,45 +61,37 @@ public class NondeterministicSimulationUtil {
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           new NextThreadNondeterministicSimulation(
-                  pOptions,
-                  pFields.clauses,
-                  pFields.ghostElements,
-                  pUtils.binaryExpressionBuilder())
+                  pOptions, pFields, pUtils.binaryExpressionBuilder())
               .buildThreadSimulations();
       case NUM_STATEMENTS ->
-          new NumStatementsNondeterministicSimulation(
-                  pOptions, pFields.clauses, pFields.ghostElements, pUtils)
+          new NumStatementsNondeterministicSimulation(pOptions, pFields, pUtils)
               .buildThreadSimulations();
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-                  pOptions,
-                  pFields.clauses,
-                  pFields.ghostElements,
-                  pUtils.binaryExpressionBuilder())
+                  pOptions, pFields, pUtils.binaryExpressionBuilder())
               .buildThreadSimulations();
     };
   }
 
   public static String buildSingleThreadSimulationByNondeterminismSource(
       MPOROptions pOptions,
-      GhostElements pGhostElements,
       MPORThread pThread,
       ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           new NextThreadNondeterministicSimulation(
-                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
+                  pOptions, pFields, pUtils.binaryExpressionBuilder())
               .buildSingleThreadSimulation(pThread);
       case NUM_STATEMENTS ->
-          new NumStatementsNondeterministicSimulation(pOptions, pClauses, pGhostElements, pUtils)
+          new NumStatementsNondeterministicSimulation(pOptions, pFields, pUtils)
               .buildSingleThreadSimulation(pThread, pOtherThreads);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
+                  pOptions, pFields, pUtils.binaryExpressionBuilder())
               .buildSingleThreadSimulation(pThread);
     };
   }
@@ -109,41 +99,36 @@ public class NondeterministicSimulationUtil {
   // Thread Simulation Functions ===================================================================
 
   public static ImmutableList<SeqThreadSimulationFunction> buildThreadSimulationFunctions(
-      MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      SequentializationUtils pUtils)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (!pOptions.loopUnrolling()) {
-      return ImmutableList.of();
-    }
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
+    for (MPORThread thread : pFields.clauses.keySet()) {
+      ImmutableSet<MPORThread> otherThreads =
+          MPORUtil.withoutElement(pFields.clauses.keySet(), thread);
       String threadSimulation =
           buildSingleThreadSimulationByNondeterminismSource(
-              pOptions, pGhostElements, thread, otherThreads, pClauses, pUtils);
+              pOptions, thread, otherThreads, pFields, pUtils);
       rFunctions.add(new SeqThreadSimulationFunction(pOptions, threadSimulation, thread));
     }
     return rFunctions.build();
   }
 
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
-      MPOROptions pOptions, SequentializationFields pFields) {
+      MPOROptions pOptions, ImmutableList<SeqThreadSimulationFunction> pThreadSimulationFunctions) {
 
     ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
     SeqThreadSimulationFunction mainThreadFunction =
         Objects.requireNonNull(
             Iterables.getOnlyElement(
-                pFields.threadSimulationFunctions.stream()
+                pThreadSimulationFunctions.stream()
                     .filter(Objects::nonNull)
                     .filter(f -> f.thread.isMain())
                     .toList()));
     rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
-      for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
+      for (SeqThreadSimulationFunction function : pThreadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
           rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));
