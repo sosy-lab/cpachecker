@@ -18,14 +18,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
 public sealed interface AcslAstNode extends AAstNode
-    permits AcslBinaryPredicateOperator,
+    permits
+        AcslBinaryPredicateOperator,
         AcslBinaryTermOperator,
         AcslBinaryTermExpressionOperator,
-        AcslPredicate,
         AcslInitializer,
         AcslLabel,
         AcslLogicDefinition,
         AcslMemoryLocationSet,
+        AcslPredicate,
         AcslSimpleDeclaration,
         AcslTerm,
         AcslUnaryExpressionOperator,

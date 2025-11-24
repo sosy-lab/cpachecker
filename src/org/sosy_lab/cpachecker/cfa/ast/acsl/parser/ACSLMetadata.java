@@ -11,9 +11,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public record ACSLMetadata(
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
-    ImmutableSetMultimap<CFANode, ACSLPredicate> acslPredicates) {}
+    ImmutableSetMultimap<CFANode, AcslPredicate> assertions,
+    ImmutableSetMultimap<CFANode, AcslPredicate> invariants,
+    ImmutableSetMultimap<CFANode, AcslPredicate> functionContracts,
+    ImmutableSetMultimap<CFANode, AcslPredicate> modifiedMemoryLocations) {}
