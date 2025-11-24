@@ -16,13 +16,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqThreadStatementBlockUtil {
 
   static boolean isLoopStart(ImmutableList<SeqThreadStatement> pStatements) {
     for (SeqThreadStatement statement : pStatements) {
-      for (CFAEdgeSubstitute substituteEdge : statement.getSubstituteEdges()) {
+      for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         CFANode predecessor = substituteEdge.cfaEdge.getPredecessor();
         if (predecessor.isLoopStart()) {
           // simple for / while loop with predicate expression -> loop is in direct predecessor

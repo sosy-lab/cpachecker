@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqMemoryLocationFinder {
 
@@ -112,7 +112,7 @@ public class SeqMemoryLocationFinder {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
-      for (CFAEdgeSubstitute substituteEdge : statement.getSubstituteEdges()) {
+      for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         rMemLocations.addAll(
             findMemoryLocationsBySubstituteEdge(substituteEdge, pMemoryModel, pAccessType));
       }
@@ -121,7 +121,7 @@ public class SeqMemoryLocationFinder {
   }
 
   public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsBySubstituteEdge(
-      CFAEdgeSubstitute pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
+      SubstituteEdge pSubstituteEdge, MemoryModel pMemoryModel, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the memory locations themselves

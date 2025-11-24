@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -47,7 +47,7 @@ public class MemoryModelBuilder {
   public static Optional<MemoryModel> tryBuildMemoryModel(
       MPOROptions pOptions,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations,
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.linkReduction) {
       ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
@@ -366,11 +366,11 @@ public class MemoryModelBuilder {
   // Pointer Assignments ===========================================================================
 
   private static ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> mapPointerAssignments(
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSetMultimap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAllAssignments =
         ImmutableSetMultimap.builder();
-    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rAllAssignments.putAll(substituteEdge.pointerAssignments.asMultimap());
     }
     return rAllAssignments.build();
@@ -380,12 +380,12 @@ public class MemoryModelBuilder {
 
   private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments(
       MPOROptions pOptions,
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
-    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (PthreadUtil.isCallToPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
@@ -417,12 +417,12 @@ public class MemoryModelBuilder {
 
   private static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments(
       MPOROptions pOptions,
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
       ImmutableList<SeqMemoryLocation> pInitialMemoryLocations) {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
-    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (original instanceof CFunctionCallEdge functionCallEdge) {
@@ -558,7 +558,7 @@ public class MemoryModelBuilder {
   // Pointer Dereferences ==========================================================================
 
   private static ImmutableSet<SeqMemoryLocation> getAllPointerDereferences(
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     return pSubstituteEdges.stream()
         .flatMap(

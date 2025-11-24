@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -33,7 +33,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final int targetPc;
 
@@ -42,7 +42,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   SeqReachErrorStatement(
       MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -55,7 +55,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   private SeqReachErrorStatement(
       MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
@@ -75,7 +75,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
     return substituteEdges;
   }
 

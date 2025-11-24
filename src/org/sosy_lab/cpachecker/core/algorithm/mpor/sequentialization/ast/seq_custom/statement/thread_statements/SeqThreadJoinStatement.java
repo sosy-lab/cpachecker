@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -43,7 +43,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -54,7 +54,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   SeqThreadJoinStatement(
       MPOROptions pOptions,
       Optional<CIdExpression> pJoinedThreadExitVariable,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       CBinaryExpression pJoinedThreadNotActive,
       CLeftHandSide pPcLeftHandSide) {
@@ -74,7 +74,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       Optional<CIdExpression> pJoinedThreadExitVariable,
       CBinaryExpression pJoinedThreadActive,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -104,10 +104,10 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
   private static Optional<String> buildReturnValueRead(
       Optional<CIdExpression> pJoinedThreadExitVariable,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableSet<SubstituteEdge> pSubstituteEdges) {
 
     if (pJoinedThreadExitVariable.isPresent()) {
-      CFAEdgeSubstitute substituteEdge = pSubstituteEdges.iterator().next();
+      SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
       int index =
           PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
       CExpression returnValueParameter =
@@ -131,7 +131,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
     return substituteEdges;
   }
 

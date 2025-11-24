@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermin
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -166,10 +166,10 @@ public class SeqMainFunction extends SeqFunction {
       LogManager pLogger) {
 
     // first extract all accesses to main function arguments
-    ImmutableSet<CFAEdgeSubstitute> allSubstituteEdges =
+    ImmutableSet<SubstituteEdge> allSubstituteEdges =
         SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pClauses);
     ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs =
-        MPORSubstitutionUtil.findAllMainFunctionArgs(allSubstituteEdges);
+        SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
 
     // then add main function arg nondet assignments, if necessary
     ImmutableList.Builder<String> rMainArgAssignments = ImmutableList.builder();

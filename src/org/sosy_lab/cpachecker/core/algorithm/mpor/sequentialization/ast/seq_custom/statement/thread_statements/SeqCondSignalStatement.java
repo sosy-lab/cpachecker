@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCondSignalStatement implements SeqThreadStatement {
@@ -31,7 +31,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final ImmutableSet<CFAEdgeSubstitute> substituteEdges;
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -43,7 +43,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       CondSignaledFlag pCondSignaledFlag,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
@@ -59,7 +59,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
       MPOROptions pOptions,
       CondSignaledFlag pCondSignaled,
       CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -87,7 +87,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableSet<CFAEdgeSubstitute> getSubstituteEdges() {
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
     return substituteEdges;
   }
 

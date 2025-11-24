@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CFAEdgeSubstitute;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -51,7 +51,7 @@ public class SeqThreadStatementClauseBuilder {
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> buildClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -97,14 +97,14 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
-    ImmutableList<MPORThread> allThreads = MPORSubstitutionUtil.extractThreads(pSubstitutions);
+    ImmutableList<MPORThread> allThreads = SubstituteUtil.extractThreads(pSubstitutions);
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
@@ -166,7 +166,7 @@ public class SeqThreadStatementClauseBuilder {
       Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
       Set<CFANodeForThread> pCoveredNodes,
-      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
@@ -200,7 +200,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORThread> pAllThreads,
       Set<CFANodeForThread> pCoveredNodes,
       CFANodeForThread pThreadNode,
-      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
       GhostElements pGhostElements) {
 
     pCoveredNodes.add(pThreadNode);
@@ -283,7 +283,7 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
       CFAEdgeForThread pThreadEdge,
-      CFAEdgeSubstitute pSubstituteEdge,
+      SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
       GhostElements pGhostElements) {
@@ -315,7 +315,7 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread pThread,
       Optional<MPORThread> pNextThread,
       CFAEdgeForThread pThreadEdge,
-      CFAEdgeSubstitute pSubstituteEdge,
+      SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
       GhostElements pGhostElements) {

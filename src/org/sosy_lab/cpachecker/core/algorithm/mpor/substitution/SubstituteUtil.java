@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class MPORSubstitutionUtil {
+public class SubstituteUtil {
 
-  public static CFAEdgeSubstitute getSubstituteEdgeByCfaEdgeAndCallContext(
+  public static SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
       CFAEdge pCfaEdge,
       Optional<CFAEdgeForThread> pCallContext,
-      ImmutableMap<CFAEdgeForThread, CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges) {
 
     for (CFAEdgeForThread threadEdge : pSubstituteEdges.keySet()) {
       if (threadEdge.cfaEdge.equals(pCfaEdge)) {
@@ -103,10 +103,10 @@ public class MPORSubstitutionUtil {
    * parameter assignments.
    */
   public static ImmutableList<SeqMemoryLocation> getInitialMemoryLocations(
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     List<SeqMemoryLocation> rMemoryLocations = new ArrayList<>();
-    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
       rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
       rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
@@ -191,10 +191,10 @@ public class MPORSubstitutionUtil {
   // Main Function Arg =============================================================================
 
   public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
-      ImmutableCollection<CFAEdgeSubstitute> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSet.Builder<CParameterDeclaration> rArgs = ImmutableSet.builder();
-    for (CFAEdgeSubstitute substituteEdge : pSubstituteEdges) {
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
     }
     return rArgs.build();

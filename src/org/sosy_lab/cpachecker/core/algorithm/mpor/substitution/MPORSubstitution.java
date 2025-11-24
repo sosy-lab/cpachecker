@@ -199,7 +199,7 @@ public class MPORSubstitution {
       }
       case CIdExpression idExpression -> {
         CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (MPORSubstitutionUtil.isSubstitutable(declaration)) {
+        if (SubstituteUtil.isSubstitutable(declaration)) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
               options,
               idExpression,
