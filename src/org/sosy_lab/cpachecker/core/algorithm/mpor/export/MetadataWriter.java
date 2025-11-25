@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -32,30 +33,33 @@ class MetadataWriter {
       @JsonProperty("utc_creation_time") String pUtcCreationTime,
       @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
 
+  private static final String NOT_EXPORTED_MESSAGE = "Sequentialization metadata was not exported.";
+
   static void write(
       MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
 
-    Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
-    if (metadataPath == null) {
-      pLogger.log(
-          Level.WARNING,
-          "Could not determine path for sequentialization metadata. Sequentialization"
-              + " metadata was not created.");
-      return;
-    }
+    Optional<Path> metadataPath =
+        MPORWriter.buildOutputPath(pOptions.exportPath(), pProgramName, FileExtension.YML);
 
-    YAMLMapper yamlMapper = new YAMLMapper();
-    MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
-    try {
-      yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
-      pLogger.log(Level.INFO, "Sequentialization metadata exported to: ", metadataPath.toString());
-    } catch (IOException e) {
-      pLogger.logUserException(
-          Level.WARNING,
-          e,
-          "An error occurred while writing metadata. Sequentialization metadata was not"
-              + " exported.");
-    }
+    metadataPath.ifPresentOrElse(
+        path -> {
+          YAMLMapper yamlMapper = new YAMLMapper();
+          MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
+          try {
+            yamlMapper.writeValue(path.toFile(), metadataRecord);
+            pLogger.log(Level.INFO, "Sequentialization metadata exported to: ", path.toString());
+          } catch (IOException e) {
+            pLogger.logUserException(
+                Level.WARNING,
+                e,
+                "An error occurred while writing metadata. " + NOT_EXPORTED_MESSAGE);
+          }
+        },
+        () ->
+            pLogger.log(
+                Level.WARNING,
+                "Could not determine path for sequentialization metadata. "
+                    + NOT_EXPORTED_MESSAGE));
   }
 
   private static MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
