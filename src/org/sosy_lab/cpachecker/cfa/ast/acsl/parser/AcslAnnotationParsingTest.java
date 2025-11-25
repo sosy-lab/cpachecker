@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion.AcslAssertionKind;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
-public class AcslAnnotationTest {
+public class AcslAnnotationParsingTest {
 
   private CSimpleType basicInt() {
     return new CSimpleType(
@@ -74,7 +73,6 @@ public class AcslAnnotationTest {
     AcslAssertion expected =
         new AcslAssertion(
             FileLocation.DUMMY,
-            AcslAssertionKind.ASSERTION,
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 new AcslIdTerm(

@@ -15,7 +15,7 @@ public final class AcslAssertion extends AAcslAnnotation {
 
   private final AcslPredicate predicate;
 
-  AcslAssertion(FileLocation pFileLocation, AcslPredicate pPredicate) {
+  public AcslAssertion(FileLocation pFileLocation, AcslPredicate pPredicate) {
     super(pFileLocation);
     predicate = pPredicate;
   }
