@@ -21,8 +21,7 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
         AcslTernaryPredicate,
         AcslUnaryPredicate,
         AcslValidPredicate,
-        AcslQuantifiedPredicate,
-        AcslAssertionPredicate {
+        AcslQuantifiedPredicate {
 
   <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
 
