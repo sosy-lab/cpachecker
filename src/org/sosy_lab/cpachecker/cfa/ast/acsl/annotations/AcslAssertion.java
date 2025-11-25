@@ -42,6 +42,7 @@ public class AcslAssertion extends AAcslAnnotation {
       name = pName;
     }
 
+    @Override
     public String toString() {
       return name;
     }
