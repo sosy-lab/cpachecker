@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public record ACSLMetadata(
+public record AcslMetadata(
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslPredicate> assertions,
     ImmutableSetMultimap<CFANode, AcslPredicate> invariants,
