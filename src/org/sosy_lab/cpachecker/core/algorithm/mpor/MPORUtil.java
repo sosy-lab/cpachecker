@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -359,11 +358,7 @@ public final class MPORUtil {
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     return new CFACreator(
-        TestDataTools.configurationForTest()
-            .setOption("parser.usePreprocessor", "true")
-            // assume that executing machine is 64-bit
-            .setOption("analysis.machineModel", MachineModel.LINUX64.name())
-            .build(),
+        TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);
   }
