@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -435,7 +436,7 @@ public class MPOROptions {
     return exportMetadata;
   }
 
-  public PathTemplate exportPath() {
+  public @Nullable PathTemplate exportPath() {
     return exportPath;
   }
 

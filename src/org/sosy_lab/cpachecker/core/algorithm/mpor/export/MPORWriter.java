@@ -13,8 +13,12 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.MPORUsage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -38,6 +42,8 @@ public class MPORWriter {
     }
   }
 
+  private static final String NOT_EXPORTED_MESSAGE = "Sequentialized program was not exported.";
+
   public static void handleExport(
       MPOROptions pOptions,
       String pOutputProgram,
@@ -56,21 +62,28 @@ public class MPORWriter {
 
     // if enabled, write program to a file
     if (pUsage.isExport) {
-      // write output program
-      Path programPath = buildOutputPath(pOptions, programName, FileExtension.I);
+      // write output program, if the path is successfully determined
+      Optional<Path> programPath =
+          buildOutputPath(pOptions.exportPath(), programName, FileExtension.I);
 
-      try {
-        try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
-          writer.write(pOutputProgram);
-          pLogger.log(Level.INFO, "Sequentialization exported to: ", programPath.toString());
-        }
-      } catch (IOException e) {
-        pLogger.logUserException(
-            Level.WARNING,
-            e,
-            "An IO error occurred while writing the output program. Sequentialization was not"
-                + " exported.");
-      }
+      programPath.ifPresentOrElse(
+          path -> {
+            try {
+              try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+                writer.write(pOutputProgram);
+                pLogger.log(Level.INFO, "Sequentialized program exported to: ", path.toString());
+              }
+            } catch (IOException e) {
+              pLogger.logUserException(
+                  Level.WARNING,
+                  e,
+                  "An IO error occurred while writing the output program. " + NOT_EXPORTED_MESSAGE);
+            }
+          },
+          () ->
+              pLogger.log(
+                  Level.WARNING,
+                  "Could not determine path for sequentialization. " + NOT_EXPORTED_MESSAGE));
     }
 
     // if enabled, write metadata to a file
@@ -79,10 +92,13 @@ public class MPORWriter {
     }
   }
 
-  static Path buildOutputPath(
-      MPOROptions pOptions, String pProgramName, FileExtension pFileExtension) {
+  static Optional<Path> buildOutputPath(
+      @Nullable PathTemplate pPathTemplate, String pProgramName, FileExtension pFileExtension) {
 
-    String pathString = pOptions.exportPath().getPath(pProgramName) + pFileExtension.getSuffix();
-    return Path.of(pathString);
+    if (pPathTemplate == null) {
+      return Optional.empty();
+    }
+    PathTemplate pathTemplate = Objects.requireNonNull(pPathTemplate);
+    return Optional.of(Path.of(pathTemplate.getPath(pProgramName) + pFileExtension.getSuffix()));
   }
 }
