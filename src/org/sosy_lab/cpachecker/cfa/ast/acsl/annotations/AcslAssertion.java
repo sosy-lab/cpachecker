@@ -11,14 +11,15 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
-public class AcslAssertion extends AAcslAnnotation {
+public final class AcslAssertion implements AcslAnnotation {
 
+  private final FileLocation fileLocation;
   private final AcslAssertionKind assertionKind;
   private final AcslPredicate predicate;
 
   AcslAssertion(
       FileLocation pFileLocation, AcslAssertionKind pAssertionKind, AcslPredicate pPredicate) {
-    super(pFileLocation);
+    fileLocation = pFileLocation;
     assertionKind = pAssertionKind;
     predicate = pPredicate;
   }
@@ -29,6 +30,11 @@ public class AcslAssertion extends AAcslAnnotation {
 
   public AcslAssertionKind getAssertionKind() {
     return assertionKind;
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   public enum AcslAssertionKind {

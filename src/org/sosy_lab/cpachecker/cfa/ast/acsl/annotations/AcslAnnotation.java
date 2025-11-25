@@ -10,14 +10,9 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-abstract class AAcslAnnotation {
-  private final FileLocation fileLocation;
+public sealed interface AcslAnnotation permits AcslAssertion {
 
-  protected AAcslAnnotation(FileLocation pFileLocation) {
-    fileLocation = pFileLocation;
-  }
 
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
+  public FileLocation getFileLocation();
+
 }
