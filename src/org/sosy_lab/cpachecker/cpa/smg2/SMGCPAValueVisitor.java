@@ -528,11 +528,6 @@ public class SMGCPAValueVisitor
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
 
-    // TODO: remove this!
-    if (leftValue.isUnknown() && rightValue.isUnknown()) {
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
-    }
-
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
     currentState = castLeftValue.getState();
