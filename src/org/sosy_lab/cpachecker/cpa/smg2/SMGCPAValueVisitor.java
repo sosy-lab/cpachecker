@@ -550,6 +550,8 @@ public class SMGCPAValueVisitor
     }
 
     // Pointer Arithmetics
+    // TODO: we now allow unknown to end up in the values, handle here as well!
+    checkArgument(!(leftValue instanceof AddressExpression || rightValue instanceof AddressExpression || state.isPointer(leftValue) || state.isPointer(rightValue)) || !(leftValue.isUnknown() || rightValue.isUnknown()));
     if (isPointerArithmetics(leftValue, rightValue, e, currentState)) {
       return handlePointerArithmetics(
           leftValue, rightValue, e, currentState, binaryOperator, calculationType);
@@ -557,6 +559,8 @@ public class SMGCPAValueVisitor
 
     // Function pointers
     if (leftValue instanceof FunctionValue || rightValue instanceof FunctionValue) {
+      // TODO: we now allow unknown to end up in the values, handle here as well!
+      checkArgument(!(leftValue.isUnknown() || rightValue.isUnknown()));
       return ImmutableList.of(
           ValueAndSMGState.of(
               calculateExpressionWithFunctionValue(binaryOperator, rightValue, leftValue),
@@ -574,20 +578,6 @@ public class SMGCPAValueVisitor
       return ImmutableList.of(
           ValueAndSMGState.of(
               calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
-    }
-
-    // TODO: remove this, and allow handling of arithmetic operations such that UNKNOWN can be
-    //  handled as well!
-    if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
-      logger.logf(
-          Level.FINE,
-          "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
-              + " in %s",
-          leftValue,
-          binaryOperator,
-          rightValue,
-          cfaEdge);
-      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     }
 
     if (isArithmeticOperation(binaryOperator)) {
