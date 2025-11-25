@@ -300,8 +300,10 @@ public class CPAchecker {
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
-
-      return run0(cfa, stats);
+      logAboutSpecification();
+      Specification specification =
+          Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+      return run0(cfa, specification, stats);
 
     } catch (InvalidConfigurationException
         | ParserException
@@ -314,26 +316,32 @@ public class CPAchecker {
     }
   }
 
-  public CPAcheckerResult run(CFA cfa, MainCPAStatistics stats) {
+  public CPAcheckerResult run(CFA cfa, Specification specification, MainCPAStatistics stats) {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      return run0(cfa, stats);
+      if (specification == null) {
+        logAboutSpecification();
+        specification =
+            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+      }
+      return run0(cfa, specification, stats);
+    } catch (InterruptedException | InvalidConfigurationException pE) {
+      throw new RuntimeException(pE);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
   }
 
-  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
+  private CPAcheckerResult run0(CFA cfa, Specification specification, MainCPAStatistics stats) {
 
     Algorithm algorithm = null;
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String targetDescription = "";
-    Specification specification;
 
     try {
 
@@ -347,9 +355,6 @@ public class CPAchecker {
       }
       stats.cpaCreationTime.start();
       try {
-        logAboutSpecification();
-        specification =
-            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
         cpa = factory.createCPA(cfa, specification);
       } finally {
         stats.cpaCreationTime.stop();
@@ -524,7 +529,6 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis ...");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownManager);
     mxbean.register();
