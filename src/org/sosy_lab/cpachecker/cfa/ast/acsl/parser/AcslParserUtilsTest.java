@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import org.junit.Test;
 
-public class ACSLParserUtilsTest {
+public class AcslParserUtilsTest {
   @Test
   public void testStripCommentMarker() {
     String lineComment = "//@ assert a == 20;";
     String lineCommentExpected = "assert a == 20;";
-    String lineCommentStripped = ACSLParserUtils.stripCommentMarker(lineComment);
+    String lineCommentStripped = AcslParserUtils.stripCommentMarker(lineComment);
     assert lineCommentStripped.equals(lineCommentExpected);
   }
 
@@ -36,7 +36,7 @@ assumes /true;
 ensures !(x < 0);
 """;
 
-    String blockCommentStripped = ACSLParserUtils.stripCommentMarker(blockComment);
+    String blockCommentStripped = AcslParserUtils.stripCommentMarker(blockComment);
     assert blockCommentStripped.equals(blockCommentExpected);
   }
 }

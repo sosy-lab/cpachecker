@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ACSLParserUtils {
+public class AcslParserUtils {
 
   public static String stripCommentMarker(String pCommentString) {
     String commentString = pCommentString;
