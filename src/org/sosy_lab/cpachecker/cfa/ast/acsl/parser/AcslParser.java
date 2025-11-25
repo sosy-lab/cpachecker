@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
@@ -75,9 +75,9 @@ public class AcslParser {
     return definition;
   }
 
-public static AcslAnnotation parseAcslAnnotation(String pInput){
+  public static AAcslAnnotation parseAcslAnnotation(String pInput) {
     return null;
-}
+  }
 
   public static class AcslParseException extends Exception {
     @Serial private static final long serialVersionUID = -8907490123042996735L;
