@@ -381,8 +381,8 @@ public class CoreComponentsFactory {
       description =
           "Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a concurrent C"
               + " program. This algorithm transforms the input program into a sequential program"
-              + " that preserves the properties of the original concurrent program.\n\n"
-              + " If the sequentialized program should be analyzed inside CPAchecker"
+              + " that preserves the properties of the original concurrent program.\n"
+              + "If the sequentialized program should be analyzed inside CPAchecker"
               + " directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.")
   private boolean useMporPreprocessing = false;
 

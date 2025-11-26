@@ -349,8 +349,7 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 # concurrent C program. This algorithm transforms the input program into a
 # sequential program that preserves the properties of the original concurrent
 # program.
-# 
-#  If the sequentialized program should be analyzed inside CPAchecker
+# If the sequentialized program should be analyzed inside CPAchecker
 # directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
 analysis.algorithm.MPOR.preprocessing = false
 
