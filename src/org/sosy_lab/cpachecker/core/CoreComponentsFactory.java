@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedS
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.MPORUsage;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -378,22 +377,14 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.MPOR",
+      name = "algorithm.MPOR.preprocessing",
       description =
           "Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a concurrent C"
               + " program. This algorithm transforms the input program into a sequential program"
               + " that preserves the properties of the original concurrent program.\n\n"
               + " If the sequentialized program should be analyzed inside CPAchecker"
-              + " directly, set to 'PREPROCESS*'. The MPOR sequentialization is then performed as"
-              + " a preprocessing step before the main analysis begins. The sequentialized program"
-              + " is then analyzed by the CPAchecker analysis given. Note that the CFA is "
-              + " transformed at the beginning"
-              + " of the analysis, so all (sub-)analyses will also operate on the sequentialized"
-              + " CFA. In particular this means that if you use a parallel or sequential"
-              + " composition of analyses, all of them will analyze the sequentialized CFA.\n\n"
-              + " If the sequentialized program should be exported for analysis with another tool,"
-              + " set to 'EXPORT'.")
-  private MPORUsage useMpor = MPORUsage.NONE;
+              + " directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.")
+  private boolean useMporPreprocessing = false;
 
   @Option(
       secure = true,
@@ -583,7 +574,7 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (!useMpor.equals(MPORUsage.NONE)
+    } else if (useMporPreprocessing
         && !preferOriginalCfaOverSequentialized
         && !MPORAlgorithm.isAlreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
@@ -596,7 +587,7 @@ public class CoreComponentsFactory {
       // existing configuration and have all (sub-)analyses automatically operate on the
       // sequentialized CFA no matter how deep they are nested. In particular this works for
       // parallel compositions, sequential compositions, and restart algorithm.
-      algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, specification, useMpor);
+      algorithm = new MPORAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -972,8 +963,7 @@ public class CoreComponentsFactory {
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
-        || useRandomTestCaseGeneratorAlgorithm
-        || !useMpor.isPreprocess) {
+        || useRandomTestCaseGeneratorAlgorithm) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
