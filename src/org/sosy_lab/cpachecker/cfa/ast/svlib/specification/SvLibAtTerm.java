@@ -42,7 +42,11 @@ public final class SvLibAtTerm implements SvLibRelationalTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(old " + term.toASTString(pAAstNodeRepresentation) + ")";
+    return "(at "
+        + term.toASTString(pAAstNodeRepresentation)
+        + " "
+        + tagReference.getTagName()
+        + ")";
   }
 
   @Override

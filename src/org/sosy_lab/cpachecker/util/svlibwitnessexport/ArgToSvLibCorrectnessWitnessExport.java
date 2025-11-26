@@ -103,15 +103,15 @@ public class ArgToSvLibCorrectnessWitnessExport {
     // Build state for precondition
     ImmutableSet.Builder<SvLibRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
-      SvLibTerm precondition =
+      SvLibRelationalTerm precondition =
           getOverapproximationOfStates(
               ImmutableList.of(pair.entry()), svLibMetadata.tagReferenceToScope().get(pTag));
-      SvLibRelationalTerm postcondition =
+      SvLibTerm postcondition =
           getOverapproximationOfStates(
               ImmutableList.of(pair.exit()), svLibMetadata.tagReferenceToScope().get(pTag));
 
       // Replace all variables in the postcondition with their final(...) counterparts
-      SvLibIdTermReplacer finalReplacer =
+      SvLibIdTermReplacer oldReplacer =
           new SvLibIdTermReplacer() {
 
             @Override
@@ -123,7 +123,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
               return pIdTerm;
             }
           };
-      postcondition = postcondition.accept(finalReplacer);
+      precondition = precondition.accept(oldReplacer);
 
       ensuresTerms.add(SvLibRelationalTerm.implication(precondition, postcondition));
     }

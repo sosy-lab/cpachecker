@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
@@ -46,10 +45,8 @@ public abstract class SvLibIdTermReplacer
 
     List<SvLibRelationalTerm> argsReplacedTerms =
         transformedImmutableListCopy(pSvLibSymbolApplicationTerm.getTerms(), t -> t.accept(this));
-    if (!argsReplacedTerms.stream().allMatch(t -> t instanceof SvLibTerm)) {
-      throw new IllegalStateException(
-          "The handling of (final) relational terms as arguments is not yet implemented for: "
-              + argsReplacedTerms.stream().map(AAstNode::toASTString).toList());
+    if (argsReplacedTerms.stream().anyMatch(t -> t instanceof SvLibTerm)) {
+      return new SvLibSymbolApplicationRelationalTerm(pIdTerm, argsReplacedTerms, FileLocation.DUMMY);
     }
 
     List<SvLibTerm> argsAsTerms =
