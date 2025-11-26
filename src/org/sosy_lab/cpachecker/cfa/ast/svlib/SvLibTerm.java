@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 
 /**
  * This interface represents a term in the SV-LIB abstract syntax tree (AST). A term can be a symbol
@@ -18,5 +18,5 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalT
  * arbitrarily combine inside of term applications.
  */
 public sealed interface SvLibTerm
-    extends SvLibAstNode, SvLibFinalRelationalTerm, SvLibRightHandSide, SvLibExpression
+    extends SvLibAstNode, SvLibRelationalTerm, SvLibRightHandSide, SvLibExpression
     permits SvLibSymbolApplicationTerm, SvLibConstantTerm, SvLibIdTerm {}

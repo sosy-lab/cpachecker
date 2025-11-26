@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -268,7 +268,7 @@ class SvLibCfaBuilder {
         new SvLibIdTermReplacer() {
 
           @Override
-          public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
+          public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
             if (pIdTerm.getDeclaration().getType().equals(new SvLibAnyType())) {
               return new SvLibIdTerm(
                   pScope.getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),

@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
  * anywhere, final relational terms are only allowed in specification formulas. Because they are
  * used to represent relations between different states of variables.
  */
-public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode {
+public interface SvLibRelationalTerm extends SvLibExpression, SvLibAstNode {
 
   <R, X extends Exception> R accept(SvLibTermVisitor<R, X> v) throws X;
 
-  static SvLibFinalRelationalTerm booleanNegation(SvLibFinalRelationalTerm pTerm) {
+  static SvLibRelationalTerm booleanNegation(SvLibRelationalTerm pTerm) {
     checkArgument(pTerm.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL));
     return new SvLibSymbolApplicationRelationalTerm(
         new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
@@ -44,7 +44,7 @@ public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode 
         FileLocation.DUMMY);
   }
 
-  static SvLibFinalRelationalTerm booleanDisjunction(List<SvLibFinalRelationalTerm> pTerms) {
+  static SvLibRelationalTerm booleanDisjunction(List<SvLibRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
             .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)));
@@ -65,7 +65,7 @@ public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode 
         FileLocation.DUMMY);
   }
 
-  static SvLibFinalRelationalTerm booleanConjunction(List<SvLibFinalRelationalTerm> pTerms) {
+  static SvLibRelationalTerm booleanConjunction(List<SvLibRelationalTerm> pTerms) {
     checkArgument(
         FluentIterable.from(pTerms)
             .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)));
@@ -85,8 +85,8 @@ public interface SvLibFinalRelationalTerm extends SvLibExpression, SvLibAstNode 
         FileLocation.DUMMY);
   }
 
-  static SvLibFinalRelationalTerm implication(
-      SvLibFinalRelationalTerm pAssumption, SvLibFinalRelationalTerm pConclusion) {
+  static SvLibRelationalTerm implication(
+      SvLibRelationalTerm pAssumption, SvLibRelationalTerm pConclusion) {
     checkArgument(
         pAssumption.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)
             && pConclusion.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL));

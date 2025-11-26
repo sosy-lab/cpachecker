@@ -16,14 +16,17 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
-public final class SvLibFinalTerm implements SvLibFinalRelationalTerm {
+public final class SvLibAtTerm implements SvLibRelationalTerm {
 
   @Serial private static final long serialVersionUID = 5381549261475877405L;
   private final FileLocation fileLocation;
+  private final SvLibTagReference tagReference;
   private final SvLibIdTerm term;
 
-  public SvLibFinalTerm(FileLocation pFileLocation, SvLibIdTerm pTerm) {
+  public SvLibAtTerm(
+      FileLocation pFileLocation, SvLibTagReference pTagReference, SvLibIdTerm pTerm) {
     fileLocation = pFileLocation;
+    tagReference = pTagReference;
     term = pTerm;
   }
 
@@ -64,7 +67,7 @@ public final class SvLibFinalTerm implements SvLibFinalRelationalTerm {
 
   @Override
   public int hashCode() {
-    return term.hashCode();
+    return term.hashCode() + 31 * tagReference.hashCode();
   }
 
   @Override
@@ -73,10 +76,16 @@ public final class SvLibFinalTerm implements SvLibFinalRelationalTerm {
       return true;
     }
 
-    return pO instanceof SvLibFinalTerm other && term.equals(other.term);
+    return pO instanceof SvLibAtTerm other
+        && term.equals(other.term)
+        && tagReference.equals(other.tagReference);
   }
 
   public SvLibIdTerm getTerm() {
     return term;
+  }
+
+  public SvLibTagReference getTagReference() {
+    return tagReference;
   }
 }

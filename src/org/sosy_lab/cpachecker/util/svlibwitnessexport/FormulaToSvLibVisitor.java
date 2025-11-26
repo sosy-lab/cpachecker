@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
-public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationalTerm> {
+public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm> {
 
   private final FormulaManagerView fmgr;
   private final SvLibScope scope;
@@ -154,14 +154,14 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
   }
 
   @Override
-  public SvLibFinalRelationalTerm visitFreeVariable(Formula pFormula, String pS) {
+  public SvLibRelationalTerm visitFreeVariable(Formula pFormula, String pS) {
     SvLibSimpleDeclaration variableDeclaration =
         scope.getVariableForQualifiedName(pS).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 
   @Override
-  public SvLibFinalRelationalTerm visitConstant(Formula pFormula, Object pO) {
+  public SvLibRelationalTerm visitConstant(Formula pFormula, Object pO) {
     if (pO instanceof Boolean pBoolean) {
       return new SvLibBooleanConstantTerm(pBoolean, FileLocation.DUMMY);
     } else if (pO instanceof BigInteger pInteger) {
@@ -173,7 +173,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
   }
 
   @Override
-  public SvLibFinalRelationalTerm visitFunction(
+  public SvLibRelationalTerm visitFunction(
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
 
     SvLibType formulaType = formulaTypeToSvLibType(pFunctionDeclaration.getType());
@@ -181,7 +181,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
         pFunctionDeclaration.getArgumentTypes().stream().map(this::formulaTypeToSvLibType).toList();
     String functionName = pFunctionDeclaration.getName().replace("`", "");
 
-    List<SvLibFinalRelationalTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
+    List<SvLibRelationalTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
 
     if (formulaType.equals(SvLibSmtLibPredefinedType.BOOL)
         && argTypes.size() == 2
@@ -193,8 +193,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
           new SvLibIntegerConstantTerm(
               new BigInteger(Splitter.on("_").splitToList(functionName).getLast()),
               FileLocation.DUMMY);
-      SvLibFinalRelationalTerm leftTerm = args.getFirst();
-      SvLibFinalRelationalTerm rightTerm = args.get(1);
+      SvLibRelationalTerm leftTerm = args.getFirst();
+      SvLibRelationalTerm rightTerm = args.get(1);
       return new SvLibSymbolApplicationRelationalTerm(
           new SvLibIdTerm(SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
           ImmutableList.of(
@@ -215,7 +215,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibFinalRelationa
   }
 
   @Override
-  public SvLibFinalRelationalTerm visitQuantifier(
+  public SvLibRelationalTerm visitQuantifier(
       BooleanFormula pBooleanFormula,
       Quantifier pQuantifier,
       List<Formula> pList,

@@ -13,39 +13,38 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public abstract class SvLibIdTermReplacer
-    implements SvLibTermVisitor<SvLibFinalRelationalTerm, NoException> {
+    implements SvLibTermVisitor<SvLibRelationalTerm, NoException> {
 
-  public abstract SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm);
+  public abstract SvLibRelationalTerm replace(SvLibIdTerm pIdTerm);
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibFinalTerm pSvLibFinalTerm) throws NoException {
-    SvLibFinalRelationalTerm innerTerm = pSvLibFinalTerm.getTerm().accept(this);
+  public SvLibRelationalTerm accept(SvLibAtTerm pSvLibAtTerm) throws NoException {
+    SvLibRelationalTerm innerTerm = pSvLibAtTerm.getTerm().accept(this);
     if (!(innerTerm instanceof SvLibIdTerm pIdTerm)) {
       throw new IllegalStateException(
           "Using a non-id term inside SvLibFinalTerm is not supported: " + innerTerm);
     }
 
-    return new SvLibFinalTerm(pSvLibFinalTerm.getFileLocation(), pIdTerm);
+    return new SvLibAtTerm(pSvLibAtTerm.getFileLocation(), pSvLibAtTerm.getTagReference(), pIdTerm);
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm)
+  public SvLibRelationalTerm accept(SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm)
       throws NoException {
-    SvLibFinalRelationalTerm symbolReplacedTerm =
-        pSvLibSymbolApplicationTerm.getSymbol().accept(this);
+    SvLibRelationalTerm symbolReplacedTerm = pSvLibSymbolApplicationTerm.getSymbol().accept(this);
     if (!(symbolReplacedTerm instanceof SvLibIdTerm pIdTerm)) {
       throw new IllegalStateException(
           "Using a non-id term as symbol in SvLibSymbolApplicationTerm is not supported: "
               + symbolReplacedTerm);
     }
 
-    List<SvLibFinalRelationalTerm> argsReplacedTerms =
+    List<SvLibRelationalTerm> argsReplacedTerms =
         transformedImmutableListCopy(pSvLibSymbolApplicationTerm.getTerms(), t -> t.accept(this));
     if (!argsReplacedTerms.stream().allMatch(t -> t instanceof SvLibTerm)) {
       throw new IllegalStateException(
@@ -60,21 +59,21 @@ public abstract class SvLibIdTermReplacer
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibIdTerm pSvLibIdTerm) throws NoException {
+  public SvLibRelationalTerm accept(SvLibIdTerm pSvLibIdTerm) throws NoException {
     return replace(pSvLibIdTerm);
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibIntegerConstantTerm pSvLibIntegerConstantTerm)
+  public SvLibRelationalTerm accept(SvLibIntegerConstantTerm pSvLibIntegerConstantTerm)
       throws NoException {
     return pSvLibIntegerConstantTerm;
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(
+  public SvLibRelationalTerm accept(
       SvLibSymbolApplicationRelationalTerm pSvLibSymbolApplicationRelationalTerm)
       throws NoException {
-    SvLibFinalRelationalTerm symbolReplacedTerm =
+    SvLibRelationalTerm symbolReplacedTerm =
         pSvLibSymbolApplicationRelationalTerm.getSymbol().accept(this);
     if (!(symbolReplacedTerm instanceof SvLibIdTerm pIdTerm)) {
       throw new IllegalStateException(
@@ -82,7 +81,7 @@ public abstract class SvLibIdTermReplacer
               + symbolReplacedTerm);
     }
 
-    List<SvLibFinalRelationalTerm> argsReplacedTerms =
+    List<SvLibRelationalTerm> argsReplacedTerms =
         transformedImmutableListCopy(
             pSvLibSymbolApplicationRelationalTerm.getTerms(), t -> t.accept(this));
 
@@ -90,13 +89,13 @@ public abstract class SvLibIdTermReplacer
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
+  public SvLibRelationalTerm accept(SvLibBooleanConstantTerm pSvLibBooleanConstantTerm)
       throws NoException {
     return pSvLibBooleanConstantTerm;
   }
 
   @Override
-  public SvLibFinalRelationalTerm accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
+  public SvLibRelationalTerm accept(SvLibRealConstantTerm pSvLibRealConstantTerm)
       throws NoException {
     return pSvLibRealConstantTerm;
   }
