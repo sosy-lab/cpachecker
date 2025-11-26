@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.MPORUsage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
@@ -133,7 +134,8 @@ public class InputRejectionTest {
     UnsupportedCodeException throwable =
         assertThrows(
             UnsupportedCodeException.class,
-            () -> Sequentialization.tryBuildProgramString(customOptions, cfa, utils));
+            () ->
+                Sequentialization.tryBuildProgramString(customOptions, cfa, utils, MPORUsage.NONE));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage()).contains(expectedMessage);
   }

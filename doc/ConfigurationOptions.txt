@@ -264,6 +264,25 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
+# Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a
+# concurrent C program. This algorithm transforms the input program into a
+# sequential program that preserves the properties of the original concurrent
+# program.
+# 
+#  If the sequentialized program should be analyzed inside CPAchecker
+# directly, set to 'PREPROCESS*'. The MPOR sequentialization is then
+# performed as a preprocessing step before the main analysis begins. The
+# sequentialized program is then analyzed by the CPAchecker analysis given.
+# Note that the CFA is  transformed at the beginning of the analysis, so all
+# (sub-)analyses will also operate on the sequentialized CFA. In particular
+# this means that if you use a parallel or sequential composition of
+# analyses, all of them will analyze the sequentialized CFA.
+# 
+#  If the sequentialized program should be exported for analysis with another
+# tool, set to 'EXPORT'.
+analysis.algorithm.MPOR = NONE
+  enum:     [NONE, EXPORT, PREPROCESS, PREPROCESS_AND_EXPORT]
+
 # allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
@@ -344,26 +363,6 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 # the source(s) of nondeterminism in the sequentialization.
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
-
-# Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a
-# concurrent C program. This algorithm transforms the input program into a
-# sequential program that preserves the properties of the original concurrent
-# program.
-# 
-#  If the sequentialized program should be analyzed inside CPAchecker
-# directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
-analysis.algorithm.MPOR.preprocessing = false
-
-# If the sequentialization should be performed as a preprocessing step before
-# the main analysis begins, set to true. The sequentialized program is then
-# analyzed by the CPAchecker analysis given. Note that the CFA is transformed
-# at the beginning of the analysis, so all (sub-)analyses will also operate
-# on the sequentialized CFA. In particular this means that if you use a
-# parallel or sequential composition of analyses, all of them will analyze
-# the sequentialized CFA.
-# If the sequentialization should just be exported and analyzed externally,
-# set to false.
-analysis.algorithm.MPOR.preprocessing.runAnalysis = false
 
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression

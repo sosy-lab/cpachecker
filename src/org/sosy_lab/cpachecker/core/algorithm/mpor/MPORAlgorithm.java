@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -27,8 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -63,21 +62,28 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * state space. Sequentializations can be given to any verifier capable of verifying sequential C
  * programs, hence modular.
  */
-@Options(prefix = "analysis.algorithm.MPOR.preprocessing")
 public class MPORAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(
-      secure = true,
-      description =
-          "If the sequentialization should be performed as a preprocessing step before the main"
-              + " analysis begins, set to true. The sequentialized program is then analyzed by the"
-              + " CPAchecker analysis given. Note that the CFA is transformed at the beginning of"
-              + " the analysis, so all (sub-)analyses will also operate on the sequentialized CFA."
-              + " In particular this means that if you use a parallel or sequential composition of"
-              + " analyses, all of them will analyze the sequentialized CFA.\n"
-              + "If the sequentialization should just be exported and analyzed externally, set to"
-              + " false.")
-  private boolean runAnalysis = false;
+  /** Defines the use case for a {@link MPORAlgorithm} instance. */
+  public enum MPORUsage {
+    /** {@link MPORAlgorithm} is not used at all, rejected by constructor. */
+    NONE(false, false),
+    /** {@link MPORAlgorithm} is used only to export the sequentialization. */
+    EXPORT(true, false),
+    /** {@link MPORAlgorithm} is used only as a preprocessor for CPAcheckers internal analysis. */
+    PREPROCESS(false, true),
+    /** Combines {@link MPORUsage#EXPORT} and {@link MPORUsage#PREPROCESS}. */
+    PREPROCESS_AND_EXPORT(true, true);
+
+    public final boolean isExport;
+
+    public final boolean isPreprocess;
+
+    MPORUsage(boolean pIsExport, boolean pIsPreprocess) {
+      isExport = pIsExport;
+      isPreprocess = pIsPreprocess;
+    }
+  }
 
   private final Configuration config;
 
@@ -88,6 +94,8 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
   private final CFA cfa;
 
   private final Specification specification;
+
+  private final MPORUsage usage;
 
   private final MPOROptions options;
 
@@ -100,9 +108,12 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      Specification pSpecification)
+      Specification pSpecification,
+      MPORUsage pUsage)
       throws InvalidConfigurationException, UnsupportedCodeException {
 
+    checkArgument(
+        !pUsage.equals(MPORUsage.NONE), "MPORAlgorithm was instantiated, but pUsage is NONE.");
     InputRejection.handleRejections(pCfa);
 
     config = pConfiguration;
@@ -110,6 +121,7 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     specification = pSpecification;
+    usage = pUsage;
     options = new MPOROptions(pConfiguration);
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
 
@@ -146,7 +158,8 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
     sequentializationStatistics.sequentializationTime.start();
     ImmutableCFA newCFA;
     try {
-      String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
+      String sequentializedCode =
+          Sequentialization.tryBuildProgramString(options, cfa, utils, usage);
       sequentializationStatistics.sequentializedProgramString = sequentializedCode;
       // disable preprocessing in the updated config, since input cfa was preprocessed already
       Configuration configWithoutPreprocessor =
@@ -191,9 +204,9 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(@NonNull ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
 
-    // if this instance is not for the internal analysis, export sequentialization and return
-    if (!runAnalysis) {
-      Sequentialization.tryBuildProgramString(options, cfa, utils);
+    // if this instance is not used as a preprocessor, export sequentialization and return
+    if (!usage.isPreprocess) {
+      Sequentialization.tryBuildProgramString(options, cfa, utils, usage);
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
