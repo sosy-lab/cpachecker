@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
-public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm> {
+public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
   private final FormulaManagerView fmgr;
   private final SvLibScope scope;
@@ -154,14 +154,14 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm
   }
 
   @Override
-  public SvLibRelationalTerm visitFreeVariable(Formula pFormula, String pS) {
+  public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
     SvLibSimpleDeclaration variableDeclaration =
         scope.getVariableForQualifiedName(pS).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 
   @Override
-  public SvLibRelationalTerm visitConstant(Formula pFormula, Object pO) {
+  public SvLibTerm visitConstant(Formula pFormula, Object pO) {
     if (pO instanceof Boolean pBoolean) {
       return new SvLibBooleanConstantTerm(pBoolean, FileLocation.DUMMY);
     } else if (pO instanceof BigInteger pInteger) {
@@ -173,7 +173,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm
   }
 
   @Override
-  public SvLibRelationalTerm visitFunction(
+  public SvLibTerm visitFunction(
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
 
     SvLibType formulaType = formulaTypeToSvLibType(pFunctionDeclaration.getType());
@@ -181,7 +181,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm
         pFunctionDeclaration.getArgumentTypes().stream().map(this::formulaTypeToSvLibType).toList();
     String functionName = pFunctionDeclaration.getName().replace("`", "");
 
-    List<SvLibRelationalTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
+    List<SvLibTerm> args = pList.stream().map(f -> fmgr.visit(f, this)).toList();
 
     if (formulaType.equals(SvLibSmtLibPredefinedType.BOOL)
         && argTypes.size() == 2
@@ -193,16 +193,16 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm
           new SvLibIntegerConstantTerm(
               new BigInteger(Splitter.on("_").splitToList(functionName).getLast()),
               FileLocation.DUMMY);
-      SvLibRelationalTerm leftTerm = args.getFirst();
-      SvLibRelationalTerm rightTerm = args.get(1);
-      return new SvLibSymbolApplicationRelationalTerm(
+      SvLibTerm leftTerm = args.getFirst();
+      SvLibTerm rightTerm = args.get(1);
+      return new SvLibSymbolApplicationTerm(
           new SvLibIdTerm(SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
           ImmutableList.of(
-              new SvLibSymbolApplicationRelationalTerm(
+              new SvLibSymbolApplicationTerm(
                   new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY),
                   ImmutableList.of(leftTerm, modulusTerm),
                   FileLocation.DUMMY),
-              new SvLibSymbolApplicationRelationalTerm(
+              new SvLibSymbolApplicationTerm(
                   new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY),
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
@@ -210,12 +210,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibRelationalTerm
     } else {
       SvLibIdTerm functionIdTerm = functionToIdTerm(functionName, formulaType, argTypes);
 
-      return new SvLibSymbolApplicationRelationalTerm(functionIdTerm, args, FileLocation.DUMMY);
+      return new SvLibSymbolApplicationTerm(functionIdTerm, args, FileLocation.DUMMY);
     }
   }
 
   @Override
-  public SvLibRelationalTerm visitQuantifier(
+  public SvLibTerm visitQuantifier(
       BooleanFormula pBooleanFormula,
       Quantifier pQuantifier,
       List<Formula> pList,

@@ -22,7 +22,7 @@ import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -168,7 +168,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public SvLibRelationalTerm asSvLibTerm(SvLibScope pScope) {
+    public SvLibTerm asSvLibTerm(SvLibScope pScope) {
       return getAbstractionFormula().asSvLibTerm(pScope);
     }
 

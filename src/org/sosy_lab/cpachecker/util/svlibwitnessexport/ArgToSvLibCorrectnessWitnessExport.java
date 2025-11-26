@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,35 +58,34 @@ public class ArgToSvLibCorrectnessWitnessExport {
     logger = pLogger;
   }
 
-  protected SvLibRelationalTerm getOverapproximationOfStates(
+  protected SvLibTerm getOverapproximationOfStates(
       Collection<ARGState> pArgStates, SvLibScope pScope) {
     FluentIterable<SvLibTermReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
             .filter(SvLibTermReportingState.class);
-    ImmutableSet.Builder<SvLibRelationalTerm> expressionsPerClass = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<SvLibTerm> expressionsPerClass = new ImmutableSet.Builder<>();
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      ImmutableSet.Builder<SvLibRelationalTerm> expressionsMatchingClass =
-          new ImmutableSet.Builder<>();
+      ImmutableSet.Builder<SvLibTerm> expressionsMatchingClass = new ImmutableSet.Builder<>();
       for (SvLibTermReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
           expressionsMatchingClass.add(state.asSvLibTerm(pScope));
         }
       }
-      SvLibRelationalTerm disjunctionOfClass =
-          SvLibRelationalTerm.booleanDisjunction(expressionsMatchingClass.build().asList());
+      SvLibTerm disjunctionOfClass =
+          SvLibTerm.booleanDisjunction(expressionsMatchingClass.build().asList());
 
       expressionsPerClass.add(disjunctionOfClass);
     }
 
-    return SvLibRelationalTerm.booleanConjunction(expressionsPerClass.build().asList());
+    return SvLibTerm.booleanConjunction(expressionsPerClass.build().asList());
   }
 
   @NonNull
   public SvLibAnnotateTagCommand createRequires(
       Collection<ARGState> argStates, SvLibTagReference pTag) {
-    SvLibRelationalTerm precondition =
+    SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
     if (!(precondition instanceof SvLibTerm term)) {
       throw new AssertionError(
@@ -104,7 +103,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
     // Build state for precondition
     ImmutableSet.Builder<SvLibRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
-      SvLibRelationalTerm precondition =
+      SvLibTerm precondition =
           getOverapproximationOfStates(
               ImmutableList.of(pair.entry()), svLibMetadata.tagReferenceToScope().get(pTag));
       SvLibRelationalTerm postcondition =
