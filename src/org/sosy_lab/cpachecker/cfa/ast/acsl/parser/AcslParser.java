@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
@@ -77,8 +77,30 @@ public class AcslParser {
     return definition;
   }
 
-  public static AAcslAnnotation parseAcslAnnotation(String pInput) {
-    return null;
+  public static AcslAssertion parseAcslAssertion(String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.assertion());
+    AntlrAssertionToAssertionConverter converter = new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope);
+    AcslAssertion assertion = converter.visit(tree);
+    return assertion;
+  }
+
+  public static String stripCommentMarker(String pCommentString) {
+    String commentString = pCommentString;
+    if (pCommentString.startsWith("//@")) {
+      Pattern pattern = Pattern.compile("(//@(\\s)*)(?<content>.*)");
+      Matcher matcher = pattern.matcher(pCommentString);
+      if (matcher.matches()) {
+        commentString = matcher.group("content");
+      }
+    } else if (pCommentString.startsWith("/*@")) {
+      Pattern pattern = Pattern.compile("/\\*@\\s*(?<content>(.*\\s*)*)\\*/");
+      Matcher matcher = pattern.matcher(commentString);
+      if (matcher.matches()) {
+        commentString = matcher.group("content");
+      }
+    }
+
+    return commentString;
   }
 
   public static class AcslParseException extends Exception {

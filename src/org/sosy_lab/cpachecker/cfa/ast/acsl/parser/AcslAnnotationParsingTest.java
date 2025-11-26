@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -21,7 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -65,8 +69,14 @@ public class AcslAnnotationParsingTest {
     return scope;
   }
 
+  private AcslScope getAcslScope() {
+    AcslScope scope = AcslScope.empty();
+
+    return scope;
+  }
+
   @Test
-  public void parseAssertion() {
+  public void parseAssertion() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "assert x == 10;";
 
@@ -83,7 +93,7 @@ public class AcslAnnotationParsingTest {
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
                 AcslBinaryTermExpressionOperator.EQUALS));
-    AcslAssertion parsed = (AcslAssertion) AcslParser.parseAcslAnnotation(input);
-    assert parsed.equals(expected);
+    AcslAssertion parsed = AcslParser.parseAcslAssertion(input, getCProgramScope(), getAcslScope());
+    assert expected.equals(parsed);
   }
 }
