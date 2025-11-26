@@ -14,7 +14,6 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.MPORUsage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
@@ -35,20 +34,19 @@ public class Sequentialization {
 
   @CanIgnoreReturnValue
   public static String tryBuildProgramString(
-      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils, MPORUsage pUsage)
+      MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
     InputRejection.handleRejections(pCfa);
     SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
-    return buildProgramString(pOptions, pCfa, fields, pUtils, pUsage);
+    return buildProgramString(pOptions, pCfa, fields, pUtils);
   }
 
   private static String buildProgramString(
       MPOROptions pOptions,
       CFA pCfa,
       SequentializationFields pFields,
-      SequentializationUtils pUtils,
-      MPORUsage pUsage)
+      SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
@@ -60,8 +58,7 @@ public class Sequentialization {
             : initProgram;
 
     // if enabled, export the program and/or metadata to a file
-    MPORWriter.handleExport(
-        pOptions, rFormattedProgram, pCfa.getFileNames(), pUtils.logger(), pUsage);
+    MPORWriter.handleExport(pOptions, rFormattedProgram, pCfa.getFileNames(), pUtils.logger());
 
     // if enabled, check that program can be parsed by CPAchecker
     if (pOptions.validateParse()) {
