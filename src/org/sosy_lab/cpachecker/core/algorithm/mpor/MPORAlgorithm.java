@@ -21,7 +21,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -95,13 +94,13 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Specification specification;
 
-  private final MPORUsage usage;
-
   private final MPOROptions options;
 
   private final SequentializationUtils utils;
 
   private final SequentializationStatistics sequentializationStatistics;
+
+  private final MPORUsage usage;
 
   public MPORAlgorithm(
       Configuration pConfiguration,
@@ -121,19 +120,14 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     specification = pSpecification;
-    usage = pUsage;
     options = new MPOROptions(pConfiguration);
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
 
-    // the export path may be null, when unit testing
-    if (options.exportPath() == null) {
-      sequentializationStatistics = new SequentializationStatistics(null, logger);
-    } else {
-      // use the first input file name of the CFA for exporting
-      String firstInputFileName = cfa.getFileNames().getFirst().toString();
-      Path exportPath = Objects.requireNonNull(options.exportPath()).getPath(firstInputFileName);
-      sequentializationStatistics = new SequentializationStatistics(exportPath, logger);
-    }
+    // use the first input file name of the CFA for exporting
+    Path exportPath = options.exportPath().getPath(cfa.getFileNames().getFirst().toString());
+    sequentializationStatistics = new SequentializationStatistics(exportPath, logger);
+
+    usage = pUsage;
   }
 
   public static boolean isAlreadySequentialized(CFA pCFA) {
@@ -287,7 +281,7 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
 
     private @Nullable String sequentializedProgramString = null;
 
-    private SequentializationStatistics(@Nullable Path pProgramOutputPath, LogManager pLogger) {
+    private SequentializationStatistics(Path pProgramOutputPath, LogManager pLogger) {
       programOutputPath = pProgramOutputPath;
       statisticsLogger = pLogger;
     }
