@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm.MPORUsage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -376,7 +375,7 @@ public class SequentializationParseTest {
     CFA cfa = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
     SequentializationUtils utils =
         SequentializationUtils.of(cfa, pConfiguration, pLogger, pShutdownNotifier);
-    return Sequentialization.tryBuildProgramString(pOptions, cfa, utils, MPORUsage.NONE);
+    return Sequentialization.tryBuildProgramString(pOptions, cfa, utils);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {

@@ -77,21 +77,6 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "create additional output file with metadata such as input file(s) and algorithm"
-              + " options?")
-  private boolean exportMetadata = true;
-
-  @Option(
-      secure = true,
-      description =
-          "the file name for the exported sequentialization and metadata. uses the first input file"
-              + " name as the default prefix.")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportPath = PathTemplate.ofFormatString("%s-sequentialized");
-
-  @Option(
-      secure = true,
-      description =
           "include original function declarations from input file? including them may result in"
               + " unsound analysis (e.g. false alarms for CBMC + ignored function calls through"
               + " function pointers for CPAchecker)")
@@ -146,6 +131,24 @@ public class MPOROptions {
 
   @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
   private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
+
+  @Option(
+      secure = true,
+      description =
+          "create additional output file with metadata such as input file(s) and algorithm"
+              + " options?")
+  private boolean outputMetadata = true;
+
+  @Option(
+      secure = true,
+      description =
+          "the file name for the sequentialization and metadata. uses the first input file name as"
+              + " the default prefix.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
+
+  @Option(secure = true, description = "export the sequentialized program in a .i file?")
+  private boolean outputProgram = true;
 
   @Option(
       secure = true,
@@ -431,14 +434,6 @@ public class MPOROptions {
     return controlEncodingThread;
   }
 
-  public boolean exportMetadata() {
-    return exportMetadata;
-  }
-
-  public PathTemplate exportPath() {
-    return exportPath;
-  }
-
   public boolean inputFunctionDeclarations() {
     return inputFunctionDeclarations;
   }
@@ -473,6 +468,18 @@ public class MPOROptions {
 
   public NondeterminismSource nondeterminismSource() {
     return nondeterminismSource;
+  }
+
+  public boolean outputMetadata() {
+    return outputMetadata;
+  }
+
+  public PathTemplate outputPath() {
+    return outputPath;
+  }
+
+  public boolean outputProgram() {
+    return outputProgram;
   }
 
   public boolean pruneBitVectorEvaluations() {

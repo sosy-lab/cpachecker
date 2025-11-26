@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -121,10 +120,7 @@ public class InputRejection {
       }
     }
     if (!isParallel) {
-      throw new UnsupportedCodeException(
-          InputRejectionMessage.NOT_CONCURRENT.message
-              + Arrays.toString(Thread.currentThread().getStackTrace()),
-          null);
+      throw new UnsupportedCodeException(InputRejectionMessage.NOT_CONCURRENT.message, null);
     }
   }
 

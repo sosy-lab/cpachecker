@@ -42,7 +42,7 @@ public class SeqValidator {
    * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations()} is enabled, because
    * using preprocessors on source code (i.e. {@code String}s) is not allowed.
    */
-  public static void validateProgramParsing(
+  public static String validateProgramParsing(
       String pSequentialization, SequentializationUtils pUtils)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
@@ -50,6 +50,7 @@ public class SeqValidator {
     CFACreator cfaCreator =
         MPORUtil.buildTestCfaCreator(pUtils.logger(), pUtils.shutdownNotifier());
     Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
+    return pSequentialization;
   }
 
   // Clauses =======================================================================================

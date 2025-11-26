@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.export;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -20,7 +20,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter.FileExtension;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter.FileExtension;
 
 class MetadataWriter {
 
@@ -32,29 +32,31 @@ class MetadataWriter {
       @JsonProperty("utc_creation_time") String pUtcCreationTime,
       @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
 
-  static void write(
+  static void tryWrite(
       MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
 
-    Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
-    if (metadataPath == null) {
-      pLogger.log(
-          Level.WARNING,
-          "Could not determine path for sequentialization metadata. Sequentialization"
-              + " metadata was not created.");
-      return;
-    }
+    if (pOptions.outputMetadata()) {
+      Path metadataPath = MPORWriter.buildOutputPath(pOptions, pProgramName, FileExtension.YML);
+      if (metadataPath == null) {
+        pLogger.log(
+            Level.WARNING,
+            "Could not determine path for sequentialization metadata. Sequentialization"
+                + " metadata was not created.");
+        return;
+      }
 
-    YAMLMapper yamlMapper = new YAMLMapper();
-    MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
-    try {
-      yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
-      pLogger.log(Level.INFO, "Sequentialization metadata exported to: ", metadataPath.toString());
-    } catch (IOException e) {
-      pLogger.logUserException(
-          Level.WARNING,
-          e,
-          "An error occurred while writing metadata. Sequentialization metadata was not"
-              + " exported.");
+      YAMLMapper yamlMapper = new YAMLMapper();
+      MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
+      try {
+        yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
+        pLogger.log(Level.INFO, "Sequentialization metadata created in: ", metadataPath.toString());
+      } catch (IOException e) {
+        pLogger.logUserException(
+            Level.WARNING,
+            e,
+            "An error occurred while writing metadata. Sequentialization metadata was not"
+                + " created.");
+      }
     }
   }
 
