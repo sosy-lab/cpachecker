@@ -87,13 +87,9 @@ public class ArgToSvLibCorrectnessWitnessExport {
       Collection<ARGState> argStates, SvLibTagReference pTag) {
     SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
-    if (!(precondition instanceof SvLibTerm term)) {
-      throw new AssertionError(
-          "Precondition is not a SV-LIB term, it contains final commands: " + precondition);
-    }
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
-        ImmutableList.of(new SvLibRequiresTag(term, FileLocation.DUMMY)),
+        ImmutableList.of(new SvLibRequiresTag(precondition, FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
 
