@@ -14,7 +14,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents a boolean value. It may store the values <code>false</code> and <code>true
- * </code>. While the values can only be boolean, the type can be decided freely.
+ * </code>. While the values can only be boolean (i.e. 0 or 1 for C, and type boolean for Java), the
+ * type can be decided freely. For C, this class should only be used for results of logical
+ * operations (e.g. ==).
  */
 public enum BooleanValue implements Value {
   TRUE_VALUE(true),
