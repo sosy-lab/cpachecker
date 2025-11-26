@@ -77,9 +77,11 @@ public class AcslParser {
     return definition;
   }
 
-  public static AcslAssertion parseAcslAssertion(String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
+  public static AcslAssertion parseAcslAssertion(
+      String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.assertion());
-    AntlrAssertionToAssertionConverter converter = new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope);
+    AntlrAssertionToAssertionConverter converter =
+        new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope);
     AcslAssertion assertion = converter.visit(tree);
     return assertion;
   }

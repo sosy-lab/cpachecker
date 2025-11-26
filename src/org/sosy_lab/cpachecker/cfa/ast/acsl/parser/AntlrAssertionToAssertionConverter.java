@@ -26,6 +26,7 @@ public class AntlrAssertionToAssertionConverter
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
   }
 
+  @Override
   public AcslAssertion visitAssertion(AssertionContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
