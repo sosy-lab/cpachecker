@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
@@ -137,7 +137,7 @@ public class AbstractionFormula implements Serializable {
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
-  public SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope) {
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) {
     FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
     return fMgr.visit(asFormula(), visitor);
   }

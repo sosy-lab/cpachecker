@@ -15,22 +15,20 @@ import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
-public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRelationalTerm {
+public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibRelationalTerm {
 
   @Serial private static final long serialVersionUID = -1896197197042124013L;
 
   private final SvLibIdTerm symbol;
-  private final ImmutableList<? extends SvLibFinalRelationalTerm> terms;
+  private final ImmutableList<? extends SvLibRelationalTerm> terms;
   private final FileLocation fileLocation;
 
   protected SvLibGeneralSymbolApplicationTerm(
-      SvLibIdTerm pSymbol,
-      List<? extends SvLibFinalRelationalTerm> pTerms,
-      FileLocation pFileLocation) {
+      SvLibIdTerm pSymbol, List<? extends SvLibRelationalTerm> pTerms, FileLocation pFileLocation) {
     terms = ImmutableList.copyOf(pTerms);
     fileLocation = pFileLocation;
     symbol = pSymbol;
@@ -50,7 +48,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRel
     return type;
   }
 
-  public @NonNull ImmutableList<? extends SvLibFinalRelationalTerm> getTerms() {
+  public @NonNull ImmutableList<? extends SvLibRelationalTerm> getTerms() {
     return terms;
   }
 
@@ -64,7 +62,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRel
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(SvLibFinalRelationalTerm::toASTString).toList())
+        + Joiner.on(" ").join(terms.stream().map(SvLibRelationalTerm::toASTString).toList())
         + ")";
   }
 
@@ -73,7 +71,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRel
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(SvLibFinalRelationalTerm::toASTString).toList())
+        + Joiner.on(" ").join(terms.stream().map(SvLibRelationalTerm::toASTString).toList())
         + ")";
   }
 
@@ -94,7 +92,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibFinalRel
   }
 
   protected static boolean wellFormedTerms(
-      SvLibIdTerm pSymbol, List<? extends SvLibFinalRelationalTerm> pTerms) {
+      SvLibIdTerm pSymbol, List<? extends SvLibRelationalTerm> pTerms) {
     if (pSymbol.getExpressionType() instanceof SvLibFunctionType functionType) {
       List<SvLibType> parameterTypes = functionType.getParameters();
       if (parameterTypes.size() != pTerms.size()) {
