@@ -46,7 +46,8 @@ public abstract class SvLibIdTermReplacer
     List<SvLibRelationalTerm> argsReplacedTerms =
         transformedImmutableListCopy(pSvLibSymbolApplicationTerm.getTerms(), t -> t.accept(this));
     if (argsReplacedTerms.stream().anyMatch(t -> t instanceof SvLibTerm)) {
-      return new SvLibSymbolApplicationRelationalTerm(pIdTerm, argsReplacedTerms, FileLocation.DUMMY);
+      return new SvLibSymbolApplicationRelationalTerm(
+          pIdTerm, argsReplacedTerms, FileLocation.DUMMY);
     }
 
     List<SvLibTerm> argsAsTerms =
