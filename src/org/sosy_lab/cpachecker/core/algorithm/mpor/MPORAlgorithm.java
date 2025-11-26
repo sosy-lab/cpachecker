@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 public class MPORAlgorithm implements Algorithm, StatisticsProvider {
 
-  /** Defines the use case for a {@link MPORAlgorithm} instance. */
   public enum MPORUsage {
     /** {@link MPORAlgorithm} is not used at all, rejected by constructor. */
     NONE(false, false),
@@ -100,6 +99,10 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
 
   private final SequentializationStatistics sequentializationStatistics;
 
+  /**
+   * Whether to use this instance of the {@link MPORAlgorithm} to create a sequentialized {@link
+   * CFA} that can be given directly to CPAcheckers internal analysis.
+   */
   private final MPORUsage usage;
 
   public MPORAlgorithm(
