@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Each of its fields can be assigned a value with the same type, a subtype of the array or an
  * unknown value. No other types can be stored in instances of this class.
  */
-public final class ArrayValue implements Value {
+public final class JArrayValue implements Value {
 
   @Serial private static final long serialVersionUID = -3963825961335658001L;
 
@@ -44,7 +44,7 @@ public final class ArrayValue implements Value {
   private final Value[] values;
 
   /**
-   * Creates a new <code>ArrayValue</code> instance representing an array of the given type and
+   * Creates a new <code>JArrayValue</code> instance representing an array of the given type and
    * size. No values are initialized.
    *
    * <p>This constructor resembles slightly the following declaration of arrays in Java (for
@@ -55,10 +55,10 @@ public final class ArrayValue implements Value {
    * </pre>
    *
    * @param pType the type of the array. Only values of this type's element type or subtypes of this
-   *     type's element type can be stored in the returned <code>ArrayValue</code> object
+   *     type's element type can be stored in the returned <code>JArrayValue</code> object
    * @param pArraySize the size of the array
    */
-  public ArrayValue(JArrayType pType, int pArraySize) {
+  public JArrayValue(JArrayType pType, int pArraySize) {
     arrayType = pType;
     elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pArraySize;
@@ -73,7 +73,7 @@ public final class ArrayValue implements Value {
   }
 
   /**
-   * Creates a new <code>ArrayValue</code> instance representing an array of the given type and
+   * Creates a new <code>JArrayValue</code> instance representing an array of the given type and
    * initialized with the given values. The size of the array is equal to the number of values
    * given.
    *
@@ -89,11 +89,11 @@ public final class ArrayValue implements Value {
    * Value.UnknownValue}). Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    *
    * @param pType the type of the array. Only values of this type's element type or subtypes of this
-   *     type's element type can be stored in the returned <code>ArrayValue</code> object
+   *     type's element type can be stored in the returned <code>JArrayValue</code> object
    * @param pValues a <code>List</code> containing the initial values the array should have
    * @throws IllegalArgumentException if a given value is not compatible with the array type
    */
-  public ArrayValue(JArrayType pType, List<Value> pValues) {
+  public JArrayValue(JArrayType pType, List<Value> pValues) {
     arrayType = pType;
     elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pValues.size();
@@ -121,18 +121,18 @@ public final class ArrayValue implements Value {
   }
 
   /**
-   * Returns a deep copy of the given <code>ArrayValue</code> instance.
+   * Returns a deep copy of the given <code>JArrayValue</code> instance.
    *
-   * @param pArrayValue the <code>ArrayValue</code> instance to copy
+   * @param pJArrayValue the <code>JArrayValue</code> instance to copy
    * @return a deep copy of the given object
    */
-  public static ArrayValue copyOf(ArrayValue pArrayValue) {
-    ArrayValue newArray = new ArrayValue(pArrayValue.arrayType, pArrayValue.arraySize);
+  public static JArrayValue copyOf(JArrayValue pJArrayValue) {
+    JArrayValue newArray = new JArrayValue(pJArrayValue.arrayType, pJArrayValue.arraySize);
 
     int counter = 0;
-    for (Value v : pArrayValue.values) {
-      if (v instanceof ArrayValue arrayValue) {
-        newArray.values[counter] = ArrayValue.copyOf(arrayValue);
+    for (Value v : pJArrayValue.values) {
+      if (v instanceof JArrayValue arrayValue) {
+        newArray.values[counter] = JArrayValue.copyOf(arrayValue);
       } else {
         newArray.values[counter] = v;
       }
@@ -154,7 +154,7 @@ public final class ArrayValue implements Value {
       // this is always fine, do nothing
 
     } else if (arrayType.getDimensions() > 1) {
-      if (!(pValue instanceof ArrayValue || pValue instanceof NullValue)) {
+      if (!(pValue instanceof JArrayValue || pValue instanceof NullValue)) {
         throw new IllegalArgumentException(errorMessage);
       }
     } else if (elementType instanceof JClassOrInterfaceType && !isValidComplexValue(pValue)) {
@@ -234,7 +234,7 @@ public final class ArrayValue implements Value {
   }
 
   /**
-   * Puts the specified value into the specified index of this <code>ArrayValue</code>.
+   * Puts the specified value into the specified index of this <code>JArrayValue</code>.
    *
    * @param pValue the value to store at the specified index
    * @param pIndex the index to store the specified value at

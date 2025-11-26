@@ -94,7 +94,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
@@ -1729,7 +1729,7 @@ public abstract class AbstractExpressionValueVisitor
     Value idValue = arrayExpression.accept(this);
 
     if (!idValue.isUnknown() && subscriptValue.isNumericValue()) {
-      ArrayValue innerMostArray = (ArrayValue) arrayExpression.accept(this);
+      JArrayValue innerMostArray = (JArrayValue) arrayExpression.accept(this);
       assert ((NumericValue) subscriptValue).longValue() >= 0
           && ((NumericValue) subscriptValue).longValue() <= Integer.MAX_VALUE;
       return innerMostArray.getValueAt((int) ((NumericValue) subscriptValue).longValue());
@@ -1749,8 +1749,8 @@ public abstract class AbstractExpressionValueVisitor
       return UnknownValue.getInstance();
 
     } else {
-      assert array instanceof ArrayValue;
-      return new NumericValue(((ArrayValue) array).getArraySize());
+      assert array instanceof JArrayValue;
+      return new NumericValue(((JArrayValue) array).getArraySize());
     }
   }
 
@@ -1819,12 +1819,12 @@ public abstract class AbstractExpressionValueVisitor
           Value newValue = lastArrayValue;
 
           for (int index = 0; index < concreteArraySize; index++) {
-            ((ArrayValue) currentArrayValue).setValue(newValue, index);
+            ((JArrayValue) currentArrayValue).setValue(newValue, index);
 
-            // do not put the same ArrayValue instance in each slot
+            // do not put the same JArrayValue instance in each slot
             // - this would mess up later value assignments because of call by reference
-            if (lastArrayValue instanceof ArrayValue) {
-              newValue = ArrayValue.copyOf((ArrayValue) lastArrayValue);
+            if (lastArrayValue instanceof JArrayValue) {
+              newValue = JArrayValue.copyOf((JArrayValue) lastArrayValue);
             }
           }
         }
@@ -1834,7 +1834,7 @@ public abstract class AbstractExpressionValueVisitor
     return currentArrayValue;
   }
 
-  private ArrayValue createArrayValue(JArrayType pType, long pArraySize) {
+  private JArrayValue createArrayValue(JArrayType pType, long pArraySize) {
 
     if (pArraySize < 0 || pArraySize > Integer.MAX_VALUE) {
       throw new AssertionError(
@@ -1843,7 +1843,7 @@ public abstract class AbstractExpressionValueVisitor
               + ". Java arrays can't be smaller than 0 or bigger than the max int value.");
     }
 
-    return new ArrayValue(pType, (int) pArraySize);
+    return new JArrayValue(pType, (int) pArraySize);
   }
 
   @Override
@@ -1858,7 +1858,7 @@ public abstract class AbstractExpressionValueVisitor
       slotValues.add(currentExpression.accept(this));
     }
 
-    return new ArrayValue(arrayType, slotValues);
+    return new JArrayValue(arrayType, slotValues);
   }
 
   @Override

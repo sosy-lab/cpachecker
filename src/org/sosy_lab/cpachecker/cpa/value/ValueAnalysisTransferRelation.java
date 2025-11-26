@@ -114,7 +114,7 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -510,10 +510,10 @@ public class ValueAnalysisTransferRelation
         newValue = state.getValueFor(functionReturnVar);
       }
 
-      // We have to handle Java arrays in a special way, because they are stored as ArrayValue
+      // We have to handle Java arrays in a special way, because they are stored as JArrayValue
       // objects
       if (op1 instanceof JArraySubscriptExpression arraySubscriptExpression) {
-        ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
+        JArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
@@ -1000,7 +1000,7 @@ public class ValueAnalysisTransferRelation
       } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
         ExpressionValueVisitor evv = getVisitor();
 
-        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
+        JArrayValue arrayToChange = getInnerMostArray(arrayExpression);
         Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
 
         if (arrayToChange == null || maybeIndex.isUnknown()) {
@@ -1192,15 +1192,15 @@ public class ValueAnalysisTransferRelation
   }
 
   /**
-   * Returns the {@link ArrayValue} object that represents the innermost array of the given {@link
+   * Returns the {@link JArrayValue} object that represents the innermost array of the given {@link
    * JArraySubscriptExpression}.
    *
    * @param pArraySubscriptExpression the subscript expression to get the inner most array of
    * @return <code>null</code> if the complete array or a part significant for the given array
-   *     subscript expression is unknown, the <code>ArrayValue</code> representing the innermost
+   *     subscript expression is unknown, the <code>JArrayValue</code> representing the innermost
    *     array, otherwise
    */
-  private @Nullable ArrayValue getInnerMostArray(
+  private @Nullable JArrayValue getInnerMostArray(
       JArraySubscriptExpression pArraySubscriptExpression) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
@@ -1213,7 +1213,7 @@ public class ValueAnalysisTransferRelation
         if (state.contains(idName)) {
           Value idValue = state.getValueFor(idName);
           if (idValue.isExplicitlyKnown()) {
-            return (ArrayValue) idValue;
+            return (JArrayValue) idValue;
           }
         }
       }
@@ -1223,7 +1223,7 @@ public class ValueAnalysisTransferRelation
       final JArraySubscriptExpression arraySubscriptExpression =
           (JArraySubscriptExpression) arrayExpression;
       // the array enclosing the array specified in the given array subscript expression
-      ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
+      JArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
       OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
       int index;
@@ -1240,11 +1240,11 @@ public class ValueAnalysisTransferRelation
         return null;
       }
 
-      return (ArrayValue) enclosingArray.getValueAt(index);
+      return (JArrayValue) enclosingArray.getValueAt(index);
     }
   }
 
-  private void handleAssignmentToArray(ArrayValue pArray, int index, ARightHandSide exp) {
+  private void handleAssignmentToArray(JArrayValue pArray, int index, ARightHandSide exp) {
     assert exp instanceof JExpression;
 
     pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
@@ -1264,7 +1264,7 @@ public class ValueAnalysisTransferRelation
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =
           (JArraySubscriptExpression) enclosingExpression;
-      ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
+      JArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
       OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {

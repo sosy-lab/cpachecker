@@ -51,8 +51,8 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   @Override
-  public CExpression visit(ArrayValue pValue) {
-    throw new UnsupportedOperationException(ArrayValue.class.getSimpleName() + " is a Java value");
+  public CExpression visit(JArrayValue pValue) {
+    throw new UnsupportedOperationException(JArrayValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override

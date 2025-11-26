@@ -19,7 +19,7 @@ public interface ValueVisitor<T> {
 
   T visit(UnknownValue pValue);
 
-  T visit(ArrayValue pValue);
+  T visit(JArrayValue pValue);
 
   T visit(BooleanValue pValue);
 
