@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -29,7 +29,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation
   @Override
   public int compare(Value pO1, Value pO2) {
     // one of arguments null -> NullPointerException
-    // ClassCastException if p01 or p02 instanceof JArrayValue, BooleanValue, EnumConstantValue,
+    // ClassCastException if p01 or p02 instanceof JArrayValue, BooleanValue, JEnumConstantValue,
     // NullValue
     // 0 if both are unknown Value
     // -1 if p02 unknown Value
@@ -42,8 +42,8 @@ public class RedundantRequirementsValueAnalysisStateImplementation
         || pO2 instanceof JArrayValue
         || pO1 instanceof BooleanValue
         || pO2 instanceof BooleanValue
-        || pO1 instanceof EnumConstantValue
-        || pO2 instanceof EnumConstantValue
+        || pO1 instanceof JEnumConstantValue
+        || pO2 instanceof JEnumConstantValue
         || pO1 instanceof NullValue
         || pO2 instanceof NullValue) {
       throw new ClassCastException("Expected NumericValue.");

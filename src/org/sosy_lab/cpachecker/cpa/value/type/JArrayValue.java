@@ -189,7 +189,7 @@ public final class JArrayValue implements Value {
 
     return pValue.isUnknown()
         || pValue instanceof NullValue
-        || pValue instanceof EnumConstantValue
+        || pValue instanceof JEnumConstantValue
         || arrayType == null;
   }
 

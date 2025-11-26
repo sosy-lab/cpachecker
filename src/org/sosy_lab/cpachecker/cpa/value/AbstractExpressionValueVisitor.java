@@ -96,7 +96,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -1758,7 +1758,7 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(JEnumConstantExpression pJEnumConstantExpression) {
     String fullName = pJEnumConstantExpression.getConstantName();
 
-    return new EnumConstantValue(fullName);
+    return new JEnumConstantValue(fullName);
   }
 
   @Override

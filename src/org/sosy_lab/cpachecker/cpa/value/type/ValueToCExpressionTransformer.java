@@ -35,9 +35,9 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   @Override
-  public CExpression visit(EnumConstantValue pValue) {
+  public CExpression visit(JEnumConstantValue pValue) {
     throw new UnsupportedOperationException(
-        EnumConstantValue.class.getSimpleName() + " is a Java value");
+        JEnumConstantValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override

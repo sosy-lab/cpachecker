@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -876,7 +876,7 @@ public final class ValueAnalysisState
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       Value valueOfEntry = entry.getValue().getValue();
-      if (valueOfEntry instanceof EnumConstantValue) {
+      if (valueOfEntry instanceof JEnumConstantValue) {
         continue;
       }
       NumericValue num = valueOfEntry.asNumericValue().orElseThrow();
@@ -972,7 +972,7 @@ public final class ValueAnalysisState
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       Value valueOfEntry = entry.getValue().getValue();
-      if (valueOfEntry instanceof EnumConstantValue) {
+      if (valueOfEntry instanceof JEnumConstantValue) {
         continue;
       }
       NumericValue num = valueOfEntry.asNumericValue().orElseThrow();

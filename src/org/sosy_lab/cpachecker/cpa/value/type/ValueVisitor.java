@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
 public interface ValueVisitor<T> {
 
-  T visit(EnumConstantValue pValue);
+  T visit(JEnumConstantValue pValue);
 
   T visit(SymbolicValue pValue);
 
