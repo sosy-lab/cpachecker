@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
@@ -283,7 +284,7 @@ public class CPAchecker {
 
     CoreComponentsFactory factory;
     MainCPAStatistics stats = null;
-    CFA cfa = null;
+    ImmutableCFA cfa = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -377,7 +378,7 @@ public class CPAchecker {
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+        initializeReachedSet(reached, cpa, factory.getCfa().getMainFunction(), factory.getCfa());
       }
 
       printConfigurationWarnings();
@@ -467,13 +468,13 @@ public class CPAchecker {
     }
   }
 
-  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
+  public ImmutableCFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
-    final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
+    final ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa);
     return cfa;
   }
