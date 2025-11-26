@@ -15,7 +15,7 @@ public class AcslParserUtilsTest {
   public void testStripCommentMarker() {
     String lineComment = "//@ assert a == 20;";
     String lineCommentExpected = "assert a == 20;";
-    String lineCommentStripped = AcslParserUtils.stripCommentMarker(lineComment);
+    String lineCommentStripped = AcslParser.stripCommentMarker(lineComment);
     assert lineCommentStripped.equals(lineCommentExpected);
   }
 
@@ -36,7 +36,7 @@ assumes /true;
 ensures !(x < 0);
 """;
 
-    String blockCommentStripped = AcslParserUtils.stripCommentMarker(blockComment);
+    String blockCommentStripped = AcslParser.stripCommentMarker(blockComment);
     assert blockCommentStripped.equals(blockCommentExpected);
   }
 }
