@@ -40,6 +40,11 @@ public class SymbolicValueFactory {
     return new SymbolicIdentifier(idCounter++, pMemoryLocation);
   }
 
+  /**
+   * Transforms the given value to a constant expression with the given type (as the canonical
+   * type). Numeric values can also be transformed to constant expressions, while unknowns are not
+   * supposed to be used. Instead of unknown values, a symbolic identifier should be used.
+   */
   public SymbolicExpression asConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
     assert !pValue.isUnknown();

@@ -42,7 +42,12 @@ public interface Value extends Serializable {
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
-  /** Singleton class used to signal that the value is unknown (could be anything). */
+  /**
+   * Singleton class used to signal that the value is unknown (could be anything). These values are
+   * typically not saved in the ValueAnalysis state and are without a type.
+   */
+  // TODO: their typelessness is a problem! As __verifier_nondet_bool() == 123456789 for example is
+  //  true, while it should not be!
   public static final class UnknownValue implements Value, Serializable {
 
     @Serial private static final long serialVersionUID = -300842115868319184L;
