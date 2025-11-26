@@ -115,9 +115,9 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
@@ -1102,8 +1102,8 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> accept(SvLibFinalTerm pSvLibFinalTerm) throws NoException {
-      return ImmutableList.of(pSvLibFinalTerm.getTerm());
+    public Iterable<? extends AAstNode> accept(SvLibAtTerm pSvLibAtTerm) throws NoException {
+      return ImmutableList.of(pSvLibAtTerm.getTerm());
     }
 
     @Override

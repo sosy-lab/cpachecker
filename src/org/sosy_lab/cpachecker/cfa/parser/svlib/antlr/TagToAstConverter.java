@@ -13,8 +13,8 @@ import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -55,19 +55,19 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
 
   @Override
   public SvLibTagAttribute visitCheckTrueProperty(CheckTruePropertyContext pContext) {
-    SvLibFinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    SvLibRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new SvLibCheckTrueTag(term, fileLocationFromContext(pContext));
   }
 
   @Override
   public SvLibTagAttribute visitInvariantProperty(InvariantPropertyContext pContext) {
-    SvLibFinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    SvLibRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new SvLibInvariantTag(term, fileLocationFromContext(pContext));
   }
 
   @Override
   public SvLibTagAttribute visitEnsuresProperty(EnsuresPropertyContext pContext) {
-    SvLibFinalRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
+    SvLibRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new SvLibEnsuresTag(term, fileLocationFromContext(pContext));
   }
 

@@ -15,10 +15,10 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 public final class SvLibEnsuresTag implements SvLibTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
-  private final SvLibFinalRelationalTerm term;
+  private final SvLibRelationalTerm term;
   private final FileLocation fileLocation;
 
-  public SvLibEnsuresTag(SvLibFinalRelationalTerm pTerm, FileLocation pFileLocation) {
+  public SvLibEnsuresTag(SvLibRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -43,7 +43,7 @@ public final class SvLibEnsuresTag implements SvLibTagProperty {
     return ":ensures " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
-  public SvLibFinalRelationalTerm getTerm() {
+  public SvLibRelationalTerm getTerm() {
     return term;
   }
 

@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 
 public interface SvLibTermVisitor<R, X extends Exception> {
 
-  R accept(SvLibFinalTerm pSvLibFinalTerm) throws X;
+  R accept(SvLibAtTerm pSvLibAtTerm) throws X;
 
   R accept(SvLibSymbolApplicationTerm pSvLibSymbolApplicationTerm) throws X;
 

@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
@@ -42,20 +42,20 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 public class SvLibTermToFormulaConverter {
 
   public static @NonNull Formula convertTerm(
-      SvLibFinalRelationalTerm pSvLibFinalRelationalTerm,
+      SvLibRelationalTerm pSvLibRelationalTerm,
       SSAMapBuilder ssa,
       FormulaManagerView fmgr,
       // TODO: This is very ugly, but I don't see an easy way around it at the moment
       SvLibToFormulaConverter pConverter) {
-    return switch (pSvLibFinalRelationalTerm) {
+    return switch (pSvLibRelationalTerm) {
       case SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm ->
           convertApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
       case SvLibConstantTerm pSvLibConstantTerm -> convertConstant(pSvLibConstantTerm, fmgr);
       case SvLibIdTerm pSvLibIdTerm -> convertVariable(pSvLibIdTerm, ssa, fmgr, pConverter);
-      case SvLibFinalTerm pSvLibFinalTerm ->
+      case SvLibAtTerm pSvLibAtTerm ->
           throw new UnsupportedOperationException("Not yet implemented");
       // TODO: remove once we have modules such that we can seal the classes
-      default -> throw new IllegalStateException("Unexpected value: " + pSvLibFinalRelationalTerm);
+      default -> throw new IllegalStateException("Unexpected value: " + pSvLibRelationalTerm);
     };
   }
 
@@ -108,11 +108,11 @@ public class SvLibTermToFormulaConverter {
         && isArrayAccess(pTerm)) {
       return convertArrayAccess(pTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
-        .transform(SvLibFinalRelationalTerm::getExpressionType)
+        .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
       return convertIntegerApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
-        .transform(SvLibFinalRelationalTerm::getExpressionType)
+        .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.BOOL))) {
       return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     }

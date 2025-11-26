@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -192,6 +192,10 @@ class SvLibCfaBuilder {
     FunctionExitNode functionExitNode = functionNodes.getSecondNotNull();
     FunctionEntryNode functionEntryNode = functionNodes.getFirstNotNull();
 
+    // Add this in order to be able to export the statement contracts later on, since the
+    // abstractions happen at the function entry nodes and not for the first node in a statement.
+    nodesToTagReferences.putAll(functionEntryNode, pCommand.getBody().getTagReferences());
+
     // Declare the local and output variables
     CFANode currentStartingNode = functionEntryNode;
     CFANode newNode;
@@ -268,7 +272,7 @@ class SvLibCfaBuilder {
         new SvLibIdTermReplacer() {
 
           @Override
-          public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
+          public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
             if (pIdTerm.getDeclaration().getType().equals(new SvLibAnyType())) {
               return new SvLibIdTerm(
                   pScope.getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),

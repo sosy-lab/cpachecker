@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
@@ -19,5 +19,5 @@ public interface SvLibTermReportingState extends AbstractState {
    *
    * @return the SvLibFinalRelationalTerm representation of the abstract state
    */
-  SvLibFinalRelationalTerm asSvLibTerm(SvLibScope pScope);
+  SvLibTerm asSvLibTerm(SvLibScope pScope);
 }
