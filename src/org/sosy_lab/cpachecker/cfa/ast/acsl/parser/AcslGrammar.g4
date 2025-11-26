@@ -305,8 +305,8 @@ c_statement
     ;
 
 assertion
-    : '/*@' 'assert' pred ';' '*/'
-    | '/*@' 'for' id (',' id)* ':' 'assert' pred ';' '*/'
+    :  'assert' pred ';'
+    |  'for' id (',' id)* ':' 'assert' pred ';'
     ;
 
 
