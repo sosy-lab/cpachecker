@@ -53,14 +53,14 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.U
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UniversalQuantificationPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ValidPredContext;
 
-class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverter<AcslPredicate> {
+class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverter<AcslPredicate> {
 
   private final AntlrTermToTermConverter antrlToTermConverter;
   private final AntlrTsetToMemorySetConverter antrlTsetToMemorySetConverter;
   private final AntlrLabelToLabelConverter labelConverter;
   private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
 
-  protected AntrlPredicateToPredicateConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
+  protected AntlrPredicateToPredicateConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
     super(pCProgramScope, pAcslScope);
     antrlToTermConverter = new AntlrTermToTermConverter(pCProgramScope, pAcslScope);
     antrlTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);

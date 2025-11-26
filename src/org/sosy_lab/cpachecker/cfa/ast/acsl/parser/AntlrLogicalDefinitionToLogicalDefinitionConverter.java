@@ -41,7 +41,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     extends AntlrToInternalAbstractConverter<AcslLogicDefinition> {
   private final AntlrTermToTermConverter antlrTermToTermConverter;
   private final AntrlTypeExpressionToTypeConverter antrlTypeExpressionToTypeConverter;
-  private final AntrlPredicateToPredicateConverter antlrPredicateToPredicateConverter;
+  private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
 
   protected AntlrLogicalDefinitionToLogicalDefinitionConverter(AcslScope pAcslScope) {
     super(CProgramScope.empty(), pAcslScope);
@@ -49,7 +49,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     antrlTypeExpressionToTypeConverter =
         new AntrlTypeExpressionToTypeConverter(getCProgramScope(), getAcslScope());
     antlrPredicateToPredicateConverter =
-        new AntrlPredicateToPredicateConverter(getCProgramScope(), getAcslScope());
+        new AntlrPredicateToPredicateConverter(getCProgramScope(), getAcslScope());
   }
 
   private String parsePolyIdName(PolyIdContext ctx) {

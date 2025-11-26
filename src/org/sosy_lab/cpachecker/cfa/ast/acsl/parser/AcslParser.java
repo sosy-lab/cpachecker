@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Function;
 import java.io.Serial;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -54,8 +56,8 @@ public class AcslParser {
       String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
-    AntrlPredicateToPredicateConverter converter =
-        new AntrlPredicateToPredicateConverter(pCProgramScope, AcslScope.mutableCopy(pAcslScope));
+    AntlrPredicateToPredicateConverter converter =
+        new AntlrPredicateToPredicateConverter(pCProgramScope, AcslScope.mutableCopy(pAcslScope));
 
     AcslPredicate expression = converter.visit(tree);
 
