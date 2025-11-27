@@ -94,7 +94,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
@@ -1336,11 +1336,11 @@ public abstract class AbstractExpressionValueVisitor
             (JSimpleType) pRType);
       }
 
-    } else if (pLValue instanceof BooleanValue booleanValue) {
-      assert pRValue instanceof BooleanValue;
+    } else if (pLValue instanceof JBooleanValue booleanValue) {
+      assert pRValue instanceof JBooleanValue;
 
       boolean lVal = booleanValue.isTrue();
-      boolean rVal = ((BooleanValue) pRValue).isTrue();
+      boolean rVal = ((JBooleanValue) pRValue).isTrue();
 
       return calculateBooleanOperation(lVal, rVal, pOperator);
 
@@ -1506,7 +1506,7 @@ public abstract class AbstractExpressionValueVisitor
               case LESS_EQUAL -> (lVal <= rVal);
               default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
             };
-        return BooleanValue.valueOf(result);
+        return JBooleanValue.valueOf(result);
       }
       default -> {
         // TODO check which cases can be handled
@@ -1576,7 +1576,7 @@ public abstract class AbstractExpressionValueVisitor
                           + " on floating point values");
             };
         // return 1 if expression holds, 0 otherwise
-        yield BooleanValue.valueOf(result);
+        yield JBooleanValue.valueOf(result);
       }
       default -> /* TODO check which cases can be handled */ UnknownValue.getInstance();
     };
@@ -1591,14 +1591,14 @@ public abstract class AbstractExpressionValueVisitor
           // righthandside at this point -
           // this must be handled
           // earlier
-          BooleanValue.valueOf(lVal && rVal);
+          JBooleanValue.valueOf(lVal && rVal);
       case CONDITIONAL_OR,
           LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
           // righthandside at this point
-          BooleanValue.valueOf(lVal || rVal);
-      case LOGICAL_XOR -> BooleanValue.valueOf(lVal ^ rVal);
-      case EQUALS -> BooleanValue.valueOf(lVal == rVal);
-      case NOT_EQUALS -> BooleanValue.valueOf(lVal != rVal);
+          JBooleanValue.valueOf(lVal || rVal);
+      case LOGICAL_XOR -> JBooleanValue.valueOf(lVal ^ rVal);
+      case EQUALS -> JBooleanValue.valueOf(lVal == rVal);
+      case NOT_EQUALS -> JBooleanValue.valueOf(lVal != rVal);
       default ->
           throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
     };
@@ -1609,7 +1609,7 @@ public abstract class AbstractExpressionValueVisitor
     assert pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS
         || pOperator == JBinaryExpression.BinaryOperator.EQUALS;
 
-    return BooleanValue.valueOf(
+    return JBooleanValue.valueOf(
         pOperator != JBinaryExpression.BinaryOperator.EQUALS ^ pLeftValue.equals(pRightValue));
   }
 
@@ -1659,7 +1659,7 @@ public abstract class AbstractExpressionValueVisitor
         }
       };
 
-    } else if (valueObject instanceof BooleanValue booleanValue
+    } else if (valueObject instanceof JBooleanValue booleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
       return booleanValue.negate();
 
@@ -1719,7 +1719,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBooleanLiteralExpression pE) {
-    return BooleanValue.valueOf(pE.getBoolean());
+    return JBooleanValue.valueOf(pE.getBoolean());
   }
 
   @Override

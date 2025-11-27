@@ -56,7 +56,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   @Override
-  public CExpression visit(BooleanValue pValue) {
+  public CExpression visit(JBooleanValue pValue) {
     BigInteger asInt;
     if (pValue.isTrue()) {
       asInt = BigInteger.ONE;

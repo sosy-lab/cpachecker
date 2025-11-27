@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -237,7 +237,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
+    return expressionFactory.asConstant(JBooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {

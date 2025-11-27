@@ -18,23 +18,23 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * type can be decided freely. For C, this class should only be used for results of logical
  * operations (e.g. ==).
  */
-public enum BooleanValue implements Value {
+public enum JBooleanValue implements Value {
   TRUE_VALUE(true),
   FALSE_VALUE(false);
 
   private final boolean value;
 
-  BooleanValue(boolean pValue) {
+  JBooleanValue(boolean pValue) {
     this.value = pValue;
   }
 
   /**
-   * Returns an instance of a <code>BooleanValue</code> object with the specified value.
+   * Returns an instance of a <code>JBooleanValue</code> object with the specified value.
    *
    * @param value the value the returned object should hold
-   * @return an instance of <code>BooleanValue</code> with the specified value
+   * @return an instance of <code>JBooleanValue</code> with the specified value
    */
-  public static BooleanValue valueOf(boolean value) {
+  public static JBooleanValue valueOf(boolean value) {
     if (value) {
       return TRUE_VALUE;
     } else {
@@ -43,23 +43,23 @@ public enum BooleanValue implements Value {
   }
 
   /**
-   * Returns an instance of a <code>BooleanValue</code> object representing the boolean meaning of
+   * Returns an instance of a <code>JBooleanValue</code> object representing the boolean meaning of
    * the given value, if one exists. If none exists, an <code>Optional</code> with no contained
    * reference is returned.
    *
    * @param pValue the {@link Value} whose boolean meaning should be returned
-   * @return an <code>Optional</code> instance containing a reference to the <code>BooleanValue
+   * @return an <code>Optional</code> instance containing a reference to the <code>JBooleanValue
    *     </code> object representing the boolean meaning of the given value, if one exists. An empty
    *     <code>Optional</code> instance, otherwise.
    */
-  public static Optional<BooleanValue> valueOf(Value pValue) {
+  public static Optional<JBooleanValue> valueOf(Value pValue) {
     if (pValue.isUnknown()) {
       return Optional.empty();
 
     } else if (pValue.isNumericValue()) {
       return valueOf((NumericValue) pValue);
 
-    } else if (pValue instanceof BooleanValue booleanValue) {
+    } else if (pValue instanceof JBooleanValue booleanValue) {
       return Optional.of(booleanValue);
 
     } else {
@@ -68,7 +68,7 @@ public enum BooleanValue implements Value {
   }
 
   // TODO: this is wrong for C!
-  private static Optional<BooleanValue> valueOf(NumericValue pValue) {
+  private static Optional<JBooleanValue> valueOf(NumericValue pValue) {
     if (pValue.equals(new NumericValue(0L))) {
       return Optional.of(valueOf(false));
     } else if (pValue.equals(new NumericValue(1L))) {
@@ -88,17 +88,17 @@ public enum BooleanValue implements Value {
   }
 
   /**
-   * Returns the negation of this <code>BooleanValue</code>.
+   * Returns the negation of this <code>JBooleanValue</code>.
    *
-   * @return a <code>BooleanValue</code> object representing <code>true</code> if this object
+   * @return a <code>JBooleanValue</code> object representing <code>true</code> if this object
    *     represents <code>false</code>. An object representing <code>false</code> otherwise.
    */
-  public BooleanValue negate() {
+  public JBooleanValue negate() {
     return value ? FALSE_VALUE : TRUE_VALUE;
   }
 
   /**
-   * Always returns <code>false</code> because <code>BooleanValue</code> always stores a boolean and
+   * Always returns <code>false</code> because <code>JBooleanValue</code> always stores a boolean and
    * never a number.
    *
    * @return always <code>false</code>
@@ -112,7 +112,7 @@ public enum BooleanValue implements Value {
   }
 
   /**
-   * Always returns <code>true</code>. <code>BooleanValue</code> always stores a specific value.
+   * Always returns <code>true</code>. <code>JBooleanValue</code> always stores a specific value.
    *
    * @return always <code>true</code>
    */

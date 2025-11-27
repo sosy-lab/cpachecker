@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -85,7 +85,7 @@ public class AssigningValueVisitorTest {
     assertThat(visitor.isValueInRangeOfType(signedLong, new NumericValue(Float.valueOf(-1.0f))))
         .isTrue();
 
-    assertThat(visitor.isValueInRangeOfType(unsignedChar, BooleanValue.FALSE_VALUE)).isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, JBooleanValue.FALSE_VALUE)).isTrue();
     assertThat(
             visitor.isValueInRangeOfType(CNumericTypes.FLOAT, new NumericValue(Integer.valueOf(2))))
         .isTrue();

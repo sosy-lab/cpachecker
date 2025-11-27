@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -172,7 +172,7 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws UnrecognizedCodeException {
-    final Value value = BooleanValue.valueOf(pJBooleanLiteralExpression.getBoolean());
+    final Value value = JBooleanValue.valueOf(pJBooleanLiteralExpression.getBoolean());
     final Type booleanType = pJBooleanLiteralExpression.getExpressionType();
 
     return SymbolicValueFactory.getInstance().asConstant(value, booleanType);

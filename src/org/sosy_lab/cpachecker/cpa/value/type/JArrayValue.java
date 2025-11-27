@@ -111,7 +111,7 @@ public final class JArrayValue implements Value {
 
     } else if (pType instanceof JSimpleType jSimpleType) {
       return switch (jSimpleType) {
-        case BOOLEAN -> BooleanValue.valueOf(false);
+        case BOOLEAN -> JBooleanValue.valueOf(false);
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
         default -> throw new AssertionError("Unhandled type " + pType.getClass());
       };
@@ -175,7 +175,7 @@ public final class JArrayValue implements Value {
           }
         }
         case BOOLEAN -> {
-          if (!(pValue instanceof BooleanValue)) {
+          if (!(pValue instanceof JBooleanValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
         }

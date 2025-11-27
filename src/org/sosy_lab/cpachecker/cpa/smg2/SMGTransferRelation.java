@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -941,15 +941,15 @@ public class SMGTransferRelation
    *  but only that it does not represent bool.
    *
    *  For example:
-   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
-   *    * representsTrue(BooleanValue.valueOf(false), true) = false
+   *    * representsTrue(JBooleanValue.valueOf(true), true)  = true
+   *    * representsTrue(JBooleanValue.valueOf(false), true) = false
    *  but:
    *    * representsTrue(NullValue.getInstance(), true)     = false
    *    * representsTrue(NullValue.getInstance(), false)    = false
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue booleanValue) {
+    if (value instanceof JBooleanValue booleanValue) {
       return booleanValue.isTrue() == bool;
 
     } else if (value.isNumericValue()) {

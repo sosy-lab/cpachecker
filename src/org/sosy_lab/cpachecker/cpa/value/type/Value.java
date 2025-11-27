@@ -46,7 +46,7 @@ public interface Value extends Serializable {
 
   /**
    * True if we deterministically know the actual value, false otherwise. Explicitly known are (at
-   * least) the following types: {@link NumericValue}s, {@link JArrayValue}s, {@link BooleanValue}s,
+   * least) the following types: {@link NumericValue}s, {@link JArrayValue}s, {@link JBooleanValue}s,
    * {@link JEnumConstantValue}s, and {@link NullValue}s.
    */
   default boolean isExplicitlyKnown() {

@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -617,7 +617,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         if (!trackedInState.contains(var)
             || valueState.getValueFor(var).isUnknown()
             || (!valueState.getValueFor(var).isNumericValue()
-                && !(valueState.getValueFor(var) instanceof BooleanValue))) {
+                && !(valueState.getValueFor(var) instanceof JBooleanValue))) {
           // according to API specification removes var from Map
           varValsIt.remove();
         } else {
@@ -680,7 +680,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportEvenVal) {
             numEvenOrOdd += numInv.exportEvenOrOdd() ? 1 : 0;
           }
-        } else if (val instanceof BooleanValue booleanValue) {
+        } else if (val instanceof JBooleanValue booleanValue) {
           SingleBooleanVariableInvariant boolInv =
               new SingleBooleanVariableInvariant(varAndVals.getKey(), booleanValue);
 
@@ -1640,7 +1640,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     private boolean alwaysFalse;
 
     private SingleBooleanVariableInvariant(
-        final MemoryLocation pVar, final BooleanValue pInitialValue) {
+        final MemoryLocation pVar, final JBooleanValue pInitialValue) {
       Preconditions.checkNotNull(pVar);
       Preconditions.checkNotNull(pInitialValue);
       var = pVar;
@@ -1655,8 +1655,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     private boolean adaptToAdditionalValue(final Value pValue) {
       Preconditions.checkNotNull(pValue);
-      Preconditions.checkArgument(pValue instanceof BooleanValue);
-      BooleanValue newVal = (BooleanValue) pValue;
+      Preconditions.checkArgument(pValue instanceof JBooleanValue);
+      JBooleanValue newVal = (JBooleanValue) pValue;
       Preconditions.checkNotNull(newVal);
       alwaysTrue = alwaysTrue && newVal.isTrue();
       alwaysFalse = alwaysFalse && !newVal.isTrue();

@@ -21,7 +21,7 @@ public interface ValueVisitor<T> {
 
   T visit(JArrayValue pValue);
 
-  T visit(BooleanValue pValue);
+  T visit(JBooleanValue pValue);
 
   T visit(FunctionValue pValue);
 

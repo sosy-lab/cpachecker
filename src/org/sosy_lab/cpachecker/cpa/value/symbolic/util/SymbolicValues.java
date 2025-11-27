@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -183,7 +183,7 @@ public class SymbolicValues {
     if (value instanceof Number number) {
       return new NumericValue(number);
     } else if (value instanceof Boolean b) {
-      return BooleanValue.valueOf(b);
+      return JBooleanValue.valueOf(b);
     } else {
       throw new AssertionError("Unexpected value " + value);
     }

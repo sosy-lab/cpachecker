@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -29,7 +29,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation
   @Override
   public int compare(Value pO1, Value pO2) {
     // one of arguments null -> NullPointerException
-    // ClassCastException if p01 or p02 instanceof JArrayValue, BooleanValue, JEnumConstantValue,
+    // ClassCastException if p01 or p02 instanceof JArrayValue, JBooleanValue, JEnumConstantValue,
     // NullValue
     // 0 if both are unknown Value
     // -1 if p02 unknown Value
@@ -40,8 +40,8 @@ public class RedundantRequirementsValueAnalysisStateImplementation
           "At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
     } else if (pO1 instanceof JArrayValue
         || pO2 instanceof JArrayValue
-        || pO1 instanceof BooleanValue
-        || pO2 instanceof BooleanValue
+        || pO1 instanceof JBooleanValue
+        || pO2 instanceof JBooleanValue
         || pO1 instanceof JEnumConstantValue
         || pO2 instanceof JEnumConstantValue
         || pO1 instanceof NullValue

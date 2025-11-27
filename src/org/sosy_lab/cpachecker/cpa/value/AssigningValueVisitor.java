@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -441,24 +441,24 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             && rightValueV.isExplicitlyKnown()
             && isAssignableVariable(lVarInBinaryExp)) {
 
-          // we only want BooleanValue objects for boolean values in the future
-          assert rightValueV instanceof BooleanValue;
-          BooleanValue booleanValueRight = BooleanValue.valueOf(rightValueV).orElseThrow();
+          // we only want JBooleanValue objects for boolean values in the future
+          assert rightValueV instanceof JBooleanValue;
+          JBooleanValue booleanValueRight = JBooleanValue.valueOf(rightValueV).orElseThrow();
 
           if (!booleanValueRight.isTrue()) {
-            assignValueToState((AIdExpression) lVarInBinaryExp, BooleanValue.valueOf(true));
+            assignValueToState((AIdExpression) lVarInBinaryExp, JBooleanValue.valueOf(true));
           }
 
         } else if (rightValueV.isUnknown()
             && leftValueV.isExplicitlyKnown()
             && isAssignableVariable(rVarInBinaryExp)) {
 
-          // we only want BooleanValue objects for boolean values in the future
-          assert leftValueV instanceof BooleanValue;
-          BooleanValue booleanValueLeft = BooleanValue.valueOf(leftValueV).orElseThrow();
+          // we only want JBooleanValue objects for boolean values in the future
+          assert leftValueV instanceof JBooleanValue;
+          JBooleanValue booleanValueLeft = JBooleanValue.valueOf(leftValueV).orElseThrow();
 
           if (!booleanValueLeft.isTrue()) {
-            assignValueToState((AIdExpression) rVarInBinaryExp, BooleanValue.valueOf(true));
+            assignValueToState((AIdExpression) rVarInBinaryExp, JBooleanValue.valueOf(true));
           }
         }
       }
