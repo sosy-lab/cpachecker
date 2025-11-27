@@ -14,9 +14,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents a boolean value. It may store the values <code>false</code> and <code>true
- * </code>. While the values can only be boolean (i.e. 0 or 1 for C, and type boolean for Java), the
- * type can be decided freely. For C, this class should only be used for results of logical
- * operations (e.g. ==).
+ * </code>.
  */
 public enum JBooleanValue implements Value {
   TRUE_VALUE(true),
@@ -67,7 +65,6 @@ public enum JBooleanValue implements Value {
     }
   }
 
-  // TODO: this is wrong for C!
   private static Optional<JBooleanValue> valueOf(NumericValue pValue) {
     if (pValue.equals(new NumericValue(0L))) {
       return Optional.of(valueOf(false));
@@ -105,9 +102,6 @@ public enum JBooleanValue implements Value {
    */
   @Override
   public boolean isNumericValue() {
-    // TODO: this does not hold for C! We should make a clear distinction between Java and C! We
-    //  even return a numeric below.... this should be a sub-type of numeric if it really is! Or
-    // rename!
     return false;
   }
 
@@ -141,7 +135,6 @@ public enum JBooleanValue implements Value {
    */
   @Override
   public OptionalLong asLong(CType pType) {
-    // TODO: again, wrong for C...
     throw new AssertionError("This method is not implemented");
   }
 
