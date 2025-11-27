@@ -24,8 +24,8 @@ public class AntlrAnnotationToAnnotationVisitor
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
   private final FileLocation fileLocation;
 
-  protected AntlrAnnotationToAnnotationVisitor(CProgramScope pCProgramScope, AcslScope pAcslScope,
-                                               FileLocation pFileLocation) {
+  protected AntlrAnnotationToAnnotationVisitor(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pFileLocation) {
     super(pCProgramScope, pAcslScope);
     fileLocation = pFileLocation;
     antlrPredicateToPredicateConverter =
@@ -36,7 +36,7 @@ public class AntlrAnnotationToAnnotationVisitor
   public AcslAssertion visitAssertion(AssertionContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslAssertion assertion = new AcslAssertion(FileLocation.DUMMY, predicate);
+    AcslAssertion assertion = new AcslAssertion(fileLocation, predicate);
 
     return assertion;
   }
@@ -45,7 +45,7 @@ public class AntlrAnnotationToAnnotationVisitor
   public AcslLoopInvariant visitLoop_invariant(Loop_invariantContext ctx) {
     ParseTree predTree = ctx.getChild(2);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslLoopInvariant loopInvariant = new AcslLoopInvariant(FileLocation.DUMMY, predicate);
+    AcslLoopInvariant loopInvariant = new AcslLoopInvariant(fileLocation, predicate);
 
     return loopInvariant;
   }
