@@ -33,7 +33,6 @@ public final class AcslAssertion extends AAcslAnnotation {
   @Override
   public boolean equals(Object pO) {
     return pO instanceof AcslAssertion other
-        && super.equals(other)
         && predicate.equals(other.getPredicate());
   }
 
@@ -42,7 +41,6 @@ public final class AcslAssertion extends AAcslAnnotation {
     int hash = 7;
     int prime = 31;
     hash = prime * hash * Objects.hashCode(predicate);
-    hash = prime * hash * super.hashCode();
     return hash;
   }
 }
