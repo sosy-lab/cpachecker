@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -92,6 +93,29 @@ public class AcslAnnotationParsingTest {
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
                 AcslBinaryTermExpressionOperator.EQUALS));
     AcslAssertion parsed = AcslParser.parseAcslAssertion(input, getCProgramScope(), getAcslScope());
+    assert expected.equals(parsed);
+  }
+
+  @Test
+  public void parseLoopInvariant() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "loop invariant x <= 10;";
+
+    AcslLoopInvariant expected =
+        new AcslLoopInvariant(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+                AcslBinaryTermExpressionOperator.LESS_EQUAL));
+    AcslLoopInvariant parsed =
+        AcslParser.parseAcslLoopInvariant(input, cProgramScope, getAcslScope());
     assert expected.equals(parsed);
   }
 }

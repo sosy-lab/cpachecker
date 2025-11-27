@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class AAcslAnnotation permits AcslAssertion {
+public abstract sealed class AAcslAnnotation permits AcslAssertion, AcslLoopInvariant {
 
   private final FileLocation fileLocation;
 
