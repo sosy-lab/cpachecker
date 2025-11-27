@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -17,9 +21,13 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,10 +47,10 @@ import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -341,7 +349,89 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     InputRejection.handleRejections(cfa);
     String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
-    MPORWriter.handleExport(programPath, metadataPath, rProgram, cfa.getFileNames(), logger);
+    handleExport(rProgram, cfa.getFileNames());
     return rProgram;
+  }
+
+  private static final String PROGRAM_NOT_EXPORTED_MESSAGE =
+      "Sequentialized program was not exported.";
+
+  private static final String METADATA_NOT_EXPORTED_MESSAGE =
+      "Sequentialization metadata was not exported.";
+
+  public void handleExport(String pOutputProgram, List<Path> pInputFilePaths) {
+
+    // write output program, if the path is successfully determined
+    Optional<Path> sequentializationPath = tryBuildExportPath(programPath, ".i");
+    if (sequentializationPath.isPresent()) {
+      Path path = sequentializationPath.orElseThrow();
+      try {
+        try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+          writer.write(pOutputProgram);
+          logger.log(Level.INFO, "Sequentialized program exported to: ", path.toString());
+        }
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "An IO error occurred while writing the output program. "
+                + PROGRAM_NOT_EXPORTED_MESSAGE);
+      }
+    } else {
+      logger.log(
+          Level.WARNING,
+          "Could not determine path for sequentialization. " + PROGRAM_NOT_EXPORTED_MESSAGE);
+    }
+
+    // write metadata, if the path is successfully determined
+    Optional<Path> sequentializationMetadataPath = tryBuildExportPath(metadataPath, ".yml");
+    if (sequentializationMetadataPath.isPresent()) {
+      Path path = sequentializationMetadataPath.orElseThrow();
+      YAMLMapper yamlMapper = new YAMLMapper();
+      MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
+      try {
+        yamlMapper.writeValue(path.toFile(), metadataRecord);
+        logger.log(Level.INFO, "Sequentialization metadata exported to: ", path.toString());
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "An error occurred while writing metadata. " + METADATA_NOT_EXPORTED_MESSAGE);
+      }
+    } else {
+      logger.log(
+          Level.WARNING,
+          "Could not determine path for sequentialization metadata. "
+              + METADATA_NOT_EXPORTED_MESSAGE);
+    }
+  }
+
+  private record InputFileRecord(
+      @JsonProperty("name") String pName, @JsonProperty("path") String pPath) {}
+
+  private record MetadataRecord(
+      @JsonProperty("cpachecker_version") String pCpaCheckerVersion,
+      @JsonProperty("utc_creation_time") String pUtcCreationTime,
+      @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
+
+  private MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
+    String utcCreationTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+    ImmutableList<InputFileRecord> inputFiles =
+        transformedImmutableListCopy(
+            pInputFilePaths,
+            path ->
+                new InputFileRecord(
+                    Objects.requireNonNull(path).getFileName().toString(), path.toString()));
+    return new MetadataRecord(CPAchecker.getPlainVersion(), utcCreationTime, inputFiles);
+  }
+
+  private Optional<Path> tryBuildExportPath(
+      @Nullable PathTemplate pPathTemplate, String pFileExtension) {
+
+    if (pPathTemplate == null) {
+      return Optional.empty();
+    }
+    PathTemplate pathTemplate = Objects.requireNonNull(pPathTemplate);
+    return Optional.of(Path.of(pathTemplate.getPath() + pFileExtension));
   }
 }
