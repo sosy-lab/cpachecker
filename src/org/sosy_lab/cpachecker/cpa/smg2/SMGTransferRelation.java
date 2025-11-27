@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -935,33 +934,20 @@ public class SMGTransferRelation
     return resultStateBuilder.build();
   }
 
-  /*
-   *  returns 'true' if the given value represents the specified boolean bool.
-   *  A return of 'false' does not necessarily mean that the given value represents !bool,
-   *  but only that it does not represent bool.
-   *
-   *  For example:
-   *    * representsTrue(JBooleanValue.valueOf(true), true)  = true
-   *    * representsTrue(JBooleanValue.valueOf(false), true) = false
-   *  but:
-   *    * representsTrue(NullValue.getInstance(), true)     = false
-   *    * representsTrue(NullValue.getInstance(), false)    = false
-   *
+  /**
+   * Returns 'true' if the given value represents the specified boolean value in the C programming
+   * language.
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof JBooleanValue booleanValue) {
-      return booleanValue.isTrue() == bool;
-
-    } else if (value.isNumericValue()) {
+    if (value instanceof NumericValue numericValue) {
+      boolean numericIsZero = numericValue.bigIntegerValue().compareTo(BigInteger.ZERO) == 0;
       if (bool) {
-        return value.asNumericValue().orElseThrow().longValue() == 1L;
+        return !numericIsZero;
       } else {
-        return value.asNumericValue().orElseThrow().longValue() == 0L;
+        return numericIsZero;
       }
-
-    } else {
-      return false;
     }
+    return false;
   }
 
   @Override
