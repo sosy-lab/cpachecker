@@ -103,6 +103,7 @@ public class MPORAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification)
       throws InvalidConfigurationException, UnsupportedCodeException {
 
+    pConfiguration.inject(this);
     InputRejection.handleRejections(pCfa);
 
     config = pConfiguration;
