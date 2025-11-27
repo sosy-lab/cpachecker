@@ -95,8 +95,8 @@ public enum JBooleanValue implements Value {
   }
 
   /**
-   * Always returns <code>false</code> because <code>JBooleanValue</code> always stores a boolean and
-   * never a number.
+   * Always returns <code>false</code> because <code>JBooleanValue</code> always stores a boolean
+   * and never a number.
    *
    * @return always <code>false</code>
    */
