@@ -23,7 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -119,5 +121,57 @@ public class AcslAnnotationParsingTest {
     AcslLoopInvariant parsed =
         AcslParser.parseAcslLoopInvariant(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
     assert expected.equals(parsed);
+  }
+
+  @Test
+  public void parseEnsuresTest() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "ensures x <= 10;";
+    AcslEnsures expected = getEnsures();
+    AcslEnsures parsed =
+        AcslParser.parseAcslEnsures(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assert expected.equals(parsed);
+  }
+
+  @Test
+  public void parseRequiresTest() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "requires x == 10;";
+    AcslRequires expected = getRequires();
+    AcslRequires parsed =
+        AcslParser.parseAcslRequires(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assert expected.equals(parsed);
+  }
+
+  private AcslEnsures getEnsures() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslEnsures(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermExpressionOperator.LESS_EQUAL));
+  }
+
+  private AcslRequires getRequires() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslRequires(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermExpressionOperator.EQUALS));
   }
 }

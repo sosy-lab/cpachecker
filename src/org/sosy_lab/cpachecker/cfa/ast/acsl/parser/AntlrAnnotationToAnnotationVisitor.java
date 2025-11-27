@@ -15,9 +15,13 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Ensures_clauseContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Requires_clauseContext;
 
 public class AntlrAnnotationToAnnotationVisitor
     extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
@@ -49,4 +53,21 @@ public class AntlrAnnotationToAnnotationVisitor
 
     return loopInvariant;
   }
+
+  @Override
+  public AcslEnsures visitEnsures_clause(Ensures_clauseContext ctx){
+    ParseTree predTree = ctx.getChild(1);
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
+    AcslEnsures ensures = new  AcslEnsures(fileLocation, predicate);
+    return ensures;
+  }
+
+  @Override
+  public AcslRequires visitRequires_clause(Requires_clauseContext ctx){
+    ParseTree predTree = ctx.getChild(1);
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
+    AcslRequires requires = new AcslRequires(fileLocation, predicate);
+    return  requires;
+  }
+
 }

@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
@@ -98,6 +100,26 @@ public class AcslParser {
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation loopInvariant = converter.visit(tree);
     return (AcslLoopInvariant) loopInvariant;
+  }
+
+  public static AcslEnsures parseAcslEnsures(
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
+      throws AcslParseException {
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.ensures_clause());
+    AntlrAnnotationToAnnotationVisitor converter =
+        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    AAcslAnnotation ensures = converter.visit(tree);
+    return (AcslEnsures) ensures;
+  }
+
+  public static AcslRequires parseAcslRequires(
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
+      throws AcslParseException {
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.requires_clause());
+    AntlrAnnotationToAnnotationVisitor converter =
+        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    AAcslAnnotation requires = converter.visit(tree);
+    return (AcslRequires) requires;
   }
 
   public static String stripCommentMarker(String pCommentString) {

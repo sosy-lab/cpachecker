@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 public final class AcslRequires extends AAcslAnnotation {
   private final AcslPredicate predicate;
 
-  private AcslRequires(FileLocation pFileLocation, AcslPredicate pPredicate) {
+  public AcslRequires(FileLocation pFileLocation, AcslPredicate pPredicate) {
     super(pFileLocation);
     predicate = pPredicate;
   }
