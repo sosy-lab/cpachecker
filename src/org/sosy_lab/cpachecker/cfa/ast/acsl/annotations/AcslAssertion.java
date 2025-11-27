@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
@@ -27,5 +28,21 @@ public final class AcslAssertion extends AAcslAnnotation {
   @Override
   String toAstString() {
     return "assert " + predicate.toASTString() + ";";
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    return pO instanceof AcslAssertion other
+        && super.equals(other)
+        && predicate.equals(other.getPredicate());
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 7;
+    int prime = 31;
+    hash = prime * hash * Objects.hashCode(predicate);
+    hash = prime * hash * super.hashCode();
+    return hash;
   }
 }

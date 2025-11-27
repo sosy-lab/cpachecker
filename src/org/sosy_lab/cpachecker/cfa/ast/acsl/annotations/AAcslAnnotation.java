@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import com.google.common.base.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AAcslAnnotation permits AcslAssertion {
@@ -20,6 +21,18 @@ public abstract sealed class AAcslAnnotation permits AcslAssertion {
 
   public FileLocation getFileLocation() {
     return fileLocation;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+
+    return pO instanceof AAcslAnnotation other
+        && fileLocation.equals(other.fileLocation);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(fileLocation);
   }
 
   abstract String toAstString();
