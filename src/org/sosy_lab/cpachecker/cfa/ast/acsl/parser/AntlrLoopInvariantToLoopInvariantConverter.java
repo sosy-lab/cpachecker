@@ -20,10 +20,12 @@ public class AntlrLoopInvariantToLoopInvariantConverter
     extends AntlrToInternalAbstractConverter<AcslLoopInvariant> {
 
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
+  private final FileLocation fileLocation;
 
   protected AntlrLoopInvariantToLoopInvariantConverter(
-      CProgramScope pCProgramScope, AcslScope pAcslScope) {
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pFileLocation) {
     super(pCProgramScope, pAcslScope);
+    fileLocation = pFileLocation;
     antlrPredicateToPredicateConverter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
   }

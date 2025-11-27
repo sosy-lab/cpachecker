@@ -19,9 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.A
 public class AntlrAssertionToAssertionConverter
     extends AntlrToInternalAbstractConverter<AcslAssertion> {
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
+  private final FileLocation fileLocation;
 
-  protected AntlrAssertionToAssertionConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
+  protected AntlrAssertionToAssertionConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pFileLocation) {
     super(pCProgramScope, pAcslScope);
+    fileLocation = pFileLocation;
     antlrPredicateToPredicateConverter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
   }

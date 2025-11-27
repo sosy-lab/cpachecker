@@ -92,7 +92,9 @@ public class AcslAnnotationParsingTest {
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
                 AcslBinaryTermExpressionOperator.EQUALS));
-    AcslAssertion parsed = AcslParser.parseAcslAssertion(input, getCProgramScope(), getAcslScope());
+    AcslAssertion parsed =
+        AcslParser.parseAcslAssertion(
+            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
 
@@ -115,7 +117,7 @@ public class AcslAnnotationParsingTest {
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
                 AcslBinaryTermExpressionOperator.LESS_EQUAL));
     AcslLoopInvariant parsed =
-        AcslParser.parseAcslLoopInvariant(input, cProgramScope, getAcslScope());
+        AcslParser.parseAcslLoopInvariant(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
     assert expected.equals(parsed);
   }
 }

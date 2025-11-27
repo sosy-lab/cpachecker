@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -79,18 +80,21 @@ public class AcslParser {
   }
 
   public static AcslAssertion parseAcslAssertion(
-      String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
+      throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.assertion());
     AntlrAssertionToAssertionConverter converter =
-        new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope);
+        new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope, pFileLocation);
     AcslAssertion assertion = converter.visit(tree);
     return assertion;
   }
 
-  public static AcslLoopInvariant parseAcslLoopInvariant(String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope)
+  public static AcslLoopInvariant parseAcslLoopInvariant(
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.loop_invariant());
-    AntlrLoopInvariantToLoopInvariantConverter converter = new AntlrLoopInvariantToLoopInvariantConverter(pCProgramScope, pAcslScope);
+    AntlrLoopInvariantToLoopInvariantConverter converter =
+        new AntlrLoopInvariantToLoopInvariantConverter(pCProgramScope, pAcslScope, pFileLocation);
     AcslLoopInvariant loopInvariant = converter.visit(tree);
     return loopInvariant;
   }
