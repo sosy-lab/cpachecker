@@ -96,6 +96,8 @@ public interface Value extends Serializable {
       return true;
     }
 
+    // Used as part of the deserialization (usage might not appear in some IDEs/tools) in
+    // proof-carrying code for example.
     @Serial
     private Object readResolve() {
       return instance;
