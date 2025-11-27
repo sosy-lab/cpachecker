@@ -60,7 +60,7 @@ public class MPORWriter {
       LogManager pLogger) {
 
     // write output program, if the path is successfully determined
-    Optional<Path> programPath = tryBuildExportPath(pProgramPath, FileExtension.I);
+    Optional<Path> programPath = tryBuildExportPath(pProgramPath, ".i");
     if (programPath.isPresent()) {
       Path path = programPath.orElseThrow();
       try {
@@ -82,7 +82,7 @@ public class MPORWriter {
     }
 
     // write metadata, if the path is successfully determined
-    Optional<Path> metadataPath = MPORWriter.tryBuildExportPath(pMetadataPath, FileExtension.YML);
+    Optional<Path> metadataPath = MPORWriter.tryBuildExportPath(pMetadataPath, ".yml");
     if (metadataPath.isPresent()) {
       Path path = metadataPath.orElseThrow();
       YAMLMapper yamlMapper = new YAMLMapper();
@@ -125,12 +125,12 @@ public class MPORWriter {
   }
 
   private static Optional<Path> tryBuildExportPath(
-      @Nullable PathTemplate pPathTemplate, FileExtension pFileExtension) {
+      @Nullable PathTemplate pPathTemplate, String pFileExtension) {
 
     if (pPathTemplate == null) {
       return Optional.empty();
     }
     PathTemplate pathTemplate = Objects.requireNonNull(pPathTemplate);
-    return Optional.of(Path.of(pathTemplate.getPath() + pFileExtension.getSuffix()));
+    return Optional.of(Path.of(pathTemplate.getPath() + pFileExtension));
   }
 }
