@@ -13,21 +13,32 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AssertionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Loop_invariantContext;
 
-public class AntlrLoopInvariantToLoopInvariantConverter
-    extends AntlrToInternalAbstractConverter<AcslLoopInvariant> {
-
+public class AntlrAnnotationToAnnotationVisitor
+    extends AntlrToInternalAbstractConverter<AAcslAnnotation> {
   private final AntlrPredicateToPredicateConverter antlrPredicateToPredicateConverter;
   private final FileLocation fileLocation;
 
-  protected AntlrLoopInvariantToLoopInvariantConverter(
-      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pFileLocation) {
+  protected AntlrAnnotationToAnnotationVisitor(CProgramScope pCProgramScope, AcslScope pAcslScope,
+                                               FileLocation pFileLocation) {
     super(pCProgramScope, pAcslScope);
     fileLocation = pFileLocation;
     antlrPredicateToPredicateConverter =
         new AntlrPredicateToPredicateConverter(pCProgramScope, pAcslScope);
+  }
+
+  @Override
+  public AcslAssertion visitAssertion(AssertionContext ctx) {
+    ParseTree predTree = ctx.getChild(1);
+    AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
+    AcslAssertion assertion = new AcslAssertion(FileLocation.DUMMY, predicate);
+
+    return assertion;
   }
 
   @Override

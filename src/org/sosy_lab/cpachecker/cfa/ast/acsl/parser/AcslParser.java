@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
@@ -83,20 +84,20 @@ public class AcslParser {
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.assertion());
-    AntlrAssertionToAssertionConverter converter =
-        new AntlrAssertionToAssertionConverter(pCProgramScope, pAcslScope, pFileLocation);
-    AcslAssertion assertion = converter.visit(tree);
-    return assertion;
+    AntlrAnnotationToAnnotationVisitor converter =
+        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    AAcslAnnotation assertion = converter.visit(tree);
+    return (AcslAssertion) assertion;
   }
 
   public static AcslLoopInvariant parseAcslLoopInvariant(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.loop_invariant());
-    AntlrLoopInvariantToLoopInvariantConverter converter =
-        new AntlrLoopInvariantToLoopInvariantConverter(pCProgramScope, pAcslScope, pFileLocation);
-    AcslLoopInvariant loopInvariant = converter.visit(tree);
-    return loopInvariant;
+    AntlrAnnotationToAnnotationVisitor converter =
+        new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
+    AAcslAnnotation loopInvariant = converter.visit(tree);
+    return (AcslLoopInvariant) loopInvariant;
   }
 
   public static String stripCommentMarker(String pCommentString) {
