@@ -9,17 +9,24 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
-public final class AcslRequiresClause extends AAcslClause {
-  private final AcslPredicate predicate;
-
-  private AcslRequiresClause(FileLocation pFileLocation, AcslPredicate pPredicate) {
+public final class AcslEnsures extends AAcslAnnotation {
+  private AcslEnsures(FileLocation pFileLocation) {
     super(pFileLocation);
-    predicate = pPredicate;
   }
 
-  public AcslPredicate getPredicate() {
-    return predicate;
+  @Override
+  public boolean equals(Object pO) {
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return 0;
+  }
+
+  @Override
+  String toAstString() {
+    return "";
   }
 }

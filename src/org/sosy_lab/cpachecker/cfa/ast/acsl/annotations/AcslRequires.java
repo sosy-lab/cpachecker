@@ -10,8 +10,23 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class AAcslSimpleClause extends AAcslClause permits AcslEnsuresClause {
-  protected AAcslSimpleClause(FileLocation pFileLocation) {
+public final class AcslRequires extends AAcslAnnotation {
+  private AcslRequires(FileLocation pFileLocation) {
     super(pFileLocation);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return 0;
+  }
+
+  @Override
+  String toAstString() {
+    return "";
   }
 }

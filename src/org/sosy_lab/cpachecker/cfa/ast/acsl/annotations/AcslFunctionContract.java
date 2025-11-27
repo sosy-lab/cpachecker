@@ -14,22 +14,16 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslFunctionContract extends AAcslAnnotation {
 
-  @Nullable private final ImmutableList<AcslRequiresClause> requiresClauses;
-  @Nullable private final AcslTerminatesClause terminatesClause;
-  @Nullable private final AcslDecreasesClause decreasesClause;
-  @Nullable private final ImmutableList<AAcslSimpleClause> simpleClauses;
+  @Nullable private final ImmutableList<AcslEnsures> ensuresClauses;
+  @Nullable private final ImmutableList<AcslRequires> requiresClauses;
 
   AcslFunctionContract(
       FileLocation pFileLocation,
-      @Nullable ImmutableList<AcslRequiresClause> pRequiresClauses,
-      @Nullable AcslTerminatesClause pTerminatesClause1,
-      @Nullable AcslDecreasesClause pDecreasesClause,
-      @Nullable ImmutableList<AAcslSimpleClause> pSimpleClauses) {
+      ImmutableList<AcslEnsures> pEnsuresClauses,
+      ImmutableList<AcslRequires> pRequiresClauses1) {
     super(pFileLocation);
-    requiresClauses = pRequiresClauses;
-    terminatesClause = pTerminatesClause1;
-    decreasesClause = pDecreasesClause;
-    simpleClauses = pSimpleClauses;
+    ensuresClauses = pEnsuresClauses;
+    requiresClauses = pRequiresClauses1;
   }
 
   @Override
@@ -47,19 +41,11 @@ public final class AcslFunctionContract extends AAcslAnnotation {
     return "";
   }
 
-  public @Nullable ImmutableList<AcslRequiresClause> getRequiresClauses() {
+  public ImmutableList<AcslEnsures> getEnsuresClauses() {
+    return ensuresClauses;
+  }
+
+  public ImmutableList<AcslRequires> getRequiresClauses() {
     return requiresClauses;
-  }
-
-  public @Nullable AcslTerminatesClause getTerminatesClause() {
-    return terminatesClause;
-  }
-
-  public @Nullable AcslDecreasesClause getDecreasesClause() {
-    return decreasesClause;
-  }
-
-  public @Nullable ImmutableList<AAcslSimpleClause> getSimpleClauses() {
-    return simpleClauses;
   }
 }
