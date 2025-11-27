@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.export;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
@@ -30,21 +31,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 
 /** A class to write the sequentialized program to a file. */
 public class MPORWriter {
-
-  enum FileExtension {
-    I(".i"),
-    YML(".yml");
-
-    private final String suffix;
-
-    FileExtension(String pSuffix) {
-      suffix = pSuffix;
-    }
-
-    private String getSuffix() {
-      return suffix;
-    }
-  }
 
   private static final String PROGRAM_NOT_EXPORTED_MESSAGE =
       "Sequentialized program was not exported.";
@@ -115,12 +101,11 @@ public class MPORWriter {
   private static MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
     String utcCreationTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
     ImmutableList<InputFileRecord> inputFiles =
-        FluentIterable.from(pInputFilePaths)
-            .transform(
-                path ->
-                    new InputFileRecord(
-                        Objects.requireNonNull(path).getFileName().toString(), path.toString()))
-            .toList();
+        transformedImmutableListCopy(
+            pInputFilePaths,
+            path ->
+                new InputFileRecord(
+                    Objects.requireNonNull(path).getFileName().toString(), path.toString()));
     return new MetadataRecord(CPAchecker.getPlainVersion(), utcCreationTime, inputFiles);
   }
 
