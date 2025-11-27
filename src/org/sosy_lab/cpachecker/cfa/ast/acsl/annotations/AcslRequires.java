@@ -8,25 +8,40 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
 public final class AcslRequires extends AAcslAnnotation {
-  private AcslRequires(FileLocation pFileLocation) {
+  private final AcslPredicate predicate;
+
+  private AcslRequires(FileLocation pFileLocation, AcslPredicate pPredicate) {
     super(pFileLocation);
+    predicate = pPredicate;
   }
 
   @Override
   public boolean equals(Object pO) {
-    return false;
+    if (this == pO) {
+      return true;
+    }
+    return pO instanceof AcslRequires other && predicate.equals(other.predicate);
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    int hash = 7;
+    int prime = 31;
+    hash = prime * hash * Objects.hashCode(predicate);
+    return hash;
   }
 
   @Override
   String toAstString() {
-    return "";
+    return "requires " + predicate.toASTString() + ";";
+  }
+
+  public AcslPredicate getPredicate() {
+    return predicate;
   }
 }

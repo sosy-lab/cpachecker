@@ -8,19 +8,20 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslFunctionContract extends AAcslAnnotation {
 
-  @Nullable private final ImmutableList<AcslEnsures> ensuresClauses;
-  @Nullable private final ImmutableList<AcslRequires> requiresClauses;
+  private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
+  private final @Nullable ImmutableSet<AcslRequires> requiresClauses;
 
   AcslFunctionContract(
       FileLocation pFileLocation,
-      ImmutableList<AcslEnsures> pEnsuresClauses,
-      ImmutableList<AcslRequires> pRequiresClauses1) {
+      @Nullable ImmutableSet<AcslEnsures> pEnsuresClauses,
+      @Nullable ImmutableSet<AcslRequires> pRequiresClauses1) {
     super(pFileLocation);
     ensuresClauses = pEnsuresClauses;
     requiresClauses = pRequiresClauses1;
@@ -28,24 +29,45 @@ public final class AcslFunctionContract extends AAcslAnnotation {
 
   @Override
   public boolean equals(Object pO) {
-    return false;
+    if (this == pO) {
+      return true;
+    }
+    return pO instanceof AcslFunctionContract other
+        && Objects.equals(ensuresClauses, other.ensuresClauses)
+        && Objects.equals(requiresClauses, other.requiresClauses);
   }
 
   @Override
   public int hashCode() {
-    return 0;
+    int hash = 7;
+    int prime = 31;
+    hash = prime * hash * Objects.hashCode(ensuresClauses);
+    hash = prime * hash * Objects.hashCode(requiresClauses);
+    return hash;
   }
 
   @Override
   String toAstString() {
-    return "";
+    StringBuilder astString = new StringBuilder();
+    if (ensuresClauses != null) {
+      for (AcslEnsures e : ensuresClauses) {
+        astString.append(e.toAstString()).append("\n");
+      }
+    }
+    if (requiresClauses != null) {
+      for (AcslRequires r : requiresClauses) {
+        astString.append(r.toAstString()).append("\n");
+      }
+    }
+
+    return astString.toString();
   }
 
-  public ImmutableList<AcslEnsures> getEnsuresClauses() {
+  public @Nullable ImmutableSet<AcslEnsures> getEnsuresClauses() {
     return ensuresClauses;
   }
 
-  public ImmutableList<AcslRequires> getRequiresClauses() {
+  public @Nullable ImmutableSet<AcslRequires> getRequiresClauses() {
     return requiresClauses;
   }
 }
