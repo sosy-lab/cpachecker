@@ -32,6 +32,9 @@ public final class AcslAssertion extends AAcslAnnotation {
 
   @Override
   public boolean equals(Object pO) {
+    if ( this == pO) {
+      return true;
+    }
     return pO instanceof AcslAssertion other
         && predicate.equals(other.getPredicate());
   }

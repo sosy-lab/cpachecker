@@ -30,14 +30,15 @@ public final class AcslLoopInvariant extends AAcslAnnotation {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof AcslLoopInvariant that)) return false;
+    if (this == pO) {
+      return true;
+    }
 
-    return predicate.equals(that.predicate);
+    return pO instanceof AcslLoopInvariant other && predicate.equals(other.predicate);
   }
 
   @Override
   public int hashCode() {
-    int result = 31 * predicate.hashCode();
-    return result;
+    return 31 * predicate.hashCode();
   }
 }
