@@ -43,27 +43,24 @@ class MetadataWriter {
       LogManager pLogger) {
 
     Optional<Path> metadataPath =
-        MPORWriter.buildOutputPath(pPathTemplate, pOutputProgramName, FileExtension.YML);
+        MPORWriter.tryBuildExportPath(pPathTemplate, pOutputProgramName, FileExtension.YML);
 
-    metadataPath.ifPresentOrElse(
-        path -> {
-          YAMLMapper yamlMapper = new YAMLMapper();
-          MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
-          try {
-            yamlMapper.writeValue(path.toFile(), metadataRecord);
-            pLogger.log(Level.INFO, "Sequentialization metadata exported to: ", path.toString());
-          } catch (IOException e) {
-            pLogger.logUserException(
-                Level.WARNING,
-                e,
-                "An error occurred while writing metadata. " + NOT_EXPORTED_MESSAGE);
-          }
-        },
-        () ->
-            pLogger.log(
-                Level.WARNING,
-                "Could not determine path for sequentialization metadata. "
-                    + NOT_EXPORTED_MESSAGE));
+    if (metadataPath.isPresent()) {
+      Path path = metadataPath.orElseThrow();
+      YAMLMapper yamlMapper = new YAMLMapper();
+      MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
+      try {
+        yamlMapper.writeValue(path.toFile(), metadataRecord);
+        pLogger.log(Level.INFO, "Sequentialization metadata exported to: ", path.toString());
+      } catch (IOException e) {
+        pLogger.logUserException(
+            Level.WARNING, e, "An error occurred while writing metadata. " + NOT_EXPORTED_MESSAGE);
+      }
+    } else {
+      pLogger.log(
+          Level.WARNING,
+          "Could not determine path for sequentialization metadata. " + NOT_EXPORTED_MESSAGE);
+    }
   }
 
   private static MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {

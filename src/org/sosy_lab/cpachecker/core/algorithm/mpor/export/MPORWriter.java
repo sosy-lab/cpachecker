@@ -42,31 +42,32 @@ public class MPORWriter {
   private static final String NOT_EXPORTED_MESSAGE = "Sequentialized program was not exported.";
 
   public static void handleExport(
-      @Nullable PathTemplate pExportPath,
+      @Nullable PathTemplate pPathTemplate,
       String pOutputProgram,
       String pOutputProgramName,
       LogManager pLogger) {
 
     // write output program, if the path is successfully determined
-    Optional<Path> programPath = buildOutputPath(pExportPath, pOutputProgramName, FileExtension.I);
-    programPath.ifPresentOrElse(
-        path -> {
-          try {
-            try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
-              writer.write(pOutputProgram);
-              pLogger.log(Level.INFO, "Sequentialized program exported to: ", path.toString());
-            }
-          } catch (IOException e) {
-            pLogger.logUserException(
-                Level.WARNING,
-                e,
-                "An IO error occurred while writing the output program. " + NOT_EXPORTED_MESSAGE);
-          }
-        },
-        () ->
-            pLogger.log(
-                Level.WARNING,
-                "Could not determine path for sequentialization. " + NOT_EXPORTED_MESSAGE));
+    Optional<Path> programPath =
+        tryBuildExportPath(pPathTemplate, pOutputProgramName, FileExtension.I);
+
+    if (programPath.isPresent()) {
+      Path path = programPath.orElseThrow();
+      try {
+        try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+          writer.write(pOutputProgram);
+          pLogger.log(Level.INFO, "Sequentialized program exported to: ", path.toString());
+        }
+      } catch (IOException e) {
+        pLogger.logUserException(
+            Level.WARNING,
+            e,
+            "An IO error occurred while writing the output program. " + NOT_EXPORTED_MESSAGE);
+      }
+    } else {
+      pLogger.log(
+          Level.WARNING, "Could not determine path for sequentialization. " + NOT_EXPORTED_MESSAGE);
+    }
   }
 
   public static void handleExportWithMetadata(
@@ -80,7 +81,7 @@ public class MPORWriter {
     MetadataWriter.write(pExportPath, pOutputProgramName, pInputFilePaths, pLogger);
   }
 
-  static Optional<Path> buildOutputPath(
+  static Optional<Path> tryBuildExportPath(
       @Nullable PathTemplate pPathTemplate, String pProgramName, FileExtension pFileExtension) {
 
     if (pPathTemplate == null) {
