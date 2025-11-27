@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -116,10 +115,9 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Specification pSpecification)
-      throws InvalidConfigurationException, UnsupportedCodeException {
+      throws InvalidConfigurationException {
 
     pConfiguration.inject(this);
-    InputRejection.handleRejections(pCfa);
 
     config = pConfiguration;
     logger = pLogManager;
@@ -341,6 +339,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   private String sequentializeAndExportProgram()
       throws UnrecognizedCodeException, InterruptedException {
 
+    InputRejection.handleRejections(cfa);
     String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
     MPORWriter.handleExport(programPath, metadataPath, rProgram, cfa.getFileNames(), logger);
     return rProgram;
