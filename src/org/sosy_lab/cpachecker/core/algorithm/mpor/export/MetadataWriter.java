@@ -37,13 +37,9 @@ class MetadataWriter {
   private static final String NOT_EXPORTED_MESSAGE = "Sequentialization metadata was not exported.";
 
   static void write(
-      @Nullable PathTemplate pPathTemplate,
-      String pOutputProgramName,
-      List<Path> pInputFilePaths,
-      LogManager pLogger) {
+      @Nullable PathTemplate pPathTemplate, List<Path> pInputFilePaths, LogManager pLogger) {
 
-    Optional<Path> metadataPath =
-        MPORWriter.tryBuildExportPath(pPathTemplate, pOutputProgramName, FileExtension.YML);
+    Optional<Path> metadataPath = MPORWriter.tryBuildExportPath(pPathTemplate, FileExtension.YML);
 
     if (metadataPath.isPresent()) {
       Path path = metadataPath.orElseThrow();

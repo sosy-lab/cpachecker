@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -74,17 +73,14 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   @Option(
       secure = true,
       description =
-          "create additional output file with metadata such as input file(s) and algorithm"
-              + " options?")
-  private boolean exportMetadata = true;
-
-  @Option(
-      secure = true,
-      description =
-          "the file name for the exported sequentialization and metadata. uses the first input file"
-              + " name as the default prefix.")
+          "The file name for the exported sequentialization metadata that contains e.g. the input"
+              + " file name(s).")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportPath = PathTemplate.ofFormatString("%s-sequentialized");
+  private PathTemplate metadataPath = PathTemplate.ofFormatString("sequentializedProgramMetadata");
+
+  @Option(secure = true, description = "The file name for the exported sequentialized program.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate sequentializationPath = PathTemplate.ofFormatString("sequentializedProgram");
 
   @Option(
       secure = true,
@@ -135,12 +131,10 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
 
     // the export path may be null, when unit testing
-    if (exportPath == null) {
+    if (sequentializationPath == null) {
       sequentializationStatistics = new SequentializationStatistics(null, logger);
     } else {
-      // use the first input file name of the CFA for exporting
-      String firstInputFileName = cfa.getFileNames().getFirst().toString();
-      Path path = Objects.requireNonNull(exportPath).getPath(firstInputFileName);
+      Path path = Objects.requireNonNull(sequentializationPath.getPath());
       sequentializationStatistics = new SequentializationStatistics(path, logger);
     }
   }
@@ -353,15 +347,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       throws UnrecognizedCodeException, InterruptedException {
 
     String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
-    // use first input file name as output program name
-    String programName =
-        SeqNameUtil.getFileNameWithoutExtension(cfa.getFileNames().getFirst().getFileName());
-    if (exportMetadata) {
-      MPORWriter.handleExportWithMetadata(
-          exportPath, rProgram, programName, cfa.getFileNames(), logger);
-    } else {
-      MPORWriter.handleExport(exportPath, rProgram, programName, logger);
-    }
+    MPORWriter.handleExport(
+        sequentializationPath, metadataPath, rProgram, cfa.getFileNames(), logger);
     return rProgram;
   }
 }

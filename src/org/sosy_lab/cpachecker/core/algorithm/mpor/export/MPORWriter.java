@@ -42,14 +42,14 @@ public class MPORWriter {
   private static final String NOT_EXPORTED_MESSAGE = "Sequentialized program was not exported.";
 
   public static void handleExport(
-      @Nullable PathTemplate pPathTemplate,
+      PathTemplate pProgramPath,
+      PathTemplate pMetadataPath,
       String pOutputProgram,
-      String pOutputProgramName,
+      List<Path> pInputFilePaths,
       LogManager pLogger) {
 
     // write output program, if the path is successfully determined
-    Optional<Path> programPath =
-        tryBuildExportPath(pPathTemplate, pOutputProgramName, FileExtension.I);
+    Optional<Path> programPath = tryBuildExportPath(pProgramPath, FileExtension.I);
 
     if (programPath.isPresent()) {
       Path path = programPath.orElseThrow();
@@ -68,26 +68,18 @@ public class MPORWriter {
       pLogger.log(
           Level.WARNING, "Could not determine path for sequentialization. " + NOT_EXPORTED_MESSAGE);
     }
-  }
 
-  public static void handleExportWithMetadata(
-      @Nullable PathTemplate pExportPath,
-      String pOutputProgram,
-      String pOutputProgramName,
-      List<Path> pInputFilePaths,
-      LogManager pLogger) {
-
-    handleExport(pExportPath, pOutputProgram, pOutputProgramName, pLogger);
-    MetadataWriter.write(pExportPath, pOutputProgramName, pInputFilePaths, pLogger);
+    // handle metadata writing
+    MetadataWriter.write(pMetadataPath, pInputFilePaths, pLogger);
   }
 
   static Optional<Path> tryBuildExportPath(
-      @Nullable PathTemplate pPathTemplate, String pProgramName, FileExtension pFileExtension) {
+      @Nullable PathTemplate pPathTemplate, FileExtension pFileExtension) {
 
     if (pPathTemplate == null) {
       return Optional.empty();
     }
     PathTemplate pathTemplate = Objects.requireNonNull(pPathTemplate);
-    return Optional.of(Path.of(pathTemplate.getPath(pProgramName) + pFileExtension.getSuffix()));
+    return Optional.of(Path.of(pathTemplate.getPath() + pFileExtension.getSuffix()));
   }
 }

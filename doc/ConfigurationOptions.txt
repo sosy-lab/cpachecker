@@ -345,13 +345,9 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 # directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
 analysis.algorithm.MPOR.preprocessing = false
 
-# create additional output file with metadata such as input file(s) and
-# algorithm options?
-analysis.algorithm.MPOR.preprocessing.exportMetadata = true
-
-# the file name for the exported sequentialization and metadata. uses the
-# first input file name as the default prefix.
-analysis.algorithm.MPOR.preprocessing.exportPath = "%s-sequentialized"
+# The file name for the exported sequentialization metadata that contains
+# e.g. the input file name(s).
+analysis.algorithm.MPOR.preprocessing.metadataPath = "sequentializedProgramMetadata"
 
 # If the sequentialization should be performed as a preprocessing step before
 # the main analysis begins, set to true. The sequentialized program is then
@@ -363,6 +359,9 @@ analysis.algorithm.MPOR.preprocessing.exportPath = "%s-sequentialized"
 # If the sequentialization should just be exported and analyzed externally,
 # set to false.
 analysis.algorithm.MPOR.preprocessing.runAnalysis = false
+
+# The file name for the exported sequentialized program.
+analysis.algorithm.MPOR.preprocessing.sequentializationPath = "sequentializedProgram"
 
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression
