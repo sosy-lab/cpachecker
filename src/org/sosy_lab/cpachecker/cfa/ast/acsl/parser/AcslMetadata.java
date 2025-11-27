@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -20,5 +21,5 @@ public record AcslMetadata(
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopInvariant> invariants,
-    ImmutableSetMultimap<CFANode, AcslPredicate> functionContracts,
+    ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts,
     ImmutableSetMultimap<CFANode, AcslPredicate> modifiedMemoryLocations) {}
