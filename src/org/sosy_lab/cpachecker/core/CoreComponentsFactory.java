@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORPreprocessingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -576,7 +576,7 @@ public class CoreComponentsFactory {
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useMporPreprocessing
         && !preferOriginalCfaOverSequentialized
-        && !MPORPreprocessingAlgorithm.isAlreadySequentialized(cfa)) {
+        && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa)) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
       // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
@@ -588,7 +588,7 @@ public class CoreComponentsFactory {
       // sequentialized CFA no matter how deep they are nested. In particular this works for
       // parallel compositions, sequential compositions, and restart algorithm.
       algorithm =
-          new MPORPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+          new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =

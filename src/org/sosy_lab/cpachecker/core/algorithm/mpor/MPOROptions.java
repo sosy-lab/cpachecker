@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/** Contains all {@link Option} fields used to adjust {@link MPORPreprocessingAlgorithm}. */
+/** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
 @Options(prefix = "analysis.algorithm.MPOR")
 public class MPOROptions {
 

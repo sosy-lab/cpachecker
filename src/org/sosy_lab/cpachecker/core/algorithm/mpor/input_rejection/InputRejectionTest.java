@@ -22,8 +22,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class InputRejectionTest {
 
   /**
-   * Tests if {@link MPORPreprocessingAlgorithm} throws a {@link UnsupportedCodeException} when
+   * Tests if {@link MporPreprocessingAlgorithm} throws a {@link UnsupportedCodeException} when
    * invoked with the program in {@code pInputFilePath}.
    */
   private void testExpectedRejection(Path pInputFilePath, InputRejectionMessage pExpected)

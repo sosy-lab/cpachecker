@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * programs, hence modular.
  */
 @Options(prefix = "analysis.algorithm.MPOR.preprocessing")
-public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
+public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
@@ -115,7 +115,7 @@ public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
   private final SequentializationStatistics sequentializationStatistics;
 
-  public MPORPreprocessingAlgorithm(
+  public MporPreprocessingAlgorithm(
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
