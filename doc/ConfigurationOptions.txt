@@ -361,7 +361,7 @@ analysis.algorithm.MPOR.preprocessing.programPath = "sequentializedProgram"
 # the sequentialized CFA.
 # If the sequentialization should just be exported and analyzed externally,
 # set to false.
-analysis.algorithm.MPOR.preprocessing.runAnalysis = false
+analysis.algorithm.MPOR.preprocessing.runAnalysis = true
 
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression

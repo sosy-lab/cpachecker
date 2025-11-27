@@ -92,7 +92,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
               + " analyses, all of them will analyze the sequentialized CFA.\n"
               + "If the sequentialization should just be exported and analyzed externally, set to"
               + " false.")
-  private boolean runAnalysis = false;
+  private boolean runAnalysis = true;
 
   private final Configuration config;
 
