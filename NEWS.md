@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 4.2 to CPAchecker 4.2.1
+-----------------------------------------------
+* Bug fixes for witness export and import.  
+  Three problems related to witnesses are fixed,
+  which also resolves a regression in version 4.2
+  when using CPAchecker's internal counterexample check.
+
+
 Changes from CPAchecker 4.1 to CPAchecker 4.2
 ---------------------------------------------
 * Java 21 or later is required now.
