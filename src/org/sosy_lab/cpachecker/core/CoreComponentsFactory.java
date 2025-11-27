@@ -377,7 +377,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.MPOR.preprocessing",
+      name = "algorithm.preprocessing.MPOR",
       description =
           "Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a concurrent C"
               + " program. This algorithm transforms the input program into a sequential program"

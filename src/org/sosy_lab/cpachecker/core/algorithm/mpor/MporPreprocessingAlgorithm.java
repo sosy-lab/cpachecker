@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * state space. Sequentializations can be given to any verifier capable of verifying sequential C
  * programs, hence modular.
  */
-@Options(prefix = "analysis.algorithm.MPOR.preprocessing")
+@Options(prefix = "analysis.preprocessing.MPOR")
 public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
