@@ -349,6 +349,9 @@ analysis.algorithm.MPOR.preprocessing = false
 # e.g. the input file name(s).
 analysis.algorithm.MPOR.preprocessing.metadataPath = "sequentializedProgramMetadata"
 
+# The file name for the exported sequentialized program.
+analysis.algorithm.MPOR.preprocessing.programPath = "sequentializedProgram"
+
 # If the sequentialization should be performed as a preprocessing step before
 # the main analysis begins, set to true. The sequentialized program is then
 # analyzed by the CPAchecker analysis given. Note that the CFA is transformed
@@ -359,9 +362,6 @@ analysis.algorithm.MPOR.preprocessing.metadataPath = "sequentializedProgramMetad
 # If the sequentialization should just be exported and analyzed externally,
 # set to false.
 analysis.algorithm.MPOR.preprocessing.runAnalysis = false
-
-# The file name for the exported sequentialized program.
-analysis.algorithm.MPOR.preprocessing.sequentializationPath = "sequentializedProgram"
 
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression

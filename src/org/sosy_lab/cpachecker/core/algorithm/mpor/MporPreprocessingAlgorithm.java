@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -80,7 +79,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
   @Option(secure = true, description = "The file name for the exported sequentialized program.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate sequentializationPath = PathTemplate.ofFormatString("sequentializedProgram");
+  private PathTemplate programPath = PathTemplate.ofFormatString("sequentializedProgram");
 
   @Option(
       secure = true,
@@ -131,12 +130,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
 
     // the export path may be null, when unit testing
-    if (sequentializationPath == null) {
-      sequentializationStatistics = new SequentializationStatistics(null, logger);
-    } else {
-      Path path = Objects.requireNonNull(sequentializationPath.getPath());
-      sequentializationStatistics = new SequentializationStatistics(path, logger);
-    }
+    sequentializationStatistics =
+        new SequentializationStatistics(programPath == null ? null : programPath.getPath(), logger);
   }
 
   public static boolean isAlreadySequentialized(CFA pCFA) {
@@ -347,8 +342,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       throws UnrecognizedCodeException, InterruptedException {
 
     String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
-    MPORWriter.handleExport(
-        sequentializationPath, metadataPath, rProgram, cfa.getFileNames(), logger);
+    MPORWriter.handleExport(programPath, metadataPath, rProgram, cfa.getFileNames(), logger);
     return rProgram;
   }
 }
