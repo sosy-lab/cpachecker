@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JNullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -30,7 +30,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation
   public int compare(Value pO1, Value pO2) {
     // one of arguments null -> NullPointerException
     // ClassCastException if p01 or p02 instanceof JArrayValue, JBooleanValue, JEnumConstantValue,
-    // NullValue
+    // JNullValue
     // 0 if both are unknown Value
     // -1 if p02 unknown Value
     // 1 if p01 unknown value
@@ -44,8 +44,8 @@ public class RedundantRequirementsValueAnalysisStateImplementation
         || pO2 instanceof JBooleanValue
         || pO1 instanceof JEnumConstantValue
         || pO2 instanceof JEnumConstantValue
-        || pO1 instanceof NullValue
-        || pO2 instanceof NullValue) {
+        || pO1 instanceof JNullValue
+        || pO2 instanceof JNullValue) {
       throw new ClassCastException("Expected NumericValue.");
     } else if (pO1.isUnknown() && pO2.isUnknown()) {
       return 0;

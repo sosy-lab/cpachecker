@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JNullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -61,7 +61,7 @@ public class TranslatorTest {
             MemoryLocation.forIdentifier("var1"), new ValueAndType(new NumericValue(3), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.forIdentifier("var3"), new ValueAndType(NullValue.getInstance(), null));
+            MemoryLocation.forIdentifier("var3"), new ValueAndType(JNullValue.getInstance(), null));
     constantsMap =
         constantsMap.putAndCopy(
             MemoryLocation.forLocalVariable("fun", "var1"),

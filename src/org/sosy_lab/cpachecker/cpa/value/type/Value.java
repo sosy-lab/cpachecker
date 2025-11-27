@@ -27,7 +27,7 @@ public interface Value extends Serializable {
   /**
    * Returns true for values who's numeric value is concretely known, i.e. of the type {@link
    * NumericValue}. It is safe to interpret them (and only them!) as numeric values using {@link
-   * #asNumericValue()}. False else. (Note: {@link NullValue}, as well as others are Java types and
+   * #asNumericValue()}. False else. (Note: {@link JNullValue}, as well as others are Java types and
    * do not return a numeric value!)
    */
   default boolean isNumericValue() {
@@ -47,7 +47,7 @@ public interface Value extends Serializable {
   /**
    * True if we deterministically know the actual value, false otherwise. Explicitly known are (at
    * least) the following types: {@link NumericValue}s, {@link JArrayValue}s, {@link
-   * JBooleanValue}s, {@link JEnumConstantValue}s, and {@link NullValue}s.
+   * JBooleanValue}s, {@link JEnumConstantValue}s, and {@link JNullValue}s.
    */
   default boolean isExplicitlyKnown() {
     return false;

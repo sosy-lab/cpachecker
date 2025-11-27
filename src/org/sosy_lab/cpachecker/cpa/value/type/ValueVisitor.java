@@ -27,5 +27,5 @@ public interface ValueVisitor<T> {
 
   T visit(NumericValue pValue);
 
-  T visit(NullValue pValue);
+  T visit(JNullValue pValue);
 }

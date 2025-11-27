@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JNullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -92,16 +92,16 @@ public class AssigningValueVisitorTest {
     assertThat(
             visitor.isValueInRangeOfType(new CProblemType(""), new NumericValue(Integer.MAX_VALUE)))
         .isTrue();
-    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), JNullValue.getInstance()))
         .isTrue();
 
-    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), JNullValue.getInstance()))
         .isTrue();
-    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), JNullValue.getInstance()))
         .isTrue();
-    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), JNullValue.getInstance()))
         .isTrue();
-    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), JNullValue.getInstance()))
         .isTrue();
   }
 
@@ -387,7 +387,7 @@ public class AssigningValueVisitorTest {
     assertThat(visitor.invertCast(signedInt, unsignedInt, val1)).isEqualTo(val1);
     assertThat(visitor.invertCast(unsignedChar, unsignedInt, val1))
         .isEqualTo(UnknownValue.getInstance());
-    assertThat(visitor.invertCast(unsignedChar, unsignedInt, NullValue.getInstance()))
+    assertThat(visitor.invertCast(unsignedChar, unsignedInt, JNullValue.getInstance()))
         .isEqualTo(UnknownValue.getInstance());
   }
 }

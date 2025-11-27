@@ -116,7 +116,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.JNullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -728,8 +728,8 @@ public class ValueAnalysisTransferRelation
    *    * representsTrue(JBooleanValue.valueOf(true), true)  = true
    *    * representsTrue(JBooleanValue.valueOf(false), true) = false
    *  but:
-   *    * representsTrue(NullValue.getInstance(), true)     = false
-   *    * representsTrue(NullValue.getInstance(), false)    = false
+   *    * representsTrue(JNullValue.getInstance(), true)     = false
+   *    * representsTrue(JNullValue.getInstance(), false)    = false
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
@@ -826,7 +826,7 @@ public class ValueAnalysisTransferRelation
       Type declarationType = pDeclaration.getType();
 
       if (isComplexJavaType(declarationType)) {
-        return NullValue.getInstance();
+        return JNullValue.getInstance();
 
       } else if (declarationType instanceof JSimpleType simpleType) {
         return switch (simpleType) {

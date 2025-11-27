@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/** Singleton class for the special value <code>null</code>. */
-public enum NullValue implements Value {
+/** Singleton class for the special value <code>null</code> in Java. */
+public enum JNullValue implements Value {
   INSTANCE;
 
   /**
-   * Returns an instance of a <code>NullValue</code> object.
+   * Returns an instance of a <code>JNullValue</code> object.
    *
    * @return an instance of this object
    */

@@ -107,7 +107,7 @@ public final class JArrayValue implements Value {
 
   private Value getInitialValue(JType pType) {
     if (pType instanceof JClassOrInterfaceType) {
-      return NullValue.getInstance();
+      return JNullValue.getInstance();
 
     } else if (pType instanceof JSimpleType jSimpleType) {
       return switch (jSimpleType) {
@@ -154,7 +154,7 @@ public final class JArrayValue implements Value {
       // this is always fine, do nothing
 
     } else if (arrayType.getDimensions() > 1) {
-      if (!(pValue instanceof JArrayValue || pValue instanceof NullValue)) {
+      if (!(pValue instanceof JArrayValue || pValue instanceof JNullValue)) {
         throw new IllegalArgumentException(errorMessage);
       }
     } else if (elementType instanceof JClassOrInterfaceType && !isValidComplexValue(pValue)) {
@@ -188,7 +188,7 @@ public final class JArrayValue implements Value {
     checkNotNull(pValue);
 
     return pValue.isUnknown()
-        || pValue instanceof NullValue
+        || pValue instanceof JNullValue
         || pValue instanceof JEnumConstantValue
         || arrayType == null;
   }
