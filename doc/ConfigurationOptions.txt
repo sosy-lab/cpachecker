@@ -299,14 +299,6 @@ analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
 analysis.algorithm.MPOR.controlEncodingThread = NONE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
-# create additional output file with metadata such as input file(s) and
-# algorithm options?
-analysis.algorithm.MPOR.exportMetadata = true
-
-# the file name for the exported sequentialization and metadata. uses the
-# first input file name as the default prefix.
-analysis.algorithm.MPOR.exportPath = "%s-sequentialized"
-
 # include original function declarations from input file? including them may
 # result in unsound analysis (e.g. false alarms for CBMC + ignored function
 # calls through function pointers for CPAchecker)
@@ -352,6 +344,14 @@ analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
 # If the sequentialized program should be analyzed inside CPAchecker
 # directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
 analysis.algorithm.MPOR.preprocessing = false
+
+# create additional output file with metadata such as input file(s) and
+# algorithm options?
+analysis.algorithm.MPOR.preprocessing.exportMetadata = true
+
+# the file name for the exported sequentialization and metadata. uses the
+# first input file name as the default prefix.
+analysis.algorithm.MPOR.preprocessing.exportPath = "%s-sequentialized"
 
 # If the sequentialization should be performed as a preprocessing step before
 # the main analysis begins, set to true. The sequentialized program is then

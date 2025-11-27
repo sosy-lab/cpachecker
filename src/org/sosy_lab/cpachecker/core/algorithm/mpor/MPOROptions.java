@@ -8,14 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
@@ -74,21 +70,6 @@ public class MPOROptions {
       secure = true,
       description = "defines the syntax in which the next thread executing a statement is chosen.")
   private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "create additional output file with metadata such as input file(s) and algorithm"
-              + " options?")
-  private boolean exportMetadata = true;
-
-  @Option(
-      secure = true,
-      description =
-          "the file name for the exported sequentialization and metadata. uses the first input file"
-              + " name as the default prefix.")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportPath = PathTemplate.ofFormatString("%s-sequentialized");
 
   @Option(
       secure = true,
@@ -430,14 +411,6 @@ public class MPOROptions {
 
   public MultiControlStatementEncoding controlEncodingThread() {
     return controlEncodingThread;
-  }
-
-  public boolean exportMetadata() {
-    return exportMetadata;
-  }
-
-  public @Nullable PathTemplate exportPath() {
-    return exportPath;
   }
 
   public boolean inputFunctionDeclarations() {

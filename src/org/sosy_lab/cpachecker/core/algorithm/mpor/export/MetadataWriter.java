@@ -18,9 +18,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter.FileExtension;
 
 class MetadataWriter {
@@ -36,10 +37,13 @@ class MetadataWriter {
   private static final String NOT_EXPORTED_MESSAGE = "Sequentialization metadata was not exported.";
 
   static void write(
-      MPOROptions pOptions, String pProgramName, List<Path> pInputFilePaths, LogManager pLogger) {
+      @Nullable PathTemplate pPathTemplate,
+      String pOutputProgramName,
+      List<Path> pInputFilePaths,
+      LogManager pLogger) {
 
     Optional<Path> metadataPath =
-        MPORWriter.buildOutputPath(pOptions.exportPath(), pProgramName, FileExtension.YML);
+        MPORWriter.buildOutputPath(pPathTemplate, pOutputProgramName, FileExtension.YML);
 
     metadataPath.ifPresentOrElse(
         path -> {

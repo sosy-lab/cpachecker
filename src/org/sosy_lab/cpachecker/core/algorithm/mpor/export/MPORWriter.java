@@ -20,8 +20,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 
 /** A class to write the sequentialized program to a file. */
 public class MPORWriter {
@@ -44,15 +42,13 @@ public class MPORWriter {
   private static final String NOT_EXPORTED_MESSAGE = "Sequentialized program was not exported.";
 
   public static void handleExport(
-      MPOROptions pOptions, String pOutputProgram, List<Path> pInputFilePaths, LogManager pLogger) {
-
-    // use first input file name as output program name
-    String programName =
-        SeqNameUtil.getFileNameWithoutExtension(pInputFilePaths.getFirst().getFileName());
+      @Nullable PathTemplate pExportPath,
+      String pOutputProgram,
+      String pOutputProgramName,
+      LogManager pLogger) {
 
     // write output program, if the path is successfully determined
-    Optional<Path> programPath =
-        buildOutputPath(pOptions.exportPath(), programName, FileExtension.I);
+    Optional<Path> programPath = buildOutputPath(pExportPath, pOutputProgramName, FileExtension.I);
     programPath.ifPresentOrElse(
         path -> {
           try {
@@ -71,11 +67,17 @@ public class MPORWriter {
             pLogger.log(
                 Level.WARNING,
                 "Could not determine path for sequentialization. " + NOT_EXPORTED_MESSAGE));
+  }
 
-    // if enabled, write metadata to a file
-    if (pOptions.exportMetadata()) {
-      MetadataWriter.write(pOptions, programName, pInputFilePaths, pLogger);
-    }
+  public static void handleExportWithMetadata(
+      @Nullable PathTemplate pExportPath,
+      String pOutputProgram,
+      String pOutputProgramName,
+      List<Path> pInputFilePaths,
+      LogManager pLogger) {
+
+    handleExport(pExportPath, pOutputProgram, pOutputProgramName, pLogger);
+    MetadataWriter.write(pExportPath, pOutputProgramName, pInputFilePaths, pLogger);
   }
 
   static Optional<Path> buildOutputPath(

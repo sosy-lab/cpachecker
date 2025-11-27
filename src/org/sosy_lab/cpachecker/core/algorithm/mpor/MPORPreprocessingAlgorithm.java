@@ -26,10 +26,13 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -40,9 +43,11 @@ import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.export.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -65,6 +70,21 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 @Options(prefix = "analysis.algorithm.MPOR.preprocessing")
 public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider {
+
+  @Option(
+      secure = true,
+      description =
+          "create additional output file with metadata such as input file(s) and algorithm"
+              + " options?")
+  private boolean exportMetadata = true;
+
+  @Option(
+      secure = true,
+      description =
+          "the file name for the exported sequentialization and metadata. uses the first input file"
+              + " name as the default prefix.")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate exportPath = PathTemplate.ofFormatString("%s-sequentialized");
 
   @Option(
       secure = true,
@@ -115,13 +135,13 @@ public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
 
     // the export path may be null, when unit testing
-    if (options.exportPath() == null) {
+    if (exportPath == null) {
       sequentializationStatistics = new SequentializationStatistics(null, logger);
     } else {
       // use the first input file name of the CFA for exporting
       String firstInputFileName = cfa.getFileNames().getFirst().toString();
-      Path exportPath = Objects.requireNonNull(options.exportPath()).getPath(firstInputFileName);
-      sequentializationStatistics = new SequentializationStatistics(exportPath, logger);
+      Path path = Objects.requireNonNull(exportPath).getPath(firstInputFileName);
+      sequentializationStatistics = new SequentializationStatistics(path, logger);
     }
   }
 
@@ -147,7 +167,7 @@ public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics.sequentializationTime.start();
     ImmutableCFA newCFA;
     try {
-      String sequentializedCode = Sequentialization.tryBuildProgramString(options, cfa, utils);
+      String sequentializedCode = sequentializeAndExportProgram();
       sequentializationStatistics.sequentializedProgramString = sequentializedCode;
       // disable preprocessing in the updated config, since input cfa was preprocessed already
       Configuration configWithoutPreprocessor =
@@ -194,7 +214,7 @@ public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     // if this instance is not for the internal analysis, export sequentialization and return
     if (!runAnalysis) {
-      Sequentialization.tryBuildProgramString(options, cfa, utils);
+      sequentializeAndExportProgram();
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
@@ -321,5 +341,27 @@ public class MPORPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     public UnsupportedSequentializationException(String msg, Throwable cause) {
       super(msg, cause);
     }
+  }
+
+  /**
+   * Sequentializes the input {@link CFA} based on the fields in this instance and exports the
+   * resulting program. The return value can be ignored, if the program is not analyzed inside
+   * CPAchecker directly.
+   */
+  @CanIgnoreReturnValue
+  private String sequentializeAndExportProgram()
+      throws UnrecognizedCodeException, InterruptedException {
+
+    String rProgram = Sequentialization.tryBuildProgramString(options, cfa, utils);
+    // use first input file name as output program name
+    String programName =
+        SeqNameUtil.getFileNameWithoutExtension(cfa.getFileNames().getFirst().getFileName());
+    if (exportMetadata) {
+      MPORWriter.handleExportWithMetadata(
+          exportPath, rProgram, programName, cfa.getFileNames(), logger);
+    } else {
+      MPORWriter.handleExport(exportPath, rProgram, programName, logger);
+    }
+    return rProgram;
   }
 }
