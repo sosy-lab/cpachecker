@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -82,11 +81,13 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           "The file name for the exported sequentialization metadata that contains e.g. the input"
               + " file name(s).")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate metadataPath = PathTemplate.ofFormatString("sequentializedProgramMetadata");
+  private @Nullable PathTemplate metadataPath =
+      PathTemplate.ofFormatString("sequentializedProgramMetadata.yml");
 
   @Option(secure = true, description = "The file name for the exported sequentialized program.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate programPath = PathTemplate.ofFormatString("sequentializedProgram");
+  private @Nullable PathTemplate programPath =
+      PathTemplate.ofFormatString("sequentializedProgram.c");
 
   @Option(
       secure = true,
@@ -362,9 +363,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   public void handleExport(String pOutputProgram, List<Path> pInputFilePaths) {
 
     // write output program, if the path is successfully determined
-    Optional<Path> sequentializationPath = tryBuildExportPath(programPath, ".i");
-    if (sequentializationPath.isPresent()) {
-      Path path = sequentializationPath.orElseThrow();
+    if (programPath != null) {
+      Path path = programPath.getPath();
       try {
         try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
           writer.write(pOutputProgram);
@@ -384,9 +384,8 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     }
 
     // write metadata, if the path is successfully determined
-    Optional<Path> sequentializationMetadataPath = tryBuildExportPath(metadataPath, ".yml");
-    if (sequentializationMetadataPath.isPresent()) {
-      Path path = sequentializationMetadataPath.orElseThrow();
+    if (metadataPath != null) {
+      Path path = metadataPath.getPath();
       YAMLMapper yamlMapper = new YAMLMapper();
       MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
       try {
@@ -423,15 +422,5 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
                 new InputFileRecord(
                     Objects.requireNonNull(path).getFileName().toString(), path.toString()));
     return new MetadataRecord(CPAchecker.getPlainVersion(), utcCreationTime, inputFiles);
-  }
-
-  private Optional<Path> tryBuildExportPath(
-      @Nullable PathTemplate pPathTemplate, String pFileExtension) {
-
-    if (pPathTemplate == null) {
-      return Optional.empty();
-    }
-    PathTemplate pathTemplate = Objects.requireNonNull(pPathTemplate);
-    return Optional.of(Path.of(pathTemplate.getPath() + pFileExtension));
   }
 }

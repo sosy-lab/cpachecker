@@ -594,10 +594,10 @@ analysis.preprocessing.MPOR = false
 
 # The file name for the exported sequentialization metadata that contains
 # e.g. the input file name(s).
-analysis.preprocessing.MPOR.metadataPath = "sequentializedProgramMetadata"
+analysis.preprocessing.MPOR.metadataPath = no default value
 
 # The file name for the exported sequentialized program.
-analysis.preprocessing.MPOR.programPath = "sequentializedProgram"
+analysis.preprocessing.MPOR.programPath = no default value
 
 # If the sequentialization should be performed as a preprocessing step before
 # the main analysis begins, set to true. The sequentialized program is then
