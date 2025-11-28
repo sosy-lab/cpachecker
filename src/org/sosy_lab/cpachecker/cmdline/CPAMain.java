@@ -450,13 +450,13 @@ public class CPAMain {
     }
 
     // Handle frontend-language-specific subconfig if necessary
-    config = handleFrontendLanguageOptions(config, langOptions, cmdLineOptions);
+    config = handleFrontendLanguageOptions(logManager, config, langOptions, cmdLineOptions);
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
-    config = handleWitnessOptions(config, cmdLineOptions, configFile);
+    config = handleWitnessOptions(logManager, config, cmdLineOptions, configFile);
 
     // Switch to appropriate config depending on property (if necessary)
-    config = handlePropertyOptions(config, cmdLineOptions, properties);
+    config = handlePropertyOptions(logManager, config, cmdLineOptions, properties);
 
     return new Config(
         config, logManager, outputDirectory, logOptions.getOutputFile(), langOptions.programs);
@@ -543,13 +543,13 @@ public class CPAMain {
    * that the returned {@link Configuration} instance has all necessary language settings.
    */
   private static Configuration handleFrontendLanguageOptions(
+      LogManager logger,
       Configuration config,
       BootstrapLanguageOptions pBootstrapLangOptions,
       Map<String, String> pCmdLineOptions)
       throws InvalidConfigurationException, IOException {
 
-    Language frontendLanguage =
-        detectFrontendLanguageIfNecessary(pBootstrapLangOptions, config);
+    Language frontendLanguage = detectFrontendLanguageIfNecessary(pBootstrapLangOptions, config);
 
     Path subconfig =
         switch (frontendLanguage) {
@@ -560,6 +560,11 @@ public class CPAMain {
         };
 
     if (subconfig != null) {
+      logger.logf(
+          Level.INFO,
+          "Detected language %s and switching to config file %s",
+          frontendLanguage,
+          subconfig);
       return Configuration.builder()
           .loadFromFile(subconfig)
           .setOptions(pCmdLineOptions)
@@ -578,12 +583,16 @@ public class CPAMain {
   }
 
   private static Configuration handlePropertyOptions(
-      Configuration config, Map<String, String> cmdLineOptions, Set<Property> properties)
+      LogManager logger,
+      Configuration config,
+      Map<String, String> cmdLineOptions,
+      Set<Property> properties)
       throws InvalidConfigurationException, IOException {
 
     BootstrapPropertyOptions options = new BootstrapPropertyOptions(config);
 
     final Path alternateConfigFile;
+    final String propertyName;
 
     if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
       if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
@@ -591,36 +600,40 @@ public class CPAMain {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.memsafetyConfig, "memory safety", "memorysafety.config");
+      propertyName = "memory safety";
+      alternateConfigFile = check(options.memsafetyConfig, propertyName, "memorysafety.config");
     } else if (properties.contains(CommonVerificationProperty.VALID_MEMCLEANUP)) {
       if (properties.size() != 1) {
         // MemCleanup property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile =
-          check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+      propertyName = "memory cleanup";
+      alternateConfigFile = check(options.memcleanupConfig, propertyName, "memorycleanup.config");
     } else if (properties.contains(CommonVerificationProperty.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+      propertyName = "overflows";
+      alternateConfigFile = check(options.overflowConfig, propertyName, "overflow.config");
     } else if (properties.contains(CommonVerificationProperty.DATA_RACE)) {
       if (properties.size() != 1) {
         // Data race property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.dataraceConfig, "data races", "datarace.config");
+      propertyName = "data races";
+      alternateConfigFile = check(options.dataraceConfig, propertyName, "datarace.config");
     } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+      propertyName = "termination";
+      alternateConfigFile = check(options.terminationConfig, propertyName, "termination.config");
     } else if (properties.contains(CommonCoverageProperty.COVERAGE_ERROR)
         || properties.contains(CommonCoverageProperty.COVERAGE_BRANCH)
         || properties.contains(CommonCoverageProperty.COVERAGE_CONDITION)
@@ -648,9 +661,15 @@ public class CPAMain {
           .build();
     } else {
       alternateConfigFile = null;
+      propertyName = null;
     }
 
     if (alternateConfigFile != null) {
+      logger.logf(
+          Level.INFO,
+          "Detected property %s and switching to config file %s",
+          propertyName,
+          alternateConfigFile);
       return Configuration.builder()
           .loadFromFile(alternateConfigFile)
           .setOptions(cmdLineOptions)
@@ -780,7 +799,10 @@ public class CPAMain {
    * @throws InvalidConfigurationException if the witness cannot be parsed or is unsupported
    */
   public static Configuration handleWitnessOptions(
-      Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
+      LogManager logger,
+      Configuration config,
+      Map<String, String> overrideOptions,
+      Optional<String> configFileName)
       throws InvalidConfigurationException,
           IOException,
           InterruptedException,
@@ -791,8 +813,10 @@ public class CPAMain {
     }
 
     final Path validationConfigFile;
+    final String witnessName;
     if (options.useACSLAnnotatedProgram) {
       validationConfigFile = options.correctnessWitnessValidationConfig;
+      witnessName = "an ACSL-annotated program";
       if (validationConfigFile == null) {
         throw new InvalidConfigurationException(
             "Validating an ACSL annotated program is not supported if option"
@@ -827,6 +851,7 @@ public class CPAMain {
       } catch (IOException e) {
         throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }
+      witnessName = "a " + witnessType.toString().replace('_', ' ');
       switch (witnessType) {
         case VIOLATION_WITNESS -> {
           validationConfigFile = options.violationWitnessValidationConfig;
@@ -864,7 +889,7 @@ public class CPAMain {
 
           Configuration correctnessWitnessConfig =
               handlePropertyOptions(
-                  validationConfig, overrideOptions, handlePropertyFile(overrideOptions));
+                  logger, validationConfig, overrideOptions, handlePropertyFile(overrideOptions));
           correctnessWitnessConfig.inject(options);
           if (options.validateInvariantsSpecificationAutomaton) {
             appendWitnessToSpecificationOption(options, overrideOptions);
@@ -884,6 +909,11 @@ public class CPAMain {
       }
     }
 
+    logger.logf(
+        Level.INFO,
+        "Detected %s and switching to config file %s",
+        witnessName,
+        validationConfigFile);
     ConfigurationBuilder configBuilder =
         Configuration.builder()
             .loadFromFile(validationConfigFile)
