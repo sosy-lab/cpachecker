@@ -268,7 +268,7 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  public static class BootstrapOptions {
+  public static class BootstrapPropertyOptions {
 
     @Option(
         secure = true,
@@ -397,6 +397,8 @@ public class CPAMain {
     }
 
     // Read property file if present and adjust cmdline options
+    // TODO: Would be better inside handlePropertyOptions(),
+    // but handleWitnessOptions() modifies the specification option before that (#1367).
     Set<Property> properties = handlePropertyFile(cmdLineOptions);
 
     // get name of config file (may be null)
@@ -451,11 +453,8 @@ public class CPAMain {
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
 
-    BootstrapOptions options = new BootstrapOptions();
-    config.inject(options);
-
     // Switch to appropriate config depending on property (if necessary)
-    config = handlePropertyOptions(config, options, cmdLineOptions, properties);
+    config = handlePropertyOptions(config, cmdLineOptions, properties);
 
     return new Config(config, outputDirectory, langOptions.programs);
   }
@@ -577,11 +576,11 @@ public class CPAMain {
   }
 
   private static Configuration handlePropertyOptions(
-      Configuration config,
-      BootstrapOptions options,
-      Map<String, String> cmdLineOptions,
-      Set<Property> properties)
+      Configuration config, Map<String, String> cmdLineOptions, Set<Property> properties)
       throws InvalidConfigurationException, IOException {
+
+    BootstrapPropertyOptions options = new BootstrapPropertyOptions();
+    config.inject(options);
 
     final Path alternateConfigFile;
 
@@ -858,14 +857,9 @@ public class CPAMain {
           Configuration validationConfig =
               Configuration.builder().loadFromFile(validationConfigFile).build();
 
-          BootstrapOptions bootstrapOptions = new BootstrapOptions();
-          validationConfig.inject(bootstrapOptions);
           Configuration correctnessWitnessConfig =
               handlePropertyOptions(
-                  validationConfig,
-                  bootstrapOptions,
-                  overrideOptions,
-                  handlePropertyFile(overrideOptions));
+                  validationConfig, overrideOptions, handlePropertyFile(overrideOptions));
           correctnessWitnessConfig.inject(options);
           if (options.validateInvariantsSpecificationAutomaton) {
             appendWitnessToSpecificationOption(options, overrideOptions);
