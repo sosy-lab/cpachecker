@@ -319,17 +319,17 @@ public class CPAMain {
                 + " command-line options, which are applied on top of the final config.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
+  }
+
+  @VisibleForTesting
+  @Options
+  public static class MainOptions {
 
     @Option(
         secure = true,
         name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
         description = "all used options are printed")
     private boolean printUsedOptions = false;
-  }
-
-  @VisibleForTesting
-  @Options
-  public static class MainOptions {
 
     @Option(
         secure = true,
@@ -357,6 +357,10 @@ public class CPAMain {
 
   private static void dumpConfiguration(
       MainOptions options, Configuration config, LogManager logManager) {
+    if (options.printUsedOptions) {
+      config.dumpUsedOptionsTo(System.out);
+    }
+
     if (options.configurationOutputFile != null) {
       try {
         IO.writeFile(
@@ -452,10 +456,6 @@ public class CPAMain {
 
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(config, options, cmdLineOptions, properties);
-
-    if (options.printUsedOptions) {
-      config.dumpUsedOptionsTo(System.out);
-    }
 
     return new Config(config, outputDirectory, langOptions.programs);
   }
