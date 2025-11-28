@@ -93,11 +93,12 @@ public class CPAMain {
     // initialize various components
     final Config config;
     final Configuration cpaConfig;
-    LoggingOptions logOptions;
+    final LogManager logManager;
     try {
       try {
         config = createConfiguration(args);
         cpaConfig = config.configuration;
+        logManager = config.logManager;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
@@ -106,13 +107,9 @@ public class CPAMain {
         throw Output.fatalError("Interrupted: %s", e.getMessage());
       }
 
-      logOptions = new LoggingOptions(cpaConfig);
-
     } catch (InvalidConfigurationException e) {
       throw Output.fatalError("Invalid configuration: %s", e.getMessage());
     }
-    final LogManager logManager = BasicLogManager.create(logOptions);
-    cpaConfig.enableLogging(logManager);
 
     if (!System.getProperty("file.encoding", "UTF-8").equalsIgnoreCase("UTF-8")) {
       logManager.logf(
@@ -141,8 +138,7 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator =
-          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), config.programs);
+      reportGenerator = new ReportGenerator(cpaConfig, logManager, config.logFile, config.programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -445,6 +441,11 @@ public class CPAMain {
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
 
+    // Setup logging
+    LoggingOptions logOptions = new LoggingOptions(config);
+    final LogManager logManager = BasicLogManager.create(logOptions);
+    config.enableLogging(logManager);
+
     BootstrapLanguageOptions langOptions = new BootstrapLanguageOptions(config);
     if (langOptions.programs.isEmpty()) {
       throw new InvalidConfigurationException(
@@ -460,7 +461,8 @@ public class CPAMain {
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(config, cmdLineOptions, properties);
 
-    return new Config(config, outputDirectory, langOptions.programs);
+    return new Config(
+        config, logManager, outputDirectory, logOptions.getOutputFile(), langOptions.programs);
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
@@ -996,5 +998,9 @@ public class CPAMain {
   private CPAMain() {} // prevent instantiation
 
   public record Config(
-      Configuration configuration, String outputPath, ImmutableList<String> programs) {}
+      Configuration configuration,
+      LogManager logManager,
+      String outputPath,
+      Path logFile,
+      ImmutableList<String> programs) {}
 }
