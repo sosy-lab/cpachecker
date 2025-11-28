@@ -72,7 +72,7 @@ public interface Value extends Serializable {
   <T> T accept(ValueVisitor<T> pVisitor);
 
   /** Singleton class used to signal that the value is unknown (could be anything). */
-  final class UnknownValue implements Value, Serializable {
+  final class UnknownValue implements Value {
 
     @Serial private static final long serialVersionUID = -300842115868319184L;
     private static final UnknownValue instance = new UnknownValue();
