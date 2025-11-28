@@ -406,12 +406,12 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private record InputFileRecord(
-      @JsonProperty("name") String pName, @JsonProperty("path") String pPath) {}
+      @JsonProperty("name") String name, @JsonProperty("path") String path) {}
 
   private record MetadataRecord(
-      @JsonProperty("cpachecker_version") String pCpaCheckerVersion,
-      @JsonProperty("utc_creation_time") String pUtcCreationTime,
-      @JsonProperty("input_files") List<InputFileRecord> pInputFiles) {}
+      @JsonProperty("cpachecker_version") String cpaCheckerVersion,
+      @JsonProperty("utc_creation_time") String utcCreationTime,
+      @JsonProperty("input_files") List<InputFileRecord> inputFiles) {}
 
   private MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
     String utcCreationTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
