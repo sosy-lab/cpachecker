@@ -445,10 +445,8 @@ public class CPAMain {
           "Please specify a program to analyze on the command line.");
     }
 
-    Language language = detectFrontendLanguageIfNecessary(langOptions, config);
-
     // Handle frontend-language-specific subconfig if necessary
-    config = handleFrontendLanguageOptions(config, langOptions, cmdLineOptions, language);
+    config = handleFrontendLanguageOptions(config, langOptions, cmdLineOptions);
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
@@ -542,9 +540,12 @@ public class CPAMain {
   private static Configuration handleFrontendLanguageOptions(
       Configuration config,
       BootstrapLanguageOptions pBootstrapLangOptions,
-      Map<String, String> pCmdLineOptions,
-      Language frontendLanguage)
+      Map<String, String> pCmdLineOptions)
       throws InvalidConfigurationException, IOException {
+
+    Language frontendLanguage =
+        detectFrontendLanguageIfNecessary(pBootstrapLangOptions, config);
+
     Path subconfig =
         switch (frontendLanguage) {
           case C -> pBootstrapLangOptions.cConfig;
