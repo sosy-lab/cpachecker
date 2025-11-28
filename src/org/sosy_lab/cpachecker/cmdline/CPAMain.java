@@ -95,18 +95,15 @@ public class CPAMain {
     final Configuration cpaConfig;
     final LogManager logManager;
     try {
-      try {
-        config = createConfiguration(args);
-        cpaConfig = config.configuration;
-        logManager = config.logManager;
-      } catch (InvalidCmdlineArgumentException e) {
-        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
-      } catch (IOException e) {
-        throw Output.fatalError("Could not read config file %s", e.getMessage());
-      } catch (InterruptedException e) {
-        throw Output.fatalError("Interrupted: %s", e.getMessage());
-      }
-
+      config = createConfiguration(args);
+      cpaConfig = config.configuration;
+      logManager = config.logManager;
+    } catch (InvalidCmdlineArgumentException e) {
+      throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
+    } catch (IOException e) {
+      throw Output.fatalError("Could not read config file %s", e.getMessage());
+    } catch (InterruptedException e) {
+      throw Output.fatalError("Interrupted: %s", e.getMessage());
     } catch (InvalidConfigurationException e) {
       throw Output.fatalError("Invalid configuration: %s", e.getMessage());
     }
