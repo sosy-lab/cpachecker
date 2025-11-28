@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -444,11 +445,10 @@ public class CPAMain {
           "Please specify a program to analyze on the command line.");
     }
 
-    config = detectFrontendLanguageIfNecessary(langOptions, config);
+    Language language = detectFrontendLanguageIfNecessary(langOptions, config);
 
     // Handle frontend-language-specific subconfig if necessary
-    config =
-        handleFrontendLanguageOptions(config, langOptions, cmdLineOptions, langOptions.language);
+    config = handleFrontendLanguageOptions(config, langOptions, cmdLineOptions, language);
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
@@ -472,12 +472,10 @@ public class CPAMain {
 
   /**
    * Determines the frontend language based on the file endings of the given programs, if no
-   * language is given by the user. If a language is detected, it is set in the given {@link
-   * MainOptions} object and a new configuration for that language, based on the given
-   * configuration, is returned.
+   * language is given by the user.
    */
   @VisibleForTesting
-  static Configuration detectFrontendLanguageIfNecessary(
+  static Language detectFrontendLanguageIfNecessary(
       BootstrapLanguageOptions pOptions, Configuration pConfig)
       throws InvalidConfigurationException {
     if (pOptions.language == null) {
@@ -488,15 +486,9 @@ public class CPAMain {
       } else {
         frontendLanguage = detectFrontendLanguageFromFileEndings(pOptions.programs);
       }
-      Preconditions.checkNotNull(frontendLanguage);
-      ConfigurationBuilder configBuilder = Configuration.builder();
-      configBuilder.copyFrom(pConfig);
-      configBuilder.setOption("language", frontendLanguage.name());
-      pConfig = configBuilder.build();
-      pOptions.language = frontendLanguage;
+      return verifyNotNull(frontendLanguage);
     }
-    Preconditions.checkNotNull(pOptions.language);
-    return pConfig;
+    return pOptions.language;
   }
 
   @SuppressWarnings("deprecation") // checking the properties directly is more maintainable
@@ -543,6 +535,10 @@ public class CPAMain {
           .put(CommonCoverageProperty.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
           .buildOrThrow();
 
+  /**
+   * Handle switchting to a different config file depending on the given language, and make sure
+   * that the returned {@link Configuration} instance has all necessary language settings.
+   */
   private static Configuration handleFrontendLanguageOptions(
       Configuration config,
       BootstrapLanguageOptions pBootstrapLangOptions,

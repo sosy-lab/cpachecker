@@ -70,9 +70,9 @@ public class CPAMainTest {
         BootstrapLanguageOptions options = new BootstrapLanguageOptions();
         config.inject(options);
 
-        Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
+        Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
-        assertThat(newConfig.getProperty("language")).isEqualTo(languageToTest.name());
+        assertThat(detectedLanguage).isEqualTo(languageToTest);
       }
     }
   }
@@ -88,9 +88,9 @@ public class CPAMainTest {
       BootstrapLanguageOptions options = new BootstrapLanguageOptions();
       config.inject(options);
 
-      Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
+      Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
-      assertThat(newConfig.getProperty("language")).isEqualTo(Language.JAVA.name());
+      assertThat(detectedLanguage).isEqualTo(Language.JAVA);
     }
   }
 
@@ -105,9 +105,9 @@ public class CPAMainTest {
       BootstrapLanguageOptions options = new BootstrapLanguageOptions();
       config.inject(options);
 
-      Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
+      Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
-      assertThat(newConfig.getProperty("language")).isEqualTo(Language.JAVA.name());
+      assertThat(detectedLanguage).isEqualTo(Language.JAVA);
     }
   }
 
@@ -126,9 +126,9 @@ public class CPAMainTest {
 
         BootstrapLanguageOptions options = new BootstrapLanguageOptions();
         config.inject(options);
-        Configuration newConfig = CPAMain.detectFrontendLanguageIfNecessary(options, config);
+        Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
-        assertThat(newConfig.getProperty("language")).isEqualTo(declLanguage);
+        assertThat(detectedLanguage).isEqualTo(language);
       }
     }
   }
