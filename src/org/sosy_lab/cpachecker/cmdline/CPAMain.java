@@ -215,9 +215,9 @@ public class CPAMain {
 
   @VisibleForTesting
   @Options
-  public static class BootstrapLanguageOptions {
+  static final class BootstrapLanguageOptions {
 
-    public BootstrapLanguageOptions(Configuration config) throws InvalidConfigurationException {
+    BootstrapLanguageOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
@@ -271,11 +271,10 @@ public class CPAMain {
     private ImmutableList<String> programs = ImmutableList.of();
   }
 
-  @VisibleForTesting
   @Options
-  public static class BootstrapPropertyOptions {
+  private static final class BootstrapPropertyOptions {
 
-    public BootstrapPropertyOptions(Configuration config) throws InvalidConfigurationException {
+    private BootstrapPropertyOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
@@ -330,11 +329,10 @@ public class CPAMain {
     private @Nullable Path terminationConfig = null;
   }
 
-  @VisibleForTesting
   @Options
-  public static class MainOptions {
+  private static final class MainOptions {
 
-    public MainOptions(Configuration config) throws InvalidConfigurationException {
+    private MainOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
@@ -732,9 +730,9 @@ public class CPAMain {
   }
 
   @Options
-  public static class WitnessOptions {
+  private static final class WitnessOptions {
 
-    public WitnessOptions(Configuration config) throws InvalidConfigurationException {
+    private WitnessOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
