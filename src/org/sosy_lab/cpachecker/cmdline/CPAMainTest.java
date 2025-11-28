@@ -67,8 +67,7 @@ public class CPAMainTest {
       for (String inputPrograms : languageToInputFile.get(languageToTest)) {
         configBuilder.setOption("analysis.programNames", inputPrograms);
         Configuration config = configBuilder.build();
-        BootstrapLanguageOptions options = new BootstrapLanguageOptions();
-        config.inject(options);
+        BootstrapLanguageOptions options = new BootstrapLanguageOptions(config);
 
         Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
@@ -85,8 +84,7 @@ public class CPAMainTest {
       configBuilder.setOption("analysis.programNames", inputPrograms);
       configBuilder.setOption("java.classpath", "lib");
       Configuration config = configBuilder.build();
-      BootstrapLanguageOptions options = new BootstrapLanguageOptions();
-      config.inject(options);
+      BootstrapLanguageOptions options = new BootstrapLanguageOptions(config);
 
       Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
@@ -102,8 +100,7 @@ public class CPAMainTest {
       configBuilder.setOption("analysis.programNames", inputPrograms);
       configBuilder.setOption("java.classpath", "src");
       Configuration config = configBuilder.build();
-      BootstrapLanguageOptions options = new BootstrapLanguageOptions();
-      config.inject(options);
+      BootstrapLanguageOptions options = new BootstrapLanguageOptions(config);
 
       Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
@@ -124,8 +121,7 @@ public class CPAMainTest {
         configBuilder.setOption("analysis.programNames", file);
         Configuration config = configBuilder.build();
 
-        BootstrapLanguageOptions options = new BootstrapLanguageOptions();
-        config.inject(options);
+        BootstrapLanguageOptions options = new BootstrapLanguageOptions(config);
         Language detectedLanguage = CPAMain.detectFrontendLanguageIfNecessary(options, config);
 
         assertThat(detectedLanguage).isEqualTo(language);
@@ -141,8 +137,7 @@ public class CPAMainTest {
         "analysis.programNames", "test.c, test.i, test.h, test.java, test.ll, test.bc");
     Configuration config = configBuilder.build();
 
-    BootstrapLanguageOptions options = new BootstrapLanguageOptions();
-    config.inject(options);
+    BootstrapLanguageOptions options = new BootstrapLanguageOptions(config);
 
     CPAMain.detectFrontendLanguageIfNecessary(options, config);
     assert_().fail();

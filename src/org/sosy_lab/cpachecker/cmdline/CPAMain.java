@@ -132,9 +132,9 @@ public class CPAMain {
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
     ReportGenerator reportGenerator = null;
-    MainOptions options = new MainOptions();
+    MainOptions options;
     try {
-      cpaConfig.inject(options);
+      options = new MainOptions(cpaConfig);
       dumpConfiguration(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
@@ -217,6 +217,10 @@ public class CPAMain {
   @Options
   public static class BootstrapLanguageOptions {
 
+    public BootstrapLanguageOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
     @Option(
         secure = true,
         name = "c.config",
@@ -270,6 +274,10 @@ public class CPAMain {
   @VisibleForTesting
   @Options
   public static class BootstrapPropertyOptions {
+
+    public BootstrapPropertyOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
 
     @Option(
         secure = true,
@@ -325,6 +333,10 @@ public class CPAMain {
   @VisibleForTesting
   @Options
   public static class MainOptions {
+
+    public MainOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
 
     @Option(
         secure = true,
@@ -438,8 +450,7 @@ public class CPAMain {
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
 
-    BootstrapLanguageOptions langOptions = new BootstrapLanguageOptions();
-    config.inject(langOptions);
+    BootstrapLanguageOptions langOptions = new BootstrapLanguageOptions(config);
     if (langOptions.programs.isEmpty()) {
       throw new InvalidConfigurationException(
           "Please specify a program to analyze on the command line.");
@@ -576,8 +587,7 @@ public class CPAMain {
       Configuration config, Map<String, String> cmdLineOptions, Set<Property> properties)
       throws InvalidConfigurationException, IOException {
 
-    BootstrapPropertyOptions options = new BootstrapPropertyOptions();
-    config.inject(options);
+    BootstrapPropertyOptions options = new BootstrapPropertyOptions(config);
 
     final Path alternateConfigFile;
 
@@ -723,6 +733,11 @@ public class CPAMain {
 
   @Options
   public static class WitnessOptions {
+
+    public WitnessOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
     @Option(
         secure = true,
         name = "witness.validation.file",
@@ -776,8 +791,7 @@ public class CPAMain {
           IOException,
           InterruptedException,
           InvalidCmdlineArgumentException {
-    WitnessOptions options = new WitnessOptions();
-    config.inject(options);
+    WitnessOptions options = new WitnessOptions(config);
     if (options.witness == null) {
       return config;
     }
