@@ -91,16 +91,13 @@ public class CPAMain {
     }
 
     // initialize various components
-    Configuration cpaConfig = null;
+    final Config config;
+    final Configuration cpaConfig;
     LoggingOptions logOptions;
-    String outputDirectory = null;
-    ImmutableList<String> programs = null;
     try {
       try {
-        Config p = createConfiguration(args);
-        cpaConfig = p.configuration;
-        outputDirectory = p.outputPath;
-        programs = p.programs;
+        config = createConfiguration(args);
+        cpaConfig = config.configuration;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
@@ -145,7 +142,7 @@ public class CPAMain {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
       reportGenerator =
-          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), programs);
+          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), config.programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -163,7 +160,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(programs);
+    CPAcheckerResult result = cpachecker.run(config.programs);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -180,7 +177,7 @@ public class CPAMain {
     Thread.interrupted(); // clear interrupted flag
 
     try {
-      printResultAndStatistics(result, outputDirectory, options, reportGenerator, logManager);
+      printResultAndStatistics(result, config.outputPath, options, reportGenerator, logManager);
     } catch (IOException e) {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
