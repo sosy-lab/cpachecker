@@ -1063,6 +1063,13 @@ public class SMG {
     return smgObjects.keySet();
   }
 
+  public Set<SMGObject> getValidObjects() {
+    return smgObjects.entrySet().stream()
+        .filter(e -> e.getValue())
+        .map(e -> e.getKey())
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
   /**
    * Returns all SMGValues associated with this SMG and their current nesting levels.
    *
