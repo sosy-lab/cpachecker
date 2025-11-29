@@ -47,7 +47,6 @@ public enum JNullValue implements Value {
    */
   @Override
   public OptionalLong asLong(CType pType) {
-    // TODO: wrong for C....
     throw new AssertionError("Null cannot be represented as Long");
   }
 
