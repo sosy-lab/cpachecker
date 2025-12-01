@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
@@ -77,26 +78,43 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseAcslCommentTest() {}
+  public void parseAcslAnnotationAssertionTest() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "//@ assert x == 10;";
+
+    AcslAssertion expected = getAssertion();
+
+    String annotation = AcslParser.stripCommentMarker(input);
+    AcslAssertion parsed =
+        (AcslAssertion)
+            AcslParser.parseAcslAnnotation(
+                annotation, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assert expected.equals(parsed);
+  }
+
+  @Test
+  public void parseAcslCommentTest() throws AcslParseException {
+    String input =
+"""
+/*@
+assert x == 10;
+loop invariant x <= 10;
+ensures x <= 10;
+requires x == 10;
+*/\
+""";
+    ImmutableList<AAcslAnnotation> expected =
+        ImmutableList.of(getAssertion(), getLoopInvariant(), getEnsures(), getRequires());
+    ImmutableList<AAcslAnnotation> parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assert expected.equals(parsed);
+  }
 
   @Test
   public void parseAssertionTest() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
     String input = "assert x == 10;";
 
-    AcslAssertion expected =
-        new AcslAssertion(
-            FileLocation.DUMMY,
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY,
-                new AcslIdTerm(
-                    FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-                AcslBinaryTermExpressionOperator.EQUALS));
+    AcslAssertion expected = getAssertion();
     AcslAssertion parsed =
         AcslParser.parseAcslAssertion(
             input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
@@ -105,45 +123,63 @@ public class AcslAnnotationParsingTest {
 
   @Test
   public void parseLoopInvariantTest() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
     String input = "loop invariant x <= 10;";
 
-    AcslLoopInvariant expected =
-        new AcslLoopInvariant(
-            FileLocation.DUMMY,
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY,
-                new AcslIdTerm(
-                    FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-                AcslBinaryTermExpressionOperator.LESS_EQUAL));
+    AcslLoopInvariant expected = getLoopInvariant();
     AcslLoopInvariant parsed =
-        AcslParser.parseAcslLoopInvariant(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+        AcslParser.parseAcslLoopInvariant(
+            input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
 
   @Test
   public void parseEnsuresTest() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
     String input = "ensures x <= 10;";
     AcslEnsures expected = getEnsures();
     AcslEnsures parsed =
-        AcslParser.parseAcslEnsures(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+        AcslParser.parseAcslEnsures(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
   }
 
   @Test
   public void parseRequiresTest() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
     String input = "requires x == 10;";
     AcslRequires expected = getRequires();
     AcslRequires parsed =
-        AcslParser.parseAcslRequires(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+        AcslParser.parseAcslRequires(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
     assert expected.equals(parsed);
+  }
+
+  private AcslAssertion getAssertion() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslAssertion(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermExpressionOperator.EQUALS));
+  }
+
+  private AcslLoopInvariant getLoopInvariant() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslLoopInvariant(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermExpressionOperator.LESS_EQUAL));
   }
 
   private AcslEnsures getEnsures() {

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -82,8 +83,39 @@ public class AcslParser {
     return definition;
   }
 
-  public static AAcslAnnotation parseAcslComment(FileLocation pFileLocation){
-    return null;
+  public static ImmutableList<AAcslAnnotation> parseAcslComment(
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
+      throws AcslParseException {
+
+    ImmutableList.Builder<AAcslAnnotation> annotations = ImmutableList.builder();
+
+    String comment = stripCommentMarker(pInput);
+    ImmutableList<String> statements = splitAnnotation(comment);
+
+    for (String s : statements) {
+      AAcslAnnotation annotation =
+          parseAcslAnnotation(s, pFileLocation, pCProgramScope, pAcslScope);
+      annotations.add(annotation);
+    }
+
+    return annotations.build();
+  }
+
+  public static AAcslAnnotation parseAcslAnnotation(
+      String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
+      throws AcslParseException {
+    if (pInput.startsWith("assert")) {
+      return parseAcslAssertion(pInput, pFileLocation, pCProgramScope, pAcslScope);
+    } else if (pInput.startsWith("loop invariant")) {
+      return parseAcslLoopInvariant(pInput, pFileLocation, pCProgramScope, pAcslScope);
+    } else if (pInput.startsWith("ensures")) {
+      return parseAcslEnsures(pInput, pFileLocation, pCProgramScope, pAcslScope);
+    } else if (pInput.startsWith("requires")) {
+      return parseAcslRequires(pInput, pFileLocation, pCProgramScope, pAcslScope);
+    }
+    throw new AcslParseException(
+        pFileLocation
+            + ": Only assert, loop invariant, ensures and requires are allowed as annotations");
   }
 
   public static AcslAssertion parseAcslAssertion(
@@ -124,6 +156,16 @@ public class AcslParser {
         new AntlrAnnotationToAnnotationVisitor(pCProgramScope, pAcslScope, pFileLocation);
     AAcslAnnotation requires = converter.visit(tree);
     return (AcslRequires) requires;
+  }
+
+  private static ImmutableList<String> splitAnnotation(String pInput) {
+    ImmutableList.Builder<String> statements = ImmutableList.builder();
+    Pattern pattern = Pattern.compile("(?<statement>.*;)");
+    Matcher matcher = pattern.matcher(pInput);
+    while (matcher.find()) {
+      statements.add(matcher.group("statement"));
+    }
+    return statements.build();
   }
 
   public static String stripCommentMarker(String pCommentString) {
