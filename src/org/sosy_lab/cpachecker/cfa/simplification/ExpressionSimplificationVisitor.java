@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.simplification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -86,24 +88,28 @@ public class ExpressionSimplificationVisitor
    */
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
-    NumericValue numericResult = value.asNumericValue().orElseThrow();
+
     final CType type = expr.getExpressionType().getCanonicalType();
-    if (numericResult != null && type instanceof CSimpleType cSimpleType) {
+    if (type instanceof CSimpleType cSimpleType) {
       CBasicType basicType = cSimpleType.getType();
       if (basicType.isIntegerType()) {
+        if (!(checkNotNull(value) instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to transform to C expression");
+        }
         return new CIntegerLiteralExpression(
-            expr.getFileLocation(), type, numericResult.bigIntegerValue());
+            expr.getFileLocation(), type, numericValue.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
+        if (!(checkNotNull(value) instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to transform to C expression");
+        }
         FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
         return new CFloatLiteralExpression(
-            expr.getFileLocation(),
-            machineModel,
-            type,
-            numericResult.floatingPointValue(precision));
+            expr.getFileLocation(), machineModel, type, numericValue.floatingPointValue(precision));
       }
     }
-    if (numericResult != null) {
-      logger.logf(Level.FINE, "Can not handle result of expression %s", numericResult.toString());
+
+    if (value != null) {
+      logger.logf(Level.FINE, "Can not handle result of expression %s", value);
     } else {
       logger.logf(Level.FINE, "Can not handle result of expression, numericResult is null.");
     }
@@ -203,11 +209,11 @@ public class ExpressionSimplificationVisitor
     }
 
     // TODO: handle the case that the result is not a numeric value
-    final Value castedValue =
+    final Value castValue =
         AbstractExpressionValueVisitor.castCValue(
             value, expr.getExpressionType(), machineModel, logger);
 
-    return convertExplicitValueToExpression(expr, castedValue);
+    return convertExplicitValueToExpression(expr, castValue);
   }
 
   @Override
