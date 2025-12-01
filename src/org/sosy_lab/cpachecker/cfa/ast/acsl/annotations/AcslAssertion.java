@@ -12,6 +12,11 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
+/**
+ * This class is a reperesentation of Acsl assertion annotations.
+ *
+ * @param predicate The logical expression that is asserted
+ */
 public final class AcslAssertion extends AAcslAnnotation {
 
   private final AcslPredicate predicate;

@@ -17,6 +17,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * This record represents the Acsl Declarations and Acsl Annotations that are associated with a Cfa.
+ *
+ * @param globalAcslDeclarations A set of global Acsl Declarations
+ * @param assertions A mapping of Cfa Nodes to Acsl assertion_clauses {@link }
+ * @param invariants A mapping of Cfa Nodes to Acsl loop_invariants
+ * @param functionContracts A mapping of Cfa Nodes to Acsl function_contracts
+ * @param modifiedMemoryLocations A mapping of Cfa Nodes to Acsl assigns_clauses
+ */
 public record AcslMetadata(
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,

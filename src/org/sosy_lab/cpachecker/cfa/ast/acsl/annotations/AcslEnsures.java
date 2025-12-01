@@ -12,6 +12,11 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 
+/**
+ * This class is a representation of the Acsl ensures_clause of a function_contract
+ *
+ * @param predicate A logical expression that holds for the return value of the function
+ */
 public final class AcslEnsures extends AAcslAnnotation {
   private final AcslPredicate predicate;
 
