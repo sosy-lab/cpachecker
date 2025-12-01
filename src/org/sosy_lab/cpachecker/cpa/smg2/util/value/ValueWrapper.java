@@ -19,12 +19,11 @@ public final class ValueWrapper extends Equivalence<Value> {
 
   @Override
   protected boolean doEquivalent(Value pArg0, Value pArg1) {
-    if ((pArg0 instanceof NumericValue && pArg1 instanceof NumericValue)
-        && (pArg0.asNumericValue().orElseThrow().longValue() == 0
-            && pArg1.asNumericValue().orElseThrow().longValue() == 0)) {
+    if ((pArg0 instanceof NumericValue numArg0 && pArg1 instanceof NumericValue numArg1)
+        && (numArg0.longValue() == 0 && numArg1.longValue() == 0)) {
       // 0 has to be split into 3 categories, for non-floating point types, floats and doubles
-      Number arg0Num = pArg0.asNumericValue().orElseThrow().getNumber();
-      Number arg1Num = pArg1.asNumericValue().orElseThrow().getNumber();
+      Number arg0Num = numArg0.getNumber();
+      Number arg1Num = numArg1.getNumber();
       if (arg0Num instanceof Float arg0 && arg1Num instanceof Float arg1) {
         return arg0.compareTo(arg1) == 0;
       } else if (arg0Num instanceof Double arg0 && arg1Num instanceof Double arg1) {
@@ -36,10 +35,8 @@ public final class ValueWrapper extends Equivalence<Value> {
           && !(arg0Num instanceof Float)
           && !(arg1Num instanceof Float)) {
         try {
-          return pArg0.asNumericValue().orElseThrow().bigIntegerValue().compareTo(BigInteger.ZERO)
-                  == 0
-              && pArg1.asNumericValue().orElseThrow().bigIntegerValue().compareTo(BigInteger.ZERO)
-                  == 0;
+          return numArg0.bigIntegerValue().compareTo(BigInteger.ZERO) == 0
+              && numArg1.bigIntegerValue().compareTo(BigInteger.ZERO) == 0;
         } catch (NumberFormatException e) {
           // This happens for Nan, -/+Infinity
           // let equals handle this
