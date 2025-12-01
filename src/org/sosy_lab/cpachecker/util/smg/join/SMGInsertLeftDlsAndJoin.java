@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -70,13 +71,8 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1,
             edge ->
                 nextFieldOffset.equals(edge.getOffset())
-                    && dlls1.getSize().isNumericValue()
-                    && dlls1
-                        .getSize()
-                        .asNumericValue()
-                        .orElseThrow()
-                        .bigIntegerValue()
-                        .equals(edge.getSizeInBits()));
+                    && dlls1.getSize() instanceof NumericValue dlls1Size
+                    && dlls1Size.bigIntegerValue().equals(edge.getSizeInBits()));
 
     SMGValue nextValue = edgeToNextSmgValue.orElseThrow().hasValue();
 
@@ -119,7 +115,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     recursiveCopyMapAndAddObject(dlls1, pNestingLevelDiff);
 
     // step 9
-    Preconditions.checkArgument(pToEdge1.getOffset().isNumericValue());
+    Preconditions.checkArgument(pToEdge1.getOffset() instanceof NumericValue);
     Optional<SMGValue> resultOptional =
         destSMG.findAddressForEdge(
             freshCopyDLLS1,
