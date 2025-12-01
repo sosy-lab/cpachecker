@@ -13,8 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /**
  * This abstract class represents the different types of Acsl Annotations that can occur within an
  * annotated C program.
- *
- * @param fileLocation The location in the source code where the annotation occurs
  */
 public abstract sealed class AAcslAnnotation
     permits AcslAssertion,
