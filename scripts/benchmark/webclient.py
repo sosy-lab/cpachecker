@@ -780,7 +780,7 @@ class WebInterface:
             return self._submit(
                 run,
                 limits,
-                requirments,
+                requirements,
                 required_files,
                 result_files_patterns,
                 meta_information,
