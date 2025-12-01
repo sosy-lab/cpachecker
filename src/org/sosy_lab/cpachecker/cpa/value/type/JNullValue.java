@@ -24,17 +24,6 @@ public enum JNullValue implements Value {
     return INSTANCE;
   }
 
-  /**
-   * Always returns <code>false</code> since <code>null</code> is no numeric value.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isNumericValue() {
-    // TODO: this does not hold for C! Make a clear distinction between Java and C!
-    return false;
-  }
-
   /** Always returns <code>true</code> since <code>null</code> is a specific value. */
   @Override
   public boolean isExplicitlyKnown() {
