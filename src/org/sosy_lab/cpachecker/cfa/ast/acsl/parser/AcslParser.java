@@ -82,6 +82,10 @@ public class AcslParser {
     return definition;
   }
 
+  public static AAcslAnnotation parseAcslComment(FileLocation pFileLocation){
+    return null;
+  }
+
   public static AcslAssertion parseAcslAssertion(
       String pInput, FileLocation pFileLocation, CProgramScope pCProgramScope, AcslScope pAcslScope)
       throws AcslParseException {

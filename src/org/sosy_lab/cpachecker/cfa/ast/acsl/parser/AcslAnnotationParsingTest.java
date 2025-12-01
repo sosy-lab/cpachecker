@@ -77,7 +77,10 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseAssertion() throws AcslParseException {
+  public void parseAcslCommentTest() {}
+
+  @Test
+  public void parseAssertionTest() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "assert x == 10;";
 
@@ -101,7 +104,7 @@ public class AcslAnnotationParsingTest {
   }
 
   @Test
-  public void parseLoopInvariant() throws AcslParseException {
+  public void parseLoopInvariantTest() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     String input = "loop invariant x <= 10;";
 
@@ -173,5 +176,34 @@ public class AcslAnnotationParsingTest {
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
             AcslBinaryTermExpressionOperator.EQUALS));
+  }
+
+  @Test
+  public void testStripCommentMarker() {
+    String lineComment = "//@ assert a == 20;";
+    String lineCommentExpected = "assert a == 20;";
+    String lineCommentStripped = AcslParser.stripCommentMarker(lineComment);
+    assert lineCommentStripped.equals(lineCommentExpected);
+  }
+
+  @Test
+  public void testStripBlockComment() {
+    String blockComment =
+        """
+        /*@
+        ensures x = 0;
+        assumes /true;
+        ensures !(x < 0);
+        */\
+        """;
+    String blockCommentExpected =
+        """
+        ensures x = 0;
+        assumes /true;
+        ensures !(x < 0);
+        """;
+
+    String blockCommentStripped = AcslParser.stripCommentMarker(blockComment);
+    assert blockCommentStripped.equals(blockCommentExpected);
   }
 }
