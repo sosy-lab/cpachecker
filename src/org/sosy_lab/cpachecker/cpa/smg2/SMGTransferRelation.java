@@ -687,15 +687,11 @@ public class SMGTransferRelation
         // For pointer -> array we get an addressExpr that wraps the pointer
 
         // We don't support symbolic pointer arithmetics yet
-        if (!addrParam
-            .getOffset()
-            .asNumericValue()
-            .orElseThrow()
-            .bigIntegerValue()
-            .equals(BigInteger.ZERO)) {
+        if (!(addrParam.getOffset() instanceof NumericValue numAddrParamOffset)
+            || !numAddrParamOffset.bigIntegerValue().equals(BigInteger.ZERO)) {
           // UNKNOWN as we can't handle symbolic or non-zero offsets right now
           // TODO: implement either a workaround for pointers with offset to a memory region or
-          // switch to pointers for arrays per default
+          //  switch to pointers for arrays per default
           throw new SMGException(
               "Usage of symbolic or non-zero offsets for pointer targets in function arguments for"
                   + " pointer to array assignment not supported at the moment: "

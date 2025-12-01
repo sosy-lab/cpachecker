@@ -799,9 +799,7 @@ public class SMGState
       MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) throws SMGException {
     Value expectedValue = valueAndSize.getValue();
     Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
-    // Note: asNumericValue() returns null for non numerics
-    return expectedValue.asNumericValue().orElseThrow().longValue()
-        == readValue.asNumericValue().orElseThrow().longValue();
+    return expectedValue.equals(readValue);
   }
 
   /* public for debugging purposes in interpolation only! */
@@ -3441,23 +3439,13 @@ public class SMGState
     // the relevant bits are left.
     if (value instanceof NumericValue numValue) {
       if (numValue.hasFloatType()) {
-        double floatValue = value.asNumericValue().orElseThrow().doubleValue();
-        value = new NumericValue(Double.doubleToLongBits(floatValue));
+        double floatValue = numValue.doubleValue();
+        numValue = new NumericValue(Double.doubleToLongBits(floatValue));
       }
-      if (value
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .compareTo(BigInteger.valueOf(Long.MAX_VALUE))
-              <= 0
-          && value
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .compareTo(BigInteger.valueOf(Long.MIN_VALUE))
-              >= 0) {
+      if (numValue.bigIntegerValue().compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0
+          && numValue.bigIntegerValue().compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0) {
         // long
-        long longValue = value.asNumericValue().orElseThrow().bigIntegerValue().longValueExact();
+        long longValue = numValue.bigIntegerValue().longValueExact();
         long mask = getMask(readSizeInBits);
         return new NumericValue(BigInteger.valueOf(((longValue >>> shiftRight) & mask)));
 
@@ -3570,22 +3558,23 @@ public class SMGState
    * type, but the type of the read before any casts etc.! *
    */
   private Value castValueForUnionFloatConversion(Value readValue, CType expectedType) {
-    if (readValue instanceof NumericValue) {
-      if (isFloatingPointType(readValue)) {
-        return extractFloatingPointValueAsIntegralValue(readValue);
+    if (readValue instanceof NumericValue readNumericValue) {
+      if (isFloatingPointType(readNumericValue)) {
+        return extractFloatingPointValueAsIntegralValue(readNumericValue);
       } else if (isFloatingPointType(expectedType.getCanonicalType())
-          && !isFloatingPointType(readValue)) {
-        return extractIntegralValueAsFloatingPointValue(expectedType.getCanonicalType(), readValue);
+          && !isFloatingPointType(readNumericValue)) {
+        return extractIntegralValueAsFloatingPointValue(
+            expectedType.getCanonicalType(), readNumericValue);
       } else {
-        return readValue;
+        return readNumericValue;
       }
     }
 
     return UnknownValue.getInstance();
   }
 
-  private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
-    Number numberValue = readValue.asNumericValue().orElseThrow().getNumber();
+  private Value extractFloatingPointValueAsIntegralValue(NumericValue readValue) {
+    Number numberValue = readValue.getNumber();
 
     if (numberValue instanceof FloatValue floatValue) {
       if (floatValue.getFormat().equals(FloatValue.Format.Float32)) {
@@ -3616,10 +3605,10 @@ public class SMGState
             readValue));
   }
 
-  private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue) {
+  private Value extractIntegralValueAsFloatingPointValue(
+      CType pReadType, NumericValue numericValue) {
     if (pReadType instanceof CSimpleType) {
       CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
-      NumericValue numericValue = readValue.asNumericValue().orElseThrow();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
         int bits = numericValue.bigIntegerValue().intValue();
@@ -4852,15 +4841,12 @@ public class SMGState
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(returnValueType);
     }
+    if (!(returnObject.getSize() instanceof NumericValue returnObjSize)) {
+      throw new SMGException("Error: Object size of return object symbolic");
+    }
     // Check that the target can hold the value
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
-        || returnObject
-                .getSize()
-                .asNumericValue()
-                .orElseThrow()
-                .bigIntegerValue()
-                .compareTo(sizeInBits)
-            < 0) {
+        || returnObjSize.bigIntegerValue().compareTo(sizeInBits) < 0) {
       // Out of range write
       return withOutOfRangeWrite(
           returnObject, new NumericValue(BigInteger.ZERO), sizeInBits, valueToWrite, edge);
@@ -4975,12 +4961,8 @@ public class SMGState
                 + " enableZeroingOfSymbolicMemorySize");
       }
       checkArgument(
-          maybeRegion
-              .getOffsetForObject()
-              .asNumericValue()
-              .orElseThrow()
-              .bigIntegerValue()
-              .equals(BigInteger.ZERO));
+          maybeRegion.getOffsetForObject() instanceof NumericValue maybeRegionOffset
+              && maybeRegionOffset.bigIntegerValue().equals(BigInteger.ZERO));
       returnBuilder.add(
           currentState.writeValueWithChecks(
               memoryRegion,
@@ -5040,23 +5022,13 @@ public class SMGState
         }
         return currentState;
       }
-      if (targetObjSize
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .subtract(targetOffset)
-                  .compareTo(copySizeInBits)
-              < 0
+      if (numTargetObjSize.bigIntegerValue().subtract(targetOffset).compareTo(copySizeInBits) < 0
           || targetOffset.compareTo(BigInteger.ZERO) < 0) {
         // That would be an invalid write
         return this.withInvalidWrite(sourceObject);
       }
       return copySMGObjectContentToSMGObject(
-          sourceObject,
-          sourceStartOffset.asNumericValue().orElseThrow().bigIntegerValue(),
-          targetObject,
-          targetStartOffset.asNumericValue().orElseThrow().bigIntegerValue(),
-          copySize);
+          sourceObject, sourceOffset, targetObject, targetOffset, copySize);
     }
     // Unknown/Symbolic offset Values, we need to check them using an SMT solver
     // TODO:
@@ -5240,13 +5212,9 @@ public class SMGState
       SMGState currentState = valueToWriteAndState.getState();
       if (valueToWrite instanceof AddressExpression) {
         checkArgument(
-            ((AddressExpression) valueToWrite)
-                    .getOffset()
-                    .asNumericValue()
-                    .orElseThrow()
-                    .bigIntegerValue()
-                    .compareTo(BigInteger.ZERO)
-                == 0);
+            ((AddressExpression) valueToWrite).getOffset()
+                    instanceof NumericValue writeOffsetForValue
+                && writeOffsetForValue.bigIntegerValue().compareTo(BigInteger.ZERO) == 0);
         valueToWrite = ((AddressExpression) valueToWrite).getMemoryAddress();
         return ValueAndSMGState.of(valueToWrite, currentState);
       } else {

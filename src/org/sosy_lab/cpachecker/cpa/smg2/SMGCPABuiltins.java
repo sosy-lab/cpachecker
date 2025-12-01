@@ -523,13 +523,8 @@ public class SMGCPABuiltins {
 
     if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
       Preconditions.checkArgument(
-          pAddressExpression.getOffset() instanceof NumericValue
-              && pAddressExpression
-                  .getOffset()
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .equals(BigInteger.ZERO));
+          pAddressExpression.getOffset() instanceof NumericValue addressOffset
+              && addressOffset.bigIntegerValue().equals(BigInteger.ZERO));
       atExitAddressValue = pAddressExpression.getMemoryAddress();
     }
 
@@ -1742,8 +1737,10 @@ public class SMGCPABuiltins {
 
     // If the char value is unknown, we use a new symbolic value!
     Value bufferMemoryAddress = bufferAddressAndOffset.getMemoryAddress();
-    BigInteger bufferOffsetInBits =
-        bufferAddressAndOffset.getOffset().asNumericValue().orElseThrow().bigIntegerValue();
+    if (!(bufferAddressAndOffset.getOffset() instanceof NumericValue bufferOffset)) {
+      throw new SMGException("Can not handle non-numeric buffer offset in memset() currently");
+    }
+    BigInteger bufferOffsetInBits = bufferOffset.bigIntegerValue();
 
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
@@ -2249,7 +2246,7 @@ public class SMGCPABuiltins {
       SMGState currentState = sizeAndState.getState();
       Value sizeValue = sizeAndState.getValue();
 
-      if (!(sizeValue instanceof NumericValue)) {
+      if (!(sizeValue instanceof NumericValue numSizeValue)) {
         // TODO: log instead of error? This is a limitation of the analysis that is not a
         // critical C problem.
         resultBuilder.add(
@@ -2262,7 +2259,7 @@ public class SMGCPABuiltins {
 
       resultBuilder.add(
           evaluateMemcpy(
-              currentState, targetObj, targetOffset, sourceObj, sourceOffset, sizeValue));
+              currentState, targetObj, targetOffset, sourceObj, sourceOffset, numSizeValue));
     }
   }
 
@@ -2786,17 +2783,14 @@ public class SMGCPABuiltins {
       BigInteger targetOffset,
       SMGObject sourceAddress,
       BigInteger sourceOffset,
-      Value numOfBytesToCopy)
+      NumericValue numOfBytesToCopy)
       throws SMGException {
 
-    Preconditions.checkArgument(numOfBytesToCopy instanceof NumericValue);
-    long numOfBytes = numOfBytesToCopy.asNumericValue().orElseThrow().bigIntegerValue().longValue();
+    long numOfBytes = numOfBytesToCopy.bigIntegerValue().longValue();
     if (numOfBytes < 0) {
       // the argument is unsigned, so we have to transform it into a postive. On most 64bit systems
       // it's an unsigned long (C99 standard)
-      numOfBytes =
-          Integer.toUnsignedLong(
-              numOfBytesToCopy.asNumericValue().orElseThrow().bigIntegerValue().intValueExact());
+      numOfBytes = Integer.toUnsignedLong(numOfBytesToCopy.bigIntegerValue().intValueExact());
     }
 
     BigInteger sizeToCopyInBits =

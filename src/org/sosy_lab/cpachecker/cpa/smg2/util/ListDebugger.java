@@ -219,7 +219,7 @@ public class ListDebugger {
     ImmutableList.Builder<ListElement> builder = ImmutableList.builder();
     SMG smg = state.getMemoryModel().getSmg();
     Preconditions.checkArgument(
-        size == listElem.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue());
+        size == ((NumericValue) listElem.getSize()).bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (listElem instanceof SMGSinglyLinkedListSegment sll) {
@@ -384,7 +384,7 @@ public class ListDebugger {
       return pBuilder.build();
     }
     Preconditions.checkArgument(
-        size == currentObj.getSize().asNumericValue().orElseThrow().bigIntegerValue().intValue());
+        size == ((NumericValue) currentObj.getSize()).bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (currentObj instanceof SMGSinglyLinkedListSegment sll) {

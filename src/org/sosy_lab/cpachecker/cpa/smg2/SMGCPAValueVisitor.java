@@ -217,20 +217,12 @@ public class SMGCPAValueVisitor
                   explicitFieldRef.getFieldName());
           Value finalReadOffset = evaluator.addBitOffsetValues(ptrTargetOffset, fieldOffset);
 
-          if (finalReadOffset.isExplicitlyKnown()
-              && finalReadOffset
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .equals(linkedListObj.getNextOffset())
-              && finalReadOffset.isExplicitlyKnown()) {
+          if (finalReadOffset instanceof NumericValue numericFinalReadOffset
+              && numericFinalReadOffset.bigIntegerValue().equals(linkedListObj.getNextOffset())) {
 
             ValueAndSMGState fieldReadAndState =
                 currentState.readValueWithoutMaterialization(
-                    linkedListObj,
-                    finalReadOffset.asNumericValue().orElseThrow().bigIntegerValue(),
-                    readSize,
-                    returnType);
+                    linkedListObj, numericFinalReadOffset.bigIntegerValue(), readSize, returnType);
             // This is now the next pointer from the last element of the list (this is the ptr->next
             // part)
             currentState = fieldReadAndState.getState();

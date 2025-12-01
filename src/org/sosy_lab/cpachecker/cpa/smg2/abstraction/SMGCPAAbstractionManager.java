@@ -256,7 +256,7 @@ public class SMGCPAAbstractionManager {
     ImmutableSet.Builder<SMGCandidate> foundChains = ImmutableSet.builder();
     for (SMGObject heapObj : heapObjs) {
       if (!smg.isValid(heapObj)
-          || !(heapObj.getSize() instanceof NumericValue)
+          || !(heapObj.getSize() instanceof NumericValue heapObjSize)
           || alreadySeen.contains(heapObj)) {
         continue;
       }
@@ -285,9 +285,7 @@ public class SMGCPAAbstractionManager {
         if (target != heapObj
             && smg.isValid(target)
             && target.getSize() instanceof NumericValue numTargetSize
-            && numTargetSize
-                .bigIntegerValue()
-                .equals(sllHeapObj.getSize().asNumericValue().orElseThrow().bigIntegerValue())) {
+            && numTargetSize.bigIntegerValue().equals(heapObjSize.bigIntegerValue())) {
 
           SMGCandidateOrRejectedObject maybeCandidate =
               lookThroughObject(
@@ -316,7 +314,7 @@ public class SMGCPAAbstractionManager {
           // Can't be a list if there is no pointers
           continue;
         }
-        BigInteger heapObjSize = heapObj.getSize().asNumericValue().orElseThrow().bigIntegerValue();
+        BigInteger heapObjSizeBigInt = heapObjSize.bigIntegerValue();
         SMGCandidateOrRejectedObject maybeCandidate = null;
         // Search through all possible values of the object first, remember to reject the obj if
         // nothing is found
@@ -339,14 +337,14 @@ public class SMGCPAAbstractionManager {
             if (target != heapObj
                 && smg.isValid(target)
                 && target.getSize() instanceof NumericValue numTargetSize
-                && numTargetSize.bigIntegerValue().equals(heapObjSize)) {
+                && numTargetSize.bigIntegerValue().equals(heapObjSizeBigInt)) {
 
               maybeCandidate =
                   lookThroughObject(
                       heapObj,
                       target,
                       ptrValueOffsetInHeapObj,
-                      pointerTargetOffset.asNumericValue().orElseThrow().bigIntegerValue(),
+                      ((NumericValue) pointerTargetOffset).bigIntegerValue(),
                       alreadySeen);
               if (maybeCandidate.isListCandidate()) {
                 SMGCandidate candidate = maybeCandidate.getCandidate();
@@ -479,7 +477,7 @@ public class SMGCPAAbstractionManager {
           Value pteTargetOffsetValue = maybePrevPTE.orElseThrow().getOffset();
           Preconditions.checkArgument(pteTargetOffsetValue instanceof NumericValue);
           maybePrevPointerTargetOffset =
-              Optional.of(pteTargetOffsetValue.asNumericValue().orElseThrow().bigIntegerValue());
+              Optional.of(((NumericValue) pteTargetOffsetValue).bigIntegerValue());
         }
       }
     }
@@ -710,8 +708,7 @@ public class SMGCPAAbstractionManager {
               // of any value! This has to be the same for all ptrs between list elements!
               Value pteTargetOffset = pointsToEdge.getOffset();
               Preconditions.checkArgument(pteTargetOffset instanceof NumericValue);
-              BigInteger pointerTargetOffset =
-                  pteTargetOffset.asNumericValue().orElseThrow().bigIntegerValue();
+              BigInteger pointerTargetOffset = ((NumericValue) pteTargetOffset).bigIntegerValue();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
                 // viable next pointer and possibly viable next obj
                 return lookThroughNext(

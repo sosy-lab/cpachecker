@@ -822,12 +822,9 @@ public class SMGCPAMaterializer {
               currentState.getMemoryModel().getSmg().getPTEdge(smgValue).orElseThrow();
           Value oldOffset = oldPTE.getOffset();
           Preconditions.checkArgument(
-              targetMemoryAndState
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .equals(oldOffset.asNumericValue().orElseThrow().bigIntegerValue()));
+              targetMemoryAndState.getOffsetForObject() instanceof NumericValue targetOffset
+                  && oldOffset instanceof NumericValue numOldOffset
+                  && targetOffset.bigIntegerValue().equals(numOldOffset.bigIntegerValue()));
           int oldPtrNestingLvl = currentState.getMemoryModel().getNestingLevel(value);
           SMGTargetSpecifier oldPtrTargetSpec = oldPTE.targetSpecifier();
           if (!(newTarget instanceof SMGSinglyLinkedListSegment)) {
