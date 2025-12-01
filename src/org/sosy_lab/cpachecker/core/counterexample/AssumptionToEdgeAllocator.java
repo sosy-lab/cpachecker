@@ -741,7 +741,9 @@ public class AssumptionToEdgeAllocator {
         throw new IllegalArgumentException(e1);
       }
 
-      if (addressV.isUnknown() && !addressV.isNumericValue()) {
+      // TODO: this check makes no sense! UNKNOWN is never numeric, numeric is never UNKNOWN, but
+      // symbolics skip this if! And then they are interpreted as numeric!
+      if (addressV.isUnknown() && !(addressV instanceof NumericValue)) {
         return null;
       }
 
@@ -1154,17 +1156,15 @@ public class AssumptionToEdgeAllocator {
 
             Value offsetValueV = pointerOffset.accept(this);
 
-            if (addressValueV.isUnknown()
-                || offsetValueV.isUnknown()
-                || !addressValueV.isNumericValue()
-                || !offsetValueV.isNumericValue()) {
+            if (!(addressValueV instanceof NumericValue numAddressValueV)
+                || !(offsetValueV instanceof NumericValue numOffsetValueV)) {
               yield Value.UnknownValue.getInstance();
             }
 
-            Number addressValueNumber = addressValueV.asNumericValue().orElseThrow().getNumber();
+            Number addressValueNumber = numAddressValueV.getNumber();
             BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
             // Because address and offset value may be interchanged, use BigDecimal for both
-            Number offsetValueNumber = offsetValueV.asNumericValue().orElseThrow().getNumber();
+            Number offsetValueNumber = numOffsetValueV.getNumber();
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
