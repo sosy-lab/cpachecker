@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import java.io.Serial;
-import java.util.Optional;
 
 /**
  * Stores an enum constant that can be tracked by the ValueAnalysisCPA for analyses of the Java

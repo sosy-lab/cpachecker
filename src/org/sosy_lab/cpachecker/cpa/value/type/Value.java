@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
