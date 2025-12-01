@@ -56,6 +56,9 @@ __all__ = [
     "TIMELIMIT",
     "SOFTTIMELIMIT",
     "CORELIMIT",
+    "COREREQ",
+    "MEMREQ",
+    "CPUMODEL",
     "RESULT_FILE_LOG",
     "RESULT_FILE_STDERR",
     "RESULT_FILE_RUN_INFO",
@@ -68,6 +71,9 @@ MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
+COREREQ = "corereq"
+MEMREQ = "memreq"
+CPUMODEL = "cpu_model"
 
 RESULT_FILE_LOG = "output.log"
 RESULT_FILE_STDERR = "stderr"
@@ -592,7 +598,7 @@ class WebInterface:
         self,
         run,
         limits,
-        cpu_model,
+        requirements,
         result_files_pattern=None,
         meta_information=None,
         priority="IDLE",
@@ -609,7 +615,7 @@ class WebInterface:
                                             property file (run.propertyfile),
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
-        @param cpu_model: substring of CPU model to use or 'None' for no restriction
+        @param requirements: dict of requirements for the run (corereq, memoryreq, cpu_model)
         @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
         @param meta_information: meta information about the submitted run as JSON string
         @param priority: the priority of the submitted run, defaults to 'IDLE'
@@ -637,7 +643,7 @@ class WebInterface:
         return self._submit(
             run,
             limits,
-            cpu_model,
+            requirements,
             required_files,
             result_files_patterns,
             meta_information,
@@ -650,7 +656,7 @@ class WebInterface:
         self,
         run,
         limits,
-        cpu_model,
+        requirements,
         required_files,
         result_files_patterns,
         meta_information,
@@ -690,8 +696,8 @@ class WebInterface:
             params.append(("softTimeLimitation", str(limits[SOFTTIMELIMIT])))
         if CORELIMIT in limits:
             params.append(("coreLimitation", str(limits[CORELIMIT])))
-        if cpu_model:
-            params.append(("cpuModel", cpu_model))
+        if CPUMODEL in requirements:
+            params.append(("cpuModel", str(requirements[CPUMODEL])))
 
         if result_files_patterns:
             for pattern in result_files_patterns:
@@ -774,7 +780,7 @@ class WebInterface:
             return self._submit(
                 run,
                 limits,
-                cpu_model,
+                requirments,
                 required_files,
                 result_files_patterns,
                 meta_information,

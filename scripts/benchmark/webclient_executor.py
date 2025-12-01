@@ -144,14 +144,13 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
-    if limits.cpu_cores and limits.cpu_cores != benchmark.requirements.cpu_cores:
-        logging.warning("CPU core requirement is not supported by the WebInterface.")
-    if limits.memory and limits.memory != benchmark.requirements.memory:
-        logging.warning("Memory requirement is not supported by the WebInterface.")
-    limits = benchexec.tooladapter.convert_resource_limits_to_dict(limits)
+    requirements = {
+        "cpu_model": benchmark.requirements.cpu_model,
+        "corereq": benchmark.requirements.cpu_cores,
+        "memreq": benchmark.requirements.memory,
+    }
 
     global_required_files = set(benchmark._required_files)
-    cpu_model = benchmark.requirements.cpu_model
     priority = benchmark.config.cloudPriority
     result_files_patterns = benchmark.result_files_patterns
     if not result_files_patterns:
@@ -165,7 +164,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             _webclient.submit,
             run=run,
             limits=limits,
-            cpu_model=cpu_model,
+            requirements=requirements,
             required_files=required_files,
             meta_information=meta_information,
             priority=priority,
