@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -255,7 +256,7 @@ public class SMGCPAAbstractionManager {
     ImmutableSet.Builder<SMGCandidate> foundChains = ImmutableSet.builder();
     for (SMGObject heapObj : heapObjs) {
       if (!smg.isValid(heapObj)
-          || !heapObj.getSize().isNumericValue()
+          || !(heapObj.getSize() instanceof NumericValue)
           || alreadySeen.contains(heapObj)) {
         continue;
       }
@@ -271,12 +272,9 @@ public class SMGCPAAbstractionManager {
         }
         SMGValue nextPointerValue = readNfoEdges.getFirst().hasValue();
         if (!smg.isPointer(nextPointerValue)
-            || !smg.getPTEdge(nextPointerValue).orElseThrow().getOffset().isNumericValue()
-            || !smg.getPTEdge(nextPointerValue)
-                .orElseThrow()
-                .getOffset()
-                .asNumericValue()
-                .orElseThrow()
+            || !(smg.getPTEdge(nextPointerValue).orElseThrow().getOffset()
+                instanceof NumericValue numNextPointerOffset)
+            || !numNextPointerOffset
                 .bigIntegerValue()
                 .equals(sllHeapObj.getNextPointerTargetOffset())) {
           // Incorrect or not usable next element, maybe a prev exists though, don't put current in
@@ -286,11 +284,8 @@ public class SMGCPAAbstractionManager {
         SMGObject target = smg.getPTEdge(nextPointerValue).orElseThrow().pointsTo();
         if (target != heapObj
             && smg.isValid(target)
-            && target.getSize().isNumericValue()
-            && target
-                .getSize()
-                .asNumericValue()
-                .orElseThrow()
+            && target.getSize() instanceof NumericValue numTargetSize
+            && numTargetSize
                 .bigIntegerValue()
                 .equals(sllHeapObj.getSize().asNumericValue().orElseThrow().bigIntegerValue())) {
 
@@ -339,17 +334,12 @@ public class SMGCPAAbstractionManager {
             // pointerTargetOffset is the offset of the pointer towards to target, not the offset
             // of any value! This has to be the same for all ptrs between list elements!
             Value pointerTargetOffset = pointsToEdge.getOffset();
-            Preconditions.checkArgument(pointerTargetOffset.isNumericValue());
+            Preconditions.checkArgument(pointerTargetOffset instanceof NumericValue);
 
             if (target != heapObj
                 && smg.isValid(target)
-                && target.getSize().isNumericValue()
-                && target
-                    .getSize()
-                    .asNumericValue()
-                    .orElseThrow()
-                    .bigIntegerValue()
-                    .equals(heapObjSize)) {
+                && target.getSize() instanceof NumericValue numTargetSize
+                && numTargetSize.bigIntegerValue().equals(heapObjSize)) {
 
               maybeCandidate =
                   lookThroughObject(
@@ -487,7 +477,7 @@ public class SMGCPAAbstractionManager {
         if (maybePrevPTE.isPresent() && maybePrevPTE.orElseThrow().pointsTo().equals(currentObj)) {
           maybePfo = Optional.of(nextValueEdge.getOffset());
           Value pteTargetOffsetValue = maybePrevPTE.orElseThrow().getOffset();
-          Preconditions.checkArgument(pteTargetOffsetValue.isNumericValue());
+          Preconditions.checkArgument(pteTargetOffsetValue instanceof NumericValue);
           maybePrevPointerTargetOffset =
               Optional.of(pteTargetOffsetValue.asNumericValue().orElseThrow().bigIntegerValue());
         }
@@ -719,7 +709,7 @@ public class SMGCPAAbstractionManager {
               // pointerTargetOffset is the offset of the pointer towards to target, not the offset
               // of any value! This has to be the same for all ptrs between list elements!
               Value pteTargetOffset = pointsToEdge.getOffset();
-              Preconditions.checkArgument(pteTargetOffset.isNumericValue());
+              Preconditions.checkArgument(pteTargetOffset instanceof NumericValue);
               BigInteger pointerTargetOffset =
                   pteTargetOffset.asNumericValue().orElseThrow().bigIntegerValue();
               if (nextPointerTargetOffset.equals(pointerTargetOffset)) {
@@ -822,12 +812,8 @@ public class SMGCPAAbstractionManager {
         Set<SMGObject> objsWithPtrsTowardsHeapObj =
             smg.getValuesToRegionsTheyAreSavedIn().get(ptrValue).keySet();
         SMGPointsToEdge pte = smg.getPTEdge(ptrValue).orElseThrow();
-        if (!pte.getOffset().isNumericValue()
-            || !pte.getOffset()
-                .asNumericValue()
-                .orElseThrow()
-                .bigIntegerValue()
-                .equals(nextPointerTargetOffset)) {
+        if (!(pte.getOffset() instanceof NumericValue pteOffset)
+            || !pteOffset.bigIntegerValue().equals(nextPointerTargetOffset)) {
           continue;
         }
 
@@ -993,7 +979,7 @@ public class SMGCPAAbstractionManager {
     BigInteger nfo = pMaybeConnectedCandidate.getSuspectedNfo();
 
     if (!state.getMemoryModel().getSmg().isValid(pCurrentObj)
-        || !pCurrentObj.getSize().isNumericValue()
+        || !(pCurrentObj.getSize() instanceof NumericValue)
         || !pMaybeConnectedCandidate.object.isSizeEqual(pCurrentObj)) {
       return false;
     }
@@ -1137,7 +1123,7 @@ public class SMGCPAAbstractionManager {
     Set<SMGCandidate> candidates = new HashSet<>();
     Set<SMGObject> alreadyVisited = new HashSet<>();
     for (SMGObject heapObj : state.getMemoryModel().getHeapObjects()) {
-      if (!smg.isValid(heapObj) || !heapObj.getSize().isNumericValue()) {
+      if (!smg.isValid(heapObj) || !(heapObj.getSize() instanceof NumericValue)) {
         continue;
       }
       Optional<SMGCandidate> possibleCandidate =
@@ -1251,12 +1237,13 @@ public class SMGCPAAbstractionManager {
         pState.getMemoryModel().getSmg().getPTEdge(value).orElseThrow().pointsTo();
     Value rootObjSize = root.getSize();
     Value nextObjSize = nextObject.getSize();
-    if (!rootObjSize.isNumericValue() || !nextObjSize.isNumericValue()) {
+    if (!(rootObjSize instanceof NumericValue numRootObjSize)
+        || !(nextObjSize instanceof NumericValue numNextObjSize)) {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
-    BigInteger nextObjConcreteSize = nextObjSize.asNumericValue().orElseThrow().bigIntegerValue();
+    BigInteger rootObjConcreteSize = numRootObjSize.bigIntegerValue();
+    BigInteger nextObjConcreteSize = numNextObjSize.bigIntegerValue();
     if (!pState.getMemoryModel().getSmg().isValid(nextObject)
         || rootObjConcreteSize.compareTo(nextObjConcreteSize) != 0) {
       return Optional.empty();
@@ -1462,11 +1449,11 @@ public class SMGCPAAbstractionManager {
   private ImmutableSet<SMGHasValueEdge> getPointersToSameSizeObjects(
       SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisited) throws SMGException {
     Value rootObjSize = root.getSize();
-    if (!rootObjSize.isNumericValue()) {
+    if (!(rootObjSize instanceof NumericValue numRootObjSize)) {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
+    BigInteger rootObjConcreteSize = numRootObjSize.bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -1477,19 +1464,13 @@ public class SMGCPAAbstractionManager {
         if (alreadyVisited.contains(reachedObject)) {
           continue;
         }
-        if (!reachedObject.getSize().isNumericValue()) {
+        if (!(reachedObject.getSize() instanceof NumericValue numReachedObjSize)) {
           throw new SMGException(
               "Symbolic memory size in linked list abstraction not supported at the moment.");
         }
         // If the followup is invalid or size does not match, next
         if (!pInputSmg.isValid(reachedObject)
-            || reachedObject
-                    .getSize()
-                    .asNumericValue()
-                    .orElseThrow()
-                    .bigIntegerValue()
-                    .compareTo(rootObjConcreteSize)
-                != 0) {
+            || numReachedObjSize.bigIntegerValue().compareTo(rootObjConcreteSize) != 0) {
           continue;
         }
 
@@ -1507,11 +1488,11 @@ public class SMGCPAAbstractionManager {
       SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisted, BigInteger offsetToAvoid)
       throws SMGException {
     Value rootObjSize = root.getSize();
-    if (!rootObjSize.isNumericValue()) {
+    if (!(rootObjSize instanceof NumericValue numRootObjSize)) {
       throw new SMGException(
           "Symbolic memory size in linked list abstraction not supported at the moment.");
     }
-    BigInteger rootObjConcreteSize = rootObjSize.asNumericValue().orElseThrow().bigIntegerValue();
+    BigInteger rootObjConcreteSize = numRootObjSize.bigIntegerValue();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
       SMGValue value = hve.hasValue();
@@ -1525,19 +1506,13 @@ public class SMGCPAAbstractionManager {
         if (alreadyVisted.contains(reachedObject)) {
           continue;
         }
-        if (!reachedObject.getSize().isNumericValue()) {
+        if (!(reachedObject.getSize() instanceof NumericValue numReachedObjectSize)) {
           throw new SMGException(
               "Symbolic memory size in linked list abstraction not supported at the moment.");
         }
         // If the followup is invalid or size does not match, next
         if (!pInputSmg.isValid(reachedObject)
-            || reachedObject
-                    .getSize()
-                    .asNumericValue()
-                    .orElseThrow()
-                    .bigIntegerValue()
-                    .compareTo(rootObjConcreteSize)
-                != 0) {
+            || numReachedObjectSize.bigIntegerValue().compareTo(rootObjConcreteSize) != 0) {
           continue;
         }
 

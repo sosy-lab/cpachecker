@@ -314,7 +314,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -379,7 +379,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -438,7 +438,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -1666,7 +1666,7 @@ public class SMGCPAValueVisitorTest {
           // Assert the correct return values depending on type
           assertThat(resultList).hasSize(1);
           Value resultValue = resultList.getFirst().getValue();
-          assertThat(resultValue.isNumericValue()).isTrue();
+          assertThat(resultValue instanceof NumericValue).isTrue();
           assertThat(resultValue.asNumericValue().orElseThrow().longValue()).isEqualTo(j - k);
         }
       }
@@ -2014,7 +2014,7 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.getFirst().getValue();
-      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
       assertThat(
               ((AddressExpression) resultValue)
                   .getOffset()
@@ -2088,7 +2088,7 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.getFirst().getValue();
-      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
       assertThat(
               ((AddressExpression) resultValue)
                   .getOffset()
@@ -2172,7 +2172,7 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -2251,7 +2251,7 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -2329,7 +2329,7 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.getFirst().getValue();
-      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
       assertThat(
               ((AddressExpression) resultValue)
                   .getOffset()
@@ -2405,7 +2405,7 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.getFirst().getValue();
-      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
       assertThat(
               ((AddressExpression) resultValue)
                   .getOffset()
@@ -2487,7 +2487,7 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()
@@ -2566,7 +2566,7 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
         assertThat(
                 ((AddressExpression) resultValue)
                     .getOffset()

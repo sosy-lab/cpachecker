@@ -794,7 +794,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               firstConcreteNestedObj, BigInteger.ZERO, pointerSizeInBits, null);
       currentState = valueInNestedAndState.getState();
       Value valueInNested = valueInNestedAndState.getValue();
-      assertThat(valueInNested.isNumericValue()).isTrue();
+      assertThat(valueInNested instanceof NumericValue).isTrue();
       assertThat(valueInNested.asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
 
@@ -869,7 +869,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               nfoPteInAbstrNested.pointsTo(), nfo, pointerSizeInBits, null);
       currentState = nfoPtrInLastNestedAndState.getState();
       Value nfoPtrInLastNested = nfoPtrInLastNestedAndState.getValue();
-      assertThat(nfoPtrInLastNested.isNumericValue()).isTrue();
+      assertThat(nfoPtrInLastNested instanceof NumericValue).isTrue();
       assertThat(nfoPtrInLastNested.asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
     }
@@ -977,7 +977,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               firstConcreteNestedObj, BigInteger.ZERO, pointerSizeInBits, null);
       currentState = valueInNestedAndState.getState();
       Value valueInNested = valueInNestedAndState.getValue();
-      assertThat(valueInNested.isNumericValue()).isTrue();
+      assertThat(valueInNested instanceof NumericValue).isTrue();
       assertThat(valueInNested.asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
 
@@ -1063,7 +1063,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               nfoPteInAbstrNested.pointsTo(), nfo, pointerSizeInBits, null);
       currentState = nfoPtrInLastNestedAndState.getState();
       Value nfoPtrInLastNested = nfoPtrInLastNestedAndState.getValue();
-      assertThat(nfoPtrInLastNested.isNumericValue()).isTrue();
+      assertThat(nfoPtrInLastNested instanceof NumericValue).isTrue();
       assertThat(nfoPtrInLastNested.asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
     }
@@ -1216,7 +1216,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, changingNfo, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(nfoPtr)).isTrue();
-        assertThat(nfoPtr.isNumericValue()).isTrue();
+        assertThat(nfoPtr instanceof NumericValue).isTrue();
         assertThat(nfoPtr.asNumericValue().orElseThrow().bigIntegerValue().intValueExact())
             .isEqualTo(0);
         SMGPointsToEdge nfoPte =
@@ -1236,7 +1236,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, offsetFirstSelfPtr, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(selfPtr1)).isTrue();
-        assertThat(selfPtr1.isNumericValue()).isFalse();
+        assertThat(selfPtr1 instanceof NumericValue).isFalse();
         SMGPointsToEdge selfPtrPte1 =
             currentState
                 .getMemoryModel()
@@ -1254,7 +1254,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, offsetSecondSelfPtr, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(selfPtr2)).isTrue();
-        assertThat(selfPtr2.isNumericValue()).isFalse();
+        assertThat(selfPtr2 instanceof NumericValue).isFalse();
         SMGPointsToEdge selfPtrPte2 =
             currentState
                 .getMemoryModel()
@@ -1436,7 +1436,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, changingNfo, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(nfoPtr)).isTrue();
-        assertThat(nfoPtr.isNumericValue()).isTrue();
+        assertThat(nfoPtr instanceof NumericValue).isTrue();
         assertThat(nfoPtr.asNumericValue().orElseThrow().bigIntegerValue().intValueExact())
             .isEqualTo(0);
         SMGPointsToEdge nfoPte =
@@ -1456,7 +1456,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, changingPfo, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(pfoPtr)).isTrue();
-        assertThat(pfoPtr.isNumericValue()).isTrue();
+        assertThat(pfoPtr instanceof NumericValue).isTrue();
         assertThat(pfoPtr.asNumericValue().orElseThrow().bigIntegerValue().intValueExact())
             .isEqualTo(0);
         SMGPointsToEdge pfoPte =
@@ -1476,7 +1476,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, offsetFirstSelfPtr, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(selfPtr1)).isTrue();
-        assertThat(selfPtr1.isNumericValue()).isFalse();
+        assertThat(selfPtr1 instanceof NumericValue).isFalse();
         SMGPointsToEdge selfPtrPte1 =
             currentState
                 .getMemoryModel()
@@ -1494,7 +1494,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     abstractedObj, offsetSecondSelfPtr, pointerSizeInBits, null)
                 .getValue();
         assertThat(currentState.getMemoryModel().isPointer(selfPtr2)).isTrue();
-        assertThat(selfPtr2.isNumericValue()).isFalse();
+        assertThat(selfPtr2 instanceof NumericValue).isFalse();
         SMGPointsToEdge selfPtrPte2 =
             currentState
                 .getMemoryModel()
@@ -1642,7 +1642,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject fstObj = firstObjAndState.getSMGObject();
         assertThat(fstObj.isSLL()).isFalse();
         Value fstObjPtrOffset = firstObjAndState.getOffsetForObject();
-        assertThat(fstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(fstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(fstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, and 2 self ptrs
@@ -1714,7 +1714,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState = nextObjAndState.getSMGState();
             SMGObject nextObj = nextObjAndState.getSMGObject();
             Value nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-            assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
             assertThat(nextObj.isZero()).isTrue();
@@ -1732,7 +1732,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject nextObj = nextObjAndState.getSMGObject();
           assertThat(nextObj.isSLL()).isFalse();
           Value nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-          assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -1932,7 +1932,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject fstObj = firstObjAndState.getSMGObject();
         assertThat(fstObj.isSLL()).isFalse();
         Value fstObjPtrOffset = firstObjAndState.getOffsetForObject();
-        assertThat(fstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(fstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(fstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, and 2 self ptrs
@@ -2005,7 +2005,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject nextObj = nextObjAndState.getSMGObject();
           assertThat(nextObj.isSLL()).isFalse();
           Value nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-          assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -2017,7 +2017,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             nextObj = nextObjAndState.getSMGObject();
             assertThat(nextObj.isSLL()).isFalse();
             nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-            assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
           }
@@ -2235,7 +2235,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject fstObj = firstObjAndState.getSMGObject();
         assertThat(fstObj.isSLL()).isFalse();
         Value fstObjPtrOffset = firstObjAndState.getOffsetForObject();
-        assertThat(fstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(fstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(fstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, prev, and 2 self ptrs
@@ -2327,7 +2327,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject nextObj = nextObjAndState.getSMGObject();
           assertThat(nextObj.isSLL()).isFalse();
           Value nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-          assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -2345,7 +2345,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             nextObj = nextObjAndState.getSMGObject();
             assertThat(nextObj.isSLL()).isFalse();
             nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-            assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
           }
@@ -2591,7 +2591,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject fstObj = firstObjAndState.getSMGObject();
         assertThat(fstObj.isSLL()).isFalse();
         Value fstObjPtrOffset = firstObjAndState.getOffsetForObject();
-        assertThat(fstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(fstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(fstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, prev, and 2 self ptrs
@@ -2690,7 +2690,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject nextObj = nextObjAndState.getSMGObject();
           assertThat(nextObj.isSLL()).isFalse();
           Value nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-          assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -2726,7 +2726,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             nextObj = nextObjAndState.getSMGObject();
             assertThat(nextObj.isSLL()).isFalse();
             nextObjPtrOffset = nextObjAndState.getOffsetForObject();
-            assertThat(nextObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(nextObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(nextObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
           }
@@ -2942,7 +2942,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject lstObj = lastObjAndState.getSMGObject();
         assertThat(lstObj.isSLL()).isFalse();
         Value lstObjPtrOffset = lastObjAndState.getOffsetForObject();
-        assertThat(lstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(lstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(lstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, prev, and 2 self ptrs
@@ -3007,7 +3007,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState.dereferencePointer(nextPtr);
         assertThat(nextObjsList).hasSize(1);
         assertThat(nextObjsList.getFirst().getSMGObject()).isEqualTo(SMGObject.nullInstance());
-        assertThat(nextObjsList.getFirst().getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(nextObjsList.getFirst().getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 nextObjsList
                     .getFirst()
@@ -3038,7 +3038,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject prevObj = prevObjAndState.getSMGObject();
           assertThat(prevObj.isSLL()).isFalse();
           Value prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-          assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -3057,7 +3057,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             prevObj = prevObjAndState.getSMGObject();
             assertThat(prevObj.isSLL()).isFalse();
             prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-            assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
           }
@@ -3286,7 +3286,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject currentObj = prevObjAndState.getSMGObject();
         assertThat(currentObj.isSLL()).isFalse();
         Value prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-        assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(nextPtrOffset);
 
@@ -3300,7 +3300,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState.dereferencePointer(nextPtr);
         assertThat(nextObjsList).hasSize(1);
         assertThat(nextObjsList.getFirst().getSMGObject()).isEqualTo(SMGObject.nullInstance());
-        assertThat(nextObjsList.getFirst().getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(nextObjsList.getFirst().getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 nextObjsList
                     .getFirst()
@@ -3578,7 +3578,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject lstObj = lastObjAndState.getSMGObject();
         assertThat(lstObj.isSLL()).isFalse();
         Value lstObjPtrOffset = lastObjAndState.getOffsetForObject();
-        assertThat(lstObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(lstObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(lstObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         // Next, prev, and 2 self ptrs
@@ -3648,7 +3648,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 ((SMGDoublyLinkedListSegment) nextObjsListWOMat.orElseThrow().getSMGObject())
                     .getMinLength())
             .isEqualTo(7);
-        assertThat(nextObjsListWOMat.orElseThrow().getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(nextObjsListWOMat.orElseThrow().getOffsetForObject() instanceof NumericValue)
+            .isTrue();
         assertThat(
                 nextObjsListWOMat
                     .orElseThrow()
@@ -3680,7 +3681,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           SMGObject prevObj = prevObjAndState.getSMGObject();
           assertThat(prevObj.isSLL()).isFalse();
           Value prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-          assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+          assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
           assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
               .isEqualTo(nextPtrOffset);
 
@@ -3694,7 +3695,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             prevObj = prevObjAndState.getSMGObject();
             assertThat(prevObj.isSLL()).isFalse();
             prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-            assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
             foundZeroPlusOnce = true;
@@ -3711,7 +3712,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             prevObj = prevObjAndState.getSMGObject();
             assertThat(prevObj.isSLL()).isFalse();
             prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-            assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+            assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
             assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
                 .isEqualTo(nextPtrOffset);
           }
@@ -3954,7 +3955,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGObject currentObj = prevObjAndState.getSMGObject();
         assertThat(currentObj.isSLL()).isFalse();
         Value prevObjPtrOffset = prevObjAndState.getOffsetForObject();
-        assertThat(prevObjPtrOffset.isNumericValue()).isTrue();
+        assertThat(prevObjPtrOffset instanceof NumericValue).isTrue();
         assertThat(prevObjPtrOffset.asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(nextPtrOffset);
 
@@ -3974,7 +3975,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState.dereferencePointer(nextPtr);
         assertThat(nextObjsList).hasSize(1);
         assertThat(nextObjsList.getFirst().getSMGObject()).isEqualTo(expectedNextListSegment);
-        assertThat(nextObjsList.getFirst().getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(nextObjsList.getFirst().getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 nextObjsList
                     .getFirst()
@@ -4669,7 +4670,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedEndingList = derefedTopElems.getFirst();
         currentState = derefedEndingList.getSMGState();
         assertThat(derefedEndingList.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedEndingList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedEndingList
                     .getOffsetForObject()
@@ -4684,7 +4685,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedZeroPlusCase = derefedTopElems.get(1);
         currentState = derefedZeroPlusCase.getSMGState();
         assertThat(derefedZeroPlusCase.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedZeroPlusCase.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedZeroPlusCase
                     .getOffsetForObject()
@@ -4700,7 +4701,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.getFirst();
         currentState = derefedList.getSMGState();
         assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedList.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedList.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
@@ -4709,7 +4710,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       ValueAndSMGState readNext =
           currentState.readValueWithoutMaterialization(nextListObj, nfo, pointerSizeInBits, null);
-      assertThat(readNext.getValue().isNumericValue()).isFalse();
+      assertThat(readNext.getValue() instanceof NumericValue).isFalse();
       currentState = readNext.getState();
       assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
       Optional<SMGPointsToEdge> pte =
@@ -4845,7 +4846,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.getFirst();
       currentState = derefedList.getSMGState();
       assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
-      assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(derefedList.getOffsetForObject() instanceof NumericValue).isTrue();
       assertThat(derefedList.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       nextListObj = derefedList.getSMGObject();
@@ -4858,7 +4859,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(readNexts).hasSize(2);
         // ending 0+
         readNext = readNexts.getFirst();
-        assertThat(readNext.getValue().isNumericValue()).isTrue();
+        assertThat(readNext.getValue() instanceof NumericValue).isTrue();
         assertThat(readNext.getValue().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
 
@@ -4866,7 +4867,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       } else {
         assertThat(readNexts).hasSize(1);
         readNext = readNexts.getFirst();
-        assertThat(readNext.getValue().isNumericValue()).isFalse();
+        assertThat(readNext.getValue() instanceof NumericValue).isFalse();
       }
       currentState = readNext.getState();
       assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
@@ -4898,7 +4899,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGStateAndOptionalSMGObjectAndOffset ptrToAbstrDeref =
           currentState.dereferencePointerWithoutMaterilization(abstractedObjPtr).orElseThrow();
       assertThat(ptrToAbstrDeref.hasSMGObjectAndOffset()).isTrue();
-      assertThat(ptrToAbstrDeref.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject() instanceof NumericValue).isTrue();
       assertThat(
               ptrToAbstrDeref.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
@@ -5010,7 +5011,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedEndingList = derefedTopElems.getFirst();
         currentState = derefedEndingList.getSMGState();
         assertThat(derefedEndingList.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedEndingList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedEndingList.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedEndingList
                     .getOffsetForObject()
@@ -5025,7 +5026,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedZeroPlusCase = derefedTopElems.get(1);
         currentState = derefedZeroPlusCase.getSMGState();
         assertThat(derefedZeroPlusCase.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedZeroPlusCase.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedZeroPlusCase.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedZeroPlusCase
                     .getOffsetForObject()
@@ -5041,7 +5042,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.getFirst();
         currentState = derefedList.getSMGState();
         assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
-        assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+        assertThat(derefedList.getOffsetForObject() instanceof NumericValue).isTrue();
         assertThat(
                 derefedList.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
@@ -5050,7 +5051,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
       ValueAndSMGState readNext =
           currentState.readValueWithoutMaterialization(nextListObj, nfo, pointerSizeInBits, null);
-      assertThat(readNext.getValue().isNumericValue()).isFalse();
+      assertThat(readNext.getValue() instanceof NumericValue).isFalse();
       currentState = readNext.getState();
       assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
       Optional<SMGPointsToEdge> pte =
@@ -5080,7 +5081,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       ValueAndSMGState readPrevOfAbstr =
           currentState.readValueWithoutMaterialization(
               pte.orElseThrow().pointsTo(), pfo, pointerSizeInBits, null);
-      assertThat(readPrevOfAbstr.getValue().isNumericValue()).isFalse();
+      assertThat(readPrevOfAbstr.getValue() instanceof NumericValue).isFalse();
       currentState = readPrevOfAbstr.getState();
       assertThat(currentState.getMemoryModel().isPointer(readPrevOfAbstr.getValue())).isTrue();
       Optional<SMGPointsToEdge> ptePrevAbstr =
@@ -5206,7 +5207,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGStateAndOptionalSMGObjectAndOffset derefedList = derefedTopElems.getFirst();
       currentState = derefedList.getSMGState();
       assertThat(derefedList.hasSMGObjectAndOffset()).isTrue();
-      assertThat(derefedList.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(derefedList.getOffsetForObject() instanceof NumericValue).isTrue();
       assertThat(derefedList.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       nextListObj = derefedList.getSMGObject();
@@ -5219,7 +5220,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(readNexts).hasSize(2);
         // ending 0+
         readNext = readNexts.getFirst();
-        assertThat(readNext.getValue().isNumericValue()).isTrue();
+        assertThat(readNext.getValue() instanceof NumericValue).isTrue();
         assertThat(readNext.getValue().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
 
@@ -5227,7 +5228,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       } else {
         assertThat(readNexts).hasSize(1);
         readNext = readNexts.getFirst();
-        assertThat(readNext.getValue().isNumericValue()).isFalse();
+        assertThat(readNext.getValue() instanceof NumericValue).isFalse();
       }
       currentState = readNext.getState();
       assertThat(currentState.getMemoryModel().isPointer(readNext.getValue())).isTrue();
@@ -5258,7 +5259,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       SMGStateAndOptionalSMGObjectAndOffset ptrToAbstrDeref =
           currentState.dereferencePointerWithoutMaterilization(abstractedObjPtr).orElseThrow();
       assertThat(ptrToAbstrDeref.hasSMGObjectAndOffset()).isTrue();
-      assertThat(ptrToAbstrDeref.getOffsetForObject().isNumericValue()).isTrue();
+      assertThat(ptrToAbstrDeref.getOffsetForObject() instanceof NumericValue).isTrue();
       assertThat(
               ptrToAbstrDeref.getOffsetForObject().asNumericValue().orElseThrow().bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
@@ -5275,7 +5276,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // Prev check
       ValueAndSMGState readPrevOfAbstr =
           currentState.readValueWithoutMaterialization(abstractedObj, pfo, pointerSizeInBits, null);
-      assertThat(readPrevOfAbstr.getValue().isNumericValue()).isFalse();
+      assertThat(readPrevOfAbstr.getValue() instanceof NumericValue).isFalse();
       assertThat(currentState.getMemoryModel().getNestingLevel(readPrevOfAbstr.getValue()))
           .isEqualTo(0);
       currentState = readPrevOfAbstr.getState();
@@ -6362,7 +6363,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         ValueAndSMGState readNfoWithoutMaterialization =
             currentState.readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null);
         currentState = readNfoWithoutMaterialization.getState();
-        assertThat(readNfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
+        assertThat(readNfoWithoutMaterialization.getValue() instanceof NumericValue).isTrue();
         assertThat(
                 readNfoWithoutMaterialization
                     .getValue()
@@ -6375,7 +6376,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           ValueAndSMGState readPfoWithoutMaterialization =
               currentState.readValueWithoutMaterialization(obj, pfo, pointerSizeInBits, null);
           currentState = readPfoWithoutMaterialization.getState();
-          assertThat(readPfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
+          assertThat(readPfoWithoutMaterialization.getValue() instanceof NumericValue).isTrue();
           assertThat(
                   readPfoWithoutMaterialization
                       .getValue()
@@ -6556,7 +6557,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // The states are ordered, with the ending list being the first
     ValueAndSMGState firstReadValueAndState = statesAndReadValueZeroPlus.getFirst();
     currentState = firstReadValueAndState.getState();
-    assertThat(firstReadValueAndState.getValue().isNumericValue()).isTrue();
+    assertThat(firstReadValueAndState.getValue() instanceof NumericValue).isTrue();
     assertThat(firstReadValueAndState.getValue().asNumericValue().orElseThrow().bigIntegerValue())
         .isEquivalentAccordingToCompareTo(expectedNfoValue);
 
@@ -6564,7 +6565,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // Check that it's a concrete region with a valid pointer to it
     ValueAndSMGState secondReadValueAndState = statesAndReadValueZeroPlus.get(1);
     currentState = secondReadValueAndState.getState();
-    assertThat(secondReadValueAndState.getValue().isNumericValue()).isFalse();
+    assertThat(secondReadValueAndState.getValue() instanceof NumericValue).isFalse();
     SMGValue pointerValueFromZeroPlus =
         currentState
             .getMemoryModel()
@@ -7333,7 +7334,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState
                 .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
                 .getFirst();
-        assertThat(nextPointer.getValue().isNumericValue()).isTrue();
+        assertThat(nextPointer.getValue() instanceof NumericValue).isTrue();
         assertThat(nextPointer.getValue().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         break;
@@ -7357,10 +7358,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           .isPresent();
       assertThat(
               currentState
-                  .getMemoryModel()
-                  .getValueFromSMGValue(headAndState.getSMGValue())
-                  .orElseThrow()
-                  .isNumericValue())
+                      .getMemoryModel()
+                      .getValueFromSMGValue(headAndState.getSMGValue())
+                      .orElseThrow()
+                  instanceof NumericValue)
           .isTrue();
       assertThat(
               currentState
@@ -7501,7 +7502,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             currentState
                 .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
                 .getFirst();
-        assertThat(nextPointer.getValue().isNumericValue()).isTrue();
+        assertThat(nextPointer.getValue() instanceof NumericValue).isTrue();
         assertThat(nextPointer.getValue().asNumericValue().orElseThrow().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         break;
@@ -7526,10 +7527,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           .isPresent();
       assertThat(
               currentState
-                  .getMemoryModel()
-                  .getValueFromSMGValue(headAndState.getSMGValue())
-                  .orElseThrow()
-                  .isNumericValue())
+                      .getMemoryModel()
+                      .getValueFromSMGValue(headAndState.getSMGValue())
+                      .orElseThrow()
+                  instanceof NumericValue)
           .isTrue();
       assertThat(
               currentState
@@ -8293,7 +8294,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             .getSMGObject();
 
     assertThat(currentState.getMemoryModel().getSmg().isValid(listSegmentFront)).isTrue();
-    assertThat(listSegmentFront.getSize().isNumericValue()).isTrue();
+    assertThat(listSegmentFront.getSize() instanceof NumericValue).isTrue();
     assertThat(listSegmentFront.getSize().asNumericValue().orElseThrow().bigIntegerValue())
         .isEqualTo(listSegmentSize);
     assertThat(listSegmentFront).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
@@ -8387,7 +8388,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         .isEqualTo(SMGTargetSpecifier.IS_REGION);
     SMGObject listSegmentBack = maybePTENextFromAbtrLst.orElseThrow().pointsTo();
     assertThat(listSegmentBack).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
-    assertThat(listSegmentBack.getSize().isNumericValue()).isTrue();
+    assertThat(listSegmentBack.getSize() instanceof NumericValue).isTrue();
     assertThat(listSegmentBack.getSize().asNumericValue().orElseThrow().bigIntegerValue())
         .isEqualTo(listSegmentSize);
 

@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -303,7 +304,7 @@ public class SMGCPATransferRelationTest {
       Preconditions.checkArgument(readValueAndState.size() == 1);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
       assertThat(
               readValueAndState
                   .getFirst()
@@ -501,7 +502,7 @@ public class SMGCPATransferRelationTest {
       Preconditions.checkArgument(readValueAndState.size() == 1);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
       assertThat(
               readValueAndState
                   .getFirst()
@@ -532,7 +533,7 @@ public class SMGCPATransferRelationTest {
       Preconditions.checkArgument(readValueAndState.size() == 1);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
       assertThat(
               readValueAndState
                   .getFirst()
@@ -558,7 +559,7 @@ public class SMGCPATransferRelationTest {
         Preconditions.checkArgument(readValueAndState.size() == 1);
         // There is an overflow happening here! a char is filled with a too large value
         // TODO: error check
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         if (readValueAndState
                 .getFirst()
@@ -607,7 +608,7 @@ public class SMGCPATransferRelationTest {
       Preconditions.checkArgument(readValueAndState.size() == 1);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
       assertThat(
               readValueAndState
                   .getFirst()
@@ -711,7 +712,7 @@ public class SMGCPATransferRelationTest {
         Preconditions.checkArgument(readValueAndState.size() == 1);
         // The read state should not have any errors
         // TODO: error check
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
         assertThat(
                 readValueAndState
                     .getFirst()
@@ -1232,19 +1233,11 @@ public class SMGCPATransferRelationTest {
     // The read state should not have any errors
     // TODO: error check
     // If now the read value is not numeric (!= 0) it can't be a malloc failure
-    if (!readValueAndState.getFirst().getValue().isNumericValue()) {
+    if (!(readValueAndState.getFirst().getValue() instanceof NumericValue numReadValue)) {
       return false;
     }
 
-    assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(
-            readValueAndState
-                .getFirst()
-                .getValue()
-                .asNumericValue()
-                .orElseThrow()
-                .bigIntegerValue())
-        .isEqualTo(BigInteger.ZERO);
+    assertThat(numReadValue.bigIntegerValue()).isEqualTo(BigInteger.ZERO);
     assertThat(
             memoryModel.getSMGValueFromValue(readValueAndState.getFirst().getValue()).orElseThrow())
         .isEqualTo(SMGValue.zeroValue());
@@ -1293,7 +1286,7 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         // The value should be numeric
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
@@ -1381,7 +1374,7 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         // The value should be numeric
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
@@ -1469,7 +1462,7 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         // The value should be numeric
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         assertThat(currentFieldType instanceof CSimpleType).isTrue();
         // Check the value (chars are also numerically saved!)
@@ -1574,7 +1567,7 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         // The value should be numeric
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         assertThat(currentFieldType).isInstanceOf(CSimpleType.class);
         // Check the value (chars are also numerically saved!)
@@ -1634,7 +1627,7 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         // The value should be numeric
-        assertThat(readValueAndState.getFirst().getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getFirst().getValue() instanceof NumericValue).isTrue();
 
         assertThat(
                 readValueAndState

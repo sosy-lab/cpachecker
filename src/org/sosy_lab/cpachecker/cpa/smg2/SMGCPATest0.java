@@ -653,7 +653,7 @@ public class SMGCPATest0 {
                 pointerSizeInBits,
                 null);
         currentState = readDataWithoutMaterialization.getState();
-        assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
+        assertThat(readDataWithoutMaterialization.getValue() instanceof NumericValue).isTrue();
         assertThat(
                 readDataWithoutMaterialization
                     .getValue()

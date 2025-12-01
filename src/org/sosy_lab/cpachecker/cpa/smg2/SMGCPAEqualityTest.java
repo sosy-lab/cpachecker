@@ -1320,7 +1320,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
     assertThat(
             readNextsInLast.getFirst().getValue().asNumericValue().orElseThrow().bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
@@ -1509,7 +1509,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
     assertThat(
             readNextsInLast.getFirst().getValue().asNumericValue().orElseThrow().bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
@@ -1740,7 +1740,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readPrevsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readPrevsInLast.getFirst().getValue().isNumericValue()).isTrue();
+    assertThat(readPrevsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
     assertThat(
             readPrevsInLast.getFirst().getValue().asNumericValue().orElseThrow().bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);

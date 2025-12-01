@@ -319,7 +319,7 @@ public class SMGCPAValueVisitor
         SMGState newState = subscriptValueAndState.getState();
         // If the subscript is an unknown value, we can't read anything and return unknown
         // We also overapproximate the access and assume unsafe
-        if (!subscriptValue.isNumericValue() && !options.trackErrorPredicates()) {
+        if (!(subscriptValue instanceof NumericValue) && !options.trackErrorPredicates()) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   newState.withUnknownOffsetMemoryAccess(),
@@ -433,7 +433,7 @@ public class SMGCPAValueVisitor
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
 
-        if (!additionalOffset.isNumericValue()) {
+        if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
           throw new RuntimeException(
               "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
                   + " analysis.");
@@ -442,9 +442,7 @@ public class SMGCPAValueVisitor
         return ImmutableList.of(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
-                    .newIdentifier(
-                        memloc.withAddedOffset(
-                            additionalOffset.asNumericValue().orElseThrow().longValue())),
+                    .newIdentifier(memloc.withAddedOffset(numAdditionalOffset.longValue())),
                 newState));
 
       } else if (returnType instanceof CPointerType) {
@@ -579,7 +577,7 @@ public class SMGCPAValueVisitor
                 && (rightValue instanceof ConstantSymbolicExpression
                     && evaluator.isPointerValue(
                         ((ConstantSymbolicExpression) rightValue).getValue(), currentState))))
-        && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
+        && !(leftValue instanceof NumericValue && rightValue instanceof NumericValue)) {
 
       // It is possible that addresses get cast to int or smth like it
       // Then the SymbolicIdentifier is returned not in an AddressExpression
@@ -736,7 +734,8 @@ public class SMGCPAValueVisitor
               calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
     }
 
-    if (!leftValue.isNumericValue() || !rightValue.isNumericValue()) {
+    if (!(leftValue instanceof NumericValue numLeftValue)
+        || !(rightValue instanceof NumericValue numRightValue)) {
       logger.logf(
           Level.FINE,
           "Parameters to binary operation '%s %s %s' are no numeric values. Returned unknown value"
@@ -751,8 +750,7 @@ public class SMGCPAValueVisitor
     if (isArithmeticOperation(binaryOperator)) {
       // Actual computations
       Value arithResult =
-          arithmeticOperation(
-              (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
+          arithmeticOperation(numLeftValue, numRightValue, binaryOperator, calculationType);
       return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
 
     } else if (isComparison(binaryOperator)) {
@@ -803,10 +801,6 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.of(
             AddressExpression.withZeroOffset(value, targetType), currentState);
 
-      } else if (value.isNumericValue() && options.isCastMemoryAddressesToNumeric()) {
-        logger.logf(Level.FINE, "Numeric Value '%s' interpreted as memory address.", value);
-        return evaluator.getPointerFromNumeric(value, currentState);
-
       } else if (options.trackPredicates() && value instanceof SymbolicValue) {
         return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
 
@@ -832,12 +826,11 @@ public class SMGCPAValueVisitor
     }
 
     // We only use numeric/symbolic/unknown values anyway, and we can't cast unknowns
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return ValueAndSMGState.of(value, currentState);
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -1136,7 +1129,7 @@ public class SMGCPAValueVisitor
             ValueAndSMGState.of(
                 createSymbolicExpression(value, operandType, unaryOperator, returnType),
                 currentState);
-      } else if (!value.isNumericValue()) {
+      } else if (!(value instanceof NumericValue numericValue)) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
@@ -1144,7 +1137,7 @@ public class SMGCPAValueVisitor
             unaryOperator);
         newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
       } else {
-        final NumericValue numericValue = (NumericValue) value;
+
         final NumericValue newValue =
             switch (unaryOperator) {
               case MINUS -> numericValue.negate();
@@ -1193,12 +1186,8 @@ public class SMGCPAValueVisitor
       if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
-            (value.isNumericValue()
-                    && value
-                        .asNumericValue()
-                        .orElseThrow()
-                        .bigIntegerValue()
-                        .equals(BigInteger.ZERO))
+            (value instanceof NumericValue numValue
+                    && numValue.bigIntegerValue().equals(BigInteger.ZERO))
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -1211,7 +1200,7 @@ public class SMGCPAValueVisitor
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
-      if (!offset.isNumericValue() && !options.trackErrorPredicates()) {
+      if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
         // If the offset is not numericly known we can't read a value, return unknown iff we don't
         // check with SMT solvers later
         builder.add(
@@ -1226,8 +1215,8 @@ public class SMGCPAValueVisitor
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
-        if (!offset.isNumericValue()) {
-          // If the offset is not numericly known we can't read a value
+        if (!(offset instanceof NumericValue)) {
+          // If the offset is not numerically known we can't read a value
           builder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withUnknownOffsetMemoryAccess(),
@@ -1995,7 +1984,7 @@ public class SMGCPAValueVisitor
         && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
       if (!options.trackPredicates()
-          && (!rightValue.isNumericValue() || !addressOffset.isNumericValue())) {
+          && (!(rightValue instanceof NumericValue) || !(addressOffset instanceof NumericValue))) {
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
@@ -2052,8 +2041,8 @@ public class SMGCPAValueVisitor
     } else if (!(leftValue instanceof AddressExpression)
         && rightValue instanceof AddressExpression addressValue) {
       Value addressOffset = addressValue.getOffset();
-      if (!leftValue.isNumericValue()
-          || !addressOffset.isNumericValue()
+      if (!(leftValue instanceof NumericValue numLeftValue)
+          || !(addressOffset instanceof NumericValue numAddressOffset)
           || binaryOperator == BinaryOperator.MINUS) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
@@ -2068,7 +2057,7 @@ public class SMGCPAValueVisitor
         correctlyTypedOffset =
             arithmeticOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                (NumericValue) leftValue,
+                numLeftValue,
                 BinaryOperator.MULTIPLY,
                 machineModel.getPointerSizedIntType());
       } else {
@@ -2077,7 +2066,7 @@ public class SMGCPAValueVisitor
         correctlyTypedOffset =
             arithmeticOperation(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) leftValue,
+                numLeftValue,
                 BinaryOperator.MULTIPLY,
                 calculationType);
       }
@@ -2085,7 +2074,7 @@ public class SMGCPAValueVisitor
       Value finalOffset =
           arithmeticOperation(
               (NumericValue) correctlyTypedOffset,
-              (NumericValue) addressOffset,
+              numAddressOffset,
               binaryOperator,
               calculationType);
 
@@ -2094,13 +2083,9 @@ public class SMGCPAValueVisitor
 
     } else {
       // Either we have 2 address expressions or 2 numeric 0
-      if (rightValue.isNumericValue()
-          && leftValue.isNumericValue()
-          && rightValue
-              .asNumericValue()
-              .orElseThrow()
-              .getNumber()
-              .equals(leftValue.asNumericValue().orElseThrow().getNumber())) {
+      if (rightValue instanceof NumericValue numRightValue
+          && leftValue instanceof NumericValue numLeftValue
+          && numRightValue.getNumber().equals(numLeftValue.getNumber())) {
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
@@ -2113,8 +2098,8 @@ public class SMGCPAValueVisitor
       // We need the non-equal method for SMGs here as it might be that due to abstraction 2 values
       // are not equal but refer to the same structure!
       if (binaryOperator != BinaryOperator.MINUS
-          || !rightOffset.isNumericValue()
-          || !leftOffset.isNumericValue()) {
+          || !(rightOffset instanceof NumericValue)
+          || !(leftOffset instanceof NumericValue)) {
         // TODO: symbolic values if possible
         return ImmutableList.of(
             ValueAndSMGState.ofUnknownValue(
@@ -2132,7 +2117,7 @@ public class SMGCPAValueVisitor
 
         Value distanceInBits = distanceInBitsAndState.getValue();
         currentState = distanceInBitsAndState.getState();
-        if (!distanceInBits.isNumericValue()) {
+        if (!(distanceInBits instanceof NumericValue numDistanceInBits)) {
           returnBuilder.add(ValueAndSMGState.of(distanceInBits, currentState));
           continue;
         }
@@ -2158,7 +2143,7 @@ public class SMGCPAValueVisitor
         assert leftValueType.equals(rightValueType);
         Value distance =
             arithmeticOperation(
-                (NumericValue) distanceInBits,
+                numDistanceInBits,
                 size,
                 BinaryOperator.DIVIDE,
                 machineModel.getPointerSizedIntType());
@@ -2251,7 +2236,7 @@ public class SMGCPAValueVisitor
       CType pCalculationType)
       throws SMGException {
 
-    if (pLeftValue.isNumericValue() && pRightValue.isNumericValue()) {
+    if (pLeftValue instanceof NumericValue && pRightValue instanceof NumericValue) {
       throw new SMGException(
           "Error when creating a symbolic expression. Please inform the maintainer of SMG2.");
     }
@@ -2263,8 +2248,8 @@ public class SMGCPAValueVisitor
     // Simplify floating point expressions
     // TODO Add more simplifications
     // TODO Move this code to the methods in SymbolicValueFactory?
-    if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().orElseThrow().hasFloatType()) {
-      FloatValue leftNum = pLeftValue.asNumericValue().orElseThrow().getFloatValue();
+    if (pLeftValue instanceof NumericValue leftValue && leftValue.hasFloatType()) {
+      FloatValue leftNum = leftValue.getFloatValue();
       if (ImmutableList.of(
                   BinaryOperator.PLUS,
                   BinaryOperator.MINUS,
@@ -2275,8 +2260,8 @@ public class SMGCPAValueVisitor
         return pLeftValue;
       }
     }
-    if (pRightValue.isNumericValue() && pRightValue.asNumericValue().orElseThrow().hasFloatType()) {
-      FloatValue rightNum = pRightValue.asNumericValue().orElseThrow().getFloatValue();
+    if (pRightValue instanceof NumericValue rightValue && rightValue.hasFloatType()) {
+      FloatValue rightNum = rightValue.getFloatValue();
       if (ImmutableList.of(
                   BinaryOperator.PLUS,
                   BinaryOperator.MINUS,
@@ -2288,8 +2273,8 @@ public class SMGCPAValueVisitor
       }
     }
 
-    if (pLeftValue.isNumericValue()) {
-      BigInteger leftNum = pLeftValue.asNumericValue().orElseThrow().bigIntegerValue();
+    if (pLeftValue instanceof NumericValue leftValue) {
+      BigInteger leftNum = leftValue.bigIntegerValue();
       rightOperand = factory.asConstant(pRightValue, pRightType);
       if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
@@ -2303,9 +2288,9 @@ public class SMGCPAValueVisitor
           || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
         return new NumericValue(BigInteger.ZERO);
       }
-    } else if (pRightValue.isNumericValue()) {
+    } else if (pRightValue instanceof NumericValue rightValue) {
       leftOperand = factory.asConstant(pLeftValue, pLeftType);
-      BigInteger rightNum = pRightValue.asNumericValue().orElseThrow().bigIntegerValue();
+      BigInteger rightNum = rightValue.bigIntegerValue();
       if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
@@ -2702,12 +2687,11 @@ public class SMGCPAValueVisitor
     }
 
     // For now can only cast numeric value's
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numericValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
