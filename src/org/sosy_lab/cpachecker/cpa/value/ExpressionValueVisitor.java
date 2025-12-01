@@ -128,7 +128,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (Objects.equals(machineModel.getSizeof(readType), machineModel.getSizeof(actualType))) {
 
         if (doesRequireUnionFloatConversion(actualType, readType)) {
-          if (valueAndType.getValue().isNumericValue()) {
+          if (valueAndType.getValue() instanceof NumericValue) {
             if (isFloatingPointType(actualType.getCanonicalType())) {
               return extractFloatingPointValueAsIntegralValue(
                   actualType.getCanonicalType(), valueAndType);
@@ -306,17 +306,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       Value subscriptValue = subscript.accept(evv);
 
-      if (!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
+      if (!(subscriptValue instanceof NumericValue numSubscriptValue)) {
         return null;
       }
 
       Value typeSize = evv.sizeof(elementType);
-      if (!typeSize.isExplicitlyKnown() || !typeSize.isNumericValue()) {
+      if (!(typeSize instanceof NumericValue numTypeSize)) {
         return null;
       }
-      long subscriptOffset =
-          subscriptValue.asNumericValue().orElseThrow().longValue()
-              * typeSize.asNumericValue().orElseThrow().longValue();
+      long subscriptOffset = numSubscriptValue.longValue() * numTypeSize.longValue();
 
       return arrayLoc.withAddedOffset(subscriptOffset);
     }

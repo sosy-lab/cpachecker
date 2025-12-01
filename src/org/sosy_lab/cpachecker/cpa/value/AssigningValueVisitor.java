@@ -281,11 +281,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         Preconditions.checkArgument(
             getMachineModel().getSizeof(castType) >= getMachineModel().getSizeof(origType));
 
-        if (pValue.isNumericValue()) {
+        if (pValue instanceof NumericValue numValue) {
           return invertCastFromInteger(
               origType,
               castType,
-              pValue.asNumericValue().orElseThrow(),
+              numValue,
               !getMachineModel().isSigned(castType) && getMachineModel().isSigned(origType));
         } else {
           return UnknownValue.getInstance();

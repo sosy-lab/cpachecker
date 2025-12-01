@@ -228,7 +228,7 @@ public abstract class AbstractExpressionValueVisitor
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
 
-    if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
+    if (!(lVal instanceof NumericValue lNumValue) || !(rVal instanceof NumericValue rNumValue)) {
       logger.logf(
           Level.FINE,
           "Parameters to binary operation '%s %s %s' are no numeric values.",
@@ -251,22 +251,12 @@ public abstract class AbstractExpressionValueVisitor
           BINARY_XOR -> {
         Value result =
             arithmeticOperation(
-                (NumericValue) lVal,
-                (NumericValue) rVal,
-                binaryOperator,
-                calculationType,
-                machineModel,
-                logger);
+                lNumValue, rNumValue, binaryOperator, calculationType, machineModel, logger);
         yield castCValue(result, binaryExpr.getExpressionType(), machineModel, logger);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
           comparisonOperation(
-              (NumericValue) lVal,
-              (NumericValue) rVal,
-              binaryOperator,
-              calculationType,
-              machineModel,
-              logger);
+              lNumValue, rNumValue, binaryOperator, calculationType, machineModel, logger);
     };
   }
 
@@ -1151,8 +1141,8 @@ public abstract class AbstractExpressionValueVisitor
       if (pLength instanceof CIdExpression idExpression
           && idExpression.getExpressionType().isConst()) {
         Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
-        if (lengthValue.isNumericValue()) {
-          return lengthValue.asNumericValue().orElseThrow().bigIntegerValue();
+        if (lengthValue instanceof NumericValue numLengthValue) {
+          return numLengthValue.bigIntegerValue();
         }
       }
 
@@ -1188,16 +1178,11 @@ public abstract class AbstractExpressionValueVisitor
             && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
             && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
           Value baseAddress = cast.getOperand().accept(this);
-          if (baseAddress.isNumericValue()) {
+          if (baseAddress instanceof NumericValue numBaseAddress) {
             Optional<BigInteger> offset =
                 machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
             if (offset.isPresent()) {
-              yield new NumericValue(
-                  baseAddress
-                      .asNumericValue()
-                      .orElseThrow()
-                      .bigIntegerValue()
-                      .add(offset.orElseThrow()));
+              yield new NumericValue(numBaseAddress.bigIntegerValue().add(offset.orElseThrow()));
             }
           }
         }
@@ -1217,18 +1202,19 @@ public abstract class AbstractExpressionValueVisitor
 
           yield createSymbolicExpression(value, operandType, unaryOperator, expressionType);
 
-        } else if (!value.isNumericValue()) {
+        } else if (!(value instanceof NumericValue numValue)) {
           logger.logf(
               Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
           yield Value.UnknownValue.getInstance();
-        }
 
-        final NumericValue numericValue = (NumericValue) value;
-        yield switch (unaryOperator) {
-          case MINUS -> numericValue.negate();
-          case TILDE -> new NumericValue(~numericValue.longValue());
-          default -> throw new AssertionError("unknown operator: " + unaryOperator);
-        };
+        } else {
+
+          yield switch (unaryOperator) {
+            case MINUS -> numValue.negate();
+            case TILDE -> new NumericValue(~numValue.longValue());
+            default -> throw new AssertionError("unknown operator: " + unaryOperator);
+          };
+        }
       }
     };
   }
@@ -1646,13 +1632,12 @@ public abstract class AbstractExpressionValueVisitor
     if (valueObject.isUnknown()) {
       return UnknownValue.getInstance();
 
-    } else if (valueObject.isNumericValue()) {
-      NumericValue value = (NumericValue) valueObject;
+    } else if (valueObject instanceof NumericValue numValue) {
 
       return switch (unaryOperator) {
-        case MINUS -> value.negate();
-        case COMPLEMENT -> evaluateComplement(unaryOperand, value);
-        case PLUS -> value;
+        case MINUS -> numValue.negate();
+        case COMPLEMENT -> evaluateComplement(unaryOperand, numValue);
+        case PLUS -> numValue;
         default -> {
           logger.log(Level.FINE, errorMsg);
           yield UnknownValue.getInstance();
@@ -1728,11 +1713,12 @@ public abstract class AbstractExpressionValueVisitor
     JExpression arrayExpression = pJArraySubscriptExpression.getArrayExpression();
     Value idValue = arrayExpression.accept(this);
 
-    if (!idValue.isUnknown() && subscriptValue.isNumericValue()) {
+    if (!idValue.isUnknown() && subscriptValue instanceof NumericValue numSubscriptValue) {
+      // TODO: why is arrayExpression evaluated twice?
       JArrayValue innerMostArray = (JArrayValue) arrayExpression.accept(this);
-      assert ((NumericValue) subscriptValue).longValue() >= 0
-          && ((NumericValue) subscriptValue).longValue() <= Integer.MAX_VALUE;
-      return innerMostArray.getValueAt((int) ((NumericValue) subscriptValue).longValue());
+      assert numSubscriptValue.longValue() >= 0
+          && numSubscriptValue.longValue() <= Integer.MAX_VALUE;
+      return innerMostArray.getValueAt((int) numSubscriptValue.longValue());
 
     } else {
       return Value.UnknownValue.getInstance();
@@ -1966,12 +1952,11 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     // For now can only cast numeric value's
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numValue)) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
-    NumericValue numericValue = (NumericValue) value;
 
     CType type = targetType.getCanonicalType();
     final int size;
@@ -1985,7 +1970,7 @@ public abstract class AbstractExpressionValueVisitor
       return value;
     }
 
-    return castNumeric(numericValue, type, machineModel, size);
+    return castNumeric(numValue, type, machineModel, size);
   }
 
   private static Value castNumeric(
@@ -2198,22 +2183,20 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.
-    if (!value.isNumericValue()) {
+    if (!(value instanceof NumericValue numValue)) {
       logger.logf(
           Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
       return value;
     }
 
-    NumericValue numericValue = (NumericValue) value;
-
     if (targetType instanceof JSimpleType st) {
       if (isIntegerType(sourceType)) {
-        long longValue = numericValue.longValue();
+        long longValue = numValue.longValue();
 
         return createValue(longValue, st);
 
       } else if (isFloatType(sourceType)) {
-        double doubleValue = numericValue.doubleValue();
+        double doubleValue = numValue.doubleValue();
 
         return createValue(doubleValue, st);
 
@@ -2294,8 +2277,8 @@ public abstract class AbstractExpressionValueVisitor
       // Cast to unsigned target type
       Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
 
-      if (paramValue.isNumericValue()) {
-        BigInteger numericParam = paramValue.asNumericValue().orElseThrow().bigIntegerValue();
+      if (paramValue instanceof NumericValue numValue) {
+        BigInteger numericParam = numValue.bigIntegerValue();
 
         // Check that the cast function parameter is really unsigned, as defined by the function and
         // needed by Java BigInteger.bitcount() to be correct, as negative values give distinct
