@@ -21,6 +21,8 @@
 
 # Enter CPAchecker arguments here
 CPACHECKER_ARGS=""
+# Example:
+# CPACHECKER_ARGS="--default doc/examples/example-safe.c"
 
 # Choose how to build CPAchecker:
 # fastest (no Error Prone checks)
