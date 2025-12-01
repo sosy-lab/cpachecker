@@ -285,7 +285,7 @@ public class SMGExpressionEvaluator {
     Value value = rValue.accept(visitor);
     SMGState newState = visitor.getState();
 
-    if (!value.isExplicitlyKnown() || !(value instanceof NumericValue)) {
+    if (!(value instanceof NumericValue numValue)) {
 
       // Sometimes, we can get the explicit Value from SMGCPA, especially if the
       // result happens to
@@ -295,7 +295,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      BigInteger bigInteger = value.asNumericValue().orElseThrow().bigIntegerValue();
+      BigInteger bigInteger = numValue.bigIntegerValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
