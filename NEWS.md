@@ -8,6 +8,12 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2
+-------------------------------------------------
+* Fix unintended export of witnesses in v2 format in SV-COMP'26 config
+  for cases where the format is not defined yet.
+
+
 Changes from CPAchecker 4.2 to CPAchecker 4.2.1
 -----------------------------------------------
 * Bug fixes for witness export and import.  
