@@ -712,16 +712,10 @@ public class SMGTransferRelation
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMGException("Could not associate a local array in a new function.");
-      } else if (knownMemoryAndState.getOffsetForObject().isNumericValue()
-          && knownMemoryAndState
-                  .getOffsetForObject()
-                  .asNumericValue()
-                  .orElseThrow()
-                  .bigIntegerValue()
-                  .compareTo(BigInteger.ZERO)
-              != 0) {
+      } else if (knownMemoryAndState.getOffsetForObject() instanceof NumericValue knownMemoryOffset
+          && knownMemoryOffset.bigIntegerValue().compareTo(BigInteger.ZERO) != 0) {
         throw new SMGException("Could not associate a local array in a new function.");
-      } else if (!knownMemoryAndState.getOffsetForObject().isNumericValue()) {
+      } else if (!(knownMemoryAndState.getOffsetForObject() instanceof NumericValue)) {
         throw new SMGException("Could not associate a local array in a new function.");
       }
       // arrays don't get copied! They are handled via pointers.
@@ -753,13 +747,13 @@ public class SMGTransferRelation
         }
 
         Value offsetForObject = derefedPointerOffsetAndState.getFirst().getOffsetForObject();
-        if (!offsetForObject.isNumericValue()) {
+        if (!(offsetForObject instanceof NumericValue numOffsetForObject)) {
           throw new SMGException(
               "Usage of symbolic offsets in function arguments for structs not supported at the"
                   + " moment. "
                   + callEdge);
         }
-        offsetSource = offsetForObject.asNumericValue().orElseThrow().bigIntegerValue();
+        offsetSource = numOffsetForObject.bigIntegerValue();
         memorySource = derefedPointerOffsetAndState.getFirst().getSMGObject();
         sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
@@ -1290,7 +1284,8 @@ public class SMGTransferRelation
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
-    Value sizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
+    NumericValue sizeInBits =
+        new NumericValue(evaluator.getBitSizeof(currentState, leftHandSideType));
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1312,7 +1307,7 @@ public class SMGTransferRelation
                 || rightHandSideType.canBeAssignedFrom(leftHandSideType));
         // This is a copy based on a pointer
         Value pointerOffset = addressInValue.getOffset();
-        if (!pointerOffset.isNumericValue()) {
+        if (!(pointerOffset instanceof NumericValue numPointerOffset)) {
           // Write unknown to left
           return ImmutableList.of(
               currentState.writeValueWithChecks(
@@ -1323,8 +1318,7 @@ public class SMGTransferRelation
                   leftHandSideType,
                   edge));
         }
-        BigInteger baseOffsetFromPointer =
-            pointerOffset.asNumericValue().orElseThrow().bigIntegerValue();
+        BigInteger baseOffsetFromPointer = numPointerOffset.bigIntegerValue();
 
         Value properPointer;
         // We need a true pointer without AddressExpr
@@ -1366,11 +1360,12 @@ public class SMGTransferRelation
       } else {
         // Genuine pointer that needs to be written
         // Retranslate into a pointer and write the pointer
-        if (addressInValue.getOffset().isNumericValue()
-            && addressInValue.getOffset().asNumericValue().orElseThrow().longValue() == 0) {
+        if (addressInValue.getOffset() instanceof NumericValue addressInValueOffset
+            && addressInValueOffset.longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
           valueToWrite = addressInValue.getMemoryAddress();
-        } else if (addressInValue.getOffset().isNumericValue() || options.trackPredicates()) {
+        } else if (addressInValue.getOffset() instanceof NumericValue
+            || options.trackPredicates()) {
           // Offset known but not 0, search for/create the correct address
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
@@ -1386,13 +1381,10 @@ public class SMGTransferRelation
           valueToWrite = UnknownValue.getInstance();
         }
         Preconditions.checkArgument(
-            sizeInBits.isNumericValue()
-                && sizeInBits
-                        .asNumericValue()
-                        .orElseThrow()
-                        .bigIntegerValue()
-                        .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
-                    == 0);
+            sizeInBits
+                    .bigIntegerValue()
+                    .compareTo(evaluator.getBitSizeof(currentState, leftHandSideType))
+                == 0);
 
         return ImmutableList.of(
             currentState.writeValueWithChecks(
