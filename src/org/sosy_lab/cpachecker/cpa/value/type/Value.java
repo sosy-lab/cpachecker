@@ -25,16 +25,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public interface Value extends Serializable {
 
   /**
-   * Returns true for values who's numeric value is concretely known, i.e. of the type {@link
-   * NumericValue}. It is safe to interpret them (and only them!) as numeric values using {@link
-   * #asNumericValue()}. False else. (Note: {@link JNullValue}, as well as others are Java types and
-   * do not return a numeric value!)
-   */
-  default boolean isNumericValue() {
-    return false;
-  }
-
-  /**
    * True if we do not have any information about the value, and we do not track it currently (as
    * tracked unknown values are {@link
    * org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue}s), false otherwise. Values that

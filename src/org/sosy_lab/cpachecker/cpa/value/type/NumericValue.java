@@ -136,11 +136,6 @@ public record NumericValue(Number number) implements Value {
     }
   }
 
-  @Override
-  public boolean isNumericValue() {
-    return true;
-  }
-
   /**
    * Check if the value has an integer type.
    *
