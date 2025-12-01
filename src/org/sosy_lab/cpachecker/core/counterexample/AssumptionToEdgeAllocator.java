@@ -741,13 +741,11 @@ public class AssumptionToEdgeAllocator {
         throw new IllegalArgumentException(e1);
       }
 
-      // TODO: this check makes no sense! UNKNOWN is never numeric, numeric is never UNKNOWN, but
-      // symbolics skip this if! And then they are interpreted as numeric!
-      if (addressV.isUnknown() && !(addressV instanceof NumericValue)) {
+      if (!(addressV instanceof NumericValue numAddressV)) {
         return null;
       }
 
-      return addressV.asNumericValue().orElseThrow().getNumber();
+      return numAddressV.getNumber();
     }
 
     private Address evaluateNumericalValueAsAddress(CExpression exp) {
@@ -1535,11 +1533,11 @@ public class AssumptionToEdgeAllocator {
         Value castValue =
             AbstractExpressionValueVisitor.castCValue(
                 new NumericValue(pIntegerValue), pType, machineModel, logManager);
-        if (castValue.isUnknown()) {
+        if (!(castValue instanceof NumericValue numericCastValue)) {
           return UnknownValueLiteral.getInstance();
         }
 
-        Number number = castValue.asNumericValue().orElseThrow().getNumber();
+        Number number = numericCastValue.getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger bigInteger) {
           valueAsBigInt = bigInteger;
