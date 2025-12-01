@@ -43,16 +43,6 @@ public interface Value extends Serializable {
     return false;
   }
 
-  /**
-   * Returns the NumericValue if the stored value can be explicitly represented by a {@link
-   * NumericValue}, empty otherwise.
-   */
-  default Optional<NumericValue> asNumericValue() {
-    // TODO: this should be COMPLETELY removed (together with isNumericValue())! And replaced by
-    //  instanceof checks!
-    return Optional.empty();
-  }
-
   /** Return the long value if this is a long value. */
   default OptionalLong asLong(CType type) {
     checkNotNull(type);

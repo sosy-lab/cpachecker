@@ -39,15 +39,6 @@ public record JEnumConstantValue(String fullyQualifiedName) implements Value {
     return true;
   }
 
-  /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>. Enum constants
-   * can't be represented by a number.
-   */
-  @Override
-  public Optional<NumericValue> asNumericValue() {
-    throw new AssertionError("Enum constant cannot be represented as NumericValue");
-  }
-
   @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);

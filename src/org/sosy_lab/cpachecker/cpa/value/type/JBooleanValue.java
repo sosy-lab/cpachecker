@@ -105,19 +105,6 @@ public enum JBooleanValue implements Value {
   }
 
   /**
-   * Returns a {@link NumericValue} object holding the numeric representation of this object's
-   * value.
-   *
-   * @return
-   *     <p>Returns a <code>NumericValue</code> object with value <code>1</code>, if this object's
-   *     value is <code>true</code>. Returns an object with value <code>0</code> otherwise.
-   */
-  @Override
-  public Optional<NumericValue> asNumericValue() {
-    return Optional.of(new NumericValue(value ? 1L : 0L));
-  }
-
-  /**
    * Always throws an <code>AssertionError</code>.
    *
    * <p>There is no use for this method in the case of boolean values.

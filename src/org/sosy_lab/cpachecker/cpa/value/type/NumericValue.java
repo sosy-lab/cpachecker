@@ -198,11 +198,6 @@ public record NumericValue(Number number) implements Value {
   }
 
   @Override
-  public Optional<NumericValue> asNumericValue() {
-    return Optional.of(this);
-  }
-
-  @Override
   public OptionalLong asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
