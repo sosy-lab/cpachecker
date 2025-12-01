@@ -11,7 +11,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AAcslAnnotation
-    permits AcslAssertion, AcslLoopInvariant, AcslFunctionContract, AcslEnsures, AcslRequires {
+    permits AcslAssertion,
+        AcslAssigns,
+        AcslEnsures,
+        AcslFunctionContract,
+        AcslLoopInvariant,
+        AcslRequires {
 
   private final FileLocation fileLocation;
 
