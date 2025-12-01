@@ -13,11 +13,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 
-/**
- * This class is a representanion of Acsl modified memory locations.
- *
- * @param locations The set of memory locations that are assigned
- */
+/** This class is a representanion of Acsl modified memory locations. */
 public final class AcslAssigns extends AAcslAnnotation {
   private final ImmutableSet<AcslMemoryLocationSet> locations;
 

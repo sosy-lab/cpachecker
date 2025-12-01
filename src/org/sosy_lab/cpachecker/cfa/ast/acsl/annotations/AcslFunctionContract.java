@@ -13,12 +13,7 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-/**
- * This class is a representation of Acsl function_contract
- *
- * @param ensuresClauses A set of properties that hold for the return value of the function
- * @param requiresClauses A set of properties that the caller of the function must ensure
- */
+/** This class is a representation of Acsl function_contract */
 public final class AcslFunctionContract extends AAcslAnnotation {
 
   private final @Nullable ImmutableSet<AcslEnsures> ensuresClauses;
