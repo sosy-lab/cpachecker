@@ -54,8 +54,8 @@ public enum JBooleanValue implements Value {
     if (pValue.isUnknown()) {
       return Optional.empty();
 
-    } else if (pValue.isNumericValue()) {
-      return valueOf((NumericValue) pValue);
+    } else if (pValue instanceof NumericValue numValue) {
+      return valueOf(numValue);
 
     } else if (pValue instanceof JBooleanValue booleanValue) {
       return Optional.of(booleanValue);
@@ -92,17 +92,6 @@ public enum JBooleanValue implements Value {
    */
   public JBooleanValue negate() {
     return value ? FALSE_VALUE : TRUE_VALUE;
-  }
-
-  /**
-   * Always returns <code>false</code> because <code>JBooleanValue</code> always stores a boolean
-   * and never a number.
-   *
-   * @return always <code>false</code>
-   */
-  @Override
-  public boolean isNumericValue() {
-    return false;
   }
 
   /**
