@@ -144,7 +144,7 @@ public class ValueReadWriteTest extends SMGCPATest0 {
     assertThat(readAndState).hasSize(expectedNumOfEdges);
     currentState = readAndState.getFirst().getState();
     Value readValue1 = readAndState.getFirst().getValue();
-    assertThat(readValue1.isNumericValue()).isTrue();
+    assertThat(readValue1 instanceof NumericValue).isTrue();
 
     assertThat(readValue1.asNumericValue().orElseThrow().bigIntegerValue().intValueExact())
         .isEqualTo(expectedReadValue);

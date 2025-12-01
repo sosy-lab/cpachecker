@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -282,13 +283,13 @@ public class ValueAnalysisConcreteErrorPathAllocator
       MemoryLocation heapLoc = entry.getKey();
       Value valueAsValue = entry.getValue().getValue();
 
-      if (!valueAsValue.isNumericValue()) {
+      if (!(valueAsValue instanceof NumericValue valueAsNumeric)) {
         // Skip non numerical values for now
         // TODO Should they also be integrated?
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().orElseThrow().getNumber();
+      Number value = valueAsNumeric.getNumber();
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);

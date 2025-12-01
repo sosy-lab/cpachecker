@@ -732,11 +732,13 @@ public class ValueAnalysisTransferRelation
    *    * representsTrue(JNullValue.getInstance(), false)    = false
    *
    */
+  // TODO: this has a very limited scope on C logic checks, as C will only return 0 or 1 for logical
+  // expressions, but can in general check EVERY integer number in logical expressions!
   private boolean representsBoolean(Value value, boolean bool) {
     if (value instanceof JBooleanValue booleanValue) {
       return booleanValue.isTrue() == bool;
 
-    } else if (value.isNumericValue()) {
+    } else if (value instanceof NumericValue) {
       return value.equals(new NumericValue(bool ? 1L : 0L));
 
     } else {

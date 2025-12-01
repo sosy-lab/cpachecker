@@ -206,12 +206,10 @@ public final class ValueAnalysisState
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       CType memLocType = (CType) entry.getValue().getType();
       Value typedValue = pValue;
-      if (pValue.isNumericValue()) {
+      if (pValue instanceof NumericValue numValue) {
         CIntegerLiteralExpression valueAsExpression =
             new CIntegerLiteralExpression(
-                FileLocation.DUMMY,
-                memLocType,
-                pValue.asNumericValue().orElseThrow().bigIntegerValue());
+                FileLocation.DUMMY, memLocType, numValue.bigIntegerValue());
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
         } catch (UnrecognizedCodeException e) {

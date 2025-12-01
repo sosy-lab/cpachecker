@@ -616,7 +616,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         // restrict to variables with numerical or Boolean values
         if (!trackedInState.contains(var)
             || valueState.getValueFor(var).isUnknown()
-            || (!valueState.getValueFor(var).isNumericValue()
+            || (!(valueState.getValueFor(var) instanceof NumericValue)
                 && !(valueState.getValueFor(var) instanceof JBooleanValue))) {
           // according to API specification removes var from Map
           varValsIt.remove();
@@ -667,11 +667,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
       if (!varAndVals.getKey().isReference()) {
         Value val = varAndVals.getValue().getFirst().getValue();
-        if (val.isExplicitlyKnown() && val.isNumericValue()) {
+        if (val.isExplicitlyKnown() && val instanceof NumericValue numVal) {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
-              new SingleNumericVariableInvariant(
-                  varAndVals.getKey(), val.asNumericValue().orElseThrow(), exportEvenVal);
+              new SingleNumericVariableInvariant(varAndVals.getKey(), numVal, exportEvenVal);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             numInv.adaptToAdditionalValue(valPlusType.getValue());
           }
@@ -765,8 +764,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           List<ValueAndType> val2 = varWithVals2.getValue();
           if (val1.isEmpty()
               || val1.size() != val2.size()
-              || !val1.getFirst().getValue().isNumericValue()
-              || !val2.getFirst().getValue().isNumericValue()) {
+              || !(val1.getFirst().getValue() instanceof NumericValue numVal1)
+              || !(val2.getFirst().getValue() instanceof NumericValue numVal2)) {
             continue;
           }
 
@@ -833,10 +832,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportArithmetic) {
             arInv =
                 new TwoVariableArithmeticInvariant(
-                    varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
-                    varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue().orElseThrow());
+                    varWithVals1.getKey(), numVal1, varWithVals2.getKey(), numVal2);
           } else {
             arInv = null;
           }
@@ -845,12 +841,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportBitops
               && type1.getType().isIntegerType()
               && type2.getType().isIntegerType()
-              && (!(val1.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
-                      instanceof BigInteger bigInteger)
-                  || containslongValue(bigInteger))
-              && (!(val2.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
-                      instanceof BigInteger bigInteger)
-                  || containslongValue(bigInteger))) {
+              && (!(numVal1.getNumber() instanceof BigInteger bigIntegerVal1)
+                  || containslongValue(bigIntegerVal1))
+              && (!(numVal2.getNumber() instanceof BigInteger bigIntegerVal2)
+                  || containslongValue(bigIntegerVal2))) {
             bitInv =
                 new TwoVariableBitOpsInvariant(
                     varWithVals1.getKey(),
@@ -864,18 +858,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           TwoVariableRelationInvariant relInv;
           if (exportRelational
-              && (!(val1.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
-                      instanceof BigInteger bigInteger)
-                  || containslongValue(bigInteger))
-              && (!(val2.getFirst().getValue().asNumericValue().orElseThrow().getNumber()
-                      instanceof BigInteger bigInteger)
-                  || containslongValue(bigInteger))) {
+              && (!(numVal1.getNumber() instanceof BigInteger bigIntegerVal1)
+                  || containslongValue(bigIntegerVal1))
+              && (!(numVal2.getNumber() instanceof BigInteger bigIntegerVal2)
+                  || containslongValue(bigIntegerVal2))) {
             relInv =
                 new TwoVariableRelationInvariant(
-                    varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
-                    varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue().orElseThrow());
+                    varWithVals1.getKey(), numVal1, varWithVals2.getKey(), numVal2);
 
           } else {
             relInv = null;
@@ -1173,8 +1162,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     for (int i = 0; i < eqMatrix.length && linConstraint; i++) {
       Value val = eqVarVals[i].getValue();
-      if (val.isNumericValue()) {
-        eqMatrix[i][eqMatrix.length] = val.asNumericValue().orElseThrow().getNumber();
+      if (val instanceof NumericValue numValue) {
+        eqMatrix[i][eqMatrix.length] = numValue.getNumber();
       } else {
         linConstraint = false;
         break;
@@ -1188,8 +1177,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
       for (int j = 0; j < varValsWithCoeff.length; j++) {
         val = varValsWithCoeff[j][i].getValue();
-        if (val.isNumericValue()) {
-          eqMatrix[i][j] = val.asNumericValue().orElseThrow().getNumber();
+        if (val instanceof NumericValue numVal) {
+          eqMatrix[i][j] = numVal.getNumber();
         } else {
           linConstraint = false;
           break;
@@ -1267,10 +1256,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       };
     }
 
+    // TODO: replace in code with instanceof, as the guarantees from the instanceof check are
+    // extremely useful!
     @Nullable NumericValue extractNumValue(Value pValue) {
       Preconditions.checkNotNull(pValue);
-      if (pValue.isExplicitlyKnown() && pValue.isNumericValue()) {
-        return pValue.asNumericValue().orElseThrow();
+      if (pValue.isExplicitlyKnown() && pValue instanceof NumericValue numValue) {
+        return numValue;
       }
       return null;
     }
