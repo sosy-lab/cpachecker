@@ -1018,13 +1018,18 @@ public class CtoFormulaConverter {
       }
       Value floatValue =
           AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
+
+      if (!(floatValue instanceof NumericValue numFloatValue)) {
+        throw new AssertionError("Could not transform integer literal into Floating-Point literal");
+      }
+
       return new CFloatLiteralExpression(
           e.getFileLocation(),
           machineModel,
           targetType,
           FloatValue.fromInteger(
               FloatValue.Format.fromCType(machineModel, targetType),
-              floatValue.asNumericValue().orElseThrow().bigIntegerValue()));
+              numFloatValue.bigIntegerValue()));
     }
 
     return pExp;
