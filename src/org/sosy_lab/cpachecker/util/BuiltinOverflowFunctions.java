@@ -275,9 +275,16 @@ public class BuiltinOverflowFunctions {
                       secondParameterValue, resultType, machineModel, logger);
             }
 
+            if (!(firstParameterValue instanceof NumericValue firstNumericParam)
+                || !(secondParameterValue instanceof NumericValue secondNumericParam)) {
+              throw new AssertionError(
+                  "Non-numeric parameters can not be handled in builtin overflow functions in this"
+                      + " analysis");
+            }
+
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().orElseThrow().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().orElseThrow().bigIntegerValue();
+            BigInteger p1 = firstNumericParam.bigIntegerValue();
+            BigInteger p2 = secondNumericParam.bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -297,11 +304,13 @@ public class BuiltinOverflowFunctions {
                 AbstractExpressionValueVisitor.castCValue(
                     resultValue, resultType, machineModel, logger);
 
-            if (resultValue
-                .asNumericValue()
-                .orElseThrow()
-                .bigIntegerValue()
-                .equals(resultOfComputation)) {
+            if (!(resultValue instanceof NumericValue numericResult)) {
+              throw new AssertionError(
+                  "Non-numeric results can not be handled in builtin overflow functions in this"
+                      + " analysis");
+            }
+
+            if (numericResult.bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);
             } else {
               return new NumericValue(1);
