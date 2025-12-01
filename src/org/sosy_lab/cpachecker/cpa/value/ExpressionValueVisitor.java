@@ -149,16 +149,21 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private Value extractFloatingPointValueAsIntegralValue(
       CType pActualType, ValueAndType pValueAndType) {
-    if (pActualType instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) pActualType.getCanonicalType()).getType();
-      NumericValue numericValue = pValueAndType.getValue().asNumericValue().orElseThrow();
+    if (pActualType instanceof CSimpleType actualSimpleType) {
+      CBasicType basicType = actualSimpleType.getCanonicalType().getType();
 
       if (basicType.equals(CBasicType.FLOAT)) {
+        if (!(pValueAndType.getValue() instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to extract floating point value from");
+        }
         float floatValue = numericValue.floatValue();
         int intBits = Float.floatToIntBits(floatValue);
 
         return new NumericValue(intBits);
       } else if (basicType.equals(CBasicType.DOUBLE)) {
+        if (!(pValueAndType.getValue() instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to extract floating point value from");
+        }
         double doubleValue = numericValue.doubleValue();
         long longBits = Double.doubleToLongBits(doubleValue);
 
@@ -170,16 +175,21 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private Value extractIntegralValueAsFloatingPointValue(
       CType pReadType, ValueAndType pValueAndType) {
-    if (pReadType instanceof CSimpleType) {
-      CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
-      NumericValue numericValue = pValueAndType.getValue().asNumericValue().orElseThrow();
+    if (pReadType instanceof CSimpleType readSimpleType) {
+      CBasicType basicReadType = readSimpleType.getCanonicalType().getType();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
+        if (!(pValueAndType.getValue() instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to extract floating point value from");
+        }
         int bits = numericValue.bigIntegerValue().intValue();
         float floatValue = Float.intBitsToFloat(bits);
 
         return new NumericValue(floatValue);
       } else if (basicReadType.equals(CBasicType.DOUBLE)) {
+        if (!(pValueAndType.getValue() instanceof NumericValue numericValue)) {
+          throw new AssertionError("Expected numeric value to extract floating point value from");
+        }
         long bits = numericValue.bigIntegerValue().longValue();
         double doubleValue = Double.longBitsToDouble(bits);
 
