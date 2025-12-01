@@ -698,6 +698,10 @@ class WebInterface:
             params.append(("coreLimitation", str(limits[CORELIMIT])))
         if CPUMODEL in requirements:
             params.append(("cpuModel", str(requirements[CPUMODEL])))
+        if COREREQ in requirements:
+            params.append(("coreRequirement", str(requirements[COREREQ])))
+        if MEMREQ in requirements:
+            params.append(("memoryRequirement", str(requirements[MEMREQ])))
 
         if result_files_patterns:
             for pattern in result_files_patterns:
