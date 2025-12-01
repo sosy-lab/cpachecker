@@ -55,19 +55,18 @@ public class AntlrAnnotationToAnnotationVisitor
   }
 
   @Override
-  public AcslEnsures visitEnsures_clause(Ensures_clauseContext ctx){
+  public AcslEnsures visitEnsures_clause(Ensures_clauseContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
-    AcslEnsures ensures = new  AcslEnsures(fileLocation, predicate);
+    AcslEnsures ensures = new AcslEnsures(fileLocation, predicate);
     return ensures;
   }
 
   @Override
-  public AcslRequires visitRequires_clause(Requires_clauseContext ctx){
+  public AcslRequires visitRequires_clause(Requires_clauseContext ctx) {
     ParseTree predTree = ctx.getChild(1);
     AcslPredicate predicate = antlrPredicateToPredicateConverter.visit(predTree);
     AcslRequires requires = new AcslRequires(fileLocation, predicate);
-    return  requires;
+    return requires;
   }
-
 }
