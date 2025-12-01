@@ -62,8 +62,8 @@ public class ValueReadWriteTest extends SMGCPATest0 {
       assertThat(readAndState).hasSize(1);
       currentState = readAndState.getFirst().getState();
       Value readValue = readAndState.getFirst().getValue();
-      assertThat(readValue.asNumericValue().orElseThrow().bigIntegerValue())
-          .isEqualTo(INT_ARRAY_VALUES[i].asNumericValue().orElseThrow().bigIntegerValue());
+      assertThat(((NumericValue) readValue).bigIntegerValue())
+          .isEqualTo(((NumericValue) INT_ARRAY_VALUES[i]).bigIntegerValue());
     }
   }
 
@@ -73,7 +73,7 @@ public class ValueReadWriteTest extends SMGCPATest0 {
     SMGObject array = buildFilledArray(INT_ARRAY_VALUES.length, INT_ARRAY_VALUES, INT_SIZE_IN_BITS);
     for (int i = 0; i < INT_ARRAY_VALUES.length; i++) {
       int expectedNonCutIntValue =
-          INT_ARRAY_VALUES[i].asNumericValue().orElseThrow().bigIntegerValue().intValueExact();
+          ((NumericValue) INT_ARRAY_VALUES[i]).bigIntegerValue().intValueExact();
 
       readValueAndCheckResult(
           array,
@@ -93,7 +93,7 @@ public class ValueReadWriteTest extends SMGCPATest0 {
     for (int j = 0; j < 2; j++) {
       for (int i = 0; i < INT_ARRAY_VALUES.length; i++) {
         int expectedNonCutIntValue =
-            INT_ARRAY_VALUES[i].asNumericValue().orElseThrow().bigIntegerValue().intValueExact();
+            ((NumericValue) INT_ARRAY_VALUES[i]).bigIntegerValue().intValueExact();
 
         readValueAndCheckResult(
             array,
@@ -146,7 +146,7 @@ public class ValueReadWriteTest extends SMGCPATest0 {
     Value readValue1 = readAndState.getFirst().getValue();
     assertThat(readValue1 instanceof NumericValue).isTrue();
 
-    assertThat(readValue1.asNumericValue().orElseThrow().bigIntegerValue().intValueExact())
+    assertThat(((NumericValue) readValue1).bigIntegerValue().intValueExact())
         .isEqualTo(expectedReadValue);
   }
 }
