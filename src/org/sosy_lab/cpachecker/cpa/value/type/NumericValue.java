@@ -20,8 +20,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
-/** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
-public record NumericValue(Number number) implements Value {
+/**
+ * Stores a numeric value that can be tracked by the ValueAnalysisCPA. All explicitly known values
+ * in the C programming language are encoded as NumericValue. For Java, this is not necessarily the
+ * case!
+ */
+public record NumericValue(Number number) implements NumericallyInterpretableValue {
 
   @Serial private static final long serialVersionUID = -3829943575180448170L;
 
@@ -224,5 +228,10 @@ public record NumericValue(Number number) implements Value {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
+  }
+
+  @Override
+  public NumericValue interpretNumerically() {
+    return this;
   }
 }

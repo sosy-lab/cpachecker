@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * This class represents a boolean value. It may store the values <code>false</code> and <code>true
  * </code>.
  */
-public enum JBooleanValue implements Value {
+public enum JBooleanValue implements NumericallyInterpretableValue {
   TRUE_VALUE(true),
   FALSE_VALUE(false);
 
@@ -122,5 +122,10 @@ public enum JBooleanValue implements Value {
   @Override
   public String toString() {
     return String.valueOf(value);
+  }
+
+  @Override
+  public NumericValue interpretNumerically() {
+    return new NumericValue(value ? 1L : 0L);
   }
 }
