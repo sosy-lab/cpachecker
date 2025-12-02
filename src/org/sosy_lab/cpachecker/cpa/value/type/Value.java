@@ -34,7 +34,9 @@ public interface Value extends Serializable {
    * least) the following types: {@link NumericValue}s, {@link JArrayValue}s, {@link
    * JBooleanValue}s, {@link JEnumConstantValue}s, and {@link JNullValue}s. For the C programming
    * language, all explicitly known values are of type {@link NumericValue}. Java uses {@link
-   * NumericValue}, as well as its dedicated value classes!
+   * NumericValue}, as well as its dedicated value classes! This check does not give any guarantees
+   * besides stated above. You can not derive from a true result that the value is a {@link
+   * NumericValue} in the general case for example!
    */
   default boolean isExplicitlyKnown() {
     return false;
