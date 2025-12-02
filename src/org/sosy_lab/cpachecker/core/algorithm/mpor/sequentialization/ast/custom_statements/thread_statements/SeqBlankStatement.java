@@ -66,8 +66,7 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have injected statements");
+    return new SeqBlankStatement(reductionOrder, pcLeftHandSide, targetPc, pInjectedStatements);
   }
 
   @Override
