@@ -340,7 +340,8 @@ public class ExpressionValueVisitorTest {
             outType);
 
     // We know it's of type int since we manually created a CIntegerLiteralExpression
-    assertThat(value.asLong(CNumericTypes.INT)).hasValue(expectedOut);
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).asLong(CNumericTypes.INT)).hasValue(expectedOut);
   }
 
   private void checkCast(double in, double expectedOut, CType outType) {
