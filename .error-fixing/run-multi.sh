@@ -12,8 +12,8 @@ TARGET_DIR="../sv-benchmarks/c/intel-tdx-module"
 CPACHECKER_BIN="./bin/cpachecker"
 OPTIONS="--svcomp25 --timelimit 120s"
 
-BASE_LOG_DIR="output/.i"
-MASTER_SUMMARY="$BASE_LOG_DIR/.full-summary.log"
+BASE_LOG_DIR="output/analysis-i"
+MASTER_SUMMARY="$BASE_LOG_DIR/full-summary.log"
 
 # Defaults
 lower_bound=""
@@ -65,8 +65,8 @@ fi
 # Create timestamped run directory
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_DIR="$BASE_LOG_DIR/run_$timestamp"
-FULL_SUMMARY="$LOG_DIR/.detailed-summary.log"
-CHRONOLOGICAL_SUMMARY="$LOG_DIR/.chronological-summary.log"
+FULL_SUMMARY="$LOG_DIR/detailed-summary.log"
+CHRONOLOGICAL_SUMMARY="$LOG_DIR/chronological-summary.log"
 mkdir -p "$LOG_DIR"
 
 > "$LOG_DIR/passed.log"
@@ -150,6 +150,13 @@ write_summaries() {
     echo "=== Single Exceptions ==="
     cat "$LOG_DIR/single-exception.log"
   } > "$FULL_SUMMARY"
+
+  # Remove category logs after merging
+    rm -f "$LOG_DIR/passed.log" \
+          "$LOG_DIR/several-exceptions.log" \
+          "$LOG_DIR/single-parsing-failed.log" \
+          "$LOG_DIR/single-error.log" \
+          "$LOG_DIR/single-exception.log"
 }
 
 # --- trap handler ---
