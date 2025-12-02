@@ -684,6 +684,10 @@ public class CFACreator {
       cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
+    if (pParseResult.acslMetadata().isPresent()) {
+      cfa.setAcslMetadata(pParseResult.acslMetadata().orElseThrow());
+    }
+
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {

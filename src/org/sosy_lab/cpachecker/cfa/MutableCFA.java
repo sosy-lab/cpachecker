@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
@@ -181,6 +182,10 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
     metadata = metadata.withLiveVariables(pLiveVariables);
+  }
+
+  public void setAcslMetadata(AcslMetadata pAcslMetadata){
+    metadata = metadata.withAcslMetadata(pAcslMetadata);
   }
 
   @Override

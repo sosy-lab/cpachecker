@@ -415,6 +415,29 @@ public final class CfaMetadata {
         acslMetadata);
   }
 
+  /**
+   * Returns a copy of this metadata instance but with the specified Acsl Metadata.
+   *
+   * @param pAcslMetadata A recored of Acsl annotations to store in the returned metadata instance
+   *     (use {@code null} to create an instance without map)
+   * @return A copy of this metadata instance but with the specified Acsl Metadata
+   */
+  public CfaMetadata withAcslMetadata(@Nullable AcslMetadata pAcslMetadata) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        pAcslMetadata);
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(

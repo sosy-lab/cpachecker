@@ -12,6 +12,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -408,9 +411,11 @@ class CFABuilder extends ASTVisitor {
 
     ParseResult result;
 
+    AcslMetadata acslMetadata = new AcslMetadata(ImmutableSet.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of());
+
     if (!acslCommentPositions.isEmpty()) {
       result =
-          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, acslMetadata, blocks);
     } else {
       result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }

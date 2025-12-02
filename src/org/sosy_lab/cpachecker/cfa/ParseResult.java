@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -43,6 +44,7 @@ public record ParseResult(
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
     Optional<List<FileLocation>> commentLocations,
+    Optional<AcslMetadata> acslMetadata,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
@@ -61,6 +63,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty());
   }
 
@@ -70,6 +73,7 @@ public record ParseResult(
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
       List<FileLocation> pCommentLocations,
+      AcslMetadata pAcslMetadata,
       List<SyntacticBlock> pBlocks) {
     this(
         pFunctions,
@@ -78,6 +82,7 @@ public record ParseResult(
         pFileNames,
         Optional.empty(),
         Optional.of(pCommentLocations),
+        Optional.of(pAcslMetadata),
         Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty());
@@ -96,6 +101,7 @@ public record ParseResult(
         fileNames,
         Optional.of(pAstCfaRelation),
         commentLocations,
+        acslMetadata,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope);
@@ -113,6 +119,7 @@ public record ParseResult(
         fileNames,
         astStructure,
         commentLocations,
+        acslMetadata,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope));
