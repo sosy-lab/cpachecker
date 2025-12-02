@@ -477,7 +477,7 @@ public class CPAMain {
         config, logManager, outputDirectory, logOptions.getOutputFile(), langOptions.programs);
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "CheckReturnValue"})
   private static Configuration cleanupBootstrapOptions(Configuration config)
       throws InvalidConfigurationException {
     // If we keep the options for switching config files in the config
