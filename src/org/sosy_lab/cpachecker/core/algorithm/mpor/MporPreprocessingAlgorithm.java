@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -81,13 +80,11 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
           "The file name for the exported sequentialization metadata that contains e.g. the input"
               + " file name(s).")
   @FileOption(Type.OUTPUT_FILE)
-  private @Nullable PathTemplate metadataPath =
-      PathTemplate.ofFormatString("sequentializedProgramMetadata.yml");
+  private @Nullable Path metadataPath = Path.of("sequentializedProgramMetadata.yml");
 
   @Option(secure = true, description = "The file name for the exported sequentialized program.")
   @FileOption(Type.OUTPUT_FILE)
-  private @Nullable PathTemplate programPath =
-      PathTemplate.ofFormatString("sequentializedProgram.c");
+  private @Nullable Path programPath = Path.of("sequentializedProgram.c");
 
   @Option(
       secure = true,
@@ -135,10 +132,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     specification = pSpecification;
     options = new MPOROptions(pConfiguration);
     utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
-
-    // the export path may be null, when unit testing
-    sequentializationStatistics =
-        new SequentializationStatistics(programPath == null ? null : programPath.getPath(), logger);
+    sequentializationStatistics = new SequentializationStatistics(programPath, logger);
   }
 
   public static boolean isAlreadySequentialized(CFA pCFA) {
@@ -286,7 +280,10 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     private final List<Statistics> innerStatistics = new ArrayList<>();
 
     private final StatTimer sequentializationTime = new StatTimer("Sequentialization Time");
+
+    /** The output program path can be null, when the option to output no files is specified. */
     private final @Nullable Path programOutputPath;
+
     private final LogManager statisticsLogger;
 
     private @Nullable String sequentializedProgramString = null;
@@ -364,11 +361,10 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     // write output program, if the path is successfully determined
     if (programPath != null) {
-      Path path = programPath.getPath();
       try {
-        try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+        try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
           writer.write(pOutputProgram);
-          logger.log(Level.INFO, "Sequentialized program exported to: ", path.toString());
+          logger.log(Level.INFO, "Sequentialized program exported to: ", programPath.toString());
         }
       } catch (IOException e) {
         logger.logUserException(
@@ -385,12 +381,11 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
 
     // write metadata, if the path is successfully determined
     if (metadataPath != null) {
-      Path path = metadataPath.getPath();
       YAMLMapper yamlMapper = new YAMLMapper();
       MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
       try {
-        yamlMapper.writeValue(path.toFile(), metadataRecord);
-        logger.log(Level.INFO, "Sequentialization metadata exported to: ", path.toString());
+        yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
+        logger.log(Level.INFO, "Sequentialization metadata exported to: ", metadataPath.toString());
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING,
