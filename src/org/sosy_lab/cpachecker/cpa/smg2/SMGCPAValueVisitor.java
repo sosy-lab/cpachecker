@@ -11,7 +11,12 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MINUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 
 import com.google.common.base.Function;
@@ -577,30 +582,26 @@ public class SMGCPAValueVisitor
     checkArgument(
         !(leftValue instanceof AddressExpression || rightValue instanceof AddressExpression));
 
-    if (leftValue instanceof SymbolicValue || rightValue instanceof SymbolicValue) {
-      if (leftValue instanceof SymbolicIdentifier) {
-        checkArgument(((SymbolicIdentifier) leftValue).getRepresentedLocation().isEmpty());
-      } else if (rightValue instanceof SymbolicIdentifier) {
-        checkArgument(((SymbolicIdentifier) rightValue).getRepresentedLocation().isEmpty());
-      }
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
-    }
+    // We also don't want location representations in SymbolicIdentifiers (as we use them for arrays
+    // in SMG2)
+    checkArgument(
+        !(leftValue instanceof SymbolicIdentifier leftSymIdent)
+            || leftSymIdent.getRepresentedLocation().isEmpty());
+    checkArgument(
+        !(rightValue instanceof SymbolicIdentifier rightSymIdent)
+            || rightSymIdent.getRepresentedLocation().isEmpty());
+    // TODO: unwrap consts to check as well?
 
     if (binaryOperator.isLogicalOperator()) {
       // Comparisons, i.e. ==, !=, <, >, <=, >=
-      Value returnValue =
-          comparisonOperation(
-              (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
+      Value returnValue = handleComparisonOperation(leftValue, rightValue, binaryOperator, e);
       // We do not cast here, because 0 and 1 are small enough for every type.
       return ImmutableList.of(ValueAndSMGState.of(returnValue, currentState));
 
     } else {
       // Arithmetic and bitwise operations, i.e. +, -, *, /, %, <<, >>, |, &, ^
       Value arithResult =
-          arithmeticOperation(
-              (NumericValue) leftValue, (NumericValue) rightValue, binaryOperator, calculationType);
+          arithmeticOperation(leftValue, rightValue, binaryOperator, calculationType);
       return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
     }
   }
@@ -2524,7 +2525,9 @@ public class SMGCPAValueVisitor
     };
   }
 
-  /** Handled all (binary) comparisons, i.e. ==, !=, <, <=, >, >= */
+  /**
+   * Handled all (binary) comparisons, i.e. ==, !=, <, <=, >, >=, including common simplifications.
+   */
   private Value handleComparisonOperation(
       final Value left,
       final Value right,
@@ -2616,10 +2619,11 @@ public class SMGCPAValueVisitor
         return new NumericValue(1);
       }
       // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
-      // always false etc.
+      //  always false etc.
       // TODO: we can also handle some additional cases like a == !a
       // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
-      // + 1) to be recognized? (this is more of a general question)
+      //  + 1) to be recognized? (this is more of a general question)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
       return createBinarySymbolicExpression(
           left, leftType, right, rightType, EQUALS, returnType, calculationType);
     }
@@ -2634,35 +2638,40 @@ public class SMGCPAValueVisitor
       final CSimpleType calculationType,
       final CType returnType) {
 
-    return switch (calculationType.getType()) {
-      case INT128, CHAR, INT, BOOL -> {
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case NOT_EQUALS -> cmp != 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean notEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                !leftNumeric.bigIntegerValue().equals(rightNumeric.bigIntegerValue());
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    NOT_EQUALS,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(notEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+        return new NumericValue(0);
       }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield UnknownValue.getInstance();
-      }
-    };
+      // TODO: we can handle some Float combinations here as well! e.g. if one is NaN, this is
+      //  always true etc.
+      // TODO: we can also handle some additional cases like a != !a
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, NOT_EQUALS, returnType, calculationType);
+    }
   }
 
   // <
@@ -2674,35 +2683,38 @@ public class SMGCPAValueVisitor
       final CSimpleType calculationType,
       final CType returnType) {
 
-    return switch (calculationType.getType()) {
-      case INT128, CHAR, INT, BOOL -> {
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case LESS_THAN -> cmp < 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
-      }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield UnknownValue.getInstance();
-      }
-    };
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean lessThan =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) < 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    LESS_THAN,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(lessThan ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      // if (!left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      //   return new NumericValue(1);
+      // }
+      // TODO: look into additional cases (e.g. equality -> can't be less than)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, LESS_THAN, returnType, calculationType);
+    }
   }
 
   // <=
@@ -2714,35 +2726,38 @@ public class SMGCPAValueVisitor
       final CSimpleType calculationType,
       final CType returnType) {
 
-    return switch (calculationType.getType()) {
-      case INT128, CHAR, INT, BOOL -> {
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case LESS_EQUAL -> cmp <= 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean lessEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) <= 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    LESS_EQUAL,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(lessEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+        return new NumericValue(1);
       }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield UnknownValue.getInstance();
-      }
-    };
+      // TODO: look into additional cases (beyond equality == less equals)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, LESS_EQUAL, returnType, calculationType);
+    }
   }
 
   // <
@@ -2754,35 +2769,38 @@ public class SMGCPAValueVisitor
       final CSimpleType calculationType,
       final CType returnType) {
 
-    return switch (calculationType.getType()) {
-      case INT128, CHAR, INT, BOOL -> {
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case GREATER_THAN -> cmp > 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
-      }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield UnknownValue.getInstance();
-      }
-    };
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean greaterThan =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) > 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    GREATER_THAN,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(greaterThan ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      // if (!left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+      //   return new NumericValue(1);
+      // }
+      // TODO: look into additional cases (e.g. equality -> not greater than)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, GREATER_THAN, returnType, calculationType);
+    }
   }
 
   // <=
@@ -2794,35 +2812,38 @@ public class SMGCPAValueVisitor
       final CSimpleType calculationType,
       final CType returnType) {
 
-    return switch (calculationType.getType()) {
-      case INT128, CHAR, INT, BOOL -> {
-        BigInteger leftBigInt = l.bigIntegerValue();
-        BigInteger rightBigInt = r.bigIntegerValue();
-        final int cmp = leftBigInt.compareTo(rightBigInt);
-        // returns True, iff cmp fulfills the boolean operation.
-        boolean result =
-            switch (op) {
-              case GREATER_EQUAL -> cmp >= 0;
-              default -> throw new AssertionError("Unknown binary operation: " + op);
-            };
-        // return 1 if expression holds, 0 otherwise
-        yield new NumericValue(result ? 1 : 0);
+    if (left instanceof NumericValue leftNumeric && right instanceof NumericValue rightNumeric) {
+      boolean greaterEquals =
+          switch (calculationType.getType()) {
+            case INT128, CHAR, INT, BOOL ->
+                leftNumeric.bigIntegerValue().compareTo(rightNumeric.bigIntegerValue()) >= 0;
+            case FLOAT, DOUBLE, FLOAT128 ->
+                comparisonOperation(
+                    GREATER_EQUAL,
+                    castToFloat(machineModel, calculationType, leftNumeric),
+                    castToFloat(machineModel, calculationType, rightNumeric));
+            default ->
+                throw new AssertionError(
+                    "Unexpected and unhandled type "
+                        + calculationType.getType()
+                        + " in comparison operation");
+          };
+      // return 1 if expression holds, 0 otherwise
+      return new NumericValue(greaterEquals ? 1 : 0);
+
+    } else if (left.isUnknown() || right.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      if (left.equals(right) && !(calculationType.getType().isFloatingPointType())) {
+        return new NumericValue(1);
       }
-      case FLOAT, DOUBLE, FLOAT128 -> {
-        boolean result =
-            comparisonOperation(
-                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        yield new NumericValue(result ? 1 : 0);
-      }
-      default -> {
-        logger.logf(
-            Level.FINE,
-            "unsupported type %s for result of binary operation %s",
-            type.toString(),
-            op);
-        yield UnknownValue.getInstance();
-      }
-    };
+      // TODO: look into additional cases (beyond equality == greater equals)
+      // TODO: leverage type differences (e.g. one unsigned, one signed)
+      return createBinarySymbolicExpression(
+          left, leftType, right, rightType, GREATER_EQUAL, returnType, calculationType);
+    }
   }
 
   /**
