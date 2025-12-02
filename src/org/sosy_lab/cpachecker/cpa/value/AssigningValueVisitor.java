@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericallyInterpretableValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -124,7 +123,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     // C expressions -> only NumericValues possible as concrete values!
     Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
-    if (!(leftValue instanceof  NumericValue leftNumericValue
+    if (!(leftValue instanceof NumericValue leftNumericValue
         && leftNumericValue.getNumber() instanceof BigInteger bigIntNum
         && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       leftValue = castCValue(leftValue, pE.getCalculationType(), getMachineModel(), getLogger());
@@ -138,7 +137,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
 
     if (isEqualityAssumption(binaryOperator)) {
-      if (leftValue instanceof  NumericValue leftNumericValue) {
+      if (leftValue instanceof NumericValue leftNumericValue) {
         Number lNum = leftNumericValue.getNumber();
         if (BigInteger.ONE.equals(lNum)) {
           rVarInBinaryExp.accept(this);
@@ -231,10 +230,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
           Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger());
           if (downCastVal instanceof NumericValue numericDownCastVal) {
-            FloatValue downCastFloatVal =
-                numericDownCastVal.getFloatValue();
+            FloatValue downCastFloatVal = numericDownCastVal.getFloatValue();
             assert pValue instanceof NumericValue; // Given by downCastVal being numeric!
-            FloatValue origFloatVal = ((NumericValue)pValue).getFloatValue();
+            FloatValue origFloatVal = ((NumericValue) pValue).getFloatValue();
             Preconditions.checkState(
                 origFloatVal.getFormat().isGreaterOrEqual(downCastFloatVal.getFormat()));
             if (downCastFloatVal.withPrecision(origFloatVal.getFormat()).equals(origFloatVal)) {
