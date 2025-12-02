@@ -184,7 +184,7 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     metadata = metadata.withLiveVariables(pLiveVariables);
   }
 
-  public void setAcslMetadata(AcslMetadata pAcslMetadata){
+  public void setAcslMetadata(AcslMetadata pAcslMetadata) {
     metadata = metadata.withAcslMetadata(pAcslMetadata);
   }
 

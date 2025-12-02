@@ -411,11 +411,18 @@ class CFABuilder extends ASTVisitor {
 
     ParseResult result;
 
-    AcslMetadata acslMetadata = new AcslMetadata(ImmutableSet.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of(), ImmutableSetMultimap.of());
+    AcslMetadata acslMetadata =
+        new AcslMetadata(
+            ImmutableSet.of(),
+            ImmutableSetMultimap.of(),
+            ImmutableSetMultimap.of(),
+            ImmutableSetMultimap.of(),
+            ImmutableSetMultimap.of());
 
     if (!acslCommentPositions.isEmpty()) {
       result =
-          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, acslMetadata, blocks);
+          new ParseResult(
+              cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, acslMetadata, blocks);
     } else {
       result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
