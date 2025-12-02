@@ -1601,9 +1601,10 @@ public class ValueAnalysisTransferRelation
                 if (variableType.equals(otherVariableType)
                     || (variableType.equals(CNumericTypes.FLOAT)
                         && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                        && otherVariableValue.isExplicitlyKnown()
+                        && otherVariableValue instanceof NumericValue numericOtherVariableValue
                         && OptionalLong.of(0)
-                            .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
+                            .equals(
+                                numericOtherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
                   value = otherVariableValue;
                   shouldAssign = true;
                 }
