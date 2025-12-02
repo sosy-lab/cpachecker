@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-
 /** Singleton class for the special value <code>null</code> in Java. */
 public enum JNullValue implements Value {
   INSTANCE;

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-
 import java.io.Serial;
 import java.io.Serializable;
 
