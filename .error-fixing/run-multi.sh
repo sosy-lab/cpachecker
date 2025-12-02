@@ -13,7 +13,7 @@ CPACHECKER_BIN="./bin/cpachecker"
 OPTIONS="--svcomp25 --timelimit 120s"
 
 BASE_LOG_DIR="output/.i"
-MASTER_SUMMARY="$BASE_LOG_DIR/master-summary.log"
+MASTER_SUMMARY="$BASE_LOG_DIR/.abridged-summary.log"
 
 # Defaults
 lower_bound=""
@@ -65,6 +65,7 @@ fi
 # Create timestamped run directory
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_DIR="$BASE_LOG_DIR/run_$timestamp"
+FULL_SUMMARY="$LOG_DIR/.full-summary.log"
 mkdir -p "$LOG_DIR"
 
 > "$LOG_DIR/passed.log"
@@ -180,15 +181,20 @@ elif [[ "$upper_bound" == "$total_files" && passed"$lower_bound" != "1" ]]; then
 elif [[ -n "$upper_bound" && -n "$lower_bound" && "$lower_bound" != "1" ]]; then
   run_desc="Processed files $lower_bound through $upper_bound."
 else
-  run_desc="Processed first $upper_bound files."
+  run_desc="Processed files 1 through $upper_bound."
 fi
 
 echo "$run_desc"
-echo "Passed: $passed_count (see $LOG_DIR/passed.log)"
-echo "Several exceptions: $several_count (see $LOG_DIR/several-exceptions.log)"
-echo "Parsing failed: $parsing_failed_count (see $LOG_DIR/single-parsing-failed.log)"
-echo "Errors: $error_count (see $LOG_DIR/single-error.log)"
-echo "Exceptions: $exception_count (see $LOG_DIR/single-exception.log)"
+echo "Passed: $passed_count"
+# (see $LOG_DIR/passed.log)
+echo "Several exceptions: $several_count"
+# (see $LOG_DIR/several-exceptions.log)
+echo "Parsing failed: $parsing_failed_count"
+# (see $LOG_DIR/single-parsing-failed.log)
+echo "Single Errors: $error_count"
+# (see $LOG_DIR/single-error.log)
+echo "Exceptions: $exception_count"
+# (see $LOG_DIR/single-exception.log)
 
 # Compute averages
 file_count=$((passed_count + several_count + parsing_failed_count + error_count + exception_count))
@@ -213,4 +219,27 @@ fi
 } > "$LOG_DIR/summary.log"
 
 # Append to master summary
-echo "[$timestamp] $run_desc | Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count | Total=${total_time}s Avg=${avg_time}s Shortest=${shortest_time}s(file $shortest_file:${file_names[$shortest_file]}) Longest=${longest_time}s(file $longest_file:${file_names[$longest_file]})" >> "$MASTER_SUMMARY"
+echo "[$timestamp] $run_desc | Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count" >> "$MASTER_SUMMARY"
+echo "  Total=${total_time}s Avg=${avg_time}s Shortest=${shortest_time}s(file $shortest_file:${file_names[$shortest_file]}) Longest=${longest_time}s(file $longest_file:${file_names[$longest_file]})" >> "$MASTER_SUMMARY"
+
+# Build full summary file by concatenating all category logs
+{
+  echo "[$timestamp] Full summary of run"
+  echo "Run description: $run_desc"
+  echo "Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count"
+  echo
+  echo "=== Passed files ==="
+  cat "$LOG_DIR/passed.log"
+  echo
+  echo "=== Single Errors ==="
+  cat "$LOG_DIR/single-error.log"
+  echo
+  echo "=== Several Exceptions ==="
+  cat "$LOG_DIR/several-exceptions.log"
+  echo
+  echo "=== Parsing Failed ==="
+  cat "$LOG_DIR/single-parsing-failed.log"
+  echo
+  echo "=== Single Exceptions ==="
+  cat "$LOG_DIR/single-exception.log"
+} > "$FULL_SUMMARY"
