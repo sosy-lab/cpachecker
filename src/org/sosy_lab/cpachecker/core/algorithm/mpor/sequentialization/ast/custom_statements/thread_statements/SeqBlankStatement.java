@@ -78,9 +78,4 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   public boolean synchronizesThreads() {
     return false;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    return injectedStatements.isEmpty();
-  }
 }

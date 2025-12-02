@@ -170,7 +170,7 @@ public class SeqPruner {
     CSeqThreadStatement nonBlankSingleStatement = pNonBlank.getFirstBlock().getFirstStatement();
     if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
       // the blank could have injected statements -> treat it as non-blank
-      if (blankStatement.onlyWritesPc()) {
+      if (blankStatement.isBlank()) {
         Verify.verify(validPrunableClause(pNonBlank));
         int nonBlankTargetPc = nonBlankSingleStatement.getTargetPc().orElseThrow();
         // if the found non-blank is still blank, it must be an exit location
@@ -245,9 +245,7 @@ public class SeqPruner {
         pClause.toASTString());
     CSeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
     checkArgument(
-        statement.onlyWritesPc(),
-        "prunable statement must only write pc: %s",
-        statement.toASTString());
+        statement.isBlank(), "prunable statement must be blank: %s", statement.toASTString());
     checkArgument(
         statement.getTargetPc().isPresent(), "prunable statement must contain a target pc");
     return true;
