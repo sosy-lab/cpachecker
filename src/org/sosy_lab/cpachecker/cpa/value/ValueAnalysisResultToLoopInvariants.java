@@ -845,12 +845,23 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                   || containslongValue(bigIntegerVal1))
               && (!(numVal2.getNumber() instanceof BigInteger bigIntegerVal2)
                   || containslongValue(bigIntegerVal2))) {
+
+            if (!(val1.getFirst().getValue() instanceof NumericValue val1NumericValue)
+                || !(val2.getFirst().getValue() instanceof NumericValue val2NumericValue)) {
+              // Can never happen due to C
+              throw new AssertionError(
+                  "Expected NumericValue inputs to transform to invariant, but found "
+                      + val1.getFirst().getValue()
+                      + " and "
+                      + val2.getFirst().getValue());
+            }
+
             bitInv =
                 new TwoVariableBitOpsInvariant(
                     varWithVals1.getKey(),
-                    val1.getFirst().getValue().asNumericValue().orElseThrow(),
+                    val1NumericValue,
                     varWithVals2.getKey(),
-                    val2.getFirst().getValue().asNumericValue().orElseThrow(),
+                    val2NumericValue,
                     exportShiftops);
           } else {
             bitInv = null;
@@ -2376,6 +2387,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     private Pair<Number, EqualCompareType> opVar1ShiftRight;
     private Pair<Number, EqualCompareType> opVar2ShiftRight;
 
+    /*
+     * Does not permit pValue or pValue2 to be null!
+     */
     private TwoVariableBitOpsInvariant(
         final MemoryLocation pVar,
         final NumericValue pValue,

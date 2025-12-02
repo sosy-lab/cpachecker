@@ -11,10 +11,6 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.JArrayValue;
-import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
-import org.sosy_lab.cpachecker.cpa.value.type.JNullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -38,26 +34,19 @@ public class RedundantRequirementsValueAnalysisStateImplementation
     if (pO1 == null || pO2 == null) {
       throw new NullPointerException(
           "At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
-    } else if (pO1 instanceof JArrayValue
-        || pO2 instanceof JArrayValue
-        || pO1 instanceof JBooleanValue
-        || pO2 instanceof JBooleanValue
-        || pO1 instanceof JEnumConstantValue
-        || pO2 instanceof JEnumConstantValue
-        || pO1 instanceof JNullValue
-        || pO2 instanceof JNullValue) {
-      throw new ClassCastException("Expected NumericValue.");
     } else if (pO1.isUnknown() && pO2.isUnknown()) {
       return 0;
     } else if (pO2.isUnknown()) {
       return -1;
     } else if (pO1.isUnknown()) {
       return 1;
+    } else if (pO1 instanceof NumericValue pO1Numeric && pO2 instanceof NumericValue pO2Numeric) {
+
+      return (int)
+          (pO1Numeric.getNumber().doubleValue() - pO2Numeric.getNumber().doubleValue()); // TODO
     }
 
-    return (int)
-        (pO1.asNumericValue().orElseThrow().getNumber().doubleValue()
-            - pO2.asNumericValue().orElseThrow().getNumber().doubleValue()); // TODO
+    throw new ClassCastException("Expected NumericValue.");
   }
 
   @Override

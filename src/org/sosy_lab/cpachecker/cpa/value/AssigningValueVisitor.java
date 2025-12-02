@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JBooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericallyInterpretableValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -121,28 +122,29 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = (CExpression) unwrap(pE.getOperand2());
 
+    // C expressions -> only NumericValues possible as concrete values!
     Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
-    if (!(leftValue.isExplicitlyKnown()
-        && leftValue.asNumericValue().orElseThrow().getNumber() instanceof BigInteger bigIntNum
+    if (!(leftValue instanceof  NumericValue leftNumericValue
+        && leftNumericValue.getNumber() instanceof BigInteger bigIntNum
         && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       leftValue = castCValue(leftValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
-    if (!(rightValue.isExplicitlyKnown()
-        && rightValue.asNumericValue().orElseThrow().getNumber() instanceof BigInteger bigIntNum
+    if (!(rightValue instanceof NumericValue rightNumericValue
+        && rightNumericValue.getNumber() instanceof BigInteger bigIntNum
         && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       rightValue = castCValue(rightValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     if (isEqualityAssumption(binaryOperator)) {
-      if (leftValue.isExplicitlyKnown()) {
-        Number lNum = leftValue.asNumericValue().orElseThrow().getNumber();
+      if (leftValue instanceof  NumericValue leftNumericValue) {
+        Number lNum = leftNumericValue.getNumber();
         if (BigInteger.ONE.equals(lNum)) {
           rVarInBinaryExp.accept(this);
         }
-      } else if (rightValue.isExplicitlyKnown()) {
-        Number rNum = rightValue.asNumericValue().orElseThrow().getNumber();
+      } else if (rightValue instanceof NumericValue rightNumericValue) {
+        Number rNum = rightNumericValue.getNumber();
         if (BigInteger.ONE.equals(rNum)) {
           lVarInBinaryExp.accept(this);
         }
@@ -228,10 +230,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
         if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
           Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger());
-          if (downCastVal.isExplicitlyKnown() && downCastVal.asNumericValue() != null) {
+          if (downCastVal instanceof NumericValue numericDownCastVal) {
             FloatValue downCastFloatVal =
-                downCastVal.asNumericValue().orElseThrow().getFloatValue();
-            FloatValue origFloatVal = pValue.asNumericValue().orElseThrow().getFloatValue();
+                numericDownCastVal.getFloatValue();
+            assert pValue instanceof NumericValue; // Given by downCastVal being numeric!
+            FloatValue origFloatVal = ((NumericValue)pValue).getFloatValue();
             Preconditions.checkState(
                 origFloatVal.getFormat().isGreaterOrEqual(downCastFloatVal.getFormat()));
             if (downCastFloatVal.withPrecision(origFloatVal.getFormat()).equals(origFloatVal)) {
