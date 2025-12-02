@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import java.util.Optional;
-import java.util.OptionalLong;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents a boolean value. It may store the values <code>false</code> and <code>true
@@ -102,16 +100,6 @@ public enum JBooleanValue implements NumericallyInterpretableValue {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
-  }
-
-  /**
-   * Always throws an <code>AssertionError</code>.
-   *
-   * <p>There is no use for this method in the case of boolean values.
-   */
-  @Override
-  public OptionalLong asLong(CType pType) {
-    throw new AssertionError("This method is not implemented");
   }
 
   @Override

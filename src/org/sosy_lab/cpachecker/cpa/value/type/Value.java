@@ -8,12 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.OptionalLong;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * Base class for values that can be tracked by the ValueAnalysisCPA.
@@ -42,12 +39,6 @@ public interface Value extends Serializable {
    */
   default boolean isExplicitlyKnown() {
     return false;
-  }
-
-  /** Return the long value if this is a long value. */
-  default OptionalLong asLong(CType type) {
-    checkNotNull(type);
-    return OptionalLong.empty();
   }
 
   <T> T accept(ValueVisitor<T> pVisitor);

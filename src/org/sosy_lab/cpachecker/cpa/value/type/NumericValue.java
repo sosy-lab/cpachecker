@@ -200,7 +200,10 @@ public record NumericValue(Number number) implements NumericallyInterpretableVal
     };
   }
 
-  @Override
+  /**
+   * Returns the long value interpretation of the number used in the {@link NumericValue} only for a
+   * given {@link CSimpleType} with basic type {@link CBasicType#INT}. Empty in all other cases.
+   */
   public OptionalLong asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
