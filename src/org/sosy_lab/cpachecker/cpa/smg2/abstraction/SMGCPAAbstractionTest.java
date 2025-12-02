@@ -5839,7 +5839,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                   nestedListObjectAndState.getOffsetForObject().asNumericValue().bigIntegerValue())
               .isEqualTo(BigInteger.ZERO);
           // Check that it's not an abstracted object, correct size and payload value + next ptr
-          assertThat(nestedListObject).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
+          assertThat(nestedListObject).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
           assertThat(nestedListObject.getSize()).isEqualTo(sllSize);
           List<ValueAndSMGState> readHeadsOfNestedList =
               currentState.readValue(nestedListObject, hfo, pointerSizeInBits, null);
@@ -6714,7 +6714,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = returnedObjAndState.getSMGState();
       SMGObject newObj = returnedObjAndState.getSMGObject();
       prevObj = newObj;
-      assertThat(newObj).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
+      assertThat(newObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
       // Check payload
       List<ValueAndSMGState> payloadAndState =
@@ -6864,7 +6864,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = returnedObjAndState.getSMGState();
       SMGObject newObj = returnedObjAndState.getSMGObject();
       prevObj = newObj;
-      assertThat(newObj).isNotSameInstanceAs(SMGSinglyLinkedListSegment.class);
+      assertThat(newObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
 
       List<ValueAndSMGState> payloadAndState =
