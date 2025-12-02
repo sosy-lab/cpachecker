@@ -19,6 +19,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
@@ -207,6 +208,9 @@ public class CPAMain {
   @Options
   static final class BootstrapLanguageOptions {
 
+    private static final ImmutableList<String> DELEGATION_OPTIONS =
+        ImmutableList.of("c.config", "java.config", "llvm.config", "svlib.config");
+
     BootstrapLanguageOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -263,6 +267,14 @@ public class CPAMain {
 
   @Options
   private static final class BootstrapPropertyOptions {
+
+    private static final ImmutableList<String> DELEGATION_OPTIONS =
+        ImmutableList.of(
+            "memorysafety.config",
+            "memorycleanup.config",
+            "overflow.config",
+            "datarace.config",
+            "termination.config");
 
     private BootstrapPropertyOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -458,8 +470,37 @@ public class CPAMain {
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(logManager, config, cmdLineOptions, properties);
 
+    // cleanup
+    config = cleanupBootstrapOptions(config);
+
     return new Config(
         config, logManager, outputDirectory, logOptions.getOutputFile(), langOptions.programs);
+  }
+
+  @SuppressWarnings("unused")
+  private static Configuration cleanupBootstrapOptions(Configuration config)
+      throws InvalidConfigurationException {
+    // If we keep the options for switching config files in the config
+    // they end up in UsedConfiguration.properties, which would make this file harder to use
+    // as input for a future CPAchecker run.
+    ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+    for (String option :
+        Iterables.concat(
+            BootstrapLanguageOptions.DELEGATION_OPTIONS,
+            WitnessOptions.DELEGATION_OPTIONS,
+            BootstrapPropertyOptions.DELEGATION_OPTIONS)) {
+      configBuilder.clearOption(option);
+    }
+    config = configBuilder.build();
+
+    // Reinject options to mark them as "used", the above clearing is not enough due to how
+    // ConfigurationBuilder handles unused options when copying config.
+    new LoggingOptions(config);
+    new BootstrapLanguageOptions(config);
+    new WitnessOptions(config);
+    new BootstrapPropertyOptions(config);
+
+    return config;
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
@@ -569,10 +610,6 @@ public class CPAMain {
           .loadFromFile(subconfig)
           .setOptions(pCmdLineOptions)
           .setOption("language", frontendLanguage.name())
-          .clearOption("c.config")
-          .clearOption("llvm.config")
-          .clearOption("java.config")
-          .clearOption("svlib.config")
           .build();
     }
 
@@ -673,15 +710,6 @@ public class CPAMain {
       return Configuration.builder()
           .loadFromFile(alternateConfigFile)
           .setOptions(cmdLineOptions)
-          .clearOption("memorysafety.config")
-          .clearOption("memorycleanup.config")
-          .clearOption("overflow.config")
-          .clearOption("datarace.config")
-          .clearOption("termination.config")
-          .clearOption("output.disable")
-          .clearOption("output.path")
-          .clearOption("rootDirectory")
-          .clearOption("witness.validation.file")
           .build();
     }
     return config;
@@ -746,6 +774,13 @@ public class CPAMain {
 
   @Options
   private static final class WitnessOptions {
+
+    private static final ImmutableList<String> DELEGATION_OPTIONS =
+        ImmutableList.of(
+            "witness.validation.violation.config",
+            "witness.validation.correctness.config",
+            "witness.validation.correctness.isa",
+            "witness.validation.correctness.acsl");
 
     private WitnessOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -915,15 +950,7 @@ public class CPAMain {
         witnessName,
         validationConfigFile);
     ConfigurationBuilder configBuilder =
-        Configuration.builder()
-            .loadFromFile(validationConfigFile)
-            .setOptions(overrideOptions)
-            .clearOption("witness.validation.file")
-            .clearOption("witness.validation.violation.config")
-            .clearOption("witness.validation.correctness.config")
-            .clearOption("witness.validation.correctness.acsl")
-            .clearOption("output.path")
-            .clearOption("rootDirectory");
+        Configuration.builder().loadFromFile(validationConfigFile).setOptions(overrideOptions);
     if (configFileName.isPresent()) {
       configBuilder.setOption(
           APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFileName.orElseThrow()));
