@@ -20,6 +20,11 @@ of the [SV-Benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-be
 is checked out in the directory `../programs/benchmarks`
 (i.e., `test/programs/benchmarks` from the project root).
 
+Furthemore, they assume that the directory
+`sv-lib` of the [SV-Benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/sv-lib)
+is checked out in the directory `../programs/svlib-benchmarks`
+(i.e., `test/programs/svlib-benchmarks` from the project root).
+
 All files starting with `integration-` are used
 by our continuous-integration system
 [BuildBot](https://buildbot.sosy-lab.org/cpachecker/).

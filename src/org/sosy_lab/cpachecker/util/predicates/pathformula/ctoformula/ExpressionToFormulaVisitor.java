@@ -173,7 +173,7 @@ public class ExpressionToFormulaVisitor
     final CType calculationType = exp.getCalculationType();
 
     // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(returnType);
 
     final boolean signed;
     if (calculationType instanceof CSimpleType cSimpleType) {
@@ -381,7 +381,7 @@ public class ExpressionToFormulaVisitor
 
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
-      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
+      return mgr.makeNumber(conv.getFormulaTypeFromType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
@@ -415,13 +415,13 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCodeException {
     // we just take the byte value
-    FormulaType<?> t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
+    FormulaType<?> t = conv.getFormulaTypeFromType(cExp.getExpressionType());
     return mgr.makeNumber(t, cExp.getCharacter());
   }
 
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    FormulaType<?> t = conv.getFormulaTypeFromType(iExp.getExpressionType());
     return mgr.makeNumber(t, iExp.getValue());
   }
 
@@ -474,7 +474,7 @@ public class ExpressionToFormulaVisitor
         }
 
         CType returnType = exp.getExpressionType();
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(returnType);
         if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
           ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
         }
@@ -622,7 +622,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
     return mgr.makeNumber(
-        conv.getFormulaTypeFromCType(pExp.getExpressionType()),
+        conv.getFormulaTypeFromType(pExp.getExpressionType()),
         conv.machineModel.getAlignof(pCType));
   }
 
@@ -674,12 +674,12 @@ public class ExpressionToFormulaVisitor
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv, conv.bfmgr, conv.fmgr);
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
       } else if (BuiltinFunctions.isSetjmpFunction(functionName)) {
         // setjmp always returns 0 on the "regular" return, and we don't support longjmp
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(returnType), 0);
+        return mgr.makeNumber(conv.getFormulaTypeFromType(returnType), 0);
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
@@ -688,7 +688,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
                 .makePlusInfinity((FormulaType.FloatingPointType) formulaType);
@@ -700,7 +700,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
                 .makePlusInfinity((FormulaType.FloatingPointType) formulaType);
@@ -712,7 +712,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.size() == 1) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
                 .makeNaN((FormulaType.FloatingPointType) formulaType);
@@ -723,7 +723,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -748,13 +748,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
                 conv.bfmgr.or(fpfmgr.isInfinity(param), fpfmgr.isNaN(param)),
                 mgr.makeNumber(resultType, 0),
@@ -766,13 +766,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
                 fpfmgr.isNaN(param), mgr.makeNumber(resultType, 1), mgr.makeNumber(resultType, 0));
           }
@@ -782,7 +782,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -790,7 +790,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula fp_zero =
                 fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula minus_one = mgr.makeNumber(resultType, -1);
@@ -806,7 +806,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -814,7 +814,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula fp_zero =
                 fpfmgr.makeNumber(0, (FormulaType.FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula minus_one = mgr.makeNumber(resultType, -1);
@@ -830,13 +830,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula two = mgr.makeNumber(resultType, 2);
@@ -860,7 +860,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -901,7 +901,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -950,7 +950,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -972,7 +972,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -995,7 +995,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1069,7 +1069,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1077,7 +1077,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
 
@@ -1089,14 +1089,14 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula not_zero =
                 conv.makeNondet(functionName + "_NonZero", CNumericTypes.INT, ssa, constraints);
@@ -1120,7 +1120,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -1271,7 +1271,7 @@ public class ExpressionToFormulaVisitor
       assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
 
       final CType realReturnType = conv.getReturnType(e, edge);
-      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
   }
@@ -1282,7 +1282,7 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
@@ -1305,8 +1305,8 @@ public class ExpressionToFormulaVisitor
         if (pIsLRound) {
           FormulaType<?> type =
               pIsLongLong
-                  ? conv.getFormulaTypeFromCType(CNumericTypes.LONG_LONG_INT)
-                  : conv.getFormulaTypeFromCType(CNumericTypes.LONG_INT);
+                  ? conv.getFormulaTypeFromType(CNumericTypes.LONG_LONG_INT)
+                  : conv.getFormulaTypeFromType(CNumericTypes.LONG_INT);
           final boolean signed = true; // LongLongInt and LongInt are signed
 
           castIntegral = fpfmgr.castTo(integral, signed, type);
@@ -1357,7 +1357,7 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
@@ -1392,14 +1392,14 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 2) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormula param0 =
             (FloatingPointFormula) processOperand(pParameters.getFirst(), paramType, paramType);
         FloatingPointFormula param1 =
             (FloatingPointFormula) processOperand(pParameters.get(1), paramType, paramType);
 
-        FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+        FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
         Formula zero = mgr.makeNumber(resultType, 0);
         Formula one = mgr.makeNumber(resultType, 1);
 
@@ -1432,8 +1432,8 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
       CType paramType = BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
-      FormulaType<?> paramFormulaType = conv.getFormulaTypeFromCType(paramType);
-      FormulaType<?> formulaReturnType = conv.getFormulaTypeFromCType(pReturnType);
+      FormulaType<?> paramFormulaType = conv.getFormulaTypeFromType(paramType);
+      FormulaType<?> formulaReturnType = conv.getFormulaTypeFromType(pReturnType);
 
       if (paramFormulaType.isBitvectorType()) {
         BitvectorFormulaManagerView bvMgrv = mgr.getBitvectorFormulaManager();

@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -34,7 +34,7 @@ import org.sosy_lab.java_smt.api.Formula;
  *
  * <p>The properties responsible for the behaviour of PredicateCPA's formula handling influence the
  * behaviour of this class, too. A number of important properties can be found in the classes {@link
- * FormulaEncodingOptions} and {@link FormulaManagerView}.
+ * CFormulaEncodingOptions} and {@link FormulaManagerView}.
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 

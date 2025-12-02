@@ -123,6 +123,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       return op;
     }
 
+    @Override
     public boolean isLogicalOperator() {
       return switch (this) {
         case MULTIPLY,

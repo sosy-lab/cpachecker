@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -90,17 +91,18 @@ public class PropertyFileParser {
     checkState(properties == null, "single-use only");
     ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
+
     try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
+        if (rawProperty.startsWith("#")) {
+          continue;
+        }
         if (!rawProperty.isEmpty()) {
           propertiesBuilder.add(parsePropertyLine(rawProperty));
         }
       }
     }
     properties = propertiesBuilder.build();
-    if (properties.isEmpty()) {
-      throw new InvalidPropertyFileException("No property in file.");
-    }
   }
 
   private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
@@ -141,9 +143,8 @@ public class PropertyFileParser {
     return property;
   }
 
-  public String getEntryFunction() {
-    checkState(entryFunction != null);
-    return entryFunction;
+  public Optional<String> getEntryFunction() {
+    return Optional.ofNullable(entryFunction);
   }
 
   public ImmutableSet<Property> getProperties() {

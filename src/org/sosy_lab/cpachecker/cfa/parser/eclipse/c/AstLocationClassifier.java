@@ -163,10 +163,10 @@ class AstLocationClassifier extends ASTVisitor {
                 path, iloc.getEndingLineNumber(), iloc.getNodeOffset() + iloc.getNodeLength()),
             sourceOriginMapping
                 .getOriginLineFromAnalysisCodeLine(path, iloc.getStartingLineNumber())
-                .getLineNumber(),
+                .lineNumber(),
             sourceOriginMapping
                 .getOriginLineFromAnalysisCodeLine(path, iloc.getEndingLineNumber())
-                .getLineNumber(),
+                .lineNumber(),
             sourceOriginMapping.isMappingToIdenticalLineNumbers());
     return loc;
   }

@@ -55,7 +55,7 @@ public class TaskRecord {
     language = pLanguage;
   }
 
-  private static String getSpecificationAsString(Specification pSpecification) throws IOException {
+  public static String getSpecificationAsString(Specification pSpecification) throws IOException {
     String defaultReturnSpecification = "";
     if (pSpecification.getFiles().size() != 1) {
       // Currently, there is no semantics for witnesses when multiple properties are checked

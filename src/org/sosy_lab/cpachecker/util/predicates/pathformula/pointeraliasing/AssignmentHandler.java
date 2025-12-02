@@ -129,7 +129,7 @@ class AssignmentHandler {
     }
   }
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;

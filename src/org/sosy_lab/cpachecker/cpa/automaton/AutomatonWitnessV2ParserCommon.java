@@ -117,13 +117,13 @@ class AutomatonWitnessV2ParserCommon {
     }
 
     // Constructor that only sets 'follow'
-    PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {
-      this(Optional.ofNullable(follow), Optional.empty(), avoids);
+    PartitionedWaypoints(WaypointRecord pFollow, ImmutableList<WaypointRecord> pAvoids) {
+      this(Optional.ofNullable(pFollow), Optional.empty(), pAvoids);
     }
 
     // Constructor that only sets 'cycle'
-    PartitionedWaypoints(ImmutableList<WaypointRecord> avoids, WaypointRecord cycle) {
-      this(Optional.empty(), Optional.ofNullable(cycle), avoids);
+    PartitionedWaypoints(ImmutableList<WaypointRecord> pAvoids, WaypointRecord pCycle) {
+      this(Optional.empty(), Optional.ofNullable(pCycle), pAvoids);
     }
   }
 

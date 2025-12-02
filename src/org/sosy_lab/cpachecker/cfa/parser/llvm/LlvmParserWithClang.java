@@ -36,7 +36,7 @@ class LlvmParserWithClang extends LlvmParser {
       final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     super(pLogger, pMachineModel);
-    preprocessor = new ClangPreprocessor(pConfig, pLogger);
+    preprocessor = new ClangPreprocessor(pConfig, pLogger, pMachineModel);
   }
 
   @Override

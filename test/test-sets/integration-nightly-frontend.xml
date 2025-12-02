@@ -14,8 +14,6 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="120 s" memlimit="3000 MB" cpuCores="2">
   <!-- Test the parser frontend of CPAchecker. -->
 
-  <option name="--preprocess"/>
-
   <rundefinition>
     <tasks name="preprocessed">
       <include>../programs/simple/*.i</include>

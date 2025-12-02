@@ -32,7 +32,7 @@ class CTypeUtils {
       new CachingCanonizingCTypeVisitor(/* ignoreSignedness= */ false);
 
   /** Return the length of an array, honoring the options for maximum and default array length. */
-  static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
+  static int getArrayLength(CArrayType t, CFormulaEncodingWithPointerAliasingOptions options) {
     OptionalInt length = t.getLengthAsInt();
     return length.isPresent()
         ? Integer.min(options.maxArrayLength(), length.orElseThrow())

@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -91,6 +92,15 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
       Preconditions.checkState(violations.hasNext());
       exportTrivialWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (!validation && pResult == Result.TRUE) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
+      }
     }
   }
 

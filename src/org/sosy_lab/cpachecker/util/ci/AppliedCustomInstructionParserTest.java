@@ -29,6 +29,7 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,7 +42,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AppliedCustomInstructionParserTest {
 
-  private CFA cfa;
+  private ImmutableCFA cfa;
   private AppliedCustomInstructionParser aciParser;
   private List<CFALabelNode> labelNodes;
 

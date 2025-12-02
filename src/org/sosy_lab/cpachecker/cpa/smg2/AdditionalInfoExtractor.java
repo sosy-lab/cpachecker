@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
-import org.sosy_lab.cpachecker.cpa.smg.SMGConvertingTags;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
+import org.sosy_lab.cpachecker.cpa.smg2.AdditionalInfoExtractor.SMGAdditionalInfo.Level;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -139,5 +139,45 @@ public class AdditionalInfoExtractor {
                   pSMGState, pSMGState.getMemoryModel().getSMGValueFromValue(value));
       case null /*TODO check if null is necessary*/, default -> false;
     };
+  }
+
+  /**
+   * Intermediate enum for {@link AdditionalInfoConverter} used at {@link
+   * org.sosy_lab.cpachecker.cpa.smg2.SMGCPA}
+   */
+  public enum SMGConvertingTags implements ConvertingTags {
+    NOTE
+  }
+
+  public static class SMGAdditionalInfo {
+    public enum Level {
+      ERROR,
+      WARNING,
+      NOTE,
+      INFO
+    }
+
+    private final String value;
+    private final Level level;
+    private final boolean hide;
+
+    private SMGAdditionalInfo(String pValue, Level pLevel, boolean pHide) {
+      value = pValue;
+      level = pLevel;
+      hide = pHide;
+    }
+
+    public static SMGAdditionalInfo of(String pValue, Level pLevel, boolean pHide) {
+      return new SMGAdditionalInfo(pValue, pLevel, pHide);
+    }
+
+    public static SMGAdditionalInfo of(String pValue, Level pLevel) {
+      return new SMGAdditionalInfo(pValue, pLevel, false);
+    }
+
+    @Override
+    public String toString() {
+      return "level=\"" + level + "\" hide=\"" + hide + "\" value=\"" + value + "\"";
+    }
   }
 }

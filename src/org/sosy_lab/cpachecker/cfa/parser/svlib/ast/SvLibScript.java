@@ -1,0 +1,40 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+
+public class SvLibScript {
+
+  private final ImmutableList<SvLibCommand> commands;
+
+  public SvLibScript(List<SvLibCommand> pCommands) {
+    commands = ImmutableList.copyOf(pCommands);
+  }
+
+  public ImmutableList<SvLibCommand> getCommands() {
+    return commands;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof SvLibScript other && commands.equals(other.commands);
+  }
+
+  @Override
+  public int hashCode() {
+    return commands.hashCode();
+  }
+}

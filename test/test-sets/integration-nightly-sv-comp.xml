@@ -19,7 +19,6 @@ SPDX-License-Identifier: Apache-2.0
   <!-- For real benchmarks, we would use -benchmark, but for tests we want assertions enabled.
        So only disable output files. -->
   <option name="--no-output-files" />
-  <option name="--preprocess"/>
 
   <rundefinition>
     <option name="--svcomp26"/>
@@ -38,6 +37,8 @@ SPDX-License-Identifier: Apache-2.0
     Please disable compression for real SVComp benchmarks!
   -->
   <resultfiles>**/witness*.*</resultfiles>
+  <option name="--option">cpa.arg.compressWitness=true</option>
+  <option name="--option">counterexample.export.compressWitness=true</option>
 
   <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>

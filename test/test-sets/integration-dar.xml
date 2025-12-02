@@ -13,7 +13,6 @@
 
     <option name="--no-output-files"/>
     <option name="--heap">2000M</option>
-    <option name="--preprocess"/>
 
     <rundefinition>
         <option name="--bmc-interpolationDualSequence"/>

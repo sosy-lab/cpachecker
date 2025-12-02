@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">11000M</option>
+
+  <rundefinition name="Overflow-Portfolio">
+    <option name="--overflowAnalysis"/>
+  </rundefinition>
+
+  <tasks name="C.no-overflow.Main">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+    <includesfile>../programs/benchmarks/XCSP.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="C.no-overflow.Juliet">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/Juliet.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+
+  <tasks name="C.no-overflow.SoftwareSystems-BusyBox">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="C.no-overflow.SoftwareSystems-coreutils">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="C.no-overflow.SoftwareSystems-uthash">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+
+  <tasks name="C.no-overflow.Concurrency">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="C.no-overflow.Huawei-Concurrency-Challenges">
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <includesfile>../programs/benchmarks/Huawei-Concurrency-Challenges.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+
+  <tasks name="Overflow-Simple">
+    <includesfile>../programs/simple/overflow/overflow.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <!-- Some tasks in this set use malloc -->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="OverflowWithPointers-Simple">
+    <includesfile>../programs/simple/overflow/overflowWithPointers.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <!-- Some tasks in this set use malloc -->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--option">overflow.trackPointers=true</option>
+  </tasks>
+
+</benchmark>

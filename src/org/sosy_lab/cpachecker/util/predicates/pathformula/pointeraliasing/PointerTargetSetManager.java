@@ -108,7 +108,7 @@ class PointerTargetSetManager {
 
   private final CToFormulaConverterWithPointerAliasing conv;
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -125,7 +125,7 @@ class PointerTargetSetManager {
    */
   PointerTargetSetManager(
       CToFormulaConverterWithPointerAliasing pConv,
-      FormulaEncodingWithPointerAliasingOptions pOptions,
+      CFormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager,
       TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier,

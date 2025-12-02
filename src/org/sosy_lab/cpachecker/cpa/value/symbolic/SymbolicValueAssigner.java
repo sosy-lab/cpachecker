@@ -187,8 +187,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       ValueAnalysisState pState,
       MemoryLocation pStructLocation,
       CCompositeType pStructType,
-      ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCodeException {
+      ExpressionValueVisitor pValueVisitor) {
 
     assert handleStructs;
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations =

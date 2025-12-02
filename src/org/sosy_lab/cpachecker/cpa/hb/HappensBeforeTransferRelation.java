@@ -199,7 +199,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
-            cfa.getFunctionHead(functionName), "Function '" + functionName + "' was not found.");
+            cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
     CallstackState initialStack =
         (CallstackState)

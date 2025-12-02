@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Preprocessor;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
@@ -30,7 +31,8 @@ class ClangPreprocessor extends Preprocessor {
       description =
           "The command line for calling the clang preprocessor. "
               + "May contain binary name and arguments, but won't be expanded by a shell. "
-              + "The source file name will be appended to this string. "
+              + "The argument for the architecture "
+              + "and the source file name will be appended to this string. "
               + "Clang needs to print the output to stdout.")
   private String clang =
       "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout";
@@ -40,9 +42,13 @@ class ClangPreprocessor extends Preprocessor {
       description = "Whether to dump the results of the preprocessor to disk.")
   private boolean dumpResults = true;
 
-  ClangPreprocessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  private final MachineModel machineModel;
+
+  ClangPreprocessor(Configuration config, LogManager pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     super(config, pLogger);
     config.inject(this);
+    machineModel = pMachineModel;
   }
 
   /**
@@ -73,7 +79,7 @@ class ClangPreprocessor extends Preprocessor {
 
   @Override
   protected String getCommandLine() {
-    return clang;
+    return clang + " " + getStandardCCompilerArchitectureArgument(machineModel);
   }
 
   @Override
