@@ -530,10 +530,11 @@ public final class ValueAnalysisState
       // The following is a hack
       ValueAndType val =
           constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.getFirst()));
-      if (val == null) {
+      if (val == null || !(val.getValue() instanceof NumericValue numericValValue)) {
         return false;
       }
-      OptionalLong value = val.getValue().asLong(CNumericTypes.INT);
+      // TODO: why do we ignore the actual type here?
+      OptionalLong value = numericValValue.asLong(CNumericTypes.INT);
 
       if (value.isEmpty()) {
         return false;
