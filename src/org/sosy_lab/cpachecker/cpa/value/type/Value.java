@@ -27,7 +27,7 @@ public interface Value extends Serializable {
    * True if we do not have any information about the value, and we do not track it currently (as
    * tracked unknown values are {@link
    * org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue}s), false otherwise. Values that
-   * return true are always of the {@link UnknownValue} type!
+   * return true are always {@link UnknownValue}!
    */
   default boolean isUnknown() {
     return false;
@@ -36,7 +36,9 @@ public interface Value extends Serializable {
   /**
    * True if we deterministically know the actual value, false otherwise. Explicitly known are (at
    * least) the following types: {@link NumericValue}s, {@link JArrayValue}s, {@link
-   * JBooleanValue}s, {@link JEnumConstantValue}s, and {@link JNullValue}s.
+   * JBooleanValue}s, {@link JEnumConstantValue}s, and {@link JNullValue}s. For the C programming
+   * language, all explicitly known values are of type {@link NumericValue}. Java uses {@link
+   * NumericValue}, as well as its dedicated value classes!
    */
   default boolean isExplicitlyKnown() {
     return false;
