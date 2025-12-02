@@ -21,6 +21,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericallyInterpretableValue;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -178,8 +179,12 @@ public final class ValueAnalysisInterpolant
 
       } else {
         verify(
-            valueState.getValueFor(itp.getKey()).asNumericValue().orElseThrow().longValue()
-                == itp.getValue().getValue().asNumericValue().orElseThrow().longValue(),
+            valueState.getValueFor(itp.getKey())
+                    instanceof NumericallyInterpretableValue interpretableValueFromState
+                && itp.getValue().getValue()
+                    instanceof NumericallyInterpretableValue interpretableInterpolant
+                && interpretableValueFromState.interpretNumerically().longValue()
+                    == interpretableInterpolant.interpretNumerically().longValue(),
             "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
                 + " for state %s",
             itp.getKey(),

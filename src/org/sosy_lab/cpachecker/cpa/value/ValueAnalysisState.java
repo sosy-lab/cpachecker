@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.JEnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericallyInterpretableValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -652,9 +653,9 @@ public final class ValueAnalysisState
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
       if (considerVar.test(memoryLocation)) {
-        NumericValue num = entry.getValue().getValue().asNumericValue().orElseThrow();
-
-        if (num != null) {
+        if (entry.getValue().getValue()
+            instanceof NumericallyInterpretableValue interpretableValue) {
+          NumericValue num = interpretableValue.interpretNumerically();
           Type type = entry.getValue().getType();
           if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
             if (simpleType.getType().isIntegerType()) {
@@ -877,8 +878,9 @@ public final class ValueAnalysisState
       if (valueOfEntry instanceof JEnumConstantValue) {
         continue;
       }
-      NumericValue num = valueOfEntry.asNumericValue().orElseThrow();
-      if (num != null) {
+
+      if (valueOfEntry instanceof NumericallyInterpretableValue interpretableValue) {
+        NumericValue num = interpretableValue.interpretNumerically();
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
         if (!memoryLocation.isReference()
@@ -973,8 +975,9 @@ public final class ValueAnalysisState
       if (valueOfEntry instanceof JEnumConstantValue) {
         continue;
       }
-      NumericValue num = valueOfEntry.asNumericValue().orElseThrow();
-      if (num != null) {
+
+      if (valueOfEntry instanceof NumericallyInterpretableValue interpretableValue) {
+        NumericValue num = interpretableValue.interpretNumerically();
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
         if (!memoryLocation.isReference()
