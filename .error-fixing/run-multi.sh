@@ -21,6 +21,11 @@ upper_bound=""
 verbose=false
 clear_old=false
 
+# Optional previous summary filtering
+PREV_SUMMARY=""
+FILTER_MODE=""   # "include" or "exclude"
+declare -a FILTER_CODES  # e.g., pa er si se pf
+
 # Parse arguments in any order
 for arg in "$@"; do
   case "$arg" in
@@ -28,20 +33,36 @@ for arg in "$@"; do
     clear) clear_old=true ;;
     all) upper_bound="all" ;;
     last) upper_bound="last" ;;
-    ''|*[!0-9]*) ;; # ignore non-numeric unless handled above
+    include|exclude)
+      FILTER_MODE="$arg"
+      ;;
+    pa|er|si|se|pf)
+      FILTER_CODES+=("$arg")
+      ;;
     *)
       if [[ -z "$lower_bound" ]]; then
+        # first numeric or "all"/"last" already handled
         lower_bound="$arg"
       elif [[ -z "$upper_bound" ]]; then
-        upper_bound="$arg"
+        # second numeric or a prev-summary path
+        # If it's a readable file, treat as previous summary
+        if [[ -f "$arg" ]]; then
+          PREV_SUMMARY="$arg"
+        else
+          upper_bound="$arg"
+        fi
+      elif [[ -z "$PREV_SUMMARY" && -f "$arg" ]]; then
+        PREV_SUMMARY="$arg"
       fi
       ;;
   esac
 done
 
-# Require at least one bound
+# Require at least one bound (unless "all" or "last" was set)
 if [[ -z "$lower_bound" && -z "$upper_bound" ]]; then
-  echo "Usage: $0 <number|start end|start last|all> [verbose] [clear]"
+  echo "Usage:"
+  echo "  $0 <number|start end|start last|all> [verbose] [clear]"
+  echo "  $0 <number|start end|all> <prev-summary.log> <include|exclude> [pa|er|si|se|pf ...]"
   exit 1
 fi
 
@@ -81,7 +102,7 @@ parsing_failed_count=0
 error_count=0
 exception_count=0
 
-# Select files
+# Select files by bounds
 if [[ "$upper_bound" == "all" ]]; then
   files=$(ls "$TARGET_DIR"/*.i)
   lower_bound=1
@@ -89,10 +110,8 @@ elif [[ "$upper_bound" == "last" ]]; then
   upper_bound=$total_files
   files=$(ls "$TARGET_DIR"/*.i | sed -n "${lower_bound},${upper_bound}p")
 elif [[ -n "$upper_bound" && -n "$lower_bound" ]]; then
-  # Range mode: run files from lower_bound to upper_bound inclusive
   files=$(ls "$TARGET_DIR"/*.i | sed -n "${lower_bound},${upper_bound}p")
 else
-  # Single number mode: run first N files (upper bound only, lower bound = 1 implicit)
   upper_bound="$lower_bound"
   lower_bound=1
   files=$(ls "$TARGET_DIR"/*.i | sed -n "${lower_bound},${upper_bound}p")
@@ -109,9 +128,62 @@ longest_file=""
 declare -A file_times
 declare -A file_names
 
+# Parse previous detailed summary and filter if requested
+declare -A prev_category_by_file  # key: absolute path to .i, value: category code (pa/er/si/se/pf)
+
+parse_prev_summary() {
+  local section=""
+  while IFS= read -r line; do
+    case "$line" in
+      "=== Passed files ===") section="pa"; continue ;;
+      "=== Single Errors ===") section="er"; continue ;;
+      "=== Single Exceptions ===") section="si"; continue ;;
+      "=== Several Exceptions ===") section="se"; continue ;;
+      "=== Parsing Failed ===") section="pf"; continue ;;
+    esac
+    # lines expected like: "<index> <fullpath>"
+    if [[ -n "$section" && "$line" =~ ^[0-9]+[[:space:]]+(.+\.i)$ ]]; then
+      file="${BASH_REMATCH[1]}"
+      prev_category_by_file["$file"]="$section"
+    fi
+  done < "$PREV_SUMMARY"
+}
+
+apply_filter() {
+  # Build a set for quick membership checks
+  declare -A CODE_SET
+  for c in "${FILTER_CODES[@]}"; do CODE_SET["$c"]=1; done
+
+  local filtered=""
+  for f in $files; do
+    cat_code="${prev_category_by_file["$f"]}" # may be empty if not present
+    if [[ "$FILTER_MODE" == "include" ]]; then
+      # Include only files whose previous category is in CODE_SET
+      if [[ -n "$cat_code" && -n "${CODE_SET["$cat_code"]}" ]]; then
+        filtered+="$f"$'\n'
+      fi
+    elif [[ "$FILTER_MODE" == "exclude" ]]; then
+      # Exclude files whose previous category is in CODE_SET; include others
+      if [[ -z "${CODE_SET["$cat_code"]}" ]]; then
+        filtered+="$f"$'\n'
+      fi
+    else
+      # No filtering mode -> keep as is
+      filtered+="$f"$'\n'
+    fi
+  done
+  # Replace files list
+  files=$(echo -e "$filtered" | sed '/^$/d')
+}
+
+if [[ -n "$PREV_SUMMARY" && -f "$PREV_SUMMARY" && -n "$FILTER_MODE" && ${#FILTER_CODES[@]} -gt 0 ]]; then
+  parse_prev_summary
+  apply_filter
+fi
+
 # --- helper function to write summaries ---
 write_summaries() {
-  # Write per-run summary file
+  # Write per-run chronological summary
   {
     echo "[$timestamp] $run_desc"
     echo "Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count"
@@ -125,9 +197,11 @@ write_summaries() {
     done | sort -n -k2
   } > "$CHRONOLOGICAL_SUMMARY"
 
-  # Append to master summary
-  echo "[$timestamp] $run_desc | Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count" >> "$MASTER_SUMMARY"
-  echo "  Total=${total_time}s Avg=${avg_time}s Shortest=${shortest_time}s(file $shortest_file:${file_names[$shortest_file]}) Longest=${longest_time}s(file $longest_file:${file_names[$longest_file]})" >> "$MASTER_SUMMARY"
+  # Append to master summary (cumulative)
+  {
+    echo "[$timestamp] $run_desc | Passed=$passed_count Several=$several_count ParsingFailed=$parsing_failed_count Error=$error_count Exception=$exception_count"
+    echo "  Total=${total_time}s Avg=${avg_time}s Shortest=${shortest_time}s(file $shortest_file:${file_names[$shortest_file]}) Longest=${longest_time}s(file $longest_file:${file_names[$longest_file]})"
+  } >> "$MASTER_SUMMARY"
 
   # Build full summary file by concatenating all category logs
   {
@@ -152,23 +226,22 @@ write_summaries() {
   } > "$FULL_SUMMARY"
 
   # Remove category logs after merging
-    rm -f "$LOG_DIR/passed.log" \
-          "$LOG_DIR/several-exceptions.log" \
-          "$LOG_DIR/single-parsing-failed.log" \
-          "$LOG_DIR/single-error.log" \
-          "$LOG_DIR/single-exception.log"
+  rm -f "$LOG_DIR/passed.log" \
+        "$LOG_DIR/several-exceptions.log" \
+        "$LOG_DIR/single-parsing-failed.log" \
+        "$LOG_DIR/single-error.log" \
+        "$LOG_DIR/single-exception.log"
 }
 
-# --- trap handler ---
+# --- trap handler, active during processing ---
 trap 'echo; echo "Interrupted! Summary so far:";
       echo "Passed: $passed_count";
       echo "Several exceptions: $several_count";
       echo "Parsing failed: $parsing_failed_count";
-      echo "Errors: $error_count ";
+      echo "Errors: $error_count";
       echo "Exceptions: $exception_count";
-      echo  see $LOG_DIR for details
+      echo "See $LOG_DIR for details";
       run_desc="Interrupted run after processing $((index-1)) files.";
-      # recompute avg_time safely
       file_count=$((passed_count + several_count + parsing_failed_count + error_count + exception_count))
       if (( file_count > 0 )); then
         avg_time=$(echo "scale=2; $total_time / $file_count" | bc)
@@ -178,10 +251,10 @@ trap 'echo; echo "Interrupted! Summary so far:";
       write_summaries;
       exit 1' INT
 
+# --- main analysis loop ---
 for file in $files; do
   if [[ -f "$file" ]]; then
     echo "[$index] Running CPAchecker on: $file"
-
     start_time=$(date +%s)
 
     if $verbose; then
@@ -238,7 +311,7 @@ done
 # Final summary description
 if [[ "$upper_bound" == "all" ]]; then
   run_desc="Processed all files."
-elif [[ "$upper_bound" == "$total_files" && passed"$lower_bound" != "1" ]]; then
+elif [[ "$upper_bound" == "$total_files" && "$lower_bound" != "1" ]]; then
   run_desc="Processed files $lower_bound through $upper_bound (last)."
 elif [[ -n "$upper_bound" && -n "$lower_bound" && "$lower_bound" != "1" ]]; then
   run_desc="Processed files $lower_bound through $upper_bound."
@@ -248,15 +321,10 @@ fi
 
 echo "$run_desc"
 echo "Passed: $passed_count"
-# (see $LOG_DIR/passed.log)
 echo "Several exceptions: $several_count"
-# (see $LOG_DIR/several-exceptions.log)
 echo "Parsing failed: $parsing_failed_count"
-# (see $LOG_DIR/single-parsing-failed.log)
 echo "Single Errors: $error_count"
-# (see $LOG_DIR/single-error.log)
 echo "Exceptions: $exception_count"
-# (see $LOG_DIR/single-exception.log)
 
 # Compute averages
 file_count=$((passed_count + several_count + parsing_failed_count + error_count + exception_count))
@@ -266,4 +334,4 @@ else
   avg_time=0
 fi
 
-write_summaries;
+write_summaries
