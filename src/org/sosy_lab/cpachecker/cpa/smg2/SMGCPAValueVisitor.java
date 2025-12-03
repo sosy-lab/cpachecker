@@ -601,7 +601,7 @@ public class SMGCPAValueVisitor
     } else {
       // Arithmetic and bitwise operations, i.e. +, -, *, /, %, <<, >>, |, &, ^
       Value arithResult =
-          arithmeticOperation(leftValue, rightValue, binaryOperator, calculationType);
+          handleBinaryArithmeticOrBitwiseOperation(leftValue, rightValue, binaryOperator, e);
       return ImmutableList.of(castCValue(arithResult, e.getExpressionType(), currentState));
     }
   }
@@ -2280,27 +2280,72 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two Value types.
-   *
-   * @param lNum left hand side value
-   * @param rNum right hand side value
-   * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
-   * @return the resulting values
+   * Calculates binary arithmetic or bitwise operations (i.e. +, -, *, /, %, <<, >>, &, |, ^) of two
+   * arbitrary {@link Value}s.
    */
-  private Value arithmeticOperation(
-      final NumericValue lNum,
-      final NumericValue rNum,
+  private Value handleBinaryArithmeticOrBitwiseOperation(
+      final Value leftValue,
+      final Value rightValue,
       final BinaryOperator op,
-      final CType calculationType) {
+      final CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    assert !op.isLogicalOperator();
 
-    // At this point we're only handling values of simple types.
-    final CSimpleType type = getSimplifiedType(calculationType);
-    if (type == null) {
-      logger.logf(
-          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
-      return UnknownValue.getInstance();
+    final CType leftType = expression.getOperand1().getExpressionType();
+    final CType rightType = expression.getOperand2().getExpressionType();
+    final CType returnType = expression.getExpressionType();
+    final CType calculationType = expression.getCalculationType();
+    // TODO: make sure that the calculation type is actually the calculation type AFTER integer
+    //  promotion etc.
+    // TODO: write unit tests for this! (i.e. all of the common handling in this class)
+
+    // At this point we're only handling values of simple types
+    final Optional<CSimpleType> maybeSimpleCalculationType = getSimplifiedType(calculationType);
+    if (maybeSimpleCalculationType.isEmpty()) {
+      throw new UnsupportedCodeException(
+          "Unsupported calculation type "
+              + calculationType
+              + " in binary comparison operation "
+              + expression,
+          cfaEdge);
     }
+    CSimpleType simpleCalculationType = maybeSimpleCalculationType.orElseThrow();
+
+    return switch (op) {
+      case PLUS ->
+          handleAddition(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case MINUS ->
+          handleSubtraction(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case MULTIPLY ->
+          handleMultiplication(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case DIVIDE ->
+          handleDivision(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case MODULO ->
+          handleModulo(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case SHIFT_LEFT ->
+          handleShiftLeft(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case SHIFT_RIGHT ->
+          handleShiftRight(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case BINARY_AND ->
+          handleBinaryOr(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case BINARY_XOR ->
+          handleBinaryXor(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      case BINARY_OR ->
+          handleBinaryOr(
+              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+      default ->
+          throw new AssertionError(
+              "Unknown binary operation " + op + " in arithmetic operation " + expression);
+    };
 
     try {
       return switch (type.getType()) {
@@ -2339,6 +2384,84 @@ public class SMGCPAValueVisitor
           op.getOperator(),
           rNum);
       return UnknownValue.getInstance();
+    }
+  }
+
+  private Value handleAddition(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType) {
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both l and r must be of the same type, which in this case is INT, so we can cast to
+            // long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, PLUS, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, PLUS);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      PLUS,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  "Unsupported type %s for result of binary operation %s", calculationType);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            "Unsupported type %s for result of binary operation %s", calculationType);
+
+        // log warning and ignore expression
+        logger.logf(
+            Level.WARNING,
+            "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+            e.getMessage(),
+            leftNumeric,
+            leftType,
+            PLUS.getOperator(),
+            rightNumeric,
+            rightType);
+        return UnknownValue.getInstance();
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+
+      // Simplify (x + 0) = x
+      if (leftValue instanceof NumericValue numLeft
+          && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
+          && !(calculationType.getType().isFloatingPointType())) {
+        return rightValue;
+      }
+      if (rightValue instanceof NumericValue numRight
+          && numRight.bigIntegerValue().equals(BigInteger.ZERO)
+          && !(calculationType.getType().isFloatingPointType())) {
+        return leftValue;
+      }
+      // TODO: more common simplifications?
+      // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
+      //  + 1) to be recognized? (this is more of a general question)
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, PLUS, returnType, calculationType);
     }
   }
 
@@ -2578,7 +2701,7 @@ public class SMGCPAValueVisitor
               left, leftType, right, rightType, simpleCalculationType, returnType);
       default ->
           throw new AssertionError(
-              "Unknown binary operation in comparison operation " + expression);
+              "Unknown binary operation " + op + " in arithmetic operation " + expression);
     };
   }
 
