@@ -6,6 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
 import com.google.common.base.Preconditions;
@@ -15,13 +23,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /** Random partitioning strategy that divides test targets into roughly equal subsets */
 public class RandomPartitioner implements PartitioningStrategy {
 
   @Override
-  public List<Set<CFAEdge>> partition(Set<CFAEdge> testTargets, int numPartitions) {
+  public List<Set<CFAEdge>> partition(Set<CFAEdge> testTargets, int numPartitions, CFA cfa) {
+    // Simply ignore the CFA parameter and call the original implementation
+    return partitionInternal(testTargets, numPartitions);
+  }
+
+  /**
+   * Internal implementation of random partitioning This maintains the original logic without CFA
+   * parameter
+   */
+  private List<Set<CFAEdge>> partitionInternal(Set<CFAEdge> testTargets, int numPartitions) {
     Preconditions.checkArgument(numPartitions > 0, "Number of partitions must be positive");
 
     if (testTargets.isEmpty()) {

@@ -670,6 +670,9 @@ public class CoreComponentsFactory {
     } else if (useRandomTestCaseGeneratorAlgorithm) {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (useParallelTestSuiteGeneration) {
+      logger.log(Level.INFO, "Using Parallel Test Suite Generation Algorithm");
+      algorithm = new ParallelTestSuiteGenerationAlgorithm(config, logger, cfa);
     } else {
       if (useTerminationToSafetyAlgorithm) {
         TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
@@ -908,10 +911,7 @@ public class CoreComponentsFactory {
         algorithm =
             new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
       }
-      if (useParallelTestSuiteGeneration) {
-        logger.log(Level.INFO, "Using Parallel Test Suite Generation Algorithm");
-        algorithm = new ParallelTestSuiteGenerationAlgorithm(config, logger, cfa);
-      }
+
     }
 
     return algorithm;
