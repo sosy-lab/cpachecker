@@ -438,14 +438,6 @@ public class SMGOptions {
       description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
 
-  @Option(
-      secure = true,
-      description =
-          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
-              + "unknown memory sizes does not abort, but also does not create any memory.")
-  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
-      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
-
   /*
    * Ignore: ignore allocation call and overapproximate.
    * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
@@ -457,6 +449,32 @@ public class SMGOptions {
     MEMORY_ERROR,
     STOP_ANALYSIS
   }
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
+              + "unknown memory sizes does not abort, but also does not create any memory.")
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+
+  public enum ArithmeticUndefinedBehaviorHandling {
+    WARN_AND_RETURN_UNKNOWN,
+    WARN_AND_RETURN_ZERO,
+    WARN_AND_RETURN_ONE,
+    STOP_ANALYSIS
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "Specifies the handling for all concrete arithmetic and bitwise operations resulting in"
+              + " undefined behavior. Examples: divisions by zero as a result of division or"
+              + " remainder operations, or bitwise shift operations with a negative second"
+              + " argument, or bitwise shift operations with a second argument exceeding the width"
+              + " of the first arguments type.")
+  protected ArithmeticUndefinedBehaviorHandling arithmeticUndefinedBehaviorHandling =
+      ArithmeticUndefinedBehaviorHandling.WARN_AND_RETURN_ZERO;
 
   @Option(
       secure = true,
@@ -491,6 +509,10 @@ public class SMGOptions {
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
     return handleUnknownMemoryAllocation;
+  }
+
+  ArithmeticUndefinedBehaviorHandling getArithmeticUndefinedBehaviorHandling() {
+    return arithmeticUndefinedBehaviorHandling;
   }
 
   public boolean isIgnoreUnknownMemoryAllocation() {
