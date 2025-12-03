@@ -10,14 +10,18 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.DIVIDE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MINUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MODULO;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_LEFT;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -535,8 +539,7 @@ public class SMGCPAValueVisitor
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
     currentState = castLeftValue.getState();
-    if (binaryOperator != BinaryOperator.SHIFT_LEFT
-        && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    if (binaryOperator != SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We do not even need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -1961,7 +1964,7 @@ public class SMGCPAValueVisitor
                 leftValueType,
                 rightValue,
                 rightValueType,
-                BinaryOperator.MULTIPLY);
+                MULTIPLY);
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
@@ -1971,7 +1974,7 @@ public class SMGCPAValueVisitor
                 leftValueType,
                 rightValue,
                 rightValueType,
-                BinaryOperator.MULTIPLY);
+                MULTIPLY);
       }
 
       Value finalOffset =
@@ -2015,7 +2018,7 @@ public class SMGCPAValueVisitor
             arithmeticOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 (NumericValue) leftValue,
-                BinaryOperator.MULTIPLY,
+                MULTIPLY,
                 machineModel.getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
@@ -2024,7 +2027,7 @@ public class SMGCPAValueVisitor
             arithmeticOperation(
                 new NumericValue(BigInteger.valueOf(8)),
                 (NumericValue) leftValue,
-                BinaryOperator.MULTIPLY,
+                MULTIPLY,
                 calculationType);
       }
 
@@ -2103,10 +2106,7 @@ public class SMGCPAValueVisitor
         assert leftValueType.equals(rightValueType);
         Value distance =
             arithmeticOperation(
-                (NumericValue) distanceInBits,
-                size,
-                BinaryOperator.DIVIDE,
-                machineModel.getPointerSizedIntType());
+                (NumericValue) distanceInBits, size, DIVIDE, machineModel.getPointerSizedIntType());
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
       }
@@ -2181,6 +2181,9 @@ public class SMGCPAValueVisitor
       CType pExpressionType,
       CType pCalculationType) {
 
+    // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
+    //  + 1) to be recognized? (this is more of a general question)
+
     checkArgument(!(pLeftValue.isNumericValue() && pRightValue.isNumericValue()));
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
@@ -2193,17 +2196,13 @@ public class SMGCPAValueVisitor
     // TODO: move to handling of the expressions
     if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().hasFloatType()) {
       FloatValue leftNum = pLeftValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(PLUS, MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
-              .contains(pOperator)
-          && leftNum.isNan()) {
+      if (ImmutableList.of(PLUS, MINUS, MULTIPLY, DIVIDE).contains(pOperator) && leftNum.isNan()) {
         return pLeftValue;
       }
     }
     if (pRightValue.isNumericValue() && pRightValue.asNumericValue().hasFloatType()) {
       FloatValue rightNum = pRightValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(PLUS, MINUS, BinaryOperator.MULTIPLY, BinaryOperator.DIVIDE)
-              .contains(pOperator)
-          && rightNum.isNan()) {
+      if (ImmutableList.of(PLUS, MINUS, MULTIPLY, DIVIDE).contains(pOperator) && rightNum.isNan()) {
         return pRightValue;
       }
     }
@@ -2212,28 +2211,28 @@ public class SMGCPAValueVisitor
       BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
       rightOperand = factory.asConstant(pRightValue, pRightType);
       if ((pOperator == PLUS && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
+          || (pOperator == MULTIPLY && leftNum.equals(BigInteger.ONE))) {
         if (!pLeftType.equals(pExpressionType)) {
           return factory.cast(rightOperand, pExpressionType);
         }
         return rightOperand;
       } else if (pOperator == MINUS && leftNum.equals(BigInteger.ZERO)) {
         return factory.negate(rightOperand, pExpressionType);
-      } else if ((pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
+      } else if ((pOperator == MULTIPLY && leftNum.equals(BigInteger.ZERO))
+          || (pOperator == DIVIDE && leftNum.equals(BigInteger.ZERO))) {
         return new NumericValue(BigInteger.ZERO);
       }
     } else if (pRightValue.isNumericValue()) {
       leftOperand = factory.asConstant(pLeftValue, pLeftType);
       BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
-      if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
+      if ((pOperator == MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == PLUS && rightNum.equals(BigInteger.ZERO))
           || (pOperator == MINUS && rightNum.equals(BigInteger.ZERO))) {
         if (!pLeftType.equals(pExpressionType)) {
           return factory.cast(leftOperand, pExpressionType);
         }
         return leftOperand;
-      } else if (pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
+      } else if (pOperator == MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
         return new NumericValue(BigInteger.ZERO);
       }
     }
@@ -2323,16 +2322,40 @@ public class SMGCPAValueVisitor
               leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
       case DIVIDE ->
           handleDivision(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case MODULO ->
-          handleModulo(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+          handleRemainder(
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case SHIFT_LEFT ->
           handleShiftLeft(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case SHIFT_RIGHT ->
           handleShiftRight(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case BINARY_AND ->
           handleBinaryOr(
               leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
@@ -2393,7 +2416,8 @@ public class SMGCPAValueVisitor
       Value rightValue,
       CType rightType,
       CSimpleType calculationType,
-      CType returnType) {
+      CType returnType)
+      throws UnsupportedCodeException {
 
     if (leftValue instanceof NumericValue leftNumeric
         && rightValue instanceof NumericValue rightNumeric) {
@@ -2408,6 +2432,7 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
             BigInteger lVal = leftNumeric.bigIntegerValue();
             BigInteger rVal = rightNumeric.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, PLUS);
@@ -2421,23 +2446,31 @@ public class SMGCPAValueVisitor
                       castToFloat(machineModel, calculationType, rightNumeric)));
           default ->
               throw new UnsupportedCodeException(
-                  "Unsupported type %s for result of binary operation %s", calculationType);
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      PLUS.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
         };
       } catch (ArithmeticException e) {
         throw new UnsupportedCodeException(
-            "Unsupported type %s for result of binary operation %s", calculationType);
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(), leftNumeric, leftType, PLUS.getOperator(), rightNumeric, rightType),
+            cfaEdge);
 
-        // log warning and ignore expression
+        // Previous handling:
+        // TODO: do we want this? Or do we want this with an option?
+        // Log warning and ignore expression
+        /*
         logger.logf(
-            Level.WARNING,
-            "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
-            e.getMessage(),
-            leftNumeric,
-            leftType,
-            PLUS.getOperator(),
-            rightNumeric,
-            rightType);
-        return UnknownValue.getInstance();
+            Level.WARNING,errorMsg
+            );
+        return UnknownValue.getInstance();*/
       }
 
     } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
@@ -2457,19 +2490,500 @@ public class SMGCPAValueVisitor
           && !(calculationType.getType().isFloatingPointType())) {
         return leftValue;
       }
-      // TODO: more common simplifications?
-      // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
-      //  + 1) to be recognized? (this is more of a general question)
+
       return createBinarySymbolicExpression(
           leftValue, leftType, rightValue, rightType, PLUS, returnType, calculationType);
     }
   }
 
+  private Value handleSubtraction(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both l and r must be of the same type, which in this case is INT, so we can cast to
+            // long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, MINUS, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, MINUS);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      MINUS,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      MINUS.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                MINUS.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+
+      // Simplify (0 - x) = -x
+      if (leftValue instanceof NumericValue numLeft
+          && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
+          && !(calculationType.getType().isFloatingPointType())) {
+        // Automatically strips negation if already present
+        return createBinarySymbolicExpression(
+            rightValue, calculationType, UnaryOperator.MINUS, returnType);
+      }
+      // Simplify (x - 0) = x
+      if (rightValue instanceof NumericValue numRight
+          && numRight.bigIntegerValue().equals(BigInteger.ZERO)
+          && !(calculationType.getType().isFloatingPointType())) {
+        return leftValue;
+      }
+
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, MINUS, returnType, calculationType);
+    }
+  }
+
+  private Value handleMultiplication(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, MULTIPLY, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, MULTIPLY);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      MULTIPLY,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      MULTIPLY.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                MULTIPLY.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else {
+      // Both values may be unknown or symbolic, while one may be numeric
+
+      // Simplify (0 * x) = 0 and (1 * x) = x
+      if (leftValue instanceof NumericValue numLeft
+          && !(calculationType.getType().isFloatingPointType())) {
+        if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+          return leftValue; // 0
+        } else if (numLeft.bigIntegerValue().equals(BigInteger.ONE)) {
+          return rightValue;
+        }
+      }
+      // Simplify (x * 0) = 0 and (x * 1) = x
+      if (rightValue instanceof NumericValue numRight
+          && !(calculationType.getType().isFloatingPointType())) {
+        if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+          return rightValue; // 0
+        } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+          return leftValue;
+        }
+      }
+
+      if (leftValue.isUnknown() || rightValue.isUnknown()) {
+        return UnknownValue.getInstance();
+      }
+
+      // At least 1 value is symbolic, the other can be symbolic or numeric from this point onward
+
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, MULTIPLY, returnType, calculationType);
+    }
+  }
+
+  private Value handleDivision(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+
+    // Simplify (0 / x) = 0
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+    // Simplify (x / x) = 1
+    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
+      return new NumericValue(1);
+    }
+    // Simplify (x / 0) = 0 and (x / 1) = x
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return handleDivisionByZero(expression);
+      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+        return leftValue;
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, DIVIDE, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, DIVIDE);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      DIVIDE,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      DIVIDE.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                DIVIDE.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, DIVIDE, returnType, calculationType);
+    }
+  }
+
+  /** % operator in C. (Which is called remainder, NOT modulo!) */
+  private Value handleRemainder(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // Given an integer a (leftValue) and a non-zero integer b (rightValue), it can be shown that
+    // there exist unique integers q and r, such that a = qb + r and 0 ≤ r < |b|
+    // with q = a/b.
+    // The number q is called the quotient, while r is called the remainder.
+    // -> remainder r = a — (b x q)
+    // => r = 0   for a = 0
+    // => r = 0   for b = 1
+    // => r = 0   for a = b
+    // Other simplifications (e.g. a = 1) fail due to rounding.
+    // Notes on C: C99+ chooses the remainder with the same sign as the dividend a.
+    // C11 §6.5.5.6: When integers are divided, the result of the / operator
+    // is the algebraic quotient with any fractional part discarded. If the quotient a/b is
+    // representable, the expression (a/b)*b + a%b shall equal a; otherwise, the behavior of
+    // both a/b and a%b is undefined.
+
+    // Simplify (0 % b) = 0
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+    // Simplify (x % x) = 0
+    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
+      return new NumericValue(0);
+    }
+    // Handle (x % 0) = 0 and simplify (a % 1) = 0
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return handleDivisionByZero(expression);
+      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+        return new NumericValue(0);
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, MODULO, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, MODULO);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      MODULO,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      MODULO.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                MODULO.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, MODULO, returnType, calculationType);
+    }
+  }
+
+  /** << */
+  private Value handleShiftLeft(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.7 Bitwise shift operators:
+    // The integer promotions are performed on each of the operands. The type of the result is
+    // that of the promoted left operand. If the value of the right operand is negative or is
+    // greater than or equal to the width of the promoted left operand, the behavior is undefined.
+
+    // The result of E1 << E2 is E1 left-shifted E2 bit positions; vacated bits are filled with
+    // zeros. If E1 has an unsigned type, the value of the result is E1 × 2E2, reduced modulo
+    // one more than the maximum value representable in the result type. If E1 has a signed
+    // type and nonnegative value, and E1 × 2E2 is representable in the result type, then that is
+    // the resulting value; otherwise, the behavior is undefined.
+
+    // Handle negative or larger second arguments
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().signum() < 0) {
+        return handleUndefinedBitwiseShift(
+            expression, "Second argument in left shift operation is negative.");
+      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
+              .compareTo(numRight.bigIntegerValue())
+          >= 0) {
+        return handleUndefinedBitwiseShift(
+            expression,
+            "Second argument in left shift operation is equal or exceeding the width of the first"
+                + " arguments type.");
+      }
+    }
+
+    // Simplify (0 << x) = 0 ?
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        // TODO: look into this!
+        // return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, SHIFT_LEFT, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, SHIFT_LEFT);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      SHIFT_LEFT,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      SHIFT_LEFT.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                SHIFT_LEFT.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, SHIFT_LEFT, returnType, calculationType);
+    }
+  }
+
   /**
-   * Calculate an arithmetic operation on two integer types.
+   * Calculate an arithmetic operation on two integer types. All divisions by zero (that includes /
+   * and %) should be handled BEFORE calling this method!
    *
    * @param left left hand side value
-   * @param right right hand side value
+   * @param right right hand side value. Not allowed to be zero for division operations (including
+   *     the modulo operator %).
    * @param op the binary operator
    * @param calculationType the type the result of the calculation should have
    * @return the resulting value
@@ -2486,13 +3000,11 @@ public class SMGCPAValueVisitor
       // because Java only has one signed long type (64bit)
       switch (op) {
         case DIVIDE -> {
-          if (right == 0) {
-            logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", left, right);
-            return 0;
-          }
+          checkArgument(right != 0);
           return UnsignedLongs.divide(left, right);
         }
         case MODULO -> {
+          checkArgument(right != 0);
           return UnsignedLongs.remainder(left, right);
         }
         case SHIFT_RIGHT -> {
@@ -2517,13 +3029,11 @@ public class SMGCPAValueVisitor
         return left - right;
       }
       case DIVIDE -> {
-        if (right == 0) {
-          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", left, right);
-          return 0;
-        }
+        checkArgument(right != 0);
         return left / right;
       }
       case MODULO -> {
+        checkArgument(right != 0);
         return left % right;
       }
       case MULTIPLY -> {
@@ -2560,10 +3070,63 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two int128 types.
+   * To be called for handling of bitwise shift operations (<< or >>) that exhibit undefined
+   * behavior, e.g. due to negative second argument.
+   */
+  private Value handleUndefinedBitwiseShift(CBinaryExpression pExpression, String additionalMsg)
+      throws UnsupportedCodeException {
+    String loggedMsg =
+        String.format(
+            "Bitwise shift operation with undefined behavior detected in expression %s due to %s."
+                + " %s",
+            pExpression, additionalMsg, cfaEdge);
+    return handleArithmeticUndefinedBehavior(loggedMsg);
+  }
+
+  /**
+   * To be called for handling of division or modulo with second operand equal to zero. Either
+   * throws {@link UnsupportedCodeException}, or returns a {@link UnknownValue}, or a {@link
+   * NumericValue}, depending on the set option for how this is handled.
+   */
+  private Value handleDivisionByZero(CBinaryExpression pExpression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.5.5: The result of the / operator is the quotient from the division of the first
+    // operand by the second; the result of the % operator is the remainder. In both operations,
+    // if the value of the second operand is zero, the behavior is undefined.
+    String loggedMsg =
+        String.format(
+            "Concrete division by Zero detected in expression %s, in %s", pExpression, cfaEdge);
+    return handleArithmeticUndefinedBehavior(loggedMsg);
+  }
+
+  private Value handleArithmeticUndefinedBehavior(String loggedMsg)
+      throws UnsupportedCodeException {
+    return switch (options.getArithmeticUndefinedBehaviorHandling()) {
+      case WARN_AND_RETURN_UNKNOWN ->
+          logDivisionByZeroAndReturnValue(UnknownValue.getInstance(), loggedMsg);
+      case WARN_AND_RETURN_ZERO -> logDivisionByZeroAndReturnValue(new NumericValue(0), loggedMsg);
+      case WARN_AND_RETURN_ONE -> logDivisionByZeroAndReturnValue(new NumericValue(1), loggedMsg);
+      case STOP_ANALYSIS ->
+          throw new UnsupportedCodeException(
+              loggedMsg
+                  + ". Stopping analysis as defined in option"
+                  + " 'arithmeticUndefinedBehaviorHandling'.",
+              cfaEdge);
+    };
+  }
+
+  private Value logDivisionByZeroAndReturnValue(Value returnedValue, String loggedMsg) {
+    logger.logf(Level.SEVERE, loggedMsg, cfaEdge);
+    return returnedValue;
+  }
+
+  /**
+   * Calculate an arithmetic operation on two int128 types. No operation involving division must
+   * divide by zero (i.e. / or %). These cases must be handled before calling this!
    *
    * @param l left hand side value
-   * @param r right hand side value
+   * @param r right hand side value. Not allowed to be zero for division operations (including the
+   *     modulo operator %).
    * @param op the binary operator
    * @return the resulting value
    */
@@ -2578,14 +3141,11 @@ public class SMGCPAValueVisitor
         return l.subtract(r);
       }
       case DIVIDE -> {
-        if (r.equals(BigInteger.ZERO)) {
-          // this matches the behavior of long
-          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
-          return BigInteger.ZERO;
-        }
+        checkArgument(!r.equals(BigInteger.ZERO));
         return l.divide(r);
       }
       case MODULO -> {
+        checkArgument(!r.equals(BigInteger.ZERO));
         return l.mod(r);
       }
       case MULTIPLY -> {
