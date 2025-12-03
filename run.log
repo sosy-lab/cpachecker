@@ -1,0 +1,49 @@
+Running CPAchecker with default heap size (1200M). Specify a larger value with --heap if you have more RAM.
+Running CPAchecker with default stack size (1024k). Specify a larger value with --stack if needed.
+Language C detected and set for analysis (CPAMain.detectFrontendLanguageIfNecessary, INFO)
+
+CPAchecker 4.1-unknown / parallelTestGeneration (OpenJDK 64-Bit Server VM 21.0.9) started (CPAchecker.run, INFO)
+
+Parsing CFA from file(s) "myTest01.c" (CPAchecker.parse, INFO)
+
+Using default specification, which checks for assertion failures and error labels. (CPAchecker.run0, INFO)
+
+Using Parallel Test Suite Generation Algorithm (CoreComponentsFactory.createAlgorithm, INFO)
+
+The following configuration options were specified but are not used:
+ analysis.mode 
+ (CPAchecker.printConfigurationWarnings, WARNING)
+
+Starting analysis ... (CPAchecker.runAlgorithm, INFO)
+
+Starting parallel test generation with 4 threads (ParallelTestSuiteGenerationAlgorithm.generateTestSuite, INFO)
+
+Retrieved 2 test targets (ParallelTestSuiteGenerationAlgorithm.generateTestSuite, INFO)
+
+Divided targets into 4 partitions (ParallelTestSuiteGenerationAlgorithm.generateTestSuite, INFO)
+
+Thread 0 processing 1 targets (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 1 processing 1 targets (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 2 processing 0 targets (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 2 completed successfully (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 3 processing 0 targets (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 3 completed successfully (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 0 completed successfully (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Thread 1 completed successfully (ParallelTestSuiteGenerationAlgorithm$TestCaseGenerationTask.run, INFO)
+
+Parallel test generation completed successfully (ParallelTestSuiteGenerationAlgorithm.generateTestSuite, INFO)
+
+Stopping analysis ... (CPAchecker.runAlgorithm, INFO)
+
+Analysis not completed: there are still states to be processed. (CPAchecker.analyzeResult, WARNING)
+
+Verification result: UNKNOWN, incomplete analysis.
+More details about the verification run can be found in the directory "./output".
+Graphical representation included in the file "./output/Report.html".

@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Parallel test case generation algorithm Divides global test targets into multiple subsets and
  * processes each subset in parallel using multiple threads
  */
-@Options(prefix = "parallelTestGeneration")
+@Options(prefix = "analysis.parallelTestGeneration")
 public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
   // Configuration option: Number of threads for parallel execution
@@ -119,7 +119,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
       // Step 2: Partition targets using selected strategy
       PartitioningStrategy strategy = createPartitioningStrategy();
-      List<Set<CFAEdge>> partitions = strategy.partition(testTargets, numberOfThreads);
+      List<Set<CFAEdge>> partitions = strategy.partition(testTargets, numberOfThreads, cfa);
 
       logger.log(Level.INFO, "Divided targets into " + partitions.size() + " partitions");
 
@@ -153,7 +153,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
   private PartitioningStrategy createPartitioningStrategy() {
     return switch (partitioningStrategy) {
       case RANDOM -> new RandomPartitioner(); // Random distribution
-      case STRATEGY -> new StrategyPartitioner(); // Sequential distribution
+      case STRATEGY -> new StrategyPartitioner(cfa); // Sequential distribution
     };
   }
 

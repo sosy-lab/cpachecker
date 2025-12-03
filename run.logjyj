@@ -1,0 +1,4 @@
+Running CPAchecker with default heap size (1200M). Specify a larger value with --heap if you have more RAM.
+Running CPAchecker with default stack size (1024k). Specify a larger value with --stack if needed.
+
+Could not read config file File /home/xym01/cpachecker/config/test_parallel.properties does not exist!
