@@ -2369,45 +2369,6 @@ public class SMGCPAValueVisitor
           throw new AssertionError(
               "Unknown binary operation " + op + " in arithmetic operation " + expression);
     };
-
-    try {
-      return switch (type.getType()) {
-        case INT -> {
-          // Both l and r must be of the same type, which in this case is INT, so we can cast to
-          // long.
-          long lVal = lNum.getNumber().longValue();
-          long rVal = rNum.getNumber().longValue();
-          long result = arithmeticOperation(lVal, rVal, op, calculationType);
-          yield new NumericValue(result);
-        }
-        case INT128 -> {
-          BigInteger lVal = lNum.bigIntegerValue();
-          BigInteger rVal = rNum.bigIntegerValue();
-          BigInteger result = arithmeticOperation(lVal, rVal, op);
-          yield new NumericValue(result);
-        }
-        case FLOAT, DOUBLE, FLOAT128 ->
-            new NumericValue(
-                arithmeticOperation(
-                    op,
-                    castToFloat(machineModel, type, lNum),
-                    castToFloat(machineModel, type, rNum)));
-        default -> {
-          logger.logf(
-              Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-          yield UnknownValue.getInstance();
-        }
-      };
-    } catch (ArithmeticException e) { // log warning and ignore expression
-      logger.logf(
-          Level.WARNING,
-          "expression causes arithmetic exception (%s): %s %s %s",
-          e.getMessage(),
-          lNum,
-          op.getOperator(),
-          rNum);
-      return UnknownValue.getInstance();
-    }
   }
 
   private Value handleAddition(
@@ -2479,6 +2440,8 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
 
+      // Simplification is only needed for symbolics here, as all calculations are well defined for
+      // 2 numerics.
       // Simplify (x + 0) = x
       if (leftValue instanceof NumericValue numLeft
           && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
@@ -2561,6 +2524,8 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
 
+      // Simplification is only needed for symbolics here, as all calculations are well defined for
+      // 2 numerics.
       // Simplify (0 - x) = -x
       if (leftValue instanceof NumericValue numLeft
           && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
@@ -2643,6 +2608,8 @@ public class SMGCPAValueVisitor
     } else {
       // Both values may be unknown or symbolic, while one may be numeric
 
+      // Simplification is only needed for symbolics here, as all calculations are well defined for
+      // 2 numerics.
       // Simplify (0 * x) = 0 and (1 * x) = x
       if (leftValue instanceof NumericValue numLeft
           && !(calculationType.getType().isFloatingPointType())) {
@@ -2683,17 +2650,6 @@ public class SMGCPAValueVisitor
       CBinaryExpression expression)
       throws UnsupportedCodeException {
 
-    // Simplify (0 / x) = 0
-    if (leftValue instanceof NumericValue numLeft
-        && !(calculationType.getType().isFloatingPointType())) {
-      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
-        return leftValue; // 0
-      }
-    }
-    // Simplify (x / x) = 1
-    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
-      return new NumericValue(1);
-    }
     // Simplify (x / 0) = 0 and (x / 1) = x
     if (rightValue instanceof NumericValue numRight
         && !(calculationType.getType().isFloatingPointType())) {
@@ -2702,6 +2658,19 @@ public class SMGCPAValueVisitor
       } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
         return leftValue;
       }
+    }
+
+    // Simplify (0 / x) = 0
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+
+    // Simplify (x / x) = 1
+    if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
+      return new NumericValue(1);
     }
 
     if (leftValue instanceof NumericValue leftNumeric
@@ -2789,6 +2758,16 @@ public class SMGCPAValueVisitor
     // representable, the expression (a/b)*b + a%b shall equal a; otherwise, the behavior of
     // both a/b and a%b is undefined.
 
+    // Handle (x % 0) = 0 and simplify (a % 1) = 0
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return handleDivisionByZero(expression);
+      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
+        return new NumericValue(0);
+      }
+    }
+
     // Simplify (0 % b) = 0
     if (leftValue instanceof NumericValue numLeft
         && !(calculationType.getType().isFloatingPointType())) {
@@ -2799,15 +2778,6 @@ public class SMGCPAValueVisitor
     // Simplify (x % x) = 0
     if (leftValue.equals(rightValue) && !(calculationType.getType().isFloatingPointType())) {
       return new NumericValue(0);
-    }
-    // Handle (x % 0) = 0 and simplify (a % 1) = 0
-    if (rightValue instanceof NumericValue numRight
-        && !(calculationType.getType().isFloatingPointType())) {
-      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
-        return handleDivisionByZero(expression);
-      } else if (numRight.bigIntegerValue().equals(BigInteger.ONE)) {
-        return new NumericValue(0);
-      }
     }
 
     if (leftValue instanceof NumericValue leftNumeric
