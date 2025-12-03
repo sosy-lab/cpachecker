@@ -2468,65 +2468,66 @@ public class SMGCPAValueVisitor
   /**
    * Calculate an arithmetic operation on two integer types.
    *
-   * @param l left hand side value
-   * @param r right hand side value
+   * @param left left hand side value
+   * @param right right hand side value
    * @param op the binary operator
-   * @param calculationType The type the result of the calculation should have
+   * @param calculationType the type the result of the calculation should have
    * @return the resulting value
    */
   private long arithmeticOperation(
-      final long l, final long r, final BinaryOperator op, final CType calculationType) {
+      final long left,
+      final long right,
+      final BinaryOperator op,
+      final CSimpleType calculationType) {
 
-    // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
-    // because Java only has SIGNED_LONGLONG
-    CSimpleType st = getSimplifiedType(calculationType);
-    if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
-        switch (op) {
-          case DIVIDE -> {
-            if (r == 0) {
-              logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-              return 0;
-            }
-            return UnsignedLongs.divide(l, r);
+    if (machineModel.getSizeofInBits(calculationType) >= SIZE_OF_JAVA_LONG
+        && !machineModel.isSigned(calculationType)) {
+      // Special handling for UNSIGNED_LONG (32 and 64bit), UNSIGNED_LONGLONG (64bit)
+      // because Java only has one signed long type (64bit)
+      switch (op) {
+        case DIVIDE -> {
+          if (right == 0) {
+            logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", left, right);
+            return 0;
           }
-          case MODULO -> {
-            return UnsignedLongs.remainder(l, r);
-          }
-          case SHIFT_RIGHT -> {
-            /*
-             * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
-             *
-             * The unsigned right shift operator ">>>" shifts a zero
-             * into the leftmost position, while the leftmost position
-             * after ">>" depends on sign extension.
-             */
-            return l >>> r;
-          }
-          default -> {}
+          return UnsignedLongs.divide(left, right);
         }
+        case MODULO -> {
+          return UnsignedLongs.remainder(left, right);
+        }
+        case SHIFT_RIGHT -> {
+          /*
+           * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
+           *
+           * The unsigned right shift operator ">>>" shifts a zero
+           * into the leftmost position, while the leftmost position
+           * after ">>" depends on sign extension.
+           */
+          return left >>> right;
+        }
+        default -> {}
       }
     }
 
     switch (op) {
       case PLUS -> {
-        return l + r;
+        return left + right;
       }
       case MINUS -> {
-        return l - r;
+        return left - right;
       }
       case DIVIDE -> {
-        if (r == 0) {
-          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+        if (right == 0) {
+          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", left, right);
           return 0;
         }
-        return l / r;
+        return left / right;
       }
       case MODULO -> {
-        return l % r;
+        return left % right;
       }
       case MULTIPLY -> {
-        return l * r;
+        return left * right;
       }
       case SHIFT_LEFT -> {
         /* There is a difference in the SHIFT-operation in Java and C.
@@ -2540,19 +2541,19 @@ public class SMGCPAValueVisitor
          * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
          * The shift distance actually used is therefore always in the range 0 to 63.
          */
-        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+        return (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
       }
       case SHIFT_RIGHT -> {
-        return l >> r;
+        return left >> right;
       }
       case BINARY_AND -> {
-        return l & r;
+        return left & right;
       }
       case BINARY_OR -> {
-        return l | r;
+        return left | right;
       }
       case BINARY_XOR -> {
-        return l ^ r;
+        return left ^ right;
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
     }
