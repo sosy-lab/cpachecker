@@ -34,7 +34,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     permits SeqAssumeStatement,
         SeqAtomicBeginStatement,
         SeqAtomicEndStatement,
-        SeqBlankStatement,
+        SeqGhostOnlyStatement,
         SeqCondSignalStatement,
         SeqCondWaitStatement,
         SeqConstCpaCheckerTmpStatement,
@@ -128,7 +128,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
   public boolean isBlank() {
     // the only case where a statement writes only 'pc' is when it is a blank statement without
     // any injected statement
-    return this instanceof SeqBlankStatement && injectedStatements.isEmpty();
+    return this instanceof SeqGhostOnlyStatement && injectedStatements.isEmpty();
   }
 
   /**

@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqBlankStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqGhostOnlyStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -231,8 +231,8 @@ public class SeqPruner {
   }
 
   /**
-   * Returns {@code true} if {@code pClause} has exactly 1 {@link SeqBlankStatement} and a target
-   * {@code pc} and throws a {@link IllegalArgumentException} otherwise.
+   * Returns {@code true} if {@code pClause} has exactly 1 {@link SeqGhostOnlyStatement} and a
+   * target {@code pc} and throws a {@link IllegalArgumentException} otherwise.
    */
   private static boolean validPrunableClause(SeqThreadStatementClause pClause)
       throws UnrecognizedCodeException {
