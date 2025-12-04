@@ -631,6 +631,9 @@ public class SMGCPAValueVisitor
     }
     // Values might still be symbolic non-pointers!
 
+    // TODO: check the types used in the calculations! Make sure that we do use larger types when
+    //  handling bits instead of bytes!
+
     // It is possible that addresses get cast to int or smth like it
     // Then the SymbolicIdentifier is returned not in an AddressExpression
     // They might be wrapped in a ConstantSymbolicExpression
@@ -687,7 +690,8 @@ public class SMGCPAValueVisitor
               calculationType,
               SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
               SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-              currentState);
+              currentState,
+              e);
 
       case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
         // TODO: this is wrong for abstracted targets! Fix!
@@ -1929,7 +1933,8 @@ public class SMGCPAValueVisitor
       CType calculationType,
       CType leftValueType,
       CType rightValueType,
-      SMGState currentState)
+      SMGState currentState,
+      CBinaryExpression originalExpressionForErrorMessages)
       throws CPATransferException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
@@ -1963,27 +1968,34 @@ public class SMGCPAValueVisitor
         // We need the correct types here; the types of the returned value after the pointer
         // expression!
         correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
+            calculateArithmeticOperationWithBitPromotionForAddresses(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 leftValueType,
                 rightValue,
                 rightValueType,
-                MULTIPLY);
+                MULTIPLY,
+                originalExpressionForErrorMessages);
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
-            calculateArithmeticOperationWithBitPromotion(
+            calculateArithmeticOperationWithBitPromotionForAddresses(
                 new NumericValue(BigInteger.valueOf(8)),
                 leftValueType,
                 rightValue,
                 rightValueType,
-                MULTIPLY);
+                MULTIPLY,
+                originalExpressionForErrorMessages);
       }
 
       Value finalOffset =
-          calculateArithmeticOperationWithBitPromotion(
-              addressOffset, leftValueType, correctlyTypedOffset, rightValueType, binaryOperator);
+          calculateArithmeticOperationWithBitPromotionForAddresses(
+              addressOffset,
+              leftValueType,
+              correctlyTypedOffset,
+              rightValueType,
+              binaryOperator,
+              originalExpressionForErrorMessages);
 
       if (finalOffset instanceof SymbolicExpression symOffset) {
         int currentOffsetTypeBits =
@@ -2019,28 +2031,40 @@ public class SMGCPAValueVisitor
       Value correctlyTypedOffset;
       if (calculationType instanceof CPointerType) {
         correctlyTypedOffset =
-            arithmeticOperation(
+            handleBinaryArithmeticOrBitwiseOperation(
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-                (NumericValue) leftValue,
+                machineModel.getPointerSizedIntType(),
+                leftValue,
+                leftValueType,
                 MULTIPLY,
-                machineModel.getPointerSizedIntType());
+                machineModel.getPointerSizedIntType(),
+                machineModel.getPointerSizedIntType(),
+                originalExpressionForErrorMessages);
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
-            arithmeticOperation(
+            handleBinaryArithmeticOrBitwiseOperation(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) leftValue,
+                machineModel.getPointerSizedIntType(),
+                leftValue,
+                leftValueType,
                 MULTIPLY,
-                calculationType);
+                canonicalReturnType,
+                calculationType,
+                originalExpressionForErrorMessages);
       }
 
       Value finalOffset =
-          arithmeticOperation(
-              (NumericValue) correctlyTypedOffset,
-              (NumericValue) addressOffset,
+          handleBinaryArithmeticOrBitwiseOperation(
+              correctlyTypedOffset,
+              machineModel.getPointerSizedIntType(),
+              addressOffset,
+              machineModel.getPointerSizedIntType(),
               binaryOperator,
-              calculationType);
+              canonicalReturnType,
+              calculationType,
+              originalExpressionForErrorMessages);
 
       return ImmutableList.of(
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
@@ -2109,8 +2133,15 @@ public class SMGCPAValueVisitor
         // Undefined behavior if this assertion does not hold
         assert leftValueType.equals(rightValueType);
         Value distance =
-            arithmeticOperation(
-                (NumericValue) distanceInBits, size, DIVIDE, machineModel.getPointerSizedIntType());
+            handleBinaryArithmeticOrBitwiseOperation(
+                distanceInBits,
+                leftValueType,
+                size,
+                rightValueType,
+                DIVIDE,
+                machineModel.getPointerSizedIntType(),
+                machineModel.getPointerSizedIntType(),
+                originalExpressionForErrorMessages);
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
       }
@@ -2118,42 +2149,39 @@ public class SMGCPAValueVisitor
     }
   }
 
-  private Value calculateArithmeticOperationWithBitPromotion(
+  /**
+   * Used for binary arithmetic operations that need artificial extension of their types width
+   * during calculation due to memory addresses being handled.
+   */
+  private Value calculateArithmeticOperationWithBitPromotionForAddresses(
       Value leftValue,
       CType leftValueType,
       Value rightValue,
       CType rightValueType,
-      BinaryOperator binOp)
-      throws CPATransferException {
-    if (rightValue instanceof NumericValue numValueRight
-        && leftValue instanceof NumericValue numValueLeft) {
-      return arithmeticOperation(
-          numValueLeft, numValueRight, binOp, evaluator.getCTypeForBitPreciseMemoryAddresses());
-    } else {
-      // Symbolic offset
-      return createBinarySymbolicExpression(
-          leftValue,
-          leftValueType,
-          rightValue,
-          rightValueType,
-          binOp,
-          evaluator.getCTypeForBitPreciseMemoryAddresses(),
-          evaluator.getCTypeForBitPreciseMemoryAddresses());
-    }
+      BinaryOperator binOp,
+      CBinaryExpression originalExpressionForErrorMessages)
+      throws UnsupportedCodeException {
+
+    CType promotedType = evaluator.getCTypeForBitPreciseMemoryAddresses();
+    return handleBinaryArithmeticOrBitwiseOperation(
+        leftValue,
+        leftValueType,
+        rightValue,
+        rightValueType,
+        binOp,
+        promotedType,
+        promotedType,
+        originalExpressionForErrorMessages);
   }
 
   /**
-   * Join a symbolic expression with something else using a binary expression.
+   * Join a symbolic expression with something else using a binary expression. One of the values
+   * needs to be symbolic. None may be unknown.
    *
-   * <p>e.g. joining `a` and `5` with `+` will produce `a + 5`
-   *
-   * @param pLValue left hand side value
-   * @param pRValue right hand side value
-   * @param pExpression the binary expression with the operator
-   * @return the calculated Value
+   * <p>e.g. joining `a` and `5` with operator `+` will produce `a + 5`.
    */
   public Value calculateSymbolicBinaryExpression(
-      Value pLValue, Value pRValue, final CBinaryExpression pExpression) throws SMGException {
+      Value pLValue, Value pRValue, final CBinaryExpression pExpression) {
 
     final BinaryOperator operator = pExpression.getOperator();
 
@@ -2241,7 +2269,7 @@ public class SMGCPAValueVisitor
 
   /**
    * Calculates binary arithmetic or bitwise operations (i.e. +, -, *, /, %, <<, >>, &, |, ^) of two
-   * arbitrary {@link Value}s.
+   * arbitrary {@link Value}s. Types are derived from the given expression.
    */
   private Value handleBinaryArithmeticOrBitwiseOperation(
       final Value leftValue,
@@ -2249,15 +2277,31 @@ public class SMGCPAValueVisitor
       final BinaryOperator op,
       final CBinaryExpression expression)
       throws UnsupportedCodeException {
-    assert !op.isLogicalOperator();
 
     final CType leftType = expression.getOperand1().getExpressionType();
     final CType rightType = expression.getOperand2().getExpressionType();
     final CType returnType = expression.getExpressionType();
     final CType calculationType = expression.getCalculationType();
-    // TODO: make sure that the calculation type is actually the calculation type AFTER integer
-    //  promotion etc.
-    // TODO: write unit tests for this! (i.e. all of the common handling in this class)
+
+    return handleBinaryArithmeticOrBitwiseOperation(
+        leftValue, leftType, rightValue, rightType, op, returnType, calculationType, expression);
+  }
+
+  /**
+   * Calculates binary arithmetic or bitwise operations (i.e. +, -, *, /, %, <<, >>, &, |, ^) of two
+   * arbitrary {@link Value}s.
+   */
+  private Value handleBinaryArithmeticOrBitwiseOperation(
+      final Value leftValue,
+      final CType leftType,
+      final Value rightValue,
+      final CType rightType,
+      final BinaryOperator op,
+      final CType returnType,
+      final CType calculationType,
+      CBinaryExpression originalExpressionForErrorMessages)
+      throws UnsupportedCodeException {
+    assert !op.isLogicalOperator();
 
     // At this point we're only handling values of simple types
     final Optional<CSimpleType> maybeSimpleCalculationType = getSimplifiedType(calculationType);
@@ -2266,7 +2310,7 @@ public class SMGCPAValueVisitor
           "Unsupported calculation type "
               + calculationType
               + " in binary comparison operation "
-              + expression,
+              + originalExpressionForErrorMessages,
           cfaEdge);
     }
     CSimpleType simpleCalculationType = maybeSimpleCalculationType.orElseThrow();
@@ -2289,7 +2333,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case MODULO ->
           handleRemainder(
               leftValue,
@@ -2298,7 +2342,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case SHIFT_LEFT ->
           handleShiftLeft(
               leftValue,
@@ -2307,7 +2351,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case SHIFT_RIGHT ->
           handleShiftRight(
               leftValue,
@@ -2316,7 +2360,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case BINARY_AND ->
           handleBitwiseAnd(
               leftValue,
@@ -2325,7 +2369,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case BINARY_XOR ->
           handleBitwiseXOR(
               leftValue,
@@ -2334,7 +2378,7 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       case BINARY_OR ->
           handleBitwiseOR(
               leftValue,
@@ -2343,10 +2387,13 @@ public class SMGCPAValueVisitor
               rightType,
               simpleCalculationType,
               returnType,
-              expression);
+              originalExpressionForErrorMessages);
       default ->
           throw new AssertionError(
-              "Unknown binary operation " + op + " in arithmetic operation " + expression);
+              "Unknown binary operation "
+                  + op
+                  + " in arithmetic operation "
+                  + originalExpressionForErrorMessages);
     };
   }
 
