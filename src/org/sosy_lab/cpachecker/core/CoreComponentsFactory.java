@@ -964,7 +964,10 @@ public class CoreComponentsFactory {
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
-        || useRandomTestCaseGeneratorAlgorithm) {
+        || useRandomTestCaseGeneratorAlgorithm
+        // checking just useMporPreprocessing is not enough, because then no CPA is created, even
+        // for the inner algorithms run on the sequentialization -> use isAlreadySequentialized too
+        || (useMporPreprocessing && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa))) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
