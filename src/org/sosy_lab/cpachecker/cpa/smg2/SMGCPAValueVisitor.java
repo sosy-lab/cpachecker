@@ -543,7 +543,7 @@ public class SMGCPAValueVisitor
     ValueAndSMGState castLeftValue = castCValue(leftValue, calculationType, currentState);
     leftValue = castLeftValue.getValue();
     currentState = castLeftValue.getState();
-    if (binaryOperator != SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    if (binaryOperator != SHIFT_LEFT && binaryOperator != SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We do not even need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -2253,6 +2253,7 @@ public class SMGCPAValueVisitor
           factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default -> throw new IllegalStateException("Unexpected value: " + pOperator);
     };
   }
 
