@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_XOR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.DIVIDE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
@@ -22,6 +25,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.NOT_EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_LEFT;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -2357,13 +2361,13 @@ public class SMGCPAValueVisitor
               returnType,
               expression);
       case BINARY_AND ->
-          handleBinaryOr(
+          handleBitwiseAnd(
               leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
       case BINARY_XOR ->
-          handleBinaryXor(
+          handleBitwiseXOR(
               leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
       case BINARY_OR ->
-          handleBinaryOr(
+          handleBitwiseOR(
               leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
       default ->
           throw new AssertionError(
@@ -2860,6 +2864,7 @@ public class SMGCPAValueVisitor
     // one more than the maximum value representable in the result type. If E1 has a signed
     // type and nonnegative value, and E1 × 2E2 is representable in the result type, then that is
     // the resulting value; otherwise, the behavior is undefined.
+    // TODO: handle the type thingy
 
     // Handle negative or larger second arguments
     if (rightValue instanceof NumericValue numRight
@@ -2944,6 +2949,392 @@ public class SMGCPAValueVisitor
       // At least 1 value is symbolic, the other can be symbolic or numeric
       return createBinarySymbolicExpression(
           leftValue, leftType, rightValue, rightType, SHIFT_LEFT, returnType, calculationType);
+    }
+  }
+
+  /** >> */
+  private Value handleShiftRight(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType,
+      CBinaryExpression expression)
+      throws UnsupportedCodeException {
+    // C11 §6.5.7 Bitwise shift operators:
+    // The integer promotions are performed on each of the operands. The type of the result is
+    // that of the promoted left operand. If the value of the right operand is negative or is
+    // greater than or equal to the width of the promoted left operand, the behavior is undefined.
+
+    // The result of E1 >> E2 is E1 right-shifted E2 bit positions. If E1 has an unsigned type
+    // or if E1 has a signed type and a nonnegative value, the value of the result is the integral
+    // part of the quotient of E1 / 2E2. If E1 has a signed type and a negative value, the
+    // resulting value is implementation-defined.
+    // TODO: handle the type thingy
+
+    // Handle negative or larger second arguments
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().signum() < 0) {
+        return handleUndefinedBitwiseShift(
+            expression, "Second argument in left shift operation is negative.");
+      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
+              .compareTo(numRight.bigIntegerValue())
+          >= 0) {
+        return handleUndefinedBitwiseShift(
+            expression,
+            "Second argument in left shift operation is equal or exceeding the width of the first"
+                + " arguments type.");
+      }
+    }
+
+    // Simplify (0 << x) = 0 ?
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        // TODO: look into this!
+        // return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, SHIFT_RIGHT, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, SHIFT_RIGHT);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      SHIFT_RIGHT,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      SHIFT_RIGHT.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                SHIFT_RIGHT.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, SHIFT_RIGHT, returnType, calculationType);
+    }
+  }
+
+  /**
+   * & operator. Each bit in the result is set if and only if each of the corresponding bits in the
+   * converted operands is set.
+   */
+  private Value handleBitwiseAnd(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    // TODO: more simplifications possible?
+    // If one operand is 0, all bits are 0, hence the other does not matter, the result is 0!
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue; // 0
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BINARY_AND, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_AND);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      BINARY_AND,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BINARY_AND.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BINARY_AND.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BINARY_AND, returnType, calculationType);
+    }
+  }
+
+  /**
+   * ^ operator. The result of the ^ operator is the bitwise exclusive OR of the operands (that is,
+   * each bit in the result is set if and only if exactly one of the corresponding bits in the
+   * converted operands is set).
+   */
+  private Value handleBitwiseXOR(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    // TODO: more simplifications possible?
+    // If one operand is 0, all bits of the other are taken
+    // x ^ 0 = x
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue;
+      }
+    }
+
+    // 0 ^ x = x
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue;
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BINARY_XOR, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_XOR);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      BINARY_XOR,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BINARY_XOR.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BINARY_XOR.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BINARY_XOR, returnType, calculationType);
+    }
+  }
+
+  /**
+   * | operator. The result of the | operator is the bitwise inclusive OR of the operands (that is,
+   * each bit in the result is set if and only if at least one of the corresponding bits in the
+   * converted operands is set).
+   */
+  private Value handleBitwiseOR(
+      Value leftValue,
+      CType leftType,
+      Value rightValue,
+      CType rightType,
+      CSimpleType calculationType,
+      CType returnType)
+      throws UnsupportedCodeException {
+
+    // TODO: max value (in the current type) -> max value returned
+
+    // TODO: more simplifications (e.g. based on types) possible?
+
+    // If one operand is 0, all bits of the other are taken
+    // x ^ 0 = x
+    if (rightValue instanceof NumericValue numRight
+        && !(calculationType.getType().isFloatingPointType())) {
+      // Is this handling correct for integer promotion?
+      if (numRight.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return leftValue;
+      }
+    }
+
+    // 0 ^ x = x
+    if (leftValue instanceof NumericValue numLeft
+        && !(calculationType.getType().isFloatingPointType())) {
+      if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {
+        return rightValue;
+      }
+    }
+
+    if (leftValue instanceof NumericValue leftNumeric
+        && rightValue instanceof NumericValue rightNumeric) {
+      try {
+        return switch (calculationType.getType()) {
+          case INT -> {
+            // Both left and right must be of the same type, which in this case is INT,
+            // so we can cast to Java long.
+            long lVal = leftNumeric.getNumber().longValue();
+            long rVal = rightNumeric.getNumber().longValue();
+            long result = arithmeticOperation(lVal, rVal, BINARY_OR, calculationType);
+            yield new NumericValue(result);
+          }
+          case INT128 -> {
+            // Typeless calculation! This needs to be cast afterward!
+            BigInteger lVal = leftNumeric.bigIntegerValue();
+            BigInteger rVal = rightNumeric.bigIntegerValue();
+            BigInteger result = arithmeticOperation(lVal, rVal, BINARY_OR);
+            yield new NumericValue(result);
+          }
+          case FLOAT, DOUBLE, FLOAT128 ->
+              new NumericValue(
+                  arithmeticOperation(
+                      BINARY_OR,
+                      castToFloat(machineModel, calculationType, leftNumeric),
+                      castToFloat(machineModel, calculationType, rightNumeric)));
+          default ->
+              throw new UnsupportedCodeException(
+                  String.format(
+                      "Unsupported type %s for calculation of: %s (%s) %s %s (%s)",
+                      calculationType,
+                      leftNumeric,
+                      leftType,
+                      BINARY_OR.getOperator(),
+                      rightNumeric,
+                      rightType),
+                  cfaEdge);
+        };
+      } catch (ArithmeticException e) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "Arithmetic exception (%s) for calculation of: %s (%s) %s %s (%s)",
+                e.getMessage(),
+                leftNumeric,
+                leftType,
+                BINARY_OR.getOperator(),
+                rightNumeric,
+                rightType),
+            cfaEdge);
+      }
+
+    } else if (leftValue.isUnknown() || rightValue.isUnknown()) {
+      return UnknownValue.getInstance();
+
+    } else {
+      // At least 1 value is symbolic, the other can be symbolic or numeric
+      return createBinarySymbolicExpression(
+          leftValue, leftType, rightValue, rightType, BINARY_OR, returnType, calculationType);
     }
   }
 
