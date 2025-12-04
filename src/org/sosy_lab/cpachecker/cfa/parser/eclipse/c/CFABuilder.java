@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -414,6 +415,18 @@ class CFABuilder extends ASTVisitor {
     if (!acslComments.isEmpty()) {
       // Parse the Acsl Metadata here
       AcslMetadata acslMetadata = AcslMetadata.empty();
+      ImmutableMap.Builder<FileLocation, CFANode> commentLocationToNodeBuilder =
+          ImmutableMap.builder();
+      for (FileLocation f : acslComments.keySet()) {
+        // Determine Cfa Node for Acsl Comment location
+        commentLocationToNodeBuilder.putAll(AcslParser.commentLocationToNode(f, cfaNodes));
+      }
+      ImmutableMap<FileLocation, CFANode> commentLocationToNode =
+          commentLocationToNodeBuilder.build();
+      // Get Local Variables & Parameters
+      // Build a Scope from Variables & Parameters
+      // Parse the comment
+      // Create Metadata Record
 
       result =
           new ParseResult(
