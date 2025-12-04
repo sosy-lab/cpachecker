@@ -295,7 +295,6 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.optimizeConstAuxiliaryVariables", "true")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
@@ -412,9 +411,7 @@ public class SequentializationParseTest {
       // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
       if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
         assertWithMessage(
-                "lineA, lineB with number "
-                    + (i + Sequentialization.FIRST_LINE)
-                    + " are not equal: ")
+                "lineA, lineB with number %s are not equal: ", (i + Sequentialization.FIRST_LINE))
             .that(lineA)
             .isEqualTo(lineB);
       }

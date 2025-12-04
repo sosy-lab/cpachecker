@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import java.math.BigInteger;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;

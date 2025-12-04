@@ -119,7 +119,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   public boolean isBlank() {
     for (SeqThreadStatementBlock block : blocks) {
       for (CSeqThreadStatement statement : block.getStatements()) {
-        if (!statement.onlyWritesPc()) {
+        if (!statement.isOnlyPcWrite()) {
           return false;
         }
       }

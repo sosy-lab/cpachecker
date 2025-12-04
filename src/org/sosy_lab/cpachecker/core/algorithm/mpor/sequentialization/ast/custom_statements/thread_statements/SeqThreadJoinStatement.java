@@ -172,9 +172,4 @@ public final class SeqThreadJoinStatement extends CSeqThreadStatement {
   public boolean synchronizesThreads() {
     return true;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    return false;
-  }
 }

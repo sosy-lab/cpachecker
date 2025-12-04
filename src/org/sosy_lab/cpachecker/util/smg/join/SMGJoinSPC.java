@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;

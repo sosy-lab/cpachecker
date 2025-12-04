@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
+import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -245,7 +247,7 @@ public class TerminationWitnessValidator implements Algorithm {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
   }
 
-  private boolean areSupportingInvariantsCorrect() throws CPAException {
+  private boolean areSupportingInvariantsCorrect() throws CPAException, InterruptedException {
     try {
       Path invariantsSpecPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
@@ -286,8 +288,8 @@ public class TerminationWitnessValidator implements Algorithm {
       // Running the algorithm
       invariantCheckingAlgorithm.run(reachedSet);
       return reachedSet.wasTargetReached();
-    } catch (Exception e) {
-      throw new CPAException(e.toString());
+    } catch (InvalidConfigurationException | InvalidCmdlineArgumentException | IOException e) {
+      throw new CPAException("Supporting invariants check failed: ", e);
     }
   }
 
