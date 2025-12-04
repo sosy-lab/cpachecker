@@ -12,8 +12,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -101,6 +100,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
+  private final Map<FileLocation, String> acslComments = new HashMap<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
@@ -189,7 +189,7 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslCommentPositions.add(astCreator.getLocation(comment));
+          acslComments.put(astCreator.getLocation(comment), commentString);
         }
       }
     }
@@ -411,15 +411,10 @@ class CFABuilder extends ASTVisitor {
 
     ParseResult result;
 
-    AcslMetadata acslMetadata =
-        new AcslMetadata(
-            ImmutableSet.of(),
-            ImmutableSetMultimap.of(),
-            ImmutableSetMultimap.of(),
-            ImmutableSetMultimap.of(),
-            ImmutableSetMultimap.of());
+    if (!acslComments.isEmpty()) {
+      // Parse the Acsl Metadata here
+      AcslMetadata acslMetadata = AcslMetadata.empty();
 
-    if (!acslCommentPositions.isEmpty()) {
       result =
           new ParseResult(
               cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, acslMetadata, blocks);

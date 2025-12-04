@@ -31,4 +31,14 @@ public record AcslMetadata(
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopInvariant> invariants,
     ImmutableSetMultimap<CFANode, AcslFunctionContract> functionContracts,
-    ImmutableSetMultimap<CFANode, AcslAssigns> modifiedMemoryLocations) {}
+    ImmutableSetMultimap<CFANode, AcslAssigns> modifiedMemoryLocations) {
+
+  public static AcslMetadata empty() {
+    return new AcslMetadata(
+        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of());
+  }
+}
