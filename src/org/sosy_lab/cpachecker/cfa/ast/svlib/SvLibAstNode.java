@@ -44,18 +44,18 @@ public interface SvLibAstNode extends AAstNode {
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
   @Override
   default <
-      R,
-      R1 extends R,
-      R2 extends R,
-      R3 extends R,
-      R4 extends R,
-      X1 extends Exception,
-      X2 extends Exception,
-      X3 extends Exception,
-      X4 extends Exception,
-      V extends
-          CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & SvLibAstNodeVisitor<R3, X3>
-          & AcslAstNodeVisitor<R4, X4>>
+          R,
+          R1 extends R,
+          R2 extends R,
+          R3 extends R,
+          R4 extends R,
+          X1 extends Exception,
+          X2 extends Exception,
+          X3 extends Exception,
+          X4 extends Exception,
+          V extends
+              CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & SvLibAstNodeVisitor<R3, X3>
+                  & AcslAstNodeVisitor<R4, X4>>
       R accept_(V pV) throws X3 {
     return accept(pV);
   }
