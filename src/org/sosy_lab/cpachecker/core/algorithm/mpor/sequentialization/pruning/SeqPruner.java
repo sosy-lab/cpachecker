@@ -170,7 +170,7 @@ public class SeqPruner {
     checkArgument(pClause.getBlocks().size() == 1, "pClause can only have a single block");
     CSeqThreadStatement firstStatement = pClause.getFirstBlock().getFirstStatement();
     // the "non-blank" clause can still be blank, but only if it is an exit location
-    if (firstStatement.isBlank()) {
+    if (firstStatement.isOnlyPcWrite()) {
       Verify.verify(validPrunableClause(pClause));
       int nonBlankTargetPc = firstStatement.getTargetPc().orElseThrow();
       Verify.verify(nonBlankTargetPc == ProgramCounterVariables.EXIT_PC);
@@ -243,7 +243,7 @@ public class SeqPruner {
         pClause.toASTString());
     CSeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
     checkArgument(
-        statement.isBlank(), "prunable statement must be blank: %s", statement.toASTString());
+        statement.isOnlyPcWrite(), "prunable statement must be blank: %s", statement.toASTString());
     checkArgument(
         statement.getTargetPc().isPresent(), "prunable statement must contain a target pc");
     return true;

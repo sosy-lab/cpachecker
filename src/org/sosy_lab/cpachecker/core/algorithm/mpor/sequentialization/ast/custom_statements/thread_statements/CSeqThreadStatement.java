@@ -122,10 +122,10 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
   }
 
   /**
-   * Whether this statement is blank i.e. consists only of a {@code pc} write, e.g. {@code pc[i] =
-   * 42;}
+   * Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;}, and no
+   * additional {@link SeqInjectedStatement}s.
    */
-  public boolean isBlank() {
+  public boolean isOnlyPcWrite() {
     // the only case where a statement writes only 'pc' is when it is a blank statement without
     // any injected statement
     return this instanceof SeqGhostOnlyStatement && injectedStatements.isEmpty();
