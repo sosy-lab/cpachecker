@@ -104,11 +104,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
       };
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isLogicalOperator(AcslBinaryTermOperator op) {
-      return false;
-    }
-
     public static boolean isBitwiseOperator(AcslBinaryTermOperator op) {
       return switch (op) {
         case BINARY_AND, BINARY_OR, BINARY_IMPLICATION, BINARY_EQUIVALENT, BINARY_XOR -> true;
@@ -144,6 +139,11 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     @Override
     public String getOperator() {
       return operator;
+    }
+
+    @Override
+    public boolean isLogicalOperator() {
+      return false;
     }
 
     @Override

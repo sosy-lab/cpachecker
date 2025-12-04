@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;

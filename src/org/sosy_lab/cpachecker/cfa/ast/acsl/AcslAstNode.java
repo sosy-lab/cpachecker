@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public sealed interface AcslAstNode extends AAstNode
     permits AcslBinaryPredicateOperator,
@@ -41,11 +42,15 @@ public sealed interface AcslAstNode extends AAstNode
           R1 extends R,
           R2 extends R,
           R3 extends R,
+          R4 extends R,
           X1 extends Exception,
           X2 extends Exception,
           X3 extends Exception,
-          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & AcslAstNodeVisitor<R3, X3>>
-      R accept_(V pV) throws X3 {
+          X4 extends Exception,
+          V extends
+              CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & SvLibAstNodeVisitor<R3, X3>
+                  & AcslAstNodeVisitor<R4, X4>>
+      R accept_(V pV) throws X4 {
     return accept(pV);
   }
 }

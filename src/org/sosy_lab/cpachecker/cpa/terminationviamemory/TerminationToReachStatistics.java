@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -31,10 +32,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -86,11 +87,20 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
           pReached.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
-              .filter(s -> s.getCounterexampleInformation().isPresent())
+              .filter(s -> s.isTarget())
               .iterator();
       Preconditions.checkState(violations.hasNext());
       exportTrivialWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (!validation && pResult == Result.TRUE) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
+      }
     }
   }
 
@@ -106,14 +116,12 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
   }
 
   private void exportTrivialWitness(final ARGState root, final ARGState loopStart) {
-    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().orElseThrow();
-
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
 
     ARGState newRoot = new ARGState(root.getWrappedState(), null);
     Collection<ARGState> cexStates =
-        copyStem(cexInfo.getTargetPath(), newRoot, loopStart, loopStartInCEX);
+        copyStem(ARGPath.builder().build(loopStart), newRoot, loopStart, loopStartInCEX);
 
     ExpressionTree<Object> quasiInvariant = ExpressionTrees.getTrue();
 

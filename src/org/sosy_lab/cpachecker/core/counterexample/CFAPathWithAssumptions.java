@@ -46,8 +46,25 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   private final ImmutableList<CFAEdgeWithAssumptions> pathWithAssignments;
 
+  // In SV-LIB programs we cannot use terms as statements, since they are completely sepparate
+  // things.
+  // Therefore, we keep track of the concrete state path as well, since adding terms to the
+  // CFAEdgeWithAssumptions seemed like a change which would impact too many other places.
+  //
+  // In particular, this actually contains the information we need directly, instead of having
+  // to reconstruct it from the assumptions.
+  private final Optional<ConcreteStatePath> concreteStatePath;
+
   private CFAPathWithAssumptions(ImmutableList<CFAEdgeWithAssumptions> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
+    concreteStatePath = Optional.empty();
+  }
+
+  private CFAPathWithAssumptions(
+      ImmutableList<CFAEdgeWithAssumptions> pPathWithAssignments,
+      ConcreteStatePath pConcreteStatePath) {
+    pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
+    concreteStatePath = Optional.of(pConcreteStatePath);
   }
 
   public static CFAPathWithAssumptions empty() {
@@ -180,7 +197,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       result.add(edge);
     }
 
-    return new CFAPathWithAssumptions(result.build());
+    return new CFAPathWithAssumptions(result.build(), statePath);
   }
 
   private static boolean isEmptyDeclaration(CFAEdge pCfaEdge) {
@@ -267,5 +284,9 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     } else {
       return result.orElseThrow();
     }
+  }
+
+  public Optional<ConcreteStatePath> getConcreteStatePath() {
+    return concreteStatePath;
   }
 }
