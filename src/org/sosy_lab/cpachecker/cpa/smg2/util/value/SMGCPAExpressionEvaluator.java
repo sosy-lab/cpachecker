@@ -1345,7 +1345,7 @@ public class SMGCPAExpressionEvaluator {
    * Used for correct symbolic offset calculations. Always at least 3 bit larger than the current
    * size of addresses to avoid overflows in the calculation of addresses. Note: When using a
    * symbolic offset that's transformed to bit size, the original value itself needs its original
-   * correct type!
+   * correct type! (Usually INT128 or LONG_LONG_INT)
    *
    * @return a type that's at least 3 bit larger than the current size of addresses.
    */
