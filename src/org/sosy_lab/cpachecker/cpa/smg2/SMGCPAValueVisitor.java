@@ -2174,7 +2174,8 @@ public class SMGCPAValueVisitor
 
   /**
    * Transforms both input values into constant symbolic expressions if needed, and builds the
-   * binary symbolic expression
+   * binary symbolic expression. None of the inputs is allowed to be unknown. One (left or right)
+   * may be numeric, but not both!
    */
   private SymbolicExpression createBinarySymbolicExpression(
       Value pLeftValue,
@@ -2187,59 +2188,15 @@ public class SMGCPAValueVisitor
 
     // TODO: do we want to try to canonize symbolic expressions to allow things like (1 + a) == (a
     //  + 1) to be recognized? (this is more of a general question)
+    // TODO: add automatic NaN behavior to numeric/symbolic values!
+    // TODO: move to handling of common simplifications to the expressions directly?
 
     checkArgument(!(pLeftValue.isNumericValue() && pRightValue.isNumericValue()));
+    checkArgument(!pLeftValue.isUnknown() || !pRightValue.isUnknown());
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
-
-    // Simplify floating point expressions
-    // TODO: add more simplifications
-    // TODO: add automatic NaN behavior to numeric values!
-    // TODO: move to handling of the expressions
-    if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().hasFloatType()) {
-      FloatValue leftNum = pLeftValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(PLUS, MINUS, MULTIPLY, DIVIDE).contains(pOperator) && leftNum.isNan()) {
-        return pLeftValue;
-      }
-    }
-    if (pRightValue.isNumericValue() && pRightValue.asNumericValue().hasFloatType()) {
-      FloatValue rightNum = pRightValue.asNumericValue().getFloatValue();
-      if (ImmutableList.of(PLUS, MINUS, MULTIPLY, DIVIDE).contains(pOperator) && rightNum.isNan()) {
-        return pRightValue;
-      }
-    }
-
-    if (pLeftValue.isNumericValue()) {
-      BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
-      rightOperand = factory.asConstant(pRightValue, pRightType);
-      if ((pOperator == PLUS && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == MULTIPLY && leftNum.equals(BigInteger.ONE))) {
-        if (!pLeftType.equals(pExpressionType)) {
-          return factory.cast(rightOperand, pExpressionType);
-        }
-        return rightOperand;
-      } else if (pOperator == MINUS && leftNum.equals(BigInteger.ZERO)) {
-        return factory.negate(rightOperand, pExpressionType);
-      } else if ((pOperator == MULTIPLY && leftNum.equals(BigInteger.ZERO))
-          || (pOperator == DIVIDE && leftNum.equals(BigInteger.ZERO))) {
-        return new NumericValue(BigInteger.ZERO);
-      }
-    } else if (pRightValue.isNumericValue()) {
-      leftOperand = factory.asConstant(pLeftValue, pLeftType);
-      BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
-      if ((pOperator == MULTIPLY && rightNum.equals(BigInteger.ONE))
-          || (pOperator == PLUS && rightNum.equals(BigInteger.ZERO))
-          || (pOperator == MINUS && rightNum.equals(BigInteger.ZERO))) {
-        if (!pLeftType.equals(pExpressionType)) {
-          return factory.cast(leftOperand, pExpressionType);
-        }
-        return leftOperand;
-      } else if (pOperator == MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
-        return new NumericValue(BigInteger.ZERO);
-      }
-    }
 
     return switch (pOperator) {
       case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
@@ -2362,13 +2319,31 @@ public class SMGCPAValueVisitor
               expression);
       case BINARY_AND ->
           handleBitwiseAnd(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case BINARY_XOR ->
           handleBitwiseXOR(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       case BINARY_OR ->
           handleBitwiseOR(
-              leftValue, leftType, rightValue, rightType, simpleCalculationType, returnType);
+              leftValue,
+              leftType,
+              rightValue,
+              rightType,
+              simpleCalculationType,
+              returnType,
+              expression);
       default ->
           throw new AssertionError(
               "Unknown binary operation " + op + " in arithmetic operation " + expression);
@@ -2383,6 +2358,19 @@ public class SMGCPAValueVisitor
       CSimpleType calculationType,
       CType returnType)
       throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
 
     if (leftValue instanceof NumericValue leftNumeric
         && rightValue instanceof NumericValue rightNumeric) {
@@ -2444,8 +2432,8 @@ public class SMGCPAValueVisitor
     } else {
       // At least 1 value is symbolic, the other can be symbolic or numeric
 
-      // Simplification is only needed for symbolics here, as all calculations are well defined for
-      // 2 numerics.
+      // Simplification is only needed for symbolics here, as all calculations are well-defined for
+      // 2 numeric values.
       // Simplify (x + 0) = x
       if (leftValue instanceof NumericValue numLeft
           && numLeft.bigIntegerValue().equals(BigInteger.ZERO)
@@ -2471,6 +2459,19 @@ public class SMGCPAValueVisitor
       CSimpleType calculationType,
       CType returnType)
       throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
 
     if (leftValue instanceof NumericValue leftNumeric
         && rightValue instanceof NumericValue rightNumeric) {
@@ -2558,6 +2559,19 @@ public class SMGCPAValueVisitor
       CSimpleType calculationType,
       CType returnType)
       throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
 
     if (leftValue instanceof NumericValue leftNumeric
         && rightValue instanceof NumericValue rightNumeric) {
@@ -2653,6 +2667,19 @@ public class SMGCPAValueVisitor
       CType returnType,
       CBinaryExpression expression)
       throws UnsupportedCodeException {
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
 
     // Simplify (x / 0) = 0 and (x / 1) = x
     if (rightValue instanceof NumericValue numRight
@@ -2761,6 +2788,19 @@ public class SMGCPAValueVisitor
     // is the algebraic quotient with any fractional part discarded. If the quotient a/b is
     // representable, the expression (a/b)*b + a%b shall equal a; otherwise, the behavior of
     // both a/b and a%b is undefined.
+
+    // Handle NaN
+    if (leftValue instanceof NumericValue leftNumericValue && leftNumericValue.hasFloatType()) {
+      if (leftNumericValue.getFloatValue().isNan()) {
+        return leftValue;
+      }
+    }
+    if (rightValue instanceof NumericValue rightNumericValue && rightNumericValue.hasFloatType()) {
+      if (rightNumericValue.getFloatValue().isNan()) {
+        return rightValue;
+      }
+    }
+    // TODO: check whether the simplifications below also work for floating point numbers!
 
     // Handle (x % 0) = 0 and simplify (a % 1) = 0
     if (rightValue instanceof NumericValue numRight
@@ -2912,11 +2952,13 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
-              new NumericValue(
-                  arithmeticOperation(
-                      SHIFT_LEFT,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+              throw new UnsupportedOperationException(
+                  SHIFT_LEFT.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
+
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3019,11 +3061,12 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
-              new NumericValue(
-                  arithmeticOperation(
-                      SHIFT_RIGHT,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+              throw new UnsupportedOperationException(
+                  SHIFT_RIGHT.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3069,7 +3112,8 @@ public class SMGCPAValueVisitor
       Value rightValue,
       CType rightType,
       CSimpleType calculationType,
-      CType returnType)
+      CType returnType,
+      CBinaryExpression expression)
       throws UnsupportedCodeException {
 
     // TODO: more simplifications possible?
@@ -3109,11 +3153,12 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
-              new NumericValue(
-                  arithmeticOperation(
-                      BINARY_AND,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+              throw new UnsupportedOperationException(
+                  BINARY_AND.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3160,7 +3205,8 @@ public class SMGCPAValueVisitor
       Value rightValue,
       CType rightType,
       CSimpleType calculationType,
-      CType returnType)
+      CType returnType,
+      CBinaryExpression expression)
       throws UnsupportedCodeException {
 
     // TODO: more simplifications possible?
@@ -3202,11 +3248,12 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
-              new NumericValue(
-                  arithmeticOperation(
-                      BINARY_XOR,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+              throw new UnsupportedOperationException(
+                  BINARY_XOR.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3253,7 +3300,8 @@ public class SMGCPAValueVisitor
       Value rightValue,
       CType rightType,
       CSimpleType calculationType,
-      CType returnType)
+      CType returnType,
+      CBinaryExpression expression)
       throws UnsupportedCodeException {
 
     // TODO: max value (in the current type) -> max value returned
@@ -3298,11 +3346,12 @@ public class SMGCPAValueVisitor
             yield new NumericValue(result);
           }
           case FLOAT, DOUBLE, FLOAT128 ->
-              new NumericValue(
-                  arithmeticOperation(
-                      BINARY_OR,
-                      castToFloat(machineModel, calculationType, leftNumeric),
-                      castToFloat(machineModel, calculationType, rightNumeric)));
+              throw new UnsupportedOperationException(
+                  BINARY_OR.getOperator()
+                      + " operator in expression "
+                      + expression
+                      + " on floating point numbers is not supported. "
+                      + cfaEdge);
           default ->
               throw new UnsupportedCodeException(
                   String.format(
@@ -3547,9 +3596,10 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * Calculate an arithmetic operation on two floating point values.
+   * Calculate an arithmetic operation on two floating point values. Supported arithmetic operations
+   * are PLUS, MINUS, DIVIDE, MODULO, and MULTIPLY.
    *
-   * @param pOperation the binary operator
+   * @param pOperation the binary operator, either +, -, *, /, or %.
    * @param pArg1 left hand side value
    * @param pArg2 right hand side value
    * @return the resulting value
