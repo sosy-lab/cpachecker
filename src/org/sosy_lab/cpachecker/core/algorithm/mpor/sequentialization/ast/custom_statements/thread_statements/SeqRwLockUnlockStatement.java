@@ -121,9 +121,4 @@ public final class SeqRwLockUnlockStatement extends CSeqThreadStatement {
   public boolean synchronizesThreads() {
     return false;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    return false;
-  }
 }
