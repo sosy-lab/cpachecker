@@ -164,22 +164,20 @@ public class SeqPruner {
     return Optional.empty();
   }
 
-  private static int extractTargetPc(SeqThreadStatementClause pNonBlank)
+  private static int extractTargetPc(SeqThreadStatementClause pClause)
       throws UnrecognizedCodeException {
 
-    CSeqThreadStatement nonBlankSingleStatement = pNonBlank.getFirstBlock().getFirstStatement();
-    if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
-      // the blank could have injected statements -> treat it as non-blank
-      if (blankStatement.isBlank()) {
-        Verify.verify(validPrunableClause(pNonBlank));
-        int nonBlankTargetPc = nonBlankSingleStatement.getTargetPc().orElseThrow();
-        // if the found non-blank is still blank, it must be an exit location
-        Verify.verify(nonBlankTargetPc == ProgramCounterVariables.EXIT_PC);
-        return nonBlankTargetPc;
-      }
+    checkArgument(pClause.getBlocks().size() == 1, "pClause can only have a single block");
+    CSeqThreadStatement firstStatement = pClause.getFirstBlock().getFirstStatement();
+    // the "non-blank" clause can still be blank, but only if it is an exit location
+    if (firstStatement.isBlank()) {
+      Verify.verify(validPrunableClause(pClause));
+      int nonBlankTargetPc = firstStatement.getTargetPc().orElseThrow();
+      Verify.verify(nonBlankTargetPc == ProgramCounterVariables.EXIT_PC);
+      return nonBlankTargetPc;
     }
-    // otherwise return label pc of the found non-blank
-    return pNonBlank.labelNumber;
+    // if the clause is not blank, return label pc of the found non-blank
+    return pClause.labelNumber;
   }
 
   private static SeqThreadStatementClause getAnyThreadExitClause(
