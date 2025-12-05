@@ -37,17 +37,6 @@ public class SymbolicValueFactory {
     return new SymbolicIdentifier(idCounter++, pMemoryLocation);
   }
 
-  public static SymbolicExpression greaterThan(
-      SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2,
-      Type pType,
-      Type pCalculationType) {
-
-    // represent 'a > b' as 'b < a' so we do need less classes
-    return new LessThanExpression(
-        pOperand2, pOperand1, getCanonicalType(pType), getCanonicalType(pCalculationType));
-  }
-
   public static SymbolicExpression greaterThanOrEqual(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,

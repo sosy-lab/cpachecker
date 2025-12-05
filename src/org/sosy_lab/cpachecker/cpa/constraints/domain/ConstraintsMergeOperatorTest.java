@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
@@ -70,7 +71,7 @@ public class ConstraintsMergeOperatorTest {
         ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defType);
 
     Constraint currConstr =
-        (Constraint) SymbolicValueFactory.greaterThan(idExp2, numExp1, defType, defType);
+        (Constraint) GreaterThanExpression.of(idExp2, numExp1, defType, defType);
     constraints.add(currConstr);
 
     currConstr =

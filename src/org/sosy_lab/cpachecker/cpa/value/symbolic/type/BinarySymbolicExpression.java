@@ -150,7 +150,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
           LessThanOrEqualExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >
       case JBinaryExpression.BinaryOperator.GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(pOperand1, pOperand2, pExpressionType, pCalculationType);
+          GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >=
       case JBinaryExpression.BinaryOperator.GREATER_EQUAL ->
           SymbolicValueFactory.greaterThanOrEqual(
@@ -231,7 +231,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
           LessThanOrEqualExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >
       case BinaryOperator.GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(pOperand1, pOperand2, pExpressionType, pCalculationType);
+          GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >=
       case BinaryOperator.GREATER_EQUAL ->
           SymbolicValueFactory.greaterThanOrEqual(
