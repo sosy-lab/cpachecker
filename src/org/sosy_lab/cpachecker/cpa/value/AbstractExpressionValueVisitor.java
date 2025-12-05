@@ -94,27 +94,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -348,51 +335,15 @@ public abstract class AbstractExpressionValueVisitor
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
-      CBinaryExpression.BinaryOperator pOperator,
+      BinaryOperator pOperator,
       CType pExpressionType,
       CType pCalculationType) {
 
     SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
-    return switch (pOperator) {
-      case PLUS ->
-          AdditionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS ->
-          SubtractionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          MultiplicationExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE ->
-          DivisionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO ->
-          ModuloExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          ShiftLeftExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT ->
-          ShiftRightExpression.ofSigned(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          BinaryAndExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          BinaryOrExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR ->
-          BinaryXorExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS ->
-          EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          NotEqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          LessThanOrEqualExpression.of(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   /**
@@ -1388,52 +1339,8 @@ public abstract class AbstractExpressionValueVisitor
     SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
-    return switch (pOperator) {
-      case PLUS ->
-          AdditionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS ->
-          SubtractionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          MultiplicationExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE ->
-          DivisionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO ->
-          ModuloExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          ShiftLeftExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_SIGNED ->
-          ShiftRightExpression.ofSigned(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_UNSIGNED ->
-          ShiftRightExpression.ofUnsigned(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          BinaryAndExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_AND ->
-          LogicalAndExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          BinaryOrExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_OR ->
-          LogicalOrExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR, LOGICAL_XOR ->
-          BinaryXorExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS ->
-          EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          NotEqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          LessThanOrEqualExpression.of(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   /*

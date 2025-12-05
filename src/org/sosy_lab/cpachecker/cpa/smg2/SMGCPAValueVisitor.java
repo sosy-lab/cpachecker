@@ -71,25 +71,12 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -2325,44 +2312,8 @@ public class SMGCPAValueVisitor
       }
     }
 
-    return switch (pOperator) {
-      case PLUS ->
-          AdditionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS ->
-          SubtractionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          MultiplicationExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE ->
-          DivisionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO ->
-          ModuloExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          ShiftLeftExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT ->
-          ShiftRightExpression.ofSigned(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          BinaryAndExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          BinaryOrExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR ->
-          BinaryXorExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS ->
-          EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          NotEqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          LessThanOrEqualExpression.of(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   private NumericValue calculateOperationWithFunctionValue(

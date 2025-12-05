@@ -33,29 +33,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -98,69 +82,8 @@ public class JExpressionTransformer extends ExpressionTransformer
     final JBinaryExpression.BinaryOperator operator = paBinaryExpression.getOperator();
     final Type expressionType = paBinaryExpression.getExpressionType();
 
-    return switch (operator) {
-      case PLUS ->
-          AdditionExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case MINUS ->
-          SubtractionExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case MULTIPLY ->
-          MultiplicationExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case DIVIDE ->
-          DivisionExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case MODULO ->
-          ModuloExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_LEFT ->
-          ShiftLeftExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_RIGHT_SIGNED ->
-          ShiftRightExpression.ofSigned(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_RIGHT_UNSIGNED ->
-          ShiftRightExpression.ofUnsigned(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_AND ->
-          BinaryAndExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_OR ->
-          BinaryOrExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_XOR ->
-          BinaryXorExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case EQUALS ->
-          EqualsExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case NOT_EQUALS ->
-          NotEqualsExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case LESS_THAN ->
-          LessThanExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case LESS_EQUAL ->
-          LessThanOrEqualExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case GREATER_THAN ->
-          SymbolicValueFactory.greaterThan(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_AND, CONDITIONAL_AND ->
-          LogicalAndExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_OR, CONDITIONAL_OR ->
-          LogicalOrExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_XOR ->
-          BinaryXorExpression.of(
-              operand1Expression, operand2Expression, expressionType, expressionType);
-      default -> throw new AssertionError("Unhandled operator " + operator);
-    };
+    return BinarySymbolicExpression.of(
+        operand1Expression, operand2Expression, expressionType, expressionType, operator);
   }
 
   @Override
