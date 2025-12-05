@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
-class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
+class SvLibCommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   private final StatementToAstConverter statementConverter;
 
@@ -73,7 +73,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
 
   private final SvLibSortToAstTypeConverter sortToAstTypeConverter;
 
-  public CommandToAstConverter(
+  public SvLibCommandToAstConverter(
       SvLibScope pScope,
       Path pFilePath,
       ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
@@ -88,7 +88,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     sortToAstTypeConverter = new SvLibSortToAstTypeConverter(scope, pFilePath);
   }
 
-  public CommandToAstConverter(
+  public SvLibCommandToAstConverter(
       SvLibScope pScope,
       ImmutableMap.Builder<SvLibTagReference, SvLibScope> pTagReferenceToScopeBuilder) {
     super(pScope);
