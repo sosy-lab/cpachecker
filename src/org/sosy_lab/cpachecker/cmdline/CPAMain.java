@@ -580,8 +580,20 @@ public class CPAMain {
           .buildOrThrow();
 
   /**
-   * Handle switchting to a different config file depending on the given language, and make sure
-   * that the returned {@link Configuration} instance has all necessary language settings.
+   * Create a new {@link ConfigurationBuilder} instance specifically for the purpose of switching to
+   * it as new main config. It takes care of secondary aspects such as logging and the command-line
+   * options.
+   */
+  private static ConfigurationBuilder createNewConfigForSwitching(
+      Path newConfigFile, String reason, LogManager logger, Map<String, String> cmdLineOptions)
+      throws IOException, InvalidConfigurationException {
+    logger.logf(Level.INFO, "Detected %s and switching to config file %s", reason, newConfigFile);
+    return Configuration.builder().loadFromFile(newConfigFile).setOptions(cmdLineOptions);
+  }
+
+  /**
+   * Handle switching to a different config file depending on the given language, and make sure that
+   * the returned {@link Configuration} instance has all necessary language settings.
    */
   private static Configuration handleFrontendLanguageOptions(
       LogManager logger,
@@ -600,23 +612,15 @@ public class CPAMain {
           case SVLIB -> pBootstrapLangOptions.svlibConfig;
         };
 
+    ConfigurationBuilder configBuilder;
     if (subconfig != null) {
-      logger.logf(
-          Level.INFO,
-          "Detected language %s and switching to config file %s",
-          frontendLanguage,
-          subconfig);
-      return Configuration.builder()
-          .loadFromFile(subconfig)
-          .setOptions(pCmdLineOptions)
-          .setOption("language", frontendLanguage.name())
-          .build();
+      configBuilder =
+          createNewConfigForSwitching(
+              subconfig, "language " + frontendLanguage, logger, pCmdLineOptions);
+    } else {
+      configBuilder = Configuration.builder().copyFrom(config);
     }
-
-    return Configuration.builder()
-        .copyFrom(config)
-        .setOption("language", frontendLanguage.name())
-        .build();
+    return configBuilder.setOption("language", frontendLanguage.name()).build();
   }
 
   private static Configuration handlePropertyOptions(
@@ -702,14 +706,8 @@ public class CPAMain {
     }
 
     if (alternateConfigFile != null) {
-      logger.logf(
-          Level.INFO,
-          "Detected property %s and switching to config file %s",
-          propertyName,
-          alternateConfigFile);
-      return Configuration.builder()
-          .loadFromFile(alternateConfigFile)
-          .setOptions(cmdLineOptions)
+      return createNewConfigForSwitching(
+              alternateConfigFile, "property " + propertyName, logger, cmdLineOptions)
           .build();
     }
     return config;
@@ -944,13 +942,8 @@ public class CPAMain {
       }
     }
 
-    logger.logf(
-        Level.INFO,
-        "Detected %s and switching to config file %s",
-        witnessName,
-        validationConfigFile);
     ConfigurationBuilder configBuilder =
-        Configuration.builder().loadFromFile(validationConfigFile).setOptions(overrideOptions);
+        createNewConfigForSwitching(validationConfigFile, witnessName, logger, overrideOptions);
     if (configFileName.isPresent()) {
       configBuilder.setOption(
           APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFileName.orElseThrow()));
