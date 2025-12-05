@@ -44,7 +44,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
   private final Type calculationType;
 
   /** {@link Type} of the binary expression */
-  private Type expressionType;
+  private final Type expressionType;
 
   BinarySymbolicExpression(
       SymbolicExpression pOperand1,
