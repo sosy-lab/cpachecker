@@ -238,9 +238,4 @@ public final class SeqConstCpaCheckerTmpStatement extends CSeqThreadStatement {
   public boolean synchronizesThreads() {
     return false;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    return false;
-  }
 }

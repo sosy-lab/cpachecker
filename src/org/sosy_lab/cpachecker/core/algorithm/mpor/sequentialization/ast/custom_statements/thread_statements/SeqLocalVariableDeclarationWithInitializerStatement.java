@@ -132,11 +132,6 @@ public final class SeqLocalVariableDeclarationWithInitializerStatement extends C
     return false;
   }
 
-  @Override
-  public boolean onlyWritesPc() {
-    return false;
-  }
-
   public CVariableDeclaration getVariableDeclaration() {
     return variableDeclaration;
   }

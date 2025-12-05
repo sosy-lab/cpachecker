@@ -18,19 +18,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Represents a blank case block which only has a {@code pc} update.
+ * Represents a thread simulation statement that contains only a {@code pc} update, and optionally
+ * its injected statements.
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */
-public final class SeqBlankStatement extends CSeqThreadStatement {
+public final class SeqGhostOnlyStatement extends CSeqThreadStatement {
 
   /** Use this if the target pc is an {@code int}. */
-  public SeqBlankStatement(
+  public SeqGhostOnlyStatement(
       ReductionOrder pReductionOrder, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     super(pReductionOrder, ImmutableSet.of(), pPcLeftHandSide, pTargetPc);
   }
 
-  private SeqBlankStatement(
+  private SeqGhostOnlyStatement(
       ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -52,8 +53,8 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   }
 
   @Override
-  public SeqBlankStatement withTargetPc(int pTargetPc) {
-    return new SeqBlankStatement(
+  public SeqGhostOnlyStatement withTargetPc(int pTargetPc) {
+    return new SeqGhostOnlyStatement(
         reductionOrder, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
@@ -66,8 +67,7 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   public CSeqThreadStatement withInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have injected statements");
+    return new SeqGhostOnlyStatement(reductionOrder, pcLeftHandSide, targetPc, pInjectedStatements);
   }
 
   @Override
@@ -78,10 +78,5 @@ public final class SeqBlankStatement extends CSeqThreadStatement {
   @Override
   public boolean synchronizesThreads() {
     return false;
-  }
-
-  @Override
-  public boolean onlyWritesPc() {
-    return injectedStatements.isEmpty();
   }
 }

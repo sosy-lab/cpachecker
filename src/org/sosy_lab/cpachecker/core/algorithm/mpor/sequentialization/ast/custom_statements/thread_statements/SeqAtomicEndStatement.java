@@ -99,10 +99,4 @@ public final class SeqAtomicEndStatement extends CSeqThreadStatement {
   public boolean synchronizesThreads() {
     return false;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    // this statement does only write a pc, but it is required to merge atomic blocks
-    return false;
-  }
 }

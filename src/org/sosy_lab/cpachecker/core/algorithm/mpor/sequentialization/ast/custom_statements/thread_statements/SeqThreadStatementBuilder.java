@@ -198,7 +198,7 @@ public record SeqThreadStatementBuilder(
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
 
     if (resultsInBlankStatement(pSubstituteEdge, successor)) {
-      return new SeqBlankStatement(reductionOrder, pcLeftHandSide, targetPc);
+      return new SeqGhostOnlyStatement(reductionOrder, pcLeftHandSide, targetPc);
     }
 
     ImmutableSet<SubstituteEdge> substituteEdgeSet = ImmutableSet.of(pSubstituteEdge);
@@ -273,7 +273,7 @@ public record SeqThreadStatementBuilder(
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
     assert functionDeclaration.getParameters().isEmpty()
         : "function has parameters, but they are not present in pFunctionStatements";
-    return new SeqBlankStatement(reductionOrder, pcLeftHandSide, pTargetPc);
+    return new SeqGhostOnlyStatement(reductionOrder, pcLeftHandSide, pTargetPc);
   }
 
   private CSeqThreadStatement buildReturnValueAssignmentStatement(
@@ -287,7 +287,7 @@ public record SeqThreadStatementBuilder(
           reductionOrder, assignment.statement(), pcLeftHandSide, pSubstituteEdges, pTargetPc);
     } else {
       // -> function does not return anything, i.e. return;
-      return new SeqBlankStatement(reductionOrder, pcLeftHandSide, pTargetPc);
+      return new SeqGhostOnlyStatement(reductionOrder, pcLeftHandSide, pTargetPc);
     }
   }
 

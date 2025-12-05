@@ -172,11 +172,6 @@ public final class SeqParameterAssignmentStatement extends CSeqThreadStatement {
     return false;
   }
 
-  @Override
-  public boolean onlyWritesPc() {
-    return false;
-  }
-
   public ImmutableList<FunctionParameterAssignment> getAssignments() {
     return assignments;
   }
