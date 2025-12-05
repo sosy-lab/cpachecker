@@ -43,7 +43,14 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -76,8 +83,6 @@ public class ExpressionTransformer
   private final SMGOptions options;
 
   private final SMGCPAExpressionEvaluator evaluator;
-
-  private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
   public ExpressionTransformer(
       @Nullable final CFAEdge pEdge,
@@ -117,7 +122,8 @@ public class ExpressionTransformer
           // So we can't handle it here better.
           // Dirty fix: if we end up here, it means we had an unknown before.
           // We return an unknown again by creating one
-          operand1Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+          operand1Expression =
+              ConstantSymbolicExpression.of(addrExpr.getMemoryAddress(), addrExpr.getType());
         }
       }
 
@@ -136,7 +142,7 @@ public class ExpressionTransformer
             // currently handle this only for concrete values, and that is done by the valueVisitor.
             // So we can't handle it better here.
             operand2Expression =
-                factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+                ConstantSymbolicExpression.of(addrExpr.getMemoryAddress(), addrExpr.getType());
           }
         }
 
@@ -144,56 +150,12 @@ public class ExpressionTransformer
         final Type calculationType = pIastBinaryExpression.getCalculationType();
 
         final SymbolicExpression resultExpression =
-            switch (pIastBinaryExpression.getOperator()) {
-              case PLUS ->
-                  factory.add(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case MINUS ->
-                  factory.minus(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case MULTIPLY ->
-                  factory.multiply(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case DIVIDE ->
-                  factory.divide(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case MODULO ->
-                  factory.modulo(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case SHIFT_LEFT ->
-                  factory.shiftLeft(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case SHIFT_RIGHT ->
-                  factory.shiftRightSigned(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_AND ->
-                  factory.binaryAnd(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_OR ->
-                  factory.binaryOr(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_XOR ->
-                  factory.binaryXor(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case EQUALS ->
-                  factory.equal(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case NOT_EQUALS ->
-                  factory.notEqual(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case LESS_THAN ->
-                  factory.lessThan(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case LESS_EQUAL ->
-                  factory.lessThanOrEqual(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case GREATER_THAN ->
-                  factory.greaterThan(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-              case GREATER_EQUAL ->
-                  factory.greaterThanOrEqual(
-                      operand1Expression, operand2Expression, expressionType, calculationType);
-            };
+            BinarySymbolicExpression.of(
+                operand1Expression,
+                operand2Expression,
+                expressionType,
+                calculationType,
+                pIastBinaryExpression.getOperator());
         builder.add(SymbolicExpressionAndSMGState.of(resultExpression, currentState));
       }
     }
@@ -220,8 +182,7 @@ public class ExpressionTransformer
 
     return ImmutableList.of(
         SymbolicExpressionAndSMGState.of(
-            SymbolicValueFactory.getInstance().asConstant(createNumericValue(castValue), charType),
-            smgState));
+            ConstantSymbolicExpression.of(createNumericValue(castValue), charType), smgState));
   }
 
   @Override
@@ -232,8 +193,7 @@ public class ExpressionTransformer
 
     return ImmutableList.of(
         SymbolicExpressionAndSMGState.of(
-            SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), floatType),
-            smgState));
+            ConstantSymbolicExpression.of(createNumericValue(value), floatType), smgState));
   }
 
   @Override
@@ -244,8 +204,7 @@ public class ExpressionTransformer
 
     return ImmutableList.of(
         SymbolicExpressionAndSMGState.of(
-            SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), intType),
-            smgState));
+            ConstantSymbolicExpression.of(createNumericValue(value), intType), smgState));
   }
 
   @Override
@@ -327,15 +286,13 @@ public class ExpressionTransformer
         // Unknown is top, so we create a new value that does not have any constraints and put it in
         // the constraint
         SymbolicValueFactory svf = SymbolicValueFactory.getInstance();
-        idValue = svf.asConstant(svf.newIdentifier(null), type);
+        idValue = ConstantSymbolicExpression.of(svf.newIdentifier(null), type);
       }
 
       // The vv takes care of the transformations for us
       builder.add(
           SymbolicExpressionAndSMGState.of(
-              SymbolicValueFactory.getInstance()
-                  .asConstant(idValue, type)
-                  .copyForState(stateAfterEval),
+              ConstantSymbolicExpression.of(idValue, type).copyForState(stateAfterEval),
               stateAfterEval));
     }
     return builder.build();
@@ -344,17 +301,14 @@ public class ExpressionTransformer
   public Constraint getNotEqualsZeroConstraint(
       Value valueNotZero, CType calculationType, SMGState currentState) {
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
+        ConstantSymbolicExpression.of(createNumericValue(BigInteger.ZERO), calculationType);
 
     SymbolicExpression memoryRegionSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(valueNotZero, calculationType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(valueNotZero, calculationType).copyForState(currentState);
 
     // size != 0
     return (Constraint)
-        factory.notEqual(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
+        NotEqualsExpression.of(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
   /**
@@ -367,16 +321,14 @@ public class ExpressionTransformer
   public Constraint checkMemorySizeEqualsZero(
       Value memoryRegionSizeInBits, CType calculationType, SMGState currentState) {
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
+        ConstantSymbolicExpression.of(createNumericValue(BigInteger.ZERO), calculationType);
 
     SymbolicExpression memoryRegionSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, calculationType)
+        ConstantSymbolicExpression.of(memoryRegionSizeInBits, calculationType)
             .copyForState(currentState);
 
     // size == 0
-    return factory.equal(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
+    return EqualsExpression.of(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
   public Collection<Constraint> checkValidMemoryAccess(
@@ -388,35 +340,29 @@ public class ExpressionTransformer
     ImmutableSet.Builder<Constraint> constraintBuilder = ImmutableSet.builder();
 
     SymbolicExpression symbOffsetValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(offsetInBits, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(offsetInBits, comparisonType).copyForState(currentState);
 
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(createNumericValue(BigInteger.ZERO), comparisonType);
+        ConstantSymbolicExpression.of(createNumericValue(BigInteger.ZERO), comparisonType);
 
     SymbolicExpression readSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(readSizeInBits, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(readSizeInBits, comparisonType).copyForState(currentState);
 
     SymbolicExpression offsetPlusReadSize =
-        factory.add(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
+        AdditionExpression.of(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
 
     SymbolicExpression memoryRegionSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, comparisonType)
+        ConstantSymbolicExpression.of(memoryRegionSizeInBits, comparisonType)
             .copyForState(currentState);
 
     // offset < 0
     SymbolicExpression offsetLessZero =
-        factory.lessThan(symbOffsetValue, zeroValue, comparisonType, comparisonType);
+        LessThanExpression.of(symbOffsetValue, zeroValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetLessZero);
 
     // offset + read size > size of memory region
     SymbolicExpression offsetPlusSizeGTRegion =
-        factory.greaterThan(
+        SymbolicValueFactory.greaterThan(
             offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
 
@@ -429,16 +375,13 @@ public class ExpressionTransformer
       CType comparisonType,
       SMGState currentState) {
     SymbolicExpression constSymbolicValueUnequalTo =
-        SymbolicValueFactory.getInstance()
-            .asConstant(symbolicValueUnequalTo, comparisonType)
+        ConstantSymbolicExpression.of(symbolicValueUnequalTo, comparisonType)
             .copyForState(currentState);
     SymbolicExpression constValueUnequalTo =
-        SymbolicValueFactory.getInstance()
-            .asConstant(valueUnequalTo, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(valueUnequalTo, comparisonType).copyForState(currentState);
 
     return (Constraint)
-        factory.notEqual(
+        NotEqualsExpression.of(
             constSymbolicValueUnequalTo, constValueUnequalTo, comparisonType, comparisonType);
   }
 
@@ -448,15 +391,12 @@ public class ExpressionTransformer
       CType comparisonType,
       SMGState currentState) {
     SymbolicExpression constSymbolicValueEqualTo =
-        SymbolicValueFactory.getInstance()
-            .asConstant(arbitrarySymbolicExpression, comparisonType)
+        ConstantSymbolicExpression.of(arbitrarySymbolicExpression, comparisonType)
             .copyForState(currentState);
     SymbolicExpression constValueEqualTo =
-        SymbolicValueFactory.getInstance()
-            .asConstant(valueEqualTo, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(valueEqualTo, comparisonType).copyForState(currentState);
 
-    return factory.equal(
+    return EqualsExpression.of(
         constSymbolicValueEqualTo, constValueEqualTo, comparisonType, comparisonType);
   }
 
@@ -469,35 +409,30 @@ public class ExpressionTransformer
     ImmutableList.Builder<Constraint> constraintBuilder = ImmutableList.builder();
 
     SymbolicExpression symbOffsetValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(offsetInBits, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(offsetInBits, comparisonType).copyForState(currentState);
 
     SymbolicExpression zeroValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(createNumericValue(BigInteger.ZERO), comparisonType);
+        ConstantSymbolicExpression.of(createNumericValue(BigInteger.ZERO), comparisonType);
 
     SymbolicExpression readSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(readSizeInBits, comparisonType)
-            .copyForState(currentState);
+        ConstantSymbolicExpression.of(readSizeInBits, comparisonType).copyForState(currentState);
 
     SymbolicExpression offsetPlusReadSize =
-        factory.add(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
+        AdditionExpression.of(symbOffsetValue, readSizeValue, comparisonType, comparisonType);
 
     SymbolicExpression memoryRegionSizeValue =
-        SymbolicValueFactory.getInstance()
-            .asConstant(memoryRegionSizeInBits, comparisonType)
+        ConstantSymbolicExpression.of(memoryRegionSizeInBits, comparisonType)
             .copyForState(currentState);
 
     // offset >= 0
     SymbolicExpression offsetLessZero =
-        factory.greaterThanOrEqual(symbOffsetValue, zeroValue, comparisonType, comparisonType);
+        SymbolicValueFactory.greaterThanOrEqual(
+            symbOffsetValue, zeroValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetLessZero);
 
     // offset + read size <= size of memory region
     SymbolicExpression offsetPlusSizeGTRegion =
-        factory.lessThanOrEqual(
+        LessThanOrEqualExpression.of(
             offsetPlusReadSize, memoryRegionSizeValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetPlusSizeGTRegion);
 

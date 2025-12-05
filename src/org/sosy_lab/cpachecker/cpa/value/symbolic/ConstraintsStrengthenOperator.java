@@ -128,7 +128,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
       if (isIndependentInValueState(castVal, currLoc, pValueState)
           && doesNotAppearInConstraints(castVal, pConstraints)) {
         SymbolicValue newIdentifier =
-            factory.asConstant(factory.newIdentifier(e.getKey()), valueType);
+            ConstantSymbolicExpression.of(factory.newIdentifier(e.getKey()), valueType);
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
         logger.log(Level.FINE, "Replaced %s with %s", currV, newIdentifier);
         replacedSymbolicExpressions++;

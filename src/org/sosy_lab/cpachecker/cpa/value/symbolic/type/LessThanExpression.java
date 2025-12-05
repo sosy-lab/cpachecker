@@ -45,6 +45,16 @@ public final class LessThanExpression extends BinarySymbolicExpression implement
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
   }
 
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return new LessThanExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
+  }
+
   @Override
   public LessThanExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new LessThanExpression(

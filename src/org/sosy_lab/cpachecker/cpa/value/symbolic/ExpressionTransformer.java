@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -65,7 +65,7 @@ public class ExpressionTransformer {
     if (valueState.contains(memLoc)) {
       final Value idValue = valueState.getValueFor(memLoc);
 
-      return SymbolicValueFactory.getInstance().asConstant(idValue, idType).copyForLocation(memLoc);
+      return ConstantSymbolicExpression.of(idValue, idType).copyForLocation(memLoc);
 
     } else {
       return null;
@@ -85,20 +85,20 @@ public class ExpressionTransformer {
     final BigInteger value = pIastIntegerLiteralExpression.getValue();
     final Type intType = pIastIntegerLiteralExpression.getExpressionType();
 
-    return SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), intType);
+    return ConstantSymbolicExpression.of(createNumericValue(value), intType);
   }
 
   public SymbolicExpression visit(ACharLiteralExpression pIastCharLiteralExpression) {
     final long castValue = pIastCharLiteralExpression.getCharacter();
     final Type charType = pIastCharLiteralExpression.getExpressionType();
 
-    return SymbolicValueFactory.getInstance().asConstant(createNumericValue(castValue), charType);
+    return ConstantSymbolicExpression.of(createNumericValue(castValue), charType);
   }
 
   public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression) {
     final FloatValue value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
-    return SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), floatType);
+    return ConstantSymbolicExpression.of(createNumericValue(value), floatType);
   }
 }
