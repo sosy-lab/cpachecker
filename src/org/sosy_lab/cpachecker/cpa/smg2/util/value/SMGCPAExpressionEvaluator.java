@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -302,7 +301,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -319,7 +318,7 @@ public class SMGCPAExpressionEvaluator {
         newState.copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndAddExternalObject(newObject));
 
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -340,7 +339,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -366,7 +365,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -667,7 +666,7 @@ public class SMGCPAExpressionEvaluator {
 
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
     return ValueAndSMGState.of(addressValue, newState);
   }

@@ -54,8 +54,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -287,8 +287,7 @@ public class ExpressionTransformer
       } else if (idValue.isUnknown()) {
         // Unknown is top, so we create a new value that does not have any constraints and put it in
         // the constraint
-        SymbolicValueFactory svf = SymbolicValueFactory.getInstance();
-        idValue = ConstantSymbolicExpression.of(svf.newIdentifier(null), type);
+        idValue = ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), type);
       }
 
       // The vv takes care of the transformations for us

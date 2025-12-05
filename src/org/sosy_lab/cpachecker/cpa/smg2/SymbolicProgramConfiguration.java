@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -1007,7 +1006,7 @@ public class SymbolicProgramConfiguration {
             pOldTargetObj, newTargetObj, pSpecifierToSwitch);
     SymbolicProgramConfiguration newSPC = copyAndReplaceSMG(newSMGAndNewValuesForMapping.getSMG());
     for (SMGValue newSMGValue : newSMGAndNewValuesForMapping.getSMGValues()) {
-      Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value newAddressValue = SymbolicIdentifier.of(null);
       newSPC =
           newSPC.copyAndPutValue(
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));

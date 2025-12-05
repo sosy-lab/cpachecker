@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -7051,7 +7051,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             null,
             dummyCFAEdge);
     // Pointer to the abstracted list
-    Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value pointer = SymbolicIdentifier.of(null);
     currentState =
         currentState.createAndAddPointer(
             pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);
@@ -7207,7 +7207,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             null,
             dummyCFAEdge);
     // First pointer to the abstracted list
-    Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value pointer = SymbolicIdentifier.of(null);
     currentState =
         currentState.createAndAddPointer(
             pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);

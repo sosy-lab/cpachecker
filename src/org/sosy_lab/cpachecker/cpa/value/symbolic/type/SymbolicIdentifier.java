@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIdentifier> {
 
+  private static UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
+
   @Serial private static final long serialVersionUID = -3773425414056328601L;
 
   // this objects unique id for identifying it
@@ -54,6 +57,14 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   public SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
     representedLocation = pRepresentedLocation;
+  }
+
+  public static SymbolicIdentifier of(MemoryLocation pMemoryLocation) {
+    return new SymbolicIdentifier(U_ID_GENERATOR.getFreshId(), pMemoryLocation);
+  }
+
+  public static void resetUIDGenerator() {
+    U_ID_GENERATOR = new UniqueIdGenerator();
   }
 
   @Override

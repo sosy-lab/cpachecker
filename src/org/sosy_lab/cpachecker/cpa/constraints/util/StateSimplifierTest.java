@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanOrEqualsExpres
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -43,8 +43,6 @@ public class StateSimplifierTest {
 
   private final StateSimplifier simplifier;
 
-  private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
   private final Type defaultNumericType = CNumericTypes.INT;
 
   private final SymbolicExpression number =
@@ -52,13 +50,13 @@ public class StateSimplifierTest {
 
   private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicExpression group1Id1 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id1 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id2 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defaultNumericType);
 
   private final Constraint group1Constraint1 =
       (Constraint)

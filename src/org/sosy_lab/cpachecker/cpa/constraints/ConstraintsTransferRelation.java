@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverRe
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -136,7 +136,7 @@ public class ConstraintsTransferRelation
   protected ConstraintsState handleBlankEdge(BlankEdge cfaEdge) {
     // FIXME: Find a better way to have consistent symbolic identifier names
     if (cfaEdge.getDescription().equals("INIT GLOBAL VARS")) {
-      SymbolicValueFactory.reset();
+      SymbolicIdentifier.resetUIDGenerator();
     }
     return state;
   }

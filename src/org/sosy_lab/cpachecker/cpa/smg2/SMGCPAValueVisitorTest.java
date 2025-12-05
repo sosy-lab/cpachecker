@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -272,7 +272,7 @@ public class SMGCPAValueVisitorTest {
   public void readStructDerefWithPointerValuesTest()
       throws InvalidConfigurationException, CPATransferException {
     List<Value> addresses = new ArrayList<>();
-    Value addressOfStructValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressOfStructValue = SymbolicIdentifier.of(null);
 
     addHeapVariableToMemoryModel(
         0, STRUCT_UNION_TEST_TYPES.size() * POINTER_SIZE_IN_BITS, addressOfStructValue);
@@ -282,7 +282,7 @@ public class SMGCPAValueVisitorTest {
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value as address
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValue = SymbolicIdentifier.of(null);
 
       writeToHeapObjectByAddress(
           addressOfStructValue, i * POINTER_SIZE_IN_BITS, POINTER_SIZE_IN_BITS, addressValue);
@@ -330,7 +330,7 @@ public class SMGCPAValueVisitorTest {
   public void readFieldDerefWithPointerValuesTest()
       throws InvalidConfigurationException, CPATransferException {
     List<Value> addresses = new ArrayList<>();
-    Value addressOfStructValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressOfStructValue = SymbolicIdentifier.of(null);
 
     addHeapVariableToMemoryModel(
         0, STRUCT_UNION_TEST_TYPES.size() * POINTER_SIZE_IN_BITS, addressOfStructValue);
@@ -340,7 +340,7 @@ public class SMGCPAValueVisitorTest {
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value as address
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValue = SymbolicIdentifier.of(null);
 
       writeToHeapObjectByAddress(
           addressOfStructValue, i * POINTER_SIZE_IN_BITS, POINTER_SIZE_IN_BITS, addressValue);
@@ -394,7 +394,7 @@ public class SMGCPAValueVisitorTest {
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
       // Create a Value as address
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValue = SymbolicIdentifier.of(null);
 
       writeToStackVariableInMemoryModel(
           COMPOSITE_VARIABLE_NAME, i * POINTER_SIZE_IN_BITS, POINTER_SIZE_IN_BITS, addressValue);
@@ -922,7 +922,7 @@ public class SMGCPAValueVisitorTest {
     for (CType currentValueArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentValueArrayType).intValue() * 8;
       // address to the heap where the array starts
-      Value addressValueArray = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValueArray = SymbolicIdentifier.of(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(
           0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValueArray);
@@ -941,7 +941,7 @@ public class SMGCPAValueVisitorTest {
       // variable and that is filled with pointers. Each pointer simply corrosponds to the same
       // position in the value array. so pointerArray[0] -> valueArray[0]
       // Stack variable holding the address (the pointer)
-      Value addressPointerArray = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressPointerArray = SymbolicIdentifier.of(null);
       addStackVariableToMemoryModel(pointerArrayName, POINTER_SIZE_IN_BITS);
       writeToStackVariableInMemoryModel(
           pointerArrayName, 0, POINTER_SIZE_IN_BITS, addressPointerArray);
@@ -1064,7 +1064,7 @@ public class SMGCPAValueVisitorTest {
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValue = SymbolicIdentifier.of(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer) to the array
@@ -1550,7 +1550,7 @@ public class SMGCPAValueVisitorTest {
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
-      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+      Value addressValue = SymbolicIdentifier.of(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
@@ -3227,7 +3227,7 @@ public class SMGCPAValueVisitorTest {
   private Value setupHeapStructAndFill(String stackVariableName, List<CType> listOfTypes)
       throws InvalidConfigurationException, SMGException {
     // Address of the struct on the heap
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
 
     // Add the heap object with padding, then map to stack var
     addHeapVariableToMemoryModel(
@@ -3262,7 +3262,7 @@ public class SMGCPAValueVisitorTest {
       throws InvalidConfigurationException, SMGException {
     int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
     // address to the heap where the array starts
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     // Create the array on the heap; size is type size in bits * size of array
     addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
     // Stack variable holding the address (the pointer)

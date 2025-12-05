@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
@@ -3204,7 +3203,7 @@ public class SMGState
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
     }
 
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value addressValue = SymbolicIdentifier.of(null);
     SMGState newState =
         createAndAddPointer(
             addressValue, targetObject, offsetInBits, pointerNestingLevel, pTargetSpecifier);
@@ -4658,8 +4657,7 @@ public class SMGState
     // This is slow with the solver later on.
 
     // Create a new, unique, symbolic value and add a == constraint to the given.
-    SymbolicIdentifier newSymbolicToBeAssigned =
-        SymbolicValueFactory.getInstance().newIdentifier(null);
+    SymbolicIdentifier newSymbolicToBeAssigned = SymbolicIdentifier.of(null);
     // Got all possible assignments. Now we need to assign them in all possible combinations.
     // Subscript is always int
     CType calcTypeForMemAccess = CNumericTypes.INT;
@@ -5410,7 +5408,7 @@ public class SMGState
 
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), currentState);
     }
-    Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value newAddressValue = SymbolicIdentifier.of(null);
     return ValueAndSMGState.of(
         newAddressValue,
         copyAndReplaceMemoryModel(
@@ -5442,8 +5440,7 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return ConstantSymbolicExpression.of(factory.newIdentifier(null), valueType);
+    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
   }
 
   /**
@@ -5458,8 +5455,7 @@ public class SMGState
     if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
       valueType = (CType) constSym.getType();
     }
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    return ConstantSymbolicExpression.of(factory.newIdentifier(null), valueType);
+    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
   }
 
   /**
@@ -7091,7 +7087,7 @@ public class SMGState
         SMGPointsToEdge ptEdgeToTarget =
             currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
         // Create new valid pointer and replace the old one in the source
-        Value ptrToCopiedTarget = SymbolicValueFactory.getInstance().newIdentifier(null);
+        Value ptrToCopiedTarget = SymbolicIdentifier.of(null);
         // TODO: is the nesting level and specifier here correct?
         currentState =
             currentState.createAndAddPointer(

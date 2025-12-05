@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -113,8 +112,6 @@ public class ConstraintsStrengthenOperator implements Statistics {
       return pValueState;
     }
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
     for (Entry<MemoryLocation, ValueAndType> e : pValueState.getConstants()) {
       Value currV = e.getValue().getValue();
       Type valueType = e.getValue().getType();
@@ -128,7 +125,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
       if (isIndependentInValueState(castVal, currLoc, pValueState)
           && doesNotAppearInConstraints(castVal, pConstraints)) {
         SymbolicValue newIdentifier =
-            ConstantSymbolicExpression.of(factory.newIdentifier(e.getKey()), valueType);
+            ConstantSymbolicExpression.of(SymbolicIdentifier.of(e.getKey()), valueType);
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
         logger.log(Level.FINE, "Replaced %s with %s", currV, newIdentifier);
         replacedSymbolicExpressions++;
