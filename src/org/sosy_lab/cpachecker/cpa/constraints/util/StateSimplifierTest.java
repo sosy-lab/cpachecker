@@ -21,9 +21,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -47,32 +44,29 @@ public class StateSimplifierTest {
   private final Type defaultNumericType = CNumericTypes.INT;
 
   private final SymbolicExpression number =
-      ConstantSymbolicExpression.of(new NumericValue(5), defaultNumericType);
+      factory.asConstant(new NumericValue(5), defaultNumericType);
 
   private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicExpression group1Id1 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id1 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group2Id2 =
-      ConstantSymbolicExpression.of(factory.newIdentifier(memLoc1), defaultNumericType);
+      factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
 
   private final Constraint group1Constraint1 =
       (Constraint)
-          SymbolicValueFactory.greaterThanOrEqual(
-              group1Id1, group1Id2, defaultNumericType, defaultNumericType);
+          factory.greaterThanOrEqual(group1Id1, group1Id2, defaultNumericType, defaultNumericType);
   private final Constraint group1Constraint2 =
       (Constraint)
-          LessThanOrEqualExpression.of(
-              group1Id2, group1Id1, defaultNumericType, defaultNumericType);
+          factory.lessThanOrEqual(group1Id2, group1Id1, defaultNumericType, defaultNumericType);
 
   private final Constraint group2Constraint1 =
-      (Constraint) LessThanExpression.of(group2Id1, number, defaultNumericType, defaultNumericType);
+      (Constraint) factory.lessThan(group2Id1, number, defaultNumericType, defaultNumericType);
   private final Constraint group2Constraint2 =
-      (Constraint)
-          LessThanExpression.of(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
+      (Constraint) factory.lessThan(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
 
   private final MemoryLocation group1MemLoc1 = MemoryLocation.forIdentifier("a");
   private final MemoryLocation group1MemLoc2 = MemoryLocation.forIdentifier("b");

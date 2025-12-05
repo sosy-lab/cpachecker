@@ -91,17 +91,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -335,15 +327,46 @@ public abstract class AbstractExpressionValueVisitor
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
-      BinaryOperator pOperator,
+      CBinaryExpression.BinaryOperator pOperator,
       CType pExpressionType,
       CType pCalculationType) {
 
-    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
-    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression leftOperand;
+    SymbolicExpression rightOperand;
 
-    return BinarySymbolicExpression.of(
-        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
+    leftOperand = factory.asConstant(pLeftValue, pLeftType);
+    rightOperand = factory.asConstant(pRightValue, pRightType);
+
+    return switch (pOperator) {
+      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY ->
+          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT ->
+          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_AND ->
+          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR ->
+          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR ->
+          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS ->
+          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN ->
+          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN ->
+          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+    };
   }
 
   /**
@@ -1208,11 +1231,12 @@ public abstract class AbstractExpressionValueVisitor
 
   private Value createSymbolicExpression(
       Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
-    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case MINUS -> NegationExpression.of(operand, pExpressionType);
-      case TILDE -> BinaryNotExpression.of(operand, pExpressionType);
+      case MINUS -> factory.negate(operand, pExpressionType);
+      case TILDE -> factory.binaryNot(operand, pExpressionType);
       default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     };
   }
@@ -1336,11 +1360,46 @@ public abstract class AbstractExpressionValueVisitor
       JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
 
-    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
-    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    return BinarySymbolicExpression.of(
-        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
+    return switch (pOperator) {
+      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY ->
+          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_SIGNED ->
+          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_UNSIGNED ->
+          factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_AND ->
+          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_AND ->
+          factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR ->
+          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_OR ->
+          factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR, LOGICAL_XOR ->
+          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS ->
+          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN ->
+          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN ->
+          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
+    };
   }
 
   /*
@@ -1618,12 +1677,13 @@ public abstract class AbstractExpressionValueVisitor
       JUnaryExpression.UnaryOperator pUnaryOperator,
       JType pExpressionType) {
 
-    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case COMPLEMENT -> BinaryNotExpression.of(operand, pExpressionType);
-      case NOT -> LogicalNotExpression.of(operand, pExpressionType);
-      case MINUS -> NegationExpression.of(operand, pExpressionType);
+      case COMPLEMENT -> factory.binaryNot(operand, pExpressionType);
+      case NOT -> factory.logicalNot(operand, pExpressionType);
+      case MINUS -> factory.negate(operand, pExpressionType);
       case PLUS -> pValue;
     };
   }
@@ -2095,10 +2155,12 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
     if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return CastExpression.of(symbolicValue, pTargetType);
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2247,27 +2309,26 @@ public abstract class AbstractExpressionValueVisitor
 
         int parameterBitSize = pMachineModel.getSizeofInBits(argumentType);
 
-        SymbolicExpression one =
-            ConstantSymbolicExpression.of(new NumericValue(1), CNumericTypes.INT);
+        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
-            BinaryAndExpression.of(symbolicParam, one, CNumericTypes.INT, argumentType);
+            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, argumentType);
 
         // Add up the bits one by one
         // sum of ((castParamValue >> i) & 1)
         for (int i = 1; i < parameterBitSize; i++) {
           SymbolicExpression countOfBitAtIndex =
-              BinaryAndExpression.of(
-                  ShiftRightExpression.ofUnsigned(
+              factory.binaryAnd(
+                  factory.shiftRightUnsigned(
                       symbolicParam,
-                      ConstantSymbolicExpression.of(new NumericValue(i), CNumericTypes.INT),
+                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
                       argumentType,
                       argumentType),
                   one,
                   CNumericTypes.INT,
                   argumentType);
           constraint =
-              AdditionExpression.of(
-                  constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
         return constraint;
       }

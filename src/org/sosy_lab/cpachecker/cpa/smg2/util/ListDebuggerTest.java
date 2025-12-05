@@ -23,7 +23,6 @@ import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ListDebugger.ListElement;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -64,11 +63,9 @@ public class ListDebuggerTest {
             Optional.empty(),
             Optional.empty(),
             ImmutableMap.of(
-                0,
-                ConstantSymbolicExpression.of(symFactory.newIdentifier(null), CNumericTypes.INT)),
+                0, symFactory.asConstant(symFactory.newIdentifier(null), CNumericTypes.INT)),
             ImmutableMap.of());
-    Value symValue =
-        ConstantSymbolicExpression.of(symFactory.newIdentifier(null), CNumericTypes.INT);
+    Value symValue = symFactory.asConstant(symFactory.newIdentifier(null), CNumericTypes.INT);
     ListElement nestedNonZeroWAbstrValue2 =
         new ListElement(
             Optional.empty(),

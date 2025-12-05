@@ -45,15 +45,6 @@ public final class EqualsExpression extends BinarySymbolicExpression implements 
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
   }
 
-  public static EqualsExpression of(
-      SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2,
-      Type pType,
-      Type pCalculationType) {
-    return new EqualsExpression(
-        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
-  }
-
   @Override
   public EqualsExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new EqualsExpression(
