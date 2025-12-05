@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -35,24 +34,5 @@ public class SymbolicValueFactory {
 
   public SymbolicIdentifier newIdentifier(MemoryLocation pMemoryLocation) {
     return new SymbolicIdentifier(idCounter++, pMemoryLocation);
-  }
-
-  public static SymbolicExpression greaterThanOrEqual(
-      SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2,
-      Type pType,
-      Type pCalculationType) {
-
-    // represent 'a >= b' as 'b <= a' so we do need less classes
-    return new LessThanOrEqualExpression(
-        pOperand2, pOperand1, getCanonicalType(pType), getCanonicalType(pCalculationType));
-  }
-
-  private static Type getCanonicalType(Type pType) {
-    if (pType instanceof CType cType) {
-      return cType.getCanonicalType();
-    } else {
-      return pType;
-    }
   }
 }

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanOrEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -61,7 +62,7 @@ public class StateSimplifierTest {
 
   private final Constraint group1Constraint1 =
       (Constraint)
-          SymbolicValueFactory.greaterThanOrEqual(
+          GreaterThanOrEqualsExpression.of(
               group1Id1, group1Id2, defaultNumericType, defaultNumericType);
   private final Constraint group1Constraint2 =
       (Constraint)

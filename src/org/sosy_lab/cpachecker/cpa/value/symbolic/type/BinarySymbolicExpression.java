@@ -153,8 +153,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
           GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >=
       case JBinaryExpression.BinaryOperator.GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              pOperand1, pOperand2, pExpressionType, pCalculationType);
+          GreaterThanOrEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >>>
       case JBinaryExpression.BinaryOperator.SHIFT_RIGHT_UNSIGNED ->
           ShiftRightExpression.ofUnsigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
@@ -234,8 +233,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
           GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
       // >=
       case BinaryOperator.GREATER_EQUAL ->
-          SymbolicValueFactory.greaterThanOrEqual(
-              pOperand1, pOperand2, pExpressionType, pCalculationType);
+          GreaterThanOrEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
     };
   }
 

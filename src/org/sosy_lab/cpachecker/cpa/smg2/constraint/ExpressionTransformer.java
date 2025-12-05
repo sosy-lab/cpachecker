@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.GreaterThanOrEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
@@ -427,7 +428,7 @@ public class ExpressionTransformer
 
     // offset >= 0
     SymbolicExpression offsetLessZero =
-        SymbolicValueFactory.greaterThanOrEqual(
+        GreaterThanOrEqualsExpression.of(
             symbOffsetValue, zeroValue, comparisonType, comparisonType);
     constraintBuilder.add((Constraint) offsetLessZero);
 
