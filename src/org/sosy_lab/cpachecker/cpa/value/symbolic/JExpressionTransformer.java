@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
@@ -135,7 +136,7 @@ public class JExpressionTransformer extends ExpressionTransformer
           EqualsExpression.of(
               operand1Expression, operand2Expression, expressionType, expressionType);
       case NOT_EQUALS ->
-          SymbolicValueFactory.notEqual(
+          NotEqualsExpression.of(
               operand1Expression, operand2Expression, expressionType, expressionType);
       case LESS_THAN ->
           LessThanExpression.of(

@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
@@ -192,7 +193,7 @@ public class ExpressionTransformer
                   EqualsExpression.of(
                       operand1Expression, operand2Expression, expressionType, calculationType);
               case NOT_EQUALS ->
-                  SymbolicValueFactory.notEqual(
+                  NotEqualsExpression.of(
                       operand1Expression, operand2Expression, expressionType, calculationType);
               case LESS_THAN ->
                   LessThanExpression.of(
@@ -359,8 +360,7 @@ public class ExpressionTransformer
 
     // size != 0
     return (Constraint)
-        SymbolicValueFactory.notEqual(
-            memoryRegionSizeValue, zeroValue, calculationType, calculationType);
+        NotEqualsExpression.of(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
   /**
@@ -433,7 +433,7 @@ public class ExpressionTransformer
         ConstantSymbolicExpression.of(valueUnequalTo, comparisonType).copyForState(currentState);
 
     return (Constraint)
-        SymbolicValueFactory.notEqual(
+        NotEqualsExpression.of(
             constSymbolicValueUnequalTo, constValueUnequalTo, comparisonType, comparisonType);
   }
 

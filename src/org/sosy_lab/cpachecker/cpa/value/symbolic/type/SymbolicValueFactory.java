@@ -37,17 +37,6 @@ public class SymbolicValueFactory {
     return new SymbolicIdentifier(idCounter++, pMemoryLocation);
   }
 
-  public static SymbolicExpression notEqual(
-      SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2,
-      Type pType,
-      Type pCalculationType) {
-    return LogicalNotExpression.of(
-        EqualsExpression.of(
-            pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType)),
-        pType);
-  }
-
   public static SymbolicExpression greaterThan(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -43,7 +44,7 @@ public class ConstraintsMergeOperatorTest {
 
   private final Constraint posConst = EqualsExpression.of(idExp1, numExp1, defType, defType);
   private final Constraint negConst =
-      (Constraint) SymbolicValueFactory.notEqual(idExp1, numExp1, defType, defType);
+      (Constraint) NotEqualsExpression.of(idExp1, numExp1, defType, defType);
 
   @Test
   public void testMerge_mergePossible() {

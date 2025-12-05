@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalOrExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
@@ -379,8 +380,7 @@ public abstract class AbstractExpressionValueVisitor
       case EQUALS ->
           EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
-          SymbolicValueFactory.notEqual(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
+          NotEqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_THAN ->
           LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL ->
@@ -1420,8 +1420,7 @@ public abstract class AbstractExpressionValueVisitor
       case EQUALS ->
           EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
-          SymbolicValueFactory.notEqual(
-              leftOperand, rightOperand, pExpressionType, pCalculationType);
+          NotEqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_THAN ->
           LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL ->

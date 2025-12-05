@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
@@ -138,7 +139,7 @@ public class CExpressionTransformer extends ExpressionTransformer
           EqualsExpression.of(
               operand1Expression, operand2Expression, calculationType, calculationType);
       case NOT_EQUALS ->
-          SymbolicValueFactory.notEqual(
+          NotEqualsExpression.of(
               operand1Expression, operand2Expression, calculationType, calculationType);
       case LESS_THAN ->
           LessThanExpression.of(
