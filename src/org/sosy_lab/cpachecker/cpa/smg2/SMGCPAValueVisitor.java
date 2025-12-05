@@ -71,8 +71,24 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffs
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryOrExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryXorExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.MultiplicationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftLeftExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SubtractionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -1305,12 +1321,11 @@ public class SMGCPAValueVisitor
   // Copied from value CPA
   private Value createSymbolicExpression(
       Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
+    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case MINUS -> factory.negate(operand, pExpressionType);
-      case TILDE -> factory.binaryNot(operand, pExpressionType);
+      case MINUS -> NegationExpression.of(operand, pExpressionType);
+      case TILDE -> BinaryNotExpression.of(operand, pExpressionType);
       default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     };
   }
@@ -1319,10 +1334,9 @@ public class SMGCPAValueVisitor
 
   /** Taken from the value analysis CPA and modified. Casts symbolic {@link Value}s. */
   private Value castSymbolicValue(Value pValue, Type pTargetType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue symbolicValue && pTargetType instanceof CSimpleType) {
-      return factory.cast(symbolicValue, pTargetType);
+      return CastExpression.of(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2249,9 +2263,8 @@ public class SMGCPAValueVisitor
           "Error when creating a symbolic expression. Please inform the maintainer of SMG2.");
     }
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
-    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
+    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
     // Simplify floating point expressions
     // TODO Add more simplifications
@@ -2283,27 +2296,27 @@ public class SMGCPAValueVisitor
 
     if (pLeftValue.isNumericValue()) {
       BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
-      rightOperand = factory.asConstant(pRightValue, pRightType);
+      rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
       if ((pOperator == BinaryOperator.PLUS && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ONE))) {
         if (!pLeftType.equals(pExpressionType)) {
-          return factory.cast(rightOperand, pExpressionType);
+          return CastExpression.of(rightOperand, pExpressionType);
         }
         return rightOperand;
       } else if (pOperator == BinaryOperator.MINUS && leftNum.equals(BigInteger.ZERO)) {
-        return factory.negate(rightOperand, pExpressionType);
+        return NegationExpression.of(rightOperand, pExpressionType);
       } else if ((pOperator == BinaryOperator.MULTIPLY && leftNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.DIVIDE && leftNum.equals(BigInteger.ZERO))) {
         return new NumericValue(BigInteger.ZERO);
       }
     } else if (pRightValue.isNumericValue()) {
-      leftOperand = factory.asConstant(pLeftValue, pLeftType);
+      leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
       BigInteger rightNum = pRightValue.asNumericValue().bigIntegerValue();
       if ((pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ONE))
           || (pOperator == BinaryOperator.PLUS && rightNum.equals(BigInteger.ZERO))
           || (pOperator == BinaryOperator.MINUS && rightNum.equals(BigInteger.ZERO))) {
         if (!pLeftType.equals(pExpressionType)) {
-          return factory.cast(leftOperand, pExpressionType);
+          return CastExpression.of(leftOperand, pExpressionType);
         }
         return leftOperand;
       } else if (pOperator == BinaryOperator.MULTIPLY && rightNum.equals(BigInteger.ZERO)) {
@@ -2312,33 +2325,43 @@ public class SMGCPAValueVisitor
     }
 
     return switch (pOperator) {
-      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case PLUS ->
+          AdditionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS ->
+          SubtractionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case MULTIPLY ->
-          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          MultiplicationExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE ->
+          DivisionExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO ->
+          ModuloExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_LEFT ->
-          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          ShiftLeftExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT ->
-          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          ShiftRightExpression.ofSigned(
+              leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND ->
-          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          BinaryAndExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_OR ->
-          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          BinaryOrExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_XOR ->
-          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          BinaryXorExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS ->
+          EqualsExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
-          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          SymbolicValueFactory.notEqual(
+              leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_THAN ->
-          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          LessThanExpression.of(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL ->
-          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          LessThanOrEqualExpression.of(
+              leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_THAN ->
-          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          SymbolicValueFactory.greaterThan(
+              leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
-          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+          SymbolicValueFactory.greaterThanOrEqual(
+              leftOperand, rightOperand, pExpressionType, pCalculationType);
     };
   }
 
@@ -2718,12 +2741,11 @@ public class SMGCPAValueVisitor
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast(symbolicValue, pTargetType);
+      return CastExpression.of(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
