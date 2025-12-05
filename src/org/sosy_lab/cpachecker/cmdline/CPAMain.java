@@ -643,56 +643,32 @@ public class CPAMain {
       }
       propertyName = "memory safety";
       alternateConfigFile = check(options.memsafetyConfig, propertyName, "memorysafety.config");
-    } else if (properties.contains(CommonVerificationProperty.VALID_MEMCLEANUP)) {
-      if (properties.size() != 1) {
-        // MemCleanup property cannot be checked with others in combination
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+
+    } else if (isProperty(properties, CommonVerificationProperty.VALID_MEMCLEANUP)) {
       propertyName = "memory cleanup";
       alternateConfigFile = check(options.memcleanupConfig, propertyName, "memorycleanup.config");
-    } else if (properties.contains(CommonVerificationProperty.OVERFLOW)) {
-      if (properties.size() != 1) {
-        // Overflow property cannot be checked with others in combination
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+
+    } else if (isProperty(properties, CommonVerificationProperty.OVERFLOW)) {
       propertyName = "overflows";
       alternateConfigFile = check(options.overflowConfig, propertyName, "overflow.config");
-    } else if (properties.contains(CommonVerificationProperty.DATA_RACE)) {
-      if (properties.size() != 1) {
-        // Data race property cannot be checked with others in combination
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+
+    } else if (isProperty(properties, CommonVerificationProperty.DATA_RACE)) {
       propertyName = "data races";
       alternateConfigFile = check(options.dataraceConfig, propertyName, "datarace.config");
-    } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
-      // Termination property cannot be checked with others in combination
-      if (properties.size() != 1) {
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+
+    } else if (isProperty(properties, CommonVerificationProperty.TERMINATION)) {
       propertyName = "termination";
       alternateConfigFile = check(options.terminationConfig, propertyName, "termination.config");
-    } else if (properties.contains(CommonCoverageProperty.COVERAGE_ERROR)
-        || properties.contains(CommonCoverageProperty.COVERAGE_BRANCH)
-        || properties.contains(CommonCoverageProperty.COVERAGE_CONDITION)
-        || properties.contains(CommonCoverageProperty.COVERAGE_STATEMENT)) {
-      // coverage criterion cannot be checked with other properties in combination
-      if (properties.size() != 1) {
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+
+    } else if (from(properties).anyMatch(CommonCoverageProperty.class::isInstance)) {
+      requireSingleProperty(properties);
       return Configuration.builder()
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
+
     } else if (from(properties).anyMatch(CoverFunctionCallProperty.class::isInstance)) {
-      if (properties.size() != 1) {
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
+      requireSingleProperty(properties);
       return Configuration.builder()
           .copyFrom(config)
           .setOption("testcase.targets.type", "FUN_CALL")
@@ -711,6 +687,28 @@ public class CPAMain {
           .build();
     }
     return config;
+  }
+
+  /**
+   * Check if set of properties contains the given property, and throw an exception if there are
+   * others.
+   */
+  private static boolean isProperty(Set<Property> properties, Property property)
+      throws InvalidConfigurationException {
+    if (properties.contains(property)) {
+      requireSingleProperty(properties);
+      return true;
+    }
+    return false;
+  }
+
+  /** Throw an exception about unsupported combination of properties if set has several entries. */
+  private static void requireSingleProperty(Set<Property> properties)
+      throws InvalidConfigurationException {
+    if (properties.size() != 1) {
+      throw new InvalidConfigurationException(
+          "Unsupported combination of properties: " + properties);
+    }
   }
 
   private static Path check(Path config, String verificationTarget, String optionName)
