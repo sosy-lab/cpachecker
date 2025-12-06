@@ -82,7 +82,33 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
 
   @Override
   public String toASTString() {
-    throw new UnsupportedOperationException("Not implemented yet");
+
+    StringBuilder astStringBuilder = new StringBuilder();
+    astStringBuilder.append(name).append(" (");
+
+    for (int i = 0; i < parameters.size(); i++) {
+      astStringBuilder.append("(").append(parameters.get(i).getName())
+          .append(" ")
+          .append(parameters.get(i).getType().toASTString())
+          .append(")");
+    }
+    astStringBuilder.append(") (");
+    for (int i = 0; i < returnValues.size(); i++) {
+      astStringBuilder.append("(").append(returnValues.get(i).getName())
+          .append(" ")
+          .append(returnValues.get(i).getType().toASTString())
+          .append(")");
+    }
+    astStringBuilder.append(") (");
+    for (int i = 0; i < localVariables.size(); i++) {
+      astStringBuilder.append("(").append(localVariables.get(i).getName())
+          .append(" ")
+          .append(localVariables.get(i).getType().toASTString())
+          .append(")");
+    }
+    astStringBuilder.append(")");
+
+    return astStringBuilder.toString();
   }
 
   public ImmutableList<SvLibParsingParameterDeclaration> getParameters() {
