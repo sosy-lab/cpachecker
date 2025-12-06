@@ -8,4 +8,48 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
-public class SvLibAstSerializationTest {}
+import com.google.common.base.Joiner;
+import com.google.common.truth.Truth;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+
+public class SvLibAstSerializationTest {
+  private String examplesPath() {
+    return Path.of("test", "programs", "sv-lib").toAbsolutePath().toString();
+  }
+
+  private void testAstSerialization(Path inputPath) throws SvLibAstParseException {
+
+    String programString;
+    try {
+      programString = Joiner.on("\n").join(Files.readAllLines(inputPath));
+    } catch (IOException e) {
+      throw new SvLibAstParseException("Could not read input file: " + inputPath, e);
+    }
+    SvLibParsingResult parsed = SvLibToAstParser.parseScript(programString);
+
+    StringBuilder stringBuilder = new StringBuilder();
+    for (int i = 0; i < parsed.script().getCommands().size(); i++) {
+      stringBuilder.append(parsed.script().getCommands().get(i).toASTString());
+    }
+
+    String roundtripProgramString = stringBuilder.toString();
+    SvLibParsingResult roundtripParsed = SvLibToAstParser.parseScript(roundtripProgramString);
+
+    Truth.assertWithMessage("Scripts have different number of commands")
+        .that(parsed.script().getCommands().size())
+        .isEqualTo(roundtripParsed.script().getCommands().size());
+
+    for (int i = 0; i < parsed.script().getCommands().size(); i++) {
+      SvLibCommand parsedCommand = parsed.script().getCommands().get(i);
+      SvLibCommand roundtripParsedCommand = roundtripParsed.script().getCommands().get(i);
+      Truth.assertWithMessage("Command %s differs", i)
+          .that(parsedCommand)
+          .isEqualTo(roundtripParsedCommand);
+    }
+  }
+}
