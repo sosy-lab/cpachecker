@@ -13,6 +13,7 @@ import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
@@ -51,5 +52,11 @@ public class SvLibAstSerializationTest {
           .that(parsedCommand)
           .isEqualTo(roundtripParsedCommand);
     }
+  }
+
+  @Test
+  public void parseVerySimpleSequenceProgram() throws SvLibAstParseException {
+    Path filepath = Path.of(examplesPath(), "very-simple-sequence.svlib");
+    testAstSerialization(filepath);
   }
 }
