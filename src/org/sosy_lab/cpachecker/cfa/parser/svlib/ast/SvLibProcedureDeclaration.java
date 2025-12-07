@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -82,33 +83,41 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
 
   @Override
   public String toASTString() {
-
-    StringBuilder astStringBuilder = new StringBuilder();
-    astStringBuilder.append(name).append(" (");
-
-    for (int i = 0; i < parameters.size(); i++) {
-      astStringBuilder.append("(").append(parameters.get(i).getName())
-          .append(" ")
-          .append(parameters.get(i).getType().toASTString())
-          .append(")");
-    }
-    astStringBuilder.append(") (");
-    for (int i = 0; i < returnValues.size(); i++) {
-      astStringBuilder.append("(").append(returnValues.get(i).getName())
-          .append(" ")
-          .append(returnValues.get(i).getType().toASTString())
-          .append(")");
-    }
-    astStringBuilder.append(") (");
-    for (int i = 0; i < localVariables.size(); i++) {
-      astStringBuilder.append("(").append(localVariables.get(i).getName())
-          .append(" ")
-          .append(localVariables.get(i).getType().toASTString())
-          .append(")");
-    }
-    astStringBuilder.append(")");
-
-    return astStringBuilder.toString();
+    return name
+        + " "
+        + (!parameters.isEmpty()
+            ? "(("
+                + Joiner.on(") (")
+                    .join(
+                        parameters.stream()
+                            .map(param -> param.getName() + " " + param.getType().toASTString())
+                            .toList())
+                + "))"
+            : "()")
+        + " "
+        + (!returnValues.isEmpty()
+            ? "(("
+                + Joiner.on(") (")
+                    .join(
+                        returnValues.stream()
+                            .map(
+                                returnValue ->
+                                    returnValue.getName()
+                                        + " "
+                                        + returnValue.getType().toASTString())
+                            .toList())
+                + "))"
+            : "()")
+        + " "
+        + (!localVariables.isEmpty()
+            ? "(("
+                + Joiner.on(") (")
+                    .join(
+                        localVariables.stream()
+                            .map(local -> local.getName() + " " + local.getType().toASTString())
+                            .toList())
+                + "))"
+            : "()");
   }
 
   public ImmutableList<SvLibParsingParameterDeclaration> getParameters() {
