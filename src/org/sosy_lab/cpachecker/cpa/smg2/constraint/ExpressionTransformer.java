@@ -157,7 +157,7 @@ public class ExpressionTransformer
               case DIVIDE ->
                   factory.divide(
                       operand1Expression, operand2Expression, expressionType, calculationType);
-              case MODULO ->
+              case REMAINDER ->
                   factory.modulo(
                       operand1Expression, operand2Expression, expressionType, calculationType);
               case SHIFT_LEFT ->

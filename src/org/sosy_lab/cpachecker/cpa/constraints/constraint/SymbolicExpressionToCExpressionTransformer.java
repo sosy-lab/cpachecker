@@ -225,7 +225,7 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(ModuloExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.MODULO);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.REMAINDER);
   }
 
   @Override

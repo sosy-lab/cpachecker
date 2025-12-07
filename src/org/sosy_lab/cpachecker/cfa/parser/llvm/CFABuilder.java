@@ -1026,7 +1026,7 @@ class CFABuilder {
           case UDiv, SDiv, FDiv ->
               BinaryOperator.DIVIDE; // TODO: Respect unsigned and signed divide
           case URem, SRem, FRem ->
-              BinaryOperator.MODULO; // TODO: Respect unsigned and signed modulo
+              BinaryOperator.REMAINDER; // TODO: Respect unsigned and signed modulo
           case Shl -> BinaryOperator.SHIFT_LEFT;
           case LShr, AShr -> {
             // Logical shift right

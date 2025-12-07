@@ -2317,7 +2317,8 @@ public class SMGCPAValueVisitor
       case MULTIPLY ->
           factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case REMAINDER ->
+          factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_LEFT ->
           factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT ->
@@ -2441,7 +2442,7 @@ public class SMGCPAValueVisitor
             }
             return UnsignedLongs.divide(l, r);
           }
-          case MODULO -> {
+          case REMAINDER -> {
             return UnsignedLongs.remainder(l, r);
           }
           case SHIFT_RIGHT -> {
@@ -2473,7 +2474,7 @@ public class SMGCPAValueVisitor
         }
         return l / r;
       }
-      case MODULO -> {
+      case REMAINDER -> {
         return l % r;
       }
       case MULTIPLY -> {
@@ -2535,7 +2536,7 @@ public class SMGCPAValueVisitor
         }
         return l.divide(r);
       }
-      case MODULO -> {
+      case REMAINDER -> {
         return l.mod(r);
       }
       case MULTIPLY -> {
@@ -2590,7 +2591,7 @@ public class SMGCPAValueVisitor
       case PLUS -> pArg1.add(pArg2);
       case MINUS -> pArg1.subtract(pArg2);
       case DIVIDE -> pArg1.divide(pArg2);
-      case MODULO -> pArg1.modulo(pArg2);
+      case REMAINDER -> pArg1.modulo(pArg2);
       case MULTIPLY -> pArg1.multiply(pArg2);
       case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
           throw new UnsupportedOperationException(
@@ -2754,7 +2755,7 @@ public class SMGCPAValueVisitor
       case PLUS,
           MINUS,
           DIVIDE,
-          MODULO,
+          REMAINDER,
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,

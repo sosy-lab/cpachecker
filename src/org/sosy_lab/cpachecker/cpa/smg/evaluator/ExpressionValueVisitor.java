@@ -393,7 +393,7 @@ class ExpressionValueVisitor
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));
       }
-      case MODULO -> {
+      case REMAINDER -> {
         boolean isZero = lVal.equals(rVal);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         yield singletonList(SMGValueAndState.of(newState, val));

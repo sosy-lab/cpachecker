@@ -546,7 +546,7 @@ public class SimpleIntProviderFactory {
 
   private static boolean isArithmeticOperation(CBinaryExpression exp) {
     switch (exp.getOperator()) {
-      case DIVIDE, MINUS, MODULO, MULTIPLY, PLUS -> {
+      case DIVIDE, MINUS, REMAINDER, MULTIPLY, PLUS -> {
         // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
         return true;
       }

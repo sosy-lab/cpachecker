@@ -133,7 +133,7 @@ public class BDDVectorCExpressionVisitor
       case PLUS,
           MINUS,
           DIVIDE,
-          MODULO,
+          REMAINDER,
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,
@@ -177,7 +177,7 @@ public class BDDVectorCExpressionVisitor
       case DIVIDE -> // this would be working for constant numbers (2/3, x/3),
           // however timeout for variables (a/b -> exponential bdd-size).
           bvmgr.makeDiv(l, r, signed);
-      case MODULO -> // this would be working for constant numbers (2%3, x%3),
+      case REMAINDER -> // this would be working for constant numbers (2%3, x%3),
           // however timeout for variables (a%b -> exponential bdd-size).
           bvmgr.makeMod(l, r, signed);
       case MULTIPLY -> // this should be working for constant numbers (2*3, x*3),

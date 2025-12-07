@@ -237,7 +237,7 @@ public class ExpressionToFormulaVisitor
       }
       case MULTIPLY -> ret = mgr.makeMultiply(f1, f2);
       case DIVIDE -> ret = mgr.makeDivide(f1, f2, signed);
-      case MODULO -> {
+      case REMAINDER -> {
         // Modulo in C is remainder in SMTLIB2
         ret = mgr.makeRemainder(f1, f2, signed);
 

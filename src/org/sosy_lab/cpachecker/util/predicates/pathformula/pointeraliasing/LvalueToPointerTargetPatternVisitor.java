@@ -70,7 +70,7 @@ class LvalueToPointerTargetPatternVisitor
             GREATER_THAN,
             LESS_EQUAL,
             LESS_THAN,
-            MODULO,
+            REMAINDER,
             MULTIPLY,
             NOT_EQUALS,
             SHIFT_LEFT,

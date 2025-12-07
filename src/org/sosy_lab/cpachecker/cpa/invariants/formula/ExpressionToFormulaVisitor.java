@@ -347,7 +347,7 @@ public class ExpressionToFormulaVisitor
                   "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
             }
           }
-          case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+          case REMAINDER -> compoundIntervalFormulaManager.modulo(left, right);
           case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
           case NOT_EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(

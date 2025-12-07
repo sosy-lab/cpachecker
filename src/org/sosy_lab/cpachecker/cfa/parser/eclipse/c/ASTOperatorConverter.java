@@ -56,7 +56,7 @@ class ASTOperatorConverter {
     switch (e.getOperator()) {
       case IASTBinaryExpression.op_multiply -> operator = BinaryOperator.MULTIPLY;
       case IASTBinaryExpression.op_divide -> operator = BinaryOperator.DIVIDE;
-      case IASTBinaryExpression.op_modulo -> operator = BinaryOperator.MODULO;
+      case IASTBinaryExpression.op_modulo -> operator = BinaryOperator.REMAINDER;
       case IASTBinaryExpression.op_plus -> operator = BinaryOperator.PLUS;
       case IASTBinaryExpression.op_minus -> operator = BinaryOperator.MINUS;
       case IASTBinaryExpression.op_shiftLeft -> operator = BinaryOperator.SHIFT_LEFT;
@@ -81,7 +81,7 @@ class ASTOperatorConverter {
         isAssign = true;
       }
       case IASTBinaryExpression.op_moduloAssign -> {
-        operator = BinaryOperator.MODULO;
+        operator = BinaryOperator.REMAINDER;
         isAssign = true;
       }
       case IASTBinaryExpression.op_plusAssign -> {

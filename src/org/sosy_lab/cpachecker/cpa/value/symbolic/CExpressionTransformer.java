@@ -96,7 +96,7 @@ public class CExpressionTransformer extends ExpressionTransformer
               operand1Expression, operand2Expression, calculationType, calculationType);
       case DIVIDE ->
           factory.divide(operand1Expression, operand2Expression, calculationType, calculationType);
-      case MODULO ->
+      case REMAINDER ->
           factory.modulo(operand1Expression, operand2Expression, calculationType, calculationType);
       case SHIFT_LEFT ->
           factory.shiftLeft(

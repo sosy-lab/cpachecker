@@ -111,7 +111,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
      * value of the second operand is zero, the behavior is undefined. More details can be found in
      * the standard. Note: modulo is defined distinctly, and there is no modulo operator in C!
      */
-    MODULO("%"),
+    REMAINDER("%"),
     /**
      * Binary + (additive) operator, defined in the C11 standard §6.5.6 as the sum of the operands
      * for arithmetic types. Pointers are handled distinctly! More details can be found in the
@@ -223,7 +223,7 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       return switch (this) {
         case MULTIPLY,
             DIVIDE,
-            MODULO,
+            REMAINDER,
             PLUS,
             MINUS,
             SHIFT_LEFT,

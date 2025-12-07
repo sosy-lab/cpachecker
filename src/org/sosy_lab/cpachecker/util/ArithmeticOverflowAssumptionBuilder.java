@@ -322,7 +322,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
                   op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType)));
         }
       } else if (trackDivisions
-          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
+          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.REMAINDER))) {
         if (lowerBounds.get(calculationType) != null) {
           ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
@@ -533,7 +533,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             BINARY_OR,
             EQUALS,
             NOT_EQUALS,
-            MODULO ->
+            REMAINDER ->
             false;
       };
     } else if (expr instanceof CUnaryExpression cUnaryExpression) {

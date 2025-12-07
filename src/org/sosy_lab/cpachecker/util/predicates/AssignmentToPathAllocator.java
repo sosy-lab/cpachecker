@@ -212,7 +212,7 @@ public class AssignmentToPathAllocator {
         case CBinaryExpression binExp -> {
           String opString = binExp.getOperator().getOperator();
           switch (binExp.getOperator()) {
-            case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+            case MULTIPLY, REMAINDER, DIVIDE -> opString = "_" + opString;
             default -> {
               // default
             }

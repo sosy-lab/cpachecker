@@ -63,7 +63,7 @@ public class ACSLTermToCExpressionVisitor
             case MINUS -> CBinaryExpression.BinaryOperator.MINUS;
             case TIMES -> CBinaryExpression.BinaryOperator.MULTIPLY;
             case DIVIDE -> CBinaryExpression.BinaryOperator.DIVIDE;
-            case MOD -> CBinaryExpression.BinaryOperator.MODULO;
+            case MOD -> CBinaryExpression.BinaryOperator.REMAINDER;
             case LSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_LEFT;
             case RSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
             case EQ -> CBinaryExpression.BinaryOperator.EQUALS;

@@ -76,7 +76,8 @@ public class CBinaryExpressionBuilder {
 
   @SuppressWarnings("unused")
   private static final ImmutableSet<BinaryOperator> multiplicativeOperators =
-      Sets.immutableEnumSet(BinaryOperator.MULTIPLY, BinaryOperator.MODULO, BinaryOperator.DIVIDE);
+      Sets.immutableEnumSet(
+          BinaryOperator.MULTIPLY, BinaryOperator.REMAINDER, BinaryOperator.DIVIDE);
 
   private static final ImmutableSet<BinaryOperator> bitwiseOperators =
       Sets.immutableEnumSet(
