@@ -33,21 +33,19 @@ public class SvLibAstSerializationTest {
     }
     SvLibParsingResult parsed = SvLibToAstParser.parseScript(programString);
 
-    StringBuilder stringBuilder = new StringBuilder();
-    for (int i = 0; i < parsed.script().getCommands().size(); i++) {
-      stringBuilder.append(parsed.script().getCommands().get(i).toASTString());
-    }
+    String serializedProgramString =
+        Joiner.on("\n")
+            .join(parsed.script().getCommands().stream().map(SvLibCommand::toASTString).toList());
 
-    String roundtripProgramString = stringBuilder.toString();
-    SvLibParsingResult roundtripParsed = SvLibToAstParser.parseScript(roundtripProgramString);
+    SvLibParsingResult serializedParsed = SvLibToAstParser.parseScript(serializedProgramString);
 
     Truth.assertWithMessage("Scripts have different number of commands")
         .that(parsed.script().getCommands().size())
-        .isEqualTo(roundtripParsed.script().getCommands().size());
+        .isEqualTo(serializedParsed.script().getCommands().size());
 
     for (int i = 0; i < parsed.script().getCommands().size(); i++) {
       SvLibCommand parsedCommand = parsed.script().getCommands().get(i);
-      SvLibCommand roundtripParsedCommand = roundtripParsed.script().getCommands().get(i);
+      SvLibCommand roundtripParsedCommand = serializedParsed.script().getCommands().get(i);
       Truth.assertWithMessage("Command %s differs", i)
           .that(parsedCommand)
           .isEqualTo(roundtripParsedCommand);
