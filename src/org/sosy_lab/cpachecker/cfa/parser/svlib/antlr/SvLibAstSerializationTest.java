@@ -55,6 +55,12 @@ public class SvLibAstSerializationTest {
   }
 
   @Test
+  public void parseVerySimpleDeclarationProgram() throws SvLibAstParseException {
+    Path filepath = Path.of(examplesPath(), "very-simple-declaration.svlib");
+    testAstSerialization(filepath);
+  }
+
+  @Test
   public void parseVerySimpleSequenceProgram() throws SvLibAstParseException {
     Path filepath = Path.of(examplesPath(), "very-simple-sequence.svlib");
     testAstSerialization(filepath);
