@@ -225,7 +225,7 @@ public class ApronTransferRelation
     for (Texpr0Node left : leftCoeffs) {
       for (Texpr0Node right : rightCoeffs) {
         switch (binExp.getOperator()) {
-          case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_RIGHT, SHIFT_LEFT -> {
+          case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_RIGHT, SHIFT_LEFT -> {
             return Collections.singleton(state);
           }
           case EQUALS -> {
@@ -459,7 +459,7 @@ public class ApronTransferRelation
       double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
     boolean result;
     switch (pBinaryOperator) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
         return Collections.singleton(state);
       }
       case NOT_EQUALS -> result = pLeftVal != pRightVal;
@@ -866,7 +866,7 @@ public class ApronTransferRelation
       for (Texpr0Node leftCoeffs : left) {
         for (Texpr0Node rightCoeffs : right) {
           switch (e.getOperator()) {
-            case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
+            case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
               return ImmutableSet.of();
             }
             case REMAINDER ->
@@ -1097,7 +1097,7 @@ public class ApronTransferRelation
         return null;
       }
       return switch (e.getOperator()) {
-        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> null;
+        case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> null;
         case DIVIDE -> left / right;
         case EQUALS -> left.equals(right) ? 1.0 : 0;
         case GREATER_EQUAL -> left >= right ? 1.0 : 0;

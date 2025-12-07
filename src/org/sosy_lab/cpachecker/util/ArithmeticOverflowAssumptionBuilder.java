@@ -528,9 +528,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             GREATER_THAN,
             LESS_EQUAL,
             GREATER_EQUAL,
-            BINARY_AND,
-            BINARY_XOR,
-            BINARY_OR,
+            BITWISE_AND,
+            BITWISE_XOR,
+            BITWISE_OR,
             EQUALS,
             NOT_EQUALS,
             REMAINDER ->

@@ -301,9 +301,9 @@ public class ExpressionToFormulaVisitor
 
     final NumeralFormula<CompoundInterval> result =
         switch (pCBinaryExpression.getOperator()) {
-          case BINARY_AND -> allPossibleValues(pCBinaryExpression);
-          case BINARY_OR -> allPossibleValues(pCBinaryExpression);
-          case BINARY_XOR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_AND -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_OR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_XOR -> allPossibleValues(pCBinaryExpression);
           case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
           case EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(

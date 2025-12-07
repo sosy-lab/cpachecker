@@ -74,7 +74,7 @@ public class BitVectorEvaluationUtil {
       throws UnrecognizedCodeException {
 
     return nestBinaryExpressions(
-        pDisjunctionTerms, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+        pDisjunctionTerms, BinaryOperator.BITWISE_OR, pBinaryExpressionBuilder);
   }
 
   private static CExpression nestBinaryExpressions(

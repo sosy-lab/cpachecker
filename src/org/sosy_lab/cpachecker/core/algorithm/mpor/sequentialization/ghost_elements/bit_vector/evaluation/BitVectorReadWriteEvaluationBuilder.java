@@ -286,7 +286,7 @@ class BitVectorReadWriteEvaluationBuilder {
     CExpression otherWrites =
         BitVectorEvaluationUtil.binaryDisjunction(pOtherWriteBitVectors, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pDirectReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
+        pDirectReadBitVector, otherWrites, BinaryOperator.BITWISE_AND);
   }
 
   /** General = used for both pruned and full evaluations. */
@@ -299,7 +299,7 @@ class BitVectorReadWriteEvaluationBuilder {
     CExpression otherReadsAndWrites =
         BitVectorEvaluationUtil.binaryDisjunction(pOtherAccesses, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
+        pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BITWISE_AND);
   }
 
   // Pruned Sparse Evaluation ======================================================================

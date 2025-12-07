@@ -469,7 +469,7 @@ public class SimpleIntProviderFactory {
 
   private static boolean isBitwiseOperation(CBinaryExpression exp) {
     switch (exp.getOperator()) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
         // TODO: check if custom overload (ie no real bitwise operation) = types are ok
         return true;
       }

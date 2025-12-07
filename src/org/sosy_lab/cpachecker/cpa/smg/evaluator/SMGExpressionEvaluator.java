@@ -494,9 +494,9 @@ public class SMGExpressionEvaluator {
           REMAINDER,
           SHIFT_LEFT,
           SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR ->
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR ->
           throw new UnrecognizedCodeException(
               "The operands of binary Expression "
                   + binaryExp.toASTString()

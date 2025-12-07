@@ -154,7 +154,7 @@ public class ExpressionSimplificationVisitor
         final CBinaryExpressionBuilder binExprBuilder =
             new CBinaryExpressionBuilder(machineModel, logger);
         switch (binaryOperator) {
-          case BINARY_AND -> {
+          case BITWISE_AND -> {
             if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op1;
             }
@@ -162,7 +162,7 @@ public class ExpressionSimplificationVisitor
               return op2;
             }
           }
-          case BINARY_OR -> {
+          case BITWISE_OR -> {
             if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op2;
             }

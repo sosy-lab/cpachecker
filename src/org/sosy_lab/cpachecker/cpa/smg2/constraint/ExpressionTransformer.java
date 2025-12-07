@@ -166,13 +166,13 @@ public class ExpressionTransformer
               case SHIFT_RIGHT ->
                   factory.shiftRightSigned(
                       operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_AND ->
+              case BITWISE_AND ->
                   factory.binaryAnd(
                       operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_OR ->
+              case BITWISE_OR ->
                   factory.binaryOr(
                       operand1Expression, operand2Expression, expressionType, calculationType);
-              case BINARY_XOR ->
+              case BITWISE_XOR ->
                   factory.binaryXor(
                       operand1Expression, operand2Expression, expressionType, calculationType);
               case EQUALS ->

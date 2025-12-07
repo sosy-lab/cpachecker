@@ -120,7 +120,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
       case SHIFT_LEFT -> interval1.shiftLeft(interval2);
       case SHIFT_RIGHT -> interval1.shiftRight(interval2);
       case REMAINDER -> interval1.modulo(interval2);
-      case BINARY_AND, BINARY_OR, BINARY_XOR -> Interval.UNBOUND;
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR -> Interval.UNBOUND;
       default -> throw new AssertionError("unknown binary operator: " + operator);
     };
   }

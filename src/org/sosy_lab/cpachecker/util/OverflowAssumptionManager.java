@@ -68,7 +68,7 @@ public class OverflowAssumptionManager {
         cBinaryExpressionBuilder.buildBinaryExpression(
             getLowerAssumption(operand1, operand2, operator, getLowerBound(type)),
             getUpperAssumption(operand1, operand2, operator, getUpperBound(type)),
-            BinaryOperator.BINARY_AND);
+            BinaryOperator.BITWISE_AND);
     if (negate) {
       assumption =
           cBinaryExpressionBuilder.buildBinaryExpression(
@@ -86,7 +86,7 @@ public class OverflowAssumptionManager {
     for (CExpression assumption : from(assumptions).skip(1)) {
       result =
           cBinaryExpressionBuilder.buildBinaryExpression(
-              assumption, result, BinaryOperator.BINARY_AND);
+              assumption, result, BinaryOperator.BITWISE_AND);
     }
     if (negate) {
       result =
@@ -167,7 +167,7 @@ public class OverflowAssumptionManager {
     // the final assumption will look like this:
     // (operand1 term1Operator 0) | ( operand1 term3Operator (limit term2Operator operand2) )
     CExpression assumption =
-        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
+        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BITWISE_OR);
 
     return assumption;
   }
@@ -238,7 +238,7 @@ public class OverflowAssumptionManager {
         // (firstOperand term1Operator 0) |
         // ( secondOperand term3Operator (limit BinaryOperator.DIVIDE firstOperand) )
         CExpression assumption =
-            cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
+            cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BITWISE_OR);
         result.add(assumption);
       }
     }
@@ -278,7 +278,7 @@ public class OverflowAssumptionManager {
         cBinaryExpressionBuilder.buildBinaryExpression(operand2, term2, BinaryOperator.NOT_EQUALS);
     // (operand1 != INT_MIN) | (operand2 != -1)
     CExpression assumption =
-        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
+        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BITWISE_OR);
     result.add(assumption);
   }
 

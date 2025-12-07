@@ -137,9 +137,9 @@ public class BDDVectorCExpressionVisitor
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR -> {
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR -> {
         Region[] result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         yield castCValue(
             result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
@@ -185,9 +185,9 @@ public class BDDVectorCExpressionVisitor
           bvmgr.makeMult(l, r);
       case SHIFT_LEFT -> bvmgr.makeShiftLeft(l, r);
       case SHIFT_RIGHT -> bvmgr.makeShiftRight(l, r, signed);
-      case BINARY_AND -> bvmgr.makeBinaryAnd(l, r);
-      case BINARY_OR -> bvmgr.makeBinaryOr(l, r);
-      case BINARY_XOR -> bvmgr.makeXor(l, r);
+      case BITWISE_AND -> bvmgr.makeBinaryAnd(l, r);
+      case BITWISE_OR -> bvmgr.makeBinaryOr(l, r);
+      case BITWISE_XOR -> bvmgr.makeXor(l, r);
       default -> throw new AssertionError("unknown binary operation: " + op);
     };
   }

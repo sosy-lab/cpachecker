@@ -178,19 +178,19 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
      * result is set if and only if each of the corresponding bits in the converted operands is set
      * More details can be found in the standard.
      */
-    BINARY_AND("&"),
+    BITWISE_AND("&"),
     /**
      * Bitwise ^ (exclusive OR) operator, defined in the C11 standard §6.5.11 such that each bit in
      * the result is set if and only if exactly one of the corresponding bits in the operands is
      * set. More details can be found in the standard.
      */
-    BINARY_XOR("^"),
+    BITWISE_XOR("^"),
     /**
      * Bitwise | (inclusive OR) operator, defined in the C11 standard §6.5.12 such that each bit in
      * the result is set if and only if at least one of the corresponding bits in the converted
      * operands is set. More details can be found in the standard.
      */
-    BINARY_OR("|"),
+    BITWISE_OR("|"),
     /**
      * Equal to operator == , defined in the C11 standard §6.5.9 as returning integer literal 1 if
      * the specified relation is true, i.e. the two operands are equal, and integer literal 0 if the
@@ -228,9 +228,9 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
             MINUS,
             SHIFT_LEFT,
             SHIFT_RIGHT,
-            BINARY_AND,
-            BINARY_OR,
-            BINARY_XOR ->
+            BITWISE_AND,
+            BITWISE_OR,
+            BITWISE_XOR ->
             false;
         case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN, EQUALS, NOT_EQUALS -> true;
       };

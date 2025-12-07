@@ -246,9 +246,9 @@ public abstract class AbstractExpressionValueVisitor
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR -> {
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR -> {
         Value result =
             arithmeticOperation(
                 (NumericValue) lVal,
@@ -350,11 +350,11 @@ public abstract class AbstractExpressionValueVisitor
           factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT ->
           factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
+      case BITWISE_AND ->
           factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
+      case BITWISE_OR ->
           factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR ->
+      case BITWISE_XOR ->
           factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case NOT_EQUALS ->
@@ -457,13 +457,13 @@ public abstract class AbstractExpressionValueVisitor
       case SHIFT_RIGHT -> {
         return l >> r;
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l & r;
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l | r;
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l ^ r;
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
@@ -524,13 +524,13 @@ public abstract class AbstractExpressionValueVisitor
           return BigInteger.ZERO;
         }
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l.and(r);
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l.or(r);
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l.xor(r);
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
@@ -565,7 +565,7 @@ public abstract class AbstractExpressionValueVisitor
       case DIVIDE -> pArg1.divide(pArg2);
       case REMAINDER -> pArg1.modulo(pArg2);
       case MULTIPLY -> pArg1.multiply(pArg2);
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+      case SHIFT_LEFT, SHIFT_RIGHT, BITWISE_AND, BITWISE_OR, BITWISE_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
       default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);

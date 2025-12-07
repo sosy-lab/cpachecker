@@ -1064,9 +1064,9 @@ class CFABuilder {
             internalExpressionType = machineModel.applyIntegerPromotion(op1type);
             yield BinaryOperator.SHIFT_RIGHT;
           }
-          case And -> BinaryOperator.BINARY_AND;
-          case Or -> BinaryOperator.BINARY_OR;
-          case Xor -> BinaryOperator.BINARY_XOR;
+          case And -> BinaryOperator.BITWISE_AND;
+          case Or -> BinaryOperator.BITWISE_OR;
+          case Xor -> BinaryOperator.BITWISE_XOR;
           default -> throw new AssertionError("Unhandled operation " + pOpCode);
         };
 

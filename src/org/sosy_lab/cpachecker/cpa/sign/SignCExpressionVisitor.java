@@ -125,7 +125,7 @@ public class SignCExpressionVisitor
           case MULTIPLY -> evaluateMulOperator(pLeft, pRight);
           case DIVIDE -> evaluateDivideOperator(pLeft, pRight);
           case REMAINDER -> evaluateModuloOperator(pLeft, pRight);
-          case BINARY_AND -> evaluateAndOperator(pLeft, pRight);
+          case BITWISE_AND -> evaluateAndOperator(pLeft, pRight);
           case LESS_EQUAL -> evaluateLessEqualOperator(pLeft, pRight);
           case GREATER_EQUAL -> evaluateLessEqualOperator(pRight, pLeft);
           case LESS_THAN -> evaluateLessOperator(pLeft, pRight);
