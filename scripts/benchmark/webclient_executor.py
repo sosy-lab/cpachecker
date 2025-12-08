@@ -146,8 +146,8 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     limits = benchmark.rlimits
     requirements = {
         "cpu_model": benchmark.requirements.cpu_model,
-        "corereq": benchmark.requirements.cpu_cores,
-        "memreq": benchmark.requirements.memory,
+        "core_requirement": benchmark.requirements.cpu_cores,
+        "memory_requirement": benchmark.requirements.memory,
     }
 
     global_required_files = set(benchmark._required_files)

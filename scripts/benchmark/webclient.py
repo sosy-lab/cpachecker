@@ -56,8 +56,8 @@ __all__ = [
     "TIMELIMIT",
     "SOFTTIMELIMIT",
     "CORELIMIT",
-    "COREREQ",
-    "MEMREQ",
+    "COREREQUIREMENT",
+    "MEMREQUIREMENT",
     "CPUMODEL",
     "RESULT_FILE_LOG",
     "RESULT_FILE_STDERR",
@@ -71,8 +71,8 @@ MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
-COREREQ = "corereq"
-MEMREQ = "memreq"
+COREREQUIREMENT = "core_requirement"
+MEMORYREQUIREMENT = "memory_requirement"
 CPUMODEL = "cpu_model"
 
 RESULT_FILE_LOG = "output.log"
