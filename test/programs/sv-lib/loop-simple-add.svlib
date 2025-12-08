@@ -15,13 +15,21 @@
     ((x0 Int) (y0 Int))
     ((x Int))
     ((y Int))
-    (sequence (assign (x x0) (y y0))
-        (while
-            (< 0 y)
-            (assign
-                (x (+ x 1))
-                (y (- y 1))
-            )
+    (!
+        (sequence
+            (assign (x x0) (y y0))
+            (!
+                (while
+                    (< 0 y)
+                    (assign
+                        (x (+ x 1))
+                        (y (- y 1))
+                    )
+                )
+            :tag while-1)
         )
-    )
+    :tag proc-add)
 )
+
+(verify-call add (10 10))
+(get-witness)
