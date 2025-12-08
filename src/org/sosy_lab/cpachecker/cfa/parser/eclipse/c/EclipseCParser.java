@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -343,23 +345,29 @@ class EclipseCParser implements CParser {
           builder.analyzeTranslationUnit(ast, staticVariablePrefix, pScope);
         }
       }
-
       ParseResult result = builder.createCFA();
 
-      result =
-          result.withASTStructure(
-              AstCfaRelationBuilder.getASTCFARelation(
-                  pSourceOriginMapping,
-                  from(result.cfaNodes().values())
-                      .transformAndConcat(CFANode::getAllLeavingEdges)
-                      .toSet(),
-                  asts,
-                  result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
-                  result.cfaNodeToAstParametersInScope().orElseThrow(),
-                  FluentIterable.from(result.globalDeclarations())
-                      .transform(Pair::getFirst)
-                      .filter(AVariableDeclaration.class)
-                      .toSet()));
+      AstCfaRelation astCfaRelation =
+          AstCfaRelationBuilder.getASTCFARelation(
+              pSourceOriginMapping,
+              from(result.cfaNodes().values())
+                  .transformAndConcat(CFANode::getAllLeavingEdges)
+                  .toSet(),
+              asts,
+              result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
+              result.cfaNodeToAstParametersInScope().orElseThrow(),
+              FluentIterable.from(result.globalDeclarations())
+                  .transform(Pair::getFirst)
+                  .filter(AVariableDeclaration.class)
+                  .toSet());
+
+      result = result.withASTStructure(astCfaRelation);
+
+      if (result.acslComments().isPresent()) {
+        AcslMetadata acslMetadata = builder.createAcslMetadata(result, astCfaRelation);
+        result = result.withAcslMetadata(acslMetadata);
+      }
+
       return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);

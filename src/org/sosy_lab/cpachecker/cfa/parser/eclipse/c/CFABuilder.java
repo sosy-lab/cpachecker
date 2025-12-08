@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -63,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 /**
  * Builder to traverse AST.
@@ -411,29 +415,7 @@ class CFABuilder extends ASTVisitor {
 
     ParseResult result;
 
-    if (!acslComments.isEmpty()) {
-      // Parse the Acsl Metadata here
-      AcslMetadata acslMetadata = AcslMetadata.empty();
-      ImmutableMap.Builder<FileLocation, CFANode> commentLocationToNodeBuilder =
-          ImmutableMap.builder();
-      for (FileLocation f : acslComments.keySet()) {
-      for (AcslComment comment : acslComments) {
-        // Determine Cfa Node for Acsl Comment location
-        commentLocationToNodeBuilder.putAll(AcslParser.commentLocationToNode(f, cfaNodes));
-      }
-      ImmutableMap<FileLocation, CFANode> commentLocationToNode =
-          commentLocationToNodeBuilder.build();
-      // Get Local Variables & Parameters
-      // Build a Scope from Variables & Parameters
-      // Parse the comment
-      // Create Metadata Record
-
-      result =
-          new ParseResult(
-              cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, acslMetadata, blocks);
-    } else {
-      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
-    }
+    result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
     result =
         result.withInScopeInformation(
@@ -502,6 +484,28 @@ class CFABuilder extends ASTVisitor {
     encounteredAsm |= functionBuilder.didEncounterAsm();
     blocks.addAll(functionBuilder.getBlocks());
     functionBuilder.finish();
+  }
+
+  public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
+    for (AcslComment comment : pResult.acslComments().orElseThrow()) {
+      FileLocation commentLocation = comment.getFileLocation();
+      ASTElement tightestStatement =
+          pAstCfaRelation.getTightestStatementForStarting(
+              commentLocation.getStartingLineNumber(), commentLocation.getStartColumnInLine());
+      ImmutableSet<CFAEdge> edges = tightestStatement.edges();
+      Set<CFANode> predecessors = new HashSet<>();
+      Set<CFANode> successors = new HashSet<>();
+      for (CFAEdge edge : edges) {
+        predecessors.add(edge.getPredecessor());
+        successors.add(edge.getSuccessor());
+      }
+      Set<CFANode> nodesForComment = new HashSet<>(Set.copyOf(predecessors));
+      nodesForComment.removeAll(successors);
+      // An AcslComment should belong to exactly one CfaNode
+      assert nodesForComment.size() == 1;
+      comment.updateCfaNode(nodesForComment.stream().toList().get(0));
+    }
+    return AcslMetadata.empty();
   }
 
   @Override

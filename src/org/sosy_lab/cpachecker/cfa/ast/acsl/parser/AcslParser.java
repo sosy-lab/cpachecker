@@ -12,8 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.TreeMultimap;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -35,8 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class AcslParser {
 
@@ -189,23 +185,6 @@ public class AcslParser {
     }
 
     return commentString;
-  }
-
-  public static ImmutableMap<FileLocation, CFANode> commentLocationToNode(
-      FileLocation pFileLocation, TreeMultimap<String, CFANode> pCfaNodes) {
-    ImmutableMap.Builder<FileLocation, CFANode> locationToNode = ImmutableMap.builder();
-    for (String s : pCfaNodes.keySet()) {
-      for (CFANode node : pCfaNodes.get(s)) {
-        if (node != null) {
-          for (CFAEdge edge : node.getEnteringEdges()) {
-            if (edge.getFileLocation().equals(pFileLocation)) {
-              locationToNode.put(pFileLocation, node);
-            }
-          }
-        }
-      }
-    }
-    return locationToNode.build();
   }
 
   public static class AcslParseException extends Exception {
