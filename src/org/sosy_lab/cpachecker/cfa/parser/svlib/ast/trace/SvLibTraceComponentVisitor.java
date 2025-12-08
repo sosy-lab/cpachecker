@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 public interface SvLibTraceComponentVisitor<R, X extends Exception> {
 
-  R accept(SvLibTraceSetGlobalVariable pSvLibTraceSetGlobalVariable) throws X;
-
   R accept(SvLibTraceEntryProcedure pSvLibTraceEntryProcedure) throws X;
 
   R accept(SvLibInitProcVariablesStep pSvLibInitProcVariablesStep) throws X;

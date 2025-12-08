@@ -10,9 +10,13 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
@@ -20,7 +24,7 @@ public final class SvLibTrace implements SvLibParsingAstNode {
 
   @Serial private static final long serialVersionUID = 6210509388439561283L;
   private final SmtLibModel model;
-  private final ImmutableList<SvLibTraceSetGlobalVariable> setGlobalVariables;
+  private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> setGlobalVariables;
   private final SvLibTraceEntryProcedure entryProc;
   private final ImmutableList<SvLibTraceStep> steps;
   private final SvLibViolatedProperty violatedProperty;
@@ -29,14 +33,14 @@ public final class SvLibTrace implements SvLibParsingAstNode {
 
   public SvLibTrace(
       SmtLibModel pModel,
-      List<SvLibTraceSetGlobalVariable> pSetGlobalVariables,
+      Map<SvLibIdTerm, SvLibConstantTerm> pSetGlobalVariables,
       SvLibTraceEntryProcedure pEntryProc,
       List<SvLibTraceStep> pSteps,
       SvLibViolatedProperty pViolatedProperty,
       List<SvLibTraceUsingAnnotation> pUsingAnnotations,
       FileLocation pFileLocation) {
     model = pModel;
-    setGlobalVariables = ImmutableList.copyOf(pSetGlobalVariables);
+    setGlobalVariables = ImmutableMap.copyOf(pSetGlobalVariables);
     entryProc = pEntryProc;
     steps = ImmutableList.copyOf(pSteps);
     violatedProperty = pViolatedProperty;
@@ -62,7 +66,15 @@ public final class SvLibTrace implements SvLibParsingAstNode {
             "(init-global-vars "
                 + Joiner.on(" ")
                     .join(
-                        setGlobalVariables.stream().map(SvLibParsingAstNode::toASTString).toList())
+                        setGlobalVariables.entrySet().stream()
+                            .map(
+                                entry ->
+                                    "("
+                                        + entry.getKey().toASTString()
+                                        + " "
+                                        + entry.getValue().toASTString()
+                                        + ")")
+                            .toList())
                 + ")",
             entryProc.toASTString(),
             "(steps "
@@ -73,7 +85,7 @@ public final class SvLibTrace implements SvLibParsingAstNode {
                 .join(usingAnnotations.stream().map(SvLibParsingAstNode::toASTString).toList()));
   }
 
-  public ImmutableList<SvLibTraceSetGlobalVariable> getSetGlobalVariables() {
+  public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getSetGlobalVariables() {
     return setGlobalVariables;
   }
 

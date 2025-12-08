@@ -23,7 +23,7 @@ public final class SvLibLeapStep extends SvLibTraceStep {
   private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
   private final String leapTag;
 
-  SvLibLeapStep(
+  public SvLibLeapStep(
       FileLocation pFileLocation,
       Map<SvLibIdTerm, SvLibConstantTerm> pAssignments,
       String pLeapTag) {

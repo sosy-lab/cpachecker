@@ -94,14 +94,34 @@ property
     ;
 
 
+traceVariableAssignment
+  : ParOpen symbol spec_constant ParClose
+  ;
+
+globalVariableTraceAssignments
+  : ParOpen 'init-global-vars' (traceVariableAssignment)*  ParClose
+  ;
+
+modelReponseTrace
+  : ParOpen 'model' model_response* ParClose
+  ;
+
+entryProcedureTrace
+  : ParOpen 'entry-proc' symbol ParClose
+  ;
+
+usingAnnotationsTrace
+  : ParOpen 'using-annotation' symbol attributeSvLib+ ParClose
+  ;
+
 trace
-    :   ParOpen 'model' model_response* ParClose
-        ParOpen 'init-global-vars' (ParOpen symbol term ParClose)*  ParClose
-        (ParOpen 'entry-proc' symbol ParClose)
-        ParOpen 'steps' (step)* ParClose
-        violatedProperty
-        (ParOpen 'using-annotation' symbol attributeSvLib+ ParClose)*
-    ;
+  : modelReponseTrace
+    globalVariableTraceAssignments
+    entryProcedureTrace
+    ParOpen 'steps' (step)* ParClose
+    violatedProperty
+    (usingAnnotationsTrace)*
+  ;
 
 violatedProperty
     : ParOpen 'incorrect-annotation' symbol attributeSvLib+ ParClose
@@ -111,12 +131,12 @@ violatedProperty
 
 step
     : ParOpen 'init-proc-vars' symbol
-        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseLocalVariableValue
+        (traceVariableAssignment)* ParClose             # ChooseLocalVariableValue
     | ParOpen 'havoc'
-        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseHavocVariableValue
-    | ParOpen 'choice' Numeral ParClose                               # ChooseChoiceStatement
+        (traceVariableAssignment)* ParClose             # ChooseHavocVariableValue
+    | ParOpen 'choice' Numeral ParClose                 # ChooseChoiceStatement
     | ParOpen 'leap' symbol
-        (ParOpen symbol spec_constant ParClose)* ParClose             # LeapStep
+        (traceVariableAssignment)* ParClose             # LeapStep
     ;
 
 relationalTerm

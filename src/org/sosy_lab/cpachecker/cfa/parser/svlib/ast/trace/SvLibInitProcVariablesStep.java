@@ -16,14 +16,19 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 
 public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   @Serial private static final long serialVersionUID = -1341873304472826329L;
   private final ImmutableMap<SvLibIdTerm, SvLibConstantTerm> assignments;
+  private final SvLibProcedureDeclaration procedureDeclaration;
 
   public SvLibInitProcVariablesStep(
-      Map<SvLibIdTerm, SvLibConstantTerm> pValues, FileLocation pFileLocation) {
+      SvLibProcedureDeclaration pProcedureDeclaration,
+      Map<SvLibIdTerm, SvLibConstantTerm> pValues,
+      FileLocation pFileLocation) {
     super(pFileLocation);
+    procedureDeclaration = pProcedureDeclaration;
     assignments = ImmutableMap.copyOf(pValues);
   }
 
@@ -40,6 +45,7 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   @Override
   public String toASTString() {
     return "(init-proc-vars "
+        + procedureDeclaration.getName()
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
@@ -63,6 +69,7 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
     final int prime = 31;
     int result = 1;
     result = prime * result + assignments.hashCode();
+    result = prime * result + procedureDeclaration.hashCode();
     return result;
   }
 
@@ -72,6 +79,8 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
       return true;
     }
 
-    return obj instanceof SvLibInitProcVariablesStep other && assignments.equals(other.assignments);
+    return obj instanceof SvLibInitProcVariablesStep other
+        && procedureDeclaration.equals(other.procedureDeclaration)
+        && assignments.equals(other.assignments);
   }
 }

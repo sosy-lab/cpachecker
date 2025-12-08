@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
 import com.google.common.base.Joiner;
 import java.io.Serial;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   @Serial private static final long serialVersionUID = 5489687141447266694L;
-  private final Optional<SvLibTagReference> svLibTagReference;
+  private final SvLibTagReference svLibTagReference;
   private final Set<SvLibTagProperty> violatedProperties;
 
   public SvLibIncorrectTagProperty(
@@ -28,18 +27,11 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
       SvLibTagReference pSvLibTagReference,
       Set<SvLibTagProperty> pViolatedTerm) {
     super(pFileLocation);
-    svLibTagReference = Optional.of(pSvLibTagReference);
+    svLibTagReference = pSvLibTagReference;
     violatedProperties = pViolatedTerm;
   }
 
-  public SvLibIncorrectTagProperty(
-      FileLocation pFileLocation, Set<SvLibTagProperty> pViolatedTerm) {
-    super(pFileLocation);
-    svLibTagReference = Optional.empty();
-    violatedProperties = pViolatedTerm;
-  }
-
-  public Optional<SvLibTagReference> getSvLibTagReference() {
+  public SvLibTagReference getSvLibTagReference() {
     return svLibTagReference;
   }
 
@@ -60,7 +52,7 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   @Override
   public String toASTString() {
     return "(incorrect-annotation "
-        + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().toASTString() : "")
+        + svLibTagReference.toASTString()
         + " "
         + Joiner.on(" ").join(violatedProperties.stream().map(SvLibAstNode::toASTString).toList())
         + ")";

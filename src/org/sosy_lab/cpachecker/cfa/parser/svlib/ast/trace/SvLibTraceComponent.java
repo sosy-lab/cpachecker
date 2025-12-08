@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 public abstract sealed class SvLibTraceComponent implements SvLibParsingAstNode
     permits SmtLibModel,
         SvLibTraceEntryProcedure,
-        SvLibTraceSetGlobalVariable,
         SvLibTraceStep,
         SvLibTraceUsingAnnotation,
         SvLibViolatedProperty {

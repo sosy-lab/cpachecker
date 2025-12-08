@@ -10,22 +10,28 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagCommandContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Cmd_setInfoContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.CommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.CorrectnessWitnessContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SelectTraceCommandContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ViolationWitnessContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibCorrectnessWitness;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibViolationWitness;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibWitness;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 
 class WitnessToAstConverter extends AbstractAntlrToAstConverter<SvLibWitness> {
 
   private final SvLibCommandToAstConverter commandToAstConverter;
-  private final ImmutableMap.Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
+  private final Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
 
   public WitnessToAstConverter(SvLibScope pScope, Path pFilePath) {
     super(pScope, pFilePath);
@@ -47,6 +53,17 @@ class WitnessToAstConverter extends AbstractAntlrToAstConverter<SvLibWitness> {
 
     // Parse the SMT-LIB commands in the correctness witness dividing them into
     // metadata and others
+    for (Cmd_setInfoContext commandCtx : ctx.metadata().cmd_setInfo()) {
+      SvLibCommand command = commandToAstConverter.visit(commandCtx);
+      if (command instanceof SvLibSetInfoCommand pSetInfoCommand) {
+        setInfoCommandBuilder.add(pSetInfoCommand);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected set-info command in metadata of correctness witness, but got: "
+                + command.getClass().getName());
+      }
+    }
+
     for (CommandContext commandCtx : ctx.command()) {
       SvLibCommand command = commandToAstConverter.visit(commandCtx);
       if (command instanceof SvLibSetInfoCommand pSetInfoCommand) {
@@ -80,5 +97,41 @@ class WitnessToAstConverter extends AbstractAntlrToAstConverter<SvLibWitness> {
         setInfoCommandBuilder.build(),
         smtLibCommandBuilder.build(),
         annotateTagCommandBuilder.build());
+  }
+
+  @Override
+  public SvLibViolationWitness visitViolationWitness(ViolationWitnessContext ctx) {
+    ImmutableList.Builder<SvLibSetInfoCommand> setInfoCommandBuilder = ImmutableList.builder();
+
+    // First parse the SMT-LIB commands in the violation witness
+    for (Cmd_setInfoContext commandCtx : ctx.metadata().cmd_setInfo()) {
+      SvLibCommand command = commandToAstConverter.visit(commandCtx);
+      if (command instanceof SvLibSetInfoCommand pSetInfoCommand) {
+        setInfoCommandBuilder.add(pSetInfoCommand);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected set-info command in metadata of violation witness, but got: "
+                + command.getClass().getName());
+      }
+    }
+
+    // Now parse the select-trace commands
+    ImmutableList.Builder<SvLibSelectTraceCommand> selectTraceCommandBuilder =
+        ImmutableList.builder();
+    for (SelectTraceCommandContext commandCtx : ctx.selectTraceCommand()) {
+      SvLibCommand command = commandToAstConverter.visit(commandCtx);
+      if (command instanceof SvLibSelectTraceCommand pSvLibCommand) {
+        selectTraceCommandBuilder.add(pSvLibCommand);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected a select-trace command in the violation witness, but got: "
+                + command.getClass().getName());
+      }
+    }
+
+    return new SvLibViolationWitness(
+        fileLocationFromContext(ctx),
+        setInfoCommandBuilder.build(),
+        selectTraceCommandBuilder.build());
   }
 }

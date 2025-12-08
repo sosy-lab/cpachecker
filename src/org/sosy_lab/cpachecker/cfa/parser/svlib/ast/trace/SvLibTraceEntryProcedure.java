@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
@@ -20,6 +22,7 @@ public final class SvLibTraceEntryProcedure extends SvLibTraceComponent {
   public SvLibTraceEntryProcedure(
       SvLibProcedureDeclaration pDeclaration, FileLocation pFileLocation) {
     super(pFileLocation);
+    checkNotNull(pDeclaration);
     declaration = pDeclaration;
   }
 

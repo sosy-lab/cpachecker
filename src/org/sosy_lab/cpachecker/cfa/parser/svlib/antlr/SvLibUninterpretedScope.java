@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
@@ -83,6 +85,11 @@ public class SvLibUninterpretedScope extends SvLibScope {
 
   @Override
   public SvLibProcedureDeclaration getProcedureDeclaration(String pName) {
-    return procedureDeclarations.get(pName);
+    if (procedureDeclarations.containsKey(pName)) {
+      return Objects.requireNonNull(procedureDeclarations.get(pName));
+    }
+
+    return new SvLibProcedureDeclaration(
+        FileLocation.DUMMY, pName, List.of(), List.of(), List.of());
   }
 }

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SymbolContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
@@ -43,6 +45,24 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
   public TermToAstConverter(SvLibScope pScope) {
     super(pScope);
+  }
+
+  @Override
+  public SvLibIdTerm visitSymbol(SymbolContext pContext) {
+    String identifier = pContext.getText();
+    FileLocation fileLocation = fileLocationFromContext(pContext);
+    return new SvLibIdTerm(scope.getVariable(identifier).toSimpleDeclaration(), fileLocation);
+  }
+
+  @Override
+  public SvLibConstantTerm visitSpec_constant(Spec_constantContext pContext) {
+    if (pContext.numeral() != null) {
+      return new SvLibIntegerConstantTerm(
+          new BigInteger(pContext.numeral().getText()), fileLocationFromContext(pContext));
+    } else {
+      throw new IllegalArgumentException(
+          "The constant '%s' is currently not supported.".formatted(pContext.getText()));
+    }
   }
 
   @Override
@@ -62,13 +82,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   @Override
   public SvLibTerm visitSpecConstantTerm(SpecConstantTermContext ctx) {
     Spec_constantContext specConstantContext = ctx.spec_constant();
-    if (specConstantContext.numeral() != null) {
-      return new SvLibIntegerConstantTerm(
-          new BigInteger(specConstantContext.numeral().getText()), fileLocationFromContext(ctx));
-    } else {
-      throw new IllegalArgumentException(
-          "The constant %s is currently not supported.".formatted(ctx.getText()));
-    }
+    return visitSpec_constant(specConstantContext);
   }
 
   private SvLibFunctionDeclaration getVariableDeclarationForSymbol(

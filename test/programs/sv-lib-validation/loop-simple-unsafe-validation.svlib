@@ -21,9 +21,9 @@
     (assign (a 6))
     (assign (a 0))
     (! (while
-      (< a 6)
+      (<= a 6)
       (assign (a (+ a 1)))) :tag while-loop)
-    (if (not (= a 6)) (! (sequence) :check-true false))
+    (if (not (= a 6)) (! (sequence) assert-false :check-true false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 
