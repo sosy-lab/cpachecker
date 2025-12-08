@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -45,8 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -101,7 +100,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
-  private final Map<FileLocation, String> acslComments = new HashMap<>();
+  private final List<AcslComment> acslComments = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
@@ -190,7 +189,7 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslComments.put(astCreator.getLocation(comment), commentString);
+          acslComments.add(new AcslComment(astCreator.getLocation(comment), commentString));
         }
       }
     }
@@ -418,6 +417,7 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap.Builder<FileLocation, CFANode> commentLocationToNodeBuilder =
           ImmutableMap.builder();
       for (FileLocation f : acslComments.keySet()) {
+      for (AcslComment comment : acslComments) {
         // Determine Cfa Node for Acsl Comment location
         commentLocationToNodeBuilder.putAll(AcslParser.commentLocationToNode(f, cfaNodes));
       }
