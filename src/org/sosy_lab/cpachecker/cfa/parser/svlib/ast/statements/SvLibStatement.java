@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
@@ -46,6 +49,20 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
   }
 
   public abstract <R, X extends Exception> R accept(SvLibStatementVisitor<R, X> v) throws X;
+
+  public String toASTString() {
+    return (getTagReferences().isEmpty() && getTagAttributes().isEmpty())
+        ? toASTStringWithoutTags()
+        : "(! "
+            + toASTStringWithoutTags()
+            + Joiner.on(" ")
+                .join(
+                    FluentIterable.concat(tagReferences, tagAttributes)
+                        .transform(SvLibTagAttribute::toASTString))
+            + ")";
+  }
+
+  public abstract String toASTStringWithoutTags();
 
   @Override
   public FileLocation getFileLocation() {
