@@ -57,7 +57,7 @@ __all__ = [
     "SOFTTIMELIMIT",
     "CORELIMIT",
     "COREREQUIREMENT",
-    "MEMREQUIREMENT",
+    "MEMORYREQUIREMENT",
     "CPUMODEL",
     "RESULT_FILE_LOG",
     "RESULT_FILE_STDERR",
@@ -615,7 +615,7 @@ class WebInterface:
                                             property file (run.propertyfile),
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
-        @param requirements: dict of requirements for the run (corereq, memoryreq, cpu_model)
+        @param requirements: dict of requirements for the run (core_requirement, memory_requirement, cpu_model)
         @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
         @param meta_information: meta information about the submitted run as JSON string
         @param priority: the priority of the submitted run, defaults to 'IDLE'
@@ -698,10 +698,10 @@ class WebInterface:
             params.append(("coreLimitation", str(limits[CORELIMIT])))
         if CPUMODEL in requirements:
             params.append(("cpuModel", str(requirements[CPUMODEL])))
-        if COREREQ in requirements:
-            params.append(("coreRequirement", str(requirements[COREREQ])))
-        if MEMREQ in requirements:
-            params.append(("memoryRequirement", str(requirements[MEMREQ])))
+        if COREREQUIREMENT in requirements:
+            params.append(("coreRequirement", str(requirements[COREREQUIREMENT])))
+        if MEMORYREQUIREMENT in requirements:
+            params.append(("memoryRequirement", str(requirements[MEMORYREQUIREMENT])))
 
         if result_files_patterns:
             for pattern in result_files_patterns:
