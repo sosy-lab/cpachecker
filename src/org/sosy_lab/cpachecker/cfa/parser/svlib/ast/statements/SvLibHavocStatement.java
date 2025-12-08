@@ -46,7 +46,7 @@ public final class SvLibHavocStatement extends SvLibStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(havoc (" + Joiner.on(" ").join(variables) + "))";
   }
 

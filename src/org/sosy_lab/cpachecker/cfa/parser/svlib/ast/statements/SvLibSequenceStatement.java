@@ -53,10 +53,9 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(sequence "
-        + Joiner.on(" ")
-            .join(statements.stream().map(SvLibParsingAstNode::toASTString).toList())
+        + Joiner.on(" ").join(statements.stream().map(SvLibParsingAstNode::toASTString).toList())
         + ")";
   }
 

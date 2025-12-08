@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -44,7 +45,7 @@ public final class SvLibWhileStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(while " + condition.toASTString() + " " + body.toASTString() + ")";
   }
 

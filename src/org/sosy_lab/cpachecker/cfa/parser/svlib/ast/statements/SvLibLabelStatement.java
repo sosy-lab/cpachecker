@@ -40,7 +40,7 @@ public final class SvLibLabelStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(label " + label + ")";
   }
 
