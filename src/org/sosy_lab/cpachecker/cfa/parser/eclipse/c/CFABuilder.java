@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
@@ -497,11 +499,14 @@ class CFABuilder extends ASTVisitor {
         predecessors.add(edge.getPredecessor());
         successors.add(edge.getSuccessor());
       }
-      Set<CFANode> nodesForComment = new HashSet<>(Set.copyOf(predecessors));
-      nodesForComment.removeAll(successors);
+
+      // nodesForComment = edges.predecessors - edges.successors
+      FluentIterable<CFANode> nodesForComment =
+          FluentIterable.from(predecessors).filter(n -> !successors.contains(n));
+
       // An AcslComment should belong to exactly one CfaNode
-      assert nodesForComment.size() == 1;
-      comment.updateCfaNode(nodesForComment.stream().toList().get(0));
+      Verify.verify(nodesForComment.size() == 1);
+      comment.updateCfaNode(nodesForComment.get(0));
     }
     return AcslMetadata.empty();
   }
