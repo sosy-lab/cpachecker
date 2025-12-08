@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
-import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
