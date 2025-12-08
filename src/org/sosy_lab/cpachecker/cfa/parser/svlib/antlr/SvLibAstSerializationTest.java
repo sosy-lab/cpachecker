@@ -52,4 +52,27 @@ public class SvLibAstSerializationTest {
     }
   }
 
+  @Test
+  public void serializeLoopAdd() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "loop-add.svlib");
+    testAstSerialization(filePath);
+  }
+
+  @Test
+  public void serializeSafeWithFunctionCall() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "safe-with-function-call.svlib");
+    testAstSerialization(filePath);
+  }
+
+  @Test
+  public void serializeSimpleCorrect() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "simple-correct.svlib");
+    testAstSerialization(filePath);
+  }
+
+  @Test
+  public void serializeSimpleIncorrect() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "simple-incorrect.svlib");
+    testAstSerialization(filePath);
+  }
 }
