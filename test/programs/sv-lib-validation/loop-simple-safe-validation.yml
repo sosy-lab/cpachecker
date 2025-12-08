@@ -1,0 +1,12 @@
+format_version: '2.1'
+
+input_files:
+  - 'loop-simple-safe-validation.svlib'
+  - 'loop-simple-safe-validation-witness.svlib'
+
+properties:
+  - property_file: ../../config/properties/correct-tags.prp
+    expected_verdict: true
+
+options:
+  witness_input_file: 'loop-simple-safe-validation-witness.svlib'
