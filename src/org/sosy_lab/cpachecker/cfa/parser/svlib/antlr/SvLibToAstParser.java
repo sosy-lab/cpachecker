@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.Serial;
@@ -28,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibLexer;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibWitness;
 
 public class SvLibToAstParser {
 
@@ -91,12 +91,51 @@ public class SvLibToAstParser {
   public static SvLibParsingResult parseScript(Path pFilePath) throws SvLibAstParseException {
     String programString;
     try {
-      programString = Joiner.on("\n").join(Files.readAllLines(pFilePath));
+      programString = Files.readString(pFilePath);
     } catch (IOException e) {
       throw new SvLibAstParseException("Could not read input file: " + pFilePath, e);
     }
 
     return parseScript(programString, Optional.of(pFilePath));
+  }
+
+  private static SvLibWitness parseWitness(String pInput, Optional<Path> pFilePath)
+      throws SvLibAstParseException {
+    // For some reason the ANTLR grammar expects at least one white-space after a comment
+    String inputFixedComments = pInput.replaceAll(";", "; ");
+    ParseTree tree = generateParseTree(inputFixedComments, pParser -> pParser.witness());
+    WitnessToAstConverter converter;
+
+    SvLibCurrentScope scope = new SvLibCurrentScope();
+    if (pFilePath.isEmpty()) {
+      converter = new WitnessToAstConverter(scope);
+    } else {
+      converter = new WitnessToAstConverter(scope, pFilePath.orElseThrow());
+    }
+
+    SvLibWitness witness = converter.visit(tree);
+
+    return witness;
+  }
+
+  public static SvLibWitness parseWitness(String pInput) throws SvLibAstParseException {
+    return parseWitness(pInput, Optional.empty());
+  }
+
+  public static SvLibWitness parseWitness(Path pFilename, String pInput)
+      throws SvLibAstParseException {
+    return parseWitness(pInput, Optional.of(pFilename));
+  }
+
+  public static SvLibWitness parseWitness(Path pFilePath) throws SvLibAstParseException {
+    String programString;
+    try {
+      programString = Files.readString(pFilePath);
+    } catch (IOException e) {
+      throw new SvLibAstParseException("Could not read input file: " + pFilePath, e);
+    }
+
+    return parseWitness(programString, Optional.of(pFilePath));
   }
 
   public static class SvLibAstParseException extends Exception {

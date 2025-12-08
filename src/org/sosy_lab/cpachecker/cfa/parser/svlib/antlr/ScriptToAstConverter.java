@@ -19,20 +19,20 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 
 class ScriptToAstConverter extends AbstractAntlrToAstConverter<SvLibParsingResult> {
 
-  private final CommandToAstConverter commandToAstConverter;
+  private final SvLibCommandToAstConverter commandToAstConverter;
   private final ImmutableMap.Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
 
   public ScriptToAstConverter(SvLibScope pScope, Path pFilePath) {
     super(pScope, pFilePath);
     tagReferenceToScopeBuilder = ImmutableMap.builder();
     commandToAstConverter =
-        new CommandToAstConverter(pScope, pFilePath, tagReferenceToScopeBuilder);
+        new SvLibCommandToAstConverter(pScope, pFilePath, tagReferenceToScopeBuilder);
   }
 
   public ScriptToAstConverter(SvLibScope pScope) {
     super(pScope);
     tagReferenceToScopeBuilder = ImmutableMap.builder();
-    commandToAstConverter = new CommandToAstConverter(pScope, tagReferenceToScopeBuilder);
+    commandToAstConverter = new SvLibCommandToAstConverter(pScope, tagReferenceToScopeBuilder);
   }
 
   @Override

@@ -57,12 +57,14 @@ public class SvLibUninterpretedScope extends SvLibScope {
 
   @Override
   public SvLibSimpleParsingDeclaration getVariable(String pText) {
-    return SvLibParsingVariableDeclaration.dummyVariableForName(pText);
+    // We consider all dummy variables to be global in the uninterpreted scope
+    return SvLibParsingVariableDeclaration.dummyVariableForName(pText, null);
   }
 
   @Override
   public SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pText) {
-    return SvLibParsingVariableDeclaration.dummyVariableForName(pText);
+    // We consider all dummy variables to be global in the uninterpreted scope
+    return SvLibParsingVariableDeclaration.dummyVariableForName(pText, null);
   }
 
   @Override

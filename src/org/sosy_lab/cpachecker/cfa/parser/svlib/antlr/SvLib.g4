@@ -15,6 +15,18 @@ script
     : commandSvLib+
     ;
 
+witness: correctnessWitness | violationWitness ;
+
+metadata: (ParOpen cmd_setInfo ParClose)* ;
+
+correctnessWitness
+    : ParOpen metadata command* annotateTagCommand* ParClose
+    ;
+
+violationWitness
+  : ParOpen metadata selectTraceCommand* ParClose
+  ;
+
 commandSvLib
     : ParOpen 'declare-var' symbol sort ParClose                      # DeclareVar
     | ParOpen
@@ -24,13 +36,21 @@ commandSvLib
             ParOpen procDeclarationArguments ParClose
                 statement
       ParClose                                                        # DefineProc
-    | ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose               # AnnotateTag
-    | ParOpen 'select-trace' trace ParClose                           # SelectTrace
+    | annotateTagCommand                                              # AnnotateTag
+    | selectTraceCommand                                              # SelectTrace
     | ParOpen 'verify-call' symbol
             ParOpen term* ParClose
       ParClose                                                        # VerifyCall
     | ParOpen 'get-witness' ParClose                                  # GetWitness
     | command                                                         # SMTLIBv2Command
+    ;
+
+annotateTagCommand
+    : ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose
+    ;
+
+selectTraceCommand
+    : ParOpen 'select-trace' trace ParClose
     ;
 
 statement

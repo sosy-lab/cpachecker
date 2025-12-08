@@ -43,9 +43,10 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
     procedureName = pProcedureName;
   }
 
-  public static SvLibParsingVariableDeclaration dummyVariableForName(String pName) {
+  public static SvLibParsingVariableDeclaration dummyVariableForName(
+      String pName, @Nullable String pProcedureName) {
     return new SvLibParsingVariableDeclaration(
-        FileLocation.DUMMY, true, false, new SvLibAnyType(), pName, pName, pName);
+        FileLocation.DUMMY, true, false, new SvLibAnyType(), pName, pName, pProcedureName);
   }
 
   @Override

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AssertCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AttributeContext;
@@ -201,7 +202,7 @@ class SvLibCommandToAstConverter extends AbstractAntlrToAstConverter<SvLibComman
   }
 
   @Override
-  public SvLibCommand visitAnnotateTag(AnnotateTagContext pContext) {
+  public SvLibCommand visitAnnotateTagCommand(AnnotateTagCommandContext pContext) {
     List<SvLibTagProperty> tags =
         FluentIterable.from(pContext.attributeSvLib())
             .transform(attribute -> tagToAstConverter.visit(attribute))
@@ -209,6 +210,12 @@ class SvLibCommandToAstConverter extends AbstractAntlrToAstConverter<SvLibComman
             .toList();
     String tagName = pContext.symbol().getText();
     return new SvLibAnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public SvLibCommand visitAnnotateTag(AnnotateTagContext pContext) {
+    AnnotateTagCommandContext commandContext = pContext.annotateTagCommand();
+    return visitAnnotateTagCommand(commandContext);
   }
 
   @Override

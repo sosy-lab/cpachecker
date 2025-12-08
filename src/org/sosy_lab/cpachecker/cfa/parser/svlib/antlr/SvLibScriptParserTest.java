@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStateme
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 
-public class SvLibParserTest {
+public class SvLibScriptParserTest {
 
   private String examplesPath() {
     return Path.of("test", "programs", "sv-lib").toAbsolutePath().toString();
@@ -376,7 +376,8 @@ public class SvLibParserTest {
                                     new SvLibIntegerConstantTerm(
                                         BigInteger.ZERO, FileLocation.DUMMY),
                                     new SvLibIdTerm(
-                                        SvLibParsingVariableDeclaration.dummyVariableForName("y0")
+                                        SvLibParsingVariableDeclaration.dummyVariableForName(
+                                                "y0", null)
                                             .toSimpleDeclaration(),
                                         FileLocation.DUMMY)),
                                 FileLocation.DUMMY),
@@ -387,7 +388,8 @@ public class SvLibParserTest {
                                     SmtLibTheoryDeclarations.INT_EQUALITY, FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new SvLibIdTerm(
-                                        SvLibParsingVariableDeclaration.dummyVariableForName("x")
+                                        SvLibParsingVariableDeclaration.dummyVariableForName(
+                                                "x", null)
                                             .toSimpleDeclaration(),
                                         FileLocation.DUMMY),
                                     new SvLibSymbolApplicationTerm(
@@ -397,12 +399,12 @@ public class SvLibParserTest {
                                         ImmutableList.of(
                                             new SvLibIdTerm(
                                                 SvLibParsingVariableDeclaration
-                                                    .dummyVariableForName("x0")
+                                                    .dummyVariableForName("x0", null)
                                                     .toSimpleDeclaration(),
                                                 FileLocation.DUMMY),
                                             new SvLibIdTerm(
                                                 SvLibParsingVariableDeclaration
-                                                    .dummyVariableForName("y0")
+                                                    .dummyVariableForName("y0", null)
                                                     .toSimpleDeclaration(),
                                                 FileLocation.DUMMY)),
                                         FileLocation.DUMMY)),
