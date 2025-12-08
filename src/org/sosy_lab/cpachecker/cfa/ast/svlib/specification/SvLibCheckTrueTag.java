@@ -35,12 +35,12 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toASTString(pAAstNodeRepresentation);
+    return ":check-true " + term.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toParenthesizedASTString(pAAstNodeRepresentation);
+    return ":check-true " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   public SvLibRelationalTerm getTerm() {
