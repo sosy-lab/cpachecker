@@ -102,8 +102,6 @@ class CFABuilder extends ASTVisitor {
   // the _Atomic in the AST nodes when converting them.
   private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
 
-  // Data structures for storing locations of ACSL annotations
-  private final List<FileLocation> acslCommentPositions = new ArrayList<>();
   private final List<AcslComment> acslComments = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
 
