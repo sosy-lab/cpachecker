@@ -64,7 +64,14 @@ public final class SvLibSetOptionCommand implements SmtLibCommand, SvLibCommand 
 
   @Override
   public String toASTString() {
-    return "(set-option " + option + " " + value + ")";
+    return "(set-option "
+        + option
+        + " "
+        //Add quotation marks to the String if value does not represent a boolean value,
+        // but a witness-output-channel.
+        //Necessary for correct serialization
+        + (getBooleanValue().equals(Optional.empty()) ? "\"" + value + "\"" : value)
+        + ")";
   }
 
   @Override
