@@ -12,10 +12,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
@@ -23,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -35,7 +39,19 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibWitnessParser;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibCorrectnessWitness;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibViolationWitness;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibWitness;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSelectTraceCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
@@ -46,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2d0Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
@@ -94,6 +111,7 @@ public final class Specification {
   private final ImmutableSet<Path> specificationFiles;
   private final ImmutableSet<Property> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
+  private final Optional<SvLibSpecificationInformation> svLibSpecificationInformation;
 
   public static Specification alwaysSatisfied() {
     return new Specification(ImmutableSet.of(), ImmutableSet.of(), ImmutableListMultimap.of());
@@ -138,6 +156,20 @@ public final class Specification {
         };
     // for deduplicating values returned by getAutomatonForProperty()
     Set<Path> handledAutomataForProperties = new HashSet<>();
+
+    boolean shouldUseSvLibSpec = false;
+    ImmutableMap.Builder<SvLibTagReference, SvLibScope> tagReferenceToScope =
+        ImmutableMap.builder();
+    ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> tagAnnotations =
+        ImmutableSetMultimap.builder();
+    ImmutableSet.Builder<SvLibTrace> traces = ImmutableSet.builder();
+    if (cfa.getLanguage() == Language.SVLIB) {
+      shouldUseSvLibSpec = true;
+      SvLibCfaMetadata svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata().orElseThrow();
+      tagReferenceToScope.putAll(svLibMetadata.tagReferenceToScope());
+      tagAnnotations.putAll(svLibMetadata.tagAnnotations());
+      traces.addAll(svLibMetadata.traces());
+    }
 
     for (Path specFile : specFiles) {
       if (MoreFiles.getFileExtension(specFile).equals("prp")) {
@@ -200,11 +232,69 @@ public final class Specification {
             }
           }
         }
+      } else if (MoreFiles.getFileExtension(specFile).equals("svlib")) {
+        // In this case we are parsing an SV-LIB witness that is considered as the specification.
+        // For this we need to instantiate a property object that will then be used in a custom CPA,
+        // to keep track of this.
+        shouldUseSvLibSpec = true;
+
+        SvLibWitness witness;
+        try {
+          witness = SvLibWitnessParser.parseWitness(specFile);
+        } catch (SvLibParserException e) {
+          throw new InvalidConfigurationException(
+              "Could not parse SV-LIB witness: " + e.getMessage(), e);
+        }
+
+        SvLibCfaMetadata svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata().orElseThrow();
+
+        switch (witness) {
+          case SvLibCorrectnessWitness pCorrectnessWitness -> {
+            // For each annotation we now obtain we need to instantiate it inside the correct scope,
+            // and add it to the existing annotations.
+            for (SvLibAnnotateTagCommand command : pCorrectnessWitness.getAnnotateTagCommands()) {
+              SvLibTagReference tagReference = command.getTagReference();
+              SvLibScope tagScope =
+                  Objects.requireNonNull(svLibMetadata.tagReferenceToScope().get(tagReference));
+              // Calling `.inverse()` is not a problem, since the underlying implementation caches
+              // this call whenever it occurs, which therefore makes it efficient since it is
+              // computed only once.
+              Set<CFANode> nodes = svLibMetadata.tagReferences().inverse().get(tagReference);
+
+              // Now instantiate each property in the correct scope and add it to all relevant
+              // nodes.
+              for (SvLibTagProperty property : command.getTags()) {
+                SvLibTagProperty instantiatedProperty = tagScope.instantiateTagProperty(property);
+                for (CFANode node : nodes) {
+                  tagAnnotations.put(node, instantiatedProperty);
+                }
+              }
+            }
+          }
+
+          case SvLibViolationWitness pViolationWitness -> {
+            // TODO: Figure out what kind of post-processing the traces require.
+            //  Some candidates are:
+            //  - Mapping the input function to a real function (but currently this is likely to be
+            //    ignored)
+            traces.addAll(
+                FluentIterable.from(pViolationWitness.getSelectTraceCommands())
+                    .transform(SvLibSelectTraceCommand::getTrace));
+          }
+        }
       } else {
         List<Automaton> automata =
             parseSpecificationFile(specFile, cfa, config, logger, pShutdownNotifier, scope);
         specificationAutomata.putAll(specFile, automata);
       }
+    }
+
+    if (shouldUseSvLibSpec) {
+      SvLibSpecificationInformation svLibSpecInfo =
+          new SvLibSpecificationInformation(
+              tagReferenceToScope.build(), tagAnnotations.build(), traces.build());
+      return new Specification(
+          specFiles, properties.build(), specificationAutomata.build(), svLibSpecInfo);
     }
 
     return new Specification(specFiles, properties.build(), specificationAutomata.build());
@@ -369,11 +459,29 @@ public final class Specification {
     specificationFiles = ImmutableSet.copyOf(pSpecificationFiles);
     properties = ImmutableSet.copyOf(pProperties);
     pathToSpecificationAutomata = checkNotNull(pSpecification);
+    svLibSpecificationInformation = Optional.empty();
+  }
+
+  @VisibleForTesting
+  Specification(
+      Set<Path> pSpecificationFiles,
+      Set<Property> pProperties,
+      ImmutableListMultimap<Path, Automaton> pSpecification,
+      SvLibSpecificationInformation pSvLibSpecificationInformation) {
+    specificationFiles = ImmutableSet.copyOf(pSpecificationFiles);
+    properties = ImmutableSet.copyOf(pProperties);
+    pathToSpecificationAutomata = checkNotNull(pSpecification);
+    svLibSpecificationInformation = Optional.of(pSvLibSpecificationInformation);
   }
 
   /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
   public ImmutableList<Automaton> getSpecificationAutomata() {
     return pathToSpecificationAutomata.values().asList();
+  }
+
+  /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
+  public Optional<SvLibSpecificationInformation> getSvLibSpecificationInformation() {
+    return svLibSpecificationInformation;
   }
 
   @Override

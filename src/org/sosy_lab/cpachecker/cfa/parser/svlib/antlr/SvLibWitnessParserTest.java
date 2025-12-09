@@ -137,7 +137,7 @@ public class SvLibWitnessParserTest {
             ImmutableList.of(new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY)),
             ImmutableList.of(
                 new SvLibAnnotateTagCommand(
-                    "while-loop",
+                    new SvLibTagReference("while-loop", FileLocation.DUMMY),
                     ImmutableList.of(
                         new SvLibInvariantTag(
                             new SvLibSymbolApplicationTerm(

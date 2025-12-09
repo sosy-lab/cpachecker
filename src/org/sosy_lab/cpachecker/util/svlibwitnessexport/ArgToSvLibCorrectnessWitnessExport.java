@@ -88,7 +88,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
     SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
     return new SvLibAnnotateTagCommand(
-        pTag.getTagName(),
+        pTag,
         ImmutableList.of(new SvLibRequiresTag(precondition, FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
@@ -125,7 +125,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
     }
 
     return new SvLibAnnotateTagCommand(
-        pTag.getTagName(),
+        pTag,
         ImmutableList.of(
             new SvLibEnsuresTag(
                 SvLibRelationalTerm.booleanConjunction(ensuresTerms.build().asList()),
@@ -137,7 +137,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
   private SvLibAnnotateTagCommand createLoopInvariant(
       Collection<ARGState> argStates, SvLibTagReference pTag) {
     return new SvLibAnnotateTagCommand(
-        pTag.getTagName(),
+        pTag,
         ImmutableList.of(
             new SvLibInvariantTag(
                 getOverapproximationOfStates(

@@ -247,7 +247,10 @@ class SvLibCommandToAstConverter extends AbstractAntlrToAstConverter<SvLibComman
             .filter(SvLibTagProperty.class)
             .toList();
     String tagName = pContext.symbol().getText();
-    return new SvLibAnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
+    return new SvLibAnnotateTagCommand(
+        new SvLibTagReference(tagName, fileLocationFromContext(pContext.symbol())),
+        tags,
+        fileLocationFromContext(pContext));
   }
 
   @Override

@@ -11,19 +11,17 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibParsingResult;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibWitness;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 
 public class SvLibWitnessParser {
 
-  @SuppressWarnings("unused")
-  public static void parseWitness(Path pFilename, String pCode) throws SvLibParserException {
-    SvLibParsingResult script;
+  // Just a wrapper to make the API cleaner
+  public static SvLibWitness parseWitness(Path pFilename) throws SvLibParserException {
     try {
-      script = SvLibToAstParser.parseScript(pFilename, pCode);
+      return SvLibToAstParser.parseWitness(pFilename);
     } catch (SvLibAstParseException e) {
-      throw new SvLibParserException(
-          "Failed converting the input witness file into AST objects", e);
+      throw new SvLibParserException("Parsing of SV-LIB witness file " + pFilename + " failed.", e);
     }
   }
 }

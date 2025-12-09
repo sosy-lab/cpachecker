@@ -75,7 +75,8 @@ public class SvLibStatementToCfaVisitor
   private final ImmutableMap.Builder<CFANode, String> gotoNodesToLabels;
   private final ImmutableMap.Builder<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;
-  private final ImmutableSetMultimap<String, SvLibTagProperty> tagReferencesToAnnotations;
+  private final ImmutableSetMultimap<SvLibTagReference, SvLibTagProperty>
+      tagReferencesToAnnotations;
   // Required to reconstruct violation witnesses properly
   private final ImmutableMap.Builder<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd;
 
@@ -89,7 +90,7 @@ public class SvLibStatementToCfaVisitor
       ImmutableMap.Builder<CFANode, String> pGotoNodesToLabels,
       ImmutableMap.Builder<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,
-      ImmutableSetMultimap<String, SvLibTagProperty> pTagReferencesToAnnotations,
+      ImmutableSetMultimap<SvLibTagReference, SvLibTagProperty> pTagReferencesToAnnotations,
       ImmutableMap.Builder<CFANode, SvLibHavocStatement> pNodesToActualHavocStatementEnd) {
     currentStartingNode = pInitialNode;
     procedure = pProcedure;
@@ -114,7 +115,7 @@ public class SvLibStatementToCfaVisitor
       SvLibStatement pStatement, CFANode pStartNode) {
     nodeToTagAnnotations.putAll(pStartNode, pStatement.getTagAttributes());
     for (SvLibTagReference ref : pStatement.getTagReferences()) {
-      ImmutableSet<SvLibTagProperty> properties = tagReferencesToAnnotations.get(ref.getTagName());
+      ImmutableSet<SvLibTagProperty> properties = tagReferencesToAnnotations.get(ref);
       nodeToTagAnnotations.putAll(pStartNode, properties);
       nodeToTagReferences.put(pStartNode, ref);
     }

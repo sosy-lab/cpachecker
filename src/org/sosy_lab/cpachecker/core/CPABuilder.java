@@ -196,13 +196,15 @@ public class CPABuilder {
       cpas.add(factory.createInstance());
     }
 
-    // 4. Instantiate configured CPAs
+    // 5. Add SV-LIB specification CPA if needed
+    // TODO
+
+    // 6. Instantiate configured CPAs
 
     ConfigurableProgramAnalysis cpa =
         instantiateCPAandChildren(rootCpaConfig, cpas, cfa, specification, pAggregatedReachedSets);
 
-    // 5. Final assertions
-
+    // 7. Final assertions
     ImmutableList<ConfigurableProgramAnalysis> allCpas = CPAs.asIterable(cpa).toList();
     verify(allCpas.containsAll(cpas), "CPAs for automata missing from final CPA tree");
     verify(

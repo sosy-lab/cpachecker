@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
 
 /**
  * Metadata for SV-Lib CFAs.
@@ -52,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
  * @param tagAnnotations mapping from CFA nodes to the tag properties (annotations) associated with
  *     them
  * @param tagReferences mapping from CFA nodes to the tag references associated with them
+ * @param traces the traces extracted from the SV-Lib input file
  */
 public record SvLibCfaMetadata(
     ImmutableList<SmtLibCommand> smtLibCommands,
@@ -61,7 +64,8 @@ public record SvLibCfaMetadata(
     ImmutableMap<CFANode, SvLibProcedureDeclaration> nodesToActualProcedureDefinitionEnd,
     ImmutableMap<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd,
     ImmutableSetMultimap<CFANode, SvLibTagProperty> tagAnnotations,
-    ImmutableSetMultimap<CFANode, SvLibTagReference> tagReferences) {
+    ImmutableSetMultimap<CFANode, SvLibTagReference> tagReferences,
+    ImmutableSet<SvLibTrace> traces) {
 
   public SvLibCfaMetadata {
     checkNotNull(smtLibCommands);
@@ -71,5 +75,6 @@ public record SvLibCfaMetadata(
     checkNotNull(nodesToActualHavocStatementEnd);
     checkNotNull(tagAnnotations);
     checkNotNull(tagReferences);
+    checkNotNull(traces);
   }
 }

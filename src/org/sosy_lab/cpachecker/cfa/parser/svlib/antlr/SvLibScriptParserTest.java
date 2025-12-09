@@ -365,7 +365,7 @@ public class SvLibScriptParserTest {
                             // tests, since equality over tags must be based on the name only.
                             new SvLibTagReference("proc-add", FileLocation.DUMMY)))),
                 new SvLibAnnotateTagCommand(
-                    "proc-add",
+                    new SvLibTagReference("proc-add", FileLocation.DUMMY),
                     ImmutableList.of(
                         new SvLibRequiresTag(
                             new SvLibSymbolApplicationTerm(

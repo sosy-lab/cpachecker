@@ -15,24 +15,25 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 
 public final class SvLibAnnotateTagCommand implements SvLibCommand {
   @Serial private static final long serialVersionUID = 5333102692293273124L;
 
-  private final String tagName;
+  private final SvLibTagReference tagReference;
   private final ImmutableList<SvLibTagProperty> tags;
   private final FileLocation fileLocation;
 
   public SvLibAnnotateTagCommand(
-      String pTagName, List<SvLibTagProperty> pTags, FileLocation pFileLocation) {
-    tagName = pTagName;
+      SvLibTagReference pTagReference, List<SvLibTagProperty> pTags, FileLocation pFileLocation) {
+    tagReference = pTagReference;
     tags = ImmutableList.copyOf(pTags);
     fileLocation = pFileLocation;
   }
 
-  public String getTagName() {
-    return tagName;
+  public SvLibTagReference getTagReference() {
+    return tagReference;
   }
 
   public ImmutableList<SvLibTagProperty> getTags() {
@@ -47,7 +48,7 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
   @Override
   public String toASTString() {
     return "(annotate-tag "
-        + tagName
+        + tagReference.getTagName()
         + " "
         + Joiner.on(" ").join(FluentIterable.from(tags).transform(SvLibTagProperty::toASTString))
         + ")";
@@ -57,7 +58,7 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
   public int hashCode() {
     int prime = 31;
     int result = 1;
-    result = prime * result + tagName.hashCode();
+    result = prime * result + tagReference.hashCode();
     result = prime * result + tags.hashCode();
     return result;
   }
@@ -68,7 +69,7 @@ public final class SvLibAnnotateTagCommand implements SvLibCommand {
       return true;
     }
     return pO instanceof SvLibAnnotateTagCommand other
-        && tagName.equals(other.tagName)
+        && tagReference.equals(other.tagReference)
         && tags.equals(other.tags);
   }
 

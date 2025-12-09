@@ -40,15 +40,9 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatemen
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -84,8 +78,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionComma
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -104,8 +98,8 @@ class SvLibCfaBuilder {
 
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> nodeToTagAnnotations =
       new ImmutableSetMultimap.Builder<>();
-  private final ImmutableSetMultimap.Builder<String, SvLibTagProperty> tagReferencesToAnnotations =
-      ImmutableSetMultimap.builder();
+  private final ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty>
+      tagReferencesToAnnotations = ImmutableSetMultimap.builder();
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodesToTagReferences =
       ImmutableSetMultimap.builder();
 
@@ -114,6 +108,8 @@ class SvLibCfaBuilder {
       nodesToActualProcedureDefinitionEnd = ImmutableMap.builder();
   private final ImmutableMap.Builder<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd =
       ImmutableMap.builder();
+
+  private final ImmutableSet.Builder<SvLibTrace> traces = ImmutableSet.builder();
 
   public SvLibCfaBuilder(
       LogManager pLogger,
@@ -266,42 +262,6 @@ class SvLibCfaBuilder {
     return Pair.of(functionEntryNode, allNodesCollector.build());
   }
 
-  private static SvLibTagProperty instantiateTagProperty(
-      SvLibScope pScope, SvLibTagProperty pTagProperty) {
-    SvLibIdTermReplacer variableInstantiation =
-        new SvLibIdTermReplacer() {
-
-          @Override
-          public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
-            if (pIdTerm.getDeclaration().getType().equals(new SvLibAnyType())) {
-              return new SvLibIdTerm(
-                  pScope.getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),
-                  FileLocation.DUMMY);
-            } else {
-              return pIdTerm;
-            }
-          }
-        };
-
-    return switch (pTagProperty) {
-      case SvLibCheckTrueTag pCheckTrueTag ->
-          new SvLibCheckTrueTag(
-              pCheckTrueTag.getTerm().accept(variableInstantiation),
-              pCheckTrueTag.getFileLocation());
-      case SvLibRequiresTag pRequiresTag ->
-          new SvLibRequiresTag(
-              (SvLibTerm) pRequiresTag.getTerm().accept(variableInstantiation),
-              pRequiresTag.getFileLocation());
-      case SvLibEnsuresTag pEnsuresTag ->
-          new SvLibEnsuresTag(
-              pEnsuresTag.getTerm().accept(variableInstantiation), pEnsuresTag.getFileLocation());
-      case SvLibInvariantTag pInvariantTag ->
-          new SvLibInvariantTag(
-              pInvariantTag.getTerm().accept(variableInstantiation),
-              pInvariantTag.getFileLocation());
-    };
-  }
-
   public ParseResult buildCfaFromScript(SvLibParsingResult pParsingResult)
       throws SvLibParserException {
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
@@ -421,7 +381,7 @@ class SvLibCfaBuilder {
           indexOfFirstVerifyCall = i;
         }
         case SvLibAnnotateTagCommand pSvLibAnnotateTagCommand -> {
-          String tagName = pSvLibAnnotateTagCommand.getTagName();
+          SvLibTagReference commandTagReference = pSvLibAnnotateTagCommand.getTagReference();
           List<SvLibTagProperty> tagProperties = pSvLibAnnotateTagCommand.getTags();
 
           // TODO: This is highly inefficient!!!
@@ -429,17 +389,16 @@ class SvLibCfaBuilder {
           for (Entry<CFANode, SvLibTagReference> entry : nodesToTagReferences.build().entries()) {
             CFANode node = entry.getKey();
             SvLibTagReference tagReference = entry.getValue();
-            if (tagReference.getTagName().equals(tagName)) {
+            if (tagReference.equals(commandTagReference)) {
               for (SvLibTagProperty tagProperty : tagProperties) {
                 nodeToTagAnnotations.put(
                     node,
-                    instantiateTagProperty(
-                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)),
-                        tagProperty));
+                    Objects.requireNonNull(tagReferenceToScope.get(tagReference))
+                        .instantiateTagProperty(tagProperty));
               }
             }
           }
-          tagReferencesToAnnotations.putAll(tagName, tagProperties);
+          tagReferencesToAnnotations.putAll(commandTagReference, tagProperties);
         }
         case SvLibGetWitnessCommand pSvLibGetWitnessCommand -> {
           logger.log(
@@ -493,8 +452,7 @@ class SvLibCfaBuilder {
           smtLibCommandsBuilder.add(pSvLibSetOptionCommand);
         }
         case SvLibSelectTraceCommand pSvLibSelectTraceCommand -> {
-          throw new SvLibParserException(
-              "Select trace commands are not yet supported in CFA parsing.");
+          traces.add(pSvLibSelectTraceCommand.getTrace());
         }
         case SvLibSetInfoCommand pSvLibSetInfoCommand -> {
           // we ignore set-info commands for now
@@ -542,6 +500,7 @@ class SvLibCfaBuilder {
             nodesToActualProcedureDefinitionEnd.buildOrThrow(),
             nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
-            nodesToTagReferences.build()));
+            nodesToTagReferences.build(),
+            traces.build()));
   }
 }

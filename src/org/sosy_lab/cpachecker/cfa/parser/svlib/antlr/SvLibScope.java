@@ -14,13 +14,24 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public abstract class SvLibScope {
@@ -95,5 +106,40 @@ public abstract class SvLibScope {
     return Objects.requireNonNull(
         functionDeclarations.buildOrThrow().get(pName),
         "Function declaration '" + pName + "' not found.");
+  }
+
+  public SvLibTagProperty instantiateTagProperty(SvLibTagProperty pTagProperty) {
+    SvLibIdTermReplacer variableInstantiation =
+        new SvLibIdTermReplacer() {
+
+          @Override
+          public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
+            if (pIdTerm.getDeclaration().getType().equals(new SvLibAnyType())) {
+              return new SvLibIdTerm(
+                  getVariable(pIdTerm.getDeclaration().getName()).toSimpleDeclaration(),
+                  FileLocation.DUMMY);
+            } else {
+              return pIdTerm;
+            }
+          }
+        };
+
+    return switch (pTagProperty) {
+      case SvLibCheckTrueTag pCheckTrueTag ->
+          new SvLibCheckTrueTag(
+              pCheckTrueTag.getTerm().accept(variableInstantiation),
+              pCheckTrueTag.getFileLocation());
+      case SvLibRequiresTag pRequiresTag ->
+          new SvLibRequiresTag(
+              (SvLibTerm) pRequiresTag.getTerm().accept(variableInstantiation),
+              pRequiresTag.getFileLocation());
+      case SvLibEnsuresTag pEnsuresTag ->
+          new SvLibEnsuresTag(
+              pEnsuresTag.getTerm().accept(variableInstantiation), pEnsuresTag.getFileLocation());
+      case SvLibInvariantTag pInvariantTag ->
+          new SvLibInvariantTag(
+              pInvariantTag.getTerm().accept(variableInstantiation),
+              pInvariantTag.getFileLocation());
+    };
   }
 }

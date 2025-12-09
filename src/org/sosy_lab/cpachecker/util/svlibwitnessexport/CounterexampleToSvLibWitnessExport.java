@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibIncorrectTagPrope
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibInitProcVariablesStep;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceEntryProcedure;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceSetGlobalVariable;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceStep;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibViolatedProperty;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteSta
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleToSvLibWitnessExport {
   @SuppressWarnings("unused")
@@ -92,12 +92,7 @@ public class CounterexampleToSvLibWitnessExport {
       // If we know exactly which tag was violated, include it in the property.
       SvLibTagReference tagRef = tagReferences.iterator().next();
       return new SvLibIncorrectTagProperty(tagRef.getFileLocation(), tagRef, violatedTags);
-    } else if (tagReferences.isEmpty()) {
-      // Otherwise, just return the violated tags without a specific reference.
-      return new SvLibIncorrectTagProperty(FileLocation.DUMMY, violatedTags);
     } else {
-      // TODO: There can be multiple tag references, and only one of them could have the actual
-      //  property, so we need to be able to identify the correct one.
       throw new UnsupportedOperationException(
           "SV-LIB witness export currently only supports a single violated property tag reference"
               + " at a CFANode.");
@@ -138,7 +133,7 @@ public class CounterexampleToSvLibWitnessExport {
       }
     }
     return new SvLibInitProcVariablesStep(
-        functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
+        pProcedureDeclaration, functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
   private SvLibHavocVariablesStep setHavocVariablesForFunctionCall(
@@ -158,7 +153,7 @@ public class CounterexampleToSvLibWitnessExport {
     return new SvLibHavocVariablesStep(havocedVariablesBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
-  private Optional<SvLibTraceSetGlobalVariable> handleGlobalVariableAssignment(
+  private Optional<Pair<SvLibIdTerm, SvLibConstantTerm>> handleGlobalVariableAssignment(
       ConcreteState pConcreteState, SvLibDeclaration pDeclaration) {
     checkState(
         (pDeclaration instanceof SvLibVariableDeclaration),
@@ -170,10 +165,7 @@ public class CounterexampleToSvLibWitnessExport {
 
     if (assignedValue.isPresent()) {
       return Optional.of(
-          new SvLibTraceSetGlobalVariable(
-              new SvLibIdTerm(pVarDecl, FileLocation.DUMMY),
-              assignedValue.orElseThrow(),
-              FileLocation.DUMMY));
+          Pair.of(new SvLibIdTerm(pVarDecl, FileLocation.DUMMY), assignedValue.orElseThrow()));
     }
     return Optional.empty();
   }
@@ -181,8 +173,8 @@ public class CounterexampleToSvLibWitnessExport {
   public List<SvLibCommand> generateWitnessCommands(CounterexampleInfo pCounterexample) {
     ConcreteStatePath concretePath =
         pCounterexample.getCFAPathWithAssignments().getConcreteStatePath().orElseThrow();
-    ImmutableList.Builder<SvLibTraceSetGlobalVariable> globalVariableAssignmentBuilder =
-        ImmutableList.builder();
+    ImmutableMap.Builder<SvLibIdTerm, SvLibConstantTerm> globalVariableAssignmentBuilder =
+        ImmutableMap.builder();
     @Nullable SvLibTraceEntryProcedure entryCall = null;
     ImmutableList.Builder<SvLibTraceStep> stepsBuilder = ImmutableList.builder();
     @Nullable SvLibViolatedProperty violatedProperty = null;
@@ -226,12 +218,13 @@ public class CounterexampleToSvLibWitnessExport {
             "Expected global declaration edges in the global declaration phase of SV-LIB witness"
                 + " export.");
 
-        Optional<SvLibTraceSetGlobalVariable> globalVarAssignment =
+        Optional<Pair<SvLibIdTerm, SvLibConstantTerm>> globalVarAssignment =
             handleGlobalVariableAssignment(
                 concreteState, ((SvLibDeclarationEdge) edge).getDeclaration());
 
         if (globalVarAssignment.isPresent()) {
-          globalVariableAssignmentBuilder.add(globalVarAssignment.orElseThrow());
+          Pair<SvLibIdTerm, SvLibConstantTerm> assignedValue = globalVarAssignment.orElseThrow();
+          globalVariableAssignmentBuilder.put(assignedValue.getFirst(), assignedValue.getSecond());
         }
 
       } else if (svLibMetadata.nodesToActualHavocStatementEnd().containsKey(edge.getSuccessor())) {
