@@ -846,6 +846,7 @@ public class CPAMain {
 
     final Path validationConfigFile;
     final String witnessName;
+    boolean isSvLibWitness = false;
     if (options.useACSLAnnotatedProgram) {
       validationConfigFile = options.correctnessWitnessValidationConfig;
       witnessName = "an ACSL-annotated program";
@@ -872,6 +873,7 @@ public class CPAMain {
               SvLibWitnessParser.getWitnessTypeIfSvLib(options.witness);
           if (optionalWitnessTypeSvLib.isPresent()) {
             witnessType = optionalWitnessTypeSvLib.orElseThrow();
+            isSvLibWitness = true;
           } else {
             Optional<WitnessType> optionalWitnessTypeGraphML =
                 AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
@@ -931,7 +933,7 @@ public class CPAMain {
               handlePropertyOptions(
                   logger, validationConfig, overrideOptions, handlePropertyFile(overrideOptions));
           correctnessWitnessConfig.inject(options);
-          if (options.validateInvariantsSpecificationAutomaton) {
+          if (options.validateInvariantsSpecificationAutomaton || isSvLibWitness) {
             appendWitnessToSpecificationOption(options, overrideOptions);
           } else {
             overrideOptions.put(
