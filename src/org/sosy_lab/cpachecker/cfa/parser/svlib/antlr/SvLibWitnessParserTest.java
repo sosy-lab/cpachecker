@@ -152,7 +152,7 @@ public class SvLibWitnessParserTest {
                                         FileLocation.DUMMY),
                                     new SvLibSymbolApplicationTerm(
                                         new SvLibIdTerm(
-                                            SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN,
+                                            SmtLibTheoryDeclarations.INT_LESS_EQUAL_THAN,
                                             FileLocation.DUMMY),
                                         ImmutableList.of(
                                             new SvLibIdTerm(

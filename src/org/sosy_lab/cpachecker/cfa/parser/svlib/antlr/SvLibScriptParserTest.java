@@ -251,7 +251,8 @@ public class SvLibScriptParserTest {
                                                     FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
-                                ImmutableList.of())),
+                                ImmutableList.of(
+                                    new SvLibTagReference("assert-false", FileLocation.DUMMY)))),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of())),
