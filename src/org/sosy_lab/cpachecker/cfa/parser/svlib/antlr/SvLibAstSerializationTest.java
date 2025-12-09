@@ -59,6 +59,18 @@ public class SvLibAstSerializationTest {
   }
 
   @Test
+  public void serializeLoopSimpleSafe() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "loop-simple-safe.svlib");
+    testAstSerialization(filePath);
+  }
+
+  @Test
+  public void serializeLoopSimpleUnsafe() throws SvLibAstParseException {
+    Path filePath = Path.of(examplesPath(), "loop-simple-unsafe.svlib");
+    testAstSerialization(filePath);
+  }
+
+  @Test
   public void serializeSafeWithFunctionCall() throws SvLibAstParseException {
     Path filePath = Path.of(examplesPath(), "safe-with-function-call.svlib");
     testAstSerialization(filePath);
