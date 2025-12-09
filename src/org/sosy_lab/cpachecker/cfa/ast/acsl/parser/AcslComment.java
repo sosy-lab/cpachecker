@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import com.google.common.base.Verify;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -26,9 +27,8 @@ public class AcslComment {
 
   public void updateCfaNode(@Nullable CFANode pCfaNode) {
     // Ensure the Cfa Node for an Acsl Comment can only be set once
-    if (cfaNode == null) {
-      cfaNode = pCfaNode;
-    }
+    Verify.verify(cfaNode == null);
+    cfaNode = pCfaNode;
   }
 
   public FileLocation getFileLocation() {
