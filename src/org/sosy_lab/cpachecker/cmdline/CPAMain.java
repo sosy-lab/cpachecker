@@ -58,6 +58,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.SvLibWitnessParser;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -867,13 +868,21 @@ public class CPAMain {
         if (optionalWitnessTypeYAML.isPresent()) {
           witnessType = optionalWitnessTypeYAML.orElseThrow();
         } else {
-          Optional<WitnessType> optionalWitnessTypeGraphML =
-              AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
-          if (optionalWitnessTypeGraphML.isPresent()) {
-            witnessType = optionalWitnessTypeGraphML.orElseThrow();
+          Optional<WitnessType> optionalWitnessTypeSvLib =
+              SvLibWitnessParser.getWitnessTypeIfSvLib(options.witness);
+          if (optionalWitnessTypeSvLib.isPresent()) {
+            witnessType = optionalWitnessTypeSvLib.orElseThrow();
           } else {
-            throw new InvalidConfigurationException(
-                "The Witness format found for " + options.witness + " is currently not supported.");
+            Optional<WitnessType> optionalWitnessTypeGraphML =
+                AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+            if (optionalWitnessTypeGraphML.isPresent()) {
+              witnessType = optionalWitnessTypeGraphML.orElseThrow();
+            } else {
+              throw new InvalidConfigurationException(
+                  "The Witness format found for "
+                      + options.witness
+                      + " is currently not supported.");
+            }
           }
         }
       } catch (NoSuchFileException e) {
