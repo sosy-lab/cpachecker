@@ -5482,6 +5482,15 @@ stop = "SEP"
 # current one.
 svlib.config = no default value
 
+# Should we do witness validation or not?
+# Witness validation means that we require the witness to be sufficient to
+# proof all the specifications, which means that we only follow paths where
+# modular abstractions are used, not exploring the original program on our
+# own.
+# In case this option we additionally explore all paths of the original
+# program in addition to the paths using modular abstractions.
+svlib.specification.doWitnessValidation = false
+
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
 
