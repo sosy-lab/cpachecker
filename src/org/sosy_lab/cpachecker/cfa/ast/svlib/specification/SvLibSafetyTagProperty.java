@@ -8,4 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
-public sealed interface SvLibTagProperty extends SvLibTagAttribute permits SvLibSafetyTagProperty {}
+public sealed interface SvLibSafetyTagProperty extends SvLibTagProperty
+    permits SvLibCheckTrueTag, SvLibEnsuresTag, SvLibInvariantTag, SvLibRequiresTag {
+
+  SvLibRelationalTerm getTerm();
+}

@@ -12,7 +12,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
-public final class SvLibCheckTrueTag implements SvLibTagProperty {
+public final class SvLibCheckTrueTag implements SvLibSafetyTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final SvLibRelationalTerm term;
@@ -43,6 +43,7 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
     return ":check-true " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
+  @Override
   public SvLibRelationalTerm getTerm() {
     return term;
   }

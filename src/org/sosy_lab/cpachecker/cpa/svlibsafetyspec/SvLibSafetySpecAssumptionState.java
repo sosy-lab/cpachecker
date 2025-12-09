@@ -17,25 +17,30 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SvLibSafetySpecState
+public class SvLibSafetySpecAssumptionState
     implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
   private final ImmutableSet<@NonNull SvLibRelationalTerm> assumptions;
+  private final Set<SvLibSimpleDeclaration> declarationsToHavoc;
   private final boolean hasPropertyViolation;
 
-  public SvLibSafetySpecState(
-      Set<SvLibRelationalTerm> pAssumptions, boolean pHasPropertyViolation) {
+  public SvLibSafetySpecAssumptionState(
+      Set<SvLibRelationalTerm> pAssumptions,
+      Set<SvLibSimpleDeclaration> pDeclarationsToHavoc,
+      boolean pHasPropertyViolation) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
+    declarationsToHavoc = pDeclarationsToHavoc;
     hasPropertyViolation = pHasPropertyViolation;
   }
 
-  public boolean hasPropertyViolation() {
+  boolean hasPropertyViolation() {
     return hasPropertyViolation;
   }
 
@@ -46,7 +51,7 @@ public class SvLibSafetySpecState
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, hasPropertyViolation);
+    return Objects.hash(assumptions, declarationsToHavoc, hasPropertyViolation);
   }
 
   @Override
@@ -55,8 +60,9 @@ public class SvLibSafetySpecState
       return true;
     }
 
-    return pO instanceof SvLibSafetySpecState other
+    return pO instanceof SvLibSafetySpecAssumptionState other
         && Objects.equals(assumptions, other.assumptions)
+        && Objects.equals(declarationsToHavoc, other.declarationsToHavoc)
         && hasPropertyViolation == other.hasPropertyViolation;
   }
 
@@ -82,8 +88,15 @@ public class SvLibSafetySpecState
     return false;
   }
 
-  private String getReadableAssumptions() {
+  String getReadableAssumptions() {
     return Joiner.on(", ").join(FluentIterable.from(assumptions).transform(AAstNode::toASTString));
+  }
+
+  String getRedableVariablesToHavoc() {
+    return Joiner.on(", ")
+        .join(
+            FluentIterable.from(declarationsToHavoc)
+                .transform(SvLibSimpleDeclaration::toASTString));
   }
 
   @Override

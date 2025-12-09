@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteSta
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SvLibSpecificationInformation;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleToSvLibWitnessExport {
@@ -63,19 +65,29 @@ public class CounterexampleToSvLibWitnessExport {
   private final LogManager logger;
 
   private final SvLibCfaMetadata svLibMetadata;
+  private final SvLibSpecificationInformation svLibSpecificationInformation;
 
-  public CounterexampleToSvLibWitnessExport(LogManager pLogger, CFA pCFA) {
+  public CounterexampleToSvLibWitnessExport(
+      LogManager pLogger, CFA pCFA, Specification pSpecification) {
     Verify.verify(
         pCFA.getMetadata().getSvLibCfaMetadata().isPresent(),
         "SV-LIB metadata must be present in CFA in order to export a SV-LIB witness.");
     svLibMetadata = pCFA.getMetadata().getSvLibCfaMetadata().orElseThrow();
+
+    Verify.verify(
+        pSpecification.getSvLibSpecificationInformation().isPresent(),
+        "SV-LIB specification information must be "
+            + "present in the specification in order to export a "
+            + "SV-LIB witness.");
+    svLibSpecificationInformation = pSpecification.getSvLibSpecificationInformation().orElseThrow();
+
     logger = pLogger;
   }
 
   private SvLibViolatedProperty getViolatedProperty(CFAEdge pEdge) {
     CFANode nodeWithViolatedTag = pEdge.getPredecessor();
     Set<SvLibTagProperty> setOfPropertiesAtLeastOneViolated =
-        svLibMetadata.tagAnnotations().get(nodeWithViolatedTag);
+        svLibSpecificationInformation.tagAnnotations().get(nodeWithViolatedTag);
     Set<SvLibTagProperty> violatedTags;
     // Find the actual violated tags.
     // TODO: Currently we do not handle the case where more than one tag is present.

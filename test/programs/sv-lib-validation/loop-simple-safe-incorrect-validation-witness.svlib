@@ -8,5 +8,5 @@
 
 (
 (set-logic LIA)
-(annotate-tag while-loop :invariant (and (<= 0 a) (<= a 6)) )
+(annotate-tag while-loop :invariant true) ; Not strong enough to prove safety
 )

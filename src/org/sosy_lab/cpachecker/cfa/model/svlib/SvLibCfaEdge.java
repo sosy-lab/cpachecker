@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
-public sealed interface SvLibCfaEdge
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+
+public sealed interface SvLibCfaEdge extends CFAEdge
     permits SvLibAssumeEdge,
         SvLibBlankChoiceEdge,
         SvLibDeclarationEdge,

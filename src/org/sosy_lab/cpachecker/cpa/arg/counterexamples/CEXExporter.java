@@ -148,7 +148,7 @@ public class CEXExporter {
     Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
     if (svLibMetadata.isPresent() && options.getSvLibViolationWitnessPath() != null) {
       svLibWitnessOutputPath = options.getSvLibViolationWitnessPath();
-      cexToSvLibWitness = new CounterexampleToSvLibWitnessExport(pLogger, pCFA);
+      cexToSvLibWitness = new CounterexampleToSvLibWitnessExport(pLogger, pCFA, specification);
     } else {
       // We do not have SV-LIB metadata, or do not want to export witnesses
       svLibWitnessOutputPath = null;

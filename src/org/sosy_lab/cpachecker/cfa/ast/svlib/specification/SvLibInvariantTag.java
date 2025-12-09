@@ -12,7 +12,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
-public final class SvLibInvariantTag implements SvLibTagProperty {
+public final class SvLibInvariantTag implements SvLibSafetyTagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final SvLibRelationalTerm term;
@@ -43,6 +43,7 @@ public final class SvLibInvariantTag implements SvLibTagProperty {
     return ":invariant " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
+  @Override
   public SvLibRelationalTerm getTerm() {
     return term;
   }
