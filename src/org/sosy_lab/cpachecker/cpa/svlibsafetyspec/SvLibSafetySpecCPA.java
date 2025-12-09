@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.svlibsafetyspec;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -19,25 +18,26 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.SvLibSpecificationInformation;
 
 public class SvLibSafetySpecCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
-  private final CFA cfa;
   private final LogManager logger;
+  private final SvLibSpecificationInformation specInfo;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SvLibSafetySpecCPA.class);
   }
 
-  private SvLibSafetySpecCPA(CFA pCfa, LogManager pLogger) {
+  private SvLibSafetySpecCPA(SvLibSpecificationInformation pSpecInfo, LogManager pLogger) {
     super("sep", "sep", null);
-    cfa = pCfa;
+    specInfo = pSpecInfo;
     logger = pLogger;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SvLibSafetySpecTransferRelation(cfa, logger);
+    return new SvLibSafetySpecTransferRelation(specInfo, logger);
   }
 
   @Override

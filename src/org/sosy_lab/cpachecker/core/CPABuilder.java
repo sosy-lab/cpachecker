@@ -208,7 +208,7 @@ public class CPABuilder {
 
       factory.setConfiguration(config);
       factory.setLogger(logger);
-      factory.set(cfa, CFA.class);
+      factory.set(svLibSpecInfo, SvLibSpecificationInformation.class);
       factory.setShutdownNotifier(shutdownNotifier);
 
       cpas.add(factory.createInstance());

@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
@@ -25,16 +24,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.specification.SvLibSpecificationInformation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
-  private final CFA cfa;
+  private final SvLibSpecificationInformation specInfo;
   private final LogManager logger;
 
-  public SvLibSafetySpecTransferRelation(CFA pCfa, LogManager pLogger) {
-    cfa = pCfa;
+  public SvLibSafetySpecTransferRelation(
+      SvLibSpecificationInformation pSpecInfo, LogManager pLogger) {
+    specInfo = pSpecInfo;
     logger = pLogger;
   }
 
@@ -55,11 +56,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     ImmutableList.Builder<SvLibSafetySpecState> outStates = ImmutableList.builder();
 
     Set<SvLibTagProperty> propertiesToProof =
-        cfa.getMetadata()
-            .getSvLibCfaMetadata()
-            .orElseThrow()
-            .tagAnnotations()
-            .get(cfaEdge.getPredecessor());
+        specInfo.tagAnnotations().get(cfaEdge.getPredecessor());
 
     // First construct one successor per property we need to proof
     ImmutableList.Builder<SvLibRelationalTerm> assumptionsBuilder =
