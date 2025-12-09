@@ -182,14 +182,6 @@ public class SvLibWitnessParserTest {
         new SvLibParsingParameterDeclaration(
             FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "a", "main");
 
-    SvLibProcedureDeclaration mainProcedureDeclaration =
-        new SvLibProcedureDeclaration(
-            FileLocation.DUMMY,
-            "main",
-            ImmutableList.of(),
-            ImmutableList.of(resultVar),
-            ImmutableList.of(a));
-
     SvLibProcedureDeclaration uninterpretedMainProcedureDeclaration =
         new SvLibUninterpretedScope().getProcedureDeclaration("main");
     SvLibSimpleDeclaration aUninterpreted =
