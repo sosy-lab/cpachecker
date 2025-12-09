@@ -29,7 +29,6 @@ public class SvLibWitnessParser {
     }
   }
 
-  @SuppressWarnings("")
   public static Optional<WitnessType> getWitnessTypeIfSvLib(Path pFilename) {
     try {
       SvLibWitness witness = SvLibWitnessParser.parseWitness(pFilename);

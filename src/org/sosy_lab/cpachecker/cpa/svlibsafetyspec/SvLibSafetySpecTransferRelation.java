@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.svlibsafetyspec;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
@@ -59,7 +58,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
   private Set<SvLibSimpleDeclaration> collectModifiedVariables(Set<CFAEdge> pEdges)
       throws UnsupportedCodeException {
     // Now collect all modified variables across all these loops
-    Builder<SvLibSimpleDeclaration> modifiedVariablesBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<SvLibSimpleDeclaration> modifiedVariablesBuilder = ImmutableSet.builder();
     for (CFAEdge cfaEdge : pEdges) {
       switch (cfaEdge) {
         case SvLibFunctionCallEdge pSvLibFunctionCallEdge -> {

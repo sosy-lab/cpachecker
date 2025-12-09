@@ -358,7 +358,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         }
 
         if (lElement instanceof ForgetfulAbstractState forgetfulState) {
-          element = strengthen(element, forgetfulState, edge);
+          element = strengthen(element, forgetfulState);
         }
 
         if (strengthenWithFormulaReportingStates
@@ -391,7 +391,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private PredicateAbstractState strengthen(
-      PredicateAbstractState pElement, ForgetfulAbstractState pForgetfulState, CFAEdge pEdge)
+      PredicateAbstractState pElement, ForgetfulAbstractState pForgetfulState)
       throws CPATransferException, InterruptedException {
     PathFormula pf = pElement.getPathFormula();
 

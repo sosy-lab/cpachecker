@@ -47,7 +47,7 @@ public class SvLibStepToAstConverter extends AbstractAntlrToAstConverter<SvLibTr
           (SvLibConstantTerm) termConverter.visit(assignmentContext.spec_constant());
       varAssignmentsBuilder.put(symbol, constant);
     }
-    return varAssignmentsBuilder.build();
+    return varAssignmentsBuilder.buildOrThrow();
   }
 
   @Override

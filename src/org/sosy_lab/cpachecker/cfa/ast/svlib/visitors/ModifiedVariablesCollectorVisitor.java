@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib.visitors;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibCfaEdgeStatementVisitor;
@@ -30,8 +31,8 @@ public class ModifiedVariablesCollectorVisitor
   public Set<SvLibSimpleDeclaration> accept(
       SvLibFunctionCallAssignmentStatement pSvLibFunctionCallAssignmentStatement)
       throws NoException {
-    return FluentIterable.from(pSvLibFunctionCallAssignmentStatement.getLeftHandSide().getIdTerms())
-        .transform(SvLibIdTerm::getDeclaration)
-        .toSet();
+    return transformedImmutableSetCopy(
+        pSvLibFunctionCallAssignmentStatement.getLeftHandSide().getIdTerms(),
+        SvLibIdTerm::getDeclaration);
   }
 }

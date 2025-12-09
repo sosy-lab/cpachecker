@@ -292,7 +292,7 @@ public final class Specification {
     if (shouldUseSvLibSpec) {
       SvLibSpecificationInformation svLibSpecInfo =
           new SvLibSpecificationInformation(
-              tagReferenceToScope.build(), tagAnnotations.build(), traces.build());
+              tagReferenceToScope.buildOrThrow(), tagAnnotations.build(), traces.build());
       return new Specification(
           specFiles, properties.build(), specificationAutomata.build(), svLibSpecInfo);
     }

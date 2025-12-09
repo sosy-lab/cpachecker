@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -60,7 +61,7 @@ public class SvLibToAstParser {
 
     } catch (ParseCancellationException e) {
       String message = e.getMessage();
-      if (message == null || message.isEmpty()) {
+      if (isNullOrEmpty(message)) {
         message = "Unknown parsing error.";
       }
 

@@ -269,7 +269,7 @@ public class CounterexampleToSvLibWitnessExport {
         new SvLibTrace(
             new SmtLibModel(
                 ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), FileLocation.DUMMY),
-            globalVariableAssignmentBuilder.build(),
+            globalVariableAssignmentBuilder.buildOrThrow(),
             entryCall,
             stepsBuilder.build(),
             violatedProperty,

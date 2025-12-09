@@ -439,7 +439,7 @@ class SvLibCommandToAstConverter extends AbstractAntlrToAstConverter<SvLibComman
     SvLibTrace trace =
         new SvLibTrace(
             model,
-            setGlobalVariables.build(),
+            setGlobalVariables.buildOrThrow(),
             entryProcedure,
             steps,
             violatedProperty,

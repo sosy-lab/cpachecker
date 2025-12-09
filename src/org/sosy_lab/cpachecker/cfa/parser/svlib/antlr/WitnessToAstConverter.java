@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.nio.file.Path;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.AnnotateTagCommandContext;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand
 class WitnessToAstConverter extends AbstractAntlrToAstConverter<SvLibWitness> {
 
   private final SvLibCommandToAstConverter commandToAstConverter;
-  private final Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
+  private final ImmutableMap.Builder<SvLibTagReference, SvLibScope> tagReferenceToScopeBuilder;
 
   public WitnessToAstConverter(SvLibScope pScope, Path pFilePath) {
     super(pScope, pFilePath);

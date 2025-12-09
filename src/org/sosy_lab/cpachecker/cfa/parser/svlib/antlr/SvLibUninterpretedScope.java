@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -90,6 +91,6 @@ public class SvLibUninterpretedScope extends SvLibScope {
     }
 
     return new SvLibProcedureDeclaration(
-        FileLocation.DUMMY, pName, List.of(), List.of(), List.of());
+        FileLocation.DUMMY, pName, ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
   }
 }

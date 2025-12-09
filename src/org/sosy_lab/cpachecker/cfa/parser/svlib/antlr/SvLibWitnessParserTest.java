@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibCorrectnessWitness;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibViolationWitness;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibInitProcVariables
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTrace;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace.SvLibTraceEntryProcedure;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
-import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 
 public class SvLibWitnessParserTest {
 
@@ -78,22 +78,19 @@ public class SvLibWitnessParserTest {
   private void assertCorrectnessWitnessEquality(
       SvLibCorrectnessWitness actual, SvLibCorrectnessWitness expected) {
     // Check each field separately to make it easier to spot differences.
-    Truth.assertThat(actual.getMetadataCommands().size())
-        .isEqualTo(expected.getMetadataCommands().size());
+    assertThat(actual.getMetadataCommands()).hasSize(expected.getMetadataCommands().size());
     for (int i = 0; i < actual.getMetadataCommands().size(); i++) {
       Truth.assertThat(actual.getMetadataCommands().get(i))
           .isEqualTo(expected.getMetadataCommands().get(i));
     }
 
-    Truth.assertThat(actual.getSmtLibCommands().size())
-        .isEqualTo(expected.getSmtLibCommands().size());
+    assertThat(actual.getSmtLibCommands()).hasSize(expected.getSmtLibCommands().size());
     for (int i = 0; i < actual.getSmtLibCommands().size(); i++) {
       Truth.assertThat(actual.getSmtLibCommands().get(i))
           .isEqualTo(expected.getSmtLibCommands().get(i));
     }
 
-    Truth.assertThat(actual.getAnnotateTagCommands().size())
-        .isEqualTo(expected.getAnnotateTagCommands().size());
+    assertThat(actual.getAnnotateTagCommands()).hasSize(expected.getAnnotateTagCommands().size());
     for (int i = 0; i < actual.getAnnotateTagCommands().size(); i++) {
       Truth.assertThat(actual.getAnnotateTagCommands().get(i))
           .isEqualTo(expected.getAnnotateTagCommands().get(i));
@@ -106,15 +103,13 @@ public class SvLibWitnessParserTest {
   private void assertViolationWitnessEquality(
       SvLibViolationWitness actual, SvLibViolationWitness expected) {
     // Check each field separately to make it easier to spot differences.
-    Truth.assertThat(actual.getMetadataCommands().size())
-        .isEqualTo(expected.getMetadataCommands().size());
+    assertThat(actual.getMetadataCommands()).hasSize(expected.getMetadataCommands().size());
     for (int i = 0; i < actual.getMetadataCommands().size(); i++) {
       Truth.assertThat(actual.getMetadataCommands().get(i))
           .isEqualTo(expected.getMetadataCommands().get(i));
     }
 
-    Truth.assertThat(actual.getSelectTraceCommands().size())
-        .isEqualTo(expected.getSelectTraceCommands().size());
+    assertThat(actual.getSelectTraceCommands()).hasSize(expected.getSelectTraceCommands().size());
     for (int i = 0; i < actual.getSelectTraceCommands().size(); i++) {
       Truth.assertThat(actual.getSelectTraceCommands().get(i))
           .isEqualTo(expected.getSelectTraceCommands().get(i));
@@ -175,13 +170,6 @@ public class SvLibWitnessParserTest {
 
   @Test
   public void parseSimpleViolationWitness() throws SvLibAstParseException {
-    SvLibParsingParameterDeclaration resultVar =
-        new SvLibParsingParameterDeclaration(
-            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "|c#result|", "main");
-    SvLibParsingParameterDeclaration a =
-        new SvLibParsingParameterDeclaration(
-            FileLocation.DUMMY, SvLibSmtLibPredefinedType.INT, "a", "main");
-
     SvLibProcedureDeclaration uninterpretedMainProcedureDeclaration =
         new SvLibUninterpretedScope().getProcedureDeclaration("main");
     SvLibSimpleDeclaration aUninterpreted =
