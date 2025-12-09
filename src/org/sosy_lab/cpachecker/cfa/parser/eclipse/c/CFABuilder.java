@@ -423,7 +423,7 @@ class CFABuilder extends ASTVisitor {
             // key was added more than once, since this would be a bug
             cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
             cfaNodeToAstParametersInScope.buildOrThrow());
-    result = result.withAcslComments(acslComments);
+    result = result.withAcslComments(acslComments, blocks);
 
     return result;
   }

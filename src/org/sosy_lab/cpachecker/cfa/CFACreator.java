@@ -691,15 +691,11 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
-    if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
-      commentPositions.addAll(pParseResult.commentLocations().orElseThrow());
-      blocks.addAll(pParseResult.blocks().orElseThrow());
-    }
-
-    if (pParseResult.acslComments().isPresent()) {
+    if (pParseResult.blocks().isPresent() && pParseResult.acslComments().isPresent()) {
       for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
         commentPositions.add(comment.getFileLocation());
       }
+      blocks.addAll(pParseResult.blocks().orElseThrow());
     }
 
     // check the super CFA starting at the main function
