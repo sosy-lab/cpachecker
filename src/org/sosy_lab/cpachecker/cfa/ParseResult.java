@@ -132,6 +132,22 @@ public record ParseResult(
         Optional.of(pCfaNodeToAstParametersInScope));
   }
 
+  public ParseResult withAcslComments(List<AcslComment> pAcslComments) {
+    Verify.verify(acslComments.isEmpty());
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        fileNames,
+        astStructure,
+        commentLocations,
+        Optional.of(pAcslComments),
+        acslMetadata,
+        blocks,
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope);
+  }
+
   public ParseResult withAcslMetadata(AcslMetadata pAcslMetadata) {
     Verify.verify(acslMetadata.isEmpty());
     return new ParseResult(

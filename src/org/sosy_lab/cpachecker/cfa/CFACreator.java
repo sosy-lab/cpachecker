@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlockStructureBuilder;
@@ -693,6 +694,12 @@ public class CFACreator {
     if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
       commentPositions.addAll(pParseResult.commentLocations().orElseThrow());
       blocks.addAll(pParseResult.blocks().orElseThrow());
+    }
+
+    if (pParseResult.acslComments().isPresent()) {
+      for (AcslComment comment : pParseResult.acslComments().orElseThrow()) {
+        commentPositions.add(comment.getFileLocation());
+      }
     }
 
     // check the super CFA starting at the main function
