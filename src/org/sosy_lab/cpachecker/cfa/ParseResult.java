@@ -132,7 +132,8 @@ public record ParseResult(
         Optional.of(pCfaNodeToAstParametersInScope));
   }
 
-  public ParseResult withAcslComments(List<AcslComment> pAcslComments, List<SyntacticBlock> pBlocks) {
+  public ParseResult withAcslComments(
+      List<AcslComment> pAcslComments, List<SyntacticBlock> pBlocks) {
     Verify.verify(acslComments.isEmpty());
     Verify.verify(blocks.isEmpty());
     return new ParseResult(
