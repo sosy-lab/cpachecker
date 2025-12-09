@@ -44,10 +44,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SvLibSpecificationInformation;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.svlibsafetyspec.SvLibSafetySpecCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -197,7 +199,20 @@ public class CPABuilder {
     }
 
     // 5. Add SV-LIB specification CPA if needed
-    // TODO
+    if (specification.getSvLibSpecificationInformation().isPresent()) {
+      SvLibSpecificationInformation svLibSpecInfo =
+          specification.getSvLibSpecificationInformation().orElseThrow();
+
+      // Add the safety specification CPA which takes care of tracking the specification
+      CPAFactory factory = SvLibSafetySpecCPA.factory();
+
+      factory.setConfiguration(config);
+      factory.setLogger(logger);
+      factory.set(cfa, CFA.class);
+      factory.setShutdownNotifier(shutdownNotifier);
+
+      cpas.add(factory.createInstance());
+    }
 
     // 6. Instantiate configured CPAs
 
