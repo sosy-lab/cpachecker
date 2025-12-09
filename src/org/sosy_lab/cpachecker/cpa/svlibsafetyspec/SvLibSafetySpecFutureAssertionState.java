@@ -14,11 +14,15 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.ForgetfulAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SvLibSafetySpecFutureAssertionState extends SvLibSafetySpecAssumptionState
-    implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
+    implements AbstractStateWithAssumptions,
+        Graphable,
+        AbstractQueryableState,
+        ForgetfulAbstractState {
 
   private final CFANode nodeForAssertion;
   private final SvLibRelationalTerm assertion;

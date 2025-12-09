@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -23,16 +25,26 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.ForgetfulAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
@@ -345,6 +357,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           element = strengthen(element, abstractStateWithAssumptions, edge);
         }
 
+        if (lElement instanceof ForgetfulAbstractState forgetfulState) {
+          element = strengthen(element, forgetfulState, edge);
+        }
+
         if (strengthenWithFormulaReportingStates
             && lElement instanceof FormulaReportingState formulaReportingState) {
           element = strengthen(element, formulaReportingState);
@@ -371,6 +387,54 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     } finally {
       strengthenTimer.stop();
+    }
+  }
+
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pElement, ForgetfulAbstractState pForgetfulState, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    PathFormula pf = pElement.getPathFormula();
+
+    Set<ASimpleDeclaration> declarationsToHavoc = pForgetfulState.getForgettableVariables();
+
+    for (ASimpleDeclaration decl : declarationsToHavoc) {
+      if (decl instanceof SvLibSimpleDeclaration svLibDecl) {
+        // Create a new edge representing the havoc call of the variable.
+        SvLibFunctionDeclaration havocFunctionDeclaration =
+            SvLibFunctionDeclaration.nondetFunctionWithReturnType(svLibDecl.getType());
+
+        SvLibFunctionCallAssignmentStatement havocCallAssignmentStatement =
+            new SvLibFunctionCallAssignmentStatement(
+                FileLocation.DUMMY,
+                new SvLibIdTermTuple(
+                    FileLocation.DUMMY,
+                    ImmutableList.of(new SvLibIdTerm(svLibDecl, FileLocation.DUMMY))),
+                new SvLibFunctionCallExpression(
+                    FileLocation.DUMMY,
+                    havocFunctionDeclaration.getType(),
+                    new SvLibIdTerm(havocFunctionDeclaration, FileLocation.DUMMY),
+                    ImmutableList.of(),
+                    havocFunctionDeclaration));
+
+        CFAEdge edge =
+            new SvLibStatementEdge(
+                havocCallAssignmentStatement.toASTString(),
+                havocCallAssignmentStatement,
+                havocCallAssignmentStatement.getFileLocation(),
+                CFANode.newDummyCFANode(),
+                CFANode.newDummyCFANode());
+
+        pf = pathFormulaManager.makeAnd(pf, edge);
+      } else {
+        throw new UnsupportedOperationException(
+            "Forgetting variables is currently only supported for SvLibSimpleDeclaration's");
+      }
+    }
+
+    if (pf != pElement.getPathFormula()) {
+      return replacePathFormula(pElement, pf);
+    } else {
+      return pElement;
     }
   }
 

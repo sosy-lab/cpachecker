@@ -6,7 +6,7 @@ input_files:
 
 properties:
   - property_file: ../../config/properties/correct-tags.prp
-    expected_verdict: true
+    expected_verdict: false
 
 options:
   witness_input_file: 'loop-simple-safe-incorrect-validation-witness.svlib'
