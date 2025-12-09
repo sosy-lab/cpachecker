@@ -25,9 +25,9 @@ public final class SvLibSetOptionCommand implements SmtLibCommand, SvLibCommand 
   // Some constants to identify common options
   public static final String OPTION_WITNESS_OUTPUT_CHANNEL = ":witness-output-channel";
 
-  public static String OPTION_PRODUCE_CORRECTNESS = ":produce-correctness-witnesses";
+  public static final String OPTION_PRODUCE_CORRECTNESS = ":produce-correctness-witnesses";
 
-  public static String OPTION_PRODUCE_VIOLATION = ":produce-violation-witnesses";
+  public static final String OPTION_PRODUCE_VIOLATION = ":produce-violation-witnesses";
 
   public SvLibSetOptionCommand(String pOption, String pValue, FileLocation pFileLocation) {
     Preconditions.checkArgument(pOption != null);
