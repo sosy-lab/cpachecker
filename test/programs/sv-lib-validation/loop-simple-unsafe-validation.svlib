@@ -23,7 +23,7 @@
     (! (while
       (<= a 6)
       (assign (a (+ a 1)))) :tag while-loop)
-    (if (not (= a 6)) (! (sequence) assert-false :check-true false))
+    (if (not (= a 6)) (! (sequence) :tag assert-false :check-true false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 
