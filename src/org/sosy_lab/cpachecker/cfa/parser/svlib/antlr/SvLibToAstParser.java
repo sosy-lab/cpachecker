@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
+import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -53,10 +54,17 @@ public class SvLibToAstParser {
       // create a parser that feeds off the tokens buffer
       SvLibParser parser = new SvLibParser(tokens);
 
+      parser.setErrorHandler(new BailErrorStrategy());
+
       tree = pRuleToBeApplied.apply(parser);
 
     } catch (ParseCancellationException e) {
-      throw new SvLibAstParseException(e.getMessage(), e);
+      String message = e.getMessage();
+      if (message == null || message.isEmpty()) {
+        message = "Unknown parsing error.";
+      }
+
+      throw new SvLibAstParseException(message, e);
     }
     return Objects.requireNonNull(tree);
   }
