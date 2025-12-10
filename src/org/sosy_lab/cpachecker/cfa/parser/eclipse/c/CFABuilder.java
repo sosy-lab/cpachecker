@@ -14,7 +14,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -59,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -488,22 +486,19 @@ class CFABuilder extends ASTVisitor {
   }
 
   public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
+
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
+
       FileLocation commentLocation = comment.getFileLocation();
       ASTElement tightestStatement =
           pAstCfaRelation.getTightestStatementForStarting(
               commentLocation.getStartingLineNumber(), commentLocation.getStartColumnInLine());
-      ImmutableSet<CFAEdge> edges = tightestStatement.edges();
-      Set<CFANode> predecessors = new HashSet<>();
-      Set<CFANode> successors = new HashSet<>();
-      for (CFAEdge edge : edges) {
-        predecessors.add(edge.getPredecessor());
-        successors.add(edge.getSuccessor());
-      }
 
-      // nodesForComment = edges.predecessors - edges.successors
-      FluentIterable<CFANode> nodesForComment =
-          FluentIterable.from(predecessors).filter(n -> !successors.contains(n));
+      FluentIterable<CFANode> predecessors =
+          FluentIterable.from(tightestStatement.edges()).transform(e -> e.getPredecessor());
+      FluentIterable<CFANode> successors =
+          FluentIterable.from(tightestStatement.edges()).transform(e -> e.getSuccessor());
+      FluentIterable<CFANode> nodesForComment = predecessors.filter(n -> !successors.contains(n));
 
       // An AcslComment should belong to exactly one CfaNode
       Verify.verify(nodesForComment.size() == 1);
