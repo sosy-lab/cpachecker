@@ -100,16 +100,17 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
     MULTIPLY("*"),
     /**
      * C / (division) operator, defined in the C11 standard §6.5.5 as the quotient from the division
-     * of the first operand by the second for arithmetic types. Since C99 division is always
-     * truncated to zero. If the value of the second operand is zero, the behavior is undefined.
-     * More details can be found in the standard.
+     * of the first operand by the second for arithmetic types. Since C99, integer division is
+     * always truncated to zero. If the value of the second operand is zero, the behavior is
+     * undefined. More details can be found in the standard.
      */
     DIVIDE("/"),
     /**
      * C % (remainder) operator, defined in the C11 standard §6.5.5 as (a/b)*b + a%b = a, i.e. a%b =
-     * a - (a/b)*b, for arithmetic types. Since C99 division is always truncated to zero. If the
-     * value of the second operand is zero, the behavior is undefined. More details can be found in
-     * the standard. Note: modulo is defined distinctly, and there is no modulo operator in C!
+     * a - (a/b)*b, for arithmetic types. Since C99, integer division is always truncated to zero.
+     * If the value of the second operand is zero, the behavior is undefined. More details can be
+     * found in the standard. Note: modulo is defined distinctly, and there is no modulo operator in
+     * C!
      */
     REMAINDER("%"),
     /**
