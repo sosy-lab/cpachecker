@@ -23,6 +23,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingModeFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
@@ -311,6 +312,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BooleanFormula isNormal(FloatingPointFormula pNumber) {
     return functionManager.callUF(isNormalUfDecl, ImmutableList.of(unwrap(pNumber)));
+  }
+
+  @Override
+  public FloatingPointRoundingModeFormula makeRoundingMode(FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
   }
 
   @Override
