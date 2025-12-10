@@ -192,14 +192,14 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
      */
     BITWISE_OR("|"),
     /**
-     * Equal to operator == , defined in the C11 standard §6.5.9 as returning integer literal 1 if
+     * == (equal to) operator, defined in the C11 standard §6.5.9 as returning integer literal 1 if
      * the specified relation is true, i.e. the two operands are equal, and integer literal 0 if the
      * specified relation is false. Special handling occurs if at least one of the two operands is a
      * pointer. More details can be found in the standard.
      */
     EQUALS("=="),
     /**
-     * Not Equal to operator != , defined in the C11 standard §6.5.9 as the inverse operator to
+     * != (not equal to) operator, defined in the C11 standard §6.5.9 as the inverse operator to
      * {@link BinaryOperator#EQUALS}. Special handling occurs if at least one of the two operands is
      * a pointer. More details can be found in the standard.
      */
