@@ -495,7 +495,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
-      Number lNum = leftValue.asNumericValue().getNumber();
+      if (!(leftValue instanceof NumericValue numLeft)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number lNum = numLeft.getNumber();
       if (BigInteger.ONE.equals(lNum)) {
         updatedStates =
             rVarInBinaryExp.accept(
@@ -511,7 +514,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigIntegerValue();
+      if (!(rightValue instanceof NumericValue numRight)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number rNum = numRight.bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
         updatedStates =
             lVarInBinaryExp.accept(

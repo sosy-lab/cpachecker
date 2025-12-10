@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -111,7 +112,10 @@ public class ExpressionTransformer
       SymbolicExpression operand1Expression = operand1ExpressionAndState.getSymbolicExpression();
 
       if (operand1Expression instanceof AddressExpression addrExpr) {
-        if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        if (!(addrExpr.getOffset() instanceof NumericValue numOffset)) {
+          throw new SMGException("Error: non-numeric offset in address expression");
+        }
+        if (numOffset.bigIntegerValue().equals(BigInteger.ZERO)) {
           // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
           // currently handle this only for concrete values, and that is done by the valueVisitor.
           // So we can't handle it here better.
@@ -130,13 +134,16 @@ public class ExpressionTransformer
         currentState = operand2ExpressionAndState.getState();
         SymbolicExpression operand2Expression = operand2ExpressionAndState.getSymbolicExpression();
 
-        if (operand2Expression instanceof AddressExpression addrExpr) {
-          if (addrExpr.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+        if (operand2Expression instanceof AddressExpression addrExpr2) {
+          if (!(addrExpr2.getOffset() instanceof NumericValue numOffset2)) {
+            throw new SMGException("Error: non-numeric offset in address expression");
+          }
+          if (numOffset2.bigIntegerValue().equals(BigInteger.ZERO)) {
             // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
             // currently handle this only for concrete values, and that is done by the valueVisitor.
             // So we can't handle it better here.
             operand2Expression =
-                factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
+                factory.asConstant(addrExpr2.getMemoryAddress(), addrExpr2.getType());
           }
         }
 
