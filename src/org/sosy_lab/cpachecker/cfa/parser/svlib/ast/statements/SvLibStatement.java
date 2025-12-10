@@ -50,6 +50,7 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
 
   public abstract <R, X extends Exception> R accept(SvLibStatementVisitor<R, X> v) throws X;
 
+  @Override
   public String toASTString() {
     return (getTagReferences().isEmpty() && getTagAttributes().isEmpty())
         ? toASTStringWithoutTags()
