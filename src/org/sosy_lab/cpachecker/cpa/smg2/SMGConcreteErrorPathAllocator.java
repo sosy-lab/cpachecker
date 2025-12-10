@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -211,8 +212,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
           value = BigInteger.ZERO;
         } else if (valueForSMGValue.isPresent()) {
           Value valueFromSMGValue = valueForSMGValue.orElseThrow();
-          if (valueFromSMGValue.isNumericValue()) {
-            value = valueForSMGValue.orElseThrow().asNumericValue().bigIntegerValue();
+          if (valueFromSMGValue instanceof NumericValue numValue) {
+            value = numValue.bigIntegerValue();
           } else if (pSMGState.getMemoryModel().isPointer(valueFromSMGValue)) {
             Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
                 pSMGState.dereferencePointerWithoutMaterilization(valueFromSMGValue);
@@ -221,14 +222,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             }
             SMGObject targetObject = target.orElseThrow().getSMGObject();
             Value targetOffset = target.orElseThrow().getOffsetForObject();
-            if (!targetOffset.isNumericValue()) {
+            if (!(targetOffset instanceof NumericValue numTargetOffset)) {
               continue;
             }
 
             // Pointer to some other obj
             value =
-                calculateAddress(
-                        targetObject, targetOffset.asNumericValue().bigIntegerValue(), pSMGState)
+                calculateAddress(targetObject, numTargetOffset.bigIntegerValue(), pSMGState)
                     .getAddressValue();
 
           } else {
@@ -257,7 +257,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         variableAddressMap.put(lhs, nextAlloc);
       }
       BigInteger objectSize;
-      if (!pObject.getSize().isNumericValue()) {
+      if (!(pObject.getSize() instanceof NumericValue numObjSize)) {
         // List<ValueAssignment> valuesAss = pSMGState.getModel();
         // TODO: fix with solver assignments
         objectSize = BigInteger.TEN;
@@ -267,7 +267,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         }
                     }*/
       } else {
-        objectSize = pObject.getSize().asNumericValue().bigIntegerValue();
+        objectSize = numObjSize.bigIntegerValue();
       }
 
       BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.TEN);

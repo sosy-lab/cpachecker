@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -630,7 +631,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
         Wrapper<Value> wValue = mapping.get(smgValue);
-        if (wValue == null || wValue.get().isNumericValue()) {
+        if (wValue == null || wValue.get() instanceof NumericValue) {
           edgesToRemove.add(hve);
         }
       }
