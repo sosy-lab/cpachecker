@@ -47,7 +47,9 @@ public final class SvLibHavocStatement extends SvLibStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(havoc (" + Joiner.on(" ").join(variables) + "))";
+    return "(havoc "
+        + Joiner.on(" ").join(variables.stream().map(var -> var.toASTString()).toList())
+        + ")";
   }
 
   @Override
