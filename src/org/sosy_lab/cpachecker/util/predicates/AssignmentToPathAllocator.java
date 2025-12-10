@@ -299,7 +299,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 
@@ -319,7 +319,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 
