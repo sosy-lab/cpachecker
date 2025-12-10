@@ -550,6 +550,12 @@ public class CoreComponentsFactory {
         && (useBMC || useIMC || useDAR);
   }
 
+  private boolean analysisSequentializesCfa() {
+    return useMporPreprocessing
+        && !preferOriginalCfaOverSequentialized
+        && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa);
+  }
+
   /**
    * This method can be used in case the factory constructs a new copy of cfa on which it operates.
    * This way, caller algorithms can get hold of this copy.
@@ -574,9 +580,7 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
-    } else if (useMporPreprocessing
-        && !preferOriginalCfaOverSequentialized
-        && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa)) {
+    } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
       // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
@@ -966,8 +970,8 @@ public class CoreComponentsFactory {
         || useArrayAbstraction
         || useRandomTestCaseGeneratorAlgorithm
         // checking just useMporPreprocessing is not enough, because then no CPA is created, even
-        // for the inner algorithms run on the sequentialization -> use isAlreadySequentialized too
-        || (useMporPreprocessing && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa))) {
+        // for the inner algorithms run on the sequentialization
+        || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
