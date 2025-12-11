@@ -63,6 +63,10 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     return new SymbolicIdentifier(U_ID_GENERATOR.getFreshId(), pMemoryLocation);
   }
 
+  public static SymbolicIdentifier of() {
+    return new SymbolicIdentifier(U_ID_GENERATOR.getFreshId(), null);
+  }
+
   public static void resetUIDGenerator() {
     U_ID_GENERATOR = new UniqueIdGenerator();
   }
