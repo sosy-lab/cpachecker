@@ -52,15 +52,17 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
 
   @Override
   public String toASTString() {
-    return (getTagReferences().isEmpty() && getTagAttributes().isEmpty())
-        ? toASTStringWithoutTags()
-        : "(! "
-            + toASTStringWithoutTags()
-            + Joiner.on(" ")
-                .join(
-                    FluentIterable.concat(tagReferences, tagAttributes)
-                        .transform(SvLibTagAttribute::toASTString))
-            + ")";
+    if (getTagReferences().isEmpty() && getTagAttributes().isEmpty()) {
+      return toASTStringWithoutTags();
+    } else {
+      return "(! "
+          + toASTStringWithoutTags()
+          + Joiner.on(" ")
+              .join(
+                  FluentIterable.concat(tagReferences, tagAttributes)
+                      .transform(SvLibTagAttribute::toASTString))
+          + ")";
+    }
   }
 
   public abstract String toASTStringWithoutTags();
