@@ -84,40 +84,25 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
   @Override
   public String toASTString() {
     return name
+        + variablesToString(parameters)
         + " "
-        + (!parameters.isEmpty()
-            ? "(("
-                + Joiner.on(") (")
-                    .join(
-                        parameters.stream()
-                            .map(param -> param.getName() + " " + param.getType().toASTString())
-                            .toList())
-                + "))"
-            : "()")
+        + variablesToString(returnValues)
         + " "
-        + (!returnValues.isEmpty()
-            ? "(("
-                + Joiner.on(") (")
-                    .join(
-                        returnValues.stream()
-                            .map(
-                                returnValue ->
-                                    returnValue.getName()
-                                        + " "
-                                        + returnValue.getType().toASTString())
-                            .toList())
-                + "))"
-            : "()")
-        + " "
-        + (!localVariables.isEmpty()
-            ? "(("
-                + Joiner.on(") (")
-                    .join(
-                        localVariables.stream()
-                            .map(local -> local.getName() + " " + local.getType().toASTString())
-                            .toList())
-                + "))"
-            : "()");
+        + variablesToString(localVariables);
+  }
+
+  private String variablesToString(List<SvLibParsingParameterDeclaration> variableList) {
+    if (variableList.isEmpty()) {
+      return "()";
+    } else {
+      return "(("
+          + Joiner.on(") (")
+              .join(
+                  variableList.stream()
+                      .map(var -> var.getName() + " " + var.getType().toASTString())
+                      .toList())
+          + "))";
+    }
   }
 
   public ImmutableList<SvLibParsingParameterDeclaration> getParameters() {
