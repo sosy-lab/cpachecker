@@ -54,7 +54,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   private final @Nullable MemoryLocation representedLocation;
 
-  public SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
+  private SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
     representedLocation = pRepresentedLocation;
   }
