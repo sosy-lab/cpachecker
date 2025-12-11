@@ -14,6 +14,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -487,23 +488,60 @@ class CFABuilder extends ASTVisitor {
 
   public AcslMetadata createAcslMetadata(ParseResult pResult, AstCfaRelation pAstCfaRelation) {
 
+    /*
+    Find the CfaNode for each Acsl Comment
+
+    Step 1: For regular statement annotations (e.g. assertions, loop invariants)
+    we can get the Cfa Node from the tightest statement for the comment location.
+    If "getTightestStatementForStarting()" fails, the comment is not a regular statement annotation.
+     */
+    ImmutableSet.Builder<AcslComment> notAStatementAnnotationBuilder = ImmutableSet.builder();
+
     for (AcslComment comment : pResult.acslComments().orElseThrow()) {
 
       FileLocation commentLocation = comment.getFileLocation();
-      ASTElement tightestStatement =
-          pAstCfaRelation.getTightestStatementForStarting(
-              commentLocation.getStartingLineNumber(), commentLocation.getStartColumnInLine());
 
-      FluentIterable<CFANode> predecessors =
-          FluentIterable.from(tightestStatement.edges()).transform(e -> e.getPredecessor());
-      FluentIterable<CFANode> successors =
-          FluentIterable.from(tightestStatement.edges()).transform(e -> e.getSuccessor());
-      FluentIterable<CFANode> nodesForComment = predecessors.filter(n -> !successors.contains(n));
+      try {
+        ASTElement tightestStatement =
+            pAstCfaRelation.getTightestStatementForStarting(
+                commentLocation.getStartingLineNumber(), commentLocation.getStartColumnInLine());
 
-      // An AcslComment should belong to exactly one CfaNode
-      Verify.verify(nodesForComment.size() == 1);
-      comment.updateCfaNode(nodesForComment.get(0));
+        FluentIterable<CFANode> predecessors =
+            FluentIterable.from(tightestStatement.edges()).transform(e -> e.getPredecessor());
+        FluentIterable<CFANode> successors =
+            FluentIterable.from(tightestStatement.edges()).transform(e -> e.getSuccessor());
+        List<CFANode> nodesForComment =
+            predecessors.filter(n -> !successors.contains(n)).stream().toList();
+
+        // An AcslComment should belong to exactly one CfaNode
+        Verify.verify(nodesForComment.size() == 1);
+        comment.updateCfaNode(nodesForComment.get(0));
+      } catch (Exception pE) {
+        notAStatementAnnotationBuilder.add(comment);
+      }
     }
+    ImmutableSet<AcslComment> notStatementAnnotations = notAStatementAnnotationBuilder.build();
+
+    /*
+    Step 2: Search the reamining Acsl Commnets, that are not statement annotations for function contracts
+    A function contract annotation comes immediately before the function declaration
+     */
+    ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
+    for (AcslComment comment : notStatementAnnotations) {
+      FluentIterable<FunctionEntryNode> functionEntryNodes =
+          FluentIterable.from(pResult.functions().sequencedValues());
+      for (FunctionEntryNode f : functionEntryNodes) {
+        if (f.getFileLocation().getStartingLineNumber()
+            == comment.getFileLocation().getEndingLineNumber() + 1) {
+          comment.updateCfaNode(f);
+        }
+      }
+      if (!comment.hasCfaNode()) {
+        notAFunctionContractBuilder.add(comment);
+      }
+    }
+    ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
+    Verify.verify(notFunctionContracts.isEmpty());
     return AcslMetadata.empty();
   }
 
