@@ -2736,7 +2736,7 @@ public class SMGCPABuiltins {
           || nequalityCheck.proveInequality(hve1SMGValue, hve2SMGValue)) {
         // Not equal.
         // Return a new symbolic value that is not 0.
-        Value notZeroValue = SymbolicIdentifier.of(null);
+        Value notZeroValue = SymbolicIdentifier.of();
         final ConstraintFactory constraintFactory =
             ConstraintFactory.getInstance(
                 pCurrentState, machineModel, logger, options, evaluator, pCFAEdge);

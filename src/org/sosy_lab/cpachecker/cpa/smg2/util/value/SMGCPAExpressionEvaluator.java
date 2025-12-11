@@ -301,7 +301,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -318,7 +318,7 @@ public class SMGCPAExpressionEvaluator {
         newState.copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndAddExternalObject(newObject));
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -339,7 +339,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -365,7 +365,7 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newObject = newObjectAndState.getSMGObject();
     SMGState newState = newObjectAndState.getState();
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     // New regions always have offset 0
     SMGState finalState =
         newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
@@ -666,7 +666,7 @@ public class SMGCPAExpressionEvaluator {
 
     // If none is found, we need a new Value -> SMGValue mapping for the address + a new
     // PointsToEdge with the correct offset
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     SMGState newState = pState.createAndAddPointer(addressValue, target, offset);
     return ValueAndSMGState.of(addressValue, newState);
   }

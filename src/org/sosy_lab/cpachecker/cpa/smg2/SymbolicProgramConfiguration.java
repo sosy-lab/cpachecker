@@ -1006,7 +1006,7 @@ public class SymbolicProgramConfiguration {
             pOldTargetObj, newTargetObj, pSpecifierToSwitch);
     SymbolicProgramConfiguration newSPC = copyAndReplaceSMG(newSMGAndNewValuesForMapping.getSMG());
     for (SMGValue newSMGValue : newSMGAndNewValuesForMapping.getSMGValues()) {
-      Value newAddressValue = SymbolicIdentifier.of(null);
+      Value newAddressValue = SymbolicIdentifier.of();
       newSPC =
           newSPC.copyAndPutValue(
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));

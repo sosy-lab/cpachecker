@@ -63,9 +63,9 @@ public class ListDebuggerTest {
             Optional.empty(),
             Optional.empty(),
             ImmutableMap.of(
-                0, ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), CNumericTypes.INT)),
+                0, ConstantSymbolicExpression.of(SymbolicIdentifier.of(), CNumericTypes.INT)),
             ImmutableMap.of());
-    Value symValue = ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), CNumericTypes.INT);
+    Value symValue = ConstantSymbolicExpression.of(SymbolicIdentifier.of(), CNumericTypes.INT);
     ListElement nestedNonZeroWAbstrValue2 =
         new ListElement(
             Optional.empty(),

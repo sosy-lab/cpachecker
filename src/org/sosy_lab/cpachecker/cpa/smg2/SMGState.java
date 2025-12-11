@@ -3203,7 +3203,7 @@ public class SMGState
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
     }
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = SymbolicIdentifier.of();
     SMGState newState =
         createAndAddPointer(
             addressValue, targetObject, offsetInBits, pointerNestingLevel, pTargetSpecifier);
@@ -4657,7 +4657,7 @@ public class SMGState
     // This is slow with the solver later on.
 
     // Create a new, unique, symbolic value and add a == constraint to the given.
-    SymbolicIdentifier newSymbolicToBeAssigned = SymbolicIdentifier.of(null);
+    SymbolicIdentifier newSymbolicToBeAssigned = SymbolicIdentifier.of();
     // Got all possible assignments. Now we need to assign them in all possible combinations.
     // Subscript is always int
     CType calcTypeForMemAccess = CNumericTypes.INT;
@@ -5408,7 +5408,7 @@ public class SMGState
 
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), currentState);
     }
-    Value newAddressValue = SymbolicIdentifier.of(null);
+    Value newAddressValue = SymbolicIdentifier.of();
     return ValueAndSMGState.of(
         newAddressValue,
         copyAndReplaceMemoryModel(
@@ -5440,7 +5440,7 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
-    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
+    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(), valueType);
   }
 
   /**
@@ -5455,7 +5455,7 @@ public class SMGState
     if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
       valueType = (CType) constSym.getType();
     }
-    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
+    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(), valueType);
   }
 
   /**
@@ -7087,7 +7087,7 @@ public class SMGState
         SMGPointsToEdge ptEdgeToTarget =
             currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
         // Create new valid pointer and replace the old one in the source
-        Value ptrToCopiedTarget = SymbolicIdentifier.of(null);
+        Value ptrToCopiedTarget = SymbolicIdentifier.of();
         // TODO: is the nesting level and specifier here correct?
         currentState =
             currentState.createAndAddPointer(

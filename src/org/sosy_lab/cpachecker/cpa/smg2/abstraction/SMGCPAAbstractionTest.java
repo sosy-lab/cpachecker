@@ -7051,7 +7051,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             null,
             dummyCFAEdge);
     // Pointer to the abstracted list
-    Value pointer = SymbolicIdentifier.of(null);
+    Value pointer = SymbolicIdentifier.of();
     currentState =
         currentState.createAndAddPointer(
             pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);
@@ -7207,7 +7207,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             null,
             dummyCFAEdge);
     // First pointer to the abstracted list
-    Value pointer = SymbolicIdentifier.of(null);
+    Value pointer = SymbolicIdentifier.of();
     currentState =
         currentState.createAndAddPointer(
             pointer, currentAbstraction, BigInteger.ZERO, 0, SMGTargetSpecifier.IS_FIRST_POINTER);

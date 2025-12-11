@@ -287,7 +287,7 @@ public class ExpressionTransformer
       } else if (idValue.isUnknown()) {
         // Unknown is top, so we create a new value that does not have any constraints and put it in
         // the constraint
-        idValue = ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), type);
+        idValue = ConstantSymbolicExpression.of(SymbolicIdentifier.of(), type);
       }
 
       // The vv takes care of the transformations for us
