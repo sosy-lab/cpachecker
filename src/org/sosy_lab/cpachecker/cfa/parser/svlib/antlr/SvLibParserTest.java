@@ -160,10 +160,7 @@ public class SvLibParserTest {
                                 ImmutableList.of())),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
-                        ImmutableList.of(
-                            // Using null for the scope is not the best solution but works for
-                            // tests, since equality over tags must be based on the name only.
-                            new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
+                        ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
                 new SvLibVerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
@@ -257,10 +254,7 @@ public class SvLibParserTest {
                                 ImmutableList.of())),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
-                        ImmutableList.of(
-                            // Using null for the scope is not the best solution but works for
-                            // tests, since equality over tags must be based on the name only.
-                            new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
+                        ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
                 new SvLibVerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
