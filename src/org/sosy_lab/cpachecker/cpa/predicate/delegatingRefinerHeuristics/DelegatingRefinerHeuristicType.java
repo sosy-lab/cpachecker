@@ -13,7 +13,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
  * as possible heuristic.
  */
 public enum DelegatingRefinerHeuristicType {
-  STATIC,
+  RUNREFINERNTIMES,
   REACHED_SET_RATIO,
   REDUNDANT_PREDICATES,
   REDUNDANT_PREDICATES_PLATEAU,

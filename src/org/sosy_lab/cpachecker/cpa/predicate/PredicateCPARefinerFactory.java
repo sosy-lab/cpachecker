@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicatesPlateau;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunRefinerNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
@@ -87,10 +87,15 @@ public final class PredicateCPARefinerFactory {
               + " usePredicateDelegatingRefiner = true.")
   private ImmutableList<String> heuristicRefinerPairs =
       ImmutableList.of(
-          "STATIC:STATIC",
+          "RUNREFINERNTIMES:STATIC",
           "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT");
+
+  @Option(
+      secure = true,
+      description = "Number of times the RunRefinerNTimes heuristic is allowed to run.")
+  private int numberRuns = 1;
 
   private final PredicateCPA predicateCpa;
 
@@ -286,7 +291,7 @@ public final class PredicateCPARefinerFactory {
             "Invalid heuristic-refiner format: "
                 + heuristicRefinerPair
                 + ". Please use this format:"
-                + " STATIC:STATIC,NEGATED(STATIC):STATIC,REACHED_SET_RATIO:DEFAULT.");
+                + " INTERPOLATION_RATE:DEFAULT,NEGATED(RUNREFINERNTIMES):STATIC,REACHED_SET_RATIO:DEFAULT.");
       }
 
       try {
@@ -344,7 +349,7 @@ public final class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
     DelegatingRefinerHeuristic heuristic =
         switch (pHeuristicType) {
-          case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
+          case RUNREFINERNTIMES -> new DelegatingRefinerHeuristicRunRefinerNTimes(numberRuns);
           case REACHED_SET_RATIO ->
               new DelegatingRefinerHeuristicReachedSetRatio(
                   predicateCpa.getConfiguration(), predicateCpa.getLogger());

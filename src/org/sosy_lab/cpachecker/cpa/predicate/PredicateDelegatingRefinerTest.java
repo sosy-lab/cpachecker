@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunRefinerNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -134,7 +134,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "NEGATED(STATIC):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
+                "NEGATED(RUNREFINERNTIMES):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
             .build();
 
     PredicateCPARefinerFactory pNegatedRunsRefinerFactory = setUpRefinerFactory(pNegatedConfig);
@@ -151,7 +151,7 @@ public class PredicateDelegatingRefinerTest {
     DelegatingRefinerHeuristicResultNegation firstHeuristic =
         (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getFirst().pHeuristic();
     assertThat(firstHeuristic.getDelegateHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
 
     DelegatingRefinerHeuristicResultNegation secondHeuristic =
         (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getLast().pHeuristic();
@@ -197,7 +197,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "REDUNDANT_PREDICATES:STATIC,STATIC:STATIC")
+                "REDUNDANT_PREDICATES:STATIC,RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pMultipleRefinerFactory = setUpRefinerFactory(pMultipleConfig);
 
@@ -208,7 +208,7 @@ public class PredicateDelegatingRefinerTest {
     assertThat(pRefinerRecords.getFirst().pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
     assertThat(pRefinerRecords.getLast().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords).hasSize(2);
@@ -220,7 +220,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration plowerCaseConfig =
         TestDataTools.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "static:STATIC,STATIC:default")
+                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "runrefinerntimes:STATIC,RUNREFINERNTIMES:default")
             .build();
     PredicateCPARefinerFactory pLowerCaseRefinerFactory = setUpRefinerFactory(plowerCaseConfig);
 
@@ -229,9 +230,9 @@ public class PredicateDelegatingRefinerTest {
             setUpRefinerMap(pLowerCaseRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getLast().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(defaultRefiner);
   }
@@ -244,7 +245,8 @@ public class PredicateDelegatingRefinerTest {
   public void ignoreWhiteSpaceColon() throws Exception {
     Configuration pIgnoreWhiteSpaceColonConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATIC : STATIC")
+            .setOption(
+                "cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES : STATIC")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceColonConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceColonConfig);
@@ -254,7 +256,7 @@ public class PredicateDelegatingRefinerTest {
             setUpRefinerMap(pIgnoreWhiteSpaceColonConfigRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords).hasSize(1);
   }
@@ -269,7 +271,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "STATIC:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
+                "RUNREFINERNTIMES:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceCommaConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceCommaConfig);
@@ -279,7 +281,7 @@ public class PredicateDelegatingRefinerTest {
             setUpRefinerMap(pIgnoreWhiteSpaceCommaConfigRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.get(1).pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicReachedSetRatio.class);
     assertThat(pRefinerRecords.get(2).pHeuristic())
@@ -300,7 +302,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
-                "STATIC:STATIC;REACHED_SET_RATIO:DEFAULT")
+                "RUNREFINERNTIMES:STATIC;REACHED_SET_RATIO:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreOtherSeparatorsRefinerFactory =
         setUpRefinerFactory(pOtherSeparatorsConfig);
@@ -320,7 +322,7 @@ public class PredicateDelegatingRefinerTest {
   public void checkMissingColon() throws Exception {
     Configuration pMissingColonConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATICSTATIC")
+            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMESSTATIC")
             .build();
     PredicateCPARefinerFactory pMissingColonRefinerFactory =
         setUpRefinerFactory(pMissingColonConfig);
@@ -340,7 +342,7 @@ public class PredicateDelegatingRefinerTest {
   public void checkOnlyComponentInPair() throws Exception {
     Configuration pOnlyOneComponentConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATIC")
+            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pOnlyOneComponentRefinerFactory =
         setUpRefinerFactory(pOnlyOneComponentConfig);
@@ -360,7 +362,9 @@ public class PredicateDelegatingRefinerTest {
   public void checkThreeComponentsInPair() throws Exception {
     Configuration pThreeComponentsConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATIC:STATIC:STATIC")
+            .setOption(
+                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "RUNREFINERNTIMES:RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pThreeComponentsRefinerFactory =
         setUpRefinerFactory(pThreeComponentsConfig);
@@ -380,7 +384,7 @@ public class PredicateDelegatingRefinerTest {
   public void checkUnknownHeuristic() throws Exception {
     Configuration pUnknownHeuristicConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "FOO:STATIC")
+            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "FOO:RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pUnknownHeuristicRefinerFactory =
         setUpRefinerFactory(pUnknownHeuristicConfig);
@@ -400,7 +404,7 @@ public class PredicateDelegatingRefinerTest {
   public void checkUnknownRefiner() throws Exception {
     Configuration pUnknownRefinerConfig =
         TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATIC:FOO")
+            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES:FOO")
             .build();
     PredicateCPARefinerFactory pUnkmownRefinerRefinerFactory =
         setUpRefinerFactory(pUnknownRefinerConfig);

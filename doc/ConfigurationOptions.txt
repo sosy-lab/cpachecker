@@ -3036,7 +3036,7 @@ cpa.predicate.refinement.graphblockformulastrategy = false
 # List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only
 # use when usePredicateDelegatingRefiner = true.
 cpa.predicate.refinement.heuristicRefinerPairs = [
-          "STATIC:STATIC",
+          "RUNREFINERNTIMES:STATIC",
           "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT"]
@@ -3078,6 +3078,9 @@ cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
 # use live variables in order to abstract the predicates produced while
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.liveVariables = true
+
+# Number of times the RunRefinerNTimes heuristic is allowed to run.
+cpa.predicate.refinement.numberRuns = 1
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
