@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -30,9 +31,11 @@ public class Sequentialization {
 
   static final int FIRST_LINE = 1;
 
+  @CanIgnoreReturnValue
   public static String tryBuildProgramString(
       MPOROptions pOptions, CFA pCfa, SequentializationUtils pUtils)
       throws UnrecognizedCodeException, InterruptedException {
+
     InputRejection.handleRejections(pCfa);
     SequentializationFields fields = new SequentializationFields(pOptions, pCfa, pUtils);
     return buildProgramString(pOptions, fields, pUtils);
@@ -43,15 +46,17 @@ public class Sequentialization {
       throws UnrecognizedCodeException, InterruptedException {
 
     String initProgram = initProgram(pOptions, pFields, pUtils);
+
     // if enabled, format program
     String rFormattedProgram =
         pOptions.clangFormatStyle().isEnabled()
             ? pUtils.clangFormatter().tryFormat(initProgram, pOptions.clangFormatStyle())
             : initProgram;
-    // if enabled, test that program can be parsed by CPAchecker
+
+    // if enabled, check that program can be parsed by CPAchecker
     if (pOptions.validateParse()) {
       try {
-        return SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
+        SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
       } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
         pUtils
             .logger()

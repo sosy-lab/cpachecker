@@ -264,16 +264,6 @@ analysis.algorithm.IMC = false
 # will get aborted.
 analysis.algorithm.MPI = false
 
-# use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a
-# concurrent C program. This algorithm transforms the input program into a
-# sequential program that preserves the properties of the original concurrent
-# program. The sequentialized program is outputted, but not analyzed inside
-# of CPAchecker. Use this option whenever you want to continue the analysis
-# of the sequentialized program externally. In case you want to analyze the
-# sequentialized program inside of CPAchecker, use the preprocessing.MPOR
-# option instead.
-analysis.algorithm.MPOR = false
-
 # allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
@@ -346,17 +336,6 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 # the source(s) of nondeterminism in the sequentialization.
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
-
-# create additional output file with metadata such as input file(s) and
-# algorithm options?
-analysis.algorithm.MPOR.outputMetadata = true
-
-# the file name for the sequentialization and metadata. uses the first input
-# file name as the default prefix.
-analysis.algorithm.MPOR.outputPath = "%s-sequentialized"
-
-# export the sequentialized program in a .i file?
-analysis.algorithm.MPOR.outputProgram = true
 
 # prune and simplify bit vector evaluation expressions based on perfect
 # knowledge? e.g. if it is known that the left hand side in an & expression
@@ -605,21 +584,33 @@ analysis.name = no default value
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
 
-# use Modular Partial Order Reduction (MPOR) algorithm for sequentializing a
-# concurrent C program. When this option is enabled, the MPOR
-# sequentialization is performed as a preprocessing step before the main
-# analysis begins. The input concurrent program is transformed into a
+# Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a
+# concurrent C program. This algorithm transforms the input program into a
 # sequential program that preserves the properties of the original concurrent
-# program. The sequentialized program is then analyzed by the CPAchecker
-# analysis given. Note that the CFA is transformed at the beginning of the
-# analysis, so all (sub-)analyses will also operate on the sequentialized
-# CFA. In particular this means that if you use a parallel or sequential
-# composition of analyses, all of them will analyze the sequentialized CFA.In
-# case you want to only sequentialize the program without analyzing it inside
-# of CPAchecker, use the algorithm.MPOR option instead.
+# program.
+# If the sequentialized program should be analyzed inside CPAchecker
+# directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.
 analysis.preprocessing.MPOR = false
 
-# in case the CFA was modified in a pre-processing step (e.g., by
+# The file name for the exported sequentialization metadata that contains
+# e.g. the input file name(s).
+analysis.preprocessing.MPOR.metadataPath = no default value
+
+# The file name for the exported sequentialized program.
+analysis.preprocessing.MPOR.programPath = no default value
+
+# If the sequentialization should be performed as a preprocessing step before
+# the main analysis begins, set to true. The sequentialized program is then
+# analyzed by the CPAchecker analysis given. Note that the CFA is transformed
+# at the beginning of the analysis, so all (sub-)analyses will also operate
+# on the sequentialized CFA. In particular this means that if you use a
+# parallel or sequential composition of analyses, all of them will analyze
+# the sequentialized CFA.
+# If the sequentialization should just be exported and analyzed externally,
+# set to false.
+analysis.preprocessing.MPOR.runAnalysis = true
+
+# In case the CFA was modified in a pre-processing step (e.g., by
 # sequentialization), if this option is set to true the original CFA is used
 # instead of the modified one for the analysis. This is useful when the
 # pre-processing should be done for multiple algorithms in a parallel
@@ -5365,9 +5356,6 @@ sampling.random.samplesToBeGenerated = 10
 # Stop after finding the first counterexample. This is useful when using this
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
-
-# export the sequentialized program into the given file
-sequentialization.outputFile = "sequentializedProgram.c"
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
