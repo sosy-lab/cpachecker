@@ -38,7 +38,7 @@ public class SvLibAstSerializationTest {
 
     SvLibParsingResult serializedParsed = SvLibToAstParser.parseScript(serializedProgramString);
 
-    Truth.assertWithMessage("Scripts have different number of commands for input: " + inputPath)
+    Truth.assertWithMessage("Scripts have different number of commands for input: %s", inputPath)
         .that(parsed.script().getCommands().size())
         .isEqualTo(serializedParsed.script().getCommands().size());
 
