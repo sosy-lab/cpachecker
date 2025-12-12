@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -91,6 +90,9 @@ public final class SeqInlinedAssumeFunction {
   public static final CFunctionCallStatement ABORT_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, ABORT_FUNCTION_CALL_EXPRESSION);
 
+  private static final ImmutableList<String> ABORT_BRANCH_STATEMENT =
+      ImmutableList.of(ABORT_FUNCTION_CALL_STATEMENT.toASTString());
+
   /**
    * Returns a {@link CFunctionCallStatement} to the assume function i.e. {@code
    * assume(pCondition);}.
@@ -106,14 +108,11 @@ public final class SeqInlinedAssumeFunction {
     return new CFunctionCallStatement(FileLocation.DUMMY, assumeFunctionCallExpression);
   }
 
-  /**
-   * Returns a {@link String} representation of an assume function call i.e. {@code
-   * assume(pCondition);}.
-   */
-  public static String buildAssumeFunctionCallStatement(ExpressionTree<CExpression> pCondition) {
-    return ASSUME_ID_EXPRESSION.getName()
-        + SeqStringUtil.wrapInBrackets(pCondition.toString())
-        + SeqSyntax.SEMICOLON;
+  /** Returns an inlined call to assume i.e. {@code if (pCondition == 0) { abort(); }} */
+  public static SeqBranchStatement buildAssumeFunctionCallStatement(
+      ExpressionTree<CExpression> pCondition) {
+
+    return new SeqBranchStatement(pCondition + " == 0", ABORT_BRANCH_STATEMENT);
   }
 
   /**
@@ -143,7 +142,8 @@ public final class SeqInlinedAssumeFunction {
       ImmutableList<CBinaryExpression> expressions =
           ImmutableList.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero);
       return buildAssumeFunctionCallStatement(
-          And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
+              And.of(transformedImmutableListCopy(expressions, LeafExpression::of)))
+          .toASTString();
     }
     return buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads).toASTString();
   }
