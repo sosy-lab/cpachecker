@@ -119,12 +119,12 @@ public final class SeqMainFunction extends SeqFunction {
         loopBlock.add(nextThreadAssignment.toASTString());
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
-        String nextThreadAssumption =
+        SeqBranchStatement nextThreadAssumption =
             SeqInlinedAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,
                 pUtils.binaryExpressionBuilder());
-        loopBlock.add(nextThreadAssumption);
+        loopBlock.add(nextThreadAssumption.toASTString());
 
         // for scalar pc, this is done separately at the start of the respective thread
         if (!pOptions.scalarPc()) {

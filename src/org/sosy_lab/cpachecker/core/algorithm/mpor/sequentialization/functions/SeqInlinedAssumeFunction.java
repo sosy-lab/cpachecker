@@ -119,7 +119,7 @@ public final class SeqInlinedAssumeFunction {
    * next_thread < NUM_THREADS)} for a signed variable, {@code assume(next_thread < NUM_THREADS)}
    * for an unsigned variable.
    */
-  public static String buildNextThreadAssumeCallFunctionCallStatement(
+  public static SeqBranchStatement buildNextThreadAssumeCallFunctionCallStatement(
       boolean pIsSigned, int pNumThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -140,9 +140,8 @@ public final class SeqInlinedAssumeFunction {
       ImmutableList<CBinaryExpression> expressions =
           ImmutableList.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero);
       return buildInlinedAssumeFunctionCall(
-              And.of(transformedImmutableListCopy(expressions, LeafExpression::of)))
-          .toASTString();
+          And.of(transformedImmutableListCopy(expressions, LeafExpression::of)));
     }
-    return buildInlinedAssumeFunctionCall(nextThreadLessThanNumThreads).toASTString();
+    return buildInlinedAssumeFunctionCall(nextThreadLessThanNumThreads);
   }
 }
