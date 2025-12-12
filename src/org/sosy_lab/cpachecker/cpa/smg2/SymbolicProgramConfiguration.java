@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -133,6 +134,11 @@ public class SymbolicProgramConfiguration {
   // Throws exception on reading this object (i.e. because we know we can't handle this)
   private Set<SMGObject> readBlacklist;
 
+  // ID generator used for SymbolicIdentifiers. Initialized once in the initial state, such that 2
+  // instances of the same analysis can generate IDs independently, but also such that the IDs of
+  // one instance are consistent.
+  private final UniqueIdGenerator idGenerator;
+
   private SymbolicProgramConfiguration(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
@@ -143,7 +149,8 @@ public class SymbolicProgramConfiguration {
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
       PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
-      PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
+      PersistentMap<SMGObject, Boolean> pMallocZeroMemory,
+      UniqueIdGenerator pIdGenerator) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     atExitStack = pAtExitStack;
@@ -155,6 +162,7 @@ public class SymbolicProgramConfiguration {
     memoryAddressAssumptionsMap = pMemoryAddressAssumptionMap;
     mallocZeroMemory = pMallocZeroMemory;
     readBlacklist = ImmutableSet.of();
+    idGenerator = pIdGenerator;
   }
 
   private SymbolicProgramConfiguration(
@@ -168,7 +176,8 @@ public class SymbolicProgramConfiguration {
       PersistentMap<String, CType> pVariableToTypeMap,
       PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory,
-      Set<SMGObject> pReadBlacklist) {
+      Set<SMGObject> pReadBlacklist,
+      UniqueIdGenerator pIdGenerator) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     atExitStack = pAtExitStack;
@@ -180,10 +189,11 @@ public class SymbolicProgramConfiguration {
     memoryAddressAssumptionsMap = pMemoryAddressAssumptionMap;
     mallocZeroMemory = pMallocZeroMemory;
     readBlacklist = pReadBlacklist;
+    idGenerator = pIdGenerator;
   }
 
   /**
-   * Creates a new {@link SymbolicProgramConfiguration} out of the elements given.
+   * Creates a new {@link SymbolicProgramConfiguration} out of the elements given. (Not a new SPC!)
    *
    * @param pSmg the {@link SMG} of this SPC.
    * @param pGlobalVariableMapping the global variable map as {@link PersistentMap} mapping {@link
@@ -208,7 +218,8 @@ public class SymbolicProgramConfiguration {
       PersistentMap<String, CType> pVariableToTypeMap,
       PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory,
-      Set<SMGObject> pReadBlacklist) {
+      Set<SMGObject> pReadBlacklist,
+      UniqueIdGenerator pIdGenerator) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -220,7 +231,8 @@ public class SymbolicProgramConfiguration {
         pVariableToTypeMap,
         pMemoryAddressAssumptionMap,
         pMallocZeroMemory,
-        pReadBlacklist);
+        pReadBlacklist,
+        pIdGenerator);
   }
 
   /**
@@ -229,7 +241,8 @@ public class SymbolicProgramConfiguration {
    * @param sizeOfPtr the size of the pointers in this new SPC in bits as {@link BigInteger}.
    * @return The newly created {@link SymbolicProgramConfiguration}.
    */
-  public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr) {
+  protected static SymbolicProgramConfiguration getEmptyMemoryModel(
+      BigInteger sizeOfPtr, UniqueIdGenerator pIdGenerator) {
     PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
         PathCopyingPersistentTreeMap.of();
     newMemoryAddressAssumptionsMap =
@@ -250,7 +263,8 @@ public class SymbolicProgramConfiguration {
             SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
         newMemoryAddressAssumptionsMap,
-        PathCopyingPersistentTreeMap.of());
+        PathCopyingPersistentTreeMap.of(),
+        pIdGenerator);
   }
 
   /**
@@ -275,7 +289,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration withNewValueMappings(
@@ -290,7 +305,8 @@ public class SymbolicProgramConfiguration {
         pNewValueMappings,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration copyAndRemoveHasValueEdges(
@@ -306,7 +322,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -432,7 +449,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap.putAndCopy(pVarName, type),
         calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -495,7 +513,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap.putAndCopy(pVarName, type),
         calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
-        newReadBlacklist);
+        newReadBlacklist,
+        idGenerator);
   }
 
   /* Adds the local variable given to the stack with the function name given */
@@ -530,7 +549,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap.putAndCopy(pVarName, type),
         calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -568,7 +588,8 @@ public class SymbolicProgramConfiguration {
           variableToTypeMap,
           memoryAddressAssumptionsMap,
           mallocZeroMemory,
-          readBlacklist);
+          readBlacklist,
+          idGenerator);
     }
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
@@ -582,7 +603,8 @@ public class SymbolicProgramConfiguration {
             pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
         calculateNewNumericAddressMapForNewSMGObject(returnObj.orElseThrow()),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   SymbolicProgramConfiguration copyAndAddDummyStackFrame() {
@@ -598,7 +620,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -632,7 +655,8 @@ public class SymbolicProgramConfiguration {
           variableToTypeMap.removeAndCopy(pIdentifier),
           memoryAddressAssumptionsMap.removeAndCopy(objToRemove),
           mallocZeroMemory,
-          readBlacklist);
+          readBlacklist,
+          idGenerator);
     }
     return this;
   }
@@ -658,7 +682,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         calculateNewNumericAddressMapForNewSMGObject(pObject),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   // Only to be used by materialization to copy an SMGObject
@@ -711,7 +736,8 @@ public class SymbolicProgramConfiguration {
             variableToTypeMap,
             memoryAddressAssumptionsMap,
             mallocZeroMemory,
-            readBlacklist);
+            readBlacklist,
+            idGenerator);
 
     for (Entry<SMGObject, SMGObject> topListAndNestedToUpdate :
         topListsAndNestedToUpdate.entrySet()) {
@@ -764,7 +790,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   public PersistentStack<Value> getAtExitStack() {
@@ -782,7 +809,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -857,7 +885,8 @@ public class SymbolicProgramConfiguration {
         newVariableToTypeMap,
         newMemoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   protected Set<SMGObject> getObjectsValidInOtherStackFrames() {
@@ -882,7 +911,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -930,7 +960,8 @@ public class SymbolicProgramConfiguration {
             variableToTypeMap,
             newMemoryAddressAssumptionsMap,
             mallocZeroMemory,
-            readBlacklist),
+            readBlacklist,
+            idGenerator),
         unreachableObjects);
   }
 
@@ -974,7 +1005,8 @@ public class SymbolicProgramConfiguration {
             variableToTypeMap,
             memoryAddressAssumptionsMap.removeAndCopy(object),
             mallocZeroMemory,
-            readBlacklist);
+            readBlacklist,
+            idGenerator);
     for (SMGObject objectToRemove : targetsOfCurrent) {
       newSPC = newSPC.copyAndRemoveObjectAndAssociatedSubSMG(objectToRemove);
     }
@@ -989,6 +1021,15 @@ public class SymbolicProgramConfiguration {
   /** Returns true if there is a return object for the current stack frame. */
   public boolean hasReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject().isPresent();
+  }
+
+  public SymbolicIdentifier createNewSymbolicIdentifierWithoutMemoryLocation() {
+    return SymbolicIdentifier.of(null);
+  }
+
+  public SymbolicIdentifier createNewSymbolicIdentifierWitMemoryLocation(
+      final MemoryLocation memLoc) {
+    return SymbolicIdentifier.of(memLoc);
   }
 
   public SymbolicProgramConfiguration replacePointerValuesWithExistingOrNew(
@@ -1006,7 +1047,7 @@ public class SymbolicProgramConfiguration {
             pOldTargetObj, newTargetObj, pSpecifierToSwitch);
     SymbolicProgramConfiguration newSPC = copyAndReplaceSMG(newSMGAndNewValuesForMapping.getSMG());
     for (SMGValue newSMGValue : newSMGAndNewValuesForMapping.getSMGValues()) {
-      Value newAddressValue = SymbolicIdentifier.of(null);
+      Value newAddressValue = createNewSymbolicIdentifierWithoutMemoryLocation();
       newSPC =
           newSPC.copyAndPutValue(
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));
@@ -1166,7 +1207,8 @@ public class SymbolicProgramConfiguration {
           variableToTypeMap,
           memoryAddressAssumptionsMap,
           mallocZeroMemory,
-          readBlacklist);
+          readBlacklist,
+          idGenerator);
     }
     return of(
         smg.copyAndAddValue(smgValue, nestingLevel),
@@ -1179,7 +1221,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1202,7 +1245,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1223,7 +1267,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1309,7 +1354,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1331,7 +1377,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1354,7 +1401,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         calculateNewNumericAddressMapForNewSMGObject(pNewObject),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1375,7 +1423,8 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         memoryAddressAssumptionsMap.removeAndCopy(pNewObject),
         mallocZeroMemory,
-        readBlacklist);
+        readBlacklist,
+        idGenerator);
   }
 
   /**
@@ -1977,7 +2026,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration copyAndSetSpecifierOfPtrsTowards(
@@ -1996,7 +2046,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration copyAndSetTargetSpecifierForPointer(
@@ -2011,7 +2062,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /*
@@ -2029,7 +2081,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap.removeAndCopy(obj),
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /*
@@ -2047,7 +2100,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap.removeAndCopy(obj),
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2071,7 +2125,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2095,7 +2150,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2121,7 +2177,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2152,7 +2209,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2182,7 +2240,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration copyAndReplaceHVEdgesAt(
@@ -2197,7 +2256,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   public SymbolicProgramConfiguration replaceValueAtWithAndCopy(
@@ -2212,7 +2272,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2233,7 +2294,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2256,7 +2318,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory);
+        mallocZeroMemory,
+        idGenerator);
   }
 
   /**
@@ -2288,7 +2351,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory.putAndCopy(memory, true));
+        mallocZeroMemory.putAndCopy(memory, true),
+        idGenerator);
   }
 
   /**
@@ -2308,7 +2372,13 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         memoryAddressAssumptionsMap,
-        mallocZeroMemory.removeAndCopy(memory));
+        mallocZeroMemory.removeAndCopy(memory),
+        idGenerator);
+  }
+
+  /** Returns the ID generator used for {@link SymbolicIdentifier}s. */
+  public UniqueIdGenerator getIdGenerator() {
+    return idGenerator;
   }
 
   public Set<SMGObject> getAllSourcesForPointersPointingTowards(SMGObject target) {

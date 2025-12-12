@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -454,7 +455,8 @@ public class SMGState
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. This
-   * does not create a stack frame and should only be used for testing!
+   * does not create a stack frame and should only be used for testing or if the stack-frame is
+   * reconstructed immediately!
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
    * @param logManager {@link LogManager} to log important information.
@@ -462,7 +464,7 @@ public class SMGState
    * @return a newly created {@link SMGState} with a new and empty {@link
    *     SymbolicProgramConfiguration} inside.
    */
-  public static SMGState of(
+  public static SMGState createNewEmpty(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
@@ -470,7 +472,31 @@ public class SMGState
       SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
+        SymbolicProgramConfiguration.getEmptyMemoryModel(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), new UniqueIdGenerator()),
+        logManager,
+        opts,
+        pEvaluator,
+        pStatistics);
+  }
+
+  /**
+   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. Used
+   * as empty, 'true' interpolant. The memory-model ({@link SymbolicProgramConfiguration}) can be
+   * extracted as an empty interpolant as well.
+   */
+  public static SMGState createEmptyInterpolant(
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
+    return new SMGState(
+        pMachineModel,
+        SymbolicProgramConfiguration.getEmptyMemoryModel(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), pIdGenerator),
         logManager,
         opts,
         pEvaluator,
@@ -480,7 +506,7 @@ public class SMGState
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
-   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * given CPA is used to extract the main function if possible and create the initial stack frame
    * automatically.
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
@@ -491,7 +517,7 @@ public class SMGState
    *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
    *     possible.
    */
-  public static SMGState of(
+  public static SMGState createNewEmptyWithStackFrame(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
@@ -499,13 +525,14 @@ public class SMGState
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
     FunctionEntryNode pNode = pCfa.getMainFunction();
-    return of(pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
+    return createNewEmptyWithStackFrame(
+        pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
   }
 
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
-   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * given CPA is used to extract the main function if possible and create the initial stack frame
    * automatically.
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
@@ -513,27 +540,28 @@ public class SMGState
    * @param opts {@link SMGOptions} to be used.
    * @param cfaFunEntryNode main function node from the CFA!
    * @return a newly created {@link SMGState} with a new and empty {@link
-   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     SymbolicProgramConfiguration} inside. The only thing added is the initial stack frame if
    *     possible.
    */
-  public static SMGState of(
+  private static SMGState createNewEmptyWithStackFrame(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       FunctionEntryNode cfaFunEntryNode,
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
-    SMGState newState = of(pMachineModel, logManager, opts, pEvaluator, pStatistics);
+    SMGState newState = createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics);
     if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
       return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
     }
+    // TODO: throw?
     return newState;
   }
 
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
-   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * given CPA is used to extract the main function if possible and create the initial stack frame
    * automatically.
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
@@ -541,17 +569,17 @@ public class SMGState
    * @param opts {@link SMGOptions} to be used.
    * @param cfaEntryFunDecl main function declaration from the CFA!
    * @return a newly created {@link SMGState} with a new and empty {@link
-   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     SymbolicProgramConfiguration} inside. The only thing added is the initial stack frame if
    *     possible.
    */
-  public static SMGState of(
+  public static SMGState createNewEmptyWithStackFrame(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       CFunctionDeclaration cfaEntryFunDecl,
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
-    return of(pMachineModel, logManager, opts, pEvaluator, pStatistics)
+    return createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics)
         .copyAndAddStackFrame(cfaEntryFunDecl);
   }
 
@@ -755,9 +783,15 @@ public class SMGState
         typeOfUnknown);
   }
 
+  /**
+   * Re-builds the stack frame on this state with the given stack. If the current state already has
+   * a partial (or full) stack-frame, this method verifies that it matches the given stack
+   * declaration, and will only add missing parts of the stack-frame.
+   */
   public SMGState reconstructStackFrames(
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
       throws SMGException, SMGSolverException {
+    checkNotNull(pStackDeclarations);
     SMGState currentState = this;
     // the given stack is reversed! We can
     Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
@@ -3203,11 +3237,20 @@ public class SMGState
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
     }
 
-    Value addressValue = SymbolicIdentifier.of(null);
+    Value addressValue = createNewSymbolicIdentifierWithoutMemoryLocation();
     SMGState newState =
         createAndAddPointer(
             addressValue, targetObject, offsetInBits, pointerNestingLevel, pTargetSpecifier);
     return ValueAndSMGState.of(addressValue, newState);
+  }
+
+  public SymbolicIdentifier createNewSymbolicIdentifierWithoutMemoryLocation() {
+    return memoryModel.createNewSymbolicIdentifierWithoutMemoryLocation();
+  }
+
+  public SymbolicIdentifier createNewSymbolicIdentifierWitMemoryLocation(
+      final MemoryLocation memLoc) {
+    return memoryModel.createNewSymbolicIdentifierWitMemoryLocation(memLoc);
   }
 
   /**
@@ -4657,7 +4700,7 @@ public class SMGState
     // This is slow with the solver later on.
 
     // Create a new, unique, symbolic value and add a == constraint to the given.
-    SymbolicIdentifier newSymbolicToBeAssigned = SymbolicIdentifier.of(null);
+    SymbolicIdentifier newSymbolicToBeAssigned = createNewSymbolicIdentifierWithoutMemoryLocation();
     // Got all possible assignments. Now we need to assign them in all possible combinations.
     // Subscript is always int
     CType calcTypeForMemAccess = CNumericTypes.INT;
@@ -5408,7 +5451,7 @@ public class SMGState
 
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), currentState);
     }
-    Value newAddressValue = SymbolicIdentifier.of(null);
+    Value newAddressValue = createNewSymbolicIdentifierWithoutMemoryLocation();
     return ValueAndSMGState.of(
         newAddressValue,
         copyAndReplaceMemoryModel(
@@ -5440,7 +5483,8 @@ public class SMGState
   private Value getNewSymbolicValueForType(CType valueType) {
     // For unknown values we use a new symbolic value without memory location as this is
     // handled by the SMGs
-    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
+    return ConstantSymbolicExpression.of(
+        createNewSymbolicIdentifierWithoutMemoryLocation(), valueType);
   }
 
   /**
@@ -5455,7 +5499,8 @@ public class SMGState
     if (valueToTakeTypeFrom instanceof ConstantSymbolicExpression constSym) {
       valueType = (CType) constSym.getType();
     }
-    return ConstantSymbolicExpression.of(SymbolicIdentifier.of(null), valueType);
+    return ConstantSymbolicExpression.of(
+        createNewSymbolicIdentifierWithoutMemoryLocation(), valueType);
   }
 
   /**
@@ -5948,7 +5993,8 @@ public class SMGState
         memoryModel,
         isMemorySafety ? errorInfo : ImmutableList.of(),
         evaluator,
-        statistics);
+        statistics,
+        memoryModel.getIdGenerator());
   }
 
   /**
@@ -7087,7 +7133,7 @@ public class SMGState
         SMGPointsToEdge ptEdgeToTarget =
             currentState.memoryModel.getSmg().getPTEdge(hve.hasValue()).orElseThrow();
         // Create new valid pointer and replace the old one in the source
-        Value ptrToCopiedTarget = SymbolicIdentifier.of(null);
+        Value ptrToCopiedTarget = createNewSymbolicIdentifierWithoutMemoryLocation();
         // TODO: is the nesting level and specifier here correct?
         currentState =
             currentState.createAndAddPointer(
