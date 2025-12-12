@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import com.google.common.base.Joiner;
 import com.google.common.truth.Truth;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -52,8 +53,8 @@ public class SvLibAstSerializationTest {
 
   @Test
   public void serializeTest() throws SvLibAstParseException {
-    try {
-      for (Path path : Files.newDirectoryStream(examplesPath(), "*.svlib")) {
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(examplesPath(), "*.svlib")){
+      for (Path path : stream){
         testAstSerialization(path);
       }
     } catch (IOException e) {
