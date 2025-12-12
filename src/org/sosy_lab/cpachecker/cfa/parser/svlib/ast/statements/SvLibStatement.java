@@ -50,6 +50,14 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
 
   public abstract <R, X extends Exception> R accept(SvLibStatementVisitor<R, X> v) throws X;
 
+  /**
+   * Returns a string representation of the SvLibStatement. If annotations exist for the
+   * SvLibStatement, then these annotations, which may be tags or properties, are added to the
+   * String. The generated string representation corresponds to the format for SvLibStatements in
+   * the SvLib language.
+   *
+   * @return the SvLibStatement with annotations as String
+   */
   @Override
   public String toASTString() {
     if (getTagReferences().isEmpty() && getTagAttributes().isEmpty()) {
@@ -65,6 +73,12 @@ public abstract sealed class SvLibStatement implements SvLibParsingAstNode
     }
   }
 
+  /**
+   * Returns a string representation of the SvLibStatement without adding any annotations that might
+   * exist for the statement.
+   *
+   * @return the SvLibStatement as String
+   */
   public abstract String toASTStringWithoutTags();
 
   @Override
