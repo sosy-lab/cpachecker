@@ -33,9 +33,7 @@ public class SvLibAstSerializationTest {
     }
     SvLibParsingResult parsed = SvLibToAstParser.parseScript(programString);
 
-    String serializedProgramString =
-        Joiner.on("\n")
-            .join(parsed.script().getCommands().stream().map(SvLibCommand::toASTString).toList());
+    String serializedProgramString = parsed.script().toASTString();
 
     SvLibParsingResult serializedParsed = SvLibToAstParser.parseScript(serializedProgramString);
 
