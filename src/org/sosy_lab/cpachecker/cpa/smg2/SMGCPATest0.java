@@ -114,7 +114,9 @@ public class SMGCPATest0 {
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
             makeTestSolver(machineModel, logger));
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    currentState =
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
+            machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
   }
@@ -122,7 +124,9 @@ public class SMGCPATest0 {
   // Resets state and visitor to an empty state
   @After
   public void resetSMGStateAndVisitor() {
-    currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    currentState =
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
+            machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
   }
 
   public static ConstraintsSolver makeTestSolver(
@@ -700,7 +704,8 @@ public class SMGCPATest0 {
             smgOptions,
             SMGCPATest0.makeTestSolver(machineModel, logger));
     SMGState state =
-        SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
+            machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     return state.copyAndReplaceMemoryModel(state.getMemoryModel().copyWithNewSMG(pSmg));
   }
 }

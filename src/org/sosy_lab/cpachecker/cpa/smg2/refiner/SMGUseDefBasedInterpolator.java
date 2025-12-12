@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,6 +79,8 @@ public class SMGUseDefBasedInterpolator {
 
   private final SMGCPAStatistics statistics;
 
+  private final UniqueIdGenerator idGenerator;
+
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation. This
    * interpolation approach only works if the given path is a sliced prefix, obtained via {@link
@@ -91,10 +94,12 @@ public class SMGUseDefBasedInterpolator {
       final LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       final SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
+    idGenerator = pIdGenerator;
     try {
       options = new SMGOptions(pConfig);
     } catch (InvalidConfigurationException e) {
@@ -123,7 +128,8 @@ public class SMGUseDefBasedInterpolator {
             machineModel,
             logger,
             (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
-            statistics);
+            statistics,
+            idGenerator);
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -151,7 +157,8 @@ public class SMGUseDefBasedInterpolator {
                 logger,
                 (CFunctionEntryNode) cfa.getMainFunction(),
                 evaluator,
-                statistics);
+                statistics,
+                idGenerator);
       }
     }
 
@@ -213,7 +220,8 @@ public class SMGUseDefBasedInterpolator {
         ImmutableSet.of(),
         ImmutableList.of(),
         evaluator,
-        statistics);
+        statistics,
+        idGenerator);
   }
 
   /**

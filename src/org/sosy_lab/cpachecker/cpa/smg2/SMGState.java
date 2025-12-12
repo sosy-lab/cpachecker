@@ -469,6 +469,23 @@ public class SMGState
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
       SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
+    return new SMGState(
+        pMachineModel,
+        SymbolicProgramConfiguration.getEmptyMemoryModel(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), idGenerator),
+        logManager,
+        opts,
+        pEvaluator,
+        pStatistics);
+  }
+
+  public static SMGState createNewEmptyForTestsWithoutStackFrame(
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logManager,
+      SMGOptions opts,
+      SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
@@ -514,7 +531,7 @@ public class SMGState
    * @param opts {@link SMGOptions} to be used.
    * @param pCfa used to extract the main function.
    * @return a newly created {@link SMGState} with a new and empty {@link
-   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     SymbolicProgramConfiguration} inside. The only thing added is the initial stack frame if
    *     possible.
    */
   public static SMGState createNewEmptyWithStackFrame(
@@ -523,10 +540,11 @@ public class SMGState
       SMGOptions opts,
       CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
     FunctionEntryNode pNode = pCfa.getMainFunction();
     return createNewEmptyWithStackFrame(
-        pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
+        pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics, idGenerator);
   }
 
   /**
@@ -549,8 +567,10 @@ public class SMGState
       SMGOptions opts,
       FunctionEntryNode cfaFunEntryNode,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
-    SMGState newState = createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics);
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
+    SMGState newState =
+        createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics, idGenerator);
     if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
       return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
     }
@@ -578,8 +598,9 @@ public class SMGState
       SMGOptions opts,
       CFunctionDeclaration cfaEntryFunDecl,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
-    return createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
+    return createNewEmpty(pMachineModel, logManager, opts, pEvaluator, pStatistics, idGenerator)
         .copyAndAddStackFrame(cfaEntryFunDecl);
   }
 

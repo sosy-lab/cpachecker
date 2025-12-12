@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -36,6 +37,8 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
 
   private final SMGCPAStatistics statistics;
 
+  private final UniqueIdGenerator idGenerator;
+
   private SMGInterpolantManager(
       SMGOptions pOptions,
       MachineModel pMachineModel,
@@ -43,7 +46,8 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
       CFA pCfa,
       boolean pIsRefineMemorySafety,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -51,18 +55,27 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
     isRefineMemorySafety = pIsRefineMemorySafety;
     evaluator = pEvaluator;
     statistics = pStatistics;
+    idGenerator = pIdGenerator;
   }
 
-  public static SMGInterpolantManager getInstance(
+  public static SMGInterpolantManager createNewManager(
       SMGOptions pOptions,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       boolean pIsRefineMemorySafety,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     return new SMGInterpolantManager(
-        pOptions, pMachineModel, pLogger, pCfa, pIsRefineMemorySafety, pEvaluator, pStatistics);
+        pOptions,
+        pMachineModel,
+        pLogger,
+        pCfa,
+        pIsRefineMemorySafety,
+        pEvaluator,
+        pStatistics,
+        pIdGenerator);
   }
 
   @Override
@@ -73,7 +86,8 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
         logger,
         (CFunctionEntryNode) cfa.getMainFunction(),
         evaluator,
-        statistics);
+        statistics,
+        idGenerator);
   }
 
   @Override
@@ -89,7 +103,8 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
         logger,
         (CFunctionEntryNode) cfa.getMainFunction(),
         evaluator,
-        statistics);
+        statistics,
+        idGenerator);
   }
 
   @Override
@@ -99,6 +114,7 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
         machineModel,
         logger,
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
-        statistics);
+        statistics,
+        idGenerator);
   }
 }

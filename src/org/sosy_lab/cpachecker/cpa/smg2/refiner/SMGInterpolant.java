@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -75,6 +75,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final SMGCPAStatistics statistics;
 
+  private final UniqueIdGenerator idGenerator;
+
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private SMGInterpolant(
       SMGOptions pOptions,
@@ -82,7 +84,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       LogManagerWithoutDuplicates pLogger,
       CFunctionDeclaration pCFAEntryFunctionDef,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -95,11 +98,14 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
                 CFunctionDeclarationAndOptionalValue.of(pCFAEntryFunctionDef, Optional.empty()));
     cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
     allowedHeapValues = ImmutableSet.of();
-    memoryModel =
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
     errorInfo = ImmutableList.of();
     evaluator = pEvaluator;
     statistics = pStatistics;
+    idGenerator = pIdGenerator;
+    memoryModel =
+        SMGState.createEmptyInterpolant(
+                machineModel, logger, options, pEvaluator, statistics, idGenerator)
+            .getMemoryModel();
   }
 
   /**
@@ -122,13 +128,15 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       SymbolicProgramConfiguration memMod,
       Collection<SMGErrorInfo> pErrorInfo,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
     variableToTypeMap = pVariableToTypeMap;
+    idGenerator = pIdGenerator;
     Preconditions.checkArgument(
         pStackFrameDeclarations == null
             || ((pStackFrameDeclarations.size() >= 1)
@@ -157,12 +165,14 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       Set<Value> pAllowedHeapValues,
       Collection<SMGErrorInfo> pErrorInfo,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator) {
     statistics = pStatistics;
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
     evaluator = pEvaluator;
+    idGenerator = pIdGenerator;
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
     variableToTypeMap = pVariableToTypeMap;
@@ -176,7 +186,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     allowedHeapValues = pAllowedHeapValues;
     try {
       memoryModel =
-          SMGState.of(machineModel, logger, options, pEvaluator, statistics)
+          SMGState.createEmptyInterpolant(
+                  machineModel, logger, options, pEvaluator, statistics, idGenerator)
               .reconstructStackFrames(stackFrameDeclarations)
               .reconstructSMGStateFromNonHeapAssignments(
                   nonHeapAssignments,
@@ -186,7 +197,9 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
               .getMemoryModel();
     } catch (SMGException | SMGSolverException e) {
       memoryModel =
-          SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+          SMGState.createEmptyInterpolant(
+                  machineModel, logger, options, pEvaluator, statistics, idGenerator)
+              .getMemoryModel();
     }
     errorInfo = pErrorInfo;
   }
@@ -213,14 +226,16 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       LogManagerWithoutDuplicates pLogger,
       CFunctionEntryNode cfaFuncEntryNode,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
     return new SMGInterpolant(
         pOptions,
         pMachineModel,
         pLogger,
         cfaFuncEntryNode.getFunctionDefinition(),
         pEvaluator,
-        pStatistics);
+        pStatistics,
+        idGenerator);
   }
 
   /** the interpolant representing "true" */
@@ -230,9 +245,10 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       LogManagerWithoutDuplicates pLogger,
       CFunctionEntryNode cfaFuncEntryNode,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
     return createInitial(
-        pOptions, pMachineModel, pLogger, cfaFuncEntryNode, pEvaluator, pStatistics);
+        pOptions, pMachineModel, pLogger, cfaFuncEntryNode, pEvaluator, pStatistics, idGenerator);
   }
 
   /** Keeps interpolant information (i.e. "true") but copies and adds stack frame information. */
@@ -250,7 +266,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         memoryModel,
         errorInfo,
         evaluator,
-        stateForFrameInfo.getStatistics());
+        stateForFrameInfo.getStatistics(),
+        idGenerator);
   }
 
   /** the interpolant representing "false" */
@@ -259,7 +276,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFunctionDeclaration cfaEntryFuncDef,
-      SMGCPAStatistics pStatistics) {
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator) {
     return new SMGInterpolant(
         pOptions,
         pMachineModel,
@@ -272,7 +290,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         null,
         null,
         null,
-        pStatistics);
+        pStatistics,
+        idGenerator);
   }
 
   @Override
@@ -293,7 +312,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     // We expect that if nonHeapAssignments != null all other nullables are not null also except for
     // maybe the state!
     if (nonHeapAssignments == null || other.nonHeapAssignments == null || memoryModel == null) {
-      return createFALSE(options, machineModel, logger, cfaEntryFunctionDeclaration, statistics);
+      return createFALSE(
+          options, machineModel, logger, cfaEntryFunctionDeclaration, statistics, idGenerator);
     }
 
     // add other itp mapping - one by one for now, to check for correctness
@@ -340,7 +360,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         memoryModel,
         errorInfo,
         evaluator,
-        statistics);
+        statistics,
+        idGenerator);
   }
 
   @Override
@@ -394,9 +415,9 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   }
 
   /**
-   * This method serves as factory method to create an smg2 state from the interpolant
+   * This method serves as factory method to create an {@link SMGState} from the interpolant.
    *
-   * @return an smg2 state that represents the same variable assignment as the interpolant
+   * @return a {@link SMGState} that represents the same variable assignment as the interpolant.
    */
   @Override
   public SMGState reconstructState() {
@@ -405,7 +426,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     } else {
       // TODO: heap?
       try {
-        return SMGState.of(machineModel, logger, options, evaluator, statistics)
+        return SMGState.createEmptyInterpolant(
+                machineModel, logger, options, evaluator, statistics, idGenerator)
             .reconstructStackFrames(stackFrameDeclarations);
       } catch (SMGSolverException | SMGException e) {
         throw new RuntimeException(e);
@@ -511,7 +533,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         memoryModel,
         errorInfo,
         evaluator,
-        statistics);
+        statistics,
+        idGenerator);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

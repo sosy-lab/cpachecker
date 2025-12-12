@@ -178,7 +178,8 @@ public class SMGCPATransferRelationTest {
             MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
 
     initialState =
-        SMGState.of(MACHINE_MODEL, logManager, smgOptions, evaluator, new SMGCPAStatistics())
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
+                MACHINE_MODEL, logManager, smgOptions, evaluator, new SMGCPAStatistics())
             .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
     // null for the constraintsStrengthenOperator is fine as long as we don't use it in tests!

@@ -12,6 +12,7 @@ import java.util.Deque;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -48,27 +49,30 @@ public class SMGEdgeInterpolator
       final CFA pCfa,
       final LogManagerWithoutDuplicates pLogger,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator)
       throws InvalidConfigurationException {
 
     super(
         pStrongestPostOperator,
         pFeasibilityChecker,
-        SMGInterpolantManager.getInstance(
+        SMGInterpolantManager.createNewManager(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
             pEvaluator,
-            pStatistics),
-        SMGState.of(
+            pStatistics,
+            pIdGenerator),
+        SMGState.createNewEmptyWithStackFrame(
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(pConfig),
             pCfa,
             pEvaluator,
-            pStatistics),
+            pStatistics,
+            pIdGenerator),
         ValueAnalysisCPA.class,
         pConfig,
         pShutdownNotifier,

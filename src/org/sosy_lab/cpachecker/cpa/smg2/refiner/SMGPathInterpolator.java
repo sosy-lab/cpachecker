@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -85,6 +86,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
   private final SMGCPAStatistics statistics;
 
+  private final UniqueIdGenerator idGenerator;
+
   public SMGPathInterpolator(
       final FeasibilityChecker<SMGState> pFeasibilityChecker,
       final StrongestPostOperator<SMGState> pStrongestPostOperator,
@@ -94,7 +97,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator)
       throws InvalidConfigurationException {
 
     super(
@@ -106,33 +110,37 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pCfa,
             pLogger,
             pEvaluator,
-            pStatistics),
+            pStatistics,
+            pIdGenerator),
         pFeasibilityChecker,
         pPrefixProvider,
-        SMGInterpolantManager.getInstance(
+        SMGInterpolantManager.createNewManager(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
             pEvaluator,
-            pStatistics),
+            pStatistics,
+            pIdGenerator),
         pConfig,
         pLogger,
         pShutdownNotifier,
         pCfa);
+    idGenerator = pIdGenerator;
 
     pConfig.inject(this);
     cfa = pCfa;
     interpolantManager =
-        SMGInterpolantManager.getInstance(
+        SMGInterpolantManager.createNewManager(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
             pEvaluator,
-            pStatistics);
+            pStatistics,
+            pIdGenerator);
     config = pConfig;
     logger = pLogger;
     evaluator = pEvaluator;
@@ -189,7 +197,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
                 logger,
                 cfa,
                 evaluator,
-                statistics)
+                statistics,
+                idGenerator)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);

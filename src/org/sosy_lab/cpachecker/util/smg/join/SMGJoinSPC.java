@@ -120,7 +120,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of(),
-            ImmutableSet.of());
+            ImmutableSet.of(),
+            pSpc1.getIdGenerator());
   }
 
   /** Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable. */

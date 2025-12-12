@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -41,12 +42,13 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
       CFA pCfa,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
-      SMGCPAStatistics pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator idGenerator)
       throws InvalidConfigurationException {
 
     super(
         new SMGStrongestPostOperator(pSolver, pLogger, config, pCfa),
-        SMGState.of(
+        SMGState.createNewEmptyWithStackFrame(
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(config),
@@ -57,7 +59,8 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
                 SMGCPAExportOptions.getNoExportInstance(),
                 new SMGOptions(config),
                 null),
-            pStatistics),
+            pStatistics,
+            idGenerator),
         pLogger,
         pCfa,
         config,
@@ -76,6 +79,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
         smgCpa.getCFA(),
         smgCpa.getConfiguration(),
         smgCpa.getShutdownNotifier(),
-        smgCpa.getStatistics());
+        smgCpa.getStatistics(),
+        smgCpa.getIdGenerator());
   }
 }

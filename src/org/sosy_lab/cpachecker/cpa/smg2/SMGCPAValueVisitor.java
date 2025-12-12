@@ -443,7 +443,7 @@ public class SMGCPAValueVisitor
 
         return ImmutableList.of(
             ValueAndSMGState.of(
-                SymbolicIdentifier.of(
+                state.createNewSymbolicIdentifierWitMemoryLocation(
                     memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
                 newState));
 

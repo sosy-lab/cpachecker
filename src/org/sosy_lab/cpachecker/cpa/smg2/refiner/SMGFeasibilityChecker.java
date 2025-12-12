@@ -13,6 +13,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -50,6 +51,8 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
   private final SMGCPAStatistics statistics;
 
+  private final UniqueIdGenerator idGenerator;
+
   /**
    * This method acts as the constructor of the class.
    *
@@ -62,18 +65,20 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
       final CFA pCfa,
       final Configuration pConfig,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator)
       throws InvalidConfigurationException {
 
     super(
         pStrongestPostOp,
-        SMGState.of(
+        SMGState.createNewEmptyWithStackFrame(
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(pConfig),
             pCfa,
             pEvaluator,
-            pStatistics),
+            pStatistics,
+            pIdGenerator),
         SMGCPA.class,
         pLogger,
         pConfig,
@@ -89,6 +94,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
     logger = pLogger;
     evaluator = pEvaluator;
     statistics = pStatistics;
+    idGenerator = pIdGenerator;
   }
 
   public List<Pair<SMGState, List<CFAEdge>>> evaluate(final ARGPath path)
@@ -97,7 +103,14 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
       SMGState next =
-          SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator, statistics);
+          SMGState.createNewEmptyWithStackFrame(
+              machineModel,
+              logger,
+              new SMGOptions(config),
+              cfa,
+              evaluator,
+              statistics,
+              idGenerator);
 
       if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
         // Init main

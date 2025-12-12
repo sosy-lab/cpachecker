@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -155,7 +156,13 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     final SMGFeasibilityChecker checker =
         new SMGFeasibilityChecker(
-            strongestPostOp, logger, cfa, config, smgCpa.getEvaluator(), smgCpa.getStatistics());
+            strongestPostOp,
+            logger,
+            cfa,
+            config,
+            smgCpa.getEvaluator(),
+            smgCpa.getStatistics(),
+            smgCpa.getIdGenerator());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(
@@ -164,7 +171,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             cfa,
             config,
             smgCpa.getShutdownNotifier(),
-            smgCpa.getStatistics());
+            smgCpa.getStatistics(),
+            smgCpa.getIdGenerator());
 
     return new SMGRefiner(
         checker,
@@ -176,7 +184,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         smgCpa.getShutdownNotifier(),
         cfa,
         smgCpa.getEvaluator(),
-        smgCpa.getStatistics());
+        smgCpa.getStatistics(),
+        smgCpa.getIdGenerator());
   }
 
   SMGRefiner(
@@ -189,7 +198,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics)
+      SMGCPAStatistics pStatistics,
+      UniqueIdGenerator pIdGenerator)
       throws InvalidConfigurationException {
 
     super(
@@ -203,15 +213,17 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pShutdownNotifier,
             pCfa,
             pEvaluator,
-            pStatistics),
-        SMGInterpolantManager.getInstance(
+            pStatistics,
+            pIdGenerator),
+        SMGInterpolantManager.createNewManager(
             new SMGOptions(pConfig),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
             pFeasibilityChecker.isRefineMemorySafety(),
             pEvaluator,
-            pStatistics),
+            pStatistics,
+            pIdGenerator),
         pPathExtractor,
         pConfig,
         pLogger);

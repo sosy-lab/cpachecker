@@ -176,7 +176,9 @@ public class SMGCPAValueVisitorTest {
     evaluator =
         new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, options, makeTestSolver());
 
-    currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
+    currentState =
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
+            MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
     visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
@@ -208,7 +210,7 @@ public class SMGCPAValueVisitorTest {
   // Resets state and visitor to an empty state
   public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
     currentState =
-        SMGState.of(
+        SMGState.createNewEmptyForTestsWithoutStackFrame(
             MACHINE_MODEL,
             logger,
             new SMGOptions(Configuration.defaultConfiguration()),

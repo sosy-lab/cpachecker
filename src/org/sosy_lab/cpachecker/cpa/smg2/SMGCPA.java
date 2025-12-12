@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -132,12 +133,15 @@ public class SMGCPA
 
   private final SMGCPAExpressionEvaluator evaluator;
 
+  private final UniqueIdGenerator idGenerator;
+
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
     options = new SMGOptions(pConfig);
 
+    idGenerator = new UniqueIdGenerator();
     config = pConfig;
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
@@ -243,8 +247,14 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator, statistics);
+    SMGState initState =
+        SMGState.createNewEmptyWithStackFrame(
+            machineModel, logger, options, cfa, evaluator, statistics, idGenerator);
     return initState;
+  }
+
+  public UniqueIdGenerator getIdGenerator() {
+    return idGenerator;
   }
 
   @Override
