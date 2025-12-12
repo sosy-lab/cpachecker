@@ -166,7 +166,8 @@ public class SvLibParserTest {
                     ImmutableList.of(
                         new SvLibIdTerm(w.toSimpleDeclaration(), FileLocation.DUMMY),
                         new SvLibIdTerm(z.toSimpleDeclaration(), FileLocation.DUMMY)),
-                    FileLocation.DUMMY)));
+                    FileLocation.DUMMY)),
+            FileLocation.DUMMY);
     Path filePath = Path.of(examplesPath(), "simple-correct.svlib");
 
     testScriptParsing(filePath, output);
@@ -260,7 +261,8 @@ public class SvLibParserTest {
                     ImmutableList.of(
                         new SvLibIdTerm(w.toSimpleDeclaration(), FileLocation.DUMMY),
                         new SvLibIdTerm(z.toSimpleDeclaration(), FileLocation.DUMMY)),
-                    FileLocation.DUMMY)));
+                    FileLocation.DUMMY)),
+            FileLocation.DUMMY);
     Path filePath = Path.of(examplesPath(), "simple-incorrect.svlib");
 
     testScriptParsing(filePath, output);
@@ -426,7 +428,8 @@ public class SvLibParserTest {
                         new SvLibIdTerm(w0Const.toSimpleDeclaration(), FileLocation.DUMMY),
                         new SvLibIdTerm(z0Const.toSimpleDeclaration(), FileLocation.DUMMY)),
                     FileLocation.DUMMY),
-                new SvLibGetWitnessCommand(FileLocation.DUMMY)));
+                new SvLibGetWitnessCommand(FileLocation.DUMMY)),
+            FileLocation.DUMMY);
 
     Path filePath = Path.of(examplesPath(), "loop-add.svlib");
 
@@ -603,7 +606,8 @@ public class SvLibParserTest {
                         ImmutableList.of(new SvLibTagReference("proc-main", FileLocation.DUMMY)))),
                 new SvLibVerifyCallCommand(
                     mainProcedureDeclaration, ImmutableList.of(), FileLocation.DUMMY),
-                new SvLibGetWitnessCommand(FileLocation.DUMMY)));
+                new SvLibGetWitnessCommand(FileLocation.DUMMY)),
+            FileLocation.DUMMY);
 
     Path filePath = Path.of(examplesPath(), "loop-simple-safe.svlib");
 
