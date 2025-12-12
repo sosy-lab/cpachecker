@@ -15,10 +15,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MultiControlStatementBuilder {
 
@@ -26,7 +26,7 @@ public class MultiControlStatementBuilder {
   public static SeqMultiControlStatement buildMultiControlStatementByEncoding(
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      ImmutableList<CStatement> pPrecedingStatements,
+      ImmutableList<String> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -43,20 +43,25 @@ public class MultiControlStatementBuilder {
     };
   }
 
-  public static ImmutableList<CStatement> buildPrecedingStatements(
-      Optional<CFunctionCallStatement> pPcUnequalExitAssumption,
-      Optional<ImmutableList<CStatement>> pNextThreadAssumption,
+  public static ImmutableList<String> buildPrecedingStatements(
+      Optional<SeqBranchStatement> pPcUnequalExitAssumption,
+      Optional<ImmutableList<String>> pNextThreadAssumption,
       Optional<CFunctionCallAssignmentStatement> pRoundMaxNondetAssignment,
-      Optional<CFunctionCallStatement> pRoundMaxGreaterZeroAssumption,
-      Optional<CExpressionAssignmentStatement> pRoundReset) {
+      Optional<SeqBranchStatement> pRoundMaxGreaterZeroAssumption,
+      Optional<CExpressionAssignmentStatement> pRoundReset)
+      throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
-    pPcUnequalExitAssumption.ifPresent(rPreceding::add);
+    ImmutableList.Builder<String> rPreceding = ImmutableList.builder();
+    if (pPcUnequalExitAssumption.isPresent()) {
+      rPreceding.add(pPcUnequalExitAssumption.orElseThrow().toASTString());
+    }
     pNextThreadAssumption.ifPresent(rPreceding::addAll);
-    pRoundMaxNondetAssignment.ifPresent(rPreceding::add);
-    pRoundMaxGreaterZeroAssumption.ifPresent(rPreceding::add);
-    // place r reset after the assumption for optimization
-    pRoundReset.ifPresent(rPreceding::add);
+    pRoundMaxNondetAssignment.ifPresent(s -> rPreceding.add(s.toASTString()));
+    if (pRoundMaxGreaterZeroAssumption.isPresent()) {
+      rPreceding.add(pRoundMaxGreaterZeroAssumption.orElseThrow().toASTString());
+    }
+    // place round reset after the assumption for optimization
+    pRoundReset.ifPresent(s -> rPreceding.add(s.toASTString()));
     return rPreceding.build();
   }
 }

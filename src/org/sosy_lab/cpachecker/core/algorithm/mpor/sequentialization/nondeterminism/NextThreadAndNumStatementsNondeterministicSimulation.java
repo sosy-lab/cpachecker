@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
@@ -30,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -86,7 +85,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
 
     ProgramCounterVariables pcVariables = ghostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
-    ImmutableList<CStatement> precedingStatements = buildPrecedingStatements(pThread);
+    ImmutableList<String> precedingStatements = buildPrecedingStatements(pThread);
     ImmutableList<SeqThreadStatementClause> currentClauses =
         buildSingleThreadClausesWithoutCount(pThread, pClauses);
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
@@ -141,21 +140,21 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
         BinaryOperator.GREATER_THAN);
   }
 
-  private ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  private ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
+    Optional<SeqBranchStatement> pcUnequalExitAssumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             options, ghostElements.getPcVariables(), pThread);
-    Optional<ImmutableList<CStatement>> nextThreadStatements =
+    Optional<ImmutableList<String>> nextThreadStatements =
         NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
             options, pThread, binaryExpressionBuilder);
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
             options, SeqIdExpressions.ROUND_MAX);
-    CFunctionCallStatement roundMaxGreaterZeroAssumption =
-        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(buildRoundMaxGreaterZero());
+    SeqBranchStatement roundMaxGreaterZeroAssumption =
+        SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(buildRoundMaxGreaterZero());
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
 
     return MultiControlStatementBuilder.buildPrecedingStatements(

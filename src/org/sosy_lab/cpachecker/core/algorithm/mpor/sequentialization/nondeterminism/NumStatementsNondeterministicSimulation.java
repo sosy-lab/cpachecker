@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -158,7 +157,7 @@ record NumStatementsNondeterministicSimulation(
 
     ProgramCounterVariables pcVariables = ghostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
-    Optional<CFunctionCallStatement> assumption =
+    Optional<SeqBranchStatement> assumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             options, pcVariables, pThread);
 
@@ -176,7 +175,7 @@ record NumStatementsNondeterministicSimulation(
             options.controlEncodingStatement(),
             expression,
             assumption.isPresent()
-                ? ImmutableList.of(assumption.orElseThrow())
+                ? ImmutableList.of(assumption.orElseThrow().toASTString())
                 : ImmutableList.of(),
             expressionClauseMap,
             utils.binaryExpressionBuilder());

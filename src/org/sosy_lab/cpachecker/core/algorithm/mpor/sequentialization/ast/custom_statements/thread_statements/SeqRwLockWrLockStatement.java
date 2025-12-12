@@ -12,12 +12,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
@@ -64,10 +64,10 @@ public final class SeqRwLockWrLockStatement extends CSeqThreadStatement {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
 
-    CFunctionCallStatement assumptionWriters =
-        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
-    CFunctionCallStatement assumptionReaders =
-        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.readersEqualsZero());
+    SeqBranchStatement assumptionWriters =
+        SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(rwLockFlags.writerEqualsZero());
+    SeqBranchStatement assumptionReaders =
+        SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(rwLockFlags.readersEqualsZero());
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

@@ -101,23 +101,13 @@ public final class SeqInlinedAssumeFunction {
   private static final ImmutableList<String> ABORT_BRANCH_STATEMENT =
       ImmutableList.of(ABORT_FUNCTION_CALL_STATEMENT.toASTString());
 
-  /**
-   * Returns a {@link CFunctionCallStatement} to the assume function i.e. {@code
-   * assume(pCondition);}.
-   */
-  public static CFunctionCallStatement buildAssumeFunctionCallStatement(CExpression pCondition) {
-    CFunctionCallExpression assumeFunctionCallExpression =
-        new CFunctionCallExpression(
-            FileLocation.DUMMY,
-            CVoidType.VOID,
-            ASSUME_ID_EXPRESSION,
-            ImmutableList.of(pCondition),
-            ASSUME_FUNCTION_DECLARATION);
-    return new CFunctionCallStatement(FileLocation.DUMMY, assumeFunctionCallExpression);
+  /** Returns an inlined call to assume i.e. {@code if (pCondition == 0) { abort(); }} */
+  public static SeqBranchStatement buildInlinedAssumeFunctionCall(CExpression pCondition) {
+    return new SeqBranchStatement(pCondition.toASTString() + " == 0", ABORT_BRANCH_STATEMENT);
   }
 
   /** Returns an inlined call to assume i.e. {@code if (pCondition == 0) { abort(); }} */
-  public static SeqBranchStatement buildAssumeFunctionCallStatement(
+  public static SeqBranchStatement buildInlinedAssumeFunctionCall(
       ExpressionTree<CExpression> pCondition) {
 
     return new SeqBranchStatement(pCondition + " == 0", ABORT_BRANCH_STATEMENT);
@@ -149,10 +139,10 @@ public final class SeqInlinedAssumeFunction {
               BinaryOperator.LESS_EQUAL);
       ImmutableList<CBinaryExpression> expressions =
           ImmutableList.of(nextThreadLessThanNumThreads, nextThreadGreaterOrEqualZero);
-      return buildAssumeFunctionCallStatement(
+      return buildInlinedAssumeFunctionCall(
               And.of(transformedImmutableListCopy(expressions, LeafExpression::of)))
           .toASTString();
     }
-    return buildAssumeFunctionCallStatement(nextThreadLessThanNumThreads).toASTString();
+    return buildInlinedAssumeFunctionCall(nextThreadLessThanNumThreads).toASTString();
   }
 }

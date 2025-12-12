@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
@@ -155,7 +155,7 @@ public class NondeterministicSimulationUtil {
     return rFunctionCalls.build();
   }
 
-  static Optional<ImmutableList<CStatement>> buildNextThreadStatementsForThreadSimulationFunction(
+  static Optional<ImmutableList<String>> buildNextThreadStatementsForThreadSimulationFunction(
       MPOROptions pOptions, MPORThread pThread, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -178,9 +178,10 @@ public class NondeterministicSimulationUtil {
             SeqIdExpressions.NEXT_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
             BinaryOperator.EQUALS);
-    CFunctionCallStatement nextThreadAssumption =
-        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
-    return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
+    SeqBranchStatement nextThreadAssumption =
+        SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(nextThreadEqualsThreadId);
+    return Optional.of(
+        ImmutableList.of(nextThreadAssignment.toASTString(), nextThreadAssumption.toASTString()));
   }
 
   // Multi Control Flow Statements =================================================================
@@ -203,7 +204,7 @@ public class NondeterministicSimulationUtil {
         pBinaryExpressionBuilder);
   }
 
-  static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
+  static Optional<SeqBranchStatement> tryBuildPcUnequalExitAssumption(
       MPOROptions pOptions, ProgramCounterVariables pPcVariables, MPORThread pThread) {
 
     if (!pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
@@ -213,8 +214,8 @@ public class NondeterministicSimulationUtil {
     if (pOptions.scalarPc()) {
       CBinaryExpression threadActiveExpression =
           pPcVariables.getThreadActiveExpression(pThread.id());
-      CFunctionCallStatement assumeCall =
-          SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
+      SeqBranchStatement assumeCall =
+          SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(threadActiveExpression);
       return Optional.of(assumeCall);
     }
     return Optional.empty();

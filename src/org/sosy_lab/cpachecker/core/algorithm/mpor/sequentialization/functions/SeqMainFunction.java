@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
@@ -137,8 +138,8 @@ public final class SeqMainFunction extends SeqFunction {
                   .programCounterVariables()
                   .nextThreadActiveExpression()
                   .orElseThrow();
-          CFunctionCallStatement nextThreadActiveAssumption =
-              SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
+          SeqBranchStatement nextThreadActiveAssumption =
+              SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(nextThreadActiveExpression);
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
@@ -156,8 +157,8 @@ public final class SeqMainFunction extends SeqFunction {
                     SeqIdExpressions.THREAD_COUNT,
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN);
-        CFunctionCallStatement countAssumption =
-            SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+        SeqBranchStatement countAssumption =
+            SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(countGreaterZeroExpression);
         loopBlock.add(countAssumption.toASTString());
       }
 
