@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -68,7 +68,8 @@ public final class SeqMutexLockStatement extends CSeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumeCall =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(mutexLockedFlag.notLockedExpression());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(
+            mutexLockedFlag.notLockedExpression());
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);

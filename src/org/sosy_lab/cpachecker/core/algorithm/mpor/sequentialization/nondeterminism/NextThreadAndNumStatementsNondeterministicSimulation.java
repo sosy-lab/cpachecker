@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -155,7 +155,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
             options, SeqIdExpressions.ROUND_MAX);
     CFunctionCallStatement roundMaxGreaterZeroAssumption =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(buildRoundMaxGreaterZero());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(buildRoundMaxGreaterZero());
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
 
     return MultiControlStatementBuilder.buildPrecedingStatements(

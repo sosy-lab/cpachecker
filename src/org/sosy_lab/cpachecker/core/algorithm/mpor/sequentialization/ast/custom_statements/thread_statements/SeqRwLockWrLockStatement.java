@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -65,9 +65,9 @@ public final class SeqRwLockWrLockStatement extends CSeqThreadStatement {
             rwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
 
     CFunctionCallStatement assumptionWriters =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     CFunctionCallStatement assumptionReaders =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.readersEqualsZero());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.readersEqualsZero());
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(

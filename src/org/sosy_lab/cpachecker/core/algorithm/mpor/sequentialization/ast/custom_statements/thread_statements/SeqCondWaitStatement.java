@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
@@ -72,7 +72,8 @@ public final class SeqCondWaitStatement extends CSeqThreadStatement {
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(condSignaledFlag.isSignaledExpression());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(
+            condSignaledFlag.isSignaledExpression());
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);

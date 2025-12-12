@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -22,18 +22,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public abstract sealed class SeqFunction
-    permits SeqAssumeFunction, SeqMainFunction, SeqThreadSimulationFunction {
+public abstract sealed class SeqFunction permits SeqMainFunction, SeqThreadSimulationFunction {
 
   /**
    * The {@link CFunctionDeclaration} only contains a {@link String} representation of the name, but
    * a {@link CFunctionCallExpression} requires a {@link CIdExpression}, so we keep this separate.
    */
-  final CIdExpression name;
+  private final CIdExpression name;
 
   public final CFunctionDeclaration declaration;
 
-  final String body;
+  private final String body;
 
   SeqFunction(CFunctionDeclaration pDeclaration, String pBody) {
     name = new CIdExpression(FileLocation.DUMMY, pDeclaration);

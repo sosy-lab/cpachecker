@@ -15,8 +15,6 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -37,10 +35,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqParameterAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
@@ -277,8 +274,7 @@ public class SequentializationBuilder {
     }
     rDeclarations.add(
         SeqParameterAssignmentStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqInlinedAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
 
     // malloc is required for valid-memsafety tasks
     rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
@@ -302,16 +298,6 @@ public class SequentializationBuilder {
     if (pOptions.comments()) {
       rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
     }
-    // custom function definitions: assume(), main()
-    CBinaryExpression condEqualsZeroExpression =
-        pUtils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqAssumeFunction.COND_ID_EXPRESSION,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
-    rDefinitions.add(assume.buildDefinition());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
       for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {

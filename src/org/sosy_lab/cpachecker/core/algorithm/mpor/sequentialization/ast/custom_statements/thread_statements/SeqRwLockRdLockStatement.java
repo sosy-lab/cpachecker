@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -58,7 +58,7 @@ public final class SeqRwLockRdLockStatement extends CSeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumption =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(rwLockFlags.writerEqualsZero());
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);

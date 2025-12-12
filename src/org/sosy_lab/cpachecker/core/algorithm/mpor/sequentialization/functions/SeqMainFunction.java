@@ -119,7 +119,7 @@ public final class SeqMainFunction extends SeqFunction {
 
         // assume(0 <= next_thread && next_thread < NUM_THREADS)
         String nextThreadAssumption =
-            SeqAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
+            SeqInlinedAssumeFunction.buildNextThreadAssumeCallFunctionCallStatement(
                 pOptions.nondeterminismSigned(),
                 pFields.numThreads,
                 pUtils.binaryExpressionBuilder());
@@ -138,7 +138,7 @@ public final class SeqMainFunction extends SeqFunction {
                   .nextThreadActiveExpression()
                   .orElseThrow();
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
+              SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
@@ -157,7 +157,7 @@ public final class SeqMainFunction extends SeqFunction {
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN);
         CFunctionCallStatement countAssumption =
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+            SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
         loopBlock.add(countAssumption.toASTString());
       }
 

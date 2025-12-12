@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqInlinedAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -179,7 +179,7 @@ public class NondeterministicSimulationUtil {
             SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id()),
             BinaryOperator.EQUALS);
     CFunctionCallStatement nextThreadAssumption =
-        SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
+        SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(nextThreadEqualsThreadId);
     return Optional.of(ImmutableList.of(nextThreadAssignment, nextThreadAssumption));
   }
 
@@ -214,7 +214,7 @@ public class NondeterministicSimulationUtil {
       CBinaryExpression threadActiveExpression =
           pPcVariables.getThreadActiveExpression(pThread.id());
       CFunctionCallStatement assumeCall =
-          SeqAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
+          SeqInlinedAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
       return Optional.of(assumeCall);
     }
     return Optional.empty();
