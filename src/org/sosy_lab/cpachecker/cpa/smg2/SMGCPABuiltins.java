@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGCPABuiltins {
 
+  // ID generator for alloca (to discern it from normal malloc)
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
   private final SMGCPAExpressionEvaluator evaluator;
