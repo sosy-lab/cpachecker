@@ -37,6 +37,14 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
+/**
+ * Represents an inlined call to an assume function, e.g. {@code assume(condition);} is inlined to
+ * {@code if (condition == 0) { abort(); }}. This is done for performance reasons, because the
+ * assume function can be called extremely often, depending on the state space of the input program.
+ *
+ * <p>When inlining the function, the backend verification tool does not have to deal with call and
+ * return contexts as well as parameters.
+ */
 public final class SeqInlinedAssumeFunction {
 
   // CParameterDeclaration
