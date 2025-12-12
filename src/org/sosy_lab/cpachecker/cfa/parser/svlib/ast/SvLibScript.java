@@ -10,12 +10,13 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 
 public class SvLibScript implements SvLibParsingAstNode {
-
+  @Serial private static final long serialVersionUID = 6016969061868381148L;
   private final ImmutableList<SvLibCommand> commands;
   private final FileLocation fileLocation;
 
