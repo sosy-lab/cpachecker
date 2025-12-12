@@ -53,8 +53,8 @@ public class SvLibAstSerializationTest {
 
   @Test
   public void serializeTest() throws SvLibAstParseException {
-    try (DirectoryStream<Path> stream = Files.newDirectoryStream(examplesPath(), "*.svlib")){
-      for (Path path : stream){
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(examplesPath(), "*.svlib")) {
+      for (Path path : stream) {
         testAstSerialization(path);
       }
     } catch (IOException e) {
