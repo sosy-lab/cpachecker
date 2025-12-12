@@ -149,16 +149,9 @@ public final class SeqMainFunction extends SeqFunction {
         if (pOptions.comments()) {
           loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
         }
-        // assume(cnt > 0);
-        CBinaryExpression countGreaterZeroExpression =
-            pUtils
-                .binaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIdExpressions.THREAD_COUNT,
-                    SeqIntegerLiteralExpressions.INT_0,
-                    BinaryOperator.GREATER_THAN);
+        // if (count == 0) { abort(); }
         SeqBranchStatement countAssumption =
-            SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(countGreaterZeroExpression);
+            SeqInlinedAssumeFunction.buildInlinedAssumeFunctionCall(SeqIdExpressions.THREAD_COUNT);
         loopBlock.add(countAssumption.toASTString());
       }
 
