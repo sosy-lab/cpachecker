@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibPars
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
 
 public class SvLibAstSerializationTest {
-  private String examplesPath() {
-    return Path.of("test", "programs", "sv-lib").toAbsolutePath().toString();
+  private Path examplesPath() {
+    return Path.of("test", "programs", "sv-lib").toAbsolutePath();
   }
 
   private void testAstSerialization(Path inputPath) throws SvLibAstParseException {
@@ -39,7 +39,7 @@ public class SvLibAstSerializationTest {
 
     SvLibParsingResult serializedParsed = SvLibToAstParser.parseScript(serializedProgramString);
 
-    Truth.assertWithMessage("Scripts have different number of commands")
+    Truth.assertWithMessage("Scripts have different number of commands for input: " + inputPath)
         .that(parsed.script().getCommands().size())
         .isEqualTo(serializedParsed.script().getCommands().size());
 
@@ -53,38 +53,13 @@ public class SvLibAstSerializationTest {
   }
 
   @Test
-  public void serializeLoopAdd() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "loop-add.svlib");
-    testAstSerialization(filePath);
-  }
-
-  @Test
-  public void serializeLoopSimpleSafe() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "loop-simple-safe.svlib");
-    testAstSerialization(filePath);
-  }
-
-  @Test
-  public void serializeLoopSimpleUnsafe() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "loop-simple-unsafe.svlib");
-    testAstSerialization(filePath);
-  }
-
-  @Test
-  public void serializeSafeWithFunctionCall() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "safe-with-function-call.svlib");
-    testAstSerialization(filePath);
-  }
-
-  @Test
-  public void serializeSimpleCorrect() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "simple-correct.svlib");
-    testAstSerialization(filePath);
-  }
-
-  @Test
-  public void serializeSimpleIncorrect() throws SvLibAstParseException {
-    Path filePath = Path.of(examplesPath(), "simple-incorrect.svlib");
-    testAstSerialization(filePath);
+  public void serializeTest() throws SvLibAstParseException {
+    try {
+      for (Path path : Files.newDirectoryStream(examplesPath(), "*.svlib")) {
+        testAstSerialization(path);
+      }
+    } catch (IOException e) {
+      throw new SvLibAstParseException("Could not read input files", e);
+    }
   }
 }
