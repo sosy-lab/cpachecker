@@ -23,10 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -47,28 +44,12 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
  */
 public final class SeqInlinedAssumeFunction {
 
-  // CParameterDeclaration
-
-  private static final CParameterDeclaration COND_PARAMETER_ASSUME =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, "cond");
-
   // CFunctionType
-
-  private static final CFunctionTypeWithNames ASSUME_FUNCTION_TYPE =
-      new CFunctionTypeWithNames(CVoidType.VOID, ImmutableList.of(COND_PARAMETER_ASSUME), false);
 
   private static final CFunctionType ABORT_FUNCTION_TYPE =
       new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
 
   // CFunctionDeclaration
-
-  public static final CFunctionDeclaration ASSUME_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          ASSUME_FUNCTION_TYPE,
-          "__MPOR__assume",
-          ImmutableList.of(COND_PARAMETER_ASSUME),
-          ImmutableSet.of());
 
   public static final CFunctionDeclaration ABORT_FUNCTION_DECLARATION =
       new CFunctionDeclaration(
@@ -77,11 +58,6 @@ public final class SeqInlinedAssumeFunction {
           "abort",
           ImmutableList.of(),
           ImmutableSet.of(FunctionAttribute.NO_RETURN));
-
-  // CIdExpression
-
-  private static final CIdExpression ASSUME_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, ASSUME_FUNCTION_DECLARATION);
 
   // CFunctionCallExpression
 
