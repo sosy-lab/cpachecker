@@ -138,6 +138,7 @@ public class CounterexampleToSvLibWitnessExport {
       }
     }
     return new SvLibInitProcVariablesStep(
+        pProcedureDeclaration,
         functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
