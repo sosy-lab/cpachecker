@@ -138,8 +138,7 @@ public class CounterexampleToSvLibWitnessExport {
       }
     }
     return new SvLibInitProcVariablesStep(
-        pProcedureDeclaration,
-        functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
+        pProcedureDeclaration, functionCallAssignmentsBuilder.buildOrThrow(), FileLocation.DUMMY);
   }
 
   private SvLibHavocVariablesStep setHavocVariablesForFunctionCall(
