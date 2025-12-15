@@ -13,9 +13,11 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,8 +27,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.annotations.SuppressForbidden;
@@ -68,6 +72,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+  private static final String SPECIFICATION_FILE_ENDING = ".spc";
+  private static final String SPECIFICATION_FILES_PATH = "config/specification/";
 
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
@@ -434,8 +440,34 @@ class CmdLineArguments {
     if (specFile != null) {
       return specFile;
     }
-    throw Output.fatalError(
-        "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
+    try (Stream<Path> specFilesStream = Files.list(Path.of(SPECIFICATION_FILES_PATH))) {
+      // List all available specs for the error msg to help the user
+      Set<String> allSpecs =
+          specFilesStream
+              .filter(file -> !Files.isDirectory(file))
+              .map(Path::getFileName)
+              .map(Path::toString)
+              .filter(s -> s.endsWith(SPECIFICATION_FILE_ENDING))
+              .map(s -> s.substring(0, s.length() - SPECIFICATION_FILE_ENDING.length()))
+              .collect(ImmutableSet.toImmutableSet());
+      // TODO: make a table that lists the programming lang, and included specs for the combi-specs,
+      //   as well as a short description.
+      // TODO: add a unit-test that checks that this output is correctly including all .spc files in
+      //   the folder. (And the table of the TODO above includes all necessary info!)
+      throw Output.fatalError(
+          "Checking for property %s is currently not supported by CPAchecker.\n"
+              + "Available pre-defined specifications in CPAchecker: %s.\n\n"
+              + "Note: the 'default' specification includes the specifications 'Assertion' and"
+              + " 'ErrorLabel', and can also be used by not adding any specification option when"
+              + " starting CPAchecker.\n"
+              + "More information about our pre-defined specifications can be found in the"
+              + " publication: 'Software Verification with CPAchecker 3.0:"
+              + " Tutorial and User Guide'.",
+          pSpecification, String.join(", ", allSpecs));
+    } catch (IOException pE) {
+      throw Output.fatalError(
+          "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
+    }
   }
 
   @SuppressWarnings("FormatStringAnnotation")
