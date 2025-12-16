@@ -136,7 +136,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics = new SequentializationStatistics(programPath, logger);
   }
 
-  public static boolean isAlreadySequentialized(CFA pCFA) {
+  private static boolean isAlreadySequentialized(CFA pCFA) {
     CfaTransformationMetadata transformationMetadata =
         pCFA.getMetadata().getTransformationMetadata();
     if (transformationMetadata == null) {
@@ -244,9 +244,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     Algorithm innerAlgorithm;
 
     try {
+      // set useMporPreprocessing=false so that CoreComponentsFactory does not sequentialize again
+      Configuration newConfig =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption("analysis.preprocessing.MPOR", "false")
+              .build();
       coreComponents =
           new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), newCfa);
+              newConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newCfa);
       cpa = coreComponents.createCPA(specification);
       if (cpa instanceof StatisticsProvider statisticsProvider) {
         statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);

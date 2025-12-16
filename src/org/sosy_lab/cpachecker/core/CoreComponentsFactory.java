@@ -551,9 +551,7 @@ public class CoreComponentsFactory {
   }
 
   private boolean analysisSequentializesCfa() {
-    return useMporPreprocessing
-        && !preferOriginalCfaOverSequentialized
-        && !MporPreprocessingAlgorithm.isAlreadySequentialized(cfa);
+    return useMporPreprocessing && !preferOriginalCfaOverSequentialized;
   }
 
   /**
@@ -969,8 +967,6 @@ public class CoreComponentsFactory {
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
         || useRandomTestCaseGeneratorAlgorithm
-        // checking just useMporPreprocessing is not enough, because then no CPA is created, even
-        // for the inner algorithms run on the sequentialization
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
