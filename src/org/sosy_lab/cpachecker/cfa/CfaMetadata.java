@@ -66,7 +66,8 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
+      @Nullable AcslMetadata pAcslMetadata) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -81,7 +82,7 @@ public final class CfaMetadata {
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
     transformationMetadata = pCfaTransformationMetadata;
-    acslMetadata = pACSLMetadata;
+    acslMetadata = pAcslMetadata;
   }
 
   /**
@@ -154,10 +155,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
@@ -175,7 +175,8 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata);
+            pTransformationMetadata,
+            acslMetadata);
     return newMetadata;
   }
 
@@ -241,10 +242,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -276,10 +276,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -324,10 +323,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -364,7 +362,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -387,10 +386,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -425,10 +423,9 @@ public final class CfaMetadata {
         pVariableClassification,
         liveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -462,10 +459,9 @@ public final class CfaMetadata {
         variableClassification,
         pLiveVariables,
         edgesToAnnotations,
-        acslMetadata,
-        edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -503,9 +499,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         pedgesToAnnotations,
-        acslMetadata,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        acslMetadata);
   }
 
   /**
@@ -528,8 +524,9 @@ public final class CfaMetadata {
         variableClassification,
         liveVariables,
         edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata,
         pAcslMetadata);
-
   }
 
   @Override
