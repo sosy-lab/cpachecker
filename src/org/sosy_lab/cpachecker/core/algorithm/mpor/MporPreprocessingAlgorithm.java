@@ -265,11 +265,6 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     pReachedSet.clear();
     coreComponents.initializeReachedSet(pReachedSet, newCfa.getMainFunction(), cpa);
 
-    logger.log(
-        Level.INFO,
-        "Running the following inner algorithm on the sequentialization: "
-            + innerAlgorithm.getClass().getSimpleName());
-
     return innerAlgorithm.run(pReachedSet);
   }
 
