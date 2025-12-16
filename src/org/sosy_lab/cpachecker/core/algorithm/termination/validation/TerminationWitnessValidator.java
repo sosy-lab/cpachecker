@@ -219,30 +219,28 @@ public class TerminationWitnessValidator implements Algorithm {
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
-      // Our termination analysis might be unsound with respect to C semantics because it uses an
-      // unsound overapproximation of mathematical integers.
-      if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
+      // Our termination analysis might be unsound because of a different possible division to
+      // disjunctions
+      if (!isWellFounded) {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
-      if (isWellFounded) {
-        // Do k-inductivity checks for k > 1
-        while (isCandidateInvariantTransitionInvariant(
+      // Do k-inductivity checks for k > 1
+      while (isCandidateInvariantTransitionInvariant(
+          loop,
+          loopsToTransitionInvariants.get(loop),
+          supportingInvariants,
+          loopsToSupportingInvariants,
+          mapPrevVarsToCurrVars,
+          k)) {
+        if (isCandidateInvariantInductiveTransitionInvariant(
             loop,
             loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
             loopsToSupportingInvariants,
             mapPrevVarsToCurrVars,
             k)) {
-          if (isCandidateInvariantInductiveTransitionInvariant(
-              loop,
-              loopsToTransitionInvariants.get(loop),
-              loopsToSupportingInvariants,
-              mapPrevVarsToCurrVars,
-              k)) {
-            break;
-          }
-          k++;
+          break;
         }
+        k++;
       }
     }
     pReachedSet.clear();
