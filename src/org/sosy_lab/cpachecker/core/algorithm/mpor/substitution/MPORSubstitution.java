@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -137,13 +138,11 @@ public class MPORSubstitution {
         return pExpression;
       }
       case CIdExpression idExpression -> {
-        CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (SubstituteUtil.isSubstitutable(declaration)) {
-          MPORSubstitutionTrackerUtil.trackDeclarationAccess(
-              options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
-          return getSimpleDeclarationSubstitute(
-              idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
-        }
+        InputRejection.checkFunctionPointer(idExpression);
+        MPORSubstitutionTrackerUtil.trackDeclarationAccess(
+            options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
+        return getSimpleDeclarationSubstitute(
+            idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
       }
       case CBinaryExpression binary -> {
         // recursively substitute operands of binary expressions
