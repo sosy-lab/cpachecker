@@ -510,15 +510,18 @@ class CFABuilder extends ASTVisitor {
                 OptionalInt.of(commentLocation.getStartColumnInLine()));
 
         FluentIterable<CFANode> predecessors =
-            FluentIterable.from(tightestStatement.edges()).transform(e -> e.getPredecessor());
+            FluentIterable.from(tightestStatement.orElseThrow().edges())
+                .transform(e -> e.getPredecessor());
         FluentIterable<CFANode> successors =
-            FluentIterable.from(tightestStatement.edges()).transform(e -> e.getSuccessor());
+            FluentIterable.from(tightestStatement.orElseThrow().edges())
+                .transform(e -> e.getSuccessor());
         List<CFANode> nodesForComment =
             predecessors.filter(n -> !successors.contains(n)).stream().toList();
 
         // An AcslComment should belong to exactly one CfaNode
         Verify.verify(nodesForComment.size() == 1);
         comment.updateCfaNode(nodesForComment.get(0));
+
       } catch (Exception e) {
         notAStatementAnnotationBuilder.add(comment);
       }
