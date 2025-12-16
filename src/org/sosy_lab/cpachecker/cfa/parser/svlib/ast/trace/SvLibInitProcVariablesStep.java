@@ -46,6 +46,7 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   public String toASTString() {
     return "(init-proc-vars "
         + procedureDeclaration.getName()
+        + " "
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
@@ -62,6 +63,10 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
 
   public ImmutableMap<SvLibIdTerm, SvLibConstantTerm> getAssignments() {
     return assignments;
+  }
+
+  public SvLibProcedureDeclaration getProcedureDeclaration() {
+    return procedureDeclaration;
   }
 
   @Override

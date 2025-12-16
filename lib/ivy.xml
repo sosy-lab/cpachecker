@@ -108,8 +108,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="5.20.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="5.20.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="5.21.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="5.21.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -149,7 +149,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.32-sosy0" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.38" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
@@ -163,7 +163,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="12.2.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="12.3.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

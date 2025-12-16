@@ -41,6 +41,8 @@ public interface SvLibParsingAstNodeVisitor<R, X extends Exception>
 
   R accept(SvLibSortDeclaration pSvLibSortDeclaration) throws X;
 
+  R accept(SvLibScript pSvLibScript) throws X;
+
   R visit(SvLibCorrectnessWitness pSvLibCorrectnessWitness) throws X;
 
   R visit(SvLibViolationWitness pSvLibViolationWitness) throws X;

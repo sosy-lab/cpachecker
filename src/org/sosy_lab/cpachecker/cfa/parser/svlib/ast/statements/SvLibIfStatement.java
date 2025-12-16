@@ -68,7 +68,7 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(if "
         + condition.toASTString()
         + " "

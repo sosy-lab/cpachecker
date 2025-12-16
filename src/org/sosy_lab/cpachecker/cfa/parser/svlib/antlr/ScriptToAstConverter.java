@@ -43,6 +43,7 @@ class ScriptToAstConverter extends AbstractAntlrToAstConverter<SvLibParsingResul
       commands.add(command);
     }
     return new SvLibParsingResult(
-        new SvLibScript(commands.build()), tagReferenceToScopeBuilder.buildOrThrow());
+        new SvLibScript(commands.build(), fileLocationFromContext(ctx)),
+        tagReferenceToScopeBuilder.buildOrThrow());
   }
 }

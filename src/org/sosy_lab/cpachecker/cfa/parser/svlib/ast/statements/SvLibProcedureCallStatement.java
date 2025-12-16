@@ -59,7 +59,7 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(call "
         + procedureDeclaration.getName()
         + " ("

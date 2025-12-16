@@ -15,6 +15,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
 
@@ -46,8 +47,10 @@ public final class SvLibHavocStatement extends SvLibStatement {
   }
 
   @Override
-  public String toASTString() {
-    return "(havoc (" + Joiner.on(" ").join(variables) + "))";
+  public String toASTStringWithoutTags() {
+    return "(havoc "
+        + Joiner.on(" ").join(variables.stream().map(SvLibParsingAstNode::toASTString).toList())
+        + ")";
   }
 
   @Override
