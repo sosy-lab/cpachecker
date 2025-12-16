@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -278,6 +279,9 @@ public final class MPORUtil {
       if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
         return recursivelyFindFieldMemberByFieldOwner(pFieldReference, innerTypedefType);
       }
+    }
+    if (pType instanceof CArrayType arrayType) {
+      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
     }
     throw new IllegalArgumentException("field owner type must be CTypedefType");
   }
