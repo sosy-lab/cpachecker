@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitution {
 
@@ -138,11 +138,12 @@ public class MPORSubstitution {
         return pExpression;
       }
       case CIdExpression idExpression -> {
-        InputRejection.checkFunctionPointer(idExpression);
-        MPORSubstitutionTrackerUtil.trackDeclarationAccess(
-            options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
-        return getSimpleDeclarationSubstitute(
-            idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
+        if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
+          MPORSubstitutionTrackerUtil.trackDeclarationAccess(
+              options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
+          return getSimpleDeclarationSubstitute(
+              idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
+        }
       }
       case CBinaryExpression binary -> {
         // recursively substitute operands of binary expressions
@@ -388,7 +389,8 @@ public class MPORSubstitution {
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
@@ -458,7 +460,8 @@ public class MPORSubstitution {
   public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
         pVariableDeclaration, pTracker);
