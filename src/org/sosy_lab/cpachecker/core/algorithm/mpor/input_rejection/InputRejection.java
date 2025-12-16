@@ -14,7 +14,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -33,7 +35,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
 
-  public enum InputRejectionMessage {
+  enum InputRejectionMessage {
+    FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
@@ -218,6 +221,21 @@ public class InputRejection {
               null);
         }
       }
+    }
+  }
+
+  public static void checkFunctionPointerAssignment(
+      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide)
+      throws UnsupportedCodeException {
+
+    if (pRightHandSide instanceof CFunctionDeclaration) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.formatMessage(),
+              pLeftHandSide.toASTString(),
+              " = ",
+              pRightHandSide.toASTString()),
+          null);
     }
   }
 }
