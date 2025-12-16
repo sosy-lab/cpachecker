@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
@@ -107,21 +109,27 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleTarget(
       String nextStateId,
       Integer followLine,
-      Integer followColumn,
+      OptionalInt followColumn,
       Integer pDistanceToViolation,
       String currentStateId,
       ImmutableList.Builder<AutomatonTransition> transitions,
       ImmutableList.Builder<AutomatonInternalState> automatonStates) {
-    // For the reachability specification the target waypoint should exactly point to where the
-    // violation occurs. For no-overflow, instead it should point to the beginning of the full
-    // expression causing the overflow.
+    // The violation points to the largest full expression which produces the error.
     //
-    // TODO: Review if the first check is required or if the second check is sufficient
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
     AutomatonBoolExpr expr =
         new Or(
-            new CheckMatchesColumnAndLine(followColumn, followLine),
+            new CheckMatchesColumnAndLine(
+                tightestStatementForStarting.location().getStartColumnInLine(), followLine),
             new CheckClosestFullExpressionMatchesColumnAndLine(
-                followColumn, followLine, cfa.getAstCfaRelation()));
+                tightestStatementForStarting.location().getStartColumnInLine(),
+                followLine,
+                cfa.getAstCfaRelation()));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -201,18 +209,27 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
-      Integer followColumn,
+      OptionalInt followColumn,
       Integer followLine,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
-      ImmutableList.Builder<AutomatonTransition> transitions) {
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws WitnessParseException {
     Verify.verifyNotNull(pAstCfaRelation);
     Optional<IfElement> optionalIfStructure =
-        pAstCfaRelation.getIfStructureStartingAtColumn(followLine, followColumn);
+        pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
     Optional<IterationElement> optionalIterationStructure =
-        pAstCfaRelation.getIterationStructureStartingAtColumn(followColumn, followLine);
+        pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
+
+    // This is the case for ternary operators, which are expressions and therefore not covered by if
+    // or iteration structures which only cover statements.
+    Optional<ASTElement> astElement =
+        pAstCfaRelation.getTightestStatementForStarting(followLine, followColumn);
+
     Optional<List<AutomatonTransition>> newTransitions;
-    if (optionalIfStructure.isEmpty() && optionalIterationStructure.isEmpty()) {
+    if (optionalIfStructure.isEmpty()
+        && optionalIterationStructure.isEmpty()
+        && astElement.isEmpty()) {
       logger.log(
           Level.INFO, "Could not find an element corresponding to the waypoint, skipping it");
       return;
@@ -243,6 +260,34 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
         return;
       }
+    } else if (astElement.isPresent()) {
+      // Ternary operator case, we cannot currently distinguish between then and else branch.
+      // Therefore, we first check if we are really in a ternary operator, by checking if we
+      // have assume edges at this location, and if so, we throw an exception that we cannot
+      // support this.
+      //
+      // Else we could not find a proper if or iteration structure, but we have a statement
+      // here, to continue with validating the witness we just log this and skip the waypoint.
+      // This does not conform to the witness spec, but will be complete, i.e., we will not
+      // miss violations due to this.
+      ImmutableList<CAssumeEdge> edges =
+          FluentIterable.from(astElement.orElseThrow().edges()).filter(CAssumeEdge.class).toList();
+
+      if (edges.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Could not find a "
+                + "statement corresponding to the location at line "
+                + followLine
+                + " and column "
+                + followColumn
+                + " of the statement, skipping it");
+        return;
+      }
+
+      throw new WitnessParseException(
+          "Ternary operators as branching waypoints are currently not supported!");
+
     } else {
       throw new AssertionError("This should never happen");
     }
@@ -294,16 +339,17 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   protected void handleFunctionReturn(
       String nextStateId,
       Integer followLine,
-      Integer followColumn,
+      OptionalInt followColumn,
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws InterruptedException {
 
+    // TODO: Handle missing columns properly here
     AutomatonBoolExpr expr =
         new And(
-            new CheckCoversColumnAndLine(followColumn, followLine),
+            new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
             // Edges which correspond to blocks in the code, like function declaration edges and
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
@@ -320,8 +366,8 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       AStatement statement = edge.getStatement();
       FileLocation statementLocation = statement.getFileLocation();
       int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
-      if (columnOfClosingBracketInFunctionCall != followColumn
-          || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
+      if (columnOfClosingBracketInFunctionCall != followColumn.orElseThrow()
+          || statement.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
       }
 
@@ -401,6 +447,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     final ImmutableList.Builder<AutomatonInternalState> automatonStates =
         new ImmutableList.Builder<>();
+
+    // add bottom state
+    automatonStates.add(AutomatonInternalState.BOTTOM);
     String currentStateId = initState;
 
     int distance = segments.size() - 1;
@@ -485,18 +534,57 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       String currentStateId)
       throws InterruptedException, WitnessParseException {
-    List<WaypointRecord> avoids = pEntry.avoids();
-    if (!avoids.isEmpty()) {
-      logger.log(Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
-    }
-
     // TODO: It may be worthwhile to refactor this into the CFA
     ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
         FluentIterable.from(cfa.edges())
-            .index(edge -> edge.getFileLocation().getStartingLineNumber());
+            .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
 
-    int followLine = follow.getLocation().getLine();
-    int followColumn = follow.getLocation().getColumn();
+    Integer followLine = follow.getLocation().getLine();
+    OptionalInt followColumn = follow.getLocation().getColumn();
+
+    for (WaypointRecord avoid : pEntry.avoids()) {
+      // Handle all avoid waypoints. They can be handled similarly to follow waypoints, but
+      // instead of going to the next state, they go to the bottom state.
+      switch (avoid.getType()) {
+        case WaypointType.ASSUMPTION ->
+            handleAssumption(
+                AutomatonInternalState.BOTTOM.getName(),
+                cfa.getAstCfaRelation()
+                    .getTightestStatementForStarting(followLine, followColumn)
+                    .orElseThrow(),
+                avoid.getLocation().getLine(),
+                avoid.getLocation().getFunction(),
+                distance,
+                avoid.getConstraint().getValue(),
+                transitions);
+        case WaypointType.BRANCHING ->
+            handleFollowWaypointAtStatement(
+                cfa.getAstCfaRelation(),
+                currentStateId,
+                avoid.getLocation().getColumn(),
+                avoid.getLocation().getLine(),
+                distance,
+                // We negate to remain in the same state, the actual branch we want to avoid lands
+                // in the bottom state automatically due to how we handle branching waypoints
+                !Boolean.parseBoolean(avoid.getConstraint().getValue()),
+                transitions);
+        case WaypointType.FUNCTION_RETURN -> {
+          handleFunctionReturn(
+              currentStateId,
+              avoid.getLocation().getLine(),
+              avoid.getLocation().getColumn(),
+              distance,
+              "!(" + avoid.getConstraint().getValue() + ")",
+              startLineToCFAEdge,
+              transitions);
+        }
+        case FUNCTION_ENTER ->
+            throw new WitnessParseException(
+                "We currently do not support function enter waypoints.");
+        case TARGET ->
+            throw new WitnessParseException("Avoid waypoints of type target are invalid.");
+      }
+    }
 
     switch (follow.getType()) {
       case WaypointType.TARGET ->
@@ -511,7 +599,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       case WaypointType.ASSUMPTION ->
           handleAssumption(
               nextStateId,
-              cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn),
+              cfa.getAstCfaRelation()
+                  .getTightestStatementForStarting(followLine, followColumn)
+                  .orElseThrow(),
               followLine,
               follow.getLocation().getFunction(),
               distance,
@@ -526,7 +616,9 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               distance,
               Boolean.parseBoolean(follow.getConstraint().getValue()),
               transitions);
-      case WaypointType.FUNCTION_ENTER ->
+      case FUNCTION_ENTER ->
+          throw new WitnessParseException("We currently do not support function enter waypoints.");
+      case WaypointType.FUNCTION_RETURN ->
           handleFunctionReturn(
               nextStateId,
               followLine,
@@ -535,7 +627,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               follow.getConstraint().getValue(),
               startLineToCFAEdge,
               transitions);
-      default -> throw new WitnessParseException("Unknown waypoint type: " + follow.getType());
     }
   }
 }

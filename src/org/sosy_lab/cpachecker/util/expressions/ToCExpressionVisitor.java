@@ -82,7 +82,13 @@ public class ToCExpressionVisitor
   protected CExpression cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
       throws UnrecognizedCodeException {
     if (pLeafExpression.getExpression() instanceof CExpression cExpression) {
-      return cExpression;
+      if (pLeafExpression.assumeTruth()) {
+        return cExpression;
+      } else {
+        // We need to negate the expression
+        return builder.buildBinaryExpression(
+            cExpression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+      }
     }
     throw new AssertionError("Unsupported expression type.");
   }

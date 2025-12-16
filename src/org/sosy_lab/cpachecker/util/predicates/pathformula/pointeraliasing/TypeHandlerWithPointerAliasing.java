@@ -30,7 +30,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       POINTER_NAME_PREFIX + "SINGLE_BYTE_ARRAY";
 
   private final MachineModel model;
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
       new CachingCanonizingCTypeVisitor(/* ignoreSignedness= */ false);
   private final CachingCanonizingCTypeVisitor canonizingVisitorWithoutSignedness =
@@ -43,7 +43,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   public TypeHandlerWithPointerAliasing(
       LogManager pLogger,
       MachineModel pMachineModel,
-      FormulaEncodingWithPointerAliasingOptions pOptions) {
+      CFormulaEncodingWithPointerAliasingOptions pOptions) {
     super(pLogger, pMachineModel);
 
     model = pMachineModel;

@@ -27,14 +27,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -51,14 +55,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibFormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -106,7 +112,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final CtoFormulaConverter converter;
+  private final LanguageToSmtConverter<? extends Type> converter;
   private final @Nullable CtoWpConverter wpConverter;
   private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
@@ -133,7 +139,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pShutdownNotifier,
         pCfa.getMachineModel(),
         pCfa.getVarClassification(),
-        pDirection);
+        pDirection,
+        pCfa.getLanguage());
   }
 
   public PathFormulaManagerImpl(
@@ -143,7 +150,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,
-      AnalysisDirection pDirection)
+      AnalysisDirection pDirection,
+      Language pLanguage)
       throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
@@ -153,84 +161,103 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (handlePointerAliasing) {
-      final FormulaEncodingWithPointerAliasingOptions options =
-          new FormulaEncodingWithPointerAliasingOptions(config);
-      if (options.useQuantifiersOnArrays()) {
-        try {
-          fmgr.getQuantifiedFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException(
-              "Cannot use quantifiers with current solver, either choose a different solver or"
-                  + " disable quantifiers.");
+    switch (pLanguage) {
+      case C -> {
+        if (handlePointerAliasing) {
+          final CFormulaEncodingWithPointerAliasingOptions options =
+              new CFormulaEncodingWithPointerAliasingOptions(config);
+          if (options.useQuantifiersOnArrays()) {
+            try {
+              fmgr.getQuantifiedFormulaManager();
+            } catch (UnsupportedOperationException e) {
+              throw new InvalidConfigurationException(
+                  "Cannot use quantifiers with current solver, either choose a different solver or"
+                      + " disable quantifiers.");
+            }
+          }
+          if (options.useArraysForHeap()) {
+            try {
+              fmgr.getArrayFormulaManager();
+            } catch (UnsupportedOperationException e) {
+              throw new InvalidConfigurationException(
+                  "Cannot use arrays with current solver, either choose a different solver or"
+                      + " disable arrays.");
+            }
+          }
+
+          TypeHandlerWithPointerAliasing aliasingTypeHandler =
+              new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+
+          converter =
+              new CToFormulaConverterWithPointerAliasing(
+                  options,
+                  fmgr,
+                  pMachineModel,
+                  pVariableClassification,
+                  logger,
+                  shutdownNotifier,
+                  aliasingTypeHandler,
+                  pDirection);
+
+          wpConverter = null;
+
+        } else {
+          final CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
+          CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+          converter =
+              new CtoFormulaConverter(
+                  options,
+                  fmgr,
+                  pMachineModel,
+                  pVariableClassification,
+                  logger,
+                  shutdownNotifier,
+                  typeHandler,
+                  pDirection);
+
+          wpConverter =
+              new CtoWpConverter(
+                  options,
+                  fmgr,
+                  pMachineModel,
+                  pVariableClassification,
+                  logger,
+                  shutdownNotifier,
+                  typeHandler,
+                  pDirection);
+
+          logger.log(
+              Level.WARNING,
+              "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers"
+                  + " exist.");
         }
+
+        pfbFactory =
+            switch (pathFormulaBuilderVariant) {
+              case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
+              case SYMBOLICLOCATIONS ->
+                  new SymbolicLocationPathFormulaBuilder.Factory(
+                      new CBinaryExpressionBuilder(pMachineModel, pLogger));
+            };
+
+        NONDET_FORMULA_TYPE = ((CtoFormulaConverter) converter).getFormulaTypeFromType(NONDET_TYPE);
       }
-      if (options.useArraysForHeap()) {
-        try {
-          fmgr.getArrayFormulaManager();
-        } catch (UnsupportedOperationException e) {
+      case SVLIB -> {
+        converter =
+            new SvLibToFormulaConverter(
+                new SvLibFormulaEncodingOptions(config),
+                fmgr,
+                pVariableClassification,
+                logger,
+                shutdownNotifier);
+        wpConverter = null;
+        pfbFactory = null;
+        NONDET_FORMULA_TYPE = null;
+      }
+      default ->
           throw new InvalidConfigurationException(
-              "Cannot use arrays with current solver, either choose a different solver or disable"
-                  + " arrays.");
-        }
-      }
-
-      TypeHandlerWithPointerAliasing aliasingTypeHandler =
-          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
-
-      converter =
-          new CToFormulaConverterWithPointerAliasing(
-              options,
-              fmgr,
-              pMachineModel,
-              pVariableClassification,
-              logger,
-              shutdownNotifier,
-              aliasingTypeHandler,
-              pDirection);
-
-      wpConverter = null;
-
-    } else {
-      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      converter =
-          new CtoFormulaConverter(
-              options,
-              fmgr,
-              pMachineModel,
-              pVariableClassification,
-              logger,
-              shutdownNotifier,
-              typeHandler,
-              pDirection);
-
-      wpConverter =
-          new CtoWpConverter(
-              options,
-              fmgr,
-              pMachineModel,
-              pVariableClassification,
-              logger,
-              shutdownNotifier,
-              typeHandler,
-              pDirection);
-
-      logger.log(
-          Level.WARNING,
-          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers"
-              + " exist.");
+              "Language not supported for creating path formulas: " + pLanguage);
     }
-
-    pfbFactory =
-        switch (pathFormulaBuilderVariant) {
-          case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
-          case SYMBOLICLOCATIONS ->
-              new SymbolicLocationPathFormulaBuilder.Factory(
-                  new CBinaryExpressionBuilder(pMachineModel, pLogger));
-        };
-
-    NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
   }
 
   @Override
@@ -296,6 +323,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             CFANode.newDummyCFANode(),
             pAssumption,
             true);
+    return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, SvLibRelationalTerm pAssumption)
+      throws CPATransferException, InterruptedException {
+    SvLibAssumeEdge fakeEdge =
+        new SvLibAssumeEdge(
+            pAssumption.toASTString(),
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode(),
+            pAssumption,
+            true,
+            false,
+            false);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
   }
 

@@ -62,7 +62,7 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoExc
     if (pElaboratedType.getRealType() == null) {
 
       Type lookupType = scope.lookupType(pElaboratedType.getQualifiedName());
-      assert lookupType instanceof CComplexType
+      assert lookupType instanceof CComplexType || lookupType == null
           : "Elaborated type "
               + pElaboratedType
               + " should be bound to a complex type, but got "

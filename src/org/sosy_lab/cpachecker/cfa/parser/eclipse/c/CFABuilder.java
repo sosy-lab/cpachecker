@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -502,9 +504,10 @@ class CFABuilder extends ASTVisitor {
       FileLocation commentLocation = comment.getFileLocation();
 
       try {
-        ASTElement tightestStatement =
+        Optional<ASTElement> tightestStatement =
             pAstCfaRelation.getTightestStatementForStarting(
-                commentLocation.getStartingLineNumber(), commentLocation.getStartColumnInLine());
+                commentLocation.getStartingLineNumber(),
+                OptionalInt.of(commentLocation.getStartColumnInLine()));
 
         FluentIterable<CFANode> predecessors =
             FluentIterable.from(tightestStatement.edges()).transform(e -> e.getPredecessor());

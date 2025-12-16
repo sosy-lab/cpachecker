@@ -84,6 +84,11 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     }
 
     @Override
+    public boolean isLogicalOperator() {
+      return true;
+    }
+
+    @Override
     public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
       return v.visit(this);
     }

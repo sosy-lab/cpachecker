@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
 
 public sealed interface AcslPredicate extends AExpression, AcslAstNode
     permits AcslBinaryPredicate,
@@ -34,14 +35,17 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
           R2 extends R,
           R3 extends R,
           R4 extends R,
+          R5 extends R,
           X1 extends Exception,
           X2 extends Exception,
           X3 extends Exception,
           X4 extends Exception,
+          X5 extends Exception,
           V extends
-              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2> & AcslPredicateVisitor<R3, X3>
-                  & AcslTermVisitor<R4, X4>>
-      R accept_(V pV) throws X3 {
+              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
+                  & SvLibExpressionVisitor<R3, X3> & AcslPredicateVisitor<R4, X4>
+                  & AcslTermVisitor<R5, X5>>
+      R accept_(V pV) throws X4 {
     return accept(pV);
   }
 }

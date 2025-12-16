@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -47,7 +48,9 @@ public record ParseResult(
     Optional<AcslMetadata> acslMetadata,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
+    // Only relevant for SV-LIB scripts
+    Optional<SvLibCfaMetadata> svLibCfaMetadata) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -85,7 +88,27 @@ public record ParseResult(
         Optional.of(pAcslMetadata),
         Optional.of(pBlocks),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty());
+  }
+
+  public ParseResult(
+      NavigableMap<String, FunctionEntryNode> pFunctions,
+      TreeMultimap<String, CFANode> pCfaNodes,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
+      List<Path> pFileNames,
+      SvLibCfaMetadata pSvLibCfaMetadata) {
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(pSvLibCfaMetadata));
   }
 
   public boolean isEmpty() {
@@ -104,7 +127,8 @@ public record ParseResult(
         acslMetadata,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        svLibCfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
@@ -122,7 +146,22 @@ public record ParseResult(
         acslMetadata,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
-        Optional.of(pCfaNodeToAstParametersInScope));
+        Optional.of(pCfaNodeToAstParametersInScope),
+        svLibCfaMetadata);
+  }
+
+  public ParseResult withFileNames(List<Path> pFileNames) {
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        pFileNames,
+        astStructure,
+        commentLocations,
+        blocks,
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope,
+        svLibCfaMetadata);
   }
 
   public ParseResult withAcslComments(

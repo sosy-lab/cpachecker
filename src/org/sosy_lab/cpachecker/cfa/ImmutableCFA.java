@@ -51,11 +51,28 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
 
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
+    checkArgument(
+        pCfaMetadata.getLanguage() == Language.SVLIB
+            ? pCfaMetadata.getSvLibCfaMetadata().isPresent()
+            : pCfaMetadata.getSvLibCfaMetadata().isEmpty());
 
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
             new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
     allEdges = ImmutableSet.copyOf(super.edges());
+  }
+
+  private ImmutableCFA(
+      ImmutableSortedMap<String, FunctionEntryNode> pFunctions,
+      ImmutableSortedSet<CFANode> pAllNodes,
+      ImmutableSet<CFAEdge> pAllEdges,
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata) {
+    functions = pFunctions;
+    allNodes = pAllNodes;
+    metadata = pCfaMetadata;
+    network = pCfaNetwork;
+    allEdges = pAllEdges;
   }
 
   @Override
@@ -75,6 +92,10 @@ public class ImmutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   protected CfaNetwork delegate() {
     return network;
+  }
+
+  public ImmutableCFA copyWithMetadata(CfaMetadata pMetadata) {
+    return new ImmutableCFA(functions, allNodes, allEdges, network, pMetadata);
   }
 
   @Override

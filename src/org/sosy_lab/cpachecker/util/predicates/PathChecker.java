@@ -34,6 +34,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -354,8 +355,14 @@ public class PathChecker {
           assumptionState = ((OverflowState) assumptionState).getParent();
         }
         for (AExpression expr : assumptionState.getAssumptions()) {
-          assert expr instanceof CExpression : "Expected a CExpression as assumption!";
-          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+          if (expr instanceof CExpression pCExpression) {
+            pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
+          } else if (expr instanceof SvLibRelationalTerm pTerm) {
+            pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else {
+            throw new CPATransferException(
+                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
+          }
         }
       }
     }
