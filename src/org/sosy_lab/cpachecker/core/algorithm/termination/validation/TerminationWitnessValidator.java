@@ -502,7 +502,6 @@ public class TerminationWitnessValidator implements Algorithm {
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
-   * @param pSupportingInvariants that help to strengthen the formula
    * @return true if the candidate invariant is a transition invariant, false otherwise
    * @throws InterruptedException If an interruption event happens
    * @throws CPATransferException If a satisfiability check fails
