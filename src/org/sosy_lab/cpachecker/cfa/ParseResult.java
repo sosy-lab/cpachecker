@@ -67,6 +67,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty());
   }
 
@@ -103,6 +104,7 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -157,7 +159,8 @@ public record ParseResult(
         globalDeclarations,
         pFileNames,
         astStructure,
-        commentLocations,
+        acslComments,
+        acslMetadata,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
@@ -178,7 +181,8 @@ public record ParseResult(
         acslMetadata,
         Optional.of(pBlocks),
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        Optional.empty());
   }
 
   public ParseResult withAcslMetadata(AcslMetadata pAcslMetadata) {
@@ -193,6 +197,7 @@ public record ParseResult(
         Optional.of(pAcslMetadata),
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        Optional.empty());
   }
 }
