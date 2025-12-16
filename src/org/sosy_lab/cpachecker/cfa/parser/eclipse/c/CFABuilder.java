@@ -520,7 +520,7 @@ class CFABuilder extends ASTVisitor {
 
         // An AcslComment should belong to exactly one CfaNode
         Verify.verify(nodesForComment.size() == 1);
-        comment.updateCfaNode(nodesForComment.get(0));
+        comment.updateCfaNode(nodesForComment.getFirst());
 
       } catch (Exception e) {
         notAStatementAnnotationBuilder.add(comment);
