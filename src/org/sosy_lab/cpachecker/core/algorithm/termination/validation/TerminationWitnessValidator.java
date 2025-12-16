@@ -236,7 +236,6 @@ public class TerminationWitnessValidator implements Algorithm {
           if (isCandidateInvariantInductiveTransitionInvariant(
               loop,
               loopsToTransitionInvariants.get(loop),
-              supportingInvariants,
               loopsToSupportingInvariants,
               mapPrevVarsToCurrVars,
               k)) {
@@ -511,7 +510,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private boolean isCandidateInvariantInductiveTransitionInvariant(
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
-      ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
       int k)
