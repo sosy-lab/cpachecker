@@ -421,6 +421,22 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.emptySSAMap(),
             pLoopsToSupportingInvariants);
 
+    // Strengthening the loop formula with the supporting invariants
+    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
+
+    // Strengthening the loop formula with the supporting invariants
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      strengtheningFormula =
+          bfmgr.and(
+              strengtheningFormula, fmgr.instantiate(supportingInvariant,
+                  TransitionInvariantUtils.setIndicesToDifferentValues(
+                      pCandidateInvariant,
+                      PrevStateIndices.INDEX_FIRST,
+                      CurrStateIndices.INDEX_MIDDLE,
+                      fmgr,
+                      scope,
+                      pMapPrevToCurrVars)));
+    }
     for (int i = 1; i < k; i++) {
       loopFormula =
           pfmgr.makeConjunction(
@@ -431,6 +447,13 @@ public class TerminationWitnessValidator implements Algorithm {
                       pLoop.getLoopHeads(),
                       loopFormula.getSsa(),
                       pLoopsToSupportingInvariants)));
+
+      // Strengthening the loop formula with the supporting invariants
+      for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+        strengtheningFormula =
+            bfmgr.and(
+                strengtheningFormula, fmgr.instantiate(supportingInvariant, loopFormula.getSsa()));
+      }
     }
     SSAMap fullSSAMap =
         SSAMap.merge(
@@ -455,22 +478,6 @@ public class TerminationWitnessValidator implements Algorithm {
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
-    // Strengthening the loop formula with the supporting invariants
-    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
-    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      strengtheningFormula =
-          bfmgr.and(
-              strengtheningFormula,
-              fmgr.instantiate(
-                  supportingInvariant,
-                  TransitionInvariantUtils.setIndicesToDifferentValues(
-                      supportingInvariant,
-                      PrevStateIndices.INDEX_FIRST,
-                      CurrStateIndices.INDEX_MIDDLE,
-                      fmgr,
-                      scope,
-                      pMapPrevToCurrVars)));
-    }
     booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
 
     // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
@@ -525,6 +532,20 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // The one that is used with the supporting invariants
     BooleanFormula strengtheningFormula = bfmgr.makeTrue();
+
+    // Strengthening the loop formula with the supporting invariants
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      strengtheningFormula =
+          bfmgr.and(
+              strengtheningFormula, fmgr.instantiate(supportingInvariant,
+                  TransitionInvariantUtils.setIndicesToDifferentValues(
+                      pCandidateInvariant,
+                      PrevStateIndices.INDEX_FIRST,
+                      CurrStateIndices.INDEX_MIDDLE,
+                      fmgr,
+                      scope,
+                      pMapPrevToCurrVars)));
+    }
     for (int i = 1; i < k; i++) {
       loopFormula =
           pfmgr.makeConjunction(
