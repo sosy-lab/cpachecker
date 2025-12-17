@@ -236,6 +236,7 @@ public class TerminationWitnessValidator implements Algorithm {
             loop,
             loopsToTransitionInvariants.get(loop),
             loopsToSupportingInvariants,
+            supportingInvariants,
             mapPrevVarsToCurrVars,
             k)) {
           break;
@@ -500,6 +501,7 @@ public class TerminationWitnessValidator implements Algorithm {
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
+   * @param pSupportingInvariants that help to strengthen the formula
    * @return true if the candidate invariant is a transition invariant, false otherwise
    * @throws InterruptedException If an interruption event happens
    * @throws CPATransferException If a satisfiability check fails
@@ -508,6 +510,7 @@ public class TerminationWitnessValidator implements Algorithm {
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
       int k)
       throws InterruptedException, CPATransferException {
@@ -520,6 +523,8 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.emptySSAMap(),
             pLoopsToSupportingInvariants);
 
+    // The one that is used with the supporting invariants
+    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
     for (int i = 1; i < k; i++) {
       loopFormula =
           pfmgr.makeConjunction(
@@ -530,8 +535,16 @@ public class TerminationWitnessValidator implements Algorithm {
                       pLoop.getLoopHeads(),
                       loopFormula.getSsa(),
                       pLoopsToSupportingInvariants)));
+
+      // Strengthening the loop formula with the supporting invariants
+      for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+        strengtheningFormula =
+            bfmgr.and(
+                strengtheningFormula, fmgr.instantiate(supportingInvariant, loopFormula.getSsa()));
+      }
+      strengtheningFormula = bfmgr.and(strengtheningFormula, strengtheningFormula);
     }
-    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
+    BooleanFormula booleanLoopFormula = bfmgr.and(loopFormula.getFormula(), strengtheningFormula);
 
     BooleanFormula firstStep =
         fmgr.instantiate(
