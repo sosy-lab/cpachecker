@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -243,6 +244,11 @@ public class InputRejection {
   public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
       throws UnsupportedCodeException {
 
+    // calls to pthread functions with start_routine pointers are allowed
+    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
+      return;
+    }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
       checkFunctionPointerParameter(parameterExpression, pFunctionCallExpression);
       if (parameterExpression instanceof CUnaryExpression unaryExpression) {

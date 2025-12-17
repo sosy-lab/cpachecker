@@ -112,6 +112,20 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectFunctionPointerAssignment() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/function-pointer-assignment.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.FUNCTION_POINTER_IN_ASSIGNMENT);
+  }
+
+  @Test
+  public void testRejectFunctionPointerParameter() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/function-pointer-parameter.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
+  }
+
+  @Test
   public void testRejectPointerWrite() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
 

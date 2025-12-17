@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -218,6 +219,15 @@ public class PthreadUtil {
         .equals(pFunctionType.name);
   }
 
+  public static boolean isCallToPthreadFunction(
+      CFunctionCallExpression pFunctionCallExpression, PthreadFunctionType pFunctionType) {
+
+    return pFunctionCallExpression
+        .getFunctionNameExpression()
+        .toASTString()
+        .equals(pFunctionType.name);
+  }
+
   public static boolean isCallToAnyPthreadFunction(CFunctionCall pFunctionCall) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (isCallToPthreadFunction(pFunctionCall, functionType)) {
@@ -233,6 +243,19 @@ public class PthreadUtil {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (functionType.isParameterPresent(pPthreadObjectType)) {
         if (isCallToPthreadFunction(pFunctionCall, functionType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean isCallToAnyPthreadFunctionWithObjectType(
+      CFunctionCallExpression pFunctionCallExpression, PthreadObjectType pPthreadObjectType) {
+
+    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
+      if (functionType.isParameterPresent(pPthreadObjectType)) {
+        if (isCallToPthreadFunction(pFunctionCallExpression, functionType)) {
           return true;
         }
       }
