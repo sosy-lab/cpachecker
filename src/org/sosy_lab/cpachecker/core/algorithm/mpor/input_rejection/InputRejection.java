@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -38,6 +40,7 @@ public class InputRejection {
   enum InputRejectionMessage {
     FUNCTION_POINTER_IN_ASSIGNMENT(
         "MPOR does not support function pointers in assignments: ", false),
+    FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
@@ -233,6 +236,21 @@ public class InputRejection {
           InputRejectionMessage.FUNCTION_POINTER_IN_ASSIGNMENT.message
               + pRightHandSide.toASTString(),
           null);
+    }
+  }
+
+  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    for (CExpression parameter : pFunctionCallExpression.getParameterExpressions()) {
+      if (parameter instanceof CIdExpression idExpression) {
+        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
+                  + pFunctionCallExpression.toASTString(),
+              null);
+        }
+      }
     }
   }
 }
