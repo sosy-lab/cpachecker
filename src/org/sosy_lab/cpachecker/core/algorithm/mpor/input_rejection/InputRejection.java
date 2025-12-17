@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -40,8 +41,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class InputRejection {
 
   enum InputRejectionMessage {
-    FUNCTION_POINTER_IN_ASSIGNMENT(
-        "MPOR does not support function pointers in assignments: ", false),
+    FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
     FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
@@ -230,14 +230,26 @@ public class InputRejection {
     }
   }
 
-  public static void checkFunctionPointerInAssignment(CSimpleDeclaration pRightHandSide)
+  public static void checkFunctionPointerAssignment(CSimpleDeclaration pRightHandSide)
       throws UnsupportedCodeException {
 
     if (pRightHandSide instanceof CFunctionDeclaration) {
       throw new UnsupportedCodeException(
-          InputRejectionMessage.FUNCTION_POINTER_IN_ASSIGNMENT.message
-              + pRightHandSide.toASTString(),
+          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
           null);
+    }
+  }
+
+  public static void checkFunctionPointerAssignment(CVariableDeclaration pVariableDeclaration)
+      throws UnsupportedCodeException {
+
+    if (pVariableDeclaration.getInitializer() != null) {
+      if (pVariableDeclaration.getInitializer()
+          instanceof CInitializerExpression initializerExpression) {
+        CExpression expression = initializerExpression.getExpression();
+        checkFunctionPointerExpression(
+            expression, InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+      }
     }
   }
 
@@ -250,23 +262,24 @@ public class InputRejection {
       return;
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      checkFunctionPointerParameter(parameterExpression, pFunctionCallExpression);
-      if (parameterExpression instanceof CUnaryExpression unaryExpression) {
-        checkFunctionPointerParameter(unaryExpression.getOperand(), pFunctionCallExpression);
-      }
+      checkFunctionPointerExpression(
+          parameterExpression, InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
     }
   }
 
-  private static void checkFunctionPointerParameter(
-      CExpression pParameterExpression, CFunctionCallExpression pFunctionCallExpression)
-      throws UnsupportedCodeException {
+  private static void checkFunctionPointerExpression(
+      CExpression pExpression, InputRejectionMessage pMessage) throws UnsupportedCodeException {
 
-    if (pParameterExpression instanceof CIdExpression idExpression) {
+    if (pExpression instanceof CIdExpression idExpression) {
       if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
-        throw new UnsupportedCodeException(
-            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
-                + pFunctionCallExpression.toASTString(),
-            null);
+        throw new UnsupportedCodeException(pMessage.message + pExpression.toASTString(), null);
+      }
+    }
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
+          throw new UnsupportedCodeException(pMessage.message + pExpression.toASTString(), null);
+        }
       }
     }
   }

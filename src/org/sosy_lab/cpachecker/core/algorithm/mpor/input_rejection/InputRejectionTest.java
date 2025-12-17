@@ -145,7 +145,11 @@ public class InputRejectionTest {
   public void testRejectFunctionPointerAssignment() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/function-pointer-assignment.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.FUNCTION_POINTER_IN_ASSIGNMENT);
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestDataTools.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test

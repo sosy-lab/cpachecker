@@ -195,6 +195,7 @@ public class MPORSubstitutionTrackerUtil {
       CVariableDeclaration pVariableDeclaration, Optional<MPORSubstitutionTracker> pTracker)
       throws UnsupportedCodeException {
 
+    InputRejection.checkFunctionPointerAssignment(pVariableDeclaration);
     if (pTracker.isEmpty()) {
       return;
     }

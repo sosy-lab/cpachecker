@@ -128,7 +128,7 @@ public class MPORSubstitutionTracker {
       CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide)
       throws UnsupportedCodeException {
 
-    InputRejection.checkFunctionPointerInAssignment(pRightHandSide);
+    InputRejection.checkFunctionPointerAssignment(pRightHandSide);
     pointerAssignments.put(pLeftHandSide, pRightHandSide);
   }
 
