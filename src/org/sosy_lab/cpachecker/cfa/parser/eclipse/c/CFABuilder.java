@@ -503,12 +503,12 @@ class CFABuilder extends ASTVisitor {
 
       FileLocation commentLocation = comment.getFileLocation();
 
-      try {
-        Optional<ASTElement> tightestStatement =
-            pAstCfaRelation.getTightestStatementForStarting(
-                commentLocation.getStartingLineNumber(),
-                OptionalInt.of(commentLocation.getStartColumnInLine()));
+      Optional<ASTElement> tightestStatement =
+          pAstCfaRelation.getElemForStarting(
+              commentLocation.getStartingLineNumber(),
+              OptionalInt.of(commentLocation.getStartColumnInLine()));
 
+      if (tightestStatement.isPresent()) {
         FluentIterable<CFANode> predecessors =
             FluentIterable.from(tightestStatement.orElseThrow().edges())
                 .transform(e -> e.getPredecessor());
@@ -521,8 +521,7 @@ class CFABuilder extends ASTVisitor {
         // An AcslComment should belong to exactly one CfaNode
         Verify.verify(nodesForComment.size() == 1);
         comment.updateCfaNode(nodesForComment.getFirst());
-
-      } catch (Exception e) {
+      } else {
         notAStatementAnnotationBuilder.add(comment);
       }
     }

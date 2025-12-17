@@ -313,7 +313,8 @@ public final class AstCfaRelation {
     startingLocationToTightestStatement = builder.buildOrThrow();
   }
 
-  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
+  private Optional<Entry<StartingLocation, ASTElement>> getStartingFor(
+      int pLine, OptionalInt pColumn) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
@@ -322,9 +323,8 @@ public final class AstCfaRelation {
       StartingLocation key = new StartingLocation(pColumn.orElseThrow(), pLine);
       Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
           startingLocationToTightestStatement.floorEntry(key);
-      if (startingLocationASTElementEntry != null
-          && startingLocationASTElementEntry.getKey().line == key.line) {
-        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      if (startingLocationASTElementEntry != null) {
+        return Optional.of(startingLocationASTElementEntry);
       }
       return Optional.empty();
     } else {
@@ -332,12 +332,27 @@ public final class AstCfaRelation {
       // We want the first statement at the given line
       Entry<StartingLocation, ASTElement> startingLocationASTElementEntry =
           startingLocationToTightestStatement.ceilingEntry(key);
-      if (startingLocationASTElementEntry != null
-          && startingLocationASTElementEntry.getKey().line == key.line) {
-        return Optional.ofNullable(startingLocationASTElementEntry.getValue());
+      if (startingLocationASTElementEntry != null) {
+        return Optional.of(startingLocationASTElementEntry);
       }
       return Optional.empty();
     }
+  }
+
+  public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
+    Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
+    if (startingFor.isEmpty() || startingFor.orElseThrow().getKey().line != pLine) {
+      return Optional.empty();
+    }
+    return Optional.of(startingFor.orElseThrow().getValue());
+  }
+
+  public Optional<ASTElement> getElemForStarting(int pLine, OptionalInt pColumn) {
+    Optional<Entry<StartingLocation, ASTElement>> startingFor = getStartingFor(pLine, pColumn);
+    if (startingFor.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(startingFor.orElseThrow().getValue());
   }
 
   /**
