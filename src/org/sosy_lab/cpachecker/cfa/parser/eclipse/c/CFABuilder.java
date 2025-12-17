@@ -532,13 +532,16 @@ class CFABuilder extends ASTVisitor {
     A function contract annotation comes immediately before the function declaration
      */
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
+    ImmutableSet<FunctionEntryNode> sortedFunctionEntryNodes =
+        FluentIterable.from(pResult.functions().sequencedValues())
+            .toSortedSet((f, f1) -> f.getFileLocation().getNodeOffset());
+
     for (AcslComment comment : notStatementAnnotations) {
-      FluentIterable<FunctionEntryNode> functionEntryNodes =
-          FluentIterable.from(pResult.functions().sequencedValues());
-      for (FunctionEntryNode f : functionEntryNodes) {
-        if (f.getFileLocation().getStartingLineNumber()
-            == comment.getFileLocation().getEndingLineNumber() + 1) {
+      for (FunctionEntryNode f : sortedFunctionEntryNodes) {
+        if (comment.getFileLocation().getNodeOffset() + comment.getFileLocation().getNodeLength()
+            < f.getFileLocation().getNodeOffset()) {
           comment.updateCfaNode(f);
+          break;
         }
       }
       if (!comment.hasCfaNode()) {
