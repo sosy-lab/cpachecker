@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -242,14 +243,24 @@ public class InputRejection {
   public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
       throws UnsupportedCodeException {
 
-    for (CExpression parameter : pFunctionCallExpression.getParameterExpressions()) {
-      if (parameter instanceof CIdExpression idExpression) {
-        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
-          throw new UnsupportedCodeException(
-              InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
-                  + pFunctionCallExpression.toASTString(),
-              null);
-        }
+    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
+      checkFunctionPointerParameter(parameterExpression, pFunctionCallExpression);
+      if (parameterExpression instanceof CUnaryExpression unaryExpression) {
+        checkFunctionPointerParameter(unaryExpression.getOperand(), pFunctionCallExpression);
+      }
+    }
+  }
+
+  private static void checkFunctionPointerParameter(
+      CExpression pParameterExpression, CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    if (pParameterExpression instanceof CIdExpression idExpression) {
+      if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
+        throw new UnsupportedCodeException(
+            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
+                + pFunctionCallExpression.toASTString(),
+            null);
       }
     }
   }
