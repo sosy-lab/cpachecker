@@ -1174,7 +1174,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(deref).hasSize(1);
       currentState = deref.getFirst().getSMGState();
       assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
@@ -1305,7 +1305,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
@@ -1313,8 +1313,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1365,7 +1365,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(deref).hasSize(1);
       currentState = deref.getFirst().getSMGState();
       assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       List<ValueAndSMGState> readNexts;
       if (i == listLength - 1) {
@@ -1486,7 +1486,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     List<ValueAndSMGState> readNextsInLast =
         evaluator.readValueWithPointerDereference(
@@ -1494,8 +1494,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readNextsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readNextsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readNextsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readNextsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readNextsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readNextsInLast.get(1).getState();
@@ -1550,7 +1550,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       assertThat(currentDeref).hasSize(1);
       currentState = currentDeref.getFirst().getSMGState();
       assertThat(currentDeref.getFirst().hasSMGObjectAndOffset()).isTrue();
-      assertThat(currentDeref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+      assertThat(((NumericValue) currentDeref.getFirst().getOffsetForObject()).bigIntegerValue())
           .isEqualTo(BigInteger.ZERO);
       // currentDeref is based on prev pointers, check that its equal to a deref of the external
       // pointer at that location (except the first case)
@@ -1571,10 +1571,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         currentState = currentDerefFromExternal.getFirst().getSMGState();
         assertThat(currentDerefFromExternal.getFirst().hasSMGObjectAndOffset()).isTrue();
         assertThat(
-                currentDerefFromExternal
-                    .getFirst()
-                    .getOffsetForObject()
-                    .asNumericValue()
+                ((NumericValue) currentDerefFromExternal.getFirst().getOffsetForObject())
                     .bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
         assertThat(currentDerefFromExternal.getFirst().getSMGObject())
@@ -1703,7 +1700,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     assertThat(deref).hasSize(1);
     currentState = deref.getFirst().getSMGState();
     assertThat(deref.getFirst().hasSMGObjectAndOffset()).isTrue();
-    assertThat(deref.getFirst().getOffsetForObject().asNumericValue().bigIntegerValue())
+    assertThat(((NumericValue) deref.getFirst().getOffsetForObject()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Read prev of current list segment (reads into 0+, causes materialization)
     List<ValueAndSMGState> readPrevsInLast =
@@ -1716,8 +1713,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     // Should only be 1 list element
     assertThat(readPrevsInLast).hasSize(2);
     // When materializing, the first element is the minimal element, confirm that the value is 0
-    assertThat(readPrevsInLast.getFirst().getValue().isNumericValue()).isTrue();
-    assertThat(readPrevsInLast.getFirst().getValue().asNumericValue().bigIntegerValue())
+    assertThat(readPrevsInLast.getFirst().getValue() instanceof NumericValue).isTrue();
+    assertThat(((NumericValue) readPrevsInLast.getFirst().getValue()).bigIntegerValue())
         .isEqualTo(BigInteger.ZERO);
     // Confirm that the other is materialized correctly
     currentState = readPrevsInLast.get(1).getState();
