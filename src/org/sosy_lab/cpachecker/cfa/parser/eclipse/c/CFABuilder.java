@@ -534,7 +534,7 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
     ImmutableSet<FunctionEntryNode> sortedFunctionEntryNodes =
         FluentIterable.from(pResult.functions().sequencedValues())
-            .toSortedSet((f, f1) -> f.getFileLocation().getNodeOffset());
+            .toSortedSet(Comparator.comparing(FunctionEntryNode::getFileLocation));
 
     for (AcslComment comment : notStatementAnnotations) {
       for (FunctionEntryNode f : sortedFunctionEntryNodes) {
