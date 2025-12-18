@@ -19,16 +19,16 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
 
 public final class SvLibSymbolApplicationRelationalTerm extends SvLibGeneralSymbolApplicationTerm
-    implements SvLibFinalRelationalTerm {
+    implements SvLibRelationalTerm {
   @Serial private static final long serialVersionUID = 492023370394214710L;
 
   public SvLibSymbolApplicationRelationalTerm(
-      SvLibIdTerm pSymbol, List<SvLibFinalRelationalTerm> pTerms, FileLocation pFileLocation) {
+      SvLibIdTerm pSymbol, List<SvLibRelationalTerm> pTerms, FileLocation pFileLocation) {
     super(pSymbol, pTerms, pFileLocation);
   }
 
   @Override
-  public ImmutableList<SvLibFinalRelationalTerm> getTerms() {
+  public ImmutableList<SvLibRelationalTerm> getTerms() {
     return ImmutableList.copyOf(super.getTerms());
   }
 

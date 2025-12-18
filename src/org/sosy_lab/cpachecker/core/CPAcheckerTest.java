@@ -132,9 +132,9 @@ public class CPAcheckerTest {
         .isPresent();
 
     assertWithMessage(
-            "For the safe SV-LIB program '"
-                + pProgramPath
-                + "', the witness path should be present after exporting the witness")
+            "For the safe SV-LIB program '%s', the witness path should be present after exporting"
+                + " the witness",
+            pProgramPath)
         .that(Files.exists(pWitnessOutputPath))
         .isTrue();
 

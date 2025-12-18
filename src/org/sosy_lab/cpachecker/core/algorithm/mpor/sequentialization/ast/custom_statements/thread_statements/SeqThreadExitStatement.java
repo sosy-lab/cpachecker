@@ -75,7 +75,8 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
   public SeqThreadExitStatement withTargetPc(int pTargetPc) {
     checkArgument(
         pTargetPc == ProgramCounterVariables.EXIT_PC,
-        this.getClass().getSimpleName() + " should only be cloned with exit pc %s",
+        "%s should only be cloned with exit pc %s",
+        this.getClass().getSimpleName(),
         ProgramCounterVariables.EXIT_PC);
     return new SeqThreadExitStatement(
         reductionOrder,
@@ -115,11 +116,6 @@ public final class SeqThreadExitStatement extends CSeqThreadStatement {
 
   @Override
   public boolean synchronizesThreads() {
-    return false;
-  }
-
-  @Override
-  public boolean onlyWritesPc() {
     return false;
   }
 }

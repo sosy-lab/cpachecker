@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqAtomicEndStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqBlankStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqGhostOnlyStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -164,22 +164,20 @@ public class SeqPruner {
     return Optional.empty();
   }
 
-  private static int extractTargetPc(SeqThreadStatementClause pNonBlank)
+  private static int extractTargetPc(SeqThreadStatementClause pClause)
       throws UnrecognizedCodeException {
 
-    CSeqThreadStatement nonBlankSingleStatement = pNonBlank.getFirstBlock().getFirstStatement();
-    if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
-      // the blank could have injected statements -> treat it as non-blank
-      if (blankStatement.onlyWritesPc()) {
-        Verify.verify(validPrunableClause(pNonBlank));
-        int nonBlankTargetPc = nonBlankSingleStatement.getTargetPc().orElseThrow();
-        // if the found non-blank is still blank, it must be an exit location
-        Verify.verify(nonBlankTargetPc == ProgramCounterVariables.EXIT_PC);
-        return nonBlankTargetPc;
-      }
+    checkArgument(pClause.getBlocks().size() == 1, "pClause can only have a single block");
+    CSeqThreadStatement firstStatement = pClause.getFirstBlock().getFirstStatement();
+    // the "non-blank" clause can still be blank, but only if it is an exit location
+    if (firstStatement.isOnlyPcWrite()) {
+      Verify.verify(validPrunableClause(pClause));
+      int nonBlankTargetPc = firstStatement.getTargetPc().orElseThrow();
+      Verify.verify(nonBlankTargetPc == ProgramCounterVariables.EXIT_PC);
+      return nonBlankTargetPc;
     }
-    // otherwise return label pc of the found non-blank
-    return pNonBlank.labelNumber;
+    // if the clause is not blank, return label pc of the found non-blank
+    return pClause.labelNumber;
   }
 
   private static SeqThreadStatementClause getAnyThreadExitClause(
@@ -233,8 +231,8 @@ public class SeqPruner {
   }
 
   /**
-   * Returns {@code true} if {@code pClause} has exactly 1 {@link SeqBlankStatement} and a target
-   * {@code pc} and throws a {@link IllegalArgumentException} otherwise.
+   * Returns {@code true} if {@code pClause} has exactly 1 {@link SeqGhostOnlyStatement} and a
+   * target {@code pc} and throws a {@link IllegalArgumentException} otherwise.
    */
   private static boolean validPrunableClause(SeqThreadStatementClause pClause)
       throws UnrecognizedCodeException {
@@ -245,9 +243,7 @@ public class SeqPruner {
         pClause.toASTString());
     CSeqThreadStatement statement = pClause.getFirstBlock().getFirstStatement();
     checkArgument(
-        statement.onlyWritesPc(),
-        "prunable statement must only write pc: %s",
-        statement.toASTString());
+        statement.isOnlyPcWrite(), "prunable statement must be blank: %s", statement.toASTString());
     checkArgument(
         statement.getTargetPc().isPresent(), "prunable statement must contain a target pc");
     return true;

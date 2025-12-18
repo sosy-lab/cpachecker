@@ -41,9 +41,9 @@ public final class SvLibDeclareFunCommand implements SvLibCommand, SmtLibCommand
         + Joiner.on(" ")
             .join(
                 FluentIterable.from(functionDeclaration.getType().getParameters())
-                    .transform(SvLibType::toString))
+                    .transform(SvLibType::toASTString))
         + ") "
-        + functionDeclaration.getType().getReturnType()
+        + functionDeclaration.getType().getReturnType().toASTString()
         + ")";
   }
 

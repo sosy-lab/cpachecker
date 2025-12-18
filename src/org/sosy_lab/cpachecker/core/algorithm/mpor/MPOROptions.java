@@ -9,12 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
@@ -23,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/** Contains all {@link Option} fields used to adjust {@link MPORAlgorithm}. */
+/** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
 @Options(prefix = "analysis.algorithm.MPOR")
 public class MPOROptions {
 
@@ -131,24 +128,6 @@ public class MPOROptions {
 
   @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
   private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
-
-  @Option(
-      secure = true,
-      description =
-          "create additional output file with metadata such as input file(s) and algorithm"
-              + " options?")
-  private boolean outputMetadata = true;
-
-  @Option(
-      secure = true,
-      description =
-          "the file name for the sequentialization and metadata. uses the first input file name as"
-              + " the default prefix.")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate outputPath = PathTemplate.ofFormatString("%s-sequentialized");
-
-  @Option(secure = true, description = "export the sequentialized program in a .i file?")
-  private boolean outputProgram = true;
 
   @Option(
       secure = true,
@@ -468,18 +447,6 @@ public class MPOROptions {
 
   public NondeterminismSource nondeterminismSource() {
     return nondeterminismSource;
-  }
-
-  public boolean outputMetadata() {
-    return outputMetadata;
-  }
-
-  public PathTemplate outputPath() {
-    return outputPath;
-  }
-
-  public boolean outputProgram() {
-    return outputProgram;
   }
 
   public boolean pruneBitVectorEvaluations() {

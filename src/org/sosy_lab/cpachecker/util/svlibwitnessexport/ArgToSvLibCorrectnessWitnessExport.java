@@ -25,10 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,44 +58,38 @@ public class ArgToSvLibCorrectnessWitnessExport {
     logger = pLogger;
   }
 
-  protected SvLibFinalRelationalTerm getOverapproximationOfStates(
+  protected SvLibTerm getOverapproximationOfStates(
       Collection<ARGState> pArgStates, SvLibScope pScope) {
     FluentIterable<SvLibTermReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
             .filter(SvLibTermReportingState.class);
-    ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsPerClass =
-        new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<SvLibTerm> expressionsPerClass = new ImmutableSet.Builder<>();
 
     for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      ImmutableSet.Builder<SvLibFinalRelationalTerm> expressionsMatchingClass =
-          new ImmutableSet.Builder<>();
+      ImmutableSet.Builder<SvLibTerm> expressionsMatchingClass = new ImmutableSet.Builder<>();
       for (SvLibTermReportingState state : reportingStates) {
         if (stateClass.isAssignableFrom(state.getClass())) {
           expressionsMatchingClass.add(state.asSvLibTerm(pScope));
         }
       }
-      SvLibFinalRelationalTerm disjunctionOfClass =
-          SvLibFinalRelationalTerm.booleanDisjunction(expressionsMatchingClass.build().asList());
+      SvLibTerm disjunctionOfClass =
+          SvLibTerm.booleanDisjunction(expressionsMatchingClass.build().asList());
 
       expressionsPerClass.add(disjunctionOfClass);
     }
 
-    return SvLibFinalRelationalTerm.booleanConjunction(expressionsPerClass.build().asList());
+    return SvLibTerm.booleanConjunction(expressionsPerClass.build().asList());
   }
 
   @NonNull
   public SvLibAnnotateTagCommand createRequires(
       Collection<ARGState> argStates, SvLibTagReference pTag) {
-    SvLibFinalRelationalTerm precondition =
+    SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
-    if (!(precondition instanceof SvLibTerm term)) {
-      throw new AssertionError(
-          "Precondition is not a SV-LIB term, it contains final commands: " + precondition);
-    }
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
-        ImmutableList.of(new SvLibRequiresTag(term, FileLocation.DUMMY)),
+        ImmutableList.of(new SvLibRequiresTag(precondition, FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }
 
@@ -103,38 +97,38 @@ public class ArgToSvLibCorrectnessWitnessExport {
   public SvLibAnnotateTagCommand createEnsures(
       Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag) {
     // Build state for precondition
-    ImmutableSet.Builder<SvLibFinalRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<SvLibRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
-      SvLibFinalRelationalTerm precondition =
+      SvLibRelationalTerm precondition =
           getOverapproximationOfStates(
               ImmutableList.of(pair.entry()), svLibMetadata.tagReferenceToScope().get(pTag));
-      SvLibFinalRelationalTerm postcondition =
+      SvLibTerm postcondition =
           getOverapproximationOfStates(
               ImmutableList.of(pair.exit()), svLibMetadata.tagReferenceToScope().get(pTag));
 
       // Replace all variables in the postcondition with their final(...) counterparts
-      SvLibIdTermReplacer finalReplacer =
+      SvLibIdTermReplacer oldReplacer =
           new SvLibIdTermReplacer() {
 
             @Override
-            public SvLibFinalRelationalTerm replace(SvLibIdTerm pIdTerm) {
+            public SvLibRelationalTerm replace(SvLibIdTerm pIdTerm) {
               if (pIdTerm.getDeclaration() instanceof SvLibVariableDeclaration
                   || pIdTerm.getDeclaration() instanceof SvLibParameterDeclaration) {
-                return new SvLibFinalTerm(FileLocation.DUMMY, pIdTerm);
+                return new SvLibAtTerm(FileLocation.DUMMY, pTag, pIdTerm);
               }
               return pIdTerm;
             }
           };
-      postcondition = postcondition.accept(finalReplacer);
+      precondition = precondition.accept(oldReplacer);
 
-      ensuresTerms.add(SvLibFinalRelationalTerm.implication(precondition, postcondition));
+      ensuresTerms.add(SvLibRelationalTerm.implication(precondition, postcondition));
     }
 
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
         ImmutableList.of(
             new SvLibEnsuresTag(
-                SvLibFinalRelationalTerm.booleanConjunction(ensuresTerms.build().asList()),
+                SvLibRelationalTerm.booleanConjunction(ensuresTerms.build().asList()),
                 FileLocation.DUMMY)),
         FileLocation.DUMMY);
   }

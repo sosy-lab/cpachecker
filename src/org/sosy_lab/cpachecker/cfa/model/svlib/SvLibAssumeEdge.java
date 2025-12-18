@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.svlib;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -20,7 +20,7 @@ public final class SvLibAssumeEdge extends AssumeEdge implements SvLibCfaEdge {
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      SvLibFinalRelationalTerm pExpression,
+      SvLibRelationalTerm pExpression,
       boolean pTruthAssumption,
       boolean pSwapped,
       boolean pArtificialIntermediate) {
@@ -36,7 +36,7 @@ public final class SvLibAssumeEdge extends AssumeEdge implements SvLibCfaEdge {
   }
 
   @Override
-  public SvLibFinalRelationalTerm getExpression() {
-    return (SvLibFinalRelationalTerm) super.getExpression();
+  public SvLibRelationalTerm getExpression() {
+    return (SvLibRelationalTerm) super.getExpression();
   }
 }

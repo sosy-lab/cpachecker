@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -240,12 +242,38 @@ public class CParserUtils {
     ToCExpressionVisitor toCExpressionVisitor =
         new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
 
-    try {
-      result.add(new CExpressionStatement(FileLocation.DUMMY, tree.accept(toCExpressionVisitor)));
-    } catch (UnrecognizedCodeException e) {
-      fallBack = true;
+    if (!tree.equals(ExpressionTrees.getTrue())) {
+      if (tree.equals(ExpressionTrees.getFalse())) {
+        return ImmutableSet.of(
+            new CExpressionStatement(
+                FileLocation.DUMMY,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
+      }
+      if (tree instanceof LeafExpression<AExpression> leaf) {
+        try {
+          result.add(
+              new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+        } catch (UnrecognizedCodeException e) {
+          fallBack = true;
+        }
+      } else if (ExpressionTrees.isAnd(tree)) {
+        for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
+          if (child instanceof LeafExpression<AExpression> leaf) {
+            try {
+              result.add(
+                  new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+            } catch (UnrecognizedCodeException e) {
+              fallBack = true;
+            }
+          } else {
+            fallBack = true;
+          }
+        }
+      } else {
+        fallBack = true;
+      }
     }
-
     if (fallBack) {
       String code = tryFixACSL(tryFixArrayInitializers(pCode), pResultFunction, pScope);
       return CParserUtils.parseListOfStatements(code, pCParser, pScope);

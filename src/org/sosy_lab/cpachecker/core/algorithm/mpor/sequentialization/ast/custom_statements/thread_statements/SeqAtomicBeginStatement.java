@@ -100,10 +100,4 @@ public final class SeqAtomicBeginStatement extends CSeqThreadStatement {
     // atomic sections do not synchronize threads per se. when encountered, no check is required
     return false;
   }
-
-  @Override
-  public boolean onlyWritesPc() {
-    // this statement does only write a pc, but it is required to merge atomic blocks
-    return false;
-  }
 }

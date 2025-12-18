@@ -34,7 +34,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     permits SeqAssumeStatement,
         SeqAtomicBeginStatement,
         SeqAtomicEndStatement,
-        SeqBlankStatement,
+        SeqGhostOnlyStatement,
         SeqCondSignalStatement,
         SeqCondWaitStatement,
         SeqConstCpaCheckerTmpStatement,
@@ -122,6 +122,16 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
   }
 
   /**
+   * Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;}, and no
+   * additional {@link SeqInjectedStatement}s.
+   */
+  public boolean isOnlyPcWrite() {
+    // the only case where a statement writes only 'pc' is when it is a blank statement without
+    // any injected statement
+    return this instanceof SeqGhostOnlyStatement && injectedStatements.isEmpty();
+  }
+
+  /**
    * Returns either the target {@code pc} or the number of the target {@link
    * SeqBlockLabelStatement}, whichever is present.
    */
@@ -186,7 +196,4 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    * forcing us to e.g. not link the statements, otherwise a thread may terminate pre-emptively.
    */
   public abstract boolean synchronizesThreads();
-
-  /** Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;} */
-  public abstract boolean onlyWritesPc();
 }

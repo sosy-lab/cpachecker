@@ -17,8 +17,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibFinalRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,7 +62,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             .get(cfaEdge.getPredecessor());
 
     // First construct one successor per property we need to proof
-    ImmutableList.Builder<SvLibFinalRelationalTerm> assumptionsBuilder =
+    ImmutableList.Builder<SvLibRelationalTerm> assumptionsBuilder =
         ImmutableList.builderWithExpectedSize(propertiesToProof.size());
     for (SvLibTagProperty property : propertiesToProof) {
       SvLibSafetySpecState successorState =
@@ -71,7 +71,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
               assumptionsBuilder.add(pSvLibCheckTrueTag.getTerm());
               yield new SvLibSafetySpecState(
                   ImmutableSet.of(
-                      SvLibFinalRelationalTerm.booleanNegation(pSvLibCheckTrueTag.getTerm())),
+                      SvLibRelationalTerm.booleanNegation(pSvLibCheckTrueTag.getTerm())),
                   true);
             }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
@@ -91,8 +91,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     // be proven correct
     outStates.add(
         new SvLibSafetySpecState(
-            ImmutableSet.of(
-                SvLibFinalRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
+            ImmutableSet.of(SvLibRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
             state.hasPropertyViolation()));
 
     return outStates.build();

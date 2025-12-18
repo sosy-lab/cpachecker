@@ -1,0 +1,38 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This is a base container image for running the latest development version of CPAchecker
+# (without actually containing CPAchecker).
+# It is built automatically using GitLab CI and pushed to
+# registry.gitlab.com/sosy-lab/software/cpachecker:dev-base.
+#
+# Commands for building the image manually:
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:dev-base - < build/Dockerfile.dev-base
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker:dev-base
+
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  gcc \
+  libgmp10 \
+  # Font libraries are necessary for SVG export.
+  libfontconfig1 libharfbuzz0b \
+  libgomp1 \
+  locales \
+  openjdk-21-jre-headless \
+  python3 \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set locale to UTF-8 to have UTF-8 encoding in JVM
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
+RUN mkdir /workdir
+WORKDIR /workdir

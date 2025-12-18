@@ -458,21 +458,26 @@ public class CFACreator {
             CParser.Factory.getParser(
                 pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
 
-        outerParser =
-            new CParserWithLocationMapper(
-                pConfig,
-                pLogger,
-                outerParser,
-                readLineDirectives || (usePreprocessor != PreprocessorUsage.FALSE) || useClang);
+        if (usePreprocessor == PreprocessorUsage.TRUE) {
+          // always preprocess, always read line directives
+          outerParser =
+              new CParserWithPreprocessor(
+                  new CParserWithLocationMapper(pConfig, pLogger, outerParser, true),
+                  new CPreprocessor(pConfig, pLogger, machineModel));
 
-        if (usePreprocessor != PreprocessorUsage.FALSE) {
-          CPreprocessor preprocessor = new CPreprocessor(pConfig, pLogger, machineModel);
-          CParserWithPreprocessor parserWithPreprocessor =
-              new CParserWithPreprocessor(outerParser, preprocessor);
+        } else {
+          // on first try, do not preprocess, read line directives only if explicitly requested
+          outerParser =
+              new CParserWithLocationMapper(
+                  pConfig, pLogger, outerParser, readLineDirectives || useClang);
+
           if (usePreprocessor == PreprocessorUsage.AUTO) {
-            backupParserForPreprocessing = Optional.of(parserWithPreprocessor);
-          } else {
-            outerParser = parserWithPreprocessor;
+            // on second try, always preprocess, always read line directives
+            backupParserForPreprocessing =
+                Optional.of(
+                    new CParserWithPreprocessor(
+                        new CParserWithLocationMapper(pConfig, pLogger, outerParser, true),
+                        new CPreprocessor(pConfig, pLogger, machineModel)));
           }
         }
 
