@@ -329,8 +329,9 @@ public class CPAchecker {
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
       }
       return run0(cfa, specification, stats);
-    } catch (InterruptedException | InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
+    } catch (InterruptedException | InvalidConfigurationException e) {
+      logErrorMessage(e, logger);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }

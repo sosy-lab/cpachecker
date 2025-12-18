@@ -20,10 +20,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,8 +42,7 @@ public class DistributedSummarySynthesisTest {
 
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
-  private static final String CONFIGURATION_FILE_GENERATE_CFA =
-      "config/generateCFA.properties";
+  private static final String CONFIGURATION_FILE_GENERATE_CFA = "config/generateCFA.properties";
   private static final Language language = Language.C;
   private static final String PROGRAM = "doc/examples/example.c";
   private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
@@ -122,7 +117,8 @@ public class DistributedSummarySynthesisTest {
     result = CPATestRunner.run(config, PROGRAM);
     CFA shiftedCFA = result.getCheckerResult().getCfa();
 
-    BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA = DssFactory.createCfaNodeIdMap(originalCFA);
+    BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA =
+        DssFactory.createCfaNodeIdMap(originalCFA);
     BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA = DssFactory.createCfaNodeIdMap(shiftedCFA);
 
     assertThat(originalCFA.nodes()).isNotEqualTo(shiftedCFA.nodes());
