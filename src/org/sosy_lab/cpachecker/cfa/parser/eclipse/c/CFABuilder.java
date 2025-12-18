@@ -543,9 +543,10 @@ class CFABuilder extends ASTVisitor {
               pResult.acslComments().orElseThrow())
           && !comment.hasCfaNode()) {
         comment.updateCfaNode(nextNode.orElseThrow());
-        break;
+        continue;
+      } else {
+        notAFunctionContractBuilder.add(comment);
       }
-      notAFunctionContractBuilder.add(comment);
     }
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
     Verify.verify(notFunctionContracts.isEmpty());
