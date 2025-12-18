@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NotEqualsExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -38,7 +38,8 @@ public class ConstraintsMergeOperatorTest {
 
   private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicExpression idExp1 =
-      ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defType);
+      ConstantSymbolicExpression.of(
+          SymbolicValueFactory.getInstance().newIdentifier(memLoc1), defType);
   private final SymbolicExpression numExp1 =
       ConstantSymbolicExpression.of(new NumericValue(1), defType);
 
@@ -67,7 +68,8 @@ public class ConstraintsMergeOperatorTest {
 
     // this results in a new symbolic identifier at every method call
     SymbolicExpression idExp2 =
-        ConstantSymbolicExpression.of(SymbolicIdentifier.of(memLoc1), defType);
+        ConstantSymbolicExpression.of(
+            SymbolicValueFactory.getInstance().newIdentifier(memLoc1), defType);
 
     Constraint currConstr =
         (Constraint) GreaterThanExpression.of(idExp2, numExp1, defType, defType);

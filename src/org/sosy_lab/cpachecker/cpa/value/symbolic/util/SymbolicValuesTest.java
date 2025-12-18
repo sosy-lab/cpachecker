@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -30,8 +31,8 @@ public class SymbolicValuesTest {
 
   private final Type defType = CNumericTypes.INT;
 
-  private final SymbolicIdentifier id1 = SymbolicIdentifier.of(memLoc1);
-  private final SymbolicIdentifier id2 = SymbolicIdentifier.of(memLoc2);
+  private final SymbolicIdentifier id1 = SymbolicValueFactory.getInstance().newIdentifier(memLoc1);
+  private final SymbolicIdentifier id2 = SymbolicValueFactory.getInstance().newIdentifier(memLoc2);
 
   private final SymbolicExpression idExp1 = ConstantSymbolicExpression.of(id1, defType);
   private final SymbolicExpression idExp2 = ConstantSymbolicExpression.of(id2, defType);

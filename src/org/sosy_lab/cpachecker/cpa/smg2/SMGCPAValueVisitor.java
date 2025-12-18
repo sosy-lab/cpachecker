@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -443,8 +444,9 @@ public class SMGCPAValueVisitor
 
         return ImmutableList.of(
             ValueAndSMGState.of(
-                SymbolicIdentifier.of(
-                    memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
+                SymbolicValueFactory.getInstance()
+                    .newIdentifier(
+                        memloc.withAddedOffset(additionalOffset.asNumericValue().longValue())),
                 newState));
 
       } else if (returnType instanceof CPointerType) {
@@ -967,7 +969,8 @@ public class SMGCPAValueVisitor
         // I know, i.e. when assigning a complete struct to a new variable.
         finalStatesBuilder.add(
             ValueAndSMGState.of(
-                SymbolicIdentifier.of(MemoryLocation.forIdentifier(variableName).withOffset(0)),
+                SymbolicValueFactory.getInstance()
+                    .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
                 currentState));
 
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {

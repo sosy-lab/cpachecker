@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -2736,7 +2736,7 @@ public class SMGCPABuiltins {
           || nequalityCheck.proveInequality(hve1SMGValue, hve2SMGValue)) {
         // Not equal.
         // Return a new symbolic value that is not 0.
-        Value notZeroValue = SymbolicIdentifier.of(null);
+        Value notZeroValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         final ConstraintFactory constraintFactory =
             ConstraintFactory.getInstance(
                 pCurrentState, machineModel, logger, options, evaluator, pCFAEdge);

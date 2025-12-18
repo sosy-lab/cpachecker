@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -175,7 +176,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   private void assignSymbolicIdentifier(
       ValueAnalysisState pState, MemoryLocation pVarLocation, Type pVarType) {
 
-    SymbolicIdentifier newIdentifier = SymbolicIdentifier.of(pVarLocation);
+    SymbolicIdentifier newIdentifier =
+        SymbolicValueFactory.getInstance().newIdentifier(pVarLocation);
     SymbolicValue newIdentifierWithType = ConstantSymbolicExpression.of(newIdentifier, pVarType);
 
     pState.assignConstant(pVarLocation, newIdentifierWithType, pVarType);
