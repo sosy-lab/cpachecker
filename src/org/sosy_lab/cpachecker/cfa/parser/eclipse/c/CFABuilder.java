@@ -543,7 +543,6 @@ class CFABuilder extends ASTVisitor {
               pResult.acslComments().orElseThrow())
           && !comment.hasCfaNode()) {
         comment.updateCfaNode(nextNode.orElseThrow());
-        continue;
       } else {
         notAFunctionContractBuilder.add(comment);
       }
