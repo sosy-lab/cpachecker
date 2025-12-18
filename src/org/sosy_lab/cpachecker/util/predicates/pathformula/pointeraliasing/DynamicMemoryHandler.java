@@ -170,18 +170,16 @@ class DynamicMemoryHandler {
       Long value0 = tryEvaluateExpression(param0);
       Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
-        org.sosy_lab.cpachecker.cpa.value.type.Value resultValue =
-            AbstractExpressionValueVisitor.calculateBinaryOperation(
-                new NumericValue(value0),
-                new NumericValue(value1),
-                multiplication,
-                conv.machineModel,
-                conv.logger);
-
-        if (!(resultValue instanceof NumericValue numericResult)) {
-          throw new AssertionError("Expected NumericValue, but found " + resultValue);
-        }
-        long result = numericResult.asLong(multiplication.getExpressionType()).orElseThrow();
+        long result =
+            ((NumericValue)
+                    AbstractExpressionValueVisitor.calculateBinaryOperation(
+                        new NumericValue(value0),
+                        new NumericValue(value1),
+                        multiplication,
+                        conv.machineModel,
+                        conv.logger))
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
