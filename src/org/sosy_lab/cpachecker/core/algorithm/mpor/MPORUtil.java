@@ -123,8 +123,8 @@ public final class MPORUtil {
 
   /**
    * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
-   * CParameterDeclaration} if it is out of bounds. This is useful vor variadic functions, where the
-   * last declaration is always the variadic one.
+   * CParameterDeclaration} if the index is out of bounds. Then {@code pFunctionDeclaration} must be
+   * a variadic function, where the last {@link CParameterDeclaration} is always the variadic one.
    */
   public static CParameterDeclaration getParameterDeclarationByIndex(
       int pIndex, CFunctionDeclaration pFunctionDeclaration) {
