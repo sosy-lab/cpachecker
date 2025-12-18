@@ -25,6 +25,4 @@ public record FunctionParameterAssignment(
   public CExpressionAssignmentStatement toExpressionAssignmentStatement() {
     return SeqStatementBuilder.buildExpressionAssignmentStatement(leftHandSide, rightHandSide);
   }
-
-  // getters
 }

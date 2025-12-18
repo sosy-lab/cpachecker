@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -101,21 +102,21 @@ public record FunctionStatementBuilder(
     ImmutableList.Builder<FunctionParameterAssignment> rAssignments = ImmutableList.builder();
     CFunctionDeclaration functionDeclaration =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
-    // for each parameter, assign the param substitute to the param expression in funcCall
-    for (CParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
+    for (int i = 0; i < functionDeclaration.getParameters().size(); i++) {
+      CParameterDeclaration parameterDeclaration =
+          MPORUtil.getParameterDeclarationByIndex(i, functionDeclaration);
       ImmutableList<CIdExpression> parameterSubstitutes =
           pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
-      for (int i = 0; i < parameterSubstitutes.size(); i++) {
-        CIdExpression parameterSubstitute = parameterSubstitutes.get(i);
-        CExpression argument = pFunctionCallEdge.getArguments().get(i);
-        // use "outer" call context
-        // (the function call itself is substituted, not inside the called function)
+      // go through all parameter substitutes. if there is more than one, the function is variadic
+      for (int j = 0; j < parameterSubstitutes.size(); j++) {
+        CExpression argument = pFunctionCallEdge.getArguments().get(i + j);
         CExpression argumentSubstitute =
             pSubstitution.substituteWithCallContext(
+                // use "outer" call context, since pCallContext is the given pFunctionCallEdge
                 argument, pCallContext.callContext, false, false, false, false);
-        FunctionParameterAssignment parameterAssignment =
-            new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute);
-        rAssignments.add(parameterAssignment);
+        CIdExpression parameterSubstitute = parameterSubstitutes.get(j);
+        rAssignments.add(
+            new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute));
       }
     }
     return rAssignments.build();
