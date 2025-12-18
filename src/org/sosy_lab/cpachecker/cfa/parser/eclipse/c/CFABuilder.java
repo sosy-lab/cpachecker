@@ -19,7 +19,6 @@ import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -533,19 +532,10 @@ class CFABuilder extends ASTVisitor {
     A function contract annotation comes immediately before the function declaration
      */
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
-    ImmutableSet<FunctionEntryNode> sortedFunctionEntryNodes =
-        FluentIterable.from(pResult.functions().sequencedValues())
-            .toSortedSet(Comparator.comparing(FunctionEntryNode::getFileLocation));
 
     for (AcslComment comment : notStatementAnnotations) {
-      for (FunctionEntryNode f : sortedFunctionEntryNodes) {
-        if (comment.getFileLocation().getNodeOffset() + comment.getFileLocation().getNodeLength()
-            < f.getFileLocation().getNodeOffset()) {
-          comment.updateCfaNode(f);
-          break;
-        }
-      }
-      if (!comment.hasCfaNode()) {
+      Optional<FunctionEntryNode> nextNode = comment.nextFunctionEntryNode(pResult.functions().sequencedValues());
+      if (nextNode.isPresent() && !comment.hasCfaNode()) {
         notAFunctionContractBuilder.add(comment);
       }
     }

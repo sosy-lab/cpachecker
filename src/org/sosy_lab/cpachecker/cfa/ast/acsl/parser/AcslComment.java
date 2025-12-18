@@ -9,9 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSortedSet;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class AcslComment {
 
@@ -46,5 +52,19 @@ public class AcslComment {
 
   public Boolean hasCfaNode() {
     return cfaNode != null;
+  }
+
+  public Optional<FunctionEntryNode> nextFunctionEntryNode(
+      Collection<FunctionEntryNode> pFunctionEntryNodes) {
+    ImmutableSortedSet<FunctionEntryNode> sortedFunctionEntryNodes =
+        FluentIterable.from(pFunctionEntryNodes)
+            .toSortedSet(Comparator.comparing(FunctionEntryNode::getFileLocation));
+    for (FunctionEntryNode node : sortedFunctionEntryNodes) {
+      if (fileLocation.getNodeOffset() + fileLocation.getNodeLength()
+          < node.getFileLocation().getNodeOffset()) {
+        return Optional.of(node);
+      }
+    }
+    return Optional.empty();
   }
 }
