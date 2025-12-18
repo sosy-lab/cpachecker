@@ -534,10 +534,18 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : notStatementAnnotations) {
-      Optional<FunctionEntryNode> nextNode = comment.nextFunctionEntryNode(pResult.functions().sequencedValues());
-      if (nextNode.isPresent() && !comment.hasCfaNode()) {
-        notAFunctionContractBuilder.add(comment);
+      Optional<FunctionEntryNode> nextNode =
+          comment.nextFunctionEntryNode(pResult.functions().sequencedValues());
+      if (nextNode.isPresent()
+          && comment.noAnnotationInbetween(
+              nextNode.orElseThrow(),
+              pResult.functions().sequencedValues(),
+              pResult.acslComments().orElseThrow())
+          && !comment.hasCfaNode()) {
+        comment.updateCfaNode(nextNode.orElseThrow());
+        break;
       }
+      notAFunctionContractBuilder.add(comment);
     }
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
     Verify.verify(notFunctionContracts.isEmpty());

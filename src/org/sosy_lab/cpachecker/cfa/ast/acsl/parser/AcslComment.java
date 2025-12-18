@@ -67,4 +67,16 @@ public class AcslComment {
     }
     return Optional.empty();
   }
+
+  public boolean noAnnotationInbetween(FunctionEntryNode pNextNode, Collection<FunctionEntryNode> pFunctionEntryNodes, Collection<AcslComment> pAcslComments){
+    for(AcslComment comment : pAcslComments){
+      Optional<FunctionEntryNode> otherNode = comment.nextFunctionEntryNode(pFunctionEntryNodes);
+      if(otherNode.isPresent() && pNextNode.equals(otherNode)){
+        if(fileLocation.getNodeOffset()+fileLocation.getNodeLength() < comment.fileLocation.getNodeOffset()){
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 }
