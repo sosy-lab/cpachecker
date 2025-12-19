@@ -374,9 +374,11 @@ public class NondeterministicSimulationUtil {
           injectSingleActiveThreadIntoBlock(
               pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
     }
-    updatedBlock =
-        NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-            pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
+    if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
+      updatedBlock =
+          NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
+              pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
+    }
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
         pOptions, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
