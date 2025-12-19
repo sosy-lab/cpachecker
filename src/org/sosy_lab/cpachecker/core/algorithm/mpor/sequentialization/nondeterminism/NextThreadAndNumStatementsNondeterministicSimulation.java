@@ -115,19 +115,20 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        SeqThreadStatementBlock withRoundGoto =
+        SeqThreadStatementBlock updatedBlock =
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
                 options, block, labelClauseMap, binaryExpressionBuilder);
-        SeqThreadStatementBlock withSingleActiveThreadGoto =
-            NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
-                options, withRoundGoto, labelClauseMap, binaryExpressionBuilder);
-        SeqThreadStatementBlock withSyncUpdate =
+        if (options.reduceSingleActiveThread()) {
+          updatedBlock =
+              NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
+                  options, updatedBlock, labelClauseMap, binaryExpressionBuilder);
+        }
+        newBlocks.add(
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 options,
-                withSingleActiveThreadGoto,
+                updatedBlock,
                 ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
-                labelClauseMap);
-        newBlocks.add(withSyncUpdate);
+                labelClauseMap));
       }
       updatedClauses.add(clause.withBlocks(newBlocks.build()));
     }

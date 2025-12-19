@@ -210,15 +210,17 @@ record NumStatementsNondeterministicSimulation(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
       throws UnrecognizedCodeException {
 
-    SeqThreadStatementBlock withCountUpdate = tryInjectCountUpdatesIntoBlock(pBlock);
-    SeqThreadStatementBlock withSingleActiveThreadGoto =
-        NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
-            options, withCountUpdate, pLabelClauseMap, utils.binaryExpressionBuilder());
-    SeqThreadStatementBlock withRoundGoto =
+    SeqThreadStatementBlock updatedBlock = tryInjectCountUpdatesIntoBlock(pBlock);
+    if (options.reduceSingleActiveThread()) {
+      updatedBlock =
+          NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
+              options, updatedBlock, pLabelClauseMap, utils.binaryExpressionBuilder());
+    }
+    updatedBlock =
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-            options, withSingleActiveThreadGoto, pLabelClauseMap, utils.binaryExpressionBuilder());
+            options, updatedBlock, pLabelClauseMap, utils.binaryExpressionBuilder());
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
-        options, withRoundGoto, pSyncFlag, pLabelClauseMap);
+        options, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
 
   private SeqThreadStatementBlock tryInjectCountUpdatesIntoBlock(SeqThreadStatementBlock pBlock)
