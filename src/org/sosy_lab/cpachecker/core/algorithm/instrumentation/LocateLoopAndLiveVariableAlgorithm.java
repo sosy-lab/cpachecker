@@ -168,18 +168,16 @@ public class LocateLoopAndLiveVariableAlgorithm implements Algorithm {
         "The type of the given CFA edge must be \"FunctionCallEdge\"");
 
     AAstNode astNode = pCfaEdge.getRawAST().orElseThrow();
-    if (astNode instanceof CFunctionCallStatement) {
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) astNode;
+    if (astNode instanceof CFunctionCallStatement pCFunctionCallStatement) {
       return cfa.getAllFunctions()
           .get(
-              cFunctionCallStatement
+              pCFunctionCallStatement
                   .getFunctionCallExpression()
                   .getFunctionNameExpression()
                   .toString());
-    } else if (astNode instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
-          (CFunctionCallAssignmentStatement) astNode;
-      CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
+    } else if (astNode
+        instanceof CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) {
+      CFunctionCallExpression cRightHandSide = pCFunctionCallAssignmentStatement.getRightHandSide();
       return cfa.getAllFunctions().get(cRightHandSide.getFunctionNameExpression().toString());
     } else {
       throw new Error("An unexpected error occurred!");

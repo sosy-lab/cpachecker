@@ -55,83 +55,34 @@ public class InstrumentationPattern {
     } else {
       functionName = "";
     }
-    switch (pPattern) {
-      case "true":
-        type = patternType.TRUE;
-        break;
-      case "false":
-        type = patternType.FALSE;
-        break;
-      case "[cond]":
-        type = patternType.COND;
-        break;
-      case "[!cond]":
-        type = patternType.NOT_COND;
-        break;
-      case "ptr_deref":
-        type = patternType.PTR_DEREF;
-        break;
-      case "ptr_declar":
-        type = patternType.PTR_DECLAR;
-        break;
-      case "declar":
-        type = patternType.DECLAR;
-        break;
-      case "ADD":
-        type = patternType.ADD;
-        break;
-      case "SUB":
-        type = patternType.SUB;
-        break;
-      case "NEG":
-        type = patternType.NEG;
-        break;
-      case "MUL":
-        type = patternType.MUL;
-        break;
-      case "DIV":
-        type = patternType.DIV;
-        break;
-      case "MOD":
-        type = patternType.MOD;
-        break;
-      case "SHIFT":
-        type = patternType.SHIFT;
-        break;
-      case "EQ":
-        type = patternType.EQ;
-        break;
-      case "GEQ":
-        type = patternType.GEQ;
-        break;
-      case "GR":
-        type = patternType.GR;
-        break;
-      case "LEQ":
-        type = patternType.LEQ;
-        break;
-      case "LS":
-        type = patternType.LS;
-        break;
-      case "NEQ":
-        type = patternType.NEQ;
-        break;
-      case "RSHIFT":
-        type = patternType.RSHIFT;
-        break;
-      case "OR":
-        type = patternType.OR;
-        break;
-      case "AND":
-        type = patternType.AND;
-        break;
-      case "XOR":
-        type = patternType.XOR;
-        break;
-      default:
-        type = patternType.REGEX;
-        break;
-    }
+    type =
+        switch (pPattern) {
+          case "true" -> patternType.TRUE;
+          case "false" -> patternType.FALSE;
+          case "[cond]" -> patternType.COND;
+          case "[!cond]" -> patternType.NOT_COND;
+          case "ptr_deref" -> patternType.PTR_DEREF;
+          case "ptr_declar" -> patternType.PTR_DECLAR;
+          case "declar" -> patternType.DECLAR;
+          case "ADD" -> patternType.ADD;
+          case "SUB" -> patternType.SUB;
+          case "NEG" -> patternType.NEG;
+          case "MUL" -> patternType.MUL;
+          case "DIV" -> patternType.DIV;
+          case "MOD" -> patternType.MOD;
+          case "SHIFT" -> patternType.SHIFT;
+          case "EQ" -> patternType.EQ;
+          case "GEQ" -> patternType.GEQ;
+          case "GR" -> patternType.GR;
+          case "LEQ" -> patternType.LEQ;
+          case "LS" -> patternType.LS;
+          case "NEQ" -> patternType.NEQ;
+          case "RSHIFT" -> patternType.RSHIFT;
+          case "OR" -> patternType.OR;
+          case "AND" -> patternType.AND;
+          case "XOR" -> patternType.XOR;
+          default -> patternType.REGEX;
+        };
   }
 
   /**
@@ -190,9 +141,9 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
-      if (expression instanceof CUnaryExpression
-          && ((CUnaryExpression) expression).getOperator().equals(pOperator)) {
-        CExpression operand = ((CUnaryExpression) expression).getOperand();
+      if (expression instanceof CUnaryExpression pCUnaryExpression
+          && pCUnaryExpression.getOperator().equals(pOperator)) {
+        CExpression operand = pCUnaryExpression.getOperand();
 
         String condition = collectConditionFromPreviousEdge(pCFAEdge);
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
@@ -226,10 +177,10 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
-      if (expression instanceof CBinaryExpression
-          && ((CBinaryExpression) expression).getOperator().equals(pOperator)) {
-        CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-        CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+      if (expression instanceof CBinaryExpression pCBinaryExpression
+          && pCBinaryExpression.getOperator().equals(pOperator)) {
+        CExpression operand1 = pCBinaryExpression.getOperand1();
+        CExpression operand2 = pCBinaryExpression.getOperand2();
 
         String condition = collectConditionFromPreviousEdge(pCFAEdge);
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
@@ -295,12 +246,12 @@ public class InstrumentationPattern {
   private ImmutableList<String> getTheOperandsFromPointerDereference(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
-      if (astNode instanceof CExpressionStatement
-          && (((CExpressionStatement) astNode).getExpression().toString().contains("*")
-              || ((CExpressionStatement) astNode).getExpression().toString().contains("[")
-              || ((CExpressionStatement) astNode).getExpression().toString().contains("->"))) {
+      if (astNode instanceof CExpressionStatement pCExpressionStatement
+          && (pCExpressionStatement.getExpression().toString().contains("*")
+              || pCExpressionStatement.getExpression().toString().contains("[")
+              || pCExpressionStatement.getExpression().toString().contains("->"))) {
         return ImmutableList.of(
-            ((CExpressionStatement) astNode).getExpression().toString().replaceFirst("\\*", ""));
+            pCExpressionStatement.getExpression().toString().replaceFirst("\\*", ""));
       }
       if (astNode instanceof CBinaryExpression
           || astNode instanceof CUnaryExpression
@@ -324,8 +275,8 @@ public class InstrumentationPattern {
           && pCFAEdge.getPredecessor().getFunction().getQualifiedName().equals("main")) {
         return ImmutableList.of();
       }
-      if (astNode instanceof CFunctionCall) {
-        expression = ((CFunctionCall) astNode).getFunctionCallExpression();
+      if (astNode instanceof CFunctionCall pFunctionCall) {
+        expression = pFunctionCall.getFunctionCallExpression();
       } else {
         return null;
       }
@@ -392,8 +343,8 @@ public class InstrumentationPattern {
   }
 
   private boolean isNegatedCond(CFAEdge pCFAEdge) {
-    if (pCFAEdge instanceof CAssumeEdge) {
-      return !((CAssumeEdge) pCFAEdge).getTruthAssumption();
+    if (pCFAEdge instanceof CAssumeEdge pCAssumeEdge) {
+      return !pCAssumeEdge.getTruthAssumption();
     }
     return false;
   }
@@ -402,8 +353,8 @@ public class InstrumentationPattern {
     if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 1) {
       return true;
     }
-    if (pCFAEdge instanceof CAssumeEdge) {
-      return ((CAssumeEdge) pCFAEdge).getTruthAssumption();
+    if (pCFAEdge instanceof CAssumeEdge pCAssumeEdge) {
+      return pCAssumeEdge.getTruthAssumption();
     }
     return false;
   }

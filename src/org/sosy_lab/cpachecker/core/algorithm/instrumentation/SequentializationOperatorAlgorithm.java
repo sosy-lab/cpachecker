@@ -66,9 +66,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          "toggle the strategy to determine the hardcoded instrumentation automaton to be used\n"
-              + "TERMINATION: transform termination to reachability\n"
-              + "NOOVERFLOW: transform no-overflow to reachability")
+          """
+          toggle the strategy to determine the hardcoded instrumentation automaton to be used
+              TERMINATION: transform termination to reachability
+              NOOVERFLOW: transform no-overflow to reachability
+          """)
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
   @Option(secure = true, description = "Where to write machine readable new edges.")
@@ -310,14 +312,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           pCFAEdge, pTransition, pWaitlist, pDecomposedMap, pMatchedVariables, astNode);
       return true;
     }
-    if (astNode instanceof CExpressionAssignmentStatement) {
+    if (astNode instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
       decomposeAssignmentStatement(
           pCFAEdge,
           pTransition,
           pWaitlist,
           pDecomposedMap,
           pMatchedVariables,
-          (CExpressionAssignmentStatement) astNode);
+          pCExpressionAssignmentStatement);
       return true;
     }
 
@@ -325,21 +327,21 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     CExpression operand1;
     CExpression operand2;
 
-    if (expression instanceof CBinaryExpression) {
-      operand1 = ((CBinaryExpression) expression).getOperand1();
-      operand2 = ((CBinaryExpression) expression).getOperand2();
-    } else if (expression instanceof CUnaryExpression) {
-      operand1 = ((CUnaryExpression) expression).getOperand();
-      operand2 = ((CUnaryExpression) expression).getOperand();
+    if (expression instanceof CBinaryExpression pCBinaryExpression) {
+      operand1 = pCBinaryExpression.getOperand1();
+      operand2 = pCBinaryExpression.getOperand2();
+    } else if (expression instanceof CUnaryExpression pCUnaryExpression) {
+      operand1 = pCUnaryExpression.getOperand();
+      operand2 = pCUnaryExpression.getOperand();
     } else {
       return false;
     }
 
-    if (operand1 instanceof CCastExpression) {
-      operand1 = ((CCastExpression) operand1).getOperand();
+    if (operand1 instanceof CCastExpression pCCastExpression) {
+      operand1 = pCCastExpression.getOperand();
     }
-    if (operand2 instanceof CCastExpression) {
-      operand2 = ((CCastExpression) operand2).getOperand();
+    if (operand2 instanceof CCastExpression pCCastExpression) {
+      operand2 = pCCastExpression.getOperand();
     }
 
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
@@ -417,11 +419,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       AAstNode pFunctionCallStatement) {
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
     List<CExpression> parameters;
-    if (pFunctionCallStatement instanceof CFunctionCallStatement) {
-      parameters =
-          ((CFunctionCallStatement) pFunctionCallStatement)
-              .getFunctionCallExpression()
-              .getParameterExpressions();
+    if (pFunctionCallStatement instanceof CFunctionCallStatement pCFunctionCallStatement) {
+      parameters = pCFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
     } else {
       parameters =
           ((CFunctionCallAssignmentStatement) pFunctionCallStatement)

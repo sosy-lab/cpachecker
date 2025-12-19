@@ -70,7 +70,8 @@ public class LoopInfoUtils {
       List<Integer> loopLocations = new ArrayList<>();
       for (CFANode cfaNode : loop.getLoopHeads()) {
         loopLocations.add(
-            CFAUtils.allEnteringEdges(cfaNode)
+            cfaNode
+                .getAllEnteringEdges()
                 .first()
                 .get()
                 .getFileLocation()
@@ -84,8 +85,8 @@ public class LoopInfoUtils {
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          if (aAstNode instanceof CSimpleDeclaration) {
-            variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
+          if (aAstNode instanceof CSimpleDeclaration pCSimpleDeclaration) {
+            variablesDeclaredInsideLoop.add(pCSimpleDeclaration.getQualifiedName());
           } else {
             liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
@@ -106,12 +107,10 @@ public class LoopInfoUtils {
       if (isForLoop) {
         AAstNode initializationExpression =
             loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().orElseThrow();
-        if (initializationExpression instanceof CSimpleDeclaration) {
-          CSimpleDeclaration loopVariableDeclaration =
-              (CSimpleDeclaration) initializationExpression;
-          String originalLoopVariable = loopVariableDeclaration.getOrigName();
-          String qualifiedLoopVariable = loopVariableDeclaration.getQualifiedName();
-          String type = loopVariableDeclaration.getType().toString();
+        if (initializationExpression instanceof CSimpleDeclaration pCSimpleDeclaration) {
+          String originalLoopVariable = pCSimpleDeclaration.getOrigName();
+          String qualifiedLoopVariable = pCSimpleDeclaration.getQualifiedName();
+          String type = pCSimpleDeclaration.getType().toString();
 
           liveVariables.remove(qualifiedLoopVariable);
           liveVariablesAndTypes.put(originalLoopVariable, type);
@@ -154,7 +153,8 @@ public class LoopInfoUtils {
       for (CFANode cfaNode : loop.getLoopHeads()) {
         mapLoopHeadToLineNumbers.put(
             cfaNode,
-            CFAUtils.allEnteringEdges(cfaNode)
+            cfaNode
+                .getAllEnteringEdges()
                 .first()
                 .get()
                 .getFileLocation()
@@ -166,9 +166,9 @@ public class LoopInfoUtils {
 
   @Nullable
   public static CExpression extractExpression(AAstNode pAAstNode) {
-    if (pAAstNode instanceof CReturnStatement) {
+    if (pAAstNode instanceof CReturnStatement pCReturnStatement) {
       // return statement
-      Optional<CExpression> optionalCExpression = ((CReturnStatement) pAAstNode).getReturnValue();
+      Optional<CExpression> optionalCExpression = pCReturnStatement.getReturnValue();
       if (optionalCExpression.isPresent()) {
         CExpression cExpression = optionalCExpression.orElseThrow();
         if (cExpression instanceof CBinaryExpression) {
@@ -177,13 +177,12 @@ public class LoopInfoUtils {
           return cExpression;
         }
       }
-    } else if (pAAstNode instanceof CAssignment) {
+    } else if (pAAstNode instanceof CAssignment pCAssignment) {
       // assignment
-      ARightHandSide rightHandSide = ((CAssignment) pAAstNode).getRightHandSide();
-      if (rightHandSide instanceof CFunctionCallExpression) {
+      ARightHandSide rightHandSide = pCAssignment.getRightHandSide();
+      if (rightHandSide instanceof CFunctionCallExpression pCFunctionCallExpression) {
         // function call expression
-        List<CExpression> parameterExpressions =
-            ((CFunctionCallExpression) rightHandSide).getParameterExpressions();
+        List<CExpression> parameterExpressions = pCFunctionCallExpression.getParameterExpressions();
         for (CExpression expression : parameterExpressions) {
           if (expression instanceof CBinaryExpression) {
             return expression;
@@ -192,21 +191,20 @@ public class LoopInfoUtils {
             return expression;
           }
         }
-      } else if (rightHandSide instanceof CBinaryExpression) {
-        return (CBinaryExpression) rightHandSide;
-      } else if (rightHandSide instanceof CUnaryExpression) {
-        return (CUnaryExpression) rightHandSide;
+      } else if (rightHandSide instanceof CBinaryExpression pCBinaryExpression) {
+        return pCBinaryExpression;
+      } else if (rightHandSide instanceof CUnaryExpression pCUnaryExpression) {
+        return pCUnaryExpression;
       }
-    } else if (pAAstNode instanceof CBinaryExpression) {
+    } else if (pAAstNode instanceof CBinaryExpression pCBinaryExpression) {
       // binary expression
-      return (CBinaryExpression) pAAstNode;
-    } else if (pAAstNode instanceof CExpressionStatement) {
+      return pCBinaryExpression;
+    } else if (pAAstNode instanceof CExpressionStatement pCExpressionStatement) {
       // binary expression
-      return ((CExpressionStatement) pAAstNode).getExpression();
-    } else if (pAAstNode instanceof CFunctionCall) {
+      return pCExpressionStatement.getExpression();
+    } else if (pAAstNode instanceof CFunctionCall pFunctionCall) {
       // function call
-      CFunctionCallExpression cFunctionCallExpression =
-          ((CFunctionCall) pAAstNode).getFunctionCallExpression();
+      CFunctionCallExpression cFunctionCallExpression = pFunctionCall.getFunctionCallExpression();
       List<CExpression> parameterExpressions = cFunctionCallExpression.getParameterExpressions();
       for (CExpression expression : parameterExpressions) {
         if (expression instanceof CBinaryExpression) {
@@ -216,11 +214,11 @@ public class LoopInfoUtils {
           return expression;
         }
       }
-    } else if (pAAstNode instanceof CVariableDeclaration) {
+    } else if (pAAstNode instanceof CVariableDeclaration pCVariableDeclaration) {
       // variable declaration
-      CInitializer cInitializer = ((CVariableDeclaration) pAAstNode).getInitializer();
-      if (cInitializer instanceof CInitializerExpression) {
-        CExpression cExpression = ((CInitializerExpression) cInitializer).getExpression();
+      CInitializer cInitializer = pCVariableDeclaration.getInitializer();
+      if (cInitializer instanceof CInitializerExpression pCInitializerExpression) {
+        CExpression cExpression = pCInitializerExpression.getExpression();
         if (cExpression instanceof CBinaryExpression) {
           return cExpression;
         }
@@ -253,36 +251,33 @@ public class LoopInfoUtils {
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
     Set<String> variables = new HashSet<>();
 
-    if (pAAstNode instanceof CExpression) {
-      CFAUtils.getVariableNamesOfExpression(((CExpression) pAAstNode))
-          .forEach(e -> variables.add(e));
+    if (pAAstNode instanceof CExpression pCExpression) {
+      CFAUtils.getVariableNamesOfExpression(pCExpression).forEach(e -> variables.add(e));
 
-    } else if (pAAstNode instanceof CExpressionStatement) {
-      CExpression cExpression = ((CExpressionStatement) pAAstNode).getExpression();
+    } else if (pAAstNode instanceof CExpressionStatement pCExpressionStatement) {
+      CExpression cExpression = pCExpressionStatement.getExpression();
       CFAUtils.getVariableNamesOfExpression(cExpression).forEach(e -> variables.add(e));
 
-    } else if (pAAstNode instanceof CExpressionAssignmentStatement) {
-      CLeftHandSide cLeftHandSide = ((CExpressionAssignmentStatement) pAAstNode).getLeftHandSide();
+    } else if (pAAstNode
+        instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
+      CLeftHandSide cLeftHandSide = pCExpressionAssignmentStatement.getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
 
-      CExpression cRightHandSide = ((CExpressionAssignmentStatement) pAAstNode).getRightHandSide();
+      CExpression cRightHandSide = pCExpressionAssignmentStatement.getRightHandSide();
       CFAUtils.getVariableNamesOfExpression(cRightHandSide).forEach(e -> variables.add(e));
 
-    } else if (pAAstNode instanceof CFunctionCallStatement) {
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) pAAstNode;
-      cFunctionCallStatement
+    } else if (pAAstNode instanceof CFunctionCallStatement pCFunctionCallStatement) {
+      pCFunctionCallStatement
           .getFunctionCallExpression()
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
 
-    } else if (pAAstNode instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement =
-          (CFunctionCallAssignmentStatement) pAAstNode;
-
-      CLeftHandSide cLeftHandSide = cFunctionCallAssignmentStatement.getLeftHandSide();
+    } else if (pAAstNode
+        instanceof CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) {
+      CLeftHandSide cLeftHandSide = pCFunctionCallAssignmentStatement.getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
 
-      CFunctionCallExpression cRightHandSide = cFunctionCallAssignmentStatement.getRightHandSide();
+      CFunctionCallExpression cRightHandSide = pCFunctionCallAssignmentStatement.getRightHandSide();
       cRightHandSide
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
@@ -371,7 +366,6 @@ public class LoopInfoUtils {
 
       if (!expression.contains("[")) {
         result.put(expression, type);
-        continue;
       } else {
         List<Integer> ranges = new ArrayList<>();
         Pattern pattern = Pattern.compile("\\[(\\d+)\\]");
@@ -466,8 +460,7 @@ public class LoopInfoUtils {
             .toList()) { // Exclude the edges from the imported files
       Optional<AAstNode> aAstNodeOp = cfaEdge.getRawAST();
       if (aAstNodeOp.isPresent() && aAstNodeOp.orElseThrow() instanceof CComplexTypeDeclaration) {
-        String cComplexTypeDeclaration =
-            ((CComplexTypeDeclaration) aAstNodeOp.orElseThrow()).toString();
+        String cComplexTypeDeclaration = aAstNodeOp.orElseThrow().toString();
 
         if (cComplexTypeDeclaration.startsWith(
             "struct ")) { // A C complex type can also be an enum by definition in CPAchecker
@@ -515,10 +508,9 @@ public class LoopInfoUtils {
             .toList()) { // Exclude the edges from the imported files
       if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-        if (aAstNode instanceof CVariableDeclaration) {
-          CVariableDeclaration cVariableDeclaration = (CVariableDeclaration) aAstNode;
-          if (cVariableDeclaration.isGlobal()) {
-            String globalVariable = cVariableDeclaration.getQualifiedName();
+        if (aAstNode instanceof CVariableDeclaration pCVariableDeclaration) {
+          if (pCVariableDeclaration.isGlobal()) {
+            String globalVariable = pCVariableDeclaration.getQualifiedName();
             if (!globalVariable.startsWith("static__")) {
               allGlobalVariables.add(globalVariable);
             }
