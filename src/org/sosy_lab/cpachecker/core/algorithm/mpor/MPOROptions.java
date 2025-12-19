@@ -170,6 +170,11 @@ public class MPOROptions {
 
   @Option(
       secure = true,
+      description = "Continue executing the current thread if it is the only active thread.")
+  private boolean reduceSingleActiveThread = false;
+
+  @Option(
+      secure = true,
       description =
           "continue executing the current thread until it is in conflict with at least another"
               + " thread?")
@@ -471,6 +476,10 @@ public class MPOROptions {
 
   public boolean reduceLastThreadOrder() {
     return reduceLastThreadOrder;
+  }
+
+  public boolean reduceSingleActiveThread() {
+    return reduceSingleActiveThread;
   }
 
   public boolean reduceUntilConflict() {
