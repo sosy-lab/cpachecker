@@ -366,10 +366,6 @@ public class MPOROptions {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 
-  public boolean isThreadCountRequired() {
-    return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
-  }
-
   public boolean isThreadLabelRequired() {
     // only needed if the loop is finite i.e. not 0, otherwise just use continue;
     if (loopIterations > 0 && !loopUnrolling) {

@@ -210,7 +210,7 @@ record NumStatementsNondeterministicSimulation(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
       throws UnrecognizedCodeException {
 
-    SeqThreadStatementBlock updatedBlock = tryInjectCountUpdatesIntoBlock(pBlock);
+    SeqThreadStatementBlock updatedBlock = injectCountUpdatesIntoBlock(pBlock);
     if (options.reduceSingleActiveThread()) {
       updatedBlock =
           NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
@@ -223,12 +223,9 @@ record NumStatementsNondeterministicSimulation(
         options, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
 
-  private SeqThreadStatementBlock tryInjectCountUpdatesIntoBlock(SeqThreadStatementBlock pBlock)
+  private SeqThreadStatementBlock injectCountUpdatesIntoBlock(SeqThreadStatementBlock pBlock)
       throws UnrecognizedCodeException {
 
-    if (!options.isThreadCountRequired()) {
-      return pBlock;
-    }
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
       CSeqThreadStatement withCountUpdates = tryInjectCountUpdatesIntoStatement(statement);

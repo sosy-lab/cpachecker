@@ -143,23 +143,20 @@ public final class SeqMainFunction extends SeqFunction {
         }
       }
 
-      if (pOptions.isThreadCountRequired()) {
-        // assumptions that at least one thread is still active: assume(cnt > 0)
-        if (pOptions.comments()) {
-          loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
-        }
-        // assume(cnt > 0);
-        CBinaryExpression countGreaterZeroExpression =
-            pUtils
-                .binaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIdExpressions.THREAD_COUNT,
-                    SeqIntegerLiteralExpressions.INT_0,
-                    BinaryOperator.GREATER_THAN);
-        CFunctionCallStatement countAssumption =
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
-        loopBlock.add(countAssumption.toASTString());
+      // assumptions that at least one thread is still active: assume(thread_count > 0)
+      if (pOptions.comments()) {
+        loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
       }
+      CBinaryExpression countGreaterZeroExpression =
+          pUtils
+              .binaryExpressionBuilder()
+              .buildBinaryExpression(
+                  SeqIdExpressions.THREAD_COUNT,
+                  SeqIntegerLiteralExpressions.INT_0,
+                  BinaryOperator.GREATER_THAN);
+      CFunctionCallStatement countAssumption =
+          SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+      loopBlock.add(countAssumption.toASTString());
 
       // add all thread simulation control flow statements
       if (pOptions.comments()) {
