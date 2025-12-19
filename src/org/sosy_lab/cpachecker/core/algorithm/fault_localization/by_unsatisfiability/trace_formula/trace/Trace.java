@@ -65,7 +65,7 @@ public class Trace extends ForwardingList<TraceAtom> {
       latestSSAMap = SSAMap.emptySSAMap();
       initialSSAMap = SSAMap.emptySSAMap();
     } else {
-      latestSSAMap = pEntries.get(pEntries.size() - 1).ssaMap;
+      latestSSAMap = pEntries.getLast().ssaMap;
       initialSSAMap = calculateInitialSsaMap(pEntries);
     }
     entries =
@@ -97,7 +97,7 @@ public class Trace extends ForwardingList<TraceAtom> {
                   minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
                   typeMap.put(
                       pair.getFirst(),
-                      traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
+                      (CType) traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())));
                 }
               });
     }
@@ -127,7 +127,7 @@ public class Trace extends ForwardingList<TraceAtom> {
     Map<CFANode, Integer> mergeNodes = new HashMap<>();
     MergePoint<CFANode> mergePoint =
         new MergePoint<>(
-            entries.get(0).correspondingEdge().getPredecessor(),
+            entries.getFirst().correspondingEdge().getPredecessor(),
             CFAUtils::allSuccessorsOf,
             CFAUtils::allPredecessorsOf);
     List<List<FormulaLabel>> labels = new ArrayList<>(entries.size());
@@ -141,7 +141,7 @@ public class Trace extends ForwardingList<TraceAtom> {
       for (int i = 0;
           i < mergeNodes.getOrDefault(entry.correspondingEdge().getSuccessor(), 0);
           i++) {
-        labelsForEntry.add(0, FormulaLabel.ENDIF);
+        labelsForEntry.addFirst(FormulaLabel.ENDIF);
       }
       labels.add(labelsForEntry);
     }

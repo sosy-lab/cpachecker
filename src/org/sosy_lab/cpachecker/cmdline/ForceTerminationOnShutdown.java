@@ -36,7 +36,6 @@ class ForceTerminationOnShutdown implements Runnable {
 
   // Time that a shutdown may last before we kill the program.
   private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
-  private static final int SHUTDOWN_GRACE_PERIOD_2 = 1; // seconds
 
   private final LogManager logger;
   private final Thread mainThread;
@@ -82,7 +81,7 @@ class ForceTerminationOnShutdown implements Runnable {
         if (success) {
           t.start();
         }
-        // Otherwise a second instance of such a thread was created in the meantime,
+        // Otherwise, a second instance of such a thread was created in the meantime,
         // we do not need to start our's.
       }
     };
@@ -139,25 +138,7 @@ class ForceTerminationOnShutdown implements Runnable {
     logger.flush();
 
     // Now we need to kill the JVM.
-
-    // If the main thread hangs in Java code, this will work:
-    try {
-      mainThread.stop();
-    } catch (UnsupportedOperationException e) {
-      // Java 20+
-      // We cannot really do better instead of continuing and eventually calling System.exit()
-    }
-    try {
-      TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD_2);
-    } catch (InterruptedException e) {
-      return;
-    }
-    if (canceled.get()) {
-      return;
-    }
-
-    // If we come here, stop() did not work,
-    // probably because the main thread hangs in native code.
+    // Thread.stop() no longer exists and would not work for native code.
     // System.exit() will work, but there is a ShutdownHook
     // that blocks it until the main thread terminates,
     // so we have to disable that ShutdownHook.
@@ -167,23 +148,23 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   /**
-   * Create a short summary of all running non-daemon threads (those threads are prevent JVM
-   * termination).
+   * Create a short summary of all other running non-daemon threads (those threads are preventing
+   * JVM termination).
    */
-  private StringBuilder buildLiveThreadInfo() {
+  static String buildLiveThreadInfo() {
     Map<Thread, StackTraceElement[]> traces = Thread.getAllStackTraces();
     StringBuilder output = new StringBuilder();
     for (Map.Entry<Thread, StackTraceElement[]> threadInfo : traces.entrySet()) {
       Thread thread = threadInfo.getKey();
       StackTraceElement[] trace = threadInfo.getValue();
-      if (thread.isAlive() && !thread.isDaemon()) {
-        output.append(thread);
+      if (thread.isAlive() && !thread.isDaemon() && !thread.equals(Thread.currentThread())) {
+        output.append("- ").append(thread);
         if (trace.length > 0) {
           output.append(" at " + trace[0]);
         }
         output.append("\n");
       }
     }
-    return output;
+    return output.toString();
   }
 }

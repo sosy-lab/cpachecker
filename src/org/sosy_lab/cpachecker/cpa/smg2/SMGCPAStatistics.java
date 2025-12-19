@@ -38,7 +38,7 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
-  private LongAdder iterations = new LongAdder();
+  private final LongAdder iterations = new LongAdder();
 
   private final StatCounter listMaterializations =
       new StatCounter("Number of list materialization's");
@@ -56,8 +56,8 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   private final StatTimer totalListSearchTime =
       new StatTimer("Time spend on searching for lists to abstract");
 
-  private StatCounter assumptions = new StatCounter("Number of assumptions");
-  private StatCounter deterministicAssumptions =
+  private final StatCounter assumptions = new StatCounter("Number of assumptions");
+  private final StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
 
   public SMGCPAStatistics() {

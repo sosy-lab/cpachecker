@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import java.util.stream.Collectors;
 
 public abstract class PropositionalFormula implements LtlFormula {
 
@@ -47,8 +47,8 @@ public abstract class PropositionalFormula implements LtlFormula {
 
   @Override
   public String toString() {
-    return "("
-        + String.join(" " + getSymbol() + " ", Iterables.transform(children, Object::toString))
-        + ")";
+    return children.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(" " + getSymbol() + " ", "(", ")"));
   }
 }

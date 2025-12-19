@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -26,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -100,7 +100,7 @@ public class TerminationLoopInformation {
   // reusing of intermediate location is required to build counter examples
   private List<CFANode> relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
 
-  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
+  private SequencedSet<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private Optional<CFANode> targetNode = Optional.empty();
 
@@ -124,7 +124,8 @@ public class TerminationLoopInformation {
 
   public boolean isPredecessorOfIncomingEdge(CFANode pLocation) {
     return loop.isPresent()
-        && leavingEdges(pLocation)
+        && pLocation
+            .getLeavingEdges()
             .anyMatch(edge -> loop.orElseThrow().getIncomingEdges().contains(edge));
   }
 

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -63,6 +64,8 @@ public class ToCodeFormulaVisitor
 
   private final MachineModel machineModel;
 
+  private final Function<String, String> variableNameConverter;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -72,9 +75,12 @@ public class ToCodeFormulaVisitor
    * @param pMachineModel the machine model used to find the cast types.
    */
   public ToCodeFormulaVisitor(
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      MachineModel pMachineModel,
+      Function<String, String> pVariableNameConverter) {
     evaluationVisitor = pEvaluationVisitor;
     machineModel = pMachineModel;
+    variableNameConverter = pVariableNameConverter;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
@@ -90,15 +96,10 @@ public class ToCodeFormulaVisitor
       }
       return CNumericTypes.INT;
     } else if (pTypeInfo instanceof FloatingPointTypeInfo fpTypeInfo) {
-      switch (fpTypeInfo) {
-        case FLOAT:
-          return CNumericTypes.FLOAT;
-        case DOUBLE:
-          return CNumericTypes.DOUBLE;
-        default:
-          // do nothing and throw the AssertionError below
-          break;
-      }
+      return switch (fpTypeInfo) {
+        case FLOAT -> CNumericTypes.FLOAT;
+        case DOUBLE -> CNumericTypes.DOUBLE;
+      };
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);
   }
@@ -134,9 +135,9 @@ public class ToCodeFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private String asFormulaString(TypeInfo pInfo, Number pValue) {
-    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger) {
+    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger value) {
       int size = bitVectorInfo.getSize();
-      BigInteger value = (BigInteger) pValue;
+
       // Get only the [size] least significant bits
       BigInteger upperExclusive = BigInteger.valueOf(2).pow(size - 1);
       boolean negative = value.signum() < 0;
@@ -320,7 +321,7 @@ public class ToCodeFormulaVisitor
   public String visit(
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return pVariable.getMemoryLocation().getIdentifier();
+    return variableNameConverter.apply(pVariable.getMemoryLocation().getIdentifier());
   }
 
   @Override
@@ -330,10 +331,10 @@ public class ToCodeFormulaVisitor
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo
+    if (targetInfo instanceof BitVectorInfo bitVectorInfo
         && sourceInfo instanceof BitVectorInfo sourceBitVectorInfo) {
       int sourceSize = sourceBitVectorInfo.getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+      int targetSize = bitVectorInfo.getSize();
       if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())
           || sourceFormula == null) {
         return sourceFormula;

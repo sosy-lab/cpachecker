@@ -46,6 +46,13 @@ abstract class AbstractYAMLWitnessExporter {
       description = "Export all information contained in the counterexample as a witness.")
   protected boolean exportCompleteCounterexample = false;
 
+  @Option(
+      secure = true,
+      description =
+          "when enabled we also provide an analysis in form of "
+              + "logging output of the likely quality of the produced witnesses")
+  protected boolean analyseWitnessQuality = false;
+
   protected final CFA cfa;
 
   protected final LogManager logger;
@@ -73,6 +80,10 @@ abstract class AbstractYAMLWitnessExporter {
   protected MetadataRecord getMetadata(YAMLWitnessVersion version) throws IOException {
     return MetadataRecord.createMetadataRecord(
         producerRecord, TaskRecord.getTaskDescription(cfa, specification), version);
+  }
+
+  protected Specification getSpecification() {
+    return specification;
   }
 
   protected AstCfaRelation getASTStructure() {

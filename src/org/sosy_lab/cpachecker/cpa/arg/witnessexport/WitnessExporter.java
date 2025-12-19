@@ -18,6 +18,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -47,7 +49,7 @@ public class WitnessExporter {
     private final ExpressionTreeFactory<Object> factory;
     private final CFA cfa;
 
-    public ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
+    ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
       cfa = pCfa;
       factory = pFactory;
     }
@@ -59,15 +61,22 @@ public class WitnessExporter {
       if (!pStates.isPresent()) {
         return ExpressionTrees.getTrue();
       }
-      Set<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
+      SequencedSet<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
       String functionName = pEdge.getSuccessor().getFunctionName();
       for (ARGState state : pStates.get()) {
-        Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
+        SequencedSet<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
         for (ExpressionTreeReportingState etrs :
             AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-          approximations.add(
-              etrs.getFormulaApproximationAllVariablesInFunctionScope(
-                  cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                etrs.getFormulaApproximationAllVariablesInFunctionScope(
+                    cfa.getFunctionHead(functionName), pEdge.getSuccessor());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            expressionTree = ExpressionTrees.getTrue();
+          }
+          approximations.add(expressionTree);
         }
         stateInvariants.add(factory.and(approximations));
       }
@@ -201,7 +210,7 @@ public class WitnessExporter {
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
-      for (CFAEdge e : CFAUtils.leavingEdges(l)) {
+      for (CFAEdge e : l.getLeavingEdges()) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
           return fileLocations.iterator().next().getFileName().toString();

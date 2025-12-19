@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -19,15 +18,20 @@ import java.io.ObjectInputStream;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -36,7 +40,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * symbolic formula. Third, again as a symbolic formula, but this time all variables have names
  * which include their SSA index at the time of the abstraction computation.
  *
- * <p>Additionally the formula for the block immediately before the abstraction computation is
+ * <p>Additionally, the formula for the block immediately before the abstraction computation is
  * stored (this also has SSA indices as it is a path formula, even if it is not of the type
  * PathFormula).
  *
@@ -114,18 +118,28 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
+  public ExpressionTree<Object> asExpressionTree(CFANode pLocation)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
         asFormula(),
         fMgr,
         name ->
             !name.contains(FUNCTION_DELIMITER)
-                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER));
+                || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER),
+        Function.identity());
   }
 
-  public ExpressionTree<Object> asExpressionTree(Function<String, Boolean> pIncludeVariablesFilter)
-      throws InterruptedException {
-    return ExpressionTrees.fromFormula(asFormula(), fMgr, pIncludeVariablesFilter);
+  public ExpressionTree<Object> asExpressionTree(
+      Function<String, Boolean> pIncludeVariablesFilter,
+      Function<String, String> pVariableNameConverter)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
+    return ExpressionTrees.fromFormula(
+        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+  }
+
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+    FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
+    return fMgr.visit(asFormula(), visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */
@@ -178,7 +192,7 @@ public class AbstractionFormula implements Serializable {
     private final String instantiatedFormulaDump;
     private final PathFormula blockFormula;
 
-    public SerializationProxy(AbstractionFormula pAbstractionFormula) {
+    SerializationProxy(AbstractionFormula pAbstractionFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump =

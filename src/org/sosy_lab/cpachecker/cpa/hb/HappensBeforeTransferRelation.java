@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.hb;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -72,48 +72,44 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
       }
 
       switch (cfaEdge.getEdgeType()) {
-        case StatementEdge:
-          {
-            AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-            if (statement instanceof AFunctionCall pAFunctionCall) {
-              AExpression functionNameExp =
-                  pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-              if (functionNameExp instanceof AIdExpression pFunctionName) {
-                final String functionName = pFunctionName.getName();
-                switch (functionName) {
-                  case "pthread_create":
-                    final var params =
-                        pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
-                    Preconditions.checkState(
-                        params.size() == 4,
-                        "Malformed pthread_create (not 4 params): " + pAFunctionCall);
-                    Preconditions.checkState(
-                        params.get(2) instanceof CUnaryExpression
-                            && ((CUnaryExpression) params.get(2)).getOperator()
-                                == UnaryOperator.AMPER,
-                        "Malformed pthread_create (Thread not unary expression with reference): "
-                            + params.get(2));
-                    Preconditions.checkState(
-                        ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
-                        "Malformed pthread_create (Thread not CIdExpression): "
-                            + ((CUnaryExpression) params.get(2)).getOperand());
-                    prevState =
-                        addNewThread(
-                            prevState,
-                            ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
-                                .getName());
-                    break;
-                  default:
-                    // nothing to do
-                    break;
+        case StatementEdge -> {
+          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+          if (statement instanceof AFunctionCall pAFunctionCall) {
+            AExpression functionNameExp =
+                pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+            if (functionNameExp instanceof AIdExpression pFunctionName) {
+              final String functionName = pFunctionName.getName();
+              switch (functionName) {
+                case "pthread_create" -> {
+                  final var params =
+                      pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+                  checkState(
+                      params.size() == 4,
+                      "Malformed pthread_create (not 4 params): %s",
+                      pAFunctionCall);
+                  checkState(
+                      params.get(2) instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
+                      "Malformed pthread_create (Thread not unary expression with reference): %s",
+                      params.get(2));
+                  checkState(
+                      ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
+                      "Malformed pthread_create (Thread not CIdExpression): %s",
+                      ((CUnaryExpression) params.get(2)).getOperand());
+                  prevState =
+                      addNewThread(
+                          prevState,
+                          ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
+                              .getName());
+                }
+                default -> {
+                  // nothing to do
                 }
               }
             }
-            break;
           }
-        default:
-          {
-          }
+        }
+        default -> {}
       }
 
       final var old = prevState;
@@ -190,7 +186,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
   private int firstCanExecute(Map<Integer, Pair<LocationState, CallstackState>> pThreads) {
     for (Map.Entry<Integer, Pair<LocationState, CallstackState>> entry : pThreads.entrySet()) {
-      if (!allLeavingEdges(entry.getValue().getFirstNotNull().getLocationNode()).isEmpty()) {
+      if (!entry.getValue().getFirstNotNull().getLocationNode().getAllLeavingEdges().isEmpty()) {
         return entry.getKey();
       }
     }
@@ -203,7 +199,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
 
     CFANode functioncallNode =
         Preconditions.checkNotNull(
-            cfa.getFunctionHead(functionName), "Function '" + functionName + "' was not found.");
+            cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
 
     CallstackState initialStack =
         (CallstackState)

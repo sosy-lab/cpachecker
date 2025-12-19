@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -90,9 +91,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) pOther).id == id
-        && Objects.equals(representedLocation, ((SymbolicIdentifier) pOther).representedLocation);
+    return pOther instanceof SymbolicIdentifier other
+        && other.id == id
+        && Objects.equals(representedLocation, other.representedLocation);
   }
 
   @Override
@@ -121,8 +122,8 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
   }
 
   @Override
-  public Long asLong(CType type) {
-    return null;
+  public OptionalLong asLong(CType type) {
+    return OptionalLong.empty();
   }
 
   @Override
@@ -199,6 +200,35 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
       final long id = Long.parseLong(identifierIdOnly);
 
       return new SymbolicIdentifier(id, MemoryLocation.parseExtendedQualifiedName(memLocName));
+    }
+
+    /**
+     * Converts a given encoding of a {@link SymbolicIdentifier} to the corresponding <code>
+     * SymbolicIdentifier without a {@link MemoryLocation} (= null)</code>.
+     *
+     * <p>Only valid encodings, as produced by {@link #convertToStringEncoding(SymbolicIdentifier)},
+     * are allowed.
+     *
+     * @param pIdentifierInformation a <code>String</code> encoding of a <code>SymbolicIdentifier
+     *     </code>
+     * @return the <code>SymbolicIdentifier</code> representing the given encoding
+     * @throws IllegalArgumentException if given String does not match the expected String encoding
+     */
+    public SymbolicIdentifier convertToIdentifierWithoutMemLoc(String pIdentifierInformation)
+        throws IllegalArgumentException {
+
+      final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
+      final int idStart = variableName.indexOf("#");
+
+      checkArgument(idStart >= 0, "Invalid encoding: %s", pIdentifierInformation);
+
+      final String identifierIdOnly = variableName.substring(idStart + 1);
+      if (!identifierIdOnly.matches("[0-9]+")) {
+        throw new AssertionError("Unexpected encoding of symbolic identifier: " + identifierIdOnly);
+      }
+      final long id = Long.parseLong(identifierIdOnly);
+
+      return new SymbolicIdentifier(id, null);
     }
 
     /**

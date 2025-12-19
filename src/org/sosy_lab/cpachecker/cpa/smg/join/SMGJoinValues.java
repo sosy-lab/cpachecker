@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 final class SMGJoinValues {
   private SMGJoinStatus status;
@@ -447,11 +448,10 @@ final class SMGJoinValues {
       throws SMGInconsistentException {
 
     switch (pTarget.getKind()) {
-      case REG:
-      case OPTIONAL:
-        break;
-      default:
+      case REG, OPTIONAL -> {}
+      default -> {
         return Pair.of(false, true);
+      }
     }
 
     if (mapping2.containsKey(pTarget)) {
@@ -665,24 +665,25 @@ final class SMGJoinValues {
         long arbitraryOffset = edges.iterator().next().getOffset();
 
         switch (destSmgSourceObject.getKind()) {
-          case DLL:
+          case DLL -> {
             SMGDoublyLinkedList dll = (SMGDoublyLinkedList) destSmgSourceObject;
             if (arbitraryOffset != dll.getNfo() && arbitraryOffset != dll.getPfo()) {
               return destSmgSourceObject.getLevel() + 1;
             } else {
               return destSmgSourceObject.getLevel();
             }
-
-          case SLL:
+          }
+          case SLL -> {
             SMGSingleLinkedList sll = (SMGSingleLinkedList) destSmgSourceObject;
             if (arbitraryOffset != sll.getNfo()) {
               return destSmgSourceObject.getLevel() + 1;
             } else {
               return destSmgSourceObject.getLevel();
             }
-
-          default:
+          }
+          default -> {
             return -1;
+          }
         }
 
       } else {
@@ -708,11 +709,10 @@ final class SMGJoinValues {
       throws SMGInconsistentException {
 
     switch (pTarget.getKind()) {
-      case REG:
-      case OPTIONAL:
-        break;
-      default:
+      case REG, OPTIONAL -> {}
+      default -> {
         return Pair.of(false, true);
+      }
     }
 
     if (mapping1.containsKey(pTarget)) {
@@ -923,7 +923,7 @@ final class SMGJoinValues {
     long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
-      case FIRST:
+      case FIRST -> {
         if (pTarget.getKind() == SMGObjectKind.DLL) {
           final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
           nf = dll.getNfo();
@@ -939,17 +939,18 @@ final class SMGJoinValues {
           pfo = -1;
           length = sll.getMinimumLength();
         }
-        break;
-      case LAST:
+      }
+      case LAST -> {
         final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
         nf = dll.getPfo();
         hfo = dll.getHfo();
         nfo = dll.getPfo();
         pfo = nf;
         length = dll.getMinimumLength();
-        break;
-      default:
+      }
+      default -> {
         return Pair.of(false, true);
+      }
     }
 
     SMGValue nextPointer;
@@ -1196,7 +1197,7 @@ final class SMGJoinValues {
     long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
-      case FIRST:
+      case FIRST -> {
         if (pTarget.getKind() == SMGObjectKind.DLL) {
           final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
           nf = dll.getNfo();
@@ -1212,17 +1213,18 @@ final class SMGJoinValues {
           pfo = -1;
           length = sll.getMinimumLength();
         }
-        break;
-      case LAST:
+      }
+      case LAST -> {
         final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
         nf = dll.getPfo();
         hfo = dll.getHfo();
         nfo = dll.getPfo();
         pfo = nf;
         length = dll.getMinimumLength();
-        break;
-      default:
+      }
+      default -> {
         return Pair.of(false, true);
+      }
     }
 
     Iterable<SMGEdgeHasValue> npHves =
@@ -1437,25 +1439,20 @@ final class SMGJoinValues {
     } else {
 
       switch (pList.getKind()) {
-        case DLL:
-          {
-            final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pList;
-            nfo = dll.getNfo();
-            pfo = dll.getPfo();
-            long hfo = dll.getHfo();
-            listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo, 0, listLevel);
-            break;
-          }
-        case SLL:
-          {
-            final SMGSingleLinkedList sll = (SMGSingleLinkedList) pList;
-            nfo = sll.getNfo();
-            long hfo = sll.getHfo();
-            listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
-            break;
-          }
-        default:
-          throw new AssertionError();
+        case DLL -> {
+          final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pList;
+          nfo = dll.getNfo();
+          pfo = dll.getPfo();
+          long hfo = dll.getHfo();
+          listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo, 0, listLevel);
+        }
+        case SLL -> {
+          final SMGSingleLinkedList sll = (SMGSingleLinkedList) pList;
+          nfo = sll.getNfo();
+          long hfo = sll.getHfo();
+          listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
+        }
+        default -> throw new AssertionError();
       }
 
       pMapping.map(pList, listCopy);

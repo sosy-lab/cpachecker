@@ -63,7 +63,7 @@ public class RCNFManager implements StatisticsProvider {
   private int expansionResultSizeLimit = 100;
 
   @Option(secure = true, description = "Quantifier elimination strategy", toUppercase = true)
-  private BOUND_VARS_HANDLING boundVarsHandling = BOUND_VARS_HANDLING.QE_LIGHT_THEN_DROP;
+  private BoundVarsHandling boundVarsHandling = BoundVarsHandling.QE_LIGHT_THEN_DROP;
 
   @Option(
       secure = true,
@@ -72,7 +72,7 @@ public class RCNFManager implements StatisticsProvider {
               + "expanded into 'x >= a AND x <= a'. Can lead to stronger weakenings.")
   private boolean expandEquality = false;
 
-  public enum BOUND_VARS_HANDLING {
+  public enum BoundVarsHandling {
 
     /**
      * Run best-effort quantifier elimination and then over-approximate lemmas which still have
@@ -86,6 +86,8 @@ public class RCNFManager implements StatisticsProvider {
     /** Over-approximate all lemmas with quantifiers. */
     DROP
   }
+
+  private record BodyAndBoundVariables(BooleanFormula body, List<Formula> boundVariables) {}
 
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
@@ -104,7 +106,7 @@ public class RCNFManager implements StatisticsProvider {
    * @return Set of lemmas, only have variables with latest SSA index.
    */
   public Set<BooleanFormula> toLemmasInstantiated(PathFormula pf, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     BooleanFormula transition = pf.getFormula();
     SSAMap ssa = pf.getSsa();
     transition = pFmgr.filterLiterals(transition, input -> !hasDeadUf(input, ssa, pFmgr));
@@ -122,7 +124,7 @@ public class RCNFManager implements StatisticsProvider {
    * @param pFmgr Formula manager which performs the conversion.
    */
   public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -133,32 +135,28 @@ public class RCNFManager implements StatisticsProvider {
       return out;
     }
 
-    BooleanFormula result;
-    switch (boundVarsHandling) {
-      case QE_LIGHT_THEN_DROP:
-        try {
-          statistics.lightQuantifierElimination.start();
-          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
-        } finally {
-          statistics.lightQuantifierElimination.stop();
-        }
-        break;
-      case QE:
-        try {
-          statistics.quantifierElimination.start();
-          result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
-        } catch (SolverException e) {
-          throw new UnsupportedOperationException("Unexpected solver error", e);
-        } finally {
-          statistics.quantifierElimination.stop();
-        }
-        break;
-      case DROP:
-        result = input;
-        break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
-    }
+    final BooleanFormula result =
+        switch (boundVarsHandling) {
+          case QE_LIGHT_THEN_DROP -> {
+            try {
+              statistics.lightQuantifierElimination.start();
+              yield fmgr.applyTactic(input, Tactic.QE_LIGHT);
+            } finally {
+              statistics.lightQuantifierElimination.stop();
+            }
+          }
+          case QE -> {
+            try {
+              statistics.quantifierElimination.start();
+              yield fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
+            } catch (SolverException e) {
+              throw new UnsupportedOperationException("Unexpected solver error", e);
+            } finally {
+              statistics.quantifierElimination.stop();
+            }
+          }
+          case DROP -> input;
+        };
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
     try {
@@ -176,9 +174,12 @@ public class RCNFManager implements StatisticsProvider {
    */
   private BooleanFormula dropBoundVariables(BooleanFormula input) throws InterruptedException {
 
-    Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
-    if (body.isPresent()) {
-      return fmgr.filterLiterals(body.orElseThrow(), input1 -> !hasBoundVariables(input1));
+    Optional<BodyAndBoundVariables> bodyAndBoundVars = fmgr.visit(input, quantifiedBodyExtractor);
+    if (bodyAndBoundVars.isPresent()) {
+      BooleanFormula body = bodyAndBoundVars.orElseThrow().body();
+      Set<Formula> boundVariables =
+          ImmutableSet.copyOf(bodyAndBoundVars.orElseThrow().boundVariables());
+      return fmgr.filterLiterals(body, input1 -> !hasBoundVariables(input1, boundVariables));
     } else {
 
       // Does not have quantified variables.
@@ -297,9 +298,9 @@ public class RCNFManager implements StatisticsProvider {
           public BooleanFormula visitFunction(
               Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
-                && fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
+                && fmgr.getFormulaType(newArgs.getFirst()).isNumeralType()) {
               Preconditions.checkState(newArgs.size() == 2);
-              Formula a = newArgs.get(0);
+              Formula a = newArgs.getFirst();
               Formula b = newArgs.get(1);
               return bfmgr.and(
                   fmgr.makeGreaterOrEqual(a, b, true), fmgr.makeLessOrEqual(a, b, true));
@@ -310,39 +311,42 @@ public class RCNFManager implements StatisticsProvider {
         });
   }
 
-  private boolean hasBoundVariables(BooleanFormula input) {
+  private boolean hasBoundVariables(BooleanFormula input, Set<Formula> boundVariables) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);
     fmgr.visitRecursively(
         input,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula f) {
             return TraversalProcess.CONTINUE;
           }
 
           @Override
-          public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-            hasBound.set(true);
-            return TraversalProcess.ABORT;
+          public TraversalProcess visitFreeVariable(Formula f, String name) {
+            if (boundVariables.contains(f)) {
+              hasBound.set(true);
+              return TraversalProcess.ABORT;
+            }
+            return TraversalProcess.CONTINUE;
           }
         });
     return hasBound.get();
   }
 
-  private final DefaultFormulaVisitor<Optional<BooleanFormula>> quantifiedBodyExtractor =
+  private final DefaultFormulaVisitor<Optional<BodyAndBoundVariables>> quantifiedBodyExtractor =
       new DefaultFormulaVisitor<>() {
         @Override
-        protected Optional<BooleanFormula> visitDefault(Formula f) {
+        protected Optional<BodyAndBoundVariables> visitDefault(Formula f) {
           return Optional.empty();
         }
 
         @Override
-        public Optional<BooleanFormula> visitQuantifier(
+        public Optional<BodyAndBoundVariables> visitQuantifier(
             BooleanFormula f,
             Quantifier quantifier,
             List<Formula> boundVariables,
             BooleanFormula body) {
-          return Optional.of(body);
+          return Optional.of(new BodyAndBoundVariables(body, boundVariables));
         }
       };
 

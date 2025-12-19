@@ -17,6 +17,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstantSymbolicExpressionLocator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -44,9 +46,13 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -82,6 +88,9 @@ public class SymbolicProgramConfiguration {
   /** Mapping of all global variables to their SMGObjects. Use the value mapping to get values. */
   private final PersistentMap<String, SMGObject> globalVariableMapping;
 
+  /* Stack with atexit() handlers */
+  private final PersistentStack<Value> atExitStack;
+
   /* The stack of stackFrames.
    * (Each function call creates a new one that has to be popd once the function is returned/ends)
    */
@@ -114,7 +123,7 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
-   * unique values. Such that a SMGValue with id 1 is always equal only with a SMGValue with id 1.
+   * unique values. Such that an SMGValue with id 1 is always equal only with an SMGValue with id 1.
    * The only exception are addresses, hence why they are separate) . Important: You NEED to map the
    * SMGValue using the mapping of the SPC!
    */
@@ -128,6 +137,7 @@ public class SymbolicProgramConfiguration {
   private SymbolicProgramConfiguration(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -137,6 +147,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
+    atExitStack = pAtExitStack;
     smg = pSmg;
     externalObjectAllocation = pExternalObjectAllocation;
     heapObjects = pHeapObjects;
@@ -150,6 +161,7 @@ public class SymbolicProgramConfiguration {
   private SymbolicProgramConfiguration(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -160,6 +172,7 @@ public class SymbolicProgramConfiguration {
       Set<SMGObject> pReadBlacklist) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
+    atExitStack = pAtExitStack;
     smg = pSmg;
     externalObjectAllocation = pExternalObjectAllocation;
     heapObjects = pHeapObjects;
@@ -188,6 +201,7 @@ public class SymbolicProgramConfiguration {
   public static SymbolicProgramConfiguration of(
       SMG pSmg,
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
+      PersistentStack<Value> pAtExitStack,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
@@ -199,6 +213,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
+        pAtExitStack,
         pStackVariableMapping,
         pHeapObjects,
         pExternalObjectAllocation,
@@ -224,14 +239,15 @@ public class SymbolicProgramConfiguration {
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
+        PersistentStack.of(),
         PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
         ImmutableBiMap.of(
             valueWrapper.wrap(new NumericValue(0)),
             SMGValue.zeroValue(),
-            valueWrapper.wrap(new NumericValue(0.0f)),
+            valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float32))),
             SMGValue.zeroFloatValue(),
-            valueWrapper.wrap(new NumericValue(0.0)),
+            valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float64))),
             SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
         newMemoryAddressAssumptionsMap,
@@ -253,6 +269,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         pNewStackFrames,
         heapObjects,
         externalObjectAllocation,
@@ -267,6 +284,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -282,6 +300,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         newSMG,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -406,6 +425,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping.putAndCopy(pVarName, pNewObject),
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -468,6 +488,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping,
+        atExitStack,
         tmpStack.pushAndCopy(currentFrame),
         heapObjects,
         externalObjectAllocation,
@@ -502,6 +523,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping,
+        atExitStack,
         tmpStack,
         heapObjects,
         externalObjectAllocation,
@@ -520,7 +542,7 @@ public class SymbolicProgramConfiguration {
    * @param pFunctionDefinition - The {@link CFunctionDeclaration} that the {@link StackFrame} will
    *     be based upon.
    * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
-   * @param variableArguments null for no variable arguments, else a ImmutableList (that may be
+   * @param variableArguments null for no variable arguments, else an ImmutableList (that may be
    *     EMPTY!) of the Values in order.
    * @return The SPC copy with the new {@link StackFrame}.
    */
@@ -539,6 +561,7 @@ public class SymbolicProgramConfiguration {
       return of(
           smg,
           globalVariableMapping,
+          atExitStack,
           stackVariableMapping.pushAndCopy(newStackFrame),
           heapObjects,
           externalObjectAllocation,
@@ -551,6 +574,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping.pushAndCopy(newStackFrame),
         heapObjects,
         externalObjectAllocation,
@@ -567,6 +591,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping.pushAndCopy(newStackFrame),
         heapObjects,
         externalObjectAllocation,
@@ -600,6 +625,7 @@ public class SymbolicProgramConfiguration {
       return of(
           newSmg,
           globalVariableMapping,
+          atExitStack,
           newStack,
           heapObjects,
           externalObjectAllocation,
@@ -625,6 +651,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddObject(pObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.addAndCopy(pObject),
         externalObjectAllocation,
@@ -635,7 +662,7 @@ public class SymbolicProgramConfiguration {
         readBlacklist);
   }
 
-  // Only to be used by materialization to copy a SMGObject
+  // Only to be used by materialization to copy an SMGObject
   public SymbolicProgramConfiguration copyAllValuesFromObjToObj(
       SMGObject source, SMGObject target) {
     return copyHVEdgesFromTo(source, target);
@@ -677,6 +704,7 @@ public class SymbolicProgramConfiguration {
         of(
             newSMG.copyAndSetHVEdges(setOfValues, target),
             globalVariableMapping,
+            atExitStack,
             stackVariableMapping,
             heapObjects,
             externalObjectAllocation,
@@ -729,6 +757,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.replaceAllPointersTowardsWith(pointerValue, newTarget),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -737,6 +766,24 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap,
         mallocZeroMemory,
         readBlacklist);
+  }
+
+  public PersistentStack<Value> getAtExitStack() {
+    return atExitStack;
+  }
+
+  public SymbolicProgramConfiguration copyAndReplaceAtExitStack(PersistentStack<Value> pStack) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        pStack,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -788,7 +835,9 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap;
     for (SMGObject object : frame.getAllObjects()) {
       // Don't invalidate objects that are referenced by another stack frame!
-      if (!validObjects.contains(object)) {
+      // Pointers from may be given as array argument, then we have the object, but don't own it,
+      // hence no heap objs.
+      if (!validObjects.contains(object) && !isHeapObject(object)) {
         newSmg = newSmg.copyAndInvalidateObject(object, false);
         newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
@@ -801,6 +850,7 @@ public class SymbolicProgramConfiguration {
     return of(
         newSmg,
         globalVariableMapping,
+        atExitStack,
         newStack,
         heapObjects,
         externalObjectAllocation,
@@ -825,6 +875,7 @@ public class SymbolicProgramConfiguration {
     return of(
         pSmg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -851,17 +902,14 @@ public class SymbolicProgramConfiguration {
     SMGObjectsAndValues reachable = smg.collectReachableObjectsAndValues(visibleObjects);
     Set<SMGObject> unreachableObjects =
         new HashSet<>(Sets.difference(smg.getObjects(), reachable.getObjects()));
-    Set<SMGValue> unreachableValues =
-        new HashSet<>(Sets.difference(smg.getValues().keySet(), reachable.getValues()));
-    // Remove 0 Value and object
+
+    // Remove 0 object
     unreachableObjects =
         unreachableObjects.stream()
             .filter(this::isObjectValid)
             .collect(ImmutableSet.toImmutableSet());
-    unreachableValues =
-        unreachableValues.stream().filter(v -> !v.isZero()).collect(ImmutableSet.toImmutableSet());
-    SMG newSmg =
-        smg.copyAndRemoveObjects(unreachableObjects).copyAndRemoveValues(unreachableValues);
+
+    SMG newSmg = smg.copyAndRemoveObjects(unreachableObjects);
     // copy into return collection
     PersistentSet<SMGObject> newHeapObjects = heapObjects;
     PersistentMap<SMGObject, BigInteger> newMemoryAddressAssumptionsMap =
@@ -875,6 +923,7 @@ public class SymbolicProgramConfiguration {
         of(
             newSmg,
             globalVariableMapping,
+            atExitStack,
             stackVariableMapping,
             newHeapObjects,
             externalObjectAllocation,
@@ -918,6 +967,7 @@ public class SymbolicProgramConfiguration {
         of(
             newSMG,
             globalVariableMapping,
+            atExitStack,
             stackVariableMapping,
             newHeapObject,
             externalObjectAllocation,
@@ -943,10 +993,13 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration replacePointerValuesWithExistingOrNew(
-      SMGObject pOldTargetObj,
-      SMGValue pointerToNewObj,
-      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
-    Preconditions.checkArgument(smg.isPointer(pointerToNewObj));
+      SMGObject pOldTargetObj, SMGValue pointerToNewObj, Set<SMGTargetSpecifier> pSpecifierToSwitch)
+      throws SMGException {
+    if (!smg.isPointer(pointerToNewObj)) {
+      throw new SMGException(
+          "Non-address value found when trying to replace a pointer. This might be caused by"
+              + " overapproximations, e.g. removal of concrete values (null).");
+    }
     SMGObject newTargetObj = smg.getPTEdge(pointerToNewObj).orElseThrow().pointsTo();
 
     SMGAndSMGValues newSMGAndNewValuesForMapping =
@@ -960,6 +1013,133 @@ public class SymbolicProgramConfiguration {
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj));
     }
     return newSPC;
+  }
+
+  public SymbolicProgramConfiguration replaceValueWithAndCopy(Value oldValue, Value newValue)
+      throws SMGException {
+    // This has to find all occurrences of oldValue, even nested in other expressions, and replace
+    // them
+    if (oldValue.equals(newValue)) {
+      return this;
+    }
+
+    boolean found = false;
+    Map<Value, SMGValue> valuesToUpdate = new HashMap<>();
+    for (Entry<Equivalence.Wrapper<Value>, SMGValue> mapping : valueMapping.entrySet()) {
+      Value mappedValue = mapping.getKey().get();
+      if (mappedValue.equals(oldValue)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+        found = true;
+        continue;
+      } else if (mappedValue instanceof ConstantSymbolicExpression constSym
+          && constSym.getValue() instanceof SymbolicIdentifier symIdent
+          && symIdent.equals(oldValue)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+        found = true;
+        continue;
+      }
+      Set<SymbolicIdentifier> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
+      if (oldValue instanceof SymbolicIdentifier oldSymIden && identsInValue.contains(oldSymIden)) {
+        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
+      }
+    }
+
+    // TODO:
+    // Values in valuesToUpdate have to be updated in the following way:
+    // 1. Get the value containing a sym value that is to be assigned
+    // 2. Replace the sym value with the concrete value
+    // 3. Evaluate the expression, as it might now change
+    // 4. replace the old value of 1. with the new value of 3.
+
+    if (valuesToUpdate.size() != 1 || !found) {
+      // TODO: implement
+      throw new SMGException(
+          "Error trying to assign more than one symbolic value with a concrete value.");
+    }
+
+    SymbolicProgramConfiguration newSPC = this;
+    for (Entry<Value, SMGValue> valueMappingToUpdate : valuesToUpdate.entrySet()) {
+      Value correctOldValue = valueMappingToUpdate.getKey();
+      if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(newValue))) {
+        // No mapping for the new value means we can just replace the mapping as it is not yet in
+        // the SMG. We just have to remove the old mapping first.
+        if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(correctOldValue))) {
+          // Not mapping is known at all
+          SMGValue newSMGValue = SMGValue.of();
+          return newSPC.copyAndPutValue(newValue, newSMGValue, 0);
+        } else {
+          SMGValue oldSMGValue = valueMappingToUpdate.getValue();
+          ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> newValueMapping =
+              ImmutableBiMap.builder();
+
+          for (Entry<Wrapper<Value>, SMGValue> mappedValue : newSPC.valueMapping.entrySet()) {
+            if (mappedValue.getValue() != oldSMGValue) {
+              newValueMapping.put(mappedValue);
+            }
+          }
+          newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+
+          return newSPC.copyAndPutValue(newValue, oldSMGValue, 0);
+        }
+      }
+      SMGValue newSMGValue = newSPC.getSMGValueFromValue(newValue).orElseThrow();
+      SMGValue oldSMGValue = newSPC.getSMGValueFromValue(correctOldValue).orElseThrow();
+      Preconditions.checkArgument(
+          newSPC.smg.getNestingLevel(newSMGValue) == newSPC.smg.getNestingLevel(oldSMGValue));
+      // Actually go into the SMG and replace the SMGValues for oldValue
+      newSPC =
+          newSPC.copyWithNewSMG(
+              newSPC.smg.replaceValueWithAndCopy(correctOldValue, oldSMGValue, newSMGValue));
+    }
+    ImmutableBiMap.Builder<Wrapper<Value>, SMGValue> newValueMapping = ImmutableBiMap.builder();
+    Collection<SMGValue> valueMappingsToRemove = valuesToUpdate.values();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      if (!valueMappingsToRemove.contains(mappedValue.getValue())) {
+        newValueMapping.put(mappedValue);
+      }
+    }
+    newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+    assert newSPC.checkValueMappingConsistency();
+    return newSPC;
+  }
+
+  /**
+   * Returns all {@link ConstantSymbolicExpression}s with {@link SymbolicIdentifier}s inside located
+   * in the given value. Preserves type info in the const expr.
+   */
+  protected Map<SymbolicIdentifier, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
+    ConstantSymbolicExpressionLocator symIdentVisitor =
+        ConstantSymbolicExpressionLocator.getInstance();
+    ImmutableMap.Builder<SymbolicIdentifier, CType> identsBuilder = ImmutableMap.builder();
+    // Get all symbolic values in sizes (they might not have an SMGValue mapping anymore below!)
+    if (value instanceof SymbolicValue symValue) {
+      for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
+        if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
+          identsBuilder.put(symIdent, (CType) constSym.getType());
+        }
+      }
+    }
+    return identsBuilder.buildOrThrow();
+  }
+
+  protected Set<SymbolicIdentifier> getSymbolicIdentifiersForValue(Value value) {
+    return getSymbolicIdentifiersWithTypesForValue(value).keySet();
+  }
+
+  private boolean checkValueMappingConsistency() {
+    Set<SMGValue> existingSMGValuesInMapping = new HashSet<>();
+    Set<Value> existingValuesInMapping = new HashSet<>();
+    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
+      // Double entry check
+      if (existingSMGValuesInMapping.contains(mappedValue.getValue())) {
+        return false;
+      } else if (existingValuesInMapping.contains(mappedValue.getKey().get())) {
+        return false;
+      }
+      existingValuesInMapping.add(mappedValue.getKey().get());
+      existingSMGValuesInMapping.add(mappedValue.getValue());
+    }
+    return smg.checkValueMappingConsistency(valueMapping, valueWrapper);
   }
 
   /**
@@ -979,6 +1159,7 @@ public class SymbolicProgramConfiguration {
       return of(
           smg.copyAndAddValue(smgValue, nestingLevel),
           globalVariableMapping,
+          atExitStack,
           stackVariableMapping,
           heapObjects,
           externalObjectAllocation,
@@ -991,6 +1172,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg.copyAndAddValue(smgValue, nestingLevel),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1013,6 +1195,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, false),
@@ -1024,7 +1207,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Changes the validity of a external object to valid.
+   * Changes the validity of an external object to valid.
    *
    * @param pObject the {@link SMGObject} that is externally allocated to be set to valid.
    * @return A copy of this SPC with the validity of the external object changed.
@@ -1033,6 +1216,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, true),
@@ -1118,6 +1302,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, true),
@@ -1139,6 +1324,7 @@ public class SymbolicProgramConfiguration {
     return of(
         pSMG,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1161,6 +1347,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1181,6 +1368,7 @@ public class SymbolicProgramConfiguration {
     return of(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1192,7 +1380,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Adds a SMGObject to the list of known SMGObjects, but nothing else.
+   * Adds an SMGObject to the list of known SMGObjects, but nothing else.
    *
    * @param newObject the new {@link SMGObject}.
    * @return a copy of the SPC + the object added.
@@ -1206,12 +1394,28 @@ public class SymbolicProgramConfiguration {
    * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
    * in the global variables and returns the variable if found. If it is not found, the {@link
    * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
-   * is written. Read with the correct type!
+   * is written. Read with the correct type! This will peek the previous stack frame if the current
+   * stack frame is not fully initialized.
    *
    * @param pName Name of the variable you want to search for as a {@link String}.
    * @return {@link Optional} that contains the variable if found, but is empty if not found.
    */
   public Optional<SMGObject> getObjectForVisibleVariable(String pName) {
+    return getObjectForVisibleVariable(pName, true);
+  }
+
+  /**
+   * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
+   * in the global variables and returns the variable if found. If it is not found, the {@link
+   * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
+   * is written. Read with the correct type!
+   *
+   * @param pName Name of the variable you want to search for as a {@link String}.
+   * @param peekPreviousFrame peeks the previous frame if the current one is not fully initialized
+   *     and this parameter is true.
+   * @return {@link Optional} that contains the variable if found, but is empty if not found.
+   */
+  public Optional<SMGObject> getObjectForVisibleVariable(String pName, boolean peekPreviousFrame) {
     // globals
     if (globalVariableMapping.containsKey(pName)) {
       return Optional.of(globalVariableMapping.get(pName));
@@ -1221,7 +1425,7 @@ public class SymbolicProgramConfiguration {
     if (stackVariableMapping.isEmpty()) {
       return Optional.empty();
     }
-    // Only look in the current stack frame
+    // Only look in the current stack frame for now
     StackFrame currentFrame = stackVariableMapping.peek();
     if (pName.contains("::")) {
       String variableFunctionName = pName.substring(0, pName.indexOf(':'));
@@ -1240,6 +1444,16 @@ public class SymbolicProgramConfiguration {
         }
       }
     }
+
+    if (!peekPreviousFrame) {
+      if (currentFrame.containsVariable(pName)) {
+        return Optional.of(currentFrame.getVariable(pName));
+      } else {
+        // no variable found
+        return Optional.empty();
+      }
+    }
+
     int sizeOfVariables = currentFrame.getVariables().size();
     if (currentFrame.hasVariableArguments()) {
       sizeOfVariables = sizeOfVariables + currentFrame.getVariableArguments().size();
@@ -1255,12 +1469,13 @@ public class SymbolicProgramConfiguration {
         }
       }
     }
+
     if (currentFrame.containsVariable(pName)) {
       return Optional.of(currentFrame.getVariable(pName));
+    } else {
+      // no variable found
+      return Optional.empty();
     }
-
-    // no variable found
-    return Optional.empty();
   }
 
   /* Only used to reconstruct the state after interpolation! */
@@ -1318,7 +1533,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Checks if a smg object is valid in the current context.
+   * Checks if an SMG object is valid in the current context.
    *
    * @param pObject - the object to be checked
    * @return smg.isValid(pObject)
@@ -1342,13 +1557,17 @@ public class SymbolicProgramConfiguration {
   public SMGHasValueEdgesAndSPC readValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits, boolean preciseRead)
       throws SMGException {
-    if (readBlacklist.contains(pObject)) {
-      throw new SMGException("Complex entry function arguments can not be handled at the moment.");
-    }
+    checkReadBlackList(pObject);
     SMGAndHasValueEdges newSMGAndValue =
         smg.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
     return SMGHasValueEdgesAndSPC.of(
         newSMGAndValue.getHvEdges(), copyAndReplaceSMG(newSMGAndValue.getSMG()));
+  }
+
+  public void checkReadBlackList(SMGObject pObject) throws SMGException {
+    if (readBlacklist.contains(pObject)) {
+      throw new SMGException("Complex entry function arguments can not be handled at the moment.");
+    }
   }
 
   /**
@@ -1405,9 +1624,8 @@ public class SymbolicProgramConfiguration {
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge =
         new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
-    if (target instanceof SMGSinglyLinkedListSegment) {
-      Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
+    if (target instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      Preconditions.checkArgument(sMGSinglyLinkedListSegment.getMinLength() >= nestingLevel);
     }
     Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
@@ -1433,9 +1651,8 @@ public class SymbolicProgramConfiguration {
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge = new SMGPointsToEdge(target, offsetInBits, specifier);
-    if (target instanceof SMGSinglyLinkedListSegment) {
-      Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
+    if (target instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      Preconditions.checkArgument(sMGSinglyLinkedListSegment.getMinLength() >= nestingLevel);
     }
     Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
@@ -1543,7 +1760,7 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Returns true if the value entered is a pointer in the current SPC. This checks for the
-   * existence of a known mapping from Value to SMGValue to a SMGPointsToEdge.
+   * existence of a known mapping from Value to SMGValue to an SMGPointsToEdge.
    *
    * @param maybePointer {@link Value} that you want to check.
    * @return true is the entered {@link Value} is an address that points to a memory location. False
@@ -1564,6 +1781,20 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration writeValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits, SMGValue pValue) {
     return copyAndReplaceSMG(smg.writeValue(pObject, pFieldOffset, pSizeofInBits, pValue));
+  }
+
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(SMGObject pObject) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject));
+  }
+
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(
+      SMGObject pObject, BigInteger startingFromOffsetInBits) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject, startingFromOffsetInBits));
+  }
+
+  public SymbolicProgramConfiguration copyAndRemoveAllEdgesFrom(
+      SMGObject pObject, BigInteger offsetInBits, BigInteger sizeInBits) {
+    return copyAndReplaceSMG(smg.copyAndRemoveAllEdgesFrom(pObject, offsetInBits, sizeInBits));
   }
 
   /**
@@ -1740,6 +1971,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndSetTargetSpecifierForPtrsTowards(target, nestingLvlToChange, specifierToSet),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1758,6 +1990,7 @@ public class SymbolicProgramConfiguration {
         smg.copyAndSetTargetSpecifierForPtrsTowards(
             target, nestingLvlToChange, specifierToSet, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1772,6 +2005,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndSetTargetSpecifierForPointer(pPtrValue, specifierToSet),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1789,6 +2023,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemoveObjects(ImmutableSet.of(obj)),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.removeAndCopy(obj),
         externalObjectAllocation,
@@ -1806,6 +2041,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemoveAbstractedObjectFromHeap(obj),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects.removeAndCopy(obj),
         externalObjectAllocation,
@@ -1829,6 +2065,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.replaceAllPointersTowardsWith(oldObj, newObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1852,6 +2089,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.replaceAllPointersTowardsWithAndDecrementNestingLevel(oldObj, newObject),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1877,6 +2115,7 @@ public class SymbolicProgramConfiguration {
         smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(
             oldObj, newObject, incrementAmount),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1907,6 +2146,7 @@ public class SymbolicProgramConfiguration {
         smg.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
             oldObj, newObject, replacementLevel, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1936,6 +2176,7 @@ public class SymbolicProgramConfiguration {
         smg.replacePointersWithSMGValue(
             oldTargetObj, replacementValue, nestingLevelToSwitch, specifierToSwitch),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1950,6 +2191,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndReplaceHVEdgesAt(objectToReplace, newHVEdges),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1964,6 +2206,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndReplaceHVEdgeAt(object, offsetInBits, sizeInBits, newHVEdge),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -1984,6 +2227,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -2006,6 +2250,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg.copyAndRemovePointsToEdgeWithoutSideEffects(value).copyAndRemoveValue(value),
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -2037,6 +2282,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -2056,6 +2302,7 @@ public class SymbolicProgramConfiguration {
     return new SymbolicProgramConfiguration(
         smg,
         globalVariableMapping,
+        atExitStack,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
@@ -2091,7 +2338,7 @@ public class SymbolicProgramConfiguration {
       }
       for (SMGHasValueEdge valueEdge :
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()), smg.getEdges(memory))) {
+              Comparator.comparing(SMGHasValueEdge::getOffset), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
@@ -2128,21 +2375,16 @@ public class SymbolicProgramConfiguration {
       }
       if (stackframe.getReturnObject().isPresent()) {
         // There is a return object!
-        String retObjString = "";
+        builder.append("\nFunction ").append(funName).append(" return object :");
         if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
-          retObjString = retObjString + stackframe.getReturnObject().orElseThrow();
+          builder.append(stackframe.getReturnObject().orElseThrow());
         } else {
-          retObjString = retObjString + " invalid " + stackframe.getReturnObject().orElseThrow();
+          builder.append(" invalid ").append(stackframe.getReturnObject().orElseThrow());
         }
-        builder.append("\n");
-        builder
-            .append("Function ")
-            .append(funName)
-            .append(" return object ")
-            .append(":" + retObjString + " with values: ");
+        builder.append(" with values: ");
         for (SMGHasValueEdge valueEdge :
             ImmutableList.sortedCopyOf(
-                Comparator.comparing(o -> o.getOffset()),
+                Comparator.comparing(SMGHasValueEdge::getOffset),
                 smg.getEdges(stackframe.getReturnObject().orElseThrow()))) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
@@ -2191,7 +2433,7 @@ public class SymbolicProgramConfiguration {
               .append("\n");
         }
         for (SMGHasValueEdge valueEdge :
-            ImmutableList.sortedCopyOf(Comparator.comparing(o -> o.getOffset()), edges)) {
+            ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
@@ -2227,7 +2469,7 @@ public class SymbolicProgramConfiguration {
       }
       ImmutableList<SMGHasValueEdge> orderedHVes =
           ImmutableList.sortedCopyOf(
-              Comparator.comparing(o -> o.getOffset()),
+              Comparator.comparing(SMGHasValueEdge::getOffset),
               smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
 
       builder
@@ -2280,25 +2522,39 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration removeUnusedValues() {
+    // TODO: this is incomplete and wrong. We also remove values still used in hve offsets/sizes
+    //  and object sizes
     PersistentMap<SMGValue, PersistentMap<SMGObject, Integer>> valuesToRegionsTheyAreSavedIn =
         smg.getValuesToRegionsTheyAreSavedIn();
     Set<SMGValue> allValues = smg.getValues().keySet();
     SymbolicProgramConfiguration newSPC = this;
     ImmutableSet.Builder<SMGValue> valueMappingsToRemoveBuilder = ImmutableSet.builder();
     SMG newSMG = smg;
+    outer:
     for (SMGValue value : allValues) {
       Optional<Value> maybeMapping = getValueFromSMGValue(value);
-      // Don't remove zero ever
+
+      // Don't remove zero ever, and don't remove values that are referenced by the atexit stack
       // Remove everything that is not used and not a numeric value
       //   (they don't do harm and having a mapping is quicker later)
       if (!value.isZero()
           && !valuesToRegionsTheyAreSavedIn.containsKey(value)
           && (maybeMapping.isEmpty() || !maybeMapping.orElseThrow().isNumericValue())) {
+        // Check if the value is referenced by the atexit stack
+        if (maybeMapping.isPresent()) {
+          for (Value atExitAddressValue : atExitStack) {
+            Value mappedValue = maybeMapping.orElseThrow();
+            if (atExitAddressValue.equals(mappedValue)) {
+              continue outer;
+            }
+          }
+        }
         // Remove from PTEs and values
         if (newSMG.isPointer(value)) {
           newSMG = newSPC.getSmg().copyAndRemovePointsToEdge(value);
         }
         newSMG = newSMG.copyAndRemoveValue(value);
+        // TODO: this empty saves us from removing values, see todo above!
         valueMappingsToRemoveBuilder.add();
       }
     }
@@ -2311,5 +2567,11 @@ public class SymbolicProgramConfiguration {
       }
     }
     return newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
+  }
+
+  public boolean isPointingToMallocZero(SMGValue pSMGValue) {
+    return !mallocZeroMemory.isEmpty()
+        && getSmg().isPointer(pSMGValue)
+        && mallocZeroMemory.containsKey(getSmg().getPTEdge(pSMGValue).orElseThrow().pointsTo());
   }
 }

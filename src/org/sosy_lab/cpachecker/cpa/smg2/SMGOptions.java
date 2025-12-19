@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import org.sosy_lab.common.configuration.Configuration;
@@ -18,9 +19,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  private int actualConcreteValueForSymbolicOffsetsAssignmentMaximum = 0;
 
   @Option(
       secure = true,
@@ -71,40 +75,139 @@ public class SMGOptions {
       secure = true,
       toUppercase = true,
       name = "handleUnknownFunctions",
-      description = "Sets how unknown functions are handled.")
-  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+      description =
+          "Sets how unknown functions are handled.\n"
+              + "STRICT: Unknown functions cause a stop in the analysis, i.e. known and handled"
+              + " functions are evaluated normally. \n"
+              + "ASSUME_SAFE: unknown functions are assumed to be safe. No input into the function"
+              + " is checked for validity and the result is a UNKNOWN value (which may itself"
+              + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
+              + " effects, the unknown return value etc.!\n"
+              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and may"
+              + " cause memory based errors. Returned values are unknown, but in a valid new memory"
+              + " section that can be freed normally. Functions allocating external memory and"
+              + " returning their address can be defined with option externalAllocationFunction and"
+              + " externalAllocationSize.\n"
+              + "Functions defined in option \"safeUnknownFunctions\" are handled equally to"
+              + " ASSUME_SAFE in all cases.")
+  private UnknownFunctionHandling handleUnknownFunctions =
+      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
 
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "List of functions that are always considered as safe, i.e. they are not evaluated, even"
+              + " if known to the analysis, nor are their inputs checked for validity. They always"
+              + " return a new, unknown value and therefore overapproximate if their signature does"
+              + " not return void. Using this option might be unsound, depending on the function.")
+  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("");
 
   @Option(
       secure = true,
-      name = "overapproximateForSymbolicWrite",
+      name = "overapproximateSymbolicOffsets",
       description =
-          "If this Option is enabled, all values of a memory region that is written to with a"
-              + " symbolic and non unique offset are deleted and the value itself is"
-              + " overapproximated to unknown in the memory region.")
-  private boolean overapproximateForSymbolicWrite = true;
+          "If this Option is enabled, all values of a memory region that is written or read with a"
+              + " symbolic offset are overapproximated. I.e. when writing to a memory region, all"
+              + " previous values are deleted and the memory region is overapproximated so that"
+              + " only unknown values are in the memory region after the write. When reading, all"
+              + " possible reads are evaluated. Can not be used at the same time as option"
+              + " findConcreteValuesForSymbolicOffsets.")
+  private boolean overapproximateSymbolicOffsets = false;
 
   @Option(
       secure = true,
-      name = "overapproximateValuesForSymbolicSize",
+      name = "findConcreteValuesForSymbolicOffsets",
       description =
-          "If this Option is enabled, all values of a memory region that is written to with a"
-              + " symbolic and non-unique offset in symbolically sized memory are deleted and the"
-              + " value itself is overapproximated to unknown in the memory region.")
-  private boolean overapproximateValuesForSymbolicSize = false;
+          "If this Option is enabled, all symbolic offsets used when writing to memory are"
+              + " evaluated into all possible concrete values by an SMT solver. This might be very"
+              + " expensive, as all possible combinations of values for the symbolic offsets are"
+              + " concretely evaluated. May not be used together with option"
+              + " overapproximateForSymbolicWrite.")
+  private boolean findConcreteValuesForSymbolicOffsets = false;
 
-  public boolean isOverapproximateValuesForSymbolicSize() {
-    return overapproximateValuesForSymbolicSize;
+  @Option(
+      secure = true,
+      name = "concreteValueForSymbolicOffsetsAssignmentMaximum",
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateSymbolicOffsetsAsFallback"
+              + " specifies.")
+  private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
+
+  /* TODO:
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicOffsetsAsFallback",
+        description =
+            "If this Option is enabled, and concreteValueForSymbolicOffsetsAssignmentMaximum reaches"
+                + " its maximum, the one last not assigned offset of a memory region that is written"
+                + " or read with a symbolic offset is overapproximated as specified in"
+                + " findConcreteValuesForSymbolicOffsets. Otherwise, the analysis is aborted.")
+    private boolean overapproximateSymbolicOffsetsAsFallback = false;
+  */
+
+  /*
+  @Option(
+      secure = true,
+      description =
+          "If this Option is enabled, all symbolic type sizes used when writing to memory (i.e. the"
+              + " bit size of the type of the value written) are evaluated into all possible"
+              + " concrete values by an SMT solver. This might be very expensive, as all possible"
+              + " combinations of values for the symbolic values are concretely evaluated. May not"
+              + " be used together with option overapproximateValuesForSymbolicTypeSize.")
+  private boolean findConcreteValuesForSymbolicTypeSize = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Maximum amount of concrete assignments before the assigning is aborted. The last offset"
+              + " is then once treated as option overapproximateValuesForSymbolicTypeSize"
+              + " specifies.")
+  private int findConcreteValuesForSymbolicTypeSizeAssignmentMaximum = 30;
+   */
+
+  // TODO: add findConcreteValuesForSymbolicTypeSize to text!
+  @Option(
+      secure = true,
+      description =
+          "If this Option is enabled, writing with symbolic sized value types are overapproximated."
+              + " I.e. the memory region affected is overapproximated, including the"
+              + " value itself, to unknown.")
+  private boolean overapproximateValuesForSymbolicTypeSize = false;
+
+  public boolean isOverapproximateValuesForSymbolicTypeSize() {
+    return overapproximateValuesForSymbolicTypeSize;
   }
 
-  public boolean isOverapproximateForSymbolicWrite() {
-    return overapproximateForSymbolicWrite;
+  public boolean isOverapproximateSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !overapproximateSymbolicOffsets || !findConcreteValuesForSymbolicOffsets);
+    return overapproximateSymbolicOffsets;
+  }
+
+  public boolean isFindConcreteValuesForSymbolicOffsets() {
+    Preconditions.checkArgument(
+        !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
+    return findConcreteValuesForSymbolicOffsets;
+  }
+
+  public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    return concreteValueForSymbolicOffsetsAssignmentMaximum;
+  }
+
+  public void incConcreteValueForSymbolicOffsetsAssignmentMaximum() throws SMGException {
+    if (actualConcreteValueForSymbolicOffsetsAssignmentMaximum
+        > concreteValueForSymbolicOffsetsAssignmentMaximum) {
+      throw new SMGException(
+          "Exceeded maximum number of concrete symbolic assignments"
+              + " concreteValueForSymbolicOffsetsAssignmentMaximum = "
+              + concreteValueForSymbolicOffsetsAssignmentMaximum);
+    }
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum++;
+  }
+
+  public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
+    actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
   }
 
   public enum UnknownFunctionHandling {
@@ -169,26 +272,36 @@ public class SMGOptions {
       description = "Allocation functions which set memory to zero")
   private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
 
+  @Option(
+      secure = true,
+      name = "enableZeroingOfSymbolicMemorySize",
+      description =
+          "If true, memory with symbolic size can be zeroed, which allows usage of zeroing"
+              + " allocation functions like calloc().")
+  private boolean enableZeroingOfSymbolicMemorySize = false;
+
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");
 
   @Option(
       secure = true,
       name = "externalAllocationFunction",
-      description = "Functions which indicate on external allocated memory")
+      description =
+          "Functions which return externally allocated memory with bit size defined by option"
+              + " externalAllocationSize")
   private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of("ext_allocation");
 
   @Option(
       secure = true,
       name = "externalAllocationSize",
-      description = "Default size of externally allocated memory")
+      description = "Default bit size of externally allocated memory")
   private int externalAllocationSize = Integer.MAX_VALUE;
 
   @Option(
       secure = true,
       name = "trackPredicates",
       description = "Enable track predicates on SMG state")
-  private boolean trackPredicates = false;
+  private boolean trackPredicates = true;
 
   private enum CheckStrategy {
     AT_ASSUME,
@@ -250,7 +363,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryErrors",
       description = "Determines if memory errors are target states")
-  private boolean memoryErrors = true;
+  private boolean memoryErrors = false;
 
   @Option(
       secure = true,
@@ -353,6 +466,14 @@ public class SMGOptions {
               + " that may not be accessed but freed is returned.")
   private boolean mallocZeroReturnsZero = false;
 
+  @Option(
+      secure = true,
+      name = "canAtexitFail",
+      description =
+          "If this Option is enabled, C function atexit() will return a succeeding and failing"
+              + " registration for each registration. Otherwise only succeeding.")
+  private boolean canAtexitFail = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -362,6 +483,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  public boolean canAtexitFail() {
+    return canAtexitFail;
   }
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
@@ -460,6 +585,10 @@ public class SMGOptions {
 
   public ImmutableSet<String> getZeroingMemoryAllocation() {
     return zeroingMemoryAllocation;
+  }
+
+  public boolean isEnableZeroingOfSymbolicMemorySize() {
+    return enableZeroingOfSymbolicMemorySize;
   }
 
   public ImmutableSet<String> getDeallocationFunctions() {

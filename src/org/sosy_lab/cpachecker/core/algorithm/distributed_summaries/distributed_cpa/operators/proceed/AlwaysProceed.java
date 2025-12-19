@@ -8,34 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class AlwaysProceed implements ProceedOperator {
+
+  AlwaysProceed() {}
+
   @Override
-  public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
-      throws InterruptedException {
-    return proceed(pMessage);
+  public DssMessageProcessing processForward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException, SolverException {
-    return proceed(pMessage);
+  public DssMessageProcessing processBackward(AbstractState pState) {
+    return DssMessageProcessing.proceed();
   }
-
-  @Override
-  public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage) {
-    return BlockSummaryMessageProcessing.proceed();
-  }
-
-  @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {}
-
-  @Override
-  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {}
 }

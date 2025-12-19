@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -33,18 +34,18 @@ public class IntervalReportWriter extends FaultReportWriter {
 
   public IntervalReportWriter(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
-    visitor = new FormulaToCVisitor(formulaManager);
+    visitor = new FormulaToCVisitor(formulaManager, Function.identity());
   }
 
   @Override
   public String toHtml(Fault pFault) {
-    if (pFault instanceof Interval) {
+    if (pFault instanceof Interval interval) {
       List<CFAEdge> edges =
           pFault.stream()
               .map(FaultContribution::correspondingEdge)
               .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
               .collect(ImmutableList.toImmutableList());
-      return intervalToHtml((Interval) pFault, pFault.getInfos(), edges);
+      return intervalToHtml(interval, pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);
     }
@@ -59,17 +60,9 @@ public class IntervalReportWriter extends FaultReportWriter {
     // Sorted insert
     for (FaultInfo info : infos) {
       switch (info.getType()) {
-        case FIX:
-          faultFix.add((PotentialFix) info);
-          break;
-        case REASON:
-          faultReasons.add((FaultReason) info);
-          break;
-        case RANK_INFO:
-          faultInfo.add((RankInfo) info);
-          break;
-        default:
-          throw new AssertionError("Unknown InfoType");
+        case FIX -> faultFix.add((PotentialFix) info);
+        case REASON -> faultReasons.add((FaultReason) info);
+        case RANK_INFO -> faultInfo.add((RankInfo) info);
       }
     }
     // every second entry symbolizes an interval (i.e. index/2 equals the current number of

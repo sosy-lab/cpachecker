@@ -97,9 +97,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "sets the level of the pathformulas to use for abstraction. \n"
-              + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
-              + "  BLOCK: Based on Pathformulas at Abstractionstates")
+          """
+          sets the level of the pathformulas to use for abstraction.\s
+            EDGE : Based on Pathformulas of every edge in ARGPath
+            BLOCK: Based on Pathformulas at Abstractionstates\
+          """)
   private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
@@ -157,7 +159,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             };
         // Test if the predicate of the error state is unsatisfiable
         try {
-          if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+          if (!solver.isUnsat(predicates.getLast())) {
             throw new RefinementFailedException(Reason.SequenceOfAssertionsToWeak, pAllStatesTrace);
           }
         } catch (SolverException e) {
@@ -261,7 +263,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
   }
 
   /**
-   * Calculates the StrongestPostCondition at all states on a error-trace.
+   * Calculates the StrongestPostCondition at all states on an error-trace.
    *
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
@@ -308,7 +310,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // Apply abstraction to postCondition and eliminate quantifiers if possible
         switch (edge.getEdgeType()) {
-          case AssumeEdge:
+          case AssumeEdge -> {
             if (!requiredPart.isEmpty()) {
               postCondition =
                   eliminateIntermediateVariables(
@@ -317,16 +319,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
               // Else no additional assertions
               postCondition = preCondition;
             }
-            break;
-          case StatementEdge:
-          case DeclarationEdge:
-          case FunctionCallEdge:
-          case ReturnStatementEdge:
-          case FunctionReturnEdge:
-            postCondition =
-                calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
-            break;
-          default:
+          }
+          case StatementEdge,
+              DeclarationEdge,
+              FunctionCallEdge,
+              ReturnStatementEdge,
+              FunctionReturnEdge ->
+              postCondition =
+                  calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
+          default -> {
             if (bfmgr.isTrue(pathFormula.getFormula())) {
               logger.log(
                   Level.FINE,
@@ -336,13 +337,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
               break;
             }
 
-            // Throw an exception if the type of the Edge is none of the above but it holds a
+            // Throw an exception if the type of the Edge is none of the above, but it holds a
             // PathFormula
             throw new UnsupportedOperationException(
                 "Found unsupported EdgeType in Newton Refinement: "
                     + edge.getDescription()
                     + " of Type :"
                     + edge.getEdgeType());
+          }
         }
 
         // Add to predicates iff location has an abstraction state
@@ -353,7 +355,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         preCondition = postCondition;
       }
 
-      // Remove the last predicate as it is should be false
+      // Remove the last predicate as it should be false
       return ImmutableList.copyOf(predicates);
     } finally {
       stats.postConditionTimer.stop();
@@ -377,7 +379,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand
     // variable
-    // Therefore its previous values can be existentially quantified in the preCondition
+    // Therefore, its previous values can be existentially quantified in the preCondition
     if (!requiredPart.isEmpty()) {
       toExist = bfmgr.and(preCondition, bfmgr.and(requiredPart));
     } else {
@@ -658,7 +660,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding ARGState
      *
-     * @return true iff there is a ARGState associated to the location
+     * @return whether there is an ARGState associated to the location
      */
     boolean hasCorrespondingARGState() {
       return state.isPresent();
@@ -667,7 +669,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding Abstraction state
      *
-     * @return true iff there is an corresponding state and this state also is an abstraction state
+     * @return whether there is a corresponding state and this state also is an abstraction state
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {

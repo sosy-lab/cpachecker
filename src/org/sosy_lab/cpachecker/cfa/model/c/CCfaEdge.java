@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-public interface CCfaEdge {
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+
+public interface CCfaEdge extends CFAEdge {
 
   <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X;
 }

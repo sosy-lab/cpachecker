@@ -206,7 +206,7 @@ public class BAMARGStatistics extends ARGStatistics {
             s -> s.getChildren().isEmpty() && !s.isCovered()
             // sometimes we find leaf-states that are at block-entry-locations,
             // and it seems that those states are "not" contained in the reachedSet.
-            // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
+            // I do not know the reason for this. To avoid invalid statistics, let's ignore them.
             // Possible case: entry state of an infinite loop, loop is a block without exit-state.
             // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
             );

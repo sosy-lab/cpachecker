@@ -25,7 +25,7 @@ abstract class AbstractScope implements Scope {
   protected final String currentFile;
 
   AbstractScope(String pCurrentFile) {
-    this.currentFile = pCurrentFile;
+    currentFile = pCurrentFile;
   }
 
   @Override

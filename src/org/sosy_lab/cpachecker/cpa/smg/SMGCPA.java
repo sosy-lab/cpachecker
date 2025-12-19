@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options(prefix = "cpa.smg")
@@ -96,7 +97,7 @@ public class SMGCPA
 
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     config = pConfig;

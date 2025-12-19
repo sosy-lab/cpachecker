@@ -29,9 +29,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -47,6 +48,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -72,6 +75,8 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
@@ -101,7 +106,7 @@ public class ARGStatistics implements Statistics {
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pixelGraphicFile = Path.of("ARG");
+  private Path pixelGraphicFile = null;
 
   @Option(secure = true, name = "proofWitness", description = "export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -131,6 +136,26 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-%s.yml");
+
+  @Option(
+      secure = true,
+      name = "svLibCorrectnessWitness",
+      description =
+          "The file into which to write the correctness "
+              + "witness for SV-LIB programs. "
+              + "If not set no witness will be exported.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
+
+  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
+  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
+  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
+  // added to make it possible to deactivate the export.
+  @Option(
+      secure = true,
+      name = "exportYamlCorrectnessWitness",
+      description = "export correctness witness in YAML format")
+  private boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -202,6 +227,12 @@ public class ARGStatistics implements Statistics {
       description = "export all automata into one zip-file, depends on 'automaton.export=true'")
   private boolean exportAutomatonZipped = true;
 
+  @Option(
+      secure = true,
+      name = "exportYamlWitnessesForUnknownVerdict",
+      description = "export witnesses for unknown verdicts")
+  private boolean exportYamlWitnessesForUnknownVerdict = true;
+
   protected final ConfigurableProgramAnalysis cpa;
   protected final CFA cfa;
 
@@ -212,6 +243,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
   private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private ARGToAutomatonConverter argToAutomatonSplitter;
@@ -224,7 +256,7 @@ public class ARGStatistics implements Statistics {
       Specification pSpecification,
       CFA pCFA)
       throws InvalidConfigurationException {
-    config.inject(this, ARGStatistics.class); // needed for sub-classes
+    config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
@@ -241,16 +273,26 @@ public class ARGStatistics implements Statistics {
         && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && yamlWitnessOutputFileTemplate == null) {
+        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
+        && svLibCorrectnessWitnessPath == null) {
       exportARG = false;
     }
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
-    if (yamlWitnessOutputFileTemplate != null) {
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
       argToWitnessWriter = new ARGToYAMLWitnessExport(config, pCFA, pSpecification, pLogger);
     } else {
       argToWitnessWriter = null;
+    }
+
+    Optional<SvLibCfaMetadata> svLibMetadata = cfa.getMetadata().getSvLibCfaMetadata();
+    if (svLibMetadata.isPresent() && svLibCorrectnessWitnessPath != null) {
+      argToSvLibWitnessWriter = new ArgToSvLibCorrectnessWitnessExport(pCFA, pLogger);
+    } else {
+      // We do not have SV-LIB metadata, or do not want to export witnesses
+      argToSvLibWitnessWriter = null;
+      svLibCorrectnessWitnessPath = null;
     }
 
     if (counterexampleOptions.disabledCompletely()) {
@@ -333,8 +375,8 @@ public class ARGStatistics implements Statistics {
     Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
     if (!counterexampleOptions.disabledCompletely()
-        && !counterexampleOptions.dumpErrorPathImmediately()
-        && pResult == Result.FALSE) {
+        && pResult == Result.FALSE
+        && !counterexampleOptions.dumpErrorPathImmediately()) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
@@ -399,13 +441,14 @@ public class ARGStatistics implements Statistics {
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
-      exportARG0(rootState, BiPredicates.pairIn(allTargetPathEdges), pResult);
+      exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
   private void exportARG0(
       final ARGState rootState,
+      final UnmodifiableReachedSet pReached,
       final BiPredicate<ARGState, ARGState> isTargetPathEdge,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
@@ -413,19 +456,13 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (pResult == Result.TRUE
+        || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        final Witness witness =
-            argWitnessExporter.generateProofWitness(
-                rootState,
-                Predicates.alwaysTrue(),
-                BiPredicates.alwaysTrue(),
-                argWitnessExporter.getProofInvariantProvider());
-
-        if (cfa.getMetadata().getInputLanguage() == Language.C) {
-          if (yamlWitnessOutputFileTemplate != null && argToWitnessWriter != null) {
+        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+          if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              argToWitnessWriter.export(rootState, yamlWitnessOutputFileTemplate);
+              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,
@@ -440,24 +477,41 @@ public class ARGStatistics implements Statistics {
               "Cannot export correctness witness in YAML format for languages other than C.");
         }
 
-        if (proofWitness != null) {
-          Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-          WitnessToOutputFormatsUtils.writeWitness(
-              witnessFile,
-              compressWitness,
-              pAppendable ->
-                  WitnessToOutputFormatsUtils.writeToGraphMl(
-                      witness, exportTrueInvariants, pAppendable),
-              logger);
+        // Now export the correctness witnesses for SV-LIB program
+        if (argToSvLibWitnessWriter != null && svLibCorrectnessWitnessPath != null) {
+          List<SvLibAnnotateTagCommand> witnessCommands =
+              argToSvLibWitnessWriter.generateWitnessCommands(rootState);
+          WitnessExportUtils.writeCommandsAsWitness(
+              svLibCorrectnessWitnessPath, witnessCommands, logger);
         }
 
-        if (proofWitnessDot != null) {
-          Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
-          WitnessToOutputFormatsUtils.writeWitness(
-              witnessFile,
-              compressWitness,
-              pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
-              logger);
+        if (proofWitness != null || proofWitnessDot != null) {
+          final Witness witness =
+              argWitnessExporter.generateProofWitness(
+                  rootState,
+                  Predicates.alwaysTrue(),
+                  BiPredicates.alwaysTrue(),
+                  argWitnessExporter.getProofInvariantProvider());
+
+          if (proofWitness != null) {
+            Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+            WitnessToOutputFormatsUtils.writeWitness(
+                witnessFile,
+                compressWitness,
+                pAppendable ->
+                    WitnessToOutputFormatsUtils.writeToGraphMl(
+                        witness, exportTrueInvariants, pAppendable),
+                logger);
+          }
+
+          if (proofWitnessDot != null) {
+            Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
+            WitnessToOutputFormatsUtils.writeWitness(
+                witnessFile,
+                compressWitness,
+                pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+                logger);
+          }
         }
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
@@ -576,13 +630,12 @@ public class ARGStatistics implements Statistics {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
-      ARGState s = (ARGState) targetState;
-      CounterexampleInfo cex =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
-              .orElse(null);
-      if (cex != null) {
-        counterexamples.put(s, cex);
+      if (!(targetState instanceof ARGState s)) {
+        continue;
       }
+
+      ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+          .ifPresent(cex -> counterexamples.put(s, cex));
     }
 
     Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();

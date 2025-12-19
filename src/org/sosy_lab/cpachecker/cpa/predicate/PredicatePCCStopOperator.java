@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class PredicatePCCStopOperator implements StopOperator {
+final class PredicatePCCStopOperator implements StopOperator {
 
   private final PredicateAbstractionManager paMgr;
   private final PathFormulaManager pMgr;
@@ -27,7 +27,7 @@ public class PredicatePCCStopOperator implements StopOperator {
 
   private final AbstractionFormula trueAbs;
 
-  public PredicatePCCStopOperator(
+  PredicatePCCStopOperator(
       PathFormulaManager pPfmgr, PredicateAbstractionManager pPredAbsManager, Solver pSolver) {
     paMgr = pPredAbsManager;
     pMgr = pPfmgr;

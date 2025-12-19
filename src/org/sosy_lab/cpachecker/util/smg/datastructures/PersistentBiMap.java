@@ -8,14 +8,19 @@
 
 package org.sosy_lab.cpachecker.util.smg.datastructures;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 
-public class PersistentBiMap<K extends Comparable<? super K>, V extends Comparable<? super V>> {
+public class PersistentBiMap<K extends Comparable<? super K>, V extends Comparable<? super V>>
+    implements Serializable {
   PersistentSortedMap<K, V> delegate;
   PersistentSortedMap<V, K> reverse;
+
+  @Serial private static final long serialVersionUID = 5512921121667778207L;
 
   private PersistentBiMap(PersistentSortedMap<K, V> pDelegate, PersistentSortedMap<V, K> pReverse) {
     delegate = pDelegate;

@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
@@ -35,6 +38,11 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   // an infinite loop, the CFA doesn't contain an exit node for the function. If this is the case,
   // this field is null.
   private @Nullable FunctionExitNode exitNode;
+
+  // Cache for getEnteringEdges that is backed by an ImmutableSet.
+  // This makes getEnteringEdges().contains(edge) much faster if there are many entering edges
+  // (which can happen for FunctionEntryNodes). Cf. #1388
+  private FluentIterable<CFAEdge> enteringEdges;
 
   protected FunctionEntryNode(
       final FileLocation pFileLocation,
@@ -87,7 +95,7 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
     return Lists.transform(functionDefinition.getParameters(), AParameterDeclaration::getName);
   }
 
-  public abstract List<? extends AParameterDeclaration> getFunctionParameters();
+  public abstract ImmutableList<? extends AParameterDeclaration> getFunctionParameters();
 
   /**
    * Return a declaration for a pseudo variable that can be used to store the return value of this
@@ -101,12 +109,40 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @Override
   public void addEnteringEdge(CFAEdge pEnteringEdge) {
     checkArgument(pEnteringEdge instanceof FunctionCallEdge);
+    enteringEdges = null;
     super.addEnteringEdge(pEnteringEdge);
+  }
+
+  @Override
+  public void removeEnteringEdge(CFAEdge pEdge) {
+    enteringEdges = null;
+    super.removeEnteringEdge(pEdge);
   }
 
   @Override
   public FunctionCallEdge getEnteringEdge(int pIndex) {
     return (FunctionCallEdge) super.getEnteringEdge(pIndex);
+  }
+
+  /**
+   * @deprecated use {@link #getEnteringCallEdges()} instead, it has a stronger return type
+   */
+  @Deprecated
+  @Override
+  public final FluentIterable<CFAEdge> getEnteringEdges() {
+    if (enteringEdges == null) {
+      // In general edges in sets are problematic to do their equals(),
+      // but for function-call edges there should never be two edges with the same predecessor and
+      // successor nodes.
+      enteringEdges = from(super.getEnteringEdges().toSet());
+      assert super.getEnteringEdges().size() == enteringEdges.size();
+    }
+    return enteringEdges;
+  }
+
+  @SuppressWarnings("unchecked")
+  public FluentIterable<? extends FunctionCallEdge> getEnteringCallEdges() {
+    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) getEnteringEdges();
   }
 
   @Override
@@ -131,5 +167,25 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @DoNotCall // safe to call but useless
   public final @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
     return null;
+  }
+
+  /**
+   * @deprecated use {@link #getEnteringCallEdges()} instead, there is no summary edge anyway
+   */
+  @Override
+  @Deprecated
+  @DoNotCall
+  public final FluentIterable<CFAEdge> getAllEnteringEdges() {
+    return getEnteringEdges();
+  }
+
+  /**
+   * @deprecated use {@link #getLeavingEdges()} instead, there is no summary edge anyway
+   */
+  @Override
+  @Deprecated
+  @DoNotCall
+  public final FluentIterable<CFAEdge> getAllLeavingEdges() {
+    return getLeavingEdges();
   }
 }

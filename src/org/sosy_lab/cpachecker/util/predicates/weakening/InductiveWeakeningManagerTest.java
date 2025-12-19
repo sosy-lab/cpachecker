@@ -53,8 +53,7 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
   @Before
   public void setUp() throws Exception {
     ShutdownNotifier notifier = ShutdownNotifier.createDummy();
-    inductiveWeakeningManager =
-        new InductiveWeakeningManager(new WeakeningOptions(config), solver, logger, notifier);
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, notifier);
     ifmgr = mgrv.getIntegerFormulaManager();
     bfmgr = mgrv.getBooleanFormulaManager();
   }
@@ -83,6 +82,8 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
 
   @Test
   public void testRemovingRedundancies() throws Exception {
+    requireIntegers();
+
     IntegerFormula x = ifmgr.makeVariable("x");
     IntegerFormula y = ifmgr.makeVariable("y");
     IntegerFormula zero = ifmgr.makeNumber(0);

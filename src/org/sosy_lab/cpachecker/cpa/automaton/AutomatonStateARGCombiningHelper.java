@@ -92,9 +92,7 @@ public class AutomatonStateARGCombiningHelper {
     try {
       for (AutomatonTransition transition : pPredecessor.getInternalState().getTransitions()) {
         exprArgs.clearTransitionVariables();
-        ResultValue<Boolean> match;
-
-        match = transition.getTrigger().eval(exprArgs);
+        ResultValue<Boolean> match = transition.getTrigger().eval(exprArgs);
         if (match.canNotEvaluate()) {
           return false;
         }

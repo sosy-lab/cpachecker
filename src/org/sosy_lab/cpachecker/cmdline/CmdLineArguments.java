@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -46,20 +45,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 class CmdLineArguments {
 
   private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
-
-  /** Exception thrown when something invalid is specified on the command line. */
-  public static class InvalidCmdlineArgumentException extends Exception {
-
-    @Serial private static final long serialVersionUID = -6526968677815416436L;
-
-    InvalidCmdlineArgumentException(final String msg) {
-      super(msg);
-    }
-
-    public InvalidCmdlineArgumentException(String msg, Throwable cause) {
-      super(msg, cause);
-    }
-  }
 
   private CmdLineArguments() {} // prevent instantiation, this is a static helper class
 
@@ -92,7 +77,7 @@ class CmdLineArguments {
           // For every argument, the main name (--long-form) needs to come first.
           new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
-              .withDescription("collect statistics during the analysis and print them afterwards"),
+              .withDescription("collect statistics during the analysis and print them afterward"),
           new PropertyAddingCmdLineArgument("--no-output-files", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
@@ -107,7 +92,7 @@ class CmdLineArguments {
               .withDescription("set platform to 64-bit x86 Linux (LP64)"),
           new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
-              .withDescription("execute a preprocessor before starting the analysis"),
+              .withDescription("execute an external preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
               .withReplacementInfo("setting the option 'parser.useClang=true'"),
@@ -200,7 +185,7 @@ class CmdLineArguments {
                         "%s argument must be a key=value pair, but \"%s\" is not.",
                         currentArg, argValue));
               }
-              putIfNotExistent(properties, bits.get(0), bits.get(1));
+              putIfNotExistent(properties, bits.getFirst(), bits.get(1));
             }
           }.withDescription("set an option directly"),
           new CmdLineArgument("--print-options", "-printOptions") {
