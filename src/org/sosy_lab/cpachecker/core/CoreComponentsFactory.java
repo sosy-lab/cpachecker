@@ -60,9 +60,9 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.SequentializationOperatorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
