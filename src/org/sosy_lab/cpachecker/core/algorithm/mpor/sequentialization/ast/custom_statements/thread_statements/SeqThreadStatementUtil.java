@@ -212,6 +212,9 @@ public final class SeqThreadStatementUtil {
 
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
     // first create pruned statements
+    if (!pInjectedStatements.isEmpty()) {
+      System.out.print("");
+    }
     ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
     // create the pc write
     CExpressionAssignmentStatement pcAssignmentStatement =

@@ -118,10 +118,13 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
         SeqThreadStatementBlock withRoundGoto =
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
                 options, block, labelClauseMap, binaryExpressionBuilder);
+        SeqThreadStatementBlock withSingleActiveThreadGoto =
+            NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
+                options, withRoundGoto, labelClauseMap, binaryExpressionBuilder);
         SeqThreadStatementBlock withSyncUpdate =
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 options,
-                withRoundGoto,
+                withSingleActiveThreadGoto,
                 ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
                 labelClauseMap);
         newBlocks.add(withSyncUpdate);

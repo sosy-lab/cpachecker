@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqRoundGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSingleActiveThreadGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
@@ -313,6 +314,57 @@ public class NondeterministicSimulationUtil {
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(roundSmallerMax, roundIncrement, pTargetGoto);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
+  }
+
+  // single active thread injections
+
+  static SeqThreadStatementBlock injectSingleActiveThreadIntoBlock(
+      MPOROptions pOptions,
+      SeqThreadStatementBlock pBlock,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
+    for (CSeqThreadStatement statement : pBlock.getStatements()) {
+      CSeqThreadStatement withSingleActiveThreadGoto =
+          tryInjectSingleActiveThreadGotoIntoStatement(
+              pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
+      newStatements.add(withSingleActiveThreadGoto);
+    }
+    return pBlock.withStatements(newStatements.build());
+  }
+
+  private static CSeqThreadStatement tryInjectSingleActiveThreadGotoIntoStatement(
+      MPOROptions pOptions,
+      CSeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    if (pStatement.getTargetPc().isPresent()) {
+      // int target is present -> retrieve label by pc from map
+      int targetPc = pStatement.getTargetPc().orElseThrow();
+      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+        // check if the target is a separate loop
+        if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
+          // thread_count == 1
+          CBinaryExpression threadCountEqualsOne =
+              pBinaryExpressionBuilder.buildBinaryExpression(
+                  SeqIdExpressions.THREAD_COUNT,
+                  SeqIntegerLiteralExpressions.INT_1,
+                  BinaryOperator.EQUALS);
+          SeqSingleActiveThreadGotoStatement singleActiveThreadGoto =
+              new SeqSingleActiveThreadGotoStatement(
+                  threadCountEqualsOne, Objects.requireNonNull(target).getFirstBlock().getLabel());
+          return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+              pStatement, singleActiveThreadGoto);
+        }
+      }
+    }
+    // no int target pc -> no replacement
+    return pStatement;
   }
 
   // sync injections ===============================================================================

@@ -211,9 +211,12 @@ record NumStatementsNondeterministicSimulation(
       throws UnrecognizedCodeException {
 
     SeqThreadStatementBlock withCountUpdate = tryInjectCountUpdatesIntoBlock(pBlock);
+    SeqThreadStatementBlock withSingleActiveThreadGoto =
+        NondeterministicSimulationUtil.injectSingleActiveThreadIntoBlock(
+            options, withCountUpdate, pLabelClauseMap, utils.binaryExpressionBuilder());
     SeqThreadStatementBlock withRoundGoto =
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-            options, withCountUpdate, pLabelClauseMap, utils.binaryExpressionBuilder());
+            options, withSingleActiveThreadGoto, pLabelClauseMap, utils.binaryExpressionBuilder());
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
         options, withRoundGoto, pSyncFlag, pLabelClauseMap);
   }
