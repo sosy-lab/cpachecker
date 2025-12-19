@@ -364,7 +364,7 @@ analysis.algorithm.MPOR.reduceIgnoreSleep = false
 analysis.algorithm.MPOR.reduceLastThreadOrder = false
 
 # Continue executing the current thread if it is the only active thread.
-analysis.algorithm.MPOR.reduceSingleActiveThread = false
+analysis.algorithm.MPOR.reduceSingleActiveThread = true
 
 # continue executing the current thread until it is in conflict with at least
 # another thread?

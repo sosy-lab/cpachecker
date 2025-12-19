@@ -171,7 +171,7 @@ public class MPOROptions {
   @Option(
       secure = true,
       description = "Continue executing the current thread if it is the only active thread.")
-  private boolean reduceSingleActiveThread = false;
+  private boolean reduceSingleActiveThread = true;
 
   @Option(
       secure = true,
