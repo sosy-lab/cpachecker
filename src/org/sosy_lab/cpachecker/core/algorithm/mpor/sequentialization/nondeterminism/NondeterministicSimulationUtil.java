@@ -66,25 +66,48 @@ public class NondeterministicSimulationUtil {
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource()) {
-      case NEXT_THREAD ->
-          new NextThreadNondeterministicSimulation(
-                  pOptions,
-                  pFields.clauses,
-                  pFields.ghostElements,
-                  pUtils.binaryExpressionBuilder())
-              .buildThreadSimulations();
+      case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS -> {
+        ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
+            buildNextThreadInnerMultiControlStatements(
+                pOptions, pFields, pUtils.binaryExpressionBuilder());
+        SeqMultiControlStatement outerMultiControlStatement =
+            NondeterministicSimulationUtil.buildOuterMultiControlStatement(
+                pOptions, innerMultiControlStatements, pUtils.binaryExpressionBuilder());
+        yield outerMultiControlStatement.toASTString();
+      }
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(
                   pOptions, pFields.clauses, pFields.ghostElements, pUtils)
               .buildThreadSimulations();
-      case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          new NextThreadAndNumStatementsNondeterministicSimulation(
-                  pOptions,
-                  pFields.clauses,
-                  pFields.ghostElements,
-                  pUtils.binaryExpressionBuilder())
-              .buildThreadSimulations();
     };
+  }
+
+  private static ImmutableMap<CExpression, SeqMultiControlStatement>
+      buildNextThreadInnerMultiControlStatements(
+          MPOROptions pOptions,
+          SequentializationFields pFields,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
+
+    ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
+        ImmutableMap.builder();
+    for (MPORThread thread : pFields.clauses.keySet()) {
+      CExpression clauseExpression =
+          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
+              pOptions.controlEncodingThread(),
+              SeqIdExpressions.NEXT_THREAD,
+              thread.id(),
+              pBinaryExpressionBuilder);
+      SeqMultiControlStatement multiControlStatement =
+          NondeterministicSimulationUtil.buildSingleThreadMultiControlStatement(
+              pOptions,
+              pFields.ghostElements,
+              thread,
+              pFields.clauses.get(thread),
+              pBinaryExpressionBuilder);
+      rStatements.put(clauseExpression, multiControlStatement);
+    }
+    return rStatements.buildOrThrow();
   }
 
   public static String buildSingleThreadSimulationByNondeterminismSource(
@@ -97,17 +120,17 @@ public class NondeterministicSimulationUtil {
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource()) {
-      case NEXT_THREAD ->
-          new NextThreadNondeterministicSimulation(
-                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
-              .buildSingleThreadSimulation(pThread);
+      case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS ->
+          buildSingleThreadMultiControlStatement(
+                  pOptions,
+                  pGhostElements,
+                  pThread,
+                  pClauses.get(pThread),
+                  pUtils.binaryExpressionBuilder())
+              .toASTString();
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(pOptions, pClauses, pGhostElements, pUtils)
               .buildSingleThreadSimulation(pThread, pOtherThreads);
-      case NEXT_THREAD_AND_NUM_STATEMENTS ->
-          new NextThreadAndNumStatementsNondeterministicSimulation(
-                  pOptions, pClauses, pGhostElements, pUtils.binaryExpressionBuilder())
-              .buildSingleThreadSimulation(pThread);
     };
   }
 
