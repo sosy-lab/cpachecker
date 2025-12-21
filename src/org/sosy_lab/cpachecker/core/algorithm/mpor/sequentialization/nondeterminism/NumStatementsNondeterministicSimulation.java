@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondetermi
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -23,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -52,14 +53,16 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
 record NumStatementsNondeterministicSimulation(
-    MPOROptions options, SequentializationFields fields, SequentializationUtils utils) {
+    MPOROptions options,
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
+    GhostElements ghostElements,
+    SequentializationUtils utils) {
 
   String buildThreadSimulations() throws UnrecognizedCodeException {
     StringBuilder rLines = new StringBuilder();
-    for (MPORThread thread : fields.clauses.keySet()) {
+    for (MPORThread thread : clauses.keySet()) {
       rLines.append(
-          buildSingleThreadSimulation(
-              thread, MPORUtil.withoutElement(fields.clauses.keySet(), thread)));
+          buildSingleThreadSimulation(thread, MPORUtil.withoutElement(clauses.keySet(), thread)));
     }
     return rLines.toString();
   }
@@ -72,14 +75,14 @@ record NumStatementsNondeterministicSimulation(
 
     // add "T{thread_id}: label", if present
     Optional<SeqThreadLabelStatement> threadLabel =
-        Optional.ofNullable(fields.ghostElements.threadLabels().get(pActiveThread));
+        Optional.ofNullable(ghostElements.threadLabels().get(pActiveThread));
     if (threadLabel.isPresent()) {
       rLines.append(threadLabel.orElseThrow().toASTString());
     }
 
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
-        fields.ghostElements.getPcVariables().getThreadActiveExpression(pActiveThread.id());
+        ghostElements.getPcVariables().getThreadActiveExpression(pActiveThread.id());
     ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
@@ -96,8 +99,7 @@ record NumStatementsNondeterministicSimulation(
     innerIfBlock.add(roundReset.toASTString());
 
     // add the thread simulation statements
-    innerIfBlock.add(
-        buildSingleThreadClausesWithCount(pActiveThread, fields.clauses.get(pActiveThread)));
+    innerIfBlock.add(buildSingleThreadClausesWithCount(pActiveThread, clauses.get(pActiveThread)));
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());
@@ -130,10 +132,10 @@ record NumStatementsNondeterministicSimulation(
             options,
             pActiveThread,
             pOtherThreads,
-            fields.ghostElements.bitVectorVariables().orElseThrow(),
+            ghostElements.bitVectorVariables().orElseThrow(),
             utils);
     // ensure that thread is not at a thread sync location: !sync && !conflict
-    CIdExpression syncFlag = fields.ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
+    CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(pActiveThread);
     CBinaryExpression notSync =
         utils.binaryExpressionBuilder().negateExpressionAndSimplify(syncFlag);
     ImmutableList<String> stringList =
@@ -154,15 +156,14 @@ record NumStatementsNondeterministicSimulation(
 
     StringBuilder rLines = new StringBuilder();
 
-    ProgramCounterVariables pcVariables = fields.ghostElements.getPcVariables();
+    ProgramCounterVariables pcVariables = ghostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
             options, pcVariables, pThread);
 
     ImmutableList<SeqThreadStatementClause> singleThreadClauses =
-        buildSingleThreadClauses(
-            fields.ghostElements.threadSyncFlags().getSyncFlag(pThread), pClauses);
+        buildSingleThreadClauses(ghostElements.threadSyncFlags().getSyncFlag(pThread), pClauses);
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             options,

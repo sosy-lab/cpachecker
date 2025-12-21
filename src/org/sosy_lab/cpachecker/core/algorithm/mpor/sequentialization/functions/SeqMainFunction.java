@@ -64,22 +64,14 @@ public final class SeqMainFunction extends SeqFunction {
           FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
 
   public SeqMainFunction(
-      MPOROptions pOptions,
-      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions,
-      SequentializationFields pFields,
-      SequentializationUtils pUtils)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    super(
-        MAIN_FUNCTION_DECLARATION,
-        buildBody(pOptions, pFields, pThreadSimulationFunctions, pUtils));
+    super(MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
   }
 
   private static String buildBody(
-      MPOROptions pOptions,
-      SequentializationFields pFields,
-      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions,
-      SequentializationUtils pUtils)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     StringBuilder rBody = new StringBuilder();
@@ -91,7 +83,7 @@ public final class SeqMainFunction extends SeqFunction {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
           NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
-              pOptions, pThreadSimulationFunctions.orElseThrow());
+              pOptions, pFields.threadSimulationFunctions.orElseThrow());
       functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
     } else {

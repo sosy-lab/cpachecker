@@ -264,8 +264,7 @@ public class SequentializationBuilder {
   // Function Declarations and Definitions =========================================================
 
   public static String buildFunctionDeclarations(
-      MPOROptions pOptions,
-      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions) {
+      MPOROptions pOptions, SequentializationFields pFields) {
 
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
     if (pOptions.comments()) {
@@ -288,7 +287,8 @@ public class SequentializationBuilder {
 
     // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction : pThreadSimulationFunctions.orElseThrow()) {
+      for (SeqThreadSimulationFunction threadFunction :
+          pFields.threadSimulationFunctions.orElseThrow()) {
         rDeclarations.add(threadFunction.declaration.toASTString());
       }
     }
@@ -298,10 +298,7 @@ public class SequentializationBuilder {
   }
 
   public static String buildFunctionDefinitions(
-      MPOROptions pOptions,
-      Optional<ImmutableList<SeqThreadSimulationFunction>> pThreadSimulationFunctions,
-      SequentializationFields pFields,
-      SequentializationUtils pUtils)
+      MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     StringJoiner rDefinitions = new StringJoiner(SeqSyntax.NEWLINE);
@@ -320,13 +317,13 @@ public class SequentializationBuilder {
     rDefinitions.add(assume.buildDefinition());
     // create separate thread simulation function definitions, if enabled
     if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction : pThreadSimulationFunctions.orElseThrow()) {
+      for (SeqThreadSimulationFunction threadFunction :
+          pFields.threadSimulationFunctions.orElseThrow()) {
         rDefinitions.add(threadFunction.buildDefinition());
       }
     }
     // create clauses in main method
-    SeqMainFunction mainFunction =
-        new SeqMainFunction(pOptions, pThreadSimulationFunctions, pFields, pUtils);
+    SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
     rDefinitions.add(mainFunction.buildDefinition());
     return rDefinitions.toString();
   }

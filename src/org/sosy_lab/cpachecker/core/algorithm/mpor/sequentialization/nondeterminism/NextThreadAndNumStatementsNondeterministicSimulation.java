@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -21,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
@@ -32,13 +32,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 record NextThreadAndNumStatementsNondeterministicSimulation(
     MPOROptions options,
-    SequentializationFields fields,
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
+    GhostElements ghostElements,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
   String buildThreadSimulations() throws UnrecognizedCodeException {
@@ -56,7 +58,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
   String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
 
     SeqMultiControlStatement multiControlStatement =
-        buildSingleThreadMultiControlStatementWithoutCount(pThread, fields.clauses.get(pThread));
+        buildSingleThreadMultiControlStatementWithoutCount(pThread, clauses.get(pThread));
     return multiControlStatement.toASTString();
   }
 
@@ -65,8 +67,8 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
 
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
-    for (MPORThread thread : fields.clauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> currentClauses = fields.clauses.get(thread);
+    for (MPORThread thread : clauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> currentClauses = clauses.get(thread);
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               options.controlEncodingThread(),
@@ -82,7 +84,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
       MPORThread pThread, ImmutableList<SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {
 
-    ProgramCounterVariables pcVariables = fields.ghostElements.getPcVariables();
+    ProgramCounterVariables pcVariables = ghostElements.getPcVariables();
     CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
     ImmutableList<CStatement> precedingStatements = buildPrecedingStatements(pThread);
     ImmutableList<SeqThreadStatementClause> currentClauses =
@@ -120,7 +122,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 options,
                 withRoundGoto,
-                fields.ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
+                ghostElements.threadSyncFlags().getSyncFlag(pActiveThread),
                 labelClauseMap);
         newBlocks.add(withSyncUpdate);
       }
@@ -144,7 +146,7 @@ record NextThreadAndNumStatementsNondeterministicSimulation(
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
         NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
-            options, fields.ghostElements.getPcVariables(), pThread);
+            options, ghostElements.getPcVariables(), pThread);
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
             options, pThread, binaryExpressionBuilder);

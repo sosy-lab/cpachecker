@@ -10,15 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -106,17 +103,8 @@ public class Sequentialization {
         SequentializationBuilder.buildThreadSimulationVariableDeclarations(pOptions, pFields));
 
     // add custom function declarations and definitions
-    Optional<ImmutableList<SeqThreadSimulationFunction>> threadSimulationFunctions =
-        pOptions.loopUnrolling()
-            ? Optional.of(
-                NondeterministicSimulationUtil.buildThreadSimulationFunctions(
-                    pOptions, pFields, pUtils))
-            : Optional.empty();
-    rProgram.add(
-        SequentializationBuilder.buildFunctionDeclarations(pOptions, threadSimulationFunctions));
-    rProgram.add(
-        SequentializationBuilder.buildFunctionDefinitions(
-            pOptions, threadSimulationFunctions, pFields, pUtils));
+    rProgram.add(SequentializationBuilder.buildFunctionDeclarations(pOptions, pFields));
+    rProgram.add(SequentializationBuilder.buildFunctionDefinitions(pOptions, pFields, pUtils));
 
     return rProgram.toString();
   }
