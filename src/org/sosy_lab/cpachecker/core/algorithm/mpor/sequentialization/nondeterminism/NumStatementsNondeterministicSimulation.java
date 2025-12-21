@@ -17,7 +17,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -80,10 +79,6 @@ record NumStatementsNondeterministicSimulation(
     // if (round_max > 0) ...
     String innerIfCondition = buildRoundMaxGreaterZeroExpression(pActiveThread, pOtherThreads);
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
-
-    // reset round only when needed i.e. after if (...) for performance
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
-    innerIfBlock.add(roundReset.toASTString());
 
     // add the thread simulation statements
     SeqMultiControlStatement singleThreadSimulation =

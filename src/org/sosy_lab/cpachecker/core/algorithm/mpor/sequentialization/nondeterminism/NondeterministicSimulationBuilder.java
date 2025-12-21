@@ -186,9 +186,12 @@ public class NondeterministicSimulationBuilder {
     return rFunctionCalls.build();
   }
 
-  static Optional<ImmutableList<CStatement>> buildNextThreadStatementsForThreadSimulationFunction(
-      MPOROptions pOptions, MPORThread pThread, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  private static Optional<ImmutableList<CStatement>>
+      buildNextThreadStatementsForThreadSimulationFunction(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
 
     checkArgument(
         pOptions.nondeterminismSource().isNextThreadNondeterministic(),
@@ -220,7 +223,7 @@ public class NondeterministicSimulationBuilder {
    * Creates the outer {@link SeqMultiControlStatement} used for matching the {@code next_thread}
    * variable.
    */
-  static SeqMultiControlStatement buildNextThreadOuterMultiControlStatement(
+  private static SeqMultiControlStatement buildNextThreadOuterMultiControlStatement(
       MPOROptions pOptions,
       ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -234,13 +237,14 @@ public class NondeterministicSimulationBuilder {
         pBinaryExpressionBuilder);
   }
 
-  static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
+  private static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
       MPOROptions pOptions, ProgramCounterVariables pPcVariables, MPORThread pThread) {
 
-    if (!pOptions.nondeterminismSource().isNextThreadNondeterministic()) {
-      // without next_thread, no assumption is required due to if (pc != -1) ... check
-      return Optional.empty();
-    }
+    checkArgument(
+        pOptions.nondeterminismSource().isNextThreadNondeterministic(),
+        "nondeterminismSource must contain NEXT_THREAD");
+    // only create the assumption when the pc is scalar,
+    // otherwise use assume(pc[next_thread] != 0) at loop head already
     if (pOptions.scalarPc()) {
       CBinaryExpression threadActiveExpression =
           pPcVariables.getThreadActiveExpression(pThread.id());
@@ -254,7 +258,7 @@ public class NondeterministicSimulationBuilder {
   // round and round_max statements/expressions ====================================================
 
   /** Returns the expression for {@code round = 1;} */
-  static CExpressionAssignmentStatement buildRoundReset() {
+  private static CExpressionAssignmentStatement buildRoundReset() {
     // r is set to 1, because we increment after the r < K check succeeds
     return SeqStatementBuilder.buildExpressionAssignmentStatement(
         SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
@@ -320,15 +324,14 @@ public class NondeterministicSimulationBuilder {
             Optional.empty());
       }
       case NUM_STATEMENTS -> {
-        Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            tryBuildPcUnequalExitAssumption(
-                pOptions, pGhostElements.getPcVariables(), pActiveThread);
+        CExpressionAssignmentStatement roundReset = buildRoundReset();
         yield MultiControlStatementBuilder.buildPrecedingStatements(
-            pcUnequalExitAssumption,
+            // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
             Optional.empty(),
             Optional.empty(),
             Optional.empty(),
-            Optional.empty());
+            Optional.empty(),
+            Optional.of(roundReset));
       }
       case NEXT_THREAD_AND_NUM_STATEMENTS -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
