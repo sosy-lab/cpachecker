@@ -74,7 +74,7 @@ public class NondeterministicSimulationBuilder {
             buildNextThreadInnerMultiControlStatements(
                 pOptions, pFields, pUtils.binaryExpressionBuilder());
         SeqMultiControlStatement outerMultiControlStatement =
-            NondeterministicSimulationBuilder.buildOuterMultiControlStatement(
+            buildNextThreadOuterMultiControlStatement(
                 pOptions, innerMultiControlStatements, pUtils.binaryExpressionBuilder());
         yield outerMultiControlStatement.toASTString();
       }
@@ -102,7 +102,7 @@ public class NondeterministicSimulationBuilder {
               thread.id(),
               pBinaryExpressionBuilder);
       SeqMultiControlStatement multiControlStatement =
-          NondeterministicSimulationBuilder.buildSingleThreadMultiControlStatement(
+          buildSingleThreadMultiControlStatement(
               pOptions,
               pFields.ghostElements,
               thread,
@@ -220,7 +220,7 @@ public class NondeterministicSimulationBuilder {
    * Creates the outer {@link SeqMultiControlStatement} used for matching the {@code next_thread}
    * variable.
    */
-  static SeqMultiControlStatement buildOuterMultiControlStatement(
+  static SeqMultiControlStatement buildNextThreadOuterMultiControlStatement(
       MPOROptions pOptions,
       ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -307,10 +307,10 @@ public class NondeterministicSimulationBuilder {
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
+            tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         Optional<ImmutableList<CStatement>> nextThreadStatements =
-            NondeterministicSimulationBuilder.buildNextThreadStatementsForThreadSimulationFunction(
+            buildNextThreadStatementsForThreadSimulationFunction(
                 pOptions, pActiveThread, pBinaryExpressionBuilder);
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -321,7 +321,7 @@ public class NondeterministicSimulationBuilder {
       }
       case NUM_STATEMENTS -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
+            tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -332,10 +332,10 @@ public class NondeterministicSimulationBuilder {
       }
       case NEXT_THREAD_AND_NUM_STATEMENTS -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
+            tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         Optional<ImmutableList<CStatement>> nextThreadStatements =
-            NondeterministicSimulationBuilder.buildNextThreadStatementsForThreadSimulationFunction(
+            buildNextThreadStatementsForThreadSimulationFunction(
                 pOptions, pActiveThread, pBinaryExpressionBuilder);
 
         CFunctionCallAssignmentStatement roundMaxNondetAssignment =
@@ -347,8 +347,7 @@ public class NondeterministicSimulationBuilder {
                     SeqIdExpressions.ROUND_MAX,
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN));
-        CExpressionAssignmentStatement roundReset =
-            NondeterministicSimulationBuilder.buildRoundReset();
+        CExpressionAssignmentStatement roundReset = buildRoundReset();
 
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -402,11 +401,10 @@ public class NondeterministicSimulationBuilder {
     }
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
       updatedBlock =
-          NondeterministicSimulationBuilder.injectRoundGotoIntoBlock(
+          injectRoundGotoIntoBlock(
               pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
     }
-    return NondeterministicSimulationBuilder.injectSyncUpdatesIntoBlock(
-        pOptions, updatedBlock, pSyncFlag, pLabelClauseMap);
+    return injectSyncUpdatesIntoBlock(pOptions, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
 
   // round and round_max injections ================================================================
