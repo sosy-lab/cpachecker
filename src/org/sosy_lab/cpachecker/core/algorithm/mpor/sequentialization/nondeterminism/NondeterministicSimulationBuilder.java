@@ -58,8 +58,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Contains methods and fields used across multiple nondeterministic simulations. */
-public class NondeterministicSimulationUtil {
+/**
+ * Contains methods that can be used to build thread simulations based on the specified {@link
+ * NondeterminismSource}.
+ */
+public class NondeterministicSimulationBuilder {
 
   public static String buildThreadSimulationsByNondeterminismSource(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
@@ -71,7 +74,7 @@ public class NondeterministicSimulationUtil {
             buildNextThreadInnerMultiControlStatements(
                 pOptions, pFields, pUtils.binaryExpressionBuilder());
         SeqMultiControlStatement outerMultiControlStatement =
-            NondeterministicSimulationUtil.buildOuterMultiControlStatement(
+            NondeterministicSimulationBuilder.buildOuterMultiControlStatement(
                 pOptions, innerMultiControlStatements, pUtils.binaryExpressionBuilder());
         yield outerMultiControlStatement.toASTString();
       }
@@ -99,7 +102,7 @@ public class NondeterministicSimulationUtil {
               thread.id(),
               pBinaryExpressionBuilder);
       SeqMultiControlStatement multiControlStatement =
-          NondeterministicSimulationUtil.buildSingleThreadMultiControlStatement(
+          NondeterministicSimulationBuilder.buildSingleThreadMultiControlStatement(
               pOptions,
               pFields.ghostElements,
               thread,
@@ -110,7 +113,7 @@ public class NondeterministicSimulationUtil {
     return rStatements.buildOrThrow();
   }
 
-  public static String buildSingleThreadSimulationByNondeterminismSource(
+  private static String buildSingleThreadSimulationByNondeterminismSource(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,
@@ -304,10 +307,10 @@ public class NondeterministicSimulationUtil {
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
+            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         Optional<ImmutableList<CStatement>> nextThreadStatements =
-            NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
+            NondeterministicSimulationBuilder.buildNextThreadStatementsForThreadSimulationFunction(
                 pOptions, pActiveThread, pBinaryExpressionBuilder);
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -318,7 +321,7 @@ public class NondeterministicSimulationUtil {
       }
       case NUM_STATEMENTS -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
+            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -329,10 +332,10 @@ public class NondeterministicSimulationUtil {
       }
       case NEXT_THREAD_AND_NUM_STATEMENTS -> {
         Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-            NondeterministicSimulationUtil.tryBuildPcUnequalExitAssumption(
+            NondeterministicSimulationBuilder.tryBuildPcUnequalExitAssumption(
                 pOptions, pGhostElements.getPcVariables(), pActiveThread);
         Optional<ImmutableList<CStatement>> nextThreadStatements =
-            NondeterministicSimulationUtil.buildNextThreadStatementsForThreadSimulationFunction(
+            NondeterministicSimulationBuilder.buildNextThreadStatementsForThreadSimulationFunction(
                 pOptions, pActiveThread, pBinaryExpressionBuilder);
 
         CFunctionCallAssignmentStatement roundMaxNondetAssignment =
@@ -345,7 +348,7 @@ public class NondeterministicSimulationUtil {
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN));
         CExpressionAssignmentStatement roundReset =
-            NondeterministicSimulationUtil.buildRoundReset();
+            NondeterministicSimulationBuilder.buildRoundReset();
 
         yield MultiControlStatementBuilder.buildPrecedingStatements(
             pcUnequalExitAssumption,
@@ -399,10 +402,10 @@ public class NondeterministicSimulationUtil {
     }
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {
       updatedBlock =
-          NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
+          NondeterministicSimulationBuilder.injectRoundGotoIntoBlock(
               pOptions, updatedBlock, pLabelClauseMap, pBinaryExpressionBuilder);
     }
-    return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
+    return NondeterministicSimulationBuilder.injectSyncUpdatesIntoBlock(
         pOptions, updatedBlock, pSyncFlag, pLabelClauseMap);
   }
 

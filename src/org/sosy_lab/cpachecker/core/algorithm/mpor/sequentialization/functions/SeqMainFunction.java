@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -88,7 +88,7 @@ public final class SeqMainFunction extends SeqFunction {
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
-          NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
+          NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
               pOptions, pFields);
       functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
@@ -163,7 +163,7 @@ public final class SeqMainFunction extends SeqFunction {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
-          NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
+          NondeterministicSimulationBuilder.buildThreadSimulationsByNondeterminismSource(
               pOptions, pFields, pUtils));
 
       // build the loop depending on settings, and include all statements in it

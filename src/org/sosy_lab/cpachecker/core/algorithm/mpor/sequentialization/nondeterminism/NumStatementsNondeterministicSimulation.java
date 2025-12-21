@@ -82,12 +82,12 @@ record NumStatementsNondeterministicSimulation(
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
 
     // reset round only when needed i.e. after if (...) for performance
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationUtil.buildRoundReset();
+    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
     innerIfBlock.add(roundReset.toASTString());
 
     // add the thread simulation statements
     SeqMultiControlStatement singleThreadSimulation =
-        NondeterministicSimulationUtil.buildSingleThreadMultiControlStatement(
+        NondeterministicSimulationBuilder.buildSingleThreadMultiControlStatement(
             options,
             ghostElements,
             pActiveThread,
