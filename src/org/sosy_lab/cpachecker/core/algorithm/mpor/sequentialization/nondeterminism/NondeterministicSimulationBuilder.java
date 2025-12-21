@@ -69,48 +69,14 @@ public class NondeterministicSimulationBuilder {
       throws UnrecognizedCodeException {
 
     return switch (pOptions.nondeterminismSource()) {
-      case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS -> {
-        ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
-            buildNextThreadInnerMultiControlStatements(
-                pOptions, pFields, pUtils.binaryExpressionBuilder());
-        SeqMultiControlStatement outerMultiControlStatement =
-            buildNextThreadOuterMultiControlStatement(
-                pOptions, innerMultiControlStatements, pUtils.binaryExpressionBuilder());
-        yield outerMultiControlStatement.toASTString();
-      }
+      case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS ->
+          new NextThreadNondeterministicSimulation(pOptions, pFields, pUtils)
+              .buildThreadSimulations();
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(
                   pOptions, pFields.clauses, pFields.ghostElements, pUtils)
               .buildThreadSimulations();
     };
-  }
-
-  private static ImmutableMap<CExpression, SeqMultiControlStatement>
-      buildNextThreadInnerMultiControlStatements(
-          MPOROptions pOptions,
-          SequentializationFields pFields,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder)
-          throws UnrecognizedCodeException {
-
-    ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
-        ImmutableMap.builder();
-    for (MPORThread thread : pFields.clauses.keySet()) {
-      CExpression clauseExpression =
-          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingThread(),
-              SeqIdExpressions.NEXT_THREAD,
-              thread.id(),
-              pBinaryExpressionBuilder);
-      SeqMultiControlStatement multiControlStatement =
-          buildSingleThreadMultiControlStatement(
-              pOptions,
-              pFields.ghostElements,
-              thread,
-              pFields.clauses.get(thread),
-              pBinaryExpressionBuilder);
-      rStatements.put(clauseExpression, multiControlStatement);
-    }
-    return rStatements.buildOrThrow();
   }
 
   private static String buildSingleThreadSimulationByNondeterminismSource(
@@ -124,7 +90,7 @@ public class NondeterministicSimulationBuilder {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD, NEXT_THREAD_AND_NUM_STATEMENTS ->
-          buildSingleThreadMultiControlStatement(
+          buildSingleThreadSimulation(
                   pOptions,
                   pGhostElements,
                   pThread,
@@ -219,24 +185,6 @@ public class NondeterministicSimulationBuilder {
 
   // Multi Control Flow Statements =================================================================
 
-  /**
-   * Creates the outer {@link SeqMultiControlStatement} used for matching the {@code next_thread}
-   * variable.
-   */
-  private static SeqMultiControlStatement buildNextThreadOuterMultiControlStatement(
-      MPOROptions pOptions,
-      ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-
-    return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions.controlEncodingThread(),
-        SeqIdExpressions.NEXT_THREAD,
-        // the outer multi control statement never has an assumption
-        ImmutableList.of(),
-        pInnerMultiControlStatements,
-        pBinaryExpressionBuilder);
-  }
-
   private static Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(
       MPOROptions pOptions, ProgramCounterVariables pPcVariables, MPORThread pThread) {
 
@@ -266,7 +214,7 @@ public class NondeterministicSimulationBuilder {
 
   // build clauses =================================================================================
 
-  static SeqMultiControlStatement buildSingleThreadMultiControlStatement(
+  static SeqMultiControlStatement buildSingleThreadSimulation(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       MPORThread pThread,

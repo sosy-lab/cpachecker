@@ -82,7 +82,7 @@ record NumStatementsNondeterministicSimulation(
 
     // add the thread simulation statements
     SeqMultiControlStatement singleThreadSimulation =
-        NondeterministicSimulationBuilder.buildSingleThreadMultiControlStatement(
+        NondeterministicSimulationBuilder.buildSingleThreadSimulation(
             options,
             ghostElements,
             pActiveThread,
