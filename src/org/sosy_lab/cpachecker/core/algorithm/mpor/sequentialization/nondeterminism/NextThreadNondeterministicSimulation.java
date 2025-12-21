@@ -42,6 +42,12 @@ record NextThreadNondeterministicSimulation(
     GhostElements ghostElements,
     CBinaryExpressionBuilder binaryExpressionBuilder) {
 
+  NextThreadNondeterministicSimulation {
+    checkArgument(
+        options.nondeterminismSource().isNextThreadNondeterministic(),
+        "nondeterminismSource must contain NEXT_THREAD");
+  }
+
   String buildThreadSimulations() throws UnrecognizedCodeException {
     // the inner multi control statements choose the next statement, e.g. "pc == 1"
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
@@ -117,9 +123,6 @@ record NextThreadNondeterministicSimulation(
   }
 
   private Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(MPORThread pThread) {
-    checkArgument(
-        options.nondeterminismSource().isNextThreadNondeterministic(),
-        "nondeterminismSource must contain NEXT_THREAD");
     // only create the assumption when the pc is scalar,
     // otherwise use assume(pc[next_thread] != 0) at loop head already
     if (options.scalarPc()) {
@@ -135,15 +138,10 @@ record NextThreadNondeterministicSimulation(
   private Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    checkArgument(
-        options.nondeterminismSource().isNextThreadNondeterministic(),
-        "nondeterminismSource must contain NEXT_THREAD");
-
     if (!options.loopUnrolling()) {
       // when loopUnrolling is disabled, the next_thread is chosen -> no assumption needed
       return Optional.empty();
     }
-
     // next_thread = __VERIFIER_nondet_...()
     CFunctionCallAssignmentStatement nextThreadAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
