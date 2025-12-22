@@ -87,7 +87,8 @@ public abstract sealed class SeqMemoryLocation
 
   @Override
   public int hashCode() {
-    return Objects.hash(callContext, fieldMember);
+    // consider call context only for non-global variables
+    return Objects.hash(getDeclaration().isGlobal() ? null : callContext, fieldMember);
   }
 
   @Override
@@ -96,7 +97,8 @@ public abstract sealed class SeqMemoryLocation
       return true;
     }
     return pOther instanceof SeqMemoryLocation other
-        && callContext.equals(other.callContext)
+        // consider call context only for non-global variables
+        && (getDeclaration().isGlobal() || callContext.equals(other.callContext))
         && fieldMember.equals(other.fieldMember);
   }
 

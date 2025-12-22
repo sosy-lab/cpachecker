@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
@@ -40,6 +41,7 @@ public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
 
     super(pOptions, Optional.of(pCallContext), pFieldMember);
     checkNotNull(pDeclaration);
+    checkArgument(!pDeclaration.isGlobal(), "pDeclaration cannot be global");
     declaration = pDeclaration;
     argumentIndex = pArgumentIndex;
   }
