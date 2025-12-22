@@ -25,4 +25,9 @@ public record SeqBitVectorAssignmentStatement(
         + value.toASTString()
         + SeqSyntax.SEMICOLON;
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
 }

@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqGuardedGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
@@ -242,11 +241,12 @@ public final class SeqThreadStatementUtil {
     StringJoiner statements = new StringJoiner(SeqSyntax.SPACE);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto);
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqCountUpdateStatement) {
-        // count updates are included, even with target gotos
+      // add all statements that are not pruned, even when there is a target goto
+      if (!injectedStatement.isPrunedWithTargetGoto()) {
         statements.add(injectedStatement.toASTString());
       }
     }
+    // add the goto last, so that the injected statements appear before it
     return statements.add(gotoStatement.toASTString()).toString();
   }
 

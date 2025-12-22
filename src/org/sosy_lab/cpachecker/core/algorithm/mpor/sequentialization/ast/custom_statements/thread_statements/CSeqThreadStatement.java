@@ -104,7 +104,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     // XOR that one must be present, one must be empty
     checkArgument(
         pTargetPc.isPresent() ^ pTargetGoto.isPresent(),
-        "either targetPc or targetGoto must be present (exclusive or)");
+        "either targetPc or targetLabel must be present (exclusive or)");
     reductionOrder = pReductionOrder;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;

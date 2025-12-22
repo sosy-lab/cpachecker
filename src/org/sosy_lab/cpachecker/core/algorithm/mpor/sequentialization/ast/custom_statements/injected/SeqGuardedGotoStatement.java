@@ -23,13 +23,13 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public record SeqGuardedGotoStatement(
     CExpression condition,
     ImmutableList<CStatement> precedingStatements,
-    SeqBlockLabelStatement targetGoto)
+    SeqBlockLabelStatement targetLabel)
     implements SeqInjectedStatementWithTargetGoto {
 
   @Override
   public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
     return new SeqGuardedGotoStatement(
-        condition, precedingStatements, targetGoto.withLabelNumber(pTargetNumber));
+        condition, precedingStatements, targetLabel.withLabelNumber(pTargetNumber));
   }
 
   @Override
@@ -37,9 +37,14 @@ public record SeqGuardedGotoStatement(
     ImmutableList<String> ifStatements =
         ImmutableList.<String>builder()
             .addAll(precedingStatements.stream().map(CStatement::toASTString).iterator())
-            .add(targetGoto.toASTString())
+            .add(targetLabel.toASTString())
             .build();
     SeqBranchStatement ifStatement = new SeqBranchStatement(condition.toASTString(), ifStatements);
     return ifStatement.toASTString();
+  }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
   }
 }

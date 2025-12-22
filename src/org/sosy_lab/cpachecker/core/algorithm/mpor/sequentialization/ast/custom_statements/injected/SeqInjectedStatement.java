@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 
 public sealed interface SeqInjectedStatement extends SeqStatement
     permits SeqBitVectorAssignmentStatement,
@@ -16,4 +17,11 @@ public sealed interface SeqInjectedStatement extends SeqStatement
         SeqInjectedStatementWithTargetGoto,
         SeqLastBitVectorUpdateStatement,
         SeqLastThreadOrderStatement,
-        SeqSyncUpdateStatement {}
+        SeqSyncUpdateStatement {
+
+  /**
+   * Whether this {@link SeqInjectedStatement} can be pruned from its owning {@link
+   * CSeqThreadStatement} if it contains a target {@code goto} instead of a target {@code pc}.
+   */
+  boolean isPrunedWithTargetGoto();
+}

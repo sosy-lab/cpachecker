@@ -83,4 +83,9 @@ public record SeqIgnoreSleepReductionStatement(
         binaryExpressionBuilder,
         targetGoto);
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
 }

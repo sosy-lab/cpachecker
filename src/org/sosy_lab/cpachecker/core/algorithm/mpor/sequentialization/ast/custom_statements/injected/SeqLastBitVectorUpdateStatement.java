@@ -28,4 +28,9 @@ public record SeqLastBitVectorUpdateStatement(
     }
     return joiner.toString();
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
 }

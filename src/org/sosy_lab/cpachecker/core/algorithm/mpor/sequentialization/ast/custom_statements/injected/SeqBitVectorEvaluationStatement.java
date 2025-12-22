@@ -56,4 +56,9 @@ public record SeqBitVectorEvaluationStatement(
     return new SeqBitVectorEvaluationStatement(
         options, evaluationExpression, targetGoto.withLabelNumber(pTargetNumber));
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
 }
