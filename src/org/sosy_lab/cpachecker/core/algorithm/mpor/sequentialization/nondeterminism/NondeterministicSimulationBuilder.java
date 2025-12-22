@@ -360,38 +360,29 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      CSeqThreadStatement withCountUpdates =
-          tryInjectCountUpdatesIntoStatement(statement, pBinaryExpressionBuilder);
-      newStatements.add(withCountUpdates);
-    }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  private static CSeqThreadStatement tryInjectCountUpdatesIntoStatement(
-      CSeqThreadStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    if (pStatement instanceof SeqThreadCreationStatement) {
-      CExpressionAssignmentStatement countIncrement =
-          SeqStatementBuilder.buildIncrementStatement(
-              SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-      SeqCountUpdateStatement countIncrementStatement = new SeqCountUpdateStatement(countIncrement);
-      return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-          pStatement, countIncrementStatement);
-
-    } else if (pStatement.getTargetPc().isPresent()) {
-      int targetPc = pStatement.getTargetPc().orElseThrow();
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        CExpressionAssignmentStatement countDecrement =
-            SeqStatementBuilder.buildDecrementStatement(
+      CExpressionAssignmentStatement countUpdate = null;
+      if (statement instanceof SeqThreadCreationStatement) {
+        countUpdate =
+            SeqStatementBuilder.buildIncrementStatement(
                 SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-        SeqCountUpdateStatement countDecrementStatement =
-            new SeqCountUpdateStatement(countDecrement);
-        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, countDecrementStatement);
+      } else if (statement.getTargetPc().isPresent()) {
+        if (statement.getTargetPc().orElseThrow() == ProgramCounterVariables.EXIT_PC) {
+          countUpdate =
+              SeqStatementBuilder.buildDecrementStatement(
+                  SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
+        }
+      }
+      if (countUpdate != null) {
+        SeqCountUpdateStatement countStatement = new SeqCountUpdateStatement(countUpdate);
+        newStatements.add(
+            SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+                statement, countStatement));
+      } else {
+        // no thread creation and no thread exit -> no thread_count update necessary
+        newStatements.add(statement);
       }
     }
-    return pStatement;
+    return pBlock.withStatements(newStatements.build());
   }
 
   // single active thread injections ===============================================================
