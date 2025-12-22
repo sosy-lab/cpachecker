@@ -110,14 +110,13 @@ public class SeqMemoryLocation {
       Optional<CFAEdgeForThread> pCallContext,
       CSimpleDeclaration pDeclaration) {
 
+    // global variable and function declarations have no thread prefix, they "belong" to no thread
     if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
-        // global declarations have to thread prefix, they "belong" to no thread
         return SeqSyntax.EMPTY_STRING;
       }
     }
     if (pDeclaration instanceof CFunctionDeclaration) {
-      // function declarations have to thread prefix, they "belong" to no thread
       return SeqSyntax.EMPTY_STRING;
     }
     // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
