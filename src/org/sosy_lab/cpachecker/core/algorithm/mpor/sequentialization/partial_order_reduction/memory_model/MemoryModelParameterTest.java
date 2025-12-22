@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -46,7 +47,7 @@ public class MemoryModelParameterTest {
 
   // Simple Types
 
-  private final CSimpleType INT_TYPE =
+  private static final CSimpleType INT_TYPE =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
 
@@ -64,12 +65,12 @@ public class MemoryModelParameterTest {
 
   // CFunctionType
 
-  private final CFunctionType DUMMY_FUNCTION_TYPE =
+  private static final CFunctionType DUMMY_FUNCTION_TYPE =
       new CFunctionType(INT_TYPE, ImmutableList.of(), false);
 
   // CFunctionDeclarations
 
-  private final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
+  private static final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_TYPE,
@@ -77,12 +78,12 @@ public class MemoryModelParameterTest {
           ImmutableList.of(),
           ImmutableSet.of());
 
-  private final CIdExpression DUMMY_ID_EXPRESSION =
+  private static final CIdExpression DUMMY_ID_EXPRESSION =
       new CIdExpression(FileLocation.DUMMY, DUMMY_FUNCTION_DECLARATION);
 
   // CFunctionCallExpression
 
-  private final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
+  private static final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_TYPE,
@@ -92,19 +93,19 @@ public class MemoryModelParameterTest {
 
   // CFunctionCallStatement
 
-  private final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
+  private static final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, DUMMY_FUNCTION_CALL_EXPRESSION);
 
   // CFA Nodes
 
-  private final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
+  private static final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
 
-  private final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
+  private static final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
 
-  private final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
+  private static final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
       new FunctionExitNode(DUMMY_FUNCTION_DECLARATION);
 
-  private final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
+  private static final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
       new CFunctionEntryNode(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_DECLARATION,
@@ -113,7 +114,7 @@ public class MemoryModelParameterTest {
 
   // CFA Edges
 
-  private final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
+  private static final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
       new CFunctionSummaryEdge(
           "",
           FileLocation.DUMMY,
@@ -122,7 +123,7 @@ public class MemoryModelParameterTest {
           DUMMY_FUNCTION_CALL_STATEMENT,
           DUMMY_FUNCTION_ENTRY_NODE);
 
-  private final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
+  private static final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
       new CFunctionCallEdge(
           "",
           FileLocation.DUMMY,
@@ -133,7 +134,9 @@ public class MemoryModelParameterTest {
 
   // CFAEdgeForThread
 
-  private final CFAEdgeForThread DUMMY_CALL_CONTEXT =
+  /** A dummy call context that can be used by all test classes in this dir. */
+  @VisibleForTesting
+  static final CFAEdgeForThread DUMMY_CALL_CONTEXT =
       new CFAEdgeForThread(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
 
   // CDeclaration
