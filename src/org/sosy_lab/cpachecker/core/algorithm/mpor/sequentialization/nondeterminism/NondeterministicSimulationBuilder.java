@@ -396,25 +396,8 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      CSeqThreadStatement withSingleActiveThreadGoto =
-          tryInjectSingleActiveThreadGotoIntoStatement(
-              pOptions, statement, pLabelClauseMap, pBinaryExpressionBuilder);
-      newStatements.add(withSingleActiveThreadGoto);
-    }
-    return pBlock.withStatements(newStatements.build());
-  }
-
-  private static CSeqThreadStatement tryInjectSingleActiveThreadGotoIntoStatement(
-      MPOROptions pOptions,
-      CSeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    if (pStatement.getTargetPc().isPresent()) {
-      // int target is present -> retrieve label by pc from map
-      int targetPc = pStatement.getTargetPc().orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (statement.isTargetPcValid()) {
+        int targetPc = statement.getTargetPc().orElseThrow();
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
@@ -429,13 +412,16 @@ public class NondeterministicSimulationBuilder {
                   threadCountEqualsOne,
                   ImmutableList.of(),
                   Objects.requireNonNull(target).getFirstBlock().getLabel());
-          return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-              pStatement, singleActiveThreadGoto);
+          newStatements.add(
+              SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+                  statement, singleActiveThreadGoto));
         }
+      } else {
+        // no int target pc -> no replacement
+        newStatements.add(statement);
       }
     }
-    // no int target pc -> no replacement
-    return pStatement;
+    return pBlock.withStatements(newStatements.build());
   }
 
   // sync injections ===============================================================================
