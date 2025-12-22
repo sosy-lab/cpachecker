@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MemoryModelStructParameterTest {
 
@@ -325,7 +326,8 @@ public class MemoryModelStructParameterTest {
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_P2);
 
-  public MemoryModelStructParameterTest() throws InvalidConfigurationException {}
+  public MemoryModelStructParameterTest()
+      throws InvalidConfigurationException, UnsupportedCodeException {}
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {

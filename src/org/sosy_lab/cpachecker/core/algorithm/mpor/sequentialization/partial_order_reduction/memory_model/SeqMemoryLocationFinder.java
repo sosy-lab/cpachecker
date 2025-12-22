@@ -150,8 +150,8 @@ public class SeqMemoryLocationFinder {
   static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       SeqMemoryLocation pPointerDereference,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     // the set of memory locations associated with the pointer dereference
     Set<SeqMemoryLocation> found = new HashSet<>();

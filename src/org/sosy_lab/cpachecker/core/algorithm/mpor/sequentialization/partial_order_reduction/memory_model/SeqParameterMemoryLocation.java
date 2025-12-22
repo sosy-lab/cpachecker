@@ -1,0 +1,64 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+
+public class SeqParameterMemoryLocation extends SeqMemoryLocation {
+
+  private final CParameterDeclaration declaration;
+
+  /**
+   * The arg index of this parameter memory location, starting at {@code 0}. A single {@link
+   * CParameterDeclaration} may link to multiple memory locations in the same call context (cf.
+   * variadic functions).
+   */
+  protected final int argumentIndex;
+
+  private SeqParameterMemoryLocation(
+      MPOROptions pOptions,
+      // parameters always have a call context -> don't use Optional<>
+      CFAEdgeForThread pCallContext,
+      CParameterDeclaration pDeclaration,
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember,
+      int pArgumentIndex) {
+
+    super(pOptions, Optional.of(pCallContext), pFieldMember);
+    declaration = pDeclaration;
+    argumentIndex = pArgumentIndex;
+  }
+
+  public static SeqParameterMemoryLocation of(
+      MPOROptions pOptions,
+      CFAEdgeForThread pCallContext,
+      CParameterDeclaration pDeclaration,
+      int pArgumentIndex) {
+    return new SeqParameterMemoryLocation(
+        pOptions, pCallContext, pDeclaration, Optional.empty(), pArgumentIndex);
+  }
+
+  public static SeqParameterMemoryLocation of(
+      MPOROptions pOptions,
+      CFAEdgeForThread pCallContext,
+      CParameterDeclaration pDeclaration,
+      CCompositeTypeMemberDeclaration pFieldMember,
+      int pArgumentIndex) {
+    return new SeqParameterMemoryLocation(
+        pOptions, pCallContext, pDeclaration, Optional.of(pFieldMember), pArgumentIndex);
+  }
+
+  @Override
+  public CParameterDeclaration getDeclaration() {
+    return declaration;
+  }
+}
