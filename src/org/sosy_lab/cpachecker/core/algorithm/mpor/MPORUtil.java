@@ -258,10 +258,10 @@ public final class MPORUtil {
 
     // use getType() on CPointerType/CArrayType since getCanonicalType() returns the
     // CPointerType/CArrayType itself
-    if (pType instanceof CPointerType pointerType) {
+    if (pType.getCanonicalType() instanceof CPointerType pointerType) {
       return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
     }
-    if (pType instanceof CArrayType arrayType) {
+    if (pType.getCanonicalType() instanceof CArrayType arrayType) {
       return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
     }
     if (pType.getCanonicalType() instanceof CCompositeType compositeType) {
