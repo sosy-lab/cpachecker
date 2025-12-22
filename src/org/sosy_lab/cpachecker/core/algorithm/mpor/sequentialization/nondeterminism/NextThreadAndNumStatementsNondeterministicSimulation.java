@@ -1,0 +1,77 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+class NextThreadAndNumStatementsNondeterministicSimulation
+    extends NextThreadNondeterministicSimulation {
+
+  NextThreadAndNumStatementsNondeterministicSimulation(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationUtils pUtils) {
+
+    super(pOptions, pGhostElements, pClauses, pUtils);
+  }
+
+  @Override
+  public NondeterminismSource getNondeterminismSource() {
+    return NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS;
+  }
+
+  @Override
+  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread)
+      throws UnrecognizedCodeException {
+
+    Optional<CFunctionCallStatement> pcUnequalExitAssumption =
+        tryBuildPcUnequalExitAssumption(pActiveThread);
+    Optional<ImmutableList<CStatement>> nextThreadStatements =
+        tryBuildNextThreadStatements(pActiveThread);
+
+    CFunctionCallAssignmentStatement roundMaxNondetAssignment =
+        VerifierNondetFunctionType.buildNondetIntegerAssignment(
+            options, SeqIdExpressions.ROUND_MAX);
+    CFunctionCallStatement roundMaxGreaterZeroAssumption =
+        SeqAssumeFunction.buildAssumeFunctionCallStatement(
+            utils
+                .binaryExpressionBuilder()
+                .buildBinaryExpression(
+                    SeqIdExpressions.ROUND_MAX,
+                    SeqIntegerLiteralExpressions.INT_0,
+                    BinaryOperator.GREATER_THAN));
+    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
+    return MultiControlStatementBuilder.buildPrecedingStatements(
+        pcUnequalExitAssumption,
+        nextThreadStatements,
+        // NEXT_THREAD_AND_NUM_STATEMENTS -> also add round / round_max statements
+        Optional.of(roundMaxNondetAssignment),
+        Optional.of(roundMaxGreaterZeroAssumption),
+        Optional.of(roundReset));
+  }
+}

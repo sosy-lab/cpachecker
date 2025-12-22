@@ -163,8 +163,9 @@ public final class SeqMainFunction extends SeqFunction {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
-          NondeterministicSimulationBuilder.buildThreadSimulationsByNondeterminismSource(
-              pOptions, pFields, pUtils));
+          NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
+                  pOptions, pFields.ghostElements, pFields.clauses, pUtils)
+              .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it
       CSeqLoopStatement loopStatement =

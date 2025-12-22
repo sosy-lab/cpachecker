@@ -17,7 +17,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
@@ -38,23 +41,24 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 
-record NumStatementsNondeterministicSimulation(
-    MPOROptions options,
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
-    GhostElements ghostElements,
-    SequentializationUtils utils) {
+class NumStatementsNondeterministicSimulation extends NondeterministicSimulation {
 
-  String buildThreadSimulations() throws UnrecognizedCodeException {
-    StringBuilder rLines = new StringBuilder();
-    for (MPORThread thread : clauses.keySet()) {
-      rLines.append(
-          buildSingleThreadSimulation(thread, MPORUtil.withoutElement(clauses.keySet(), thread)));
-    }
-    return rLines.toString();
+  NumStatementsNondeterministicSimulation(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationUtils pUtils) {
+
+    super(pOptions, pGhostElements, pClauses, pUtils);
   }
 
-  String buildSingleThreadSimulation(
-      MPORThread pActiveThread, ImmutableSet<MPORThread> pOtherThreads)
+  @Override
+  NondeterminismSource getNondeterminismSource() {
+    return NondeterminismSource.NUM_STATEMENTS;
+  }
+
+  @Override
+  public String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 
     StringBuilder rLines = new StringBuilder();
@@ -77,17 +81,15 @@ record NumStatementsNondeterministicSimulation(
             .toASTString());
 
     // if (round_max > 0) ...
-    String innerIfCondition = buildRoundMaxGreaterZeroExpression(pActiveThread, pOtherThreads);
+    ImmutableSet<MPORThread> otherThreads =
+        MPORUtil.withoutElement(clauses.keySet(), pActiveThread);
+    String innerIfCondition = buildRoundMaxGreaterZeroExpression(pActiveThread, otherThreads);
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
     SeqMultiControlStatement singleThreadSimulation =
         NondeterministicSimulationBuilder.buildSingleThreadSimulation(
-            options,
-            ghostElements,
-            pActiveThread,
-            clauses.get(pActiveThread),
-            utils.binaryExpressionBuilder());
+            options, ghostElements, pActiveThread, clauses.get(pActiveThread), utils);
     innerIfBlock.add(singleThreadSimulation.toASTString());
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
@@ -97,6 +99,27 @@ record NumStatementsNondeterministicSimulation(
 
     // add all and return
     return rLines.append(ifStatement.toASTString()).toString();
+  }
+
+  @Override
+  public String buildAllThreadSimulations() throws UnrecognizedCodeException {
+    StringBuilder rLines = new StringBuilder();
+    for (MPORThread thread : clauses.keySet()) {
+      rLines.append(buildSingleThreadSimulation(thread));
+    }
+    return rLines.toString();
+  }
+
+  @Override
+  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread) {
+    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
+    return MultiControlStatementBuilder.buildPrecedingStatements(
+        // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(roundReset));
   }
 
   private String buildRoundMaxGreaterZeroExpression(
