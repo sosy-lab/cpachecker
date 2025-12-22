@@ -258,9 +258,8 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   public static void trackPointerDereferenceByFieldReference(
-      CFieldReference pFieldReference,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      CFieldReference pFieldReference, boolean pIsWrite, Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pTracker.isEmpty()) {
       return;
@@ -281,9 +280,8 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   public static void trackFieldReference(
-      CFieldReference pFieldReference,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      CFieldReference pFieldReference, boolean pIsWrite, Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pTracker.isEmpty()) {
       return;
