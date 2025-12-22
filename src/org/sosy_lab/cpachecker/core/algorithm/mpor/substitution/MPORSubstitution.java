@@ -42,10 +42,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitution {
 
@@ -137,8 +139,7 @@ public class MPORSubstitution {
         return pExpression;
       }
       case CIdExpression idExpression -> {
-        CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (SubstituteUtil.isSubstitutable(declaration)) {
+        if (SubstituteUtil.isSubstitutable(idExpression.getDeclaration())) {
           MPORSubstitutionTrackerUtil.trackDeclarationAccess(
               options, idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
           return getSimpleDeclarationSubstitute(
@@ -270,8 +271,8 @@ public class MPORSubstitution {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
-    // e.g. n = fib(42); or arr[n] = fib(42);
     switch (pStatement) {
+      // e.g. n = fib(42); or arr[n] = fib(42);
       case CFunctionCallAssignmentStatement functionCallAssignment -> {
         CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
         CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
@@ -296,15 +297,14 @@ public class MPORSubstitution {
                 substitute(rightHandSide, pCallContext, pTracker));
           }
         }
-
-        // e.g. fib(42);
       }
+      // e.g. fib(42);
       case CFunctionCallStatement functionCall -> {
+        InputRejection.checkFunctionPointerParameter(functionCall.getFunctionCallExpression());
         return new CFunctionCallStatement(
             functionCall.getFileLocation(),
             substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
       }
-
       // e.g. int x = 42;
       case CExpressionAssignmentStatement assignment -> {
         MPORSubstitutionTrackerUtil.trackPointerAssignment(assignment, pTracker);
@@ -389,7 +389,8 @@ public class MPORSubstitution {
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
@@ -459,7 +460,8 @@ public class MPORSubstitution {
   public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
         pVariableDeclaration, pTracker);

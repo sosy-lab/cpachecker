@@ -38,7 +38,9 @@ public class MPORSubstitutionTrackerUtil {
 
   // Copy ==========================================================================================
 
-  public static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo) {
+  public static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo)
+      throws UnsupportedCodeException {
+
     for (CParameterDeclaration mainFunctionArg : pFrom.getAccessedMainFunctionArgs()) {
       pTo.addAccessedMainFunctionArg(mainFunctionArg);
     }
@@ -133,7 +135,8 @@ public class MPORSubstitutionTrackerUtil {
   public static void trackContentFromLocalVariableDeclaration(
       boolean pIsDeclaration,
       LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pTracker.isEmpty()) {
       return;
@@ -158,7 +161,8 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   public static void trackPointerAssignment(
-      CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker) {
+      CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
     if (pTracker.isEmpty()) {
       return;
@@ -188,8 +192,10 @@ public class MPORSubstitutionTrackerUtil {
   }
 
   public static void trackPointerAssignmentInVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration, Optional<MPORSubstitutionTracker> pTracker) {
+      CVariableDeclaration pVariableDeclaration, Optional<MPORSubstitutionTracker> pTracker)
+      throws UnsupportedCodeException {
 
+    InputRejection.checkFunctionPointerAssignment(pVariableDeclaration);
     if (pTracker.isEmpty()) {
       return;
     }
