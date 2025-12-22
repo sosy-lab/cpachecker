@@ -200,7 +200,7 @@ public final class MPORUtil {
   public static Optional<CSimpleDeclaration> tryGetPointerDeclaration(CExpression pExpression)
       throws UnsupportedCodeException {
 
-    InputRejection.checkBinaryExpressionPointerAssignment(pExpression);
+    InputRejection.checkPointerWriteBinaryExpression(pExpression);
     CIdExpression idExpression = pExpression.accept(new CPointerDeclarationVisitor());
     return Optional.ofNullable(idExpression).map(CIdExpression::getDeclaration);
   }
