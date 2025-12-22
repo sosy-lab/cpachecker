@@ -130,32 +130,32 @@ public class MemoryModelTest {
 
   // Memory Locations (primitives)
 
-  private final SeqVariableMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
-  private final SeqVariableMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
-  private final SeqVariableMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
-  private final SeqVariableMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
-  private final SeqVariableMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
-  private final SeqVariableMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
 
-  private final SeqVariableMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
   public MemoryModelTest() throws InvalidConfigurationException {}
@@ -163,8 +163,8 @@ public class MemoryModelTest {
   @Test
   public void test_memory_location_equals() throws InvalidConfigurationException {
     // create new MemoryLocation with the same parameters
-    SeqVariableMemoryLocation int_pointer_a_memory_location_alt =
-        SeqVariableMemoryLocation.of(
+    SeqMemoryLocation int_pointer_a_memory_location_alt =
+        SeqMemoryLocation.of(
             MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION).isEqualTo(int_pointer_a_memory_location_alt);
@@ -250,8 +250,8 @@ public class MemoryModelTest {
 
     // test that local_Z is now an implicit global memory location, because the global pointer
     // 'global_ptr_A' gets its address, and can be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.getDeclaration().isGlobal()).isTrue();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
@@ -275,10 +275,10 @@ public class MemoryModelTest {
 
     // test that local_Z is now an implicit global memory location, because of transitivity:
     // 'global_ptr_A -> local_ptr_D -> local_ptr_C', and can then be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.getDeclaration().isGlobal()).isTrue();
-    assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
-    assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
+    assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,

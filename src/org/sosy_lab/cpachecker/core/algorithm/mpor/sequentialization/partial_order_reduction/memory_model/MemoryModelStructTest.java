@@ -152,25 +152,25 @@ public class MemoryModelStructTest {
 
   // Memory Locations (primitives)
 
-  private final SeqVariableMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
-  private final SeqVariableMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
-  private final SeqVariableMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
 
-  private final SeqVariableMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,

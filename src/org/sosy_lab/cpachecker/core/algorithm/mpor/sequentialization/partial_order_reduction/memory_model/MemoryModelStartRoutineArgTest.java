@@ -71,34 +71,33 @@ public class MemoryModelStartRoutineArgTest {
 
   // Memory Locations (primitives)
 
-  private final SeqVariableMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqVariableMemoryLocation.of(
+  private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
-  private final SeqParameterMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
-      SeqParameterMemoryLocation.of(
+  private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
+      SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          MemoryModelParameterTest.DUMMY_CALL_CONTEXT,
-          START_ROUTINE_ARG_DECLARATION.asVariableDeclaration(),
-          0);
+          Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
+          START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
   public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
-        ImmutableMap.<SeqParameterMemoryLocation, SeqMemoryLocation>builder()
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
             .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.getPointerParameterAssignments(startRoutineArgAssignments);
 
     // check that start_routine_arg assignment is recognized as pointer parameter (void *)
     assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(LOCAL_L1_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_L1_MEMORY_LOCATION,
@@ -108,7 +107,7 @@ public class MemoryModelStartRoutineArgTest {
                 ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 START_ROUTINE_ARG_MEMORY_LOCATION,

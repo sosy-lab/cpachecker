@@ -46,8 +46,7 @@ public class MemoryModel {
    * Keep track of {@code start_routine arg} assignments in {@code pthread_create} separately, since
    * even a local memory address passed here is implicitly global.
    */
-  public final ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation>
-      startRoutineArgAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments;
 
   /**
    * The map of call context-sensitive {@link SeqMemoryLocation} mapped to their assigned {@link
@@ -55,11 +54,10 @@ public class MemoryModel {
    * this is not restricted to pointers, since non-pointer parameters can be made implicitly global
    * through global pointers.
    */
-  public final ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> parameterAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments;
 
   /** The subset of parameters that are pointers. */
-  public final ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation>
-      pointerParameterAssignments;
+  public final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments;
 
   public final ImmutableSet<SeqMemoryLocation> pointerDereferences;
 
@@ -68,9 +66,9 @@ public class MemoryModel {
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences)
       throws UnsupportedCodeException {
 
@@ -94,8 +92,8 @@ public class MemoryModel {
       MPOROptions pOptions,
       ImmutableMap<SeqMemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments)
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments)
       throws UnsupportedCodeException {
 
     if (pOptions.bitVectorEncoding().isDense) {
@@ -111,10 +109,10 @@ public class MemoryModel {
 
     // check that all left hand sides in pointer assignments are CPointerType
     for (SeqMemoryLocation memoryLocation : pPointerAssignments.keySet()) {
-      if (memoryLocation.fieldMember.isPresent()) {
+      if (memoryLocation.fieldMember().isPresent()) {
         // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
-            memoryLocation.fieldMember.orElseThrow();
+            memoryLocation.fieldMember().orElseThrow();
         checkArgument(
             memberDeclaration.getType() instanceof CPointerType,
             "memberDeclaration must be CPointerType, got %s",
@@ -122,9 +120,9 @@ public class MemoryModel {
       } else {
         // for all else: the variable itself must be CPointerType
         checkArgument(
-            memoryLocation.getDeclaration().getType() instanceof CPointerType,
+            memoryLocation.declaration().getType() instanceof CPointerType,
             "variableDeclaration must be CPointerType, got %s",
-            memoryLocation.getDeclaration().getType());
+            memoryLocation.declaration().getType());
       }
     }
 
@@ -148,8 +146,8 @@ public class MemoryModel {
   static boolean isLeftHandSideInPointerAssignment(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       return isLeftHandSideInPointerAssignment(
@@ -186,8 +184,8 @@ public class MemoryModel {
   static ImmutableSet<SeqMemoryLocation> getPointerAssignmentRightHandSides(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     if (pMemoryLocation.isFieldOwnerPointerType()) {
       return getPointerAssignmentRightHandSides(
@@ -198,15 +196,12 @@ public class MemoryModel {
     }
     ImmutableSet.Builder<SeqMemoryLocation> rRightHandSides = ImmutableSet.builder();
     rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
-    if (pMemoryLocation instanceof SeqParameterMemoryLocation) {
-      if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
-        rRightHandSides.add(
-            Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
-      }
-      if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
-        rRightHandSides.add(
-            Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
-      }
+    if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
+    }
+    if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
+      rRightHandSides.add(
+          Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
     }
     return rRightHandSides.build();
   }

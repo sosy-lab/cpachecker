@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqVariableMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public class SubstituteUtil {
@@ -107,8 +106,7 @@ public class SubstituteUtil {
     ImmutableSet.Builder<SeqMemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CVariableDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(
-          SeqVariableMemoryLocation.of(pOptions, pCallContext, pointerDereference));
+      rPointerDereferences.add(SeqMemoryLocation.of(pOptions, pCallContext, pointerDereference));
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
@@ -117,7 +115,7 @@ public class SubstituteUtil {
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
         rPointerDereferences.add(
-            SeqVariableMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
+            SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rPointerDereferences.build();
@@ -131,14 +129,13 @@ public class SubstituteUtil {
 
     ImmutableSet.Builder<SeqMemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
-      rMemoryLocations.add(SeqVariableMemoryLocation.of(pOptions, pCallContext, declaration));
+      rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, declaration));
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(
-            SeqVariableMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
+        rMemoryLocations.add(SeqMemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rMemoryLocations.build();
@@ -158,18 +155,16 @@ public class SubstituteUtil {
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      SeqMemoryLocation leftHandSide =
-          SeqVariableMemoryLocation.of(pOptions, pCallContext, entry.getKey());
+      SeqMemoryLocation leftHandSide = SeqMemoryLocation.of(pOptions, pCallContext, entry.getKey());
       SeqMemoryLocation rightHandSide =
-          SeqVariableMemoryLocation.of(pOptions, pCallContext, entry.getValue());
+          SeqMemoryLocation.of(pOptions, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
       SeqMemoryLocation leftHandSide =
-          SeqVariableMemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
+          SeqMemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
       SeqMemoryLocation rightHandSide =
-          SeqVariableMemoryLocation.of(
-              pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
+          SeqMemoryLocation.of(pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

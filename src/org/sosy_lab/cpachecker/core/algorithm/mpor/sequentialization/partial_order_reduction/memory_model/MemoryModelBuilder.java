@@ -50,11 +50,11 @@ public record MemoryModelBuilder(
 
   public Optional<MemoryModel> tryBuildMemoryModel() throws UnsupportedCodeException {
     if (options.linkReduction()) {
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
           mapStartRoutineArgAssignments();
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> parameterAssignments =
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
           mapParameterAssignments();
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
           getPointerParameterAssignments(parameterAssignments);
       ImmutableList<SeqMemoryLocation> newMemoryLocations =
           ImmutableList.<SeqMemoryLocation>builder()
@@ -87,9 +87,9 @@ public record MemoryModelBuilder(
   private MemoryModel buildMemoryModel(
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences)
       throws UnsupportedCodeException {
 
@@ -126,8 +126,8 @@ public record MemoryModelBuilder(
   private ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
       ImmutableList<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
@@ -148,16 +148,16 @@ public record MemoryModelBuilder(
   private boolean isRelevantMemoryLocation(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (MPORUtil.isConstCpaCheckerTmp(pMemoryLocation.getDeclaration())) {
+    if (MPORUtil.isConstCpaCheckerTmp(pMemoryLocation.declaration())) {
       return false;
     }
     // relevant locations are either explicit or implicit (e.g. through pointers) global
-    if (pMemoryLocation.getDeclaration().isGlobal()
+    if (pMemoryLocation.declaration().isGlobal()
         || isImplicitGlobal(
             pMemoryLocation,
             pPointerAssignments,
@@ -176,11 +176,11 @@ public record MemoryModelBuilder(
   static boolean isImplicitGlobal(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    if (pMemoryLocation.getDeclaration().isGlobal()) {
+    if (pMemoryLocation.declaration().isGlobal()) {
       return false;
     }
     // e.g. (void*) arg = &local_var -> local_var can be accessed by creating and created threads
@@ -204,8 +204,8 @@ public record MemoryModelBuilder(
   private static boolean isImplicitGlobalByPointerAssignmentsAndDereferences(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // inexpensive shortcut: first check for direct assignments
@@ -232,9 +232,9 @@ public record MemoryModelBuilder(
 
   private static boolean isExplicitGlobalOrStartRoutineArg(
       SeqMemoryLocation pMemoryLocation,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
 
-    return pMemoryLocation.getDeclaration().isGlobal()
+    return pMemoryLocation.declaration().isGlobal()
         || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
   }
 
@@ -245,7 +245,7 @@ public record MemoryModelBuilder(
   private static boolean isPointedTo(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     if (pPointerAssignments.values().contains(pMemoryLocation)) {
       return true;
@@ -259,8 +259,8 @@ public record MemoryModelBuilder(
   private static boolean isImplicitGlobalByPointerDereference(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     for (SeqMemoryLocation pointerDereference : pPointerDereferences) {
@@ -283,7 +283,7 @@ public record MemoryModelBuilder(
 
   private static boolean isImplicitGlobalByDirectPointerAssignments(
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
 
     for (SeqMemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
       if (isExplicitGlobalOrStartRoutineArg(pointerDeclaration, pStartRoutineArgAssignments)) {
@@ -295,8 +295,8 @@ public record MemoryModelBuilder(
 
   private static boolean isImplicitGlobalByTransitivePointerAssignments(
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     for (SeqMemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
       ImmutableSet<SeqMemoryLocation> transitivePointerDeclarations =
@@ -320,8 +320,8 @@ public record MemoryModelBuilder(
   private static ImmutableSet<SeqMemoryLocation> findPointerDeclarationsByPointerAssignments(
       SeqMemoryLocation pPointerDeclaration,
       ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments) {
 
     Set<SeqMemoryLocation> rFound = new HashSet<>();
     recursivelyFindPointerDeclarationsByPointerAssignments(
@@ -337,9 +337,8 @@ public record MemoryModelBuilder(
   private static void recursivelyFindPointerDeclarationsByPointerAssignments(
       SeqMemoryLocation pCurrentMemoryLocation,
       final ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      final ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      final ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation>
-          pPointerParameterAssignments,
+      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
+      final ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       Set<SeqMemoryLocation> pFound,
       Set<SeqMemoryLocation> pVisited) {
 
@@ -378,10 +377,10 @@ public record MemoryModelBuilder(
 
   // start_routine arg Assignments =================================================================
 
-  private ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation>
-      mapStartRoutineArgAssignments() throws UnsupportedCodeException {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments()
+      throws UnsupportedCodeException {
 
-    ImmutableMap.Builder<SeqParameterMemoryLocation, SeqMemoryLocation> rAssignments =
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
       // use the original edge, so that we use the original variable declarations
@@ -408,8 +407,10 @@ public record MemoryModelBuilder(
             CParameterDeclaration parameterDeclaration =
                 functionDeclaration.getParameters().getFirst();
             rAssignments.put(
-                SeqParameterMemoryLocation.of(
-                    options, callContext, parameterDeclaration.asVariableDeclaration(), 0),
+                SeqMemoryLocation.of(
+                    options,
+                    Optional.of(callContext),
+                    parameterDeclaration.asVariableDeclaration()),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -420,10 +421,10 @@ public record MemoryModelBuilder(
 
   // Parameter Assignments =========================================================================
 
-  private ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> mapParameterAssignments()
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments()
       throws UnsupportedCodeException {
 
-    ImmutableMap.Builder<SeqParameterMemoryLocation, SeqMemoryLocation> rAssignments =
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
       // use the original edge, so that we use the original variable declarations
@@ -436,11 +437,11 @@ public record MemoryModelBuilder(
     return rAssignments.buildOrThrow();
   }
 
-  private ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
       CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge)
       throws UnsupportedCodeException {
 
-    ImmutableMap.Builder<SeqParameterMemoryLocation, SeqMemoryLocation> rAssignments =
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     CFunctionDeclaration functionDeclaration =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration();
@@ -453,8 +454,8 @@ public record MemoryModelBuilder(
           extractMemoryLocation(pCallContext, arguments.get(i));
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqParameterMemoryLocation.of(
-                options, pCallContext, leftHandSide.asVariableDeclaration(), i),
+            SeqMemoryLocation.of(
+                options, Optional.of(pCallContext), leftHandSide.asVariableDeclaration()),
             rhsMemoryLocation.orElseThrow());
       }
     }
@@ -495,11 +496,11 @@ public record MemoryModelBuilder(
       CFAEdgeForThread pCallContext, CSimpleDeclaration pDeclaration) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
-      if (memoryLocation.getDeclaration().equals(pDeclaration)) {
+      if (memoryLocation.declaration().equals(pDeclaration)) {
         return memoryLocation;
       }
     }
-    return SeqVariableMemoryLocation.of(
+    return SeqMemoryLocation.of(
         options, Optional.of(pCallContext), (CVariableDeclaration) pDeclaration);
   }
 
@@ -509,15 +510,14 @@ public record MemoryModelBuilder(
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     for (SeqMemoryLocation memoryLocation : initialMemoryLocations) {
-      if (memoryLocation.fieldMember.isPresent()) {
-        CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember.orElseThrow();
-        if (memoryLocation.getDeclaration().equals(pFieldOwner)
-            && fieldMember.equals(pFieldMember)) {
+      if (memoryLocation.fieldMember().isPresent()) {
+        CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember().orElseThrow();
+        if (memoryLocation.declaration().equals(pFieldOwner) && fieldMember.equals(pFieldMember)) {
           return memoryLocation;
         }
       }
     }
-    return SeqVariableMemoryLocation.of(
+    return SeqMemoryLocation.of(
         options, Optional.of(pCallContext), (CVariableDeclaration) pFieldOwner, pFieldMember);
   }
 
@@ -534,13 +534,12 @@ public record MemoryModelBuilder(
   // Pointer Parameter Assignments =================================================================
 
   @VisibleForTesting
-  static ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> getPointerParameterAssignments(
-      ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pParameterAssignments) {
+  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> getPointerParameterAssignments(
+      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments) {
 
-    ImmutableMap.Builder<SeqParameterMemoryLocation, SeqMemoryLocation> rPointers =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointers = ImmutableMap.builder();
     for (var entry : pParameterAssignments.entrySet()) {
-      if (entry.getKey().getDeclaration().getType() instanceof CPointerType) {
+      if (entry.getKey().declaration().getType() instanceof CPointerType) {
         rPointers.put(entry);
       }
     }

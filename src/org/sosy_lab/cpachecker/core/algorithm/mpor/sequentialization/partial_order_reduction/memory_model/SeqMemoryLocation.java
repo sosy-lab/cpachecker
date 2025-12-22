@@ -20,31 +20,31 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public abstract sealed class SeqMemoryLocation
-    permits SeqParameterMemoryLocation, SeqVariableMemoryLocation {
+public record SeqMemoryLocation(
+    MPOROptions options,
+    Optional<CFAEdgeForThread> callContext,
+    CVariableDeclaration declaration,
+    Optional<CCompositeTypeMemberDeclaration> fieldMember) {
 
-  public final MPOROptions options;
-
-  public final Optional<CFAEdgeForThread> callContext;
-
-  public final Optional<CCompositeTypeMemberDeclaration> fieldMember;
-
-  protected SeqMemoryLocation(
+  public static SeqMemoryLocation of(
       MPOROptions pOptions,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
-
-    options = pOptions;
-    callContext = pCallContext;
-    fieldMember = pFieldMember;
+      CVariableDeclaration pDeclaration) {
+    return new SeqMemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
   }
 
-  public abstract CVariableDeclaration getDeclaration();
+  public static SeqMemoryLocation of(
+      MPOROptions pOptions,
+      Optional<CFAEdgeForThread> pCallContext,
+      CVariableDeclaration pDeclaration,
+      CCompositeTypeMemberDeclaration pFieldMember) {
+    return new SeqMemoryLocation(pOptions, pCallContext, pDeclaration, Optional.of(pFieldMember));
+  }
 
   public String getName() {
     StringBuilder name = new StringBuilder();
     name.append(buildThreadPrefix());
-    name.append(getDeclaration().getName());
+    name.append(declaration.getName());
     if (fieldMember.isPresent()) {
       name.append(SeqSyntax.UNDERSCORE);
       name.append(fieldMember.orElseThrow().getName());
@@ -54,7 +54,7 @@ public abstract sealed class SeqMemoryLocation
 
   private String buildThreadPrefix() {
     // global variable declarations have no thread prefix, they "belong" to no thread
-    if (getDeclaration().isGlobal()) {
+    if (declaration.isGlobal()) {
       return SeqSyntax.EMPTY_STRING;
     }
     // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
@@ -64,7 +64,7 @@ public abstract sealed class SeqMemoryLocation
 
   public boolean isFieldOwnerPointerType() {
     if (fieldMember.isPresent()) {
-      return getDeclaration().getType() instanceof CPointerType;
+      return declaration.getType() instanceof CPointerType;
     }
     return false;
   }
@@ -72,23 +72,14 @@ public abstract sealed class SeqMemoryLocation
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
     checkArgument(
         fieldMember.isPresent(), "cannot get field owner MemoryLocation, field member is empty");
-    return switch (this) {
-      case SeqParameterMemoryLocation parameterMemoryLocation ->
-          SeqParameterMemoryLocation.of(
-              options,
-              callContext.orElseThrow(),
-              parameterMemoryLocation.getDeclaration(),
-              parameterMemoryLocation.argumentIndex);
-      case SeqVariableMemoryLocation variableMemoryLocation ->
-          SeqVariableMemoryLocation.of(
-              options, callContext, variableMemoryLocation.getDeclaration());
-    };
+    // just return the declaration of the field owner, without any field member
+    return SeqMemoryLocation.of(options, callContext, declaration);
   }
 
   @Override
   public int hashCode() {
     // consider call context only for non-global variables
-    return Objects.hash(getDeclaration().isGlobal() ? null : callContext, fieldMember);
+    return Objects.hash(declaration.isGlobal() ? null : callContext, fieldMember);
   }
 
   @Override
@@ -98,15 +89,16 @@ public abstract sealed class SeqMemoryLocation
     }
     return pOther instanceof SeqMemoryLocation other
         // consider call context only for non-global variables
-        && (getDeclaration().isGlobal() || callContext.equals(other.callContext))
-        && fieldMember.equals(other.fieldMember);
+        && (declaration.isGlobal() || callContext.equals(other.callContext))
+        && fieldMember.equals(other.fieldMember)
+        && declaration.equals(other.declaration);
   }
 
   @Override
   public String toString() {
     if (fieldMember.isEmpty()) {
-      return getDeclaration().toASTString();
+      return declaration.toASTString();
     }
-    return getDeclaration().toASTString() + " -> " + fieldMember.orElseThrow().toASTString();
+    return declaration.toASTString() + " -> " + fieldMember.orElseThrow().toASTString();
   }
 }
