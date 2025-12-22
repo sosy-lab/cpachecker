@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -23,11 +21,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -126,11 +125,10 @@ public class MPORSubstitutionTracker {
   }
 
   public void addPointerAssignment(
-      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide) {
+      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide)
+      throws UnsupportedCodeException {
 
-    checkArgument(
-        !(pRightHandSide instanceof CFunctionDeclaration),
-        "pRightHandSide cannot be CFunctionDeclaration");
+    InputRejection.checkFunctionPointerAssignment(pRightHandSide);
     pointerAssignments.put(pLeftHandSide, pRightHandSide);
   }
 

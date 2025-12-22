@@ -376,7 +376,9 @@ public record MemoryModelBuilder(
 
   // start_routine arg Assignments =================================================================
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments() {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapStartRoutineArgAssignments()
+      throws UnsupportedCodeException {
+
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
@@ -415,7 +417,9 @@ public record MemoryModelBuilder(
 
   // Parameter Assignments =========================================================================
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments() {
+  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapParameterAssignments()
+      throws UnsupportedCodeException {
+
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : substituteEdges) {
@@ -430,7 +434,8 @@ public record MemoryModelBuilder(
   }
 
   private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> buildParameterAssignments(
-      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge) {
+      CFAEdgeForThread pCallContext, CFunctionCallEdge pFunctionCallEdge)
+      throws UnsupportedCodeException {
 
     ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
         ImmutableMap.builder();
@@ -453,7 +458,7 @@ public record MemoryModelBuilder(
   }
 
   private Optional<SeqMemoryLocation> extractMemoryLocation(
-      CFAEdgeForThread pCallContext, CExpression pRightHandSide) {
+      CFAEdgeForThread pCallContext, CExpression pRightHandSide) throws UnsupportedCodeException {
 
     return switch (pRightHandSide) {
       case CIdExpression idExpression ->
@@ -471,7 +476,8 @@ public record MemoryModelBuilder(
   }
 
   private SeqMemoryLocation extractFieldReferenceMemoryLocation(
-      CFAEdgeForThread pCallContext, CFieldReference pFieldReference) {
+      CFAEdgeForThread pCallContext, CFieldReference pFieldReference)
+      throws UnsupportedCodeException {
 
     CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
     CCompositeTypeMemberDeclaration fieldMember =
