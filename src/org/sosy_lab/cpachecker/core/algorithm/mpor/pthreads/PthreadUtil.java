@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -195,6 +194,10 @@ public class PthreadUtil {
 
   // boolean helpers ===============================================================================
 
+  /**
+   * Returns {@code true} if {@code pType} matches any {@link PthreadObjectType} by name and {@code
+   * false} otherwise.
+   */
   public static boolean isAnyPthreadObjectType(CType pType) {
     String typeName = SeqStringUtil.getTypeName(pType);
     for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
@@ -206,8 +209,8 @@ public class PthreadUtil {
   }
 
   /**
-   * Tries to extract the {@link CFunctionCallStatement} from pCfaEdge and returns true if it is a
-   * call to pFunctionType.
+   * Returns {@code true} if {@code pFunctionCall} is a call to {@code pFunctionType} and {@code
+   * false} otherwise.
    */
   public static boolean isCallToPthreadFunction(
       CFunctionCall pFunctionCall, PthreadFunctionType pFunctionType) {
@@ -219,6 +222,10 @@ public class PthreadUtil {
         .equals(pFunctionType.name);
   }
 
+  /**
+   * Returns {@code true} if {@code pFunctionCallExpression} is a call to {@code pFunctionType} and
+   * {@code false} otherwise.
+   */
   public static boolean isCallToPthreadFunction(
       CFunctionCallExpression pFunctionCallExpression, PthreadFunctionType pFunctionType) {
 
@@ -228,6 +235,10 @@ public class PthreadUtil {
         .equals(pFunctionType.name);
   }
 
+  /**
+   * Returns {@code true} if {@code pFunctionCall} is a call to any function in {@link
+   * PthreadFunctionType} and {@code false} otherwise.
+   */
   public static boolean isCallToAnyPthreadFunction(CFunctionCall pFunctionCall) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (isCallToPthreadFunction(pFunctionCall, functionType)) {
@@ -237,6 +248,10 @@ public class PthreadUtil {
     return false;
   }
 
+  /**
+   * Returns {@code true} if {@code pFunctionCall} is a call to a {@link PthreadFunctionType} that
+   * contains {@code pPthreadObjectType} as at least one parameter and {@code false} otherwise.
+   */
   public static boolean isCallToAnyPthreadFunctionWithObjectType(
       CFunctionCall pFunctionCall, PthreadObjectType pPthreadObjectType) {
 
@@ -250,6 +265,11 @@ public class PthreadUtil {
     return false;
   }
 
+  /**
+   * Returns {@code true} if {@code pFunctionCallExpression} is a call to a {@link
+   * PthreadFunctionType} that contains {@code pPthreadObjectType} as at least one parameter and
+   * {@code false} otherwise.
+   */
   public static boolean isCallToAnyPthreadFunctionWithObjectType(
       CFunctionCallExpression pFunctionCallExpression, PthreadObjectType pPthreadObjectType) {
 
