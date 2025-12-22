@@ -185,14 +185,23 @@ public class MemoryModelParameterTest {
           "local_Z",
           INT_0_INITIALIZER);
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
+  private final class CParameterDeclarations {
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_Q =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
+    final CParameterDeclaration PARAMETER_DECLARATION_Q =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_R =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_R");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_R =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_R");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      PARAMETER_DECLARATION_POINTER_P.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_Q.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_R.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (primitives)
 
@@ -212,23 +221,25 @@ public class MemoryModelParameterTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_Q.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
   public MemoryModelParameterTest() throws InvalidConfigurationException {}
 

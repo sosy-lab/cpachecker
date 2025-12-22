@@ -166,15 +166,24 @@ public class MemoryModelStructParameterTest {
           "outer_struct",
           EMPTY_INITIALIZER_LIST);
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
-      new CParameterDeclaration(
-          FileLocation.DUMMY, OUTER_STRUCT_POINTER_TYPE, "param_ptr_outer_struct");
+  private final class CParameterDeclarations {
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, OUTER_STRUCT_POINTER_TYPE, "param_ptr_outer_struct");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P1 =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P1");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P1 =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P1");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P2 =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P2");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P2 =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P2");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      PARAMETER_DECLARATION_POINTER_OUTER_STRUCT.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_P1.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_P2.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (structs)
 
@@ -222,23 +231,26 @@ public class MemoryModelStructParameterTest {
 
   // Memory Locations (parameters)
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_OUTER_STRUCT
+              .asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration());
 
   public MemoryModelStructParameterTest() throws InvalidConfigurationException {}
 

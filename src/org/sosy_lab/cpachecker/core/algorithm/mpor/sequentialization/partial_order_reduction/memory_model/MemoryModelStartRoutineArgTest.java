@@ -66,8 +66,15 @@ public class MemoryModelStartRoutineArgTest {
           "local_L1",
           INT_0_INITIALIZER);
 
-  private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =
-      new CParameterDeclaration(FileLocation.DUMMY, VOID_POINTER_TYPE, "start_routine_arg");
+  private final class CParameterDeclarations {
+    private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =
+        new CParameterDeclaration(FileLocation.DUMMY, VOID_POINTER_TYPE, "start_routine_arg");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      START_ROUTINE_ARG_DECLARATION.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (primitives)
 
@@ -75,11 +82,13 @@ public class MemoryModelStartRoutineArgTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(MemoryModelParameterTest.DUMMY_CALL_CONTEXT),
-          START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
+          PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
   public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
 
