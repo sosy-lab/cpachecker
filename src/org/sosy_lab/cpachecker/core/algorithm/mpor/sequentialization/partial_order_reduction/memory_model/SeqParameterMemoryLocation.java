@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -34,6 +37,7 @@ public class SeqParameterMemoryLocation extends SeqMemoryLocation {
       int pArgumentIndex) {
 
     super(pOptions, Optional.of(pCallContext), pFieldMember);
+    checkNotNull(pDeclaration);
     declaration = pDeclaration;
     argumentIndex = pArgumentIndex;
   }
@@ -60,5 +64,21 @@ public class SeqParameterMemoryLocation extends SeqMemoryLocation {
   @Override
   public CParameterDeclaration getDeclaration() {
     return declaration;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), declaration, argumentIndex);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof SeqParameterMemoryLocation other
+        && super.equals(other)
+        && declaration.equals(other.declaration)
+        && argumentIndex == other.argumentIndex;
   }
 }

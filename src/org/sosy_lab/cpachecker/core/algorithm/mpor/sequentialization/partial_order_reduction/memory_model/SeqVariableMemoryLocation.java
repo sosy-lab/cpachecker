@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -25,6 +28,7 @@ public class SeqVariableMemoryLocation extends SeqMemoryLocation {
       Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
     super(pOptions, pCallContext, pFieldMember);
+    checkNotNull(pDeclaration);
     declaration = pDeclaration;
   }
 
@@ -47,5 +51,20 @@ public class SeqVariableMemoryLocation extends SeqMemoryLocation {
   @Override
   public CVariableDeclaration getDeclaration() {
     return declaration;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), declaration);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof SeqVariableMemoryLocation other
+        && super.equals(other)
+        && declaration.equals(other.declaration);
   }
 }
