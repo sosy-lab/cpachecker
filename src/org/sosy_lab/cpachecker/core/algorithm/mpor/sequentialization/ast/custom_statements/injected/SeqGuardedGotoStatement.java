@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -37,7 +38,7 @@ public record SeqGuardedGotoStatement(
     ImmutableList<String> ifStatements =
         ImmutableList.<String>builder()
             .addAll(precedingStatements.stream().map(CStatement::toASTString).iterator())
-            .add(targetLabel.toASTString())
+            .add(new SeqGotoStatement(targetLabel).toASTString())
             .build();
     SeqBranchStatement ifStatement = new SeqBranchStatement(condition.toASTString(), ifStatements);
     return ifStatement.toASTString();
