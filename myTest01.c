@@ -1,5 +1,7 @@
+extern int __VERIFIER_nondet_int();
+
 int main() {
-    int a, b, c, d, e, f, g, h, i, j, k, l;
+    int a = __VERIFIER_nondet_int(), b= __VERIFIER_nondet_int(), c= __VERIFIER_nondet_int(), d= __VERIFIER_nondet_int(), e= __VERIFIER_nondet_int(), f= __VERIFIER_nondet_int(), g= __VERIFIER_nondet_int(), h= __VERIFIER_nondet_int(), i= __VERIFIER_nondet_int(), j= __VERIFIER_nondet_int(), k= __VERIFIER_nondet_int(), l= __VERIFIER_nondet_int();
     
     // 12 simple branches for 12 test targets
     if (a > 0) { /* target 1 */ }
