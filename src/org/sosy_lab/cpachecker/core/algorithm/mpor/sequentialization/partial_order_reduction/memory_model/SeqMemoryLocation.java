@@ -12,12 +12,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -41,7 +39,7 @@ public abstract sealed class SeqMemoryLocation
     fieldMember = pFieldMember;
   }
 
-  public abstract CSimpleDeclaration getDeclaration();
+  public abstract CVariableDeclaration getDeclaration();
 
   public String getName() {
     StringBuilder name = new StringBuilder();
@@ -56,31 +54,17 @@ public abstract sealed class SeqMemoryLocation
 
   private String buildThreadPrefix() {
     // global variable declarations have no thread prefix, they "belong" to no thread
-    if (getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.isGlobal()) {
-        return SeqSyntax.EMPTY_STRING;
-      }
+    if (getDeclaration().isGlobal()) {
+      return SeqSyntax.EMPTY_STRING;
     }
     // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
     int threadId = callContext.isPresent() ? callContext.orElseThrow().threadId : 0;
     return SeqNameUtil.buildThreadPrefix(options, threadId);
   }
 
-  public boolean isExplicitGlobal() {
-    return getDeclaration() instanceof CVariableDeclaration variableDeclaration
-        && variableDeclaration.isGlobal();
-  }
-
   public boolean isFieldOwnerPointerType() {
     if (fieldMember.isPresent()) {
       return getDeclaration().getType() instanceof CPointerType;
-    }
-    return false;
-  }
-
-  public boolean isConstCpaCheckerTmp() {
-    if (getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-      return MPORUtil.isConstCpaCheckerTmp(variableDeclaration);
     }
     return false;
   }
@@ -98,9 +82,6 @@ public abstract sealed class SeqMemoryLocation
       case SeqVariableMemoryLocation variableMemoryLocation ->
           SeqVariableMemoryLocation.of(
               options, callContext, variableMemoryLocation.getDeclaration());
-      default ->
-          throw new AssertionError(
-              String.format("Unhandled SeqMemoryLocation type: %s", this.getClass()));
     };
   }
 

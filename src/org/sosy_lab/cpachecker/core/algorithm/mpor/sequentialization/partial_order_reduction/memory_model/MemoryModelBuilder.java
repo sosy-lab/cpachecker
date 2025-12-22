@@ -153,11 +153,11 @@ public record MemoryModelBuilder(
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
-    if (pMemoryLocation.isConstCpaCheckerTmp()) {
+    if (MPORUtil.isConstCpaCheckerTmp(pMemoryLocation.getDeclaration())) {
       return false;
     }
     // relevant locations are either explicit or implicit (e.g. through pointers) global
-    if (pMemoryLocation.isExplicitGlobal()
+    if (pMemoryLocation.getDeclaration().isGlobal()
         || isImplicitGlobal(
             pMemoryLocation,
             pPointerAssignments,
@@ -180,7 +180,7 @@ public record MemoryModelBuilder(
       ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pPointerParameterAssignments,
       ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
 
-    if (pMemoryLocation.isExplicitGlobal()) {
+    if (pMemoryLocation.getDeclaration().isGlobal()) {
       return false;
     }
     // e.g. (void*) arg = &local_var -> local_var can be accessed by creating and created threads
@@ -234,7 +234,7 @@ public record MemoryModelBuilder(
       SeqMemoryLocation pMemoryLocation,
       ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments) {
 
-    return pMemoryLocation.isExplicitGlobal()
+    return pMemoryLocation.getDeclaration().isGlobal()
         || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
   }
 
@@ -408,7 +408,8 @@ public record MemoryModelBuilder(
             CParameterDeclaration parameterDeclaration =
                 functionDeclaration.getParameters().getFirst();
             rAssignments.put(
-                SeqParameterMemoryLocation.of(options, callContext, parameterDeclaration, 0),
+                SeqParameterMemoryLocation.of(
+                    options, callContext, parameterDeclaration.asVariableDeclaration(), 0),
                 rhsMemoryLocation.orElseThrow());
           }
         }
@@ -452,7 +453,8 @@ public record MemoryModelBuilder(
           extractMemoryLocation(pCallContext, arguments.get(i));
       if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
-            SeqParameterMemoryLocation.of(options, pCallContext, leftHandSide, i),
+            SeqParameterMemoryLocation.of(
+                options, pCallContext, leftHandSide.asVariableDeclaration(), i),
             rhsMemoryLocation.orElseThrow());
       }
     }

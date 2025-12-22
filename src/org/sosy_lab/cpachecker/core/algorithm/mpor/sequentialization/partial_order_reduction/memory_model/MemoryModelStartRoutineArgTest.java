@@ -79,7 +79,7 @@ public class MemoryModelStartRoutineArgTest {
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           MemoryModelParameterTest.DUMMY_CALL_CONTEXT,
-          START_ROUTINE_ARG_DECLARATION,
+          START_ROUTINE_ARG_DECLARATION.asVariableDeclaration(),
           0);
 
   public MemoryModelStartRoutineArgTest() throws InvalidConfigurationException {}
@@ -98,7 +98,7 @@ public class MemoryModelStartRoutineArgTest {
     assertThat(pointerParameterAssignments).hasSize(1);
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(LOCAL_L1_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_L1_MEMORY_LOCATION,
@@ -108,7 +108,7 @@ public class MemoryModelStartRoutineArgTest {
                 ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 START_ROUTINE_ARG_MEMORY_LOCATION,

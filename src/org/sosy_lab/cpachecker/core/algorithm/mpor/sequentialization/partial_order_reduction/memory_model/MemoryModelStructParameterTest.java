@@ -226,21 +226,21 @@ public class MemoryModelStructParameterTest {
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           MemoryModelParameterTest.DUMMY_CALL_CONTEXT,
-          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT,
+          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT.asVariableDeclaration(),
           0);
 
   private final SeqParameterMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           MemoryModelParameterTest.DUMMY_CALL_CONTEXT,
-          PARAMETER_DECLARATION_POINTER_P1,
+          PARAMETER_DECLARATION_POINTER_P1.asVariableDeclaration(),
           0);
 
   private final SeqParameterMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           MemoryModelParameterTest.DUMMY_CALL_CONTEXT,
-          PARAMETER_DECLARATION_POINTER_P2,
+          PARAMETER_DECLARATION_POINTER_P2.asVariableDeclaration(),
           0);
 
   public MemoryModelStructParameterTest() throws InvalidConfigurationException {}

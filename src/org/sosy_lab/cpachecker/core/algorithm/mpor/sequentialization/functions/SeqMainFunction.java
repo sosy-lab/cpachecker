@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -181,14 +181,14 @@ public final class SeqMainFunction extends SeqFunction {
     // first extract all accesses to main function arguments
     ImmutableSet<SubstituteEdge> allSubstituteEdges =
         SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
-    ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs =
+    ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs =
         SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
 
     // then add main function arg nondet assignments, if necessary
     StringJoiner rAssignments = new StringJoiner(SeqSyntax.NEWLINE);
     for (var entry : pFields.mainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
       // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
-      if (accessedMainFunctionArgs.contains(entry.getKey())) {
+      if (accessedMainFunctionArgs.contains(entry.getKey().asVariableDeclaration())) {
         CIdExpression mainArgSubstitute = entry.getValue();
         CType mainArgType = mainArgSubstitute.getExpressionType();
         Optional<CFunctionCallExpression> verifierNondet =

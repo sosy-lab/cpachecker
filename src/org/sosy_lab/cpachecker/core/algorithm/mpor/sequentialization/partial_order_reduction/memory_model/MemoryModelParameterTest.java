@@ -216,18 +216,21 @@ public class MemoryModelParameterTest {
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           DUMMY_CALL_CONTEXT,
-          PARAMETER_DECLARATION_POINTER_P,
+          PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration(),
           0);
 
   private final SeqParameterMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       SeqParameterMemoryLocation.of(
-          MPOROptions.getDefaultTestInstance(), DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_Q, 0);
+          MPOROptions.getDefaultTestInstance(),
+          DUMMY_CALL_CONTEXT,
+          PARAMETER_DECLARATION_Q.asVariableDeclaration(),
+          0);
 
   private final SeqParameterMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           DUMMY_CALL_CONTEXT,
-          PARAMETER_DECLARATION_POINTER_R,
+          PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration(),
           0);
 
   public MemoryModelParameterTest() throws InvalidConfigurationException {}
@@ -301,9 +304,9 @@ public class MemoryModelParameterTest {
             .build();
 
     // assert that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
+    assertThat(PARAMETER_Q_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.getDeclaration().isGlobal()).isTrue();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
@@ -335,9 +338,9 @@ public class MemoryModelParameterTest {
         MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // all are not explicit global memory locations
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.getDeclaration().isGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =

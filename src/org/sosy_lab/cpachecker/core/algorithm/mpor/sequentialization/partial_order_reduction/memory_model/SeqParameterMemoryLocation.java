@@ -13,26 +13,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
 public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
 
-  private final CParameterDeclaration declaration;
+  /** We convert all {@link CParameterDeclaration}s to {@link CVariableDeclaration}s. */
+  private final CVariableDeclaration declaration;
 
   /**
    * The arg index of this parameter memory location, starting at {@code 0}. A single {@link
    * CParameterDeclaration} may link to multiple memory locations in the same call context (cf.
    * variadic functions).
    */
-  protected final int argumentIndex;
+  final int argumentIndex;
 
   private SeqParameterMemoryLocation(
       MPOROptions pOptions,
       // parameters always have a call context -> don't use Optional<>
       CFAEdgeForThread pCallContext,
-      CParameterDeclaration pDeclaration,
+      CVariableDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember,
       int pArgumentIndex) {
 
@@ -45,7 +47,7 @@ public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
   public static SeqParameterMemoryLocation of(
       MPOROptions pOptions,
       CFAEdgeForThread pCallContext,
-      CParameterDeclaration pDeclaration,
+      CVariableDeclaration pDeclaration,
       int pArgumentIndex) {
     return new SeqParameterMemoryLocation(
         pOptions, pCallContext, pDeclaration, Optional.empty(), pArgumentIndex);
@@ -54,7 +56,7 @@ public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
   public static SeqParameterMemoryLocation of(
       MPOROptions pOptions,
       CFAEdgeForThread pCallContext,
-      CParameterDeclaration pDeclaration,
+      CVariableDeclaration pDeclaration,
       CCompositeTypeMemberDeclaration pFieldMember,
       int pArgumentIndex) {
     return new SeqParameterMemoryLocation(
@@ -62,7 +64,7 @@ public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
   }
 
   @Override
-  public CParameterDeclaration getDeclaration() {
+  public CVariableDeclaration getDeclaration() {
     return declaration;
   }
 

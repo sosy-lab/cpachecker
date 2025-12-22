@@ -47,7 +47,7 @@ public class MPORSubstitutionTrackerUtil {
   public static void copyContents(MPORSubstitutionTracker pFrom, MPORSubstitutionTracker pTo)
       throws UnsupportedCodeException {
 
-    for (CParameterDeclaration mainFunctionArg : pFrom.getAccessedMainFunctionArgs()) {
+    for (CVariableDeclaration mainFunctionArg : pFrom.getAccessedMainFunctionArgs()) {
       pTo.addAccessedMainFunctionArg(mainFunctionArg);
     }
     // pointer assignments
@@ -58,21 +58,21 @@ public class MPORSubstitutionTrackerUtil {
       pTo.addPointerFieldMemberAssignment(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
     }
     // pointer dereferences
-    for (CSimpleDeclaration accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
+    for (CVariableDeclaration accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
       pTo.addAccessedPointerDereference(accessedPointerDereference);
     }
-    for (CSimpleDeclaration writtenPointerDereference : pFrom.getWrittenPointerDereferences()) {
+    for (CVariableDeclaration writtenPointerDereference : pFrom.getWrittenPointerDereferences()) {
       pTo.addWrittenPointerDereference(writtenPointerDereference);
     }
     // pointer dereferences from field members
-    for (CSimpleDeclaration fieldOwner :
+    for (CVariableDeclaration fieldOwner :
         pFrom.getAccessedFieldReferencePointerDereferences().keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           pFrom.getAccessedFieldReferencePointerDereferences().get(fieldOwner)) {
         pTo.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
       }
     }
-    for (CSimpleDeclaration fieldOwner :
+    for (CVariableDeclaration fieldOwner :
         pFrom.getWrittenFieldReferencePointerDereferences().keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           pFrom.getWrittenFieldReferencePointerDereferences().get(fieldOwner)) {
@@ -80,20 +80,20 @@ public class MPORSubstitutionTrackerUtil {
       }
     }
     // declarations accessed
-    for (CSimpleDeclaration accessedDeclaration : pFrom.getAccessedDeclarations()) {
+    for (CVariableDeclaration accessedDeclaration : pFrom.getAccessedDeclarations()) {
       pTo.addAccessedDeclaration(accessedDeclaration);
     }
-    for (CSimpleDeclaration writtenDeclaration : pFrom.getWrittenDeclarations()) {
+    for (CVariableDeclaration writtenDeclaration : pFrom.getWrittenDeclarations()) {
       pTo.addWrittenDeclaration(writtenDeclaration);
     }
     // field members accessed
-    for (CSimpleDeclaration fieldOwner : pFrom.getAccessedFieldMembers().keySet()) {
+    for (CVariableDeclaration fieldOwner : pFrom.getAccessedFieldMembers().keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           pFrom.getAccessedFieldMembers().get(fieldOwner)) {
         pTo.addAccessedFieldMember(fieldOwner, fieldMember);
       }
     }
-    for (CSimpleDeclaration fieldOwner : pFrom.getWrittenFieldMembers().keySet()) {
+    for (CVariableDeclaration fieldOwner : pFrom.getWrittenFieldMembers().keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           pFrom.getWrittenFieldMembers().get(fieldOwner)) {
         pTo.addWrittenFieldMember(fieldOwner, fieldMember);
@@ -163,7 +163,7 @@ public class MPORSubstitutionTrackerUtil {
     if (pTracker.isEmpty()) {
       return;
     }
-    pTracker.orElseThrow().addAccessedMainFunctionArg(pMainFunctionArg);
+    pTracker.orElseThrow().addAccessedMainFunctionArg(pMainFunctionArg.asVariableDeclaration());
   }
 
   public static void trackPointerAssignment(
