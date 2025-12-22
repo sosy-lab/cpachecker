@@ -66,4 +66,9 @@ public record SeqLastThreadOrderStatement(
   public boolean isPrunedWithTargetGoto() {
     return true;
   }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

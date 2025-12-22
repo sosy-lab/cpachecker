@@ -24,4 +24,11 @@ public sealed interface SeqInjectedStatement extends SeqStatement
    * CSeqThreadStatement} if it contains a target {@code goto} instead of a target {@code pc}.
    */
   boolean isPrunedWithTargetGoto();
+
+  /**
+   * Whether this {@link SeqInjectedStatement} can be pruned from its owning {@link
+   * CSeqThreadStatement} when at least one {@link SeqInjectedStatement} contains an empty bit
+   * vector evaluation expression.
+   */
+  boolean isPrunedWithEmptyBitVectorEvaluation();
 }

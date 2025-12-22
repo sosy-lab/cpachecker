@@ -23,4 +23,9 @@ public record SeqSyncUpdateStatement(CExpressionAssignmentStatement syncUpdate)
   public boolean isPrunedWithTargetGoto() {
     return true;
   }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

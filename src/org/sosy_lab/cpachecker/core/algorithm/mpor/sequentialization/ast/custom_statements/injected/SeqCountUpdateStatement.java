@@ -23,4 +23,9 @@ public record SeqCountUpdateStatement(CExpressionAssignmentStatement countUpdate
   public boolean isPrunedWithTargetGoto() {
     return false;
   }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

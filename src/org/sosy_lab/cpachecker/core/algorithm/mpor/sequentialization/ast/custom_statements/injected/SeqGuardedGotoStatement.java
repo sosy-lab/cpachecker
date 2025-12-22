@@ -47,4 +47,9 @@ public record SeqGuardedGotoStatement(
   public boolean isPrunedWithTargetGoto() {
     return true;
   }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return true;
+  }
 }

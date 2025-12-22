@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.gotos.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqGuardedGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
@@ -81,14 +80,14 @@ public final class SeqThreadStatementUtil {
       ImmutableList<CSeqThreadStatement> pStatements) {
 
     for (CSeqThreadStatement statement : pStatements) {
-      if (containsEmptyBitVectorEvaluationExpression(statement.getInjectedStatements())) {
+      if (isAnyBitVectorEvaluationExpressionEmpty(statement.getInjectedStatements())) {
         return true;
       }
     }
     return false;
   }
 
-  public static boolean containsEmptyBitVectorEvaluationExpression(
+  public static boolean isAnyBitVectorEvaluationExpressionEmpty(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
@@ -216,7 +215,7 @@ public final class SeqThreadStatementUtil {
     CExpressionAssignmentStatement pcAssignmentStatement =
         ProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
     boolean emptyBitVectorEvaluation =
-        SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pruned);
+        SeqThreadStatementUtil.isAnyBitVectorEvaluationExpressionEmpty(pruned);
     // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
     if (emptyBitVectorEvaluation) {
       statements.add(pcAssignmentStatement.toASTString());
@@ -254,14 +253,10 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     Set<SeqInjectedStatement> pruned = new HashSet<>();
-    if (containsEmptyBitVectorEvaluationExpression(pInjectedStatements)) {
+    if (isAnyBitVectorEvaluationExpressionEmpty(pInjectedStatements)) {
       pruned.addAll(
           pInjectedStatements.stream()
-              // prune all bit vector assignments and round goto statements if evaluation is empty
-              .filter(
-                  s ->
-                      s instanceof SeqBitVectorAssignmentStatement
-                          || s instanceof SeqGuardedGotoStatement)
+              .filter(s -> s.isPrunedWithEmptyBitVectorEvaluation())
               .collect(ImmutableSet.toImmutableSet()));
     }
     return pInjectedStatements.stream()

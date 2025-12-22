@@ -33,4 +33,9 @@ public record SeqLastBitVectorUpdateStatement(
   public boolean isPrunedWithTargetGoto() {
     return true;
   }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return true;
+  }
 }
