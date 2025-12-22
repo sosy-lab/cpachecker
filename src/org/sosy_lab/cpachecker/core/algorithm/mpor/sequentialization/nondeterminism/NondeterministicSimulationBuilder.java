@@ -37,8 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqCountUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqRoundGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSingleActiveThreadGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqGuardedGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
@@ -328,10 +327,10 @@ public class NondeterministicSimulationBuilder {
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
-    SeqRoundGotoStatement roundGoto =
-        new SeqRoundGotoStatement(
+    SeqGuardedGotoStatement roundGoto =
+        new SeqGuardedGotoStatement(
             roundSmallerMax,
-            roundIncrement,
+            ImmutableList.of(roundIncrement),
             Objects.requireNonNull(target).getFirstBlock().getLabel());
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
   }
@@ -348,8 +347,8 @@ public class NondeterministicSimulationBuilder {
     CExpressionAssignmentStatement roundIncrement =
         SeqStatementBuilder.buildIncrementStatement(
             SeqIdExpressions.ROUND, pBinaryExpressionBuilder);
-    SeqRoundGotoStatement roundGoto =
-        new SeqRoundGotoStatement(roundSmallerMax, roundIncrement, pTargetGoto);
+    SeqGuardedGotoStatement roundGoto =
+        new SeqGuardedGotoStatement(roundSmallerMax, ImmutableList.of(roundIncrement), pTargetGoto);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, roundGoto);
   }
 
@@ -434,9 +433,11 @@ public class NondeterministicSimulationBuilder {
                   SeqIdExpressions.THREAD_COUNT,
                   SeqIntegerLiteralExpressions.INT_1,
                   BinaryOperator.EQUALS);
-          SeqSingleActiveThreadGotoStatement singleActiveThreadGoto =
-              new SeqSingleActiveThreadGotoStatement(
-                  threadCountEqualsOne, Objects.requireNonNull(target).getFirstBlock().getLabel());
+          SeqGuardedGotoStatement singleActiveThreadGoto =
+              new SeqGuardedGotoStatement(
+                  threadCountEqualsOne,
+                  ImmutableList.of(),
+                  Objects.requireNonNull(target).getFirstBlock().getLabel());
           return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
               pStatement, singleActiveThreadGoto);
         }

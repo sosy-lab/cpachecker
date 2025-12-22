@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom
 public sealed interface SeqInjectedStatementWithTargetGoto extends SeqInjectedStatement
     permits SeqBitVectorEvaluationStatement,
         SeqIgnoreSleepReductionStatement,
-        SeqRoundGotoStatement,
-        SeqSingleActiveThreadGotoStatement {
+        SeqGuardedGotoStatement {
 
   SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber);
 }

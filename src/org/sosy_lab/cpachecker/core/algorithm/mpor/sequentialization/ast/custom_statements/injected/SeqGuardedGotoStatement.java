@@ -1,0 +1,45 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
+
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+/**
+ * An injected statement with a guarded {@code goto}, e.g. {@code if (condition) { goto label; }}.
+ * {@code precedingStatements} can be used to specify guarded statements that are injected before
+ * the {@code goto}, e.g. {@code if (condition) { statement1; goto label; }}
+ */
+public record SeqGuardedGotoStatement(
+    CExpression condition,
+    ImmutableList<CStatement> precedingStatements,
+    SeqBlockLabelStatement targetGoto)
+    implements SeqInjectedStatementWithTargetGoto {
+
+  @Override
+  public SeqInjectedStatementWithTargetGoto withTargetNumber(int pTargetNumber) {
+    return new SeqGuardedGotoStatement(
+        condition, precedingStatements, targetGoto.withLabelNumber(pTargetNumber));
+  }
+
+  @Override
+  public String toASTString() throws UnrecognizedCodeException {
+    ImmutableList<String> ifStatements =
+        ImmutableList.<String>builder()
+            .addAll(precedingStatements.stream().map(CStatement::toASTString).iterator())
+            .add(targetGoto.toASTString())
+            .build();
+    SeqBranchStatement ifStatement = new SeqBranchStatement(condition.toASTString(), ifStatements);
+    return ifStatement.toASTString();
+  }
+}
