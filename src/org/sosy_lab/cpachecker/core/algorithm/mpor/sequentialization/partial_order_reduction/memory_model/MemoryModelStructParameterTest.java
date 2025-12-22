@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MemoryModelStructParameterTest {
 
@@ -264,33 +263,33 @@ public class MemoryModelStructParameterTest {
 
   // Memory Locations (structs)
 
-  private final SeqMemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), OUTER_STRUCT_DECLARATION);
 
-  private final SeqMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
 
-  private final SeqMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
 
-  private final SeqMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_MEMBER_DECLARATION);
 
-  private final SeqMemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
@@ -298,45 +297,47 @@ public class MemoryModelStructParameterTest {
 
   // Memory Locations (primitives)
 
-  private final SeqMemoryLocation GLOBAL_G1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation GLOBAL_G1_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_G1_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation LOCAL_L1_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
   // Memory Locations (parameters)
 
-  private final SeqMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqParameterMemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
+      SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
+          DUMMY_CALL_CONTEXT,
+          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT,
+          0);
 
-  private final SeqMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqParameterMemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
+      SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P1);
+          DUMMY_CALL_CONTEXT,
+          PARAMETER_DECLARATION_POINTER_P1,
+          0);
 
-  private final SeqMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqParameterMemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
+      SeqParameterMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P2);
+          DUMMY_CALL_CONTEXT,
+          PARAMETER_DECLARATION_POINTER_P2,
+          0);
 
-  public MemoryModelStructParameterTest()
-      throws InvalidConfigurationException, UnsupportedCodeException {}
+  public MemoryModelStructParameterTest() throws InvalidConfigurationException {}
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
     // param_ptr_outer = &outer; i.e. pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqParameterMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, OUTER_STRUCT_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_outer'
@@ -356,12 +357,12 @@ public class MemoryModelStructParameterTest {
   public void test_struct_members_pointer_parameter_dereference() {
     // param_ptr_P1 = &outer.member; and param_ptr_P2 = &outer.inner.member
     // i.e. pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqParameterMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // find the mem locations associated with deref of 'param_ptr_P1'
@@ -398,12 +399,12 @@ public class MemoryModelStructParameterTest {
 
     // param_ptr_P1 = outer.member_ptr; and param_ptr_P2 = outer.inner.member_ptr
     // i.e. pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> parameterAssignments =
+        ImmutableMap.<SeqParameterMemoryLocation, SeqMemoryLocation>builder()
             .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
+    ImmutableMap<SeqParameterMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     ImmutableSet<SeqMemoryLocation> memoryLocationsP1 =

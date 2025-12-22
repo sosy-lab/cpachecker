@@ -130,32 +130,32 @@ public class MemoryModelTest {
 
   // Memory Locations (primitives)
 
-  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
-  private final SeqMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
-  private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation GLOBAL_X_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
-  private final SeqMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation GLOBAL_Y_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
+  private final SeqVariableMemoryLocation LOCAL_Z_MEMORY_LOCATION =
+      SeqVariableMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
   public MemoryModelTest() throws InvalidConfigurationException {}
@@ -163,8 +163,8 @@ public class MemoryModelTest {
   @Test
   public void test_memory_location_equals() throws InvalidConfigurationException {
     // create new MemoryLocation with the same parameters
-    SeqMemoryLocation int_pointer_a_memory_location_alt =
-        SeqMemoryLocation.of(
+    SeqVariableMemoryLocation int_pointer_a_memory_location_alt =
+        SeqVariableMemoryLocation.of(
             MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION).isEqualTo(int_pointer_a_memory_location_alt);
