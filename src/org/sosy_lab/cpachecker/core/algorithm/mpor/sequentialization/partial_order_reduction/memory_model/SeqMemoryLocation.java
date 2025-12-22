@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public abstract class SeqMemoryLocation {
+public abstract sealed class SeqMemoryLocation
+    permits SeqParameterMemoryLocation, SeqVariableMemoryLocation {
 
   public final MPOROptions options;
 

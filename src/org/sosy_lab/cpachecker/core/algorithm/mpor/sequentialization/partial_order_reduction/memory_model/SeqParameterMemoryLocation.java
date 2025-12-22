@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 
-public class SeqParameterMemoryLocation extends SeqMemoryLocation {
+public final class SeqParameterMemoryLocation extends SeqMemoryLocation {
 
   private final CParameterDeclaration declaration;
 
