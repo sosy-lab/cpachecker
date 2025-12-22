@@ -10,7 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -21,7 +25,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -173,7 +179,7 @@ public class MPORSubstitutionTrackerUtil {
       if (lhsDeclaration.getType() instanceof CPointerType) {
         CExpression rightHandSide = pAssignment.getRightHandSide();
         Optional<CSimpleDeclaration> pointerDeclaration =
-            MPORUtil.tryGetPointerDeclaration(rightHandSide);
+            tryExtractSingleDeclaration(rightHandSide);
         MPORSubstitutionTracker tracker = pTracker.orElseThrow();
         if (pointerDeclaration.isPresent()) {
           tracker.addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
@@ -203,7 +209,7 @@ public class MPORSubstitutionTrackerUtil {
       CInitializer initializer = pVariableDeclaration.getInitializer();
       if (initializer instanceof CInitializerExpression initializerExpression) {
         Optional<CSimpleDeclaration> initializerDeclaration =
-            MPORUtil.tryGetPointerDeclaration(initializerExpression.getExpression());
+            tryExtractSingleDeclaration(initializerExpression.getExpression());
         if (initializerDeclaration.isPresent()) {
           CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
           if (SubstituteUtil.isSubstitutable(pointerDeclaration)) {
@@ -343,6 +349,66 @@ public class MPORSubstitutionTrackerUtil {
           pTracker.addAccessedFieldMember(simpleDeclaration, memberDeclaration);
         }
       }
+    }
+  }
+
+  /**
+   * Extracts the single {@link CSimpleDeclaration} of {@code pExpression} if it can be found.
+   * Throws a {@link UnsupportedCodeException} if {@code pExpression} is a {@link CBinaryExpression}
+   * since there may be multiple {@link CSimpleDeclaration}s.
+   */
+  private static Optional<CSimpleDeclaration> tryExtractSingleDeclaration(CExpression pExpression)
+      throws UnsupportedCodeException {
+
+    InputRejection.checkPointerWriteBinaryExpression(pExpression);
+    CIdExpression idExpression = pExpression.accept(new CPointerDeclarationVisitor());
+    return Optional.ofNullable(idExpression).map(CIdExpression::getDeclaration);
+  }
+
+  private static final class CPointerDeclarationVisitor
+      extends DefaultCExpressionVisitor<CIdExpression, UnsupportedCodeException> {
+
+    @Override
+    public CIdExpression visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
+      return pFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CPointerExpression pPointerExpression)
+        throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public CIdExpression visit(CIdExpression pIdExpression) {
+      return pIdExpression;
+    }
+
+    @Override
+    protected @Nullable CIdExpression visitDefault(CExpression pExpression) {
+      return null; // ignore
     }
   }
 }
