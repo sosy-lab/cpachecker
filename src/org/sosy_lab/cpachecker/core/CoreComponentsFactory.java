@@ -523,6 +523,7 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
+
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
@@ -584,7 +585,9 @@ public class CoreComponentsFactory {
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useParallelTestSuiteGeneration) {
       logger.log(Level.INFO, "Using Parallel Test Suite Generation Algorithm");
-      algorithm = new ParallelTestSuiteGenerationAlgorithm(config, logger, cfa);
+      algorithm =
+          new ParallelTestSuiteGenerationAlgorithm(
+              config, logger, shutdownNotifier, cfa, specification);
     } else {
       if (useTerminationToSafetyAlgorithm) {
         TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
@@ -803,6 +806,7 @@ public class CoreComponentsFactory {
       }
 
     }
+
 
     return algorithm;
   }
