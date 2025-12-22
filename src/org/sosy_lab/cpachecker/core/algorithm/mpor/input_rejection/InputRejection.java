@@ -12,16 +12,23 @@ import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -247,8 +254,11 @@ public class InputRejection {
       if (pVariableDeclaration.getInitializer()
           instanceof CInitializerExpression initializerExpression) {
         CExpression expression = initializerExpression.getExpression();
-        checkFunctionPointerExpression(
-            expression, InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+        if (expression.accept(new FunctionDeclarationVisitor())) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + expression.toASTString(),
+              null);
+        }
       }
     }
   }
@@ -262,25 +272,64 @@ public class InputRejection {
       return;
     }
     for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
-      checkFunctionPointerExpression(
-          parameterExpression, InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
+      if (parameterExpression.accept(new FunctionDeclarationVisitor())) {
+        throw new UnsupportedCodeException(
+            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
+                + parameterExpression.toASTString(),
+            null);
+      }
     }
   }
 
-  private static void checkFunctionPointerExpression(
-      CExpression pExpression, InputRejectionMessage pMessage) throws UnsupportedCodeException {
+  private static final class FunctionDeclarationVisitor
+      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
 
-    if (pExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
-        throw new UnsupportedCodeException(pMessage.message + pExpression.toASTString(), null);
-      }
+    @Override
+    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
     }
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
-          throw new UnsupportedCodeException(pMessage.message + pExpression.toASTString(), null);
-        }
-      }
+
+    @Override
+    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
+      return pFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
+      return pBinaryExpression.getOperand1().accept(this)
+          || pBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIdExpression) {
+      return pIdExpression.getDeclaration() instanceof CFunctionDeclaration;
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExpression) {
+      return false; // ignore
     }
   }
 }
