@@ -55,6 +55,8 @@ public class InputRejection {
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
     NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    POINTER_BINARY_EXPRESSION_ASSIGNMENT(
+        "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
         "allowPointerWrites is disabled, but the input program contains a pointer write in line ",
         true),
@@ -330,6 +332,19 @@ public class InputRejection {
     @Override
     protected Boolean visitDefault(CExpression pExpression) {
       return false; // ignore
+    }
+  }
+
+  public static void checkBinaryExpressionPointerAssignment(CExpression pExpression)
+      throws UnsupportedCodeException {
+
+    if (pExpression instanceof CBinaryExpression) {
+      throw new UnsupportedCodeException(
+          String.format(
+              InputRejectionMessage.POINTER_BINARY_EXPRESSION_ASSIGNMENT.formatMessage(),
+              pExpression.getFileLocation().getStartingLineInOrigin(),
+              pExpression.toASTString()),
+          null);
     }
   }
 }
