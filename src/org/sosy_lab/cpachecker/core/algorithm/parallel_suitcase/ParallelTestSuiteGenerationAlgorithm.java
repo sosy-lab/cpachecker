@@ -70,51 +70,28 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
    * @param config Configuration object for option injection
    * @param logger Logger for output messages
    * @param cfa Control flow automaton for test target retrieval
+   * @param spec Specification for the analysis
+   * @param shutdownNotifier Shutdown notifier for interruption handling
    */
-  public ParallelTestSuiteGenerationAlgorithm(Configuration config, LogManager logger, CFA cfa)
-      throws InvalidConfigurationException {
-
-    // Call the private 5-parameter constructor with internally created dependencies
-    this(config, logger, cfa, createDefaultSpecification(), createDefaultShutdownNotifier());
-
-    logger.log(Level.INFO, "=== ParallelTestSuiteGenerationAlgorithm CONSTRUCTOR CALLED ===");
-  }
-
-  private ParallelTestSuiteGenerationAlgorithm(
+  public ParallelTestSuiteGenerationAlgorithm(
       Configuration config,
       LogManager logger,
+      ShutdownNotifier shutdownNotifier,
       CFA cfa,
-      Specification spec,
-      ShutdownNotifier shutdownNotifier)
+      Specification spec)
       throws InvalidConfigurationException {
-
-    // Inject configuration options
     config.inject(this);
     this.logger = logger;
+    this.shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     this.cfa = cfa;
     this.specification = spec;
-    this.shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    // this.globalConfig = config;
 
-    // Validate thread count configuration
+
     if (numberOfThreads <= 0) {
       throw new InvalidConfigurationException("Number of threads must be positive");
-    }
   }
 
-  /**
-   * Creates a default specification for test generation Uses Specification.alwaysSatisfied() which
-   * returns an empty specification
-   */
-  private static Specification createDefaultSpecification() {
-    // This method exists and returns an empty specification
-    return Specification.alwaysSatisfied();
-  }
-
-  /** Creates a default shutdown notifier */
-  private static ShutdownNotifier createDefaultShutdownNotifier() {
-    ShutdownManager manager = ShutdownManager.create();
-    return manager.getNotifier();
+    logger.log(Level.INFO, "=== ParallelTestSuiteGenerationAlgorithm CONSTRUCTOR CALLED ===");
   }
 
   /**
@@ -187,7 +164,10 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
 
       // Step 4: Wait for all tasks to complete
       executorService.shutdown();
-      boolean completed = executorService.awaitTermination(1, TimeUnit.HOURS);
+      boolean completed = executorService.awaitTermination(8, TimeUnit.SECONDS);
+      if (!completed) {
+        executorService.shutdownNow();
+      }
 
       if (completed) {
         logger.log(Level.INFO, "Parallel test generation completed successfully");
@@ -236,6 +216,8 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
      */
     @Override
     public void run() {
+
+      LogManager threadLogger = null;
       logger.log(Level.INFO, "Thread " + threadId + " processing " + partition.size() + " targets");
       logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " START"); // debug
 
@@ -254,7 +236,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
         ShutdownManager threadShutdownManager =
             ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
-        LogManager threadLogger = logger.withComponentName("TestGen-Thread-" + threadId);
+        threadLogger = logger.withComponentName("TestGen-Thread-" + threadId);
 
         // Create core components factory
         CoreComponentsFactory coreComponents =
@@ -338,6 +320,17 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
         PrintWriter pw = new PrintWriter(sw);
         e.printStackTrace(pw);
         logger.log(Level.SEVERE, "Full stack trace:\n" + sw.toString());
+      } finally {
+        try {
+          if (threadLogger != null) {
+            threadLogger.flush();
+          }
+          logger.flush();
+        } catch (Exception e) {
+          // Ignore flush exceptions to avoid interfering with main logic
+      }
+
+        logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " EXITING");
       }
       }
   }
