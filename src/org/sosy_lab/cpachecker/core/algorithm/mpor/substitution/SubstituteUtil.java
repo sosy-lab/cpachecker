@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
 
@@ -41,14 +40,6 @@ public class SubstituteUtil {
   static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
-  }
-
-  public static ImmutableList<MPORThread> extractThreads(
-      ImmutableList<MPORSubstitution> pSubstitutions) {
-
-    return pSubstitutions.stream()
-        .map(MPORSubstitution::getThread)
-        .collect(ImmutableList.toImmutableList());
   }
 
   public static MPORSubstitution extractMainThreadSubstitution(
