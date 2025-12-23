@@ -36,14 +36,18 @@ public abstract class NondeterministicSimulation {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    checkArgument(pOptions.nondeterminismSource().equals(getNondeterminismSource()));
+    // ensure that only the specified nondeterministic simulation is created
+    switch (pOptions.nondeterminismSource()) {
+      case NEXT_THREAD -> checkArgument(this instanceof NextThreadNondeterministicSimulation);
+      case NEXT_THREAD_AND_NUM_STATEMENTS ->
+          checkArgument(this instanceof NextThreadAndNumStatementsNondeterministicSimulation);
+      case NUM_STATEMENTS -> checkArgument(this instanceof NumStatementsNondeterministicSimulation);
+    }
     options = pOptions;
     ghostElements = pGhostElements;
     clauses = pClauses;
     utils = pUtils;
   }
-
-  abstract NondeterminismSource getNondeterminismSource();
 
   abstract String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException;

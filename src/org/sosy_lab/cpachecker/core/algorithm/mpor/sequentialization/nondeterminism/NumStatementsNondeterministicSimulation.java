@@ -53,11 +53,6 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  NondeterminismSource getNondeterminismSource() {
-    return NondeterminismSource.NUM_STATEMENTS;
-  }
-
-  @Override
   public String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 

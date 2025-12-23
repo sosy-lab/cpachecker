@@ -41,11 +41,6 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   }
 
   @Override
-  public NondeterminismSource getNondeterminismSource() {
-    return NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS;
-  }
-
-  @Override
   public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 

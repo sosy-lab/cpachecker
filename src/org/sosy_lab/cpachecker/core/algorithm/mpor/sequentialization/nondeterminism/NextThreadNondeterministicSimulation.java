@@ -44,11 +44,6 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   }
 
   @Override
-  NondeterminismSource getNondeterminismSource() {
-    return NondeterminismSource.NEXT_THREAD;
-  }
-
-  @Override
   public String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 
