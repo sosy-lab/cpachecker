@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -110,10 +111,11 @@ public record FunctionStatementBuilder(
       // go through all parameter substitutes. if there is more than one, the function is variadic
       for (int j = 0; j < parameterSubstitutes.size(); j++) {
         CExpression argument = pFunctionCallEdge.getArguments().get(i + j);
+        MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
         CExpression argumentSubstitute =
-            pSubstitution.substituteWithCallContext(
+            pSubstitution.substitute(
                 // use "outer" call context, since pCallContext is the given pFunctionCallEdge
-                argument, pCallContext.callContext, false, false, false, false);
+                argument, pCallContext.callContext, false, false, false, false, dummyTracker);
         CIdExpression parameterSubstitute = parameterSubstitutes.get(j);
         rAssignments.add(
             new FunctionParameterAssignment(pCallContext, parameterSubstitute, argumentSubstitute));
@@ -141,13 +143,20 @@ public record FunctionStatementBuilder(
           if (functionCall.isPresent()) {
             CExpression rightHandSide =
                 PthreadUtil.extractStartRoutineArg(functionCall.orElseThrow());
+            MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
             FunctionParameterAssignment startRoutineArgAssignment =
                 new FunctionParameterAssignment(
                     callContext,
                     leftHandSide,
-                    pSubstitution.substituteWithCallContext(
+                    pSubstitution.substitute(
                         // the inner call context is the context in which pthread_create is called
-                        rightHandSide, callContext.callContext, false, false, false, false));
+                        rightHandSide,
+                        callContext.callContext,
+                        false,
+                        false,
+                        false,
+                        false,
+                        dummyTracker));
             rAssignments.put(callContext, startRoutineArgAssignment);
           }
         }

@@ -130,10 +130,17 @@ public record MPORSubstitutionBuilder(
       CInitializer initializer = variableDeclaration.getInitializer();
       // TODO handle CInitializerList
       if (initializer instanceof CInitializerExpression initializerExpression) {
+        MPORSubstitutionTracker dummyTracker = new MPORSubstitutionTracker();
         // no call context is used for global variables
         CExpression substituteExpression =
             dummySubstitution.substitute(
-                initializerExpression.getExpression(), false, false, false, false);
+                initializerExpression.getExpression(),
+                Optional.empty(),
+                false,
+                false,
+                false,
+                false,
+                dummyTracker);
         CInitializerExpression substituteInitializerExpression =
             substituteInitializerExpression(initializerExpression, substituteExpression);
         CVariableDeclaration newSubstituteDeclaration =
@@ -388,8 +395,14 @@ public record MPORSubstitutionBuilder(
         CInitializerExpression initializerSubstitute =
             substituteInitializerExpression(
                 initializerExpression,
-                dummySubstitution.substituteWithCallContext(
-                    initializerExpression.getExpression(), callContext, true, false, false, false));
+                dummySubstitution.substitute(
+                    initializerExpression.getExpression(),
+                    callContext,
+                    true,
+                    false,
+                    false,
+                    false,
+                    tracker));
         CVariableDeclaration newDeclarationSubstitute =
             substituteVariableDeclaration(
                 substituteDeclaration.getSubstituteVariableDeclaration(), initializerSubstitute);

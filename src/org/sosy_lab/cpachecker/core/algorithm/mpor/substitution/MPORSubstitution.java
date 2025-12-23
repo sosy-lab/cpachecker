@@ -115,66 +115,8 @@ public class MPORSubstitution {
 
   // Substitute Functions ==========================================================================
 
-  public CExpression substitute(
-      CExpression pExpression,
-      boolean pIsDeclaration,
-      boolean pIsWrite,
-      boolean pIsPointerDereference,
-      boolean pIsFieldReference)
-      throws UnrecognizedCodeException {
-
-    return substitute(
-        pExpression,
-        Optional.empty(),
-        pIsDeclaration,
-        pIsWrite,
-        pIsPointerDereference,
-        pIsFieldReference,
-        Optional.empty());
-  }
-
-  public CExpression substituteWithCallContext(
-      CExpression pExpression,
-      // the call context is still optional, e.g. for expression directly inside main()
-      Optional<CFAEdgeForThread> pCallContext,
-      boolean pIsDeclaration,
-      boolean pIsWrite,
-      boolean pIsPointerDereference,
-      boolean pIsFieldReference)
-      throws UnrecognizedCodeException {
-
-    return substitute(
-        pExpression,
-        pCallContext,
-        pIsDeclaration,
-        pIsWrite,
-        pIsPointerDereference,
-        pIsFieldReference,
-        Optional.empty());
-  }
-
-  public CExpression substituteWithTracker(
-      CExpression pExpression,
-      Optional<CFAEdgeForThread> pCallContext,
-      boolean pIsDeclaration,
-      boolean pIsWrite,
-      boolean pIsPointerDereference,
-      boolean pIsFieldReference,
-      MPORSubstitutionTracker pTracker)
-      throws UnrecognizedCodeException {
-
-    return substitute(
-        pExpression,
-        pCallContext,
-        pIsDeclaration,
-        pIsWrite,
-        pIsPointerDereference,
-        pIsFieldReference,
-        Optional.of(pTracker));
-  }
-
   /**
-   * Substitutes the {@code pExpressiion}, and tracks if any {@link CVariableDeclaration}s that were
+   * Substitutes the {@code pExpression}, and tracks if any {@link CVariableDeclaration}s that were
    * substituted alongside in {@code pTracker}. Furthermore:
    *
    * <ul>
@@ -186,14 +128,14 @@ public class MPORSubstitution {
    *       {@code owner->member} then for the expression {@code owner} this value is true
    * </ul>
    */
-  private CExpression substitute(
+  public CExpression substitute(
       CExpression pExpression,
       Optional<CFAEdgeForThread> pCallContext,
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pExpression.getFileLocation();
@@ -335,7 +277,7 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     FileLocation fileLocation = pStatement.getFileLocation();
@@ -385,7 +327,7 @@ public class MPORSubstitution {
   private CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     // substitute all parameters in the function call expression
@@ -416,7 +358,7 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
@@ -441,7 +383,7 @@ public class MPORSubstitution {
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
@@ -463,7 +405,7 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
-        MPORSubstitutionTrackerUtil.trackMainFunctionArg(parameterDeclaration, pTracker);
+        pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
         return Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
       }
       // normal function called within thread, including start_routines, always have call context
@@ -518,7 +460,7 @@ public class MPORSubstitution {
   public CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
       Optional<CFAEdgeForThread> pCallContext,
-      Optional<MPORSubstitutionTracker> pTracker)
+      MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
