@@ -122,6 +122,14 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
   }
 
   /**
+   * Returns true if the target {@code pc} is present and equal to {@link
+   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   */
+  public boolean isTargetPcExit() {
+    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+  }
+
+  /**
    * Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;}, and no
    * additional {@link SeqInjectedStatement}s.
    */

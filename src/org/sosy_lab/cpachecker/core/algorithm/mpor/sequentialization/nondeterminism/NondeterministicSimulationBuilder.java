@@ -310,15 +310,18 @@ public class NondeterministicSimulationBuilder {
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
       // initialize thread_count update to null
       CExpressionAssignmentStatement countUpdate = null;
-      // if a thread is created -> thread_count = thread_count + 1
-      if (statement instanceof SeqThreadCreationStatement) {
-        countUpdate =
-            SeqStatementBuilder.buildIncrementStatement(
-                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-      }
-      // if a thread exits -> thread_count = thread_count - 1
-      if (statement.getTargetPc().isPresent()) {
-        if (statement.getTargetPc().orElseThrow() == ProgramCounterVariables.EXIT_PC) {
+      // if the statement creates another thread but also terminates the owning thread,
+      // then nothing should be injected, otherwise we increment and decrement thread_count
+      // in one atomic operation
+      if (!(statement instanceof SeqThreadCreationStatement && statement.isTargetPcExit())) {
+        // if a thread is created -> thread_count = thread_count + 1
+        if (statement instanceof SeqThreadCreationStatement) {
+          countUpdate =
+              SeqStatementBuilder.buildIncrementStatement(
+                  SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
+        }
+        // if a thread exits -> thread_count = thread_count - 1
+        if (statement.isTargetPcExit()) {
           countUpdate =
               SeqStatementBuilder.buildDecrementStatement(
                   SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
