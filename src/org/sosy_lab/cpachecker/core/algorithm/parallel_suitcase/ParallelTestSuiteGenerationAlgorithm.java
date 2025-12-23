@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.parallel_suitcase;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -19,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import javax.management.JMException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -26,6 +26,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -40,6 +41,10 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+
 
 /**
  * Parallel test case generation algorithm Divides global test targets into multiple subsets and
@@ -161,21 +166,8 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
             Paths.get("config/includes/testing/valueAnalysis-PrallelTestcaseGen.properties");
         executorService.submit(new TestCaseGenerationTask(partition, i, configFile));
       }
-
-      // Step 4: Wait for all tasks to complete
       executorService.shutdown();
-      boolean completed = executorService.awaitTermination(8, TimeUnit.SECONDS);
-      if (!completed) {
-        executorService.shutdownNow();
-      }
-
-      if (completed) {
-        logger.log(Level.INFO, "Parallel test generation completed successfully");
-      } else {
-        logger.log(Level.WARNING, "Parallel test generation timed out");
-        executorService.shutdownNow(); // Force shutdown
-      }
-
+      executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Error during parallel test generation", e);
       throw new RuntimeException("Parallel test generation failed", e);
@@ -217,28 +209,33 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
     @Override
     public void run() {
 
+      ShutdownManager threadShutdownManager = null;
       LogManager threadLogger = null;
+
       logger.log(Level.INFO, "Thread " + threadId + " processing " + partition.size() + " targets");
-      logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " START"); // debug
+      logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " START");
 
       try {
-
-        // Create a completely new configuration, DO NOT copy from globalConfig
-        Configuration threadConfig =
-            Configuration.builder()
-                .loadFromFile(configFile) // Only load the worker thread's specific configuration
-                .build();
-
+        // 1. Thread-local config
+        Configuration threadConfig = Configuration.builder().loadFromFile(configFile).build();
         logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " created clean config");
 
-        // Step 2: Create independent components for this thread
-        // Following the pattern from ParallelAlgorithm.createParallelAnalysis
-        ShutdownManager threadShutdownManager =
-            ShutdownManager.createWithParent(shutdownManager.getNotifier());
+        // 2. Thread-local shutdown + limits
+        threadShutdownManager = ShutdownManager.createWithParent(shutdownManager.getNotifier());
+
+        List<ResourceLimit> limits = new ArrayList<>();
+        try {
+          limits.add(ProcessCpuTimeLimit.create(TimeSpan.ofSeconds(120)));
+        } catch (JMException e) {
+          logger.log(Level.SEVERE, "CPU time measurement not supported", e);
+        }
+
+        ResourceLimitChecker limitChecker = new ResourceLimitChecker(threadShutdownManager, limits);
+        limitChecker.start();
 
         threadLogger = logger.withComponentName("TestGen-Thread-" + threadId);
 
-        // Create core components factory
+        // 3. Create CPA + Algorithm
         CoreComponentsFactory coreComponents =
             new CoreComponentsFactory(
                 threadConfig,
@@ -247,91 +244,75 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
                 AggregatedReachedSets.empty(),
                 cfa);
 
-        // Step 3: Create CPA, Algorithm and ReachedSet instances
         ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
+
         Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
-        String algorithmName = algorithm.getClass().getSimpleName(); // debug
+
         logger.log(
             Level.INFO,
-            "THREAD_DEBUG " + threadId + " created algorithm = " + algorithmName); // debug
+            "THREAD_DEBUG "
+                + threadId
+                + " created algorithm = "
+                + algorithm.getClass().getSimpleName());
 
         if (algorithm instanceof ParallelTestSuiteGenerationAlgorithm) {
           logger.log(Level.SEVERE, "THREAD_DEBUG " + threadId + " RECURSION DETECTED!");
           return;
         }
 
-        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
-
-        // Step 4: Extract and update TestTargetCPA with partition targets
-        // As advisor suggested: retrieve TestTargetCPA and update its transfer relation
+        // 4. Inject partition into TestTargetCPA
         TestTargetCPA testTargetCPA = CPAs.retrieveCPA(cpa, TestTargetCPA.class);
         if (testTargetCPA == null) {
-          throw new IllegalStateException("TestTargetCPA not found in CPA structure");
+          throw new IllegalStateException("TestTargetCPA not found");
         }
 
-        // Get transfer relation and update test targets
-        // This requires adding setTestTargets() method to TestTargetTransferRelation
         TestTargetTransferRelation transferRel =
             (TestTargetTransferRelation) testTargetCPA.getTransferRelation();
-        transferRel.setTestTargets(partition); // New method to be implemented
 
-        // Step 5: Initialize reached set and run algorithm
-        // Following ParallelAlgorithm.runParallelAnalysis pattern
+        transferRel.setTestTargets(partition);
+        threadLogger.log(
+            Level.INFO, "Thread " + threadId + " set " + partition.size() + " test targets");
+
+        // 5. Create + initialize reached set (ONLY ONCE)
+        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
+
         coreComponents.initializeReachedSet(reachedSet, cfa.getMainFunction(), cpa);
 
-        // Run the test generation algorithm
+        // 6. Run algorithm
         logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " running algorithm...");
         AlgorithmStatus status = algorithm.run(reachedSet);
+
         logger.log(
             Level.INFO, "THREAD_DEBUG " + threadId + " algorithm finished, status = " + status);
 
-        // Step 6: Log results
-        if (status.isSound() && status.isPrecise()) {
-          logger.log(Level.INFO, "Thread " + threadId + " completed successfully");
-        } else {
-          logger.log(Level.WARNING, "Thread " + threadId + " finished with status: " + status);
-        }
-
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Thread " + threadId + " configuration error", e);
-      } catch (CPAException e) {
-        logger.log(Level.SEVERE, "Thread " + threadId + " CPA error during test generation", e);
-      } catch (InterruptedException e) {
-        logger.log(Level.INFO, "Thread " + threadId + " was interrupted", e);
-        Thread.currentThread().interrupt(); // Restore interrupt status
-      } catch (UnsupportedOperationException e) {
-        // Add complete stack information
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        String stackTrace = sw.toString();
 
-        logger.log(Level.SEVERE, "Thread " + threadId + " UnsupportedOperationException DETAILS:");
-        logger.log(Level.SEVERE, "Message: " + e.getMessage());
-        logger.log(Level.SEVERE, "Full stack trace:");
-        // Record the stack trace line by line to ensure nothing is lost.
-        for (String line : stackTrace.split("\n")) {
-          logger.log(Level.SEVERE, line);
-        }
+      } catch (CPAException e) {
+        logger.log(Level.SEVERE, "Thread " + threadId + " CPA error", e);
+
+      } catch (InterruptedException e) {
+        logger.log(Level.INFO, "Thread " + threadId + " interrupted", e);
+        Thread.currentThread().interrupt();
+
       } catch (Exception e) {
         logger.log(Level.SEVERE, "Thread " + threadId + " unexpected error", e);
-        // Same
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        logger.log(Level.SEVERE, "Full stack trace:\n" + sw.toString());
+
       } finally {
         try {
           if (threadLogger != null) {
             threadLogger.flush();
           }
           logger.flush();
-        } catch (Exception e) {
-          // Ignore flush exceptions to avoid interfering with main logic
-      }
+        } catch (Exception ignore) {
+        }
+
+        if (threadShutdownManager != null) {
+          threadShutdownManager.requestShutdown("Thread finished");
+        }
 
         logger.log(Level.INFO, "THREAD_DEBUG " + threadId + " EXITING");
       }
-      }
+    }
   }
 }

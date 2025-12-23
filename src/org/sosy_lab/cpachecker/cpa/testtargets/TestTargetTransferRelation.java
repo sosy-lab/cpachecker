@@ -41,6 +41,7 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+
       final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
@@ -54,6 +55,13 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
     if (((TestTargetState) pState).isStop()) {
       return ImmutableSet.of();
     }
+    System.out.println(
+        "Thread "
+            + Thread.currentThread().getId()
+            + " processing edge: "
+            + pCfaEdge
+            + ", is target? "
+            + currentTargets.contains(pCfaEdge));
 
     return Collections.singleton(
         currentTargets.contains(pCfaEdge)
@@ -81,6 +89,12 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
    */
   public void setTestTargets(Set<CFAEdge> pTestTargets) {
     // Use a regular HashSet (not thread-safe, but fine if only one thread uses it)
+    System.out.println(
+        "Thread "
+            + Thread.currentThread().getId()
+            + " set "
+            + pTestTargets.size()
+            + " test targets");
     this.testTargets = new HashSet<>(pTestTargets);
   }
 }

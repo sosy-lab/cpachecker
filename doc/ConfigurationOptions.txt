@@ -445,7 +445,7 @@ analysis.name = no default value
 # Number of threads for parallel test generation
 analysis.parallelTestGeneration.numberOfThreads = 4
 
-# Partitioning strategy to use (RANDOM or STRATEGY)
+# Partitioning strategy
 analysis.parallelTestGeneration.partitioningStrategy = RANDOM
   enum:     [RANDOM, STRATEGY]
 
