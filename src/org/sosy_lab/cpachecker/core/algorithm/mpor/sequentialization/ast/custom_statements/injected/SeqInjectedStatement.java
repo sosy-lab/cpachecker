@@ -22,6 +22,11 @@ public sealed interface SeqInjectedStatement extends SeqStatement
   /**
    * Whether this {@link SeqInjectedStatement} can be pruned from its owning {@link
    * CSeqThreadStatement} if it contains a target {@code goto} instead of a target {@code pc}.
+   *
+   * <p>If a target {@code goto} is present, then the simulation stays in the same thread. Some
+   * {@link SeqInjectedStatement}s update e.g. ghost variables that are utilized by other threads.
+   * But if no context-switch occurs due to the {@code goto}, then the ghost variables do not have
+   * to be updated and can be pruned.
    */
   boolean isPrunedWithTargetGoto();
 
