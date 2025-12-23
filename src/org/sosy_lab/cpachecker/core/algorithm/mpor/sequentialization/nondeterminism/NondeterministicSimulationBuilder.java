@@ -363,11 +363,11 @@ public class NondeterministicSimulationBuilder {
           newStatements.add(
               SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
                   statement, singleActiveThreadGoto));
+          continue;
         }
-      } else {
-        // no int target pc -> no replacement
-        newStatements.add(statement);
       }
+      // no int target pc -> no replacement
+      newStatements.add(statement);
     }
     return pBlock.withStatements(newStatements.build());
   }
