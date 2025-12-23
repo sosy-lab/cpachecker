@@ -86,9 +86,8 @@ public abstract class NondeterministicSimulation {
   }
 
   /**
-   * Builds the {@link String} code of the single simulation of {@code pActiveThread}. This is used
-   * only when {@link MPOROptions#loopUnrolling()} is enabled, since it places the self-contained
-   * thread simulations into a separate function for each thread.
+   * Builds the {@link String} code of a single simulation for {@code pActiveThread}, including the
+   * {@link SeqMultiControlStatement}.
    */
   abstract String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException;
@@ -101,9 +100,8 @@ public abstract class NondeterministicSimulation {
   public abstract String buildAllThreadSimulations() throws UnrecognizedCodeException;
 
   /**
-   * Builds list of statements that are placed directly before the simulation of a single {@code
-   * pActiveThread}, e.g. assumptions or assignments, build via {@link
-   * #buildSingleThreadSimulation(MPORThread)}.
+   * Builds the list of statements, e.g. assumptions or assignments, that are placed directly before
+   * the {@link SeqMultiControlStatement} of a single {@code pActiveThread}.
    */
   abstract ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread)
       throws UnrecognizedCodeException;
