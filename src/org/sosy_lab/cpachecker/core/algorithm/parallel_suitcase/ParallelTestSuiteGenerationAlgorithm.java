@@ -67,6 +67,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
   private final Specification specification;
   private final ShutdownManager shutdownManager;
 
+
   // private final Configuration globalConfig;
 
   /**
@@ -245,6 +246,18 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
                 cfa);
 
         ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
+        // 4. Inject partition into TestTargetCPA
+        TestTargetCPA testTargetCPA = CPAs.retrieveCPA(cpa, TestTargetCPA.class);
+        if (testTargetCPA == null) {
+          throw new IllegalStateException("TestTargetCPA not found");
+        }
+
+        TestTargetTransferRelation transferRel =
+            (TestTargetTransferRelation) testTargetCPA.getTransferRelation();
+
+        transferRel.setTestTargets(partition);
+        threadLogger.log(
+            Level.INFO, "Thread " + threadId + " set " + partition.size() + " test targets");
 
         Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
 
@@ -260,18 +273,7 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
           return;
         }
 
-        // 4. Inject partition into TestTargetCPA
-        TestTargetCPA testTargetCPA = CPAs.retrieveCPA(cpa, TestTargetCPA.class);
-        if (testTargetCPA == null) {
-          throw new IllegalStateException("TestTargetCPA not found");
-        }
 
-        TestTargetTransferRelation transferRel =
-            (TestTargetTransferRelation) testTargetCPA.getTransferRelation();
-
-        transferRel.setTestTargets(partition);
-        threadLogger.log(
-            Level.INFO, "Thread " + threadId + " set " + partition.size() + " test targets");
 
         // 5. Create + initialize reached set (ONLY ONCE)
         ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
