@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -82,10 +81,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
-    SeqMultiControlStatement singleThreadSimulation =
-        NondeterministicSimulationBuilder.buildSingleThreadSimulation(
-            options, ghostElements, pActiveThread, clauses.get(pActiveThread), utils);
-    innerIfBlock.add(singleThreadSimulation.toASTString());
+    innerIfBlock.add(buildSingleThreadMultiControlStatement(pActiveThread).toASTString());
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());

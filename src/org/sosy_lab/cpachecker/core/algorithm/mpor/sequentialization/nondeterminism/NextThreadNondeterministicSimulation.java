@@ -48,10 +48,8 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
   public String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException {
 
-    // just use the default thread simulation builder, no specific adjustments required
-    return NondeterministicSimulationBuilder.buildSingleThreadSimulation(
-            options, ghostElements, pActiveThread, clauses.get(pActiveThread), utils)
-        .toASTString();
+    // return the multi control statement, no adjustments needed for this type of nondeterminism
+    return buildSingleThreadMultiControlStatement(pActiveThread).toASTString();
   }
 
   @Override
@@ -83,10 +81,7 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
               SeqIdExpressions.NEXT_THREAD,
               thread.id(),
               utils.binaryExpressionBuilder());
-      SeqMultiControlStatement multiControlStatement =
-          NondeterministicSimulationBuilder.buildSingleThreadSimulation(
-              options, ghostElements, thread, clauses.get(thread), utils);
-      rStatements.put(clauseExpression, multiControlStatement);
+      rStatements.put(clauseExpression, buildSingleThreadMultiControlStatement(thread));
     }
     return rStatements.buildOrThrow();
   }

@@ -19,20 +19,16 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
@@ -41,8 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.CSeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqThreadStatementUtil;
@@ -123,48 +117,9 @@ public class NondeterministicSimulationBuilder {
     return rFunctionCalls.build();
   }
 
-  // Multi Control Flow Statements =================================================================
-
-  static SeqMultiControlStatement buildSingleThreadSimulation(
-      MPOROptions pOptions,
-      GhostElements pGhostElements,
-      MPORThread pThread,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      SequentializationUtils pUtils)
-      throws UnrecognizedCodeException {
-
-    ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id());
-    ImmutableList<CStatement> precedingStatements =
-        buildNondeterministicSimulationBySource(
-                // create empty clauses, they are not needed for the preceding statements
-                pOptions, pGhostElements, ImmutableListMultimap.of(), pUtils)
-            .buildPrecedingStatements(pThread);
-
-    ImmutableList<SeqThreadStatementClause> withInjectedStatements =
-        injectStatementsIntoSingleThreadClauses(
-            pOptions,
-            pGhostElements.threadSyncFlags().getSyncFlag(pThread),
-            pClauses,
-            pUtils.binaryExpressionBuilder());
-    ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
-        SeqThreadStatementClauseUtil.mapExpressionToClause(
-            pOptions,
-            pcVariables.getPcLeftHandSide(pThread.id()),
-            withInjectedStatements,
-            pUtils.binaryExpressionBuilder());
-
-    return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-        pOptions.controlEncodingStatement(),
-        expression,
-        precedingStatements,
-        expressionClauseMap,
-        pUtils.binaryExpressionBuilder());
-  }
-
   // injections ====================================================================================
 
-  private static ImmutableList<SeqThreadStatementClause> injectStatementsIntoSingleThreadClauses(
+  static ImmutableList<SeqThreadStatementClause> injectStatementsIntoSingleThreadClauses(
       MPOROptions pOptions,
       CIdExpression pSyncFlag,
       ImmutableList<SeqThreadStatementClause> pClauses,
