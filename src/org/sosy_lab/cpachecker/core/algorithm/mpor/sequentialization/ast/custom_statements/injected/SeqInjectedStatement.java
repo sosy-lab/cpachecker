@@ -25,8 +25,8 @@ public sealed interface SeqInjectedStatement extends SeqStatement
    *
    * <p>If a target {@code goto} is present, then the simulation stays in the same thread. Some
    * {@link SeqInjectedStatement}s update e.g. ghost variables that are utilized by other threads.
-   * But if no context-switch occurs due to the {@code goto}, then the ghost variables do not have
-   * to be updated and can be pruned.
+   * But if no context-switch occurs due to the {@code goto}, then the ghost variable updates are
+   * unnecessary and can be pruned.
    */
   boolean isPrunedWithTargetGoto();
 
