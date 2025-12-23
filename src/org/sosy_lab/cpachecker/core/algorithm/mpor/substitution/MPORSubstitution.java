@@ -174,9 +174,17 @@ public class MPORSubstitution {
   }
 
   /**
-   * Substitutes the given expression, and tracks if any global variable was substituted alongside
-   * in {@code pAccessedGlobalVariables}. {@code pIsWrite} is used to determine whether the
-   * expression to substitute * is written, i.e. a LHS in an assignment.
+   * Substitutes the {@code pExpressiion}, and tracks if any {@link CVariableDeclaration}s that were
+   * substituted alongside in {@code pTracker}. Furthermore:
+   *
+   * <ul>
+   *   <li>{@code pIsDeclaration}: if the expression used in a declaration
+   *   <li>{@code pIsWrite}: if the expression is written (i.e. LHS in an assignment)
+   *   <li>{@code pIsPointerDereference}: if the expression is used as part of a pointer
+   *       dereference, e.g. {@code (*ptr)} then for the expression {@code ptr} this value is true.
+   *   <li>{@code pIsFieldReference}: if the expression is used as part of a field reference, e.g.
+   *       {@code owner->member} then for the expression {@code owner} this value is true
+   * </ul>
    */
   private CExpression substitute(
       CExpression pExpression,
