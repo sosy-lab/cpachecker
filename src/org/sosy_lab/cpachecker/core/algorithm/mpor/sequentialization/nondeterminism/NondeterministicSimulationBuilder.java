@@ -308,27 +308,28 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
+      // initialize thread_count update to null
       CExpressionAssignmentStatement countUpdate = null;
+      // if a thread is created -> thread_count = thread_count + 1
       if (statement instanceof SeqThreadCreationStatement) {
         countUpdate =
             SeqStatementBuilder.buildIncrementStatement(
                 SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-      } else if (statement.getTargetPc().isPresent()) {
+      }
+      // if a thread exits -> thread_count = thread_count - 1
+      if (statement.getTargetPc().isPresent()) {
         if (statement.getTargetPc().orElseThrow() == ProgramCounterVariables.EXIT_PC) {
           countUpdate =
               SeqStatementBuilder.buildDecrementStatement(
                   SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
         }
       }
-      if (countUpdate != null) {
-        SeqCountUpdateStatement countStatement = new SeqCountUpdateStatement(countUpdate);
-        newStatements.add(
-            SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-                statement, countStatement));
-      } else {
-        // no thread creation and no thread exit -> no thread_count update necessary
-        newStatements.add(statement);
-      }
+      // only inject a thread_count update if countUpdate is not null anymore
+      newStatements.add(
+          countUpdate == null
+              ? statement
+              : SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
+                  statement, new SeqCountUpdateStatement(countUpdate)));
     }
     return pBlock.withStatements(newStatements.build());
   }
