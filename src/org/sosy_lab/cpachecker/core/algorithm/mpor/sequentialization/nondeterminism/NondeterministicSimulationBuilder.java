@@ -363,11 +363,14 @@ public class NondeterministicSimulationBuilder {
           newStatements.add(
               SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
                   statement, singleActiveThreadGoto));
-          continue;
+        } else {
+          // if the target is a loop head + noBackwardLoopGoto is enabled -> no replacement
+          newStatements.add(statement);
         }
+      } else {
+        // no valid target pc -> no replacement
+        newStatements.add(statement);
       }
-      // no int target pc -> no replacement
-      newStatements.add(statement);
     }
     return pBlock.withStatements(newStatements.build());
   }
