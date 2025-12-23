@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqGuardedGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
@@ -308,31 +311,27 @@ public class NondeterministicSimulationBuilder {
 
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
-      // initialize thread_count update to null
-      CExpressionAssignmentStatement countUpdate = null;
-      // if the statement creates another thread but also terminates the owning thread,
-      // then nothing should be injected, otherwise we increment and decrement thread_count
-      // in one atomic operation
-      if (!(statement instanceof SeqThreadCreationStatement && statement.isTargetPcExit())) {
-        // if a thread is created -> thread_count = thread_count + 1
-        if (statement instanceof SeqThreadCreationStatement) {
-          countUpdate =
-              SeqStatementBuilder.buildIncrementStatement(
-                  SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-        }
-        // if a thread exits -> thread_count = thread_count - 1
-        if (statement.isTargetPcExit()) {
-          countUpdate =
-              SeqStatementBuilder.buildDecrementStatement(
-                  SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder);
-        }
+      // use a list for thread_count updates, since we can increment and decrement in one statement
+      // if the statement creates another thread but also terminates the current thread.
+      List<CExpressionAssignmentStatement> countUpdates = new ArrayList<>();
+      // if a thread is created -> thread_count = thread_count + 1
+      if (statement instanceof SeqThreadCreationStatement) {
+        countUpdates.add(
+            SeqStatementBuilder.buildIncrementStatement(
+                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
       }
-      // only inject a thread_count update if countUpdate is not null anymore
+      // if a thread exits -> thread_count = thread_count - 1
+      if (statement.isTargetPcExit()) {
+        countUpdates.add(
+            SeqStatementBuilder.buildDecrementStatement(
+                SeqIdExpressions.THREAD_COUNT, pBinaryExpressionBuilder));
+      }
+      ImmutableList<SeqInjectedStatement> guardedGotos =
+          countUpdates.stream()
+              .map(SeqCountUpdateStatement::new)
+              .collect(ImmutableList.toImmutableList());
       newStatements.add(
-          countUpdate == null
-              ? statement
-              : SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-                  statement, new SeqCountUpdateStatement(countUpdate)));
+          SeqThreadStatementUtil.appendedInjectedStatementsToStatement(statement, guardedGotos));
     }
     return pBlock.withStatements(newStatements.build());
   }
