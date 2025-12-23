@@ -49,11 +49,26 @@ public abstract class NondeterministicSimulation {
     utils = pUtils;
   }
 
+  /**
+   * Builds the {@link String} code of the single simulation of {@code pActiveThread}. This is used
+   * only when {@link MPOROptions#loopUnrolling()} is enabled, since it places the self-contained
+   * thread simulations into a separate function for each thread.
+   */
   abstract String buildSingleThreadSimulation(MPORThread pActiveThread)
       throws UnrecognizedCodeException;
 
+  /**
+   * Builds the {@link String} code of all thread simulations, including wrapper statements such as
+   * {@code if} guards. This is used only when {@link MPOROptions#loopUnrolling()} is disabled,
+   * since then all thread simulations are placed as one code block in the {@link main} function.
+   */
   public abstract String buildAllThreadSimulations() throws UnrecognizedCodeException;
 
+  /**
+   * Builds list of statements that are placed directly before the simulation of {@code
+   * pActiveThread}, e.g. assumptions. This can differ significantly based on {@link
+   * NondeterminismSource}.
+   */
   abstract ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread)
       throws UnrecognizedCodeException;
 }
