@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -107,17 +108,16 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         Optional.empty());
   }
 
+  /**
+   * Returns the {@link CFunctionCallStatement} to {@code assume(pc{pThread.id} != 0);} if {@link
+   * MPOROptions#scalarPc()} is enabled. In that case, the assumptions needs to be placed inside the
+   * simulation. For array {@code pc}, it is placed at the loop head already (see {@link
+   * SeqMainFunction}).
+   */
   protected Optional<CFunctionCallStatement> tryBuildPcUnequalExitAssumption(MPORThread pThread) {
-    // only create the assumption when the pc is scalar,
-    // otherwise use assume(pc[next_thread] != 0) at loop head already
-    if (options.scalarPc()) {
-      CBinaryExpression threadActiveExpression =
-          ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
-      CFunctionCallStatement assumeCall =
-          SeqAssumeFunction.buildAssumeFunctionCallStatement(threadActiveExpression);
-      return Optional.of(assumeCall);
-    }
-    return Optional.empty();
+    return options.scalarPc()
+        ? Optional.of(ghostElements.getPcVariables().buildScalarPcUnequalExitPcAssumption(pThread))
+        : Optional.empty();
   }
 
   protected Optional<ImmutableList<CStatement>> tryBuildNextThreadStatements(MPORThread pThread)
