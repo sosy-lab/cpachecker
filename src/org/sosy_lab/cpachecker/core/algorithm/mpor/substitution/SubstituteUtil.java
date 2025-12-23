@@ -38,7 +38,7 @@ public class SubstituteUtil {
    * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
    * substituted.
    */
-  public static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
+  static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
   }

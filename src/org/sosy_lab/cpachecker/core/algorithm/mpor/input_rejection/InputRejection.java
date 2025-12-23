@@ -12,10 +12,23 @@ import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -26,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -33,7 +47,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
 
-  public enum InputRejectionMessage {
+  enum InputRejectionMessage {
+    FUNCTION_POINTER_ASSIGNMENT("MPOR does not support function pointers in assignments: ", false),
+    FUNCTION_POINTER_PARAMETER("MPOR does not support function pointers as parameters: ", false),
     INVALID_OPTIONS("Invalid MPOR options, see above errors.", false),
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
@@ -218,6 +234,102 @@ public class InputRejection {
               null);
         }
       }
+    }
+  }
+
+  public static void checkFunctionPointerAssignment(CSimpleDeclaration pRightHandSide)
+      throws UnsupportedCodeException {
+
+    if (pRightHandSide instanceof CFunctionDeclaration) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + pRightHandSide.toASTString(),
+          null);
+    }
+  }
+
+  public static void checkFunctionPointerAssignment(CVariableDeclaration pVariableDeclaration)
+      throws UnsupportedCodeException {
+
+    if (pVariableDeclaration.getInitializer() != null) {
+      if (pVariableDeclaration.getInitializer()
+          instanceof CInitializerExpression initializerExpression) {
+        CExpression expression = initializerExpression.getExpression();
+        if (expression.accept(new FunctionDeclarationVisitor())) {
+          throw new UnsupportedCodeException(
+              InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT.message + expression.toASTString(),
+              null);
+        }
+      }
+    }
+  }
+
+  public static void checkFunctionPointerParameter(CFunctionCallExpression pFunctionCallExpression)
+      throws UnsupportedCodeException {
+
+    // calls to pthread functions with start_routine pointers are allowed
+    if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(
+        pFunctionCallExpression, PthreadObjectType.START_ROUTINE)) {
+      return;
+    }
+    for (CExpression parameterExpression : pFunctionCallExpression.getParameterExpressions()) {
+      if (parameterExpression.accept(new FunctionDeclarationVisitor())) {
+        throw new UnsupportedCodeException(
+            InputRejectionMessage.FUNCTION_POINTER_PARAMETER.message
+                + parameterExpression.toASTString(),
+            null);
+      }
+    }
+  }
+
+  private static final class FunctionDeclarationVisitor
+      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
+      return pFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pBinaryExpression) throws UnsupportedCodeException {
+      return pBinaryExpression.getOperand1().accept(this)
+          || pBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIdExpression) {
+      return pIdExpression.getDeclaration() instanceof CFunctionDeclaration;
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExpression) {
+      return false; // ignore
     }
   }
 }

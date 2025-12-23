@@ -35,12 +35,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -198,7 +197,7 @@ public final class MPORUtil {
    * pExpression} and {@link Optional#empty()} if it can't be found.
    */
   public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      tryGetFieldMemberPointer(CExpression pExpression) {
+      tryGetFieldMemberPointer(CExpression pExpression) throws UnsupportedCodeException {
 
     // e.g. 'ptr = &field.member;'
     if (pExpression instanceof CUnaryExpression unaryExpression) {
@@ -214,7 +213,7 @@ public final class MPORUtil {
   }
 
   private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
-      CFieldReference pFieldReference) {
+      CFieldReference pFieldReference) throws UnsupportedCodeException {
 
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
     CType type = getTypeByIdExpression(idExpression);
@@ -255,31 +254,25 @@ public final class MPORUtil {
    * pFieldReference}, e.g. {@code member} in {@code owner->member}.
    */
   public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
-      final CFieldReference pFieldReference, CType pType) {
+      CFieldReference pFieldReference, CType pType) throws UnsupportedCodeException {
 
-    if (pType instanceof CPointerType pointerType) {
+    // use getType() on CPointerType/CArrayType since getCanonicalType() returns the
+    // CPointerType/CArrayType itself
+    if (pType.getCanonicalType() instanceof CPointerType pointerType) {
       return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
     }
-    if (pType instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            return memberDeclaration;
-          }
+    if (pType.getCanonicalType() instanceof CArrayType arrayType) {
+      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, arrayType.getType());
+    }
+    if (pType.getCanonicalType() instanceof CCompositeType compositeType) {
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+          return memberDeclaration;
         }
       }
     }
-    if (pType instanceof CTypedefType typedefType) {
-      // elaborated type is e.g. struct __anon_type_QType
-      if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, elaboratedType);
-      }
-      if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, innerTypedefType);
-      }
-    }
-    throw new IllegalArgumentException("field owner type must be CTypedefType");
+    throw new UnsupportedCodeException(
+        "could not extract field member from the given CType: " + pType.toASTString(""), null);
   }
 
   // Collections ===================================================================================
