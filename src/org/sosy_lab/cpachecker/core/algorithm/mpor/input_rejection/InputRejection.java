@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -335,16 +336,36 @@ public class InputRejection {
     }
   }
 
-  public static void checkPointerWriteBinaryExpression(CExpression pExpression)
+  public static void checkPointerWriteBinaryExpression(CVariableDeclaration pVariableDeclaration)
       throws UnsupportedCodeException {
 
-    if (pExpression instanceof CBinaryExpression) {
-      throw new UnsupportedCodeException(
-          String.format(
-              InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-              pExpression.getFileLocation().getStartingLineInOrigin(),
-              pExpression.toASTString()),
-          null);
+    if (pVariableDeclaration.getType() instanceof CPointerType) {
+      if (pVariableDeclaration.getInitializer()
+          instanceof CInitializerExpression initializerExpression) {
+        if (initializerExpression.getExpression() instanceof CBinaryExpression binaryExpression) {
+          throw new UnsupportedCodeException(
+              String.format(
+                  InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
+                  binaryExpression.getFileLocation().getStartingLineInOrigin(),
+                  binaryExpression.toASTString()),
+              null);
+        }
+      }
+    }
+  }
+
+  public static void checkPointerWriteBinaryExpression(CExpressionAssignmentStatement pAssignment)
+      throws UnsupportedCodeException {
+
+    if (pAssignment.getLeftHandSide().getExpressionType() instanceof CPointerType) {
+      if (pAssignment.getRightHandSide() instanceof CBinaryExpression binaryExpression) {
+        throw new UnsupportedCodeException(
+            String.format(
+                InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
+                binaryExpression.getFileLocation().getStartingLineInOrigin(),
+                binaryExpression.toASTString()),
+            null);
+      }
     }
   }
 }

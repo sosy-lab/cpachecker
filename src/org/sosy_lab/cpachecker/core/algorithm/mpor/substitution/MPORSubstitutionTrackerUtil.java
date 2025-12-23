@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -170,6 +172,7 @@ public class MPORSubstitutionTrackerUtil {
       CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker)
       throws UnsupportedCodeException {
 
+    InputRejection.checkPointerWriteBinaryExpression(pAssignment);
     if (pTracker.isEmpty()) {
       return;
     }
@@ -202,6 +205,7 @@ public class MPORSubstitutionTrackerUtil {
       throws UnsupportedCodeException {
 
     InputRejection.checkFunctionPointerAssignment(pVariableDeclaration);
+    InputRejection.checkPointerWriteBinaryExpression(pVariableDeclaration);
     if (pTracker.isEmpty()) {
       return;
     }
@@ -352,15 +356,14 @@ public class MPORSubstitutionTrackerUtil {
     }
   }
 
-  /**
-   * Extracts the single {@link CSimpleDeclaration} of {@code pExpression} if it can be found.
-   * Throws a {@link UnsupportedCodeException} if {@code pExpression} is a {@link CBinaryExpression}
-   * since there may be multiple {@link CSimpleDeclaration}s.
-   */
+  /** Extracts the single {@link CSimpleDeclaration} of {@code pExpression} if it can be found. */
   private static Optional<CSimpleDeclaration> tryExtractSingleDeclaration(CExpression pExpression)
       throws UnsupportedCodeException {
 
-    InputRejection.checkPointerWriteBinaryExpression(pExpression);
+    checkArgument(
+        !(pExpression instanceof CBinaryExpression),
+        "pExpression cannot be CBinaryExpression, since there may be multiple"
+            + " CSimpleDeclarations.");
     CIdExpression idExpression = pExpression.accept(new CPointerDeclarationVisitor());
     return Optional.ofNullable(idExpression).map(CIdExpression::getDeclaration);
   }
