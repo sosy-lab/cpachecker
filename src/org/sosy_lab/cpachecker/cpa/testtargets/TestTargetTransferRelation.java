@@ -91,10 +91,10 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
     // Use a regular HashSet (not thread-safe, but fine if only one thread uses it)
     System.out.println(
         "Thread "
-            + Thread.currentThread().getId()
+            + Thread.currentThread().threadId()
             + " set "
             + pTestTargets.size()
             + " test targets");
-    this.testTargets = new HashSet<>(pTestTargets);
+    this.testTargets = pTestTargets;
   }
 }
