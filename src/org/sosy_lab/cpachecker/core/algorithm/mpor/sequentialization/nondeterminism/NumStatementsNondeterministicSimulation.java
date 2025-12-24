@@ -52,21 +52,20 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public String buildSingleThreadSimulation(MPORThread pActiveThread)
-      throws UnrecognizedCodeException {
+  public String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
 
     StringBuilder rLines = new StringBuilder();
 
     // add "T{thread_id}: label", if present
     Optional<SeqThreadLabelStatement> threadLabel =
-        Optional.ofNullable(ghostElements.threadLabels().get(pActiveThread));
+        Optional.ofNullable(ghostElements.threadLabels().get(pThread));
     if (threadLabel.isPresent()) {
       rLines.append(threadLabel.orElseThrow().toASTString());
     }
 
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
-        ghostElements.getPcVariables().getThreadActiveExpression(pActiveThread.id());
+        ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
     ImmutableList.Builder<String> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
@@ -75,13 +74,12 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             .toASTString());
 
     // if (round_max > 0) ...
-    ImmutableSet<MPORThread> otherThreads =
-        MPORUtil.withoutElement(clauses.keySet(), pActiveThread);
-    String innerIfCondition = buildRoundMaxGreaterZeroExpression(pActiveThread, otherThreads);
+    ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
+    String innerIfCondition = buildRoundMaxGreaterZeroExpression(pThread, otherThreads);
     ImmutableList.Builder<String> innerIfBlock = ImmutableList.builder();
 
     // add the thread simulation statements
-    innerIfBlock.add(buildSingleThreadMultiControlStatement(pActiveThread).toASTString());
+    innerIfBlock.add(buildSingleThreadMultiControlStatement(pThread).toASTString());
     SeqBranchStatement innerIfStatement =
         new SeqBranchStatement(innerIfCondition, innerIfBlock.build());
     ifBlock.add(innerIfStatement.toASTString());
@@ -102,7 +100,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread) {
+  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread) {
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
     return MultiControlStatementBuilder.buildPrecedingStatements(
         // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'

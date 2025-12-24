@@ -41,13 +41,13 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pActiveThread)
+  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
-        tryBuildPcUnequalExitAssumption(pActiveThread);
+        tryBuildPcUnequalExitAssumption(pThread);
     Optional<ImmutableList<CStatement>> nextThreadStatements =
-        tryBuildNextThreadStatements(pActiveThread);
+        tryBuildNextThreadStatements(pThread);
 
     CFunctionCallAssignmentStatement roundMaxNondetAssignment =
         VerifierNondetFunctionType.buildNondetIntegerAssignment(
