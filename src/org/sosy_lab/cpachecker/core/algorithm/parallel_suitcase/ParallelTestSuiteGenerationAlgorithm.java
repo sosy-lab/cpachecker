@@ -169,6 +169,14 @@ public class ParallelTestSuiteGenerationAlgorithm implements Algorithm {
       }
       executorService.shutdown();
       executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+      int numOpenTestGoals = 0;
+      for (Set<CFAEdge> partition : partitions) {
+        numOpenTestGoals += partition.size();
+      }
+
+      int coveredTargets = testTargets.size() - numOpenTestGoals;
+      logger.log(
+          Level.SEVERE, coveredTargets + " of " + testTargets.size() + " test targets covered");
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Error during parallel test generation", e);
       throw new RuntimeException("Parallel test generation failed", e);
