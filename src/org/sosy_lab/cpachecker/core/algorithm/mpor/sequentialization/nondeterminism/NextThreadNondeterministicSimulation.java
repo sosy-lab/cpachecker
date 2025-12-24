@@ -46,7 +46,6 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
 
   @Override
   public String buildSingleThreadSimulation(MPORThread pThread) throws UnrecognizedCodeException {
-
     // return the multi control statement, no adjustments needed for this type of nondeterminism
     return buildSingleThreadMultiControlStatement(pThread).toASTString();
   }
@@ -93,13 +92,11 @@ class NextThreadNondeterministicSimulation extends NondeterministicSimulation {
         tryBuildPcUnequalExitAssumption(pThread);
     Optional<ImmutableList<CStatement>> nextThreadStatements =
         tryBuildNextThreadStatements(pThread);
-    return MultiControlStatementBuilder.buildPrecedingStatements(
-        pcUnequalExitAssumption,
-        nextThreadStatements,
-        // NEXT_THREAD -> no round / round_max statements necessary
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty());
+
+    ImmutableList.Builder<CStatement> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(rStatements::add);
+    nextThreadStatements.ifPresent(rStatements::addAll);
+    return rStatements.build();
   }
 
   /**

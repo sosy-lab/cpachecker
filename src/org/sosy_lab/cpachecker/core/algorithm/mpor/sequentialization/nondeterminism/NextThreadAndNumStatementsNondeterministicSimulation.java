@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
@@ -61,12 +60,12 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     SeqIntegerLiteralExpressions.INT_0,
                     BinaryOperator.GREATER_THAN));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
-    return MultiControlStatementBuilder.buildPrecedingStatements(
-        pcUnequalExitAssumption,
-        nextThreadStatements,
-        // NEXT_THREAD_AND_NUM_STATEMENTS -> also add round / round_max statements
-        Optional.of(roundMaxNondetAssignment),
-        Optional.of(roundMaxGreaterZeroAssumption),
-        Optional.of(roundReset));
+
+    ImmutableList.Builder<CStatement> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(rStatements::add);
+    nextThreadStatements.ifPresent(rStatements::addAll);
+    return rStatements
+        .add(roundMaxNondetAssignment, roundMaxGreaterZeroAssumption, roundReset)
+        .build();
   }
 }
