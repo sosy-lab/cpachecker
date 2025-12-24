@@ -170,7 +170,12 @@ public class MPOROptions {
 
   @Option(
       secure = true,
-      description = "Continue executing the current thread if it is the only active thread.")
+      description =
+          "Continue executing the current thread if it is the only active thread. This option"
+              + " utilizes a thread_count ghost variable which is incremented for each created"
+              + " thread and decremented for each terminated thread. These increments and decrement"
+              + " are placed inside a possibly infinite loop, so when analyzing for overflows, it"
+              + " may be more efficient to disable this option.")
   private boolean reduceSingleActiveThread = true;
 
   @Option(
