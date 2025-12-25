@@ -21,7 +21,7 @@ public class SeqVariableDeclarations {
       buildVariableDeclaration(
           true, CNumericTypes.UNSIGNED_INT, "LAST_THREAD", SeqInitializers.INT_0);
 
-  public static final CVariableDeclaration LAST_THREAD_SYNC_DUMMY =
+  public static final CVariableDeclaration LAST_THREAD_SYNC =
       buildVariableDeclaration(
           true, CNumericTypes.UNSIGNED_CHAR, "LAST_THREAD_SYNC", SeqInitializers.INT_0);
 
