@@ -342,12 +342,12 @@ public class InputRejection {
     if (pVariableDeclaration.getType() instanceof CPointerType) {
       if (pVariableDeclaration.getInitializer()
           instanceof CInitializerExpression initializerExpression) {
-        if (initializerExpression.getExpression() instanceof CBinaryExpression binaryExpression) {
+        if (initializerExpression.getExpression().accept(new CBinaryExpressionVisitor())) {
           throw new UnsupportedCodeException(
               String.format(
                   InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                  binaryExpression.getFileLocation().getStartingLineInOrigin(),
-                  binaryExpression.toASTString()),
+                  initializerExpression.getExpression().getFileLocation().getStartingLineInOrigin(),
+                  initializerExpression.getExpression().toASTString()),
               null);
         }
       }
@@ -358,14 +358,69 @@ public class InputRejection {
       throws UnsupportedCodeException {
 
     if (pAssignment.getLeftHandSide().getExpressionType() instanceof CPointerType) {
-      if (pAssignment.getRightHandSide() instanceof CBinaryExpression binaryExpression) {
+      if (pAssignment.getRightHandSide().accept(new CBinaryExpressionVisitor())) {
         throw new UnsupportedCodeException(
             String.format(
                 InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION.formatMessage(),
-                binaryExpression.getFileLocation().getStartingLineInOrigin(),
-                binaryExpression.toASTString()),
+                pAssignment.getRightHandSide().getFileLocation().getStartingLineInOrigin(),
+                pAssignment.getRightHandSide().toASTString()),
             null);
       }
+    }
+  }
+
+  /**
+   * Returns true if any of the nested expressions inside a given {@link CExpression} is a {@link
+   * CBinaryExpression}.
+   */
+  private static final class CBinaryExpressionVisitor
+      extends DefaultCExpressionVisitor<Boolean, UnsupportedCodeException> {
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression)
+        throws UnsupportedCodeException {
+      return pArraySubscriptExpression.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pFieldReference) throws UnsupportedCodeException {
+      return pFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression pPointerExpression) throws UnsupportedCodeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression)
+        throws UnsupportedCodeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pBinaryExpression) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pCastExpression) throws UnsupportedCodeException {
+      return pCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pUnaryExpression) throws UnsupportedCodeException {
+      return pUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIdExpression) {
+      return false; // CIdExpressions are never CBinaryExpressions
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExpression) {
+      return false; // ignore
     }
   }
 }
