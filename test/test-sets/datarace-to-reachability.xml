@@ -10,30 +10,28 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<!--
+  Example file that demonstrates the use of CPAchecker.
+  This file can and should be used as a base for building own benchmark definitions.
+-->
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="2000 MB" cpuCores="2">
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN"
-  "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+  
+<option name="--heap">4000M</option>
 
-<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
-
-  <!-- Set heap size for CPAchecker’s Java process -->
-  <option name="--heap">7000M</option>
-
-  <!-- Specify the verification property (reachability of error function) -->
-  <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
-
-  <!-- Choose the analysis algorithm -->
-  <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
-
-  <!-- Define a simple run configuration -->
-  <rundefinition name="run-predicateAnalysis">
-    <!-- Enables performance mode: disables logs/output files -->
+ <rundefinition>
     <option name="--benchmark"/>
-  </rundefinition>
+    <option name="--bmc-concurrency"/>
+  
 
-  <!-- Define the task: your transformed program -->
-  <tasks name="bigshot_transformed">
-    <include>test/programs/datarace-to-reachability/bigshot_p_transformed.c</include>
+ 
+  <tasks name="test">
+  <include>../programs/datarace-to-reachability/bigshot_p_transformed.c</include>
+  <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+
   </tasks>
+
+ </rundefinition>
 
 </benchmark>
