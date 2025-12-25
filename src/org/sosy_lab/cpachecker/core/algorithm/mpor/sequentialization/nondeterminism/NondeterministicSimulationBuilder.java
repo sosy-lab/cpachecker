@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
@@ -78,9 +77,6 @@ public class NondeterministicSimulationBuilder {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (!pOptions.loopUnrolling()) {
-      return ImmutableList.of();
-    }
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       String threadSimulation =
@@ -92,20 +88,20 @@ public class NondeterministicSimulationBuilder {
   }
 
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
-      MPOROptions pOptions, SequentializationFields pFields) {
+      MPOROptions pOptions, ImmutableList<SeqThreadSimulationFunction> pThreadSimulationFunctions) {
 
     ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
     SeqThreadSimulationFunction mainThreadFunction =
         Objects.requireNonNull(
             Iterables.getOnlyElement(
-                pFields.threadSimulationFunctions.stream()
+                pThreadSimulationFunctions.stream()
                     .filter(Objects::nonNull)
                     .filter(f -> f.thread.isMain())
                     .toList()));
     rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
-      for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
+      for (SeqThreadSimulationFunction function : pThreadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
           rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));

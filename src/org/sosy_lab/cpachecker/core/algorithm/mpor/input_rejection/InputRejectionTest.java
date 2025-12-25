@@ -175,4 +175,15 @@ public class InputRejectionTest {
     testExpectedRejectionWhenBuildingProgram(
         customOptions, config, inputFilePath, InputRejectionMessage.POINTER_WRITE);
   }
+
+  @Test
+  public void testRejectPointerWriteBinaryExpression() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/pointer-write-binary-expression.c");
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestDataTools.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION);
+  }
 }
