@@ -61,7 +61,7 @@ public class SequentializationFields {
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  public final ImmutableList<SeqThreadSimulationFunction> threadSimulationFunctions;
+  public final Optional<ImmutableList<SeqThreadSimulationFunction>> threadSimulationFunctions;
 
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)
@@ -69,7 +69,7 @@ public class SequentializationFields {
 
     resetStaticFields();
     MPORThreadBuilder threadBuilder = new MPORThreadBuilder(pOptions, pInputCfa);
-    threads = threadBuilder.createThreads();
+    threads = threadBuilder.extractThreadsFromCfa();
     numThreads = threads.size();
     allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
 
@@ -100,9 +100,13 @@ public class SequentializationFields {
         new SeqThreadStatementClauseBuilder(
             pOptions, threads, substitutions, substituteEdges, memoryModel, ghostElements, pUtils);
     clauses = clauseBuilder.buildClauses();
+
     threadSimulationFunctions =
-        NondeterministicSimulationUtil.buildThreadSimulationFunctions(
-            pOptions, ghostElements, clauses, pUtils);
+        pOptions.loopUnrolling()
+            ? Optional.of(
+                NondeterministicSimulationUtil.buildThreadSimulationFunctions(
+                    pOptions, ghostElements, clauses, pUtils))
+            : Optional.empty();
   }
 
   /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */

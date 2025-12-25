@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -46,7 +47,7 @@ public class MemoryModelParameterTest {
 
   // Simple Types
 
-  private final CSimpleType INT_TYPE =
+  private static final CSimpleType INT_TYPE =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
 
@@ -64,12 +65,12 @@ public class MemoryModelParameterTest {
 
   // CFunctionType
 
-  private final CFunctionType DUMMY_FUNCTION_TYPE =
+  private static final CFunctionType DUMMY_FUNCTION_TYPE =
       new CFunctionType(INT_TYPE, ImmutableList.of(), false);
 
   // CFunctionDeclarations
 
-  private final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
+  private static final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_TYPE,
@@ -77,12 +78,12 @@ public class MemoryModelParameterTest {
           ImmutableList.of(),
           ImmutableSet.of());
 
-  private final CIdExpression DUMMY_ID_EXPRESSION =
+  private static final CIdExpression DUMMY_ID_EXPRESSION =
       new CIdExpression(FileLocation.DUMMY, DUMMY_FUNCTION_DECLARATION);
 
   // CFunctionCallExpression
 
-  private final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
+  private static final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
       new CFunctionCallExpression(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_TYPE,
@@ -92,19 +93,19 @@ public class MemoryModelParameterTest {
 
   // CFunctionCallStatement
 
-  private final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
+  private static final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, DUMMY_FUNCTION_CALL_EXPRESSION);
 
   // CFA Nodes
 
-  private final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
+  private static final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
 
-  private final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
+  private static final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
 
-  private final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
+  private static final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
       new FunctionExitNode(DUMMY_FUNCTION_DECLARATION);
 
-  private final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
+  private static final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
       new CFunctionEntryNode(
           FileLocation.DUMMY,
           DUMMY_FUNCTION_DECLARATION,
@@ -113,7 +114,7 @@ public class MemoryModelParameterTest {
 
   // CFA Edges
 
-  private final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
+  private static final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
       new CFunctionSummaryEdge(
           "",
           FileLocation.DUMMY,
@@ -122,7 +123,7 @@ public class MemoryModelParameterTest {
           DUMMY_FUNCTION_CALL_STATEMENT,
           DUMMY_FUNCTION_ENTRY_NODE);
 
-  private final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
+  private static final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
       new CFunctionCallEdge(
           "",
           FileLocation.DUMMY,
@@ -131,9 +132,11 @@ public class MemoryModelParameterTest {
           DUMMY_FUNCTION_CALL_STATEMENT,
           DUMMY_FUNCTION_SUMMARY_EDGE);
 
-  // ThreadEdge
+  // CFAEdgeForThread
 
-  private final CFAEdgeForThread DUMMY_CALL_CONTEXT =
+  /** A dummy call context that can be used by all test classes in this dir. */
+  @VisibleForTesting
+  static final CFAEdgeForThread DUMMY_CALL_CONTEXT =
       new CFAEdgeForThread(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
 
   // CDeclaration
@@ -182,14 +185,23 @@ public class MemoryModelParameterTest {
           "local_Z",
           INT_0_INITIALIZER);
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
+  private final class CParameterDeclarations {
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_Q =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
+    final CParameterDeclaration PARAMETER_DECLARATION_Q =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_R =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_R");
+    final CParameterDeclaration PARAMETER_DECLARATION_POINTER_R =
+        new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_R");
+
+    CParameterDeclarations() {
+      // qualified names are required, otherwise .asVariableDeclaration throws
+      PARAMETER_DECLARATION_POINTER_P.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_Q.setQualifiedName("dummy");
+      PARAMETER_DECLARATION_POINTER_R.setQualifiedName("dummy");
+    }
+  }
 
   // Memory Locations (primitives)
 
@@ -209,23 +221,25 @@ public class MemoryModelParameterTest {
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
+  private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
+
   private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_P);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_Q);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
 
   private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       SeqMemoryLocation.of(
           MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATION_POINTER_R);
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
   public MemoryModelParameterTest() throws InvalidConfigurationException {}
 
@@ -298,9 +312,9 @@ public class MemoryModelParameterTest {
             .build();
 
     // assert that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
+    assertThat(PARAMETER_Q_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.declaration().isGlobal()).isTrue();
     assertThat(
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
@@ -332,9 +346,9 @@ public class MemoryModelParameterTest {
         MemoryModelBuilder.getPointerParameterAssignments(parameterAssignments);
 
     // all are not explicit global memory locations
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.declaration().isGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =

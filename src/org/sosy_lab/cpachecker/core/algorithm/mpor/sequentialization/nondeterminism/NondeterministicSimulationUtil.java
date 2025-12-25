@@ -115,9 +115,6 @@ public class NondeterministicSimulationUtil {
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    if (!pOptions.loopUnrolling()) {
-      return ImmutableList.of();
-    }
     ImmutableList.Builder<SeqThreadSimulationFunction> rFunctions = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
@@ -130,20 +127,20 @@ public class NondeterministicSimulationUtil {
   }
 
   public static ImmutableList<CFunctionCallStatement> buildThreadSimulationFunctionCallStatements(
-      MPOROptions pOptions, SequentializationFields pFields) {
+      MPOROptions pOptions, ImmutableList<SeqThreadSimulationFunction> pThreadSimulationFunctions) {
 
     ImmutableList.Builder<CFunctionCallStatement> rFunctionCalls = ImmutableList.builder();
     // start with main thread function call
     SeqThreadSimulationFunction mainThreadFunction =
         Objects.requireNonNull(
             Iterables.getOnlyElement(
-                pFields.threadSimulationFunctions.stream()
+                pThreadSimulationFunctions.stream()
                     .filter(Objects::nonNull)
                     .filter(f -> f.thread.isMain())
                     .toList()));
     rFunctionCalls.add(mainThreadFunction.buildFunctionCallStatement(ImmutableList.of()));
     for (int i = 0; i < pOptions.loopIterations(); i++) {
-      for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
+      for (SeqThreadSimulationFunction function : pThreadSimulationFunctions) {
         if (!function.thread.isMain()) {
           // continue with all other threads
           rFunctionCalls.add(function.buildFunctionCallStatement(ImmutableList.of()));
