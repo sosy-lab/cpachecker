@@ -28,6 +28,51 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * Base class for simulating nondeterministic thread execution in the sequentialized program,
+ * including methods to construct the multi-control statements, preceding statements, and full
+ * simulation code strings.
+ *
+ * <p>Although similarly named, there is an important distinction between the abstract methods
+ * {@code buildSingleThreadSimulation} and {@code buildAllThreadSimulations} based on whether the
+ * option {@link MPOROptions#loopUnrolling()} is enabled (see examples below):
+ *
+ * <ul>
+ *   <li>{@link #buildSingleThreadSimulation(MPORThread)} generates the code for a single thread
+ *       simulation that can be placed in a separate function.
+ *   <li>{@link #buildAllThreadSimulations()} generates the code for all thread simulations in a
+ *       single block placed in {@code main()}.
+ * </ul>
+ *
+ * <p>Example with {@link MPOROptions#loopUnrolling()} set to {@code false}:
+ *
+ * <pre>{@code
+ * main() {
+ *   while (1) {
+ *     // String created by buildAllThreadSimulations():
+ *     next_thread = nondet();
+ *     switch (next_thread) {
+ *       case 1: ...
+ *       case ...
+ *     }
+ *   }
+ * }
+ * }</pre>
+ *
+ * <p>Example with {@link MPOROptions#loopUnrolling()} set to {@code true}:
+ *
+ * <pre>{@code
+ * T1() {
+ *   // String created by buildSingleThreadSimulation():
+ *   next_thread = nondet();
+ *   if (next_thread == 1) { ... }
+ * }
+ * ... // repeat for all other threads
+ * }</pre>
+ *
+ * <p>As shown, the code generated for {@code main()} cannot be reused for single thread functions,
+ * since the control flow for the next-thread selection differs.
+ */
 public abstract class NondeterministicSimulation {
 
   final MPOROptions options;
