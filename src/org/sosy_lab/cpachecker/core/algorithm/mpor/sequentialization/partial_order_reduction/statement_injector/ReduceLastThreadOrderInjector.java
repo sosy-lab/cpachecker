@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
@@ -47,7 +49,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
-record ReduceLastThreadOrderInjector(
+public record ReduceLastThreadOrderInjector(
     MPOROptions options,
     int numThreads,
     MPORThread activeThread,
@@ -59,13 +61,14 @@ record ReduceLastThreadOrderInjector(
 
   // Private =======================================================================================
 
-  private Optional<SeqBranchStatement> tryBuildLastThreadOrderStatement(MPORThread pThread)
+  public SeqBranchStatement buildLastThreadOrderStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    if (pThread.isMain()) {
-      // do not inject for main thread, because LAST_THREAD < 0 never holds
-      return Optional.empty();
-    }
+    checkArgument(
+        !pThread.isMain(),
+        "Cannot build a last thread order statement for the main thread because LAST_THREAD < 0"
+            + " never holds.");
+
     SeqThreadStatementBlock firstBlock =
         Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
     Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
