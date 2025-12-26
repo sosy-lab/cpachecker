@@ -189,7 +189,6 @@ public class SequentializationFieldsTest {
 
   @Test
   public void test_mix008_tso_oepc() throws Exception {
-    // this program was incorrect 'true' with last_thread order reduction
     Path path = Path.of("./test/programs/mpor/sequentialization/mix008_tso.oepc.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();

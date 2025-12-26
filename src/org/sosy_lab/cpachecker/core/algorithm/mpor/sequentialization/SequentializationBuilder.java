@@ -344,13 +344,13 @@ public class SequentializationBuilder {
       // LAST_THREAD ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
-      // the initializer of last_thread is dependent on the number of threads
+      // the initializer of LAST_THREAD is dependent on the number of threads
       CInitializer lastThreadInitializer =
           new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
       CVariableDeclaration lastThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
-              // last_thread is always unsigned, NUM_THREADS is assigned if a thread terminates
+              // LAST_THREAD is always unsigned, NUM_THREADS is assigned if a thread terminates
               CNumericTypes.UNSIGNED_INT,
               SeqIdExpressions.LAST_THREAD.getName(),
               lastThreadInitializer);

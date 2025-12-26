@@ -108,7 +108,7 @@ public record ReduceLastThreadOrderInjector(
       // if the evaluation is empty, it results in assume(0) i.e. abort()
       ifBlock = SeqAssumeFunction.ABORT_FUNCTION_CALL_STATEMENT.toASTString();
     } else {
-      // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with LAST_THREAD
+      // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
       ifBlock =
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
@@ -122,7 +122,8 @@ public record ReduceLastThreadOrderInjector(
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        // if a thread exits, set last_thread to NUM_THREADS - 1
+        // if a thread exits, set LAST_THREAD to NUM_THREADS because thread IDs range from 0 to
+        // NUM_THREADS - 1 -> 'LAST_THREAD < n' never holds
         CExpressionAssignmentStatement lastThreadExit =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpressions.LAST_THREAD,
@@ -133,7 +134,7 @@ public record ReduceLastThreadOrderInjector(
             pStatement, lastUpdateStatement);
 
       } else {
-        // for all other target pc, set last_thread to current thread id and update last bitvectors
+        // for all other target pc, set LAST_THREAD to current thread id and update last bitvectors
         CExpressionAssignmentStatement lastThreadUpdate =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpressions.LAST_THREAD,
