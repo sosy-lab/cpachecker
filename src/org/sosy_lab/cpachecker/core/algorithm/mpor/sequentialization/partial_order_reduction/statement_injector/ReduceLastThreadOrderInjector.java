@@ -113,7 +113,7 @@ public record ReduceLastThreadOrderInjector(
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
-    return Optional.of(new SeqBranchStatement(ifGuard.toString(), ImmutableList.of(ifBlock)));
+    return new SeqBranchStatement(ifGuard.toString(), ImmutableList.of(ifBlock));
   }
 
   // Last Updates ==================================================================================
