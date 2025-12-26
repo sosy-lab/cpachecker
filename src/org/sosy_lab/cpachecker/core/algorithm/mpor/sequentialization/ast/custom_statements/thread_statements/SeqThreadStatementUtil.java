@@ -271,8 +271,7 @@ public final class SeqThreadStatementUtil {
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     List<SeqInjectedStatement> leftOver = new ArrayList<>();
     // first add partial order reduction statements, since if they abort, the rest is not needed
-    leftOver.addAll(
-        getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorEvaluationStatement.class));
+    leftOver.addAll(orderInjectedReductionStatements(pInjectedStatements));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
     leftOver.addAll(
         getInjectedStatementsByClass(pInjectedStatements, SeqSyncUpdateStatement.class));
@@ -288,6 +287,33 @@ public final class SeqThreadStatementUtil {
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
     return rOrdered.build();
+  }
+
+  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    ImmutableList<SeqInjectedStatement> ignoreSleepStatements =
+        getInjectedStatementsByClass(pInjectedStatements, SeqIgnoreSleepReductionStatement.class);
+    if (!ignoreSleepStatements.isEmpty()) {
+      // order the reduction assumptions inside ignoreSleepStatements separately
+      assert ignoreSleepStatements.size() == 1 : "there can only be a single ignoreSleepStatement";
+      SeqIgnoreSleepReductionStatement ignoreSleepStatement =
+          (SeqIgnoreSleepReductionStatement) ignoreSleepStatements.getFirst();
+      ImmutableList<SeqInjectedStatement> reductionAssumptions =
+          ignoreSleepStatement.reductionAssumptions();
+      return ImmutableList.of(
+          ignoreSleepStatement.withReductionAssumptions(
+              ImmutableList.<SeqInjectedStatement>builder()
+                  .addAll(
+                      getInjectedStatementsByClass(
+                          reductionAssumptions, SeqBitVectorEvaluationStatement.class))
+                  .build()));
+    }
+    return ImmutableList.<SeqInjectedStatement>builder()
+        .addAll(
+            getInjectedStatementsByClass(
+                pInjectedStatements, SeqBitVectorEvaluationStatement.class))
+        .build();
   }
 
   private static ImmutableList<SeqInjectedStatement> getInjectedStatementsByClass(
