@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -28,18 +27,16 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
   private final CondSignaledFlag condSignaledFlag;
 
   SeqCondSignalStatement(
-      ReductionOrder pReductionOrder,
       CondSignaledFlag pCondSignaledFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    super(pReductionOrder, pSubstituteEdges, pPcLeftHandSide, pTargetPc);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc);
     condSignaledFlag = pCondSignaledFlag;
   }
 
   private SeqCondSignalStatement(
-      ReductionOrder pReductionOrder,
       CondSignaledFlag pCondSignaled,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -47,13 +44,7 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    super(
-        pReductionOrder,
-        pSubstituteEdges,
-        pPcLeftHandSide,
-        pTargetPc,
-        pTargetGoto,
-        pInjectedStatements);
+    super(pSubstituteEdges, pPcLeftHandSide, pTargetPc, pTargetGoto, pInjectedStatements);
     condSignaledFlag = pCondSignaled;
   }
 
@@ -65,7 +56,7 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
-            reductionOrder, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return setCondSignaledTrue.toASTString() + SeqSyntax.SPACE + injected;
   }
@@ -73,7 +64,6 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetPc(int pTargetPc) {
     return new SeqCondSignalStatement(
-        reductionOrder,
         condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -85,7 +75,6 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
   @Override
   public CSeqThreadStatement withTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondSignalStatement(
-        reductionOrder,
         condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
@@ -99,7 +88,6 @@ public final class SeqCondSignalStatement extends CSeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqCondSignalStatement(
-        reductionOrder,
         condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,

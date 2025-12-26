@@ -161,7 +161,6 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
-            options.reductionOrder(),
             pThread,
             allThreads,
             substituteEdges,
@@ -220,8 +219,7 @@ public record SeqThreadStatementClauseBuilder(
       CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
       ImmutableList.Builder<CSeqThreadStatement> statements = ImmutableList.builder();
       if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-        statements.add(
-            new SeqGhostOnlyStatement(options.reductionOrder(), pcLeftHandSide, targetPc));
+        statements.add(new SeqGhostOnlyStatement(pcLeftHandSide, targetPc));
       } else {
         statements.addAll(
             pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));

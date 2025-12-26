@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -184,7 +183,6 @@ public final class SeqThreadStatementUtil {
    * whether {@code pTargetPc} or {@code pTargetGoto} is present.
    */
   static String buildInjectedStatementsString(
-      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
@@ -193,7 +191,7 @@ public final class SeqThreadStatementUtil {
 
     if (pTargetPc.isPresent()) {
       return buildInjectedStatementsStringByTargetPc(
-          pReductionOrder, pPcLeftHandSide, pTargetPc.orElseThrow(), pInjectedStatements);
+          pPcLeftHandSide, pTargetPc.orElseThrow(), pInjectedStatements);
 
     } else if (pTargetGoto.isPresent()) {
       return buildInjectedStatementsStringByTargetGoto(
@@ -203,7 +201,6 @@ public final class SeqThreadStatementUtil {
   }
 
   private static String buildInjectedStatementsStringByTargetPc(
-      ReductionOrder pReductionOrder,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements)
@@ -222,7 +219,7 @@ public final class SeqThreadStatementUtil {
       statements.add(pcAssignmentStatement.toASTString());
     }
     // add all injected statements in the correct order
-    ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pReductionOrder, pruned);
+    ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pruned);
     assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
     for (SeqInjectedStatement injectedStatement : ordered) {
       statements.add(injectedStatement.toASTString());
@@ -269,7 +266,7 @@ public final class SeqThreadStatementUtil {
   }
 
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
-      ReductionOrder pReductionOrder, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     List<SeqInjectedStatement> leftOver = new ArrayList<>();
