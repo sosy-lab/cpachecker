@@ -74,20 +74,6 @@ public record StatementInjector(
       pStatement =
           reduceUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
     }
-    if (options.reduceLastThreadOrder()) {
-      ReduceLastThreadOrderInjector reduceLastThreadOrderInjector =
-          new ReduceLastThreadOrderInjector(
-              options,
-              otherThreads.size() + 1,
-              activeThread,
-              labelClauseMap,
-              labelBlockMap,
-              bitVectorVariables,
-              memoryModel,
-              utils);
-      pStatement =
-          reduceLastThreadOrderInjector.injectLastThreadOrderReductionIntoStatement(pStatement);
-    }
     if (options.reduceIgnoreSleep()) {
       // this needs to be last, it collects the prior injections
       ReduceIgnoreSleepInjector reduceIgnoreSleepInjector =

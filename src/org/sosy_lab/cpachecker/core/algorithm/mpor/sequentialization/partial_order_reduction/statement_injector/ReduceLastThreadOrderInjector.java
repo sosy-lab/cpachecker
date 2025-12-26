@@ -50,41 +50,29 @@ record ReduceLastThreadOrderInjector(
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
-  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(CSeqThreadStatement pStatement)
-      throws UnrecognizedCodeException {
-
-    CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
-    return injectLastUpdatesIntoStatement(withConflictOrder);
-  }
-
   // Private =======================================================================================
 
-  private CSeqThreadStatement injectLastThreadOrderIntoStatement(CSeqThreadStatement pStatement)
+  private Optional<SeqLastThreadOrderStatement> tryBuildLastThreadOrderStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
-    if (activeThread.isMain()) {
-      // do not inject for main thread, because last_thread < 0 never holds
-      return pStatement;
+    if (pThread.isMain()) {
+      // do not inject for main thread, because LAST_THREAD < 0 never holds
+      return Optional.empty();
     }
-    if (pStatement.isTargetPcValid()) {
-      int targetPc = pStatement.getTargetPc().orElseThrow();
-      SeqThreadStatementClause targetClause = labelClauseMap.get(targetPc);
-      assert targetClause != null : "could not find targetPc in pLabelBlockMap";
-      if (StatementInjector.isReductionAllowed(options, targetClause)) {
-        SeqThreadStatementBlock targetBlock = Objects.requireNonNull(labelBlockMap.get(targetPc));
-        // build last thread order statement (with bit vector evaluations based on targetBlock)
-        Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
-            BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
-                options, labelBlockMap, targetBlock, bitVectorVariables, memoryModel, utils);
-        SeqLastThreadOrderStatement lastThreadOrderStatement =
-            new SeqLastThreadOrderStatement(
-                activeThread, lastBitVectorEvaluation, utils.binaryExpressionBuilder());
-        return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
-            pStatement, lastThreadOrderStatement);
-      }
-    }
-    // no last thread order injected
-    return pStatement;
+    SeqThreadStatementBlock firstBlock =
+        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
+    Optional<BitVectorEvaluationExpression> lastBitVectorEvaluation =
+        BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
+            options,
+            labelClauseMap,
+            labelBlockMap,
+            firstBlock,
+            bitVectorVariables,
+            memoryModel,
+            utils);
+    return Optional.of(
+        new SeqLastThreadOrderStatement(
+            activeThread, lastBitVectorEvaluation, utils.binaryExpressionBuilder()));
   }
 
   // Last Updates ==================================================================================
