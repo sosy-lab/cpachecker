@@ -172,6 +172,6 @@ public abstract class NondeterministicSimulation {
    * here to combine the common functionality for use in {@link
    * NondeterministicSimulation#buildSingleThreadSimulation(MPORThread)}.
    */
-  abstract ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  abstract ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException;
 }

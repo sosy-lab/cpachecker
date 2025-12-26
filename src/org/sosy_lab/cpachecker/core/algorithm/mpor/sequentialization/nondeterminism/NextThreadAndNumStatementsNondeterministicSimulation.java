@@ -42,7 +42,7 @@ class NextThreadAndNumStatementsNondeterministicSimulation
   }
 
   @Override
-  public ImmutableList<CStatement> buildPrecedingStatements(MPORThread pThread)
+  public ImmutableList<String> buildPrecedingStatements(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     Optional<CFunctionCallStatement> pcUnequalExitAssumption =
@@ -63,11 +63,14 @@ class NextThreadAndNumStatementsNondeterministicSimulation
                     BinaryOperator.GREATER_THAN));
     CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
 
-    ImmutableList.Builder<CStatement> rStatements = ImmutableList.builder();
-    pcUnequalExitAssumption.ifPresent(rStatements::add);
-    nextThreadStatements.ifPresent(rStatements::addAll);
+    ImmutableList.Builder<String> rStatements = ImmutableList.builder();
+    pcUnequalExitAssumption.ifPresent(s -> rStatements.add(s.toASTString()));
+    nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(s.toASTString())));
     return rStatements
-        .add(roundMaxNondetAssignment, roundMaxGreaterZeroAssumption, roundReset)
+        .add(
+            roundMaxNondetAssignment.toASTString(),
+            roundMaxGreaterZeroAssumption.toASTString(),
+            roundReset.toASTString())
         .build();
   }
 }
