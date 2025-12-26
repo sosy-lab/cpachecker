@@ -171,6 +171,16 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "Continue executing the current thread if it is the only active thread. This option"
+              + " utilizes a thread_count ghost variable which is incremented for each created"
+              + " thread and decremented for each terminated thread. These increments and decrement"
+              + " are placed inside a possibly infinite loop, so when analyzing for overflows, it"
+              + " may be more efficient to disable this option.")
+  private boolean reduceSingleActiveThread = true;
+
+  @Option(
+      secure = true,
+      description =
           "continue executing the current thread until it is in conflict with at least another"
               + " thread?")
   private boolean reduceUntilConflict = false;
@@ -361,10 +371,6 @@ public class MPOROptions {
     return reduceIgnoreSleep || reduceLastThreadOrder || reduceUntilConflict;
   }
 
-  public boolean isThreadCountRequired() {
-    return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
-  }
-
   public boolean isThreadLabelRequired() {
     // only needed if the loop is finite i.e. not 0, otherwise just use continue;
     if (loopIterations > 0 && !loopUnrolling) {
@@ -471,6 +477,10 @@ public class MPOROptions {
 
   public boolean reduceLastThreadOrder() {
     return reduceLastThreadOrder;
+  }
+
+  public boolean reduceSingleActiveThread() {
+    return reduceSingleActiveThread;
   }
 
   public boolean reduceUntilConflict() {

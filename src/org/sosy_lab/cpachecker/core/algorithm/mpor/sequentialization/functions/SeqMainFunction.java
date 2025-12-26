@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.CSeqLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqForLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqWhileLoopStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -82,7 +82,7 @@ public final class SeqMainFunction extends SeqFunction {
     if (pOptions.loopUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
       ImmutableList<CFunctionCallStatement> functionCallStatements =
-          NondeterministicSimulationUtil.buildThreadSimulationFunctionCallStatements(
+          NondeterministicSimulationBuilder.buildThreadSimulationFunctionCallStatements(
               pOptions, pFields.threadSimulationFunctions.orElseThrow());
       functionCallStatements.forEach(statement -> rBody.append(statement.toASTString()));
 
@@ -125,43 +125,36 @@ public final class SeqMainFunction extends SeqFunction {
           if (pOptions.comments()) {
             loopBlock.add(SeqComment.NEXT_THREAD_ACTIVE);
           }
-          CBinaryExpression nextThreadActiveExpression =
-              pFields
-                  .ghostElements
-                  .programCounterVariables()
-                  .nextThreadActiveExpression()
-                  .orElseThrow();
           CFunctionCallStatement nextThreadActiveAssumption =
-              SeqAssumeFunction.buildAssumeFunctionCallStatement(nextThreadActiveExpression);
+              pFields.ghostElements.programCounterVariables().buildArrayPcUnequalExitPcAssumption();
           loopBlock.add(nextThreadActiveAssumption.toASTString());
         }
       }
 
-      if (pOptions.isThreadCountRequired()) {
-        // assumptions that at least one thread is still active: assume(cnt > 0)
-        if (pOptions.comments()) {
-          loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
-        }
-        // assume(cnt > 0);
-        CBinaryExpression countGreaterZeroExpression =
-            pUtils
-                .binaryExpressionBuilder()
-                .buildBinaryExpression(
-                    SeqIdExpressions.THREAD_COUNT,
-                    SeqIntegerLiteralExpressions.INT_0,
-                    BinaryOperator.GREATER_THAN);
-        CFunctionCallStatement countAssumption =
-            SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
-        loopBlock.add(countAssumption.toASTString());
+      // assumptions that at least one thread is still active: assume(thread_count > 0)
+      if (pOptions.comments()) {
+        loopBlock.add(SeqComment.ACTIVE_THREAD_COUNT);
       }
+      // assume(thread_count > 0);
+      CBinaryExpression countGreaterZeroExpression =
+          pUtils
+              .binaryExpressionBuilder()
+              .buildBinaryExpression(
+                  SeqIdExpressions.THREAD_COUNT,
+                  SeqIntegerLiteralExpressions.INT_0,
+                  BinaryOperator.GREATER_THAN);
+      CFunctionCallStatement countAssumption =
+          SeqAssumeFunction.buildAssumeFunctionCallStatement(countGreaterZeroExpression);
+      loopBlock.add(countAssumption.toASTString());
 
       // add all thread simulation control flow statements
       if (pOptions.comments()) {
         loopBlock.add(SeqComment.THREAD_SIMULATION_CONTROL_FLOW);
       }
       loopBlock.add(
-          NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-              pOptions, pFields, pUtils));
+          NondeterministicSimulationBuilder.buildNondeterministicSimulationBySource(
+                  pOptions, pFields.ghostElements, pFields.clauses, pUtils)
+              .buildAllThreadSimulations());
 
       // build the loop depending on settings, and include all statements in it
       CSeqLoopStatement loopStatement =

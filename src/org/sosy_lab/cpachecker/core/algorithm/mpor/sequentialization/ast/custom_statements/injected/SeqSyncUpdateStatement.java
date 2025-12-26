@@ -18,4 +18,14 @@ public record SeqSyncUpdateStatement(CExpressionAssignmentStatement syncUpdate)
   public String toASTString() throws UnrecognizedCodeException {
     return syncUpdate.toASTString();
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }

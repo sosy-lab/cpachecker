@@ -289,7 +289,7 @@ public class SequentializationFieldsTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(4);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     assertThat(fields.memoryModel).isPresent();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();

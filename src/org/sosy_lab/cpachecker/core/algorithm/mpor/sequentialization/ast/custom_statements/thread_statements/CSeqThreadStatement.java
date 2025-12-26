@@ -104,7 +104,7 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
     // XOR that one must be present, one must be empty
     checkArgument(
         pTargetPc.isPresent() ^ pTargetGoto.isPresent(),
-        "either targetPc or targetGoto must be present (exclusive or)");
+        "either targetPc or targetLabel must be present (exclusive or)");
     reductionOrder = pReductionOrder;
     substituteEdges = pSubstituteEdges;
     pcLeftHandSide = pPcLeftHandSide;
@@ -119,6 +119,14 @@ public abstract sealed class CSeqThreadStatement implements SeqStatement
    */
   public boolean isTargetPcValid() {
     return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+  }
+
+  /**
+   * Returns true if the target {@code pc} is present and equal to {@link
+   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   */
+  public boolean isTargetPcExit() {
+    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**

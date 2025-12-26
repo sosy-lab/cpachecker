@@ -61,4 +61,14 @@ public record SeqLastThreadOrderStatement(
     joiner.add(ifStatement.toASTString());
     return joiner.toString();
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }
