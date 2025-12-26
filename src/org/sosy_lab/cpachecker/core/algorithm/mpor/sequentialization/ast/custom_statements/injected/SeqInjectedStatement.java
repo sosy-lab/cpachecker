@@ -15,5 +15,4 @@ public sealed interface SeqInjectedStatement extends SeqStatement
         SeqCountUpdateStatement,
         SeqInjectedStatementWithTargetGoto,
         SeqLastBitVectorUpdateStatement,
-        SeqLastThreadOrderStatement,
         SeqSyncUpdateStatement {}

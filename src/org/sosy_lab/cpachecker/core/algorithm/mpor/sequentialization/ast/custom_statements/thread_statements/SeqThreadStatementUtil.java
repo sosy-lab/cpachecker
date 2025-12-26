@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqIgnoreSleepReductionStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastThreadOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.labels.SeqBlockLabelStatement;
@@ -274,8 +273,9 @@ public final class SeqThreadStatementUtil {
 
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     List<SeqInjectedStatement> leftOver = new ArrayList<>();
-    // first order the reduction statements based on pOptions
-    leftOver.addAll(orderInjectedReductionStatements(pReductionOrder, pInjectedStatements));
+    // first add partial order reduction statements, since if they abort, the rest is not needed
+    leftOver.addAll(
+        getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorEvaluationStatement.class));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
     leftOver.addAll(
         getInjectedStatementsByClass(pInjectedStatements, SeqSyncUpdateStatement.class));
@@ -291,51 +291,6 @@ public final class SeqThreadStatementUtil {
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
     return rOrdered.build();
-  }
-
-  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
-      ReductionOrder pReductionOrder, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
-
-    return switch (pReductionOrder) {
-      // if NONE is specified, default to BITVECTOR_THEN_CONFLICT
-      case NONE, CONFLICT_THEN_LAST_THREAD ->
-          orderInjectedReductionStatements(
-              pInjectedStatements,
-              SeqBitVectorEvaluationStatement.class,
-              SeqLastThreadOrderStatement.class);
-      case LAST_THREAD_THEN_CONFLICT ->
-          orderInjectedReductionStatements(
-              pInjectedStatements,
-              SeqLastThreadOrderStatement.class,
-              SeqBitVectorEvaluationStatement.class);
-    };
-  }
-
-  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      Class<? extends SeqInjectedStatement> pFirstClass,
-      Class<? extends SeqInjectedStatement> pSecondClass) {
-
-    ImmutableList<SeqInjectedStatement> ignoreSleepStatements =
-        getInjectedStatementsByClass(pInjectedStatements, SeqIgnoreSleepReductionStatement.class);
-    if (!ignoreSleepStatements.isEmpty()) {
-      // order the reduction assumptions inside ignoreSleepStatements separately
-      assert ignoreSleepStatements.size() == 1 : "there can only be a single ignoreSleepStatement";
-      SeqIgnoreSleepReductionStatement ignoreSleepStatement =
-          (SeqIgnoreSleepReductionStatement) ignoreSleepStatements.getFirst();
-      ImmutableList<SeqInjectedStatement> reductionAssumptions =
-          ignoreSleepStatement.reductionAssumptions();
-      return ImmutableList.of(
-          ignoreSleepStatement.withReductionAssumptions(
-              ImmutableList.<SeqInjectedStatement>builder()
-                  .addAll(getInjectedStatementsByClass(reductionAssumptions, pFirstClass))
-                  .addAll(getInjectedStatementsByClass(reductionAssumptions, pSecondClass))
-                  .build()));
-    }
-    return ImmutableList.<SeqInjectedStatement>builder()
-        .addAll(getInjectedStatementsByClass(pInjectedStatements, pFirstClass))
-        .addAll(getInjectedStatementsByClass(pInjectedStatements, pSecondClass))
-        .build();
   }
 
   private static ImmutableList<SeqInjectedStatement> getInjectedStatementsByClass(
@@ -369,15 +324,5 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqInjectedStatement> pAppendedStatements) {
 
     return FluentIterable.concat(pExistingStatements, pAppendedStatements).toList();
-  }
-
-  public static Optional<Integer> tryGetTargetPcOrGotoNumber(CSeqThreadStatement pStatement) {
-    if (pStatement.getTargetPc().isPresent()) {
-      return pStatement.getTargetPc();
-
-    } else if (pStatement.getTargetGoto().isPresent()) {
-      return Optional.of(pStatement.getTargetGoto().orElseThrow().number());
-    }
-    return Optional.empty();
   }
 }
