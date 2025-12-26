@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -23,20 +24,20 @@ public record SeqSyncUpdateStatement(
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringBuilder stringBuilder = new StringBuilder();
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
 
     CExpressionAssignmentStatement syncAssignment =
         SeqStatementBuilder.buildExpressionAssignmentStatement(syncVariable, newSyncValue);
-    stringBuilder.append(syncAssignment.toASTString());
+    joiner.add(syncAssignment.toASTString());
 
     // if reduceLastThreadOrder is enabled, then also add 'LAST_THREAD_SYNC = T*_SYNC;'
     if (options.reduceLastThreadOrder()) {
       CExpressionAssignmentStatement lastThreadSyncAssignment =
           SeqStatementBuilder.buildExpressionAssignmentStatement(
               SeqIdExpressions.LAST_THREAD_SYNC, syncVariable);
-      stringBuilder.append(SeqSyntax.NEWLINE).append(lastThreadSyncAssignment.toASTString());
+      joiner.add(lastThreadSyncAssignment.toASTString());
     }
 
-    return stringBuilder.toString();
+    return joiner.toString();
   }
 }
