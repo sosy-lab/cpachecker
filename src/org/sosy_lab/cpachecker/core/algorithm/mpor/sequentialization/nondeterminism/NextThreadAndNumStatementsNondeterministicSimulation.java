@@ -66,11 +66,9 @@ class NextThreadAndNumStatementsNondeterministicSimulation
     ImmutableList.Builder<String> rStatements = ImmutableList.builder();
     pcUnequalExitAssumption.ifPresent(s -> rStatements.add(s.toASTString()));
     nextThreadStatements.ifPresent(l -> l.forEach(s -> rStatements.add(s.toASTString())));
-    return rStatements
-        .add(
-            roundMaxNondetAssignment.toASTString(),
-            roundMaxGreaterZeroAssumption.toASTString(),
-            roundReset.toASTString())
-        .build();
+    rStatements.add(roundMaxNondetAssignment.toASTString());
+    rStatements.add(roundMaxGreaterZeroAssumption.toASTString());
+    rStatements.add(roundReset.toASTString());
+    return rStatements.build();
   }
 }
