@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -104,7 +104,7 @@ public class SequentializationFields {
     threadSimulationFunctions =
         pOptions.loopUnrolling()
             ? Optional.of(
-                NondeterministicSimulationUtil.buildThreadSimulationFunctions(
+                NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
                     pOptions, ghostElements, clauses, pUtils))
             : Optional.empty();
   }

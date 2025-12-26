@@ -398,10 +398,8 @@ public class SequentializationBuilder {
       }
     }
 
-    // active_thread_count / cnt
-    if (pOptions.isThreadCountRequired()) {
-      rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
-    }
+    // track active thread number via thread_count
+    rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
 
     // if enabled: round_max and round
     if (pOptions.nondeterminismSource().isNumStatementsNondeterministic()) {

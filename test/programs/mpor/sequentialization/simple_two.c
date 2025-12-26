@@ -66,5 +66,6 @@ int main() {
       __VERIFIER_atomic_end();
     }
     top = 42;
-    return 0;
+    pthread_t id3;
+    pthread_create(&id3, (void *) 0, task1, (void *) 0);
 }

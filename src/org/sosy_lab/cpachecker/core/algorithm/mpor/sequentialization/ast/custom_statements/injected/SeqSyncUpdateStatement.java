@@ -40,4 +40,14 @@ public record SeqSyncUpdateStatement(
 
     return joiner.toString();
   }
+
+  @Override
+  public boolean isPrunedWithTargetGoto() {
+    return true;
+  }
+
+  @Override
+  public boolean isPrunedWithEmptyBitVectorEvaluation() {
+    return false;
+  }
 }
