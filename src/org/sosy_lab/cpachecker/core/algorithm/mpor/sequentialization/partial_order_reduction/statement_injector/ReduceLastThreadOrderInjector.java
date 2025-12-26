@@ -115,7 +115,7 @@ record ReduceLastThreadOrderInjector(
 
   // Last Updates ==================================================================================
 
-  private CSeqThreadStatement injectLastUpdatesIntoStatement(CSeqThreadStatement pStatement) {
+  CSeqThreadStatement injectLastUpdatesIntoStatement(CSeqThreadStatement pStatement) {
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
