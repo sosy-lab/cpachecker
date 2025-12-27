@@ -19,9 +19,6 @@ public class SeqIdExpressions {
   public static final CIdExpression LAST_THREAD =
       buildIdExpression(SeqVariableDeclarations.LAST_THREAD_DUMMY);
 
-  public static final CIdExpression LAST_THREAD_SYNC =
-      buildIdExpression(SeqVariableDeclarations.LAST_THREAD_SYNC);
-
   public static final CIdExpression NEXT_THREAD =
       buildIdExpression(SeqVariableDeclarations.NEXT_THREAD_DUMMY);
 

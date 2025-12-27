@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected.SeqLastBitVectorUpdateStatement;
@@ -45,9 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public record ReduceLastThreadOrderInjector(
     MPOROptions options,
@@ -89,18 +85,6 @@ public record ReduceLastThreadOrderInjector(
                 SeqIdExpressions.LAST_THREAD,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
                 BinaryOperator.LESS_THAN);
-    // LAST_THREAD_SYNC == 0
-    CBinaryExpression lastThreadSyncFalse =
-        utils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqIdExpressions.LAST_THREAD_SYNC,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    // (LAST_THREAD < n && LAST_THREAD_SYNC == 0)
-    ExpressionTree<CBinaryExpression> ifGuard =
-        And.of(
-            LeafExpression.of(lastThreadLessThanThreadId), LeafExpression.of(lastThreadSyncFalse));
 
     // if (LAST_THREAD < n)
     final String ifBlock;
@@ -113,7 +97,8 @@ public record ReduceLastThreadOrderInjector(
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
-    return new SeqBranchStatement(ifGuard.toString(), ImmutableList.of(ifBlock));
+    return new SeqBranchStatement(
+        lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
   }
 
   // Last Updates ==================================================================================

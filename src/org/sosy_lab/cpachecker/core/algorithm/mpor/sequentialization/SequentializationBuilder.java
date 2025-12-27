@@ -355,9 +355,6 @@ public class SequentializationBuilder {
               SeqIdExpressions.LAST_THREAD.getName(),
               lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());
-
-      // LAST_THREAD_SYNC ghost variable
-      rDeclarations.add(SeqVariableDeclarations.LAST_THREAD_SYNC.toASTString());
     }
 
     // next_thread
