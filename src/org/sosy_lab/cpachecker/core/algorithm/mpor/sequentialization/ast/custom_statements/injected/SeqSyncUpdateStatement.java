@@ -8,15 +8,37 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.injected;
 
+import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public record SeqSyncUpdateStatement(CExpressionAssignmentStatement syncUpdate)
+public record SeqSyncUpdateStatement(
+    MPOROptions options, CIdExpression syncVariable, CIntegerLiteralExpression newSyncValue)
     implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return syncUpdate.toASTString();
+    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
+
+    CExpressionAssignmentStatement syncAssignment =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(syncVariable, newSyncValue);
+    joiner.add(syncAssignment.toASTString());
+
+    // if reduceLastThreadOrder is enabled, then also add 'LAST_THREAD_SYNC = T*_SYNC;'
+    if (options.reduceLastThreadOrder()) {
+      CExpressionAssignmentStatement lastThreadSyncAssignment =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              SeqIdExpressions.LAST_THREAD_SYNC, syncVariable);
+      joiner.add(lastThreadSyncAssignment.toASTString());
+    }
+
+    return joiner.toString();
   }
 
   @Override
