@@ -354,6 +354,9 @@ public class SequentializationBuilder {
               // the initializer of last_thread is dependent on the number of threads
               lastThreadInitializer);
       rDeclarations.add(lastThreadDeclaration.toASTString());
+
+      // LAST_THREAD_SYNC ghost variable
+      rDeclarations.add(SeqVariableDeclarations.LAST_THREAD_SYNC.toASTString());
     }
 
     // next_thread
