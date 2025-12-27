@@ -18,12 +18,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public record SeqLastThreadOrderStatement(
     MPORThread activeThread,
@@ -45,7 +49,16 @@ public record SeqLastThreadOrderStatement(
             SeqIdExpressions.LAST_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
             BinaryOperator.LESS_THAN);
-    // if (last_thread < n)
+    // last_thread_sync == 0
+    CBinaryExpression lastThreadSyncFalse =
+        binaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.LAST_THREAD_SYNC,
+            SeqIntegerLiteralExpressions.INT_0,
+            BinaryOperator.EQUALS);
+    ExpressionTree<CBinaryExpression> ifCondition =
+        And.of(
+            LeafExpression.of(lastThreadLessThanThreadId), LeafExpression.of(lastThreadSyncFalse));
+
     final String ifBlock;
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
@@ -57,7 +70,7 @@ public record SeqLastThreadOrderStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
     SeqBranchStatement ifStatement =
-        new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
+        new SeqBranchStatement(ifCondition.toString(), ImmutableList.of(ifBlock));
     joiner.add(ifStatement.toASTString());
     return joiner.toString();
   }

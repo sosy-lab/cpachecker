@@ -34,7 +34,7 @@ public record SeqSyncUpdateStatement(
     if (options.reduceLastThreadOrder()) {
       CExpressionAssignmentStatement lastThreadSyncAssignment =
           SeqStatementBuilder.buildExpressionAssignmentStatement(
-              SeqIdExpressions.LAST_THREAD_SYNC, syncVariable);
+              SeqIdExpressions.LAST_THREAD_SYNC, newSyncValue);
       joiner.add(lastThreadSyncAssignment.toASTString());
     }
 

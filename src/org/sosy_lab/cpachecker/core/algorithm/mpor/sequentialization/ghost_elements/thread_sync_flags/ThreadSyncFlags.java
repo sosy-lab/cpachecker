@@ -48,7 +48,7 @@ public record ThreadSyncFlags(
       rDeclarations.add(rwLockFlag.readersIdExpression().getDeclaration());
       rDeclarations.add(rwLockFlag.writersIdExpression().getDeclaration());
     }
-    if (pOptions.reduceIgnoreSleep()) {
+    if (pOptions.isThreadSyncFlagRequired()) {
       for (CIdExpression syncFlag : syncFlags.values()) {
         rDeclarations.add(syncFlag.getDeclaration());
       }
