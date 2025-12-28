@@ -60,7 +60,7 @@ public record SeqLastThreadOrderStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
     SeqBranchStatement innerIfStatement =
-        new SeqBranchStatement(lastThreadLessThanThreadId.toString(), ImmutableList.of(ifBlock));
+        new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
 
     // last_thread_sync == 0 is the outer expression, since it is cheaper than last_thread < n
     CBinaryExpression lastThreadSyncFalse =
@@ -70,7 +70,7 @@ public record SeqLastThreadOrderStatement(
             BinaryOperator.EQUALS);
     SeqBranchStatement outerIfStatement =
         new SeqBranchStatement(
-            lastThreadSyncFalse.toString(), ImmutableList.of(innerIfStatement.toASTString()));
+            lastThreadSyncFalse.toASTString(), ImmutableList.of(innerIfStatement.toASTString()));
 
     return joiner.add(outerIfStatement.toASTString()).toString();
   }
