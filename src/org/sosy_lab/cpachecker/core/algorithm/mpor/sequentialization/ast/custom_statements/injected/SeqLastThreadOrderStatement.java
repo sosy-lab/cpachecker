@@ -25,9 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public record SeqLastThreadOrderStatement(
     MPORThread activeThread,
@@ -43,22 +40,15 @@ public record SeqLastThreadOrderStatement(
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-    // last_thread < n
+
+    // last_thread < n is the more expensive inner expression because it is not boolean
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpressions.LAST_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
             BinaryOperator.LESS_THAN);
-    // last_thread_sync == 0
-    CBinaryExpression lastThreadSyncFalse =
-        binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.LAST_THREAD_SYNC,
-            SeqIntegerLiteralExpressions.INT_0,
-            BinaryOperator.EQUALS);
-    ExpressionTree<CBinaryExpression> ifCondition =
-        And.of(
-            LeafExpression.of(lastThreadLessThanThreadId), LeafExpression.of(lastThreadSyncFalse));
 
+    // create the ifBlock i.e. call to assume / abort
     final String ifBlock;
     if (lastBitVectorEvaluation.isEmpty()) {
       // if the evaluation is empty, it results in assume(0) i.e. abort()
@@ -69,10 +59,20 @@ public record SeqLastThreadOrderStatement(
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
-    SeqBranchStatement ifStatement =
-        new SeqBranchStatement(ifCondition.toString(), ImmutableList.of(ifBlock));
-    joiner.add(ifStatement.toASTString());
-    return joiner.toString();
+    SeqBranchStatement innerIfStatement =
+        new SeqBranchStatement(lastThreadLessThanThreadId.toString(), ImmutableList.of(ifBlock));
+
+    // last_thread_sync == 0 is the outer expression, since it is cheaper than last_thread < n
+    CBinaryExpression lastThreadSyncFalse =
+        binaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpressions.LAST_THREAD_SYNC,
+            SeqIntegerLiteralExpressions.INT_0,
+            BinaryOperator.EQUALS);
+    SeqBranchStatement outerIfStatement =
+        new SeqBranchStatement(
+            lastThreadSyncFalse.toString(), ImmutableList.of(innerIfStatement.toASTString()));
+
+    return joiner.add(outerIfStatement.toASTString()).toString();
   }
 
   @Override
