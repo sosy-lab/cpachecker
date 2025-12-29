@@ -64,7 +64,7 @@ static void unlock_write(RaceMon* rm) {
 
 // void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}
 // Commented out due to possible Syntax Errors
-}; return; }
+
 
 char *v;
 
