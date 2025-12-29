@@ -81,7 +81,6 @@ void *thread2(void *arg)
   lock_write(&mon_v);
   if (v) strcpy(v, "Bigshot");
   unlock_write(&mon_v);
-  }
   return 0;
 }
 
