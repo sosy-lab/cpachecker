@@ -78,7 +78,6 @@ void *thread1(void * arg)
 
 void *thread2(void *arg)
 {
-  if (v) strcpy(v, "Bigshot") {
   lock_write(&mon_v);
   if (v) strcpy(v, "Bigshot");
   unlock_write(&mon_v);
