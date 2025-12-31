@@ -12,17 +12,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.single_control.SeqBranchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -39,9 +36,7 @@ public record SeqLastThreadOrderStatement(
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringJoiner joiner = new StringJoiner(SeqSyntax.NEWLINE);
-
-    // last_thread < n is the more expensive inner expression because it is not boolean
+    // last_thread < n
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpressions.LAST_THREAD,
@@ -59,20 +54,10 @@ public record SeqLastThreadOrderStatement(
           SeqAssumeFunction.buildAssumeFunctionCallStatement(
               lastBitVectorEvaluation.orElseThrow().expression());
     }
-    SeqBranchStatement innerIfStatement =
+    SeqBranchStatement ifStatement =
         new SeqBranchStatement(lastThreadLessThanThreadId.toASTString(), ImmutableList.of(ifBlock));
 
-    // last_thread_sync == 0 is the outer expression, since it is cheaper than last_thread < n
-    CBinaryExpression lastThreadSyncFalse =
-        binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpressions.LAST_THREAD_SYNC,
-            SeqIntegerLiteralExpressions.INT_0,
-            BinaryOperator.EQUALS);
-    SeqBranchStatement outerIfStatement =
-        new SeqBranchStatement(
-            lastThreadSyncFalse.toASTString(), ImmutableList.of(innerIfStatement.toASTString()));
-
-    return joiner.add(outerIfStatement.toASTString()).toString();
+    return ifStatement.toASTString();
   }
 
   @Override
