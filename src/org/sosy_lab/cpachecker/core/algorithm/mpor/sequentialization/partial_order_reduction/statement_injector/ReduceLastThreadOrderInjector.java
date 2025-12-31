@@ -50,11 +50,13 @@ record ReduceLastThreadOrderInjector(
     MemoryModel memoryModel,
     SequentializationUtils utils) {
 
-  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(CSeqThreadStatement pStatement)
+  CSeqThreadStatement injectLastThreadOrderReductionIntoStatement(
+      CSeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
       throws UnrecognizedCodeException {
 
     CSeqThreadStatement withConflictOrder = injectLastThreadOrderIntoStatement(pStatement);
-    return injectLastUpdatesIntoStatement(withConflictOrder);
+    return injectLastUpdatesIntoStatement(withConflictOrder, pLabelClauseMap);
   }
 
   // Private =======================================================================================
@@ -89,11 +91,24 @@ record ReduceLastThreadOrderInjector(
 
   // Last Updates ==================================================================================
 
-  private CSeqThreadStatement injectLastUpdatesIntoStatement(CSeqThreadStatement pStatement) {
+  private CSeqThreadStatement injectLastUpdatesIntoStatement(
+      CSeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        // if a thread exits, set last_thread to NUM_THREADS - 1
+      SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+
+      // if a thread exits or there is a sync location, set last_thread to NUM_THREADS - 1.
+      // for sync locations, this is necessary, otherwise the analysis may prune interleavings and
+      // be unsound.
+      // simple example: LAST_THREAD is at a sync location that uses assume. the current thread
+      // has a reduceLastThreadOrder instrumentation and because it is not in conflict with
+      // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
+      // current thread -> both abort, and no thread makes any progress
+      if (targetPc == ProgramCounterVariables.EXIT_PC
+          || SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
+
         CExpressionAssignmentStatement lastThreadExit =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpressions.LAST_THREAD,
