@@ -343,14 +343,13 @@ public class NondeterministicSimulationBuilder {
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
     for (CSeqThreadStatement statement : pBlock.getStatements()) {
       CSeqThreadStatement withGoto =
-          tryInjectSyncUpdateIntoStatement(pOptions, statement, pSyncFlag, pLabelClauseMap);
+          tryInjectSyncUpdateIntoStatement(statement, pSyncFlag, pLabelClauseMap);
       newStatements.add(withGoto);
     }
     return pBlock.withStatements(newStatements.build());
   }
 
   private static CSeqThreadStatement tryInjectSyncUpdateIntoStatement(
-      MPOROptions pOptions,
       CSeqThreadStatement pStatement,
       CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
@@ -362,10 +361,9 @@ public class NondeterministicSimulationBuilder {
         SeqThreadStatementClause targetClause =
             Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         return injectSyncUpdateIntoStatementByTargetPc(
-            pOptions, pStatement, Optional.of(targetClause), pSyncVariable);
+            pStatement, Optional.of(targetClause), pSyncVariable);
       } else {
-        return injectSyncUpdateIntoStatementByTargetPc(
-            pOptions, pStatement, Optional.empty(), pSyncVariable);
+        return injectSyncUpdateIntoStatementByTargetPc(pStatement, Optional.empty(), pSyncVariable);
       }
     }
     // no int target pc -> no replacement
@@ -373,7 +371,6 @@ public class NondeterministicSimulationBuilder {
   }
 
   private static CSeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
-      MPOROptions pOptions,
       CSeqThreadStatement pStatement,
       Optional<SeqThreadStatementClause> pTargetClause,
       CIdExpression pSyncVariable) {
@@ -384,7 +381,7 @@ public class NondeterministicSimulationBuilder {
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
         isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
-    SeqSyncUpdateStatement syncUpdate = new SeqSyncUpdateStatement(pOptions, pSyncVariable, value);
+    SeqSyncUpdateStatement syncUpdate = new SeqSyncUpdateStatement(pSyncVariable, value);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, syncUpdate);
   }
 }
