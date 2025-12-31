@@ -99,7 +99,7 @@ record ReduceLastThreadOrderInjector(
       int targetPc = pStatement.getTargetPc().orElseThrow();
       // if a thread exits, set last_thread to NUM_THREADS - 1.
       if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        return injectLastThreadUpdateIntoStatement(pStatement, numThreads);
+        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
       }
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
       SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
@@ -110,10 +110,15 @@ record ReduceLastThreadOrderInjector(
       // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
       // current thread -> both abort, and no thread makes any progress
       if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
-        return injectLastThreadUpdateIntoStatement(pStatement, numThreads);
+        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
       } else {
+        // bit vector updates are only added when the LAST_THREAD != NUM_THREADS -1.
+        // this is because the bit vectors are only accessed anyway if LAST_THREAD < some_int holds.
+        ImmutableList<CExpressionAssignmentStatement> lastBitVectorUpdates =
+            buildLastAccessBitVectorUpdatesByEncoding();
         // for all other target pc, set last_thread to current thread id and update last bitvectors
-        return injectLastThreadUpdateIntoStatement(pStatement, activeThread.id());
+        return injectLastThreadUpdateIntoStatement(
+            pStatement, activeThread.id(), lastBitVectorUpdates);
       }
     }
     // no valid target pc -> no conflict order required
@@ -121,13 +126,16 @@ record ReduceLastThreadOrderInjector(
   }
 
   private CSeqThreadStatement injectLastThreadUpdateIntoStatement(
-      CSeqThreadStatement pStatement, int pValue) {
+      CSeqThreadStatement pStatement,
+      int pLastThreadValue,
+      ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
+
     CExpressionAssignmentStatement lastThreadExit =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpressions.LAST_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pValue));
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pLastThreadValue));
     SeqLastBitVectorUpdateStatement lastUpdateStatement =
-        new SeqLastBitVectorUpdateStatement(lastThreadExit, ImmutableList.of());
+        new SeqLastBitVectorUpdateStatement(lastThreadExit, pLastBitVectorUpdates);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(
         pStatement, lastUpdateStatement);
   }
