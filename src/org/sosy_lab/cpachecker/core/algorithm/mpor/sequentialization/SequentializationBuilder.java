@@ -341,7 +341,7 @@ public class SequentializationBuilder {
     StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
 
     // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
-    if (pOptions.isThreadSyncFlagRequired()) {
+    if (pOptions.reduceLastThreadOrder()) {
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
       CInitializer lastThreadInitializer =

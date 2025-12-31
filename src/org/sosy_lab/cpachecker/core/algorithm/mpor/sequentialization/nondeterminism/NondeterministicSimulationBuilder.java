@@ -337,7 +337,7 @@ public class NondeterministicSimulationBuilder {
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (!pOptions.isThreadSyncFlagRequired()) {
+    if (!pOptions.reduceIgnoreSleep()) {
       return pBlock;
     }
     ImmutableList.Builder<CSeqThreadStatement> newStatements = ImmutableList.builder();
