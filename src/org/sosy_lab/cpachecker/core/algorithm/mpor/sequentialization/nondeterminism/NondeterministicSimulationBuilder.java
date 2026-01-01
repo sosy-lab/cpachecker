@@ -337,7 +337,6 @@ public class NondeterministicSimulationBuilder {
       CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    // sync variables are only required with reduceIgnoreSleep enabled
     if (!pOptions.reduceIgnoreSleep()) {
       return pBlock;
     }
@@ -382,9 +381,7 @@ public class NondeterministicSimulationBuilder {
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
         isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
-    SeqSyncUpdateStatement syncUpdate =
-        new SeqSyncUpdateStatement(
-            SeqStatementBuilder.buildExpressionAssignmentStatement(pSyncVariable, value));
+    SeqSyncUpdateStatement syncUpdate = new SeqSyncUpdateStatement(pSyncVariable, value);
     return SeqThreadStatementUtil.appendedInjectedStatementsToStatement(pStatement, syncUpdate);
   }
 }
