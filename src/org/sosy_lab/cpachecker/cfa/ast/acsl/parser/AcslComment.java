@@ -47,5 +47,4 @@ public class AcslComment {
   public Boolean hasCfaNode() {
     return cfaNode != null;
   }
-
 }

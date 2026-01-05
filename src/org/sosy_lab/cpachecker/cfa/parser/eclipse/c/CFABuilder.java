@@ -553,7 +553,7 @@ class CFABuilder extends ASTVisitor {
           FunctionEntryNode entryNode = predecessors.stream().toList().getFirst();
           // check there is no annotation inbetween
           for (AcslComment other : pResult.acslComments().orElseThrow()) {
-            if (!(other.equals(comment))
+            if (!other.equals(comment)
                 && other.getFileLocation().getNodeOffset()
                     > comment.getFileLocation().getNodeOffset()
                         + comment.getFileLocation().getNodeLength()
