@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -534,17 +535,38 @@ class CFABuilder extends ASTVisitor {
     ImmutableSet.Builder<AcslComment> notAFunctionContractBuilder = ImmutableSet.builder();
 
     for (AcslComment comment : notStatementAnnotations) {
-      Optional<FunctionEntryNode> nextNode =
-          comment.nextFunctionEntryNode(pResult.functions().sequencedValues());
-      if (nextNode.isPresent()
-          && comment.noAnnotationInbetween(
-              nextNode.orElseThrow(),
-              pResult.functions().sequencedValues(),
-              pResult.acslComments().orElseThrow())
-          && !comment.hasCfaNode()) {
-        comment.updateCfaNode(nextNode.orElseThrow());
-      } else {
-        notAFunctionContractBuilder.add(comment);
+      FileLocation nextStatement =
+          pAstCfaRelation.nextStartStatementLocation(comment.getFileLocation().getNodeOffset());
+      Optional<CFANode> nextNode =
+          pAstCfaRelation.getNodeForStatementLocation(
+              nextStatement.getStartingLineNumber(), nextStatement.getStartColumnInLine());
+      if (nextNode.isPresent()) {
+        ImmutableSet<FunctionEntryNode> predecessors =
+            CFAUtils.predecessorsOf(nextNode.orElseThrow())
+                .filter(n -> n instanceof FunctionEntryNode)
+                .transform(n -> (FunctionEntryNode) n)
+                .toSet();
+        if (predecessors.size() != 1) {
+          // not a function contract
+          notAFunctionContractBuilder.add(comment);
+        } else {
+          FunctionEntryNode entryNode = predecessors.stream().toList().getFirst();
+          // check there is no annotation inbetween
+          for (AcslComment other : pResult.acslComments().orElseThrow()) {
+            if (!(other.equals(comment))
+                && other.getFileLocation().getNodeOffset()
+                    > comment.getFileLocation().getNodeOffset()
+                        + comment.getFileLocation().getNodeLength()
+                && other.getFileLocation().getNodeOffset() + other.getFileLocation().getNodeLength()
+                    < nextStatement.getNodeOffset()) {
+              // There is an annotation inbetween the comment and the statement: It is not a
+              // function contract
+              notAFunctionContractBuilder.add(comment);
+              break;
+            }
+          }
+          comment.updateCfaNode(entryNode);
+        }
       }
     }
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
