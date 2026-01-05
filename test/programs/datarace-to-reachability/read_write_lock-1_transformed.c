@@ -1,19 +1,17 @@
-// This file is part of the SV-Benchmarks collection of verification tasks:
-// https://github.com/sosy-lab/sv-benchmarks
-//
-// SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
-// SPDX-FileCopyrightText: The CSeq project
-//
-// SPDX-License-Identifier: Apache-2.0
-
 extern void abort(void);
 #include <assert.h>
 // void reach_error() { assert(0); }
 // Commented out due to possible Syntax Errors
 
-#include <stdlib.h>
+/* Testcase from Threader's distribution. For details see:
+   http://www.model.in.tum.de/~popeea/research/threader
+
+   This file is adapted from the example introduced in the paper:
+   Thread-Modular Verification for Shared-Memory Programs 
+   by Cormac Flanagan, Stephen Freund, Shaz Qadeer.
+*/
+
 #include <pthread.h>
-#include <string.h>
 extern void abort(void);
 
 void reach_error(void) { assert(0); }
@@ -31,7 +29,7 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_v = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_x = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
@@ -61,41 +59,44 @@ static void unlock_write(RaceMon* rm) {
   pthread_mutex_unlock(&rm->m);
 }
 
-
-// void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
+// #undef assert
+// Commented out due to possible Syntax Errors
+// #define assert(e) if (!(e)) ERROR: reach_error()
 // Commented out due to possible Syntax Errors
 
-char *v;
+int x;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
-void *thread1(void * arg)
-{
-  lock_write(&mon_v);
-  v = calloc(8, sizeof(char));
-  unlock_write(&mon_v);
+void *writer(void *arg) { //writer
+  pthread_rwlock_wrlock(&rwlock);
+  lock_write(&mon_x);
+  x = 3;
+  unlock_write(&mon_x);
+  pthread_rwlock_unlock(&rwlock);
   return 0;
 }
 
-void *thread2(void *arg)
-{
-  if (v) {
-  lock_write(&mon_v);
-    strcpy(v, "Bigshot");
-  unlock_write(&mon_v);
-  }
+void *reader(void *arg) { //reader
+  pthread_rwlock_rdlock(&rwlock);
+  lock_read(&mon_x);
+  int y = x;
+  unlock_read(&mon_x);
+  lock_read(&mon_x);
+  assert(y == x);
+  unlock_read(&mon_x);
+  pthread_rwlock_unlock(&rwlock);
   return 0;
 }
 
-
-int main()
-{
-  pthread_t t1, t2;
-
-  pthread_create(&t1, 0, thread1, 0);
-  pthread_create(&t2, 0, thread2, 0);
+int main() {
+  pthread_t t1, t2, t3, t4;
+  pthread_create(&t1, 0, writer, 0);
+  pthread_create(&t2, 0, reader, 0);
+  pthread_create(&t3, 0, writer, 0);
+  pthread_create(&t4, 0, reader, 0);
   pthread_join(t1, 0);
   pthread_join(t2, 0);
-
-  __VERIFIER_assert(!v || v[0] == 'B');
-
+  pthread_join(t3, 0);
+  pthread_join(t4, 0);
   return 0;
 }

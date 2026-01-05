@@ -2,7 +2,7 @@
 // https://github.com/sosy-lab/sv-benchmarks
 //
 // SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
-// SPDX-FileCopyrightText: The CSeq project
+// SPDX-FileCopyrightText: 2020 The ESBMC project
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,9 +11,7 @@ extern void abort(void);
 // void reach_error() { assert(0); }
 // Commented out due to possible Syntax Errors
 
-#include <stdlib.h>
 #include <pthread.h>
-#include <string.h>
 extern void abort(void);
 
 void reach_error(void) { assert(0); }
@@ -31,7 +29,8 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_v = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_data1 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_data2 = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
@@ -62,40 +61,67 @@ static void unlock_write(RaceMon* rm) {
 }
 
 
-// void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
-// Commented out due to possible Syntax Errors
+pthread_mutex_t  ma, mb;
+int data1, data2;
 
-char *v;
+void * thread1(void * arg)
+{  
+  pthread_mutex_lock(&ma);
+  lock_write(&mon_data1);
+  data1++;
+  unlock_write(&mon_data1);
+  pthread_mutex_unlock(&ma);
 
-void *thread1(void * arg)
-{
-  lock_write(&mon_v);
-  v = calloc(8, sizeof(char));
-  unlock_write(&mon_v);
+  pthread_mutex_lock(&ma);
+  lock_write(&mon_data2);
+  data2++;
+  unlock_write(&mon_data2);
+  pthread_mutex_unlock(&ma);
+
   return 0;
 }
 
-void *thread2(void *arg)
-{
-  if (v) {
-  lock_write(&mon_v);
-    strcpy(v, "Bigshot");
-  unlock_write(&mon_v);
-  }
+
+void * thread2(void * arg)
+{  
+  pthread_mutex_lock(&ma);
+  lock_write(&mon_data1);
+  data1+=5;
+  unlock_write(&mon_data1);
+  pthread_mutex_unlock(&ma);
+
+  pthread_mutex_lock(&ma);
+  lock_write(&mon_data2);
+  data2-=6;
+  unlock_write(&mon_data2);
+  pthread_mutex_unlock(&ma);
+
   return 0;
 }
 
 
 int main()
 {
-  pthread_t t1, t2;
+  pthread_t  t1, t2;
+
+  pthread_mutex_init(&ma, 0);
+  pthread_mutex_init(&mb, 0);
+
+  data1 = 10;
+  data2 = 10;
 
   pthread_create(&t1, 0, thread1, 0);
   pthread_create(&t2, 0, thread2, 0);
+  
   pthread_join(t1, 0);
   pthread_join(t2, 0);
 
-  __VERIFIER_assert(!v || v[0] == 'B');
+  if (data1!=16 && data2!=5)
+  {
+//     ERROR: {reach_error();abort();}
+// Commented out due to possible Syntax Errors
+      ;    
+  }
 
   return 0;
 }

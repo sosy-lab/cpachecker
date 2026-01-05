@@ -2,18 +2,17 @@
 // https://github.com/sosy-lab/sv-benchmarks
 //
 // SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
-// SPDX-FileCopyrightText: The CSeq project
+// SPDX-FileCopyrightText: 2018 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <pthread.h>
+
+extern void __VERIFIER_atomic_begin();
+extern void __VERIFIER_atomic_end();
+
 extern void abort(void);
 #include <assert.h>
-// void reach_error() { assert(0); }
-// Commented out due to possible Syntax Errors
-
-#include <stdlib.h>
-#include <pthread.h>
-#include <string.h>
 extern void abort(void);
 
 void reach_error(void) { assert(0); }
@@ -31,7 +30,8 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_v = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_i = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_j = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
@@ -61,41 +61,58 @@ static void unlock_write(RaceMon* rm) {
   pthread_mutex_unlock(&rm->m);
 }
 
-
-// void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
+// void reach_error() { assert(0); }
 // Commented out due to possible Syntax Errors
 
-char *v;
+int i = 3, j = 6;
 
-void *thread1(void * arg)
-{
-  lock_write(&mon_v);
-  v = calloc(8, sizeof(char));
-  unlock_write(&mon_v);
-  return 0;
-}
+#define NUM 20
+#define LIMIT (2*NUM+6)
 
-void *thread2(void *arg)
-{
-  if (v) {
-  lock_write(&mon_v);
-    strcpy(v, "Bigshot");
-  unlock_write(&mon_v);
+void *t1(void *arg) {
+  for (int k = 0; k < NUM; k++) {
+    __VERIFIER_atomic_begin();
+    lock_write(&mon_i);
+    lock_read(&mon_j);
+    i = j + 1;
+    unlock_read(&mon_j);
+    unlock_write(&mon_i);
+    __VERIFIER_atomic_end();
   }
-  return 0;
+  pthread_exit(NULL);
 }
 
+void *t2(void *arg) {
+  for (int k = 0; k < NUM; k++) {
+    __VERIFIER_atomic_begin();
+    lock_read(&mon_i);
+    lock_write(&mon_j);
+    j = i + 1;
+    unlock_write(&mon_j);
+    unlock_read(&mon_i);
+    __VERIFIER_atomic_end();
+  }
+  pthread_exit(NULL);
+}
 
-int main()
-{
-  pthread_t t1, t2;
+int main(int argc, char **argv) {
+  pthread_t id1, id2;
 
-  pthread_create(&t1, 0, thread1, 0);
-  pthread_create(&t2, 0, thread2, 0);
-  pthread_join(t1, 0);
-  pthread_join(t2, 0);
+  pthread_create(&id1, NULL, t1, NULL);
+  pthread_create(&id2, NULL, t2, NULL);
 
-  __VERIFIER_assert(!v || v[0] == 'B');
+  __VERIFIER_atomic_begin();
+  int condI = i > LIMIT;
+  __VERIFIER_atomic_end();
+
+  __VERIFIER_atomic_begin();
+  int condJ = j > LIMIT;
+  __VERIFIER_atomic_end();
+
+  if (condI || condJ) {
+//     ERROR: {reach_error();abort();}
+// Commented out due to possible Syntax Errors
+  }
 
   return 0;
 }

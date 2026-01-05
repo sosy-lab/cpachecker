@@ -2,7 +2,7 @@
 // https://github.com/sosy-lab/sv-benchmarks
 //
 // SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
-// SPDX-FileCopyrightText: The CSeq project
+// SPDX-FileCopyrightText: 2020 The ESBMC project
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,9 +11,8 @@ extern void abort(void);
 // void reach_error() { assert(0); }
 // Commented out due to possible Syntax Errors
 
-#include <stdlib.h>
 #include <pthread.h>
-#include <string.h>
+#include <assert.h>
 extern void abort(void);
 
 void reach_error(void) { assert(0); }
@@ -31,7 +30,7 @@ typedef struct {
   int writers;
 } RaceMon;
 
-static RaceMon mon_v = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
+static RaceMon mon_data = { PTHREAD_MUTEX_INITIALIZER, 0, 0 };
 
 static void lock_read(RaceMon* rm) {
   pthread_mutex_lock(&rm->m);
@@ -62,40 +61,57 @@ static void unlock_write(RaceMon* rm) {
 }
 
 
-// void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
-// Commented out due to possible Syntax Errors
+pthread_mutex_t  mutex;
+int data = 0;
 
-char *v;
-
-void *thread1(void * arg)
+void *thread1(void *arg)
 {
-  lock_write(&mon_v);
-  v = calloc(8, sizeof(char));
-  unlock_write(&mon_v);
+  pthread_mutex_lock(&mutex);
+  lock_write(&mon_data);
+  data++;
+  unlock_write(&mon_data);
+  pthread_mutex_unlock(&mutex);
   return 0;
 }
 
+
 void *thread2(void *arg)
 {
-  if (v) {
-  lock_write(&mon_v);
-    strcpy(v, "Bigshot");
-  unlock_write(&mon_v);
+  pthread_mutex_lock(&mutex);
+  lock_write(&mon_data);
+  data+=2;
+  unlock_write(&mon_data);
+  pthread_mutex_unlock(&mutex);
+  return 0;
+}
+
+
+void *thread3(void *arg)
+{
+  pthread_mutex_lock(&mutex);
+  if (data >= 3){
+//     ERROR: {reach_error();abort();}
+// Commented out due to possible Syntax Errors
+    ;
   }
+  pthread_mutex_unlock(&mutex);    
   return 0;
 }
 
 
 int main()
 {
-  pthread_t t1, t2;
+  pthread_mutex_init(&mutex, 0);
+
+  pthread_t t1, t2, t3;
 
   pthread_create(&t1, 0, thread1, 0);
   pthread_create(&t2, 0, thread2, 0);
+  pthread_create(&t3, 0, thread3, 0);
+
   pthread_join(t1, 0);
   pthread_join(t2, 0);
-
-  __VERIFIER_assert(!v || v[0] == 'B');
-
+  pthread_join(t3, 0);
+  
   return 0;
 }

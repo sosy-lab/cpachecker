@@ -64,24 +64,30 @@ static void unlock_write(RaceMon* rm) {
 
 // void __VERIFIER_assert(int expression) { if (!expression) { ERROR: {reach_error();abort();}}; return; }
 // Commented out due to possible Syntax Errors
+<<<<<<< HEAD:test/programs/datarace-to-reachability/pthread/bigshot_p_transformed.c
+
+=======
+>>>>>>> 66a0585252 (Added new test programs and modified datarace xml):test/programs/datarace-to-reachability/bigshot_s_transformed.c
 
 char *v;
 
 void *thread1(void * arg)
 {
   lock_write(&mon_v);
-  v = calloc(8, sizeof(char));
+  v = malloc(sizeof(char) * 8);
   unlock_write(&mon_v);
   return 0;
 }
 
 void *thread2(void *arg)
 {
+<<<<<<< HEAD:test/programs/datarace-to-reachability/pthread/bigshot_p_transformed.c
+=======
   if (v) {
+>>>>>>> 66a0585252 (Added new test programs and modified datarace xml):test/programs/datarace-to-reachability/bigshot_s_transformed.c
   lock_write(&mon_v);
     strcpy(v, "Bigshot");
   unlock_write(&mon_v);
-  }
   return 0;
 }
 
@@ -91,8 +97,9 @@ int main()
   pthread_t t1, t2;
 
   pthread_create(&t1, 0, thread1, 0);
-  pthread_create(&t2, 0, thread2, 0);
   pthread_join(t1, 0);
+
+  pthread_create(&t2, 0, thread2, 0);
   pthread_join(t2, 0);
 
   __VERIFIER_assert(!v || v[0] == 'B');
