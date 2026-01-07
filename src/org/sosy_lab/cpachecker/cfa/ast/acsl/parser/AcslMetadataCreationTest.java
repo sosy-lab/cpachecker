@@ -21,6 +21,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.test.ACSLParserTest;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AcslMetadataCreationTest {
@@ -42,16 +44,13 @@ public class AcslMetadataCreationTest {
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
     if (cfa.getMetadata().getAcslMetadata() != null) {
       ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
-      /*
-      Compares the node number of the Cfa Node for the Acsl Comment with an expected value.
-      This has two problems:
-      1. We need to know the node numbers of the Cfa before we write a test
-      2. The numbering of the Cfa Nodes might change at some point
-       */
-      int actualNodeId = acslComments.getFirst().getCfaNode().getNodeNumber();
-      int expectedNodeId = 3;
-      assertThat(acslComments).hasSize(1);
-      assert acslComments.getFirst().hasCfaNode() && actualNodeId == expectedNodeId;
+      int statementOffset = 304;
+      CFANode actualNode = acslComments.getFirst().getCfaNode();
+      ImmutableList<CFAEdge> outgoingEdge =
+          actualNode
+              .getLeavingEdges()
+              .filter(n -> n.getFileLocation().getNodeOffset() == statementOffset).toList();
+      assertThat(outgoingEdge).hasSize(1);
     }
   }
 }
