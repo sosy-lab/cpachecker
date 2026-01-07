@@ -49,7 +49,8 @@ public class AcslMetadataCreationTest {
       ImmutableList<CFAEdge> outgoingEdge =
           actualNode
               .getLeavingEdges()
-              .filter(n -> n.getFileLocation().getNodeOffset() == statementOffset).toList();
+              .filter(n -> n.getFileLocation().getNodeOffset() == statementOffset)
+              .toList();
       assertThat(outgoingEdge).hasSize(1);
     }
   }
