@@ -50,7 +50,7 @@ public class AcslMetadataCreationTest {
        */
       int actualNodeId = acslComments.getFirst().getCfaNode().getNodeNumber();
       int expectedNodeId = 3;
-      assertThat(acslComments.size()).isEqualTo(1);
+      assertThat(acslComments).hasSize(1);
       assert acslComments.getFirst().hasCfaNode() && actualNodeId == expectedNodeId;
     }
   }
