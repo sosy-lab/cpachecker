@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -517,7 +518,9 @@ class CFABuilder extends ASTVisitor {
             FluentIterable.from(tightestStatement.orElseThrow().edges())
                 .transform(e -> e.getSuccessor());
         List<CFANode> nodesForComment =
-            predecessors.filter(n -> !successors.contains(n)).stream().toList();
+            successors
+                .filter(n -> !predecessors.contains(n) && !(n instanceof FunctionExitNode))
+                .toList();
 
         // An AcslComment should belong to exactly one CfaNode
         Verify.verify(nodesForComment.size() == 1);
