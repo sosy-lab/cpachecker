@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
