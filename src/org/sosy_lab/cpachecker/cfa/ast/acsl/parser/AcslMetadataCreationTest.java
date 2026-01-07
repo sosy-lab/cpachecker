@@ -34,12 +34,14 @@ public class AcslMetadataCreationTest {
   private static final String TEST_DIR = "test/programs/acsl/";
 
   private final String programName;
+  private final int expectedAnnotations;
   private final int expectedOffset;
   private final CFACreator cfaCreator;
 
-  public AcslMetadataCreationTest(String pProgramName, int pExpectedOffset)
+  public AcslMetadataCreationTest(String pProgramName, int pExpetedAnnotions, int pExpectedOffset)
       throws InvalidConfigurationException {
     programName = pProgramName;
+    expectedAnnotations = pExpetedAnnotions;
     expectedOffset = pExpectedOffset;
     Configuration config =
         TestDataTools.configurationForTest()
@@ -52,12 +54,22 @@ public class AcslMetadataCreationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(task("minimal_example.c", 304));
+    b.add(task("minimal_example.c", 1, 304));
     return b.build();
   }
 
-  private static Object[] task(String proram, int expectedOffset) {
-    return new Object[] {proram, expectedOffset};
+  private static Object[] task(String program, int expectedAnnotations, int expectedOffset) {
+    return new Object[] {program, expectedAnnotations, expectedOffset};
+  }
+
+  @Test
+  public void parseCorrectNumberOfAcslCommentsTest() throws Exception {
+    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+    if (cfa.getMetadata().getAcslMetadata() != null) {
+      ImmutableList<AcslComment> acslComments = cfa.getMetadata().getAcslMetadata().pAcslComments();
+      assertThat(acslComments).hasSize(expectedAnnotations);
+    }
   }
 
   @Test
