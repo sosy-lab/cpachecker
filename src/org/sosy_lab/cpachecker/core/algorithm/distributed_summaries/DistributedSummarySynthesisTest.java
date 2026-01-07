@@ -123,6 +123,7 @@ public class DistributedSummarySynthesisTest {
 
     assertThat(originalCFA.nodes()).isNotEqualTo(shiftedCFA.nodes());
     assertThat(cfaNodeIdMapWithOriginalCFA).isNotEqualTo(cfaNodeIdMapWithShiftedCFA);
+    assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
   }
 
   private Configuration getConfig(String configFile)
