@@ -571,7 +571,7 @@ class CFABuilder extends ASTVisitor {
     }
     ImmutableSet<AcslComment> notFunctionContracts = notAFunctionContractBuilder.build();
     Verify.verify(notFunctionContracts.isEmpty());
-    return AcslMetadata.empty();
+    return AcslMetadata.withComments(pResult.acslComments().orElseThrow());
   }
 
   @Override

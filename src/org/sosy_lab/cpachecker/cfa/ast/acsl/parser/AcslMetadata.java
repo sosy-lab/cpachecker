@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssigns;
@@ -27,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * @param modifiedMemoryLocations A mapping of Cfa Nodes to Acsl assigns_clauses
  */
 public record AcslMetadata(
+    ImmutableList<AcslComment> pAcslComments,
     ImmutableSet<AcslDeclaration> globalAcslDeclarations,
     ImmutableSetMultimap<CFANode, AcslAssertion> assertions,
     ImmutableSetMultimap<CFANode, AcslLoopInvariant> invariants,
@@ -35,6 +39,17 @@ public record AcslMetadata(
 
   public static AcslMetadata empty() {
     return new AcslMetadata(
+        ImmutableList.of(),
+        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of());
+  }
+
+  public static AcslMetadata withComments(List<AcslComment> pAcslCommentList) {
+    return new AcslMetadata(
+        ImmutableList.copyOf(pAcslCommentList),
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSetMultimap.of(),
