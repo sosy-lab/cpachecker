@@ -529,6 +529,10 @@ public final class CfaMetadata {
         pAcslMetadata);
   }
 
+  public AcslMetadata getAcslMetadata() {
+    return acslMetadata;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(
