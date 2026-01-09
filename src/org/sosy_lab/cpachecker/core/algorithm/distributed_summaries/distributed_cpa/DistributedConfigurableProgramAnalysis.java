@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.OptionalInt;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -159,7 +160,11 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   default ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
       throws InterruptedException {
-    int numStates = pMessage.getNumberOfContainedStates();
+    OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
+    if (optionalNumberOfStates.isEmpty()) {
+      return ImmutableList.of();
+    }
+    int numStates = optionalNumberOfStates.getAsInt();
     ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
         ImmutableList.builderWithExpectedSize(numStates);
     for (int i = 0; i < numStates; i++) {

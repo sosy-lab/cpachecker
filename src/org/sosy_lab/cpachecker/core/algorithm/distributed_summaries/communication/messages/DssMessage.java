@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
@@ -88,13 +89,17 @@ public abstract class DssMessage {
     return ContentReader.read(stateContent);
   }
 
-  public final int getNumberOfContainedStates() {
+  /**
+   * Get the number of contained states in this message, if any.
+   * @return An OptionalInt containing the number of states, or empty if not present.
+   */
+  public final OptionalInt getNumberOfContainedStates() {
     if (content.containsKey(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)) {
-      return Integer.parseInt(
+      return OptionalInt.of(Integer.parseInt(
           Objects.requireNonNull(
-              content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)));
+              content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY))));
     }
-    return -1;
+    return OptionalInt.empty();
   }
 
   public final DssMessage advance(String pPrefix) {
