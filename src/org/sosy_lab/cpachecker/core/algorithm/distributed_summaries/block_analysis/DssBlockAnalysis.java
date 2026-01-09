@@ -219,7 +219,7 @@ public class DssBlockAnalysis {
     if (optionalNumberOfStates.isEmpty()) {
       return ImmutableList.of();
     }
-    int numStates = optionalNumberOfStates.getAsInt();
+    int numStates = optionalNumberOfStates.orElseThrow();
     ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
         ImmutableList.builderWithExpectedSize(numStates);
     for (int i = 0; i < numStates; i++) {

@@ -192,8 +192,9 @@ public abstract class DssMessage {
   /**
    * Convert the message to a JSON representation with an identifier.
    *
-   * @param pIdentifier Identifier to include in the header. Used to show only the most recent
-   *     messages in the visualizer.
+   * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
+   *     messages produced in one run of DSS should have the same identifier. This simplifies the
+   *     separation of old and new messages after the analysis, especially, .
    * @return JSON representation of the message.
    */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
