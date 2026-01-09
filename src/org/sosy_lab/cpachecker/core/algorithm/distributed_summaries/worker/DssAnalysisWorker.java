@@ -112,21 +112,6 @@ public class DssAnalysisWorker extends DssWorker {
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
     return switch (message.getType()) {
-      case VIOLATION_CONDITION -> {
-        try {
-          backwardAnalysisTime.start();
-          DssMessageProcessing processing =
-              dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
-          if (!processing.shouldProceed()) {
-            yield processing;
-          }
-          yield dssBlockAnalysis.analyzeViolationCondition(message.getSenderId());
-        } catch (Exception | Error e) {
-          yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
-        } finally {
-          backwardAnalysisTime.stop();
-        }
-      }
       case POST_CONDITION -> {
         try {
           forwardAnalysisTime.start();
@@ -140,6 +125,21 @@ public class DssAnalysisWorker extends DssWorker {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
+        }
+      }
+      case VIOLATION_CONDITION -> {
+        try {
+          backwardAnalysisTime.start();
+          DssMessageProcessing processing =
+              dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
+          if (!processing.shouldProceed()) {
+            yield processing;
+          }
+          yield dssBlockAnalysis.analyzeViolationCondition(message.getSenderId());
+        } catch (Exception | Error e) {
+          yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
+        } finally {
+          backwardAnalysisTime.stop();
         }
       }
       case EXCEPTION, RESULT -> {
@@ -183,11 +183,11 @@ public class DssAnalysisWorker extends DssWorker {
               message, ImmutableSet.copyOf(((DssPostConditionMessage) message).getReceivers()));
         }
         case VIOLATION_CONDITION -> {
-          broadcaster.broadcastToObserver(message);
           if (block.getPredecessorIds().isEmpty()) {
             broadcaster.broadcastToAll(
                 messageFactory.createDssResultMessage(getId(), Result.FALSE));
           } else {
+            broadcaster.broadcastToObserver(message);
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }

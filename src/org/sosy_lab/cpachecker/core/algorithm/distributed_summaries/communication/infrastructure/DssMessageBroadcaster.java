@@ -52,6 +52,10 @@ public class DssMessageBroadcaster {
     }
   }
 
+  /**
+   * Broadcasts a message to all connected entities.
+   * @param message the message to broadcast
+   */
   public void broadcastToAll(DssMessage message) {
     broadcast(message, DssCommunicationEntity.ALL);
   }
