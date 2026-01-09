@@ -11,6 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * An operator to combine multiple precisions into a single precision. This is useful in distributed
+ * CPA settings where precisions from different analysis nodes need to be merged.
+ *
+ * <p>The resulting precision must follow the contract that the least upper bound of the transfer
+ * from one state to another with each individual precision is equivalent to the transfer with the
+ * combined precision.
+ */
 public interface CombinePrecisionOperator {
 
   Precision combine(Collection<Precision> precisions) throws InterruptedException;
