@@ -62,6 +62,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -100,7 +101,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -109,8 +109,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
-@Options(prefix = "termination")
+@Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
@@ -123,10 +125,47 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
-      name = "violation.witness",
+      name = "violation.witness.graphml",
+      deprecatedName = "violation.witness",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Path.of("nontermination_witness.graphml");
+  private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.yaml",
+      description = "Export termination counterexample to file in YAML format ")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate violationWitnessYaml =
+      PathTemplate.ofFormatString("Counterexample.%s.witness-2.1.yml");
+
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
+
+  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
+  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
+  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
+  // added to make it possible to deactivate the export.
+  @Option(
+      secure = true,
+      name = "exportYamlCorrectnessWitness",
+      description = "export correctness witness in YAML format")
+  private boolean exportYamlCorrectnessWitness = true;
+
+  @Option(
+      secure = true,
+      name = "exportSupportingInvariantsInWitness",
+      description = "export supporting invariants in the witness")
+  private boolean exportSupportingInvariantsInWitness = true;
 
   @Option(
       secure = true,
@@ -158,6 +197,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   protected final LogManager logger;
 
   protected final WitnessExporter witnessExporter;
+  protected final TerminationYAMLWitnessExporter terminationWitnessExporter;
+  private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -183,6 +224,27 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+      terminationWitnessExporter =
+          new TerminationYAMLWitnessExporter(
+              pConfig,
+              pCFA,
+              Specification.alwaysSatisfied()
+                  .withAdditionalProperties(
+                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+              pLogger,
+              exportSupportingInvariantsInWitness);
+    } else {
+      terminationWitnessExporter = null;
+    }
+
+    cexToWitnessEporter =
+        new CounterexampleToWitness(
+            pConfig,
+            pCFA,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+            pLogger);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
@@ -408,7 +470,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
+    if (pResult == Result.FALSE
+        && (violationWitnessGraphml != null
+            || violationWitnessYaml != null
+            || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
@@ -419,6 +484,15 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(violations.hasNext());
       exportViolationWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (pResult == Result.TRUE) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.logUserException(
+            WARNING, e, "There is a problem when writing the witness into a file.");
+      }
     }
   }
 
@@ -487,9 +561,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               state -> Objects.equals(state, loopStartInCEX),
               provideQuasiInvariant);
 
-      if (violationWitness != null) {
+      if (violationWitnessGraphml != null) {
         WitnessToOutputFormatsUtils.writeWitness(
-            violationWitness,
+            violationWitnessGraphml,
             compressWitness,
             pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
             logger);
@@ -502,9 +576,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
             logger);
       }
-    } catch (InterruptedException e) {
-      logger.logUserException(
-          WARNING, e, "Could not export termination witness due to interruption");
+
+      if (violationWitnessYaml != null) {
+        cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
+      }
+    } catch (InterruptedException | IOException e) {
+      logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
   }
 
@@ -555,7 +632,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
-      for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
+      for (CFAEdge leave : loc.getLeavingEdges()) {
         if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
           ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
@@ -589,7 +666,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
-            for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
+            for (CFAEdge leaveFun : context.getFirst().getLeavingEdges()) {
               Pair<CFANode, CallstackState> newContext =
                   Pair.of(leaveFun.getSuccessor(), context.getSecond());
 

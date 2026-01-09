@@ -262,7 +262,7 @@ public class LiveVariablesTransferRelation
         }
       }
 
-      for (CFAEdge e : CFAUtils.enteringEdges(node)) {
+      for (CFAEdge e : node.getEnteringEdges()) {
         if (e instanceof ADeclarationEdge aDeclarationEdge) {
           ASimpleDeclaration decl = aDeclarationEdge.getDeclaration();
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(decl));

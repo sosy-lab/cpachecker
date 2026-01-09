@@ -112,7 +112,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       secure = true,
       name = "config",
       required = true,
-      description = "configuration file for counterexample checks with CPAchecker")
+      description =
+          "configuration file for counterexample checks with CPAchecker. The config is only loaded"
+              + " once a CEX-check is performed and is not influenced by settings of other configs"
+              + " besides the loaded config and command-line settings.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
 
@@ -137,7 +140,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       name = "checkMemorySafetySubproperty",
       description =
           "counterexample check checks MemSafety sub-properties (valid-deref, valid-free,"
-              + " valid-memtrack) additionally to the path.")
+              + " valid-memtrack) additionally to the path. This is generally only needed if there"
+              + " are multiple sub-properties.")
   private boolean checkMemorySafetySubproperty = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
@@ -233,9 +237,9 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), cfa);
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(lSpecification);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, lSpecification);
       ReachedSet lReached = factory.createReachedSet(lCpas);
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),

@@ -14,8 +14,11 @@ import static com.google.common.base.Verify.verify;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -63,17 +66,32 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
 
+  // CDT has no builtin support for _Atomic. In some cases we can use a workaround where we convert
+  // _Atomic into an attribute and get the info from there, but whenever we need to convert an IType
+  // instance we do not know whether it should be _Atomic. Use this constant to mark such places.
+  // Cf. #1253, https://github.com/eclipse-cdt/cdt/issues/946
+  private static final boolean ATOMIC_MISSING_FOR_ITYPES = false;
+
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
   private final ParseContext parseContext;
 
+  // All cases of _Atomic that were not handled so far. This set is pre-filled and we need to remove
+  // locations once we handled their respective AST node.
+  private final Set<FileLocation> unhandledAtomicOccurrences;
+
   ASTTypeConverter(
-      Scope pScope, ASTConverter pConverter, String pFilePrefix, ParseContext pParseContext) {
+      Scope pScope,
+      ASTConverter pConverter,
+      String pFilePrefix,
+      ParseContext pParseContext,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
+    unhandledAtomicOccurrences = pUnhandledAtomicOccurrences;
 
     pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
@@ -233,7 +251,8 @@ class ASTTypeConverter {
 
   private CPointerType conv(final IPointerType t) {
     return new CPointerType(
-        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()));
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
+        convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -282,7 +301,9 @@ class ASTTypeConverter {
       }
     }
     return new CArrayType(
-        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()), length);
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
+        convert(t.getType()),
+        length);
   }
 
   private CType conv(final IQualifierType t) {
@@ -291,7 +312,8 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    return i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
+    return i.withQualifiersSetTo(
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -411,7 +433,33 @@ class ASTTypeConverter {
   }
 
   CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
-    return CTypeQualifiers.create(d.isConst(), d.isVolatile());
+    return CTypeQualifiers.create(hasCPAcheckerAttributeForAtomic(d), d.isConst(), d.isVolatile());
+  }
+
+  /**
+   * Check whether this AST node has an attribute that was added by the preprocessor as a
+   * replacement for _Atomic. Cf #1253
+   */
+  boolean hasCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      String name = String.valueOf(attr.getName());
+      if (name.equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        FileLocation loc = converter.getLocation(attr);
+        // We cannot check that loc is still in unhandledAtomic, some AST nodes are handled twice.
+        unhandledAtomicOccurrences.remove(loc);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  boolean hasUnexpectedCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        throw parseContext.parseError("_Atomic in currently unsupported location", ao.getParent());
+      }
+    }
+    return false;
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
@@ -438,7 +486,10 @@ class ASTTypeConverter {
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
-      return new CPointerType(CTypeQualifiers.create(p.isConst(), p.isVolatile()), type);
+      return new CPointerType(
+          CTypeQualifiers.create(
+              hasUnexpectedCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+          type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CustomInstructionApplications {
 
@@ -378,7 +377,7 @@ public class CustomInstructionApplications {
 
         // inspect all CFA edges potential candidates
         for (CFANode node : cfa.nodes()) {
-          for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          for (CFAEdge edge : node.getAllLeavingEdges()) {
             if (edge instanceof CStatementEdge cStatementEdge
                 && cStatementEdge.getStatement()
                     instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {

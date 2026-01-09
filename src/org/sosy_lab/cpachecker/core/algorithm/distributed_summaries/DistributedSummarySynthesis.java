@@ -46,6 +46,65 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * Main class for Distributed Summary Synthesis (DSS).
+ *
+ * <p>DSS partitions the program into blocks and distributes verification across multiple workers
+ * that communicate via message passing. The analysis follows these phases:
+ *
+ * <h2>1. Decomposition</h2>
+ *
+ * <p>The CFA is partitioned into blocks using some {@link DssBlockDecomposition}. The resulting
+ * {@link BlockGraph} and the underlying CFA are then instrumented with {@link
+ * BlockGraphModification} to ensure clean block boundaries.
+ *
+ * <h2>2. Worker Creation</h2>
+ *
+ * <p>DSS spawns multiple workers through {@link DssWorkerBuilder}:
+ *
+ * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
+ * analysis worker} is created. An additional {@link DssWorkerBuilder#addRootWorker(BlockNode,
+ * DssAnalysisOptions) root worker}) is responsible for messages reaching the program entry point.
+ * If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
+ * used to provide a visualization of the message exchange between analysis workers.
+ *
+ * <p>DSS also manually creates the {@link DssObserverWorker}, which monitors message exchange and
+ * detects when the DSS algorithm reaches a final verdict.
+ *
+ * <p>When {@link #spawnWorkerForId} is specified, only one worker is created (i.e., for the
+ * specified block ID). This is useful for single-block analysis.
+ *
+ * <h2>3. Execution and Coordination</h2>
+ *
+ * <p>After worker creation, DistributedSummarySynthesis coordinates the analysis execution:
+ *
+ * <ul>
+ *   <li>Initializes the {@link DssFixpointNotifier} for termination detection
+ *   <li>Starts each analysis worker: If {@link #knownConditions} and/or {@link #newConditions} is
+ *       set, workers are started with these conditions as input. Otherwise, {@link
+ *       DssAnalysisWorker#runInitialAnalysis()} is called on all workers.
+ *   <li>Delegates message monitoring to the {@link DssObserverWorker}, which blocks until it can
+ *       determine a final verification verdict (SAFE, UNSAFE, or timeout)
+ *   <li>Processes the final result by updating the {@link ReachedSet}:
+ *       <ul>
+ *         <li>For UNSAFE results: Adds a {@link DummyTargetState} to indicate property violation
+ *         <li>For SAFE results: Clears the reached set to indicate successful verification
+ *       </ul>
+ * </ul>
+ *
+ * <h2>Special Modes</h2>
+ *
+ * <p>DistributedSummarySynthesis supports several operational modes:
+ *
+ * <ul>
+ *   <li><strong>Block Graph Export Only:</strong> When {@link #generateBlockGraphOnly} is enabled,
+ *       the analysis stops after decomposition and exports the block graph to JSON format
+ *   <li><strong>Incremental Analysis:</strong> You can provide {@link #knownConditions} and {@link
+ *       #newConditions} for analyzing blocks with pre-existing postconditions and violation
+ *       conditions
+ * </ul>
+ */
 @Options(prefix = "distributedSummaries")
 public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider {
 

@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
@@ -219,7 +218,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       // identify possible successor edges
       CFANode locPred = AbstractStates.extractLocation(composedState);
       nextEdge:
-      for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
+      for (CFAEdge succEdge : locPred.getAllLeavingEdges()) {
         shutdown.shutdownIfNecessary();
 
         successorsForEdge.clear();

@@ -25,6 +25,13 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Serial private static final long serialVersionUID = -6314468260643330323L;
 
+  /**
+   * A {@link CArrayType} for unsigned integers ({@code unsigned int[]}) without any type
+   * qualifiers.
+   */
+  public static final CArrayType UNSIGNED_INT_ARRAY =
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.UNSIGNED_INT);
+
   private final @Nullable CExpression length;
   private final CTypeQualifiers qualifiers;
 
@@ -184,6 +191,7 @@ public final class CArrayType extends AArrayType implements CType {
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
     // TODO: wrong, cf. #1375 Only pQualifiersToAdd needs to be pushed down.
+    // TODO 6.7.3 (3) specifies that _Atomic must not be applied to array types.
     return new CArrayType(
         CTypeQualifiers.NONE,
         getType().getCanonicalType(CTypeQualifiers.union(qualifiers, pQualifiersToAdd)),

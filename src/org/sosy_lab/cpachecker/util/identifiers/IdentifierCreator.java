@@ -36,21 +36,21 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   }
 
   public static AbstractIdentifier createIdentifier(
-      CSimpleDeclaration decl, String function, int dereference) {
+      CSimpleDeclaration decl, String function, int pDereference) {
     Preconditions.checkNotNull(decl);
     String name = decl.getName();
     CType type = decl.getType();
 
     if (decl instanceof CDeclaration cDeclaration) {
       if (cDeclaration.isGlobal()) {
-        return new GlobalVariableIdentifier(name, type, dereference);
+        return new GlobalVariableIdentifier(name, type, pDereference);
       } else {
-        return new LocalVariableIdentifier(name, type, function, dereference);
+        return new LocalVariableIdentifier(name, type, function, pDereference);
       }
     } else if (decl instanceof CParameterDeclaration) {
-      return new LocalVariableIdentifier(name, type, function, dereference);
+      return new LocalVariableIdentifier(name, type, function, pDereference);
     } else if (decl instanceof CEnumerator) {
-      return new ConstantIdentifier(name, dereference);
+      return new ConstantIdentifier(name, pDereference);
     } else {
       // Composite type
       return null;

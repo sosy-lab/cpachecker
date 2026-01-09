@@ -200,7 +200,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       Sideassignments pSideAssignmentStack,
       CheckBindingVisitor pCheckBinding,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -213,7 +214,8 @@ class CFAFunctionBuilder extends ASTVisitor {
             pParseContext,
             pMachine,
             staticVariablePrefix,
-            pSideAssignmentStack);
+            pSideAssignmentStack,
+            pUnhandledAtomicOccurrences);
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
@@ -263,7 +265,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
-      for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
+      for (CFAEdge edge : node.getEnteringEdges().toList()) {
         if (!cfaNodes.contains(edge.getPredecessor())) {
           CFACreationUtils.removeEdgeFromNodes(edge);
         }
@@ -952,7 +954,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if (isReachableNode(prevNode)) {
 
-        for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
+        for (CFAEdge prevEdge : prevNode.getAllEnteringEdges().toList()) {
           if ((prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty()) {
 
             // the only entering edge is a BlankEdge, so we delete this edge and prevNode

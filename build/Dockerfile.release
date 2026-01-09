@@ -9,15 +9,15 @@
 # This is a container image for running the latest release of CPAchecker.
 # It is built weekly using GitLab CI and pushed to
 # registry.gitlab.com/sosy-lab/software/cpachecker and sosylab/cpachecker
-# (as tags :latest and :4.1).
+# (as tags :latest and :4.2.2).
 # The version number of latest release of CPAchecker needs to be updated here
 # and in .gitlab-ci.yml
 #
 # Commands for building the image manually:
-# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:4.1 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest -t sosylab/cpachecker:4.1 -t sosylab/cpachecker:latest - < build/Dockerfile.release
-# podman push registry.gitlab.com/sosy-lab/software/cpachecker:4.1
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:4.2.2 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest -t sosylab/cpachecker:4.2.2 -t sosylab/cpachecker:latest - < build/Dockerfile.release
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker:4.2.2
 # podman push registry.gitlab.com/sosy-lab/software/cpachecker:latest
-# podman push sosylab/cpachecker:4.1
+# podman push sosylab/cpachecker:4.2.2
 # podman push sosylab/cpachecker:latest
 
 FROM ubuntu:22.04
@@ -25,7 +25,7 @@ FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip
 
-ADD https://cpachecker.sosy-lab.org/CPAchecker-4.1-unix.zip /
+ADD https://cpachecker.sosy-lab.org/CPAchecker-4.2.2-unix.zip /
 RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 
 FROM ubuntu:22.04

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 
 /** Class for converting a formula to a C expression. */
@@ -21,7 +22,8 @@ public class FormulaToCExpressionConverter {
   }
 
   /** Convert the input formula to a C expression. */
-  public String formulaToCExpression(BooleanFormula input) throws InterruptedException {
+  public String formulaToCExpression(BooleanFormula input)
+      throws InterruptedException, SolverException {
     BooleanFormula nnfied = fmgr.applyTactic(input, Tactic.NNF);
     BooleanFormula simplified = fmgr.simplify(nnfied);
     FormulaToCExpressionVisitor visitor = new FormulaToCExpressionVisitor(fmgr);

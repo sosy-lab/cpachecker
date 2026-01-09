@@ -29,6 +29,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
+ * distributed analysis.
+ *
+ * <p>DistributedConfigurableProgramAnalysis enables standard CPAs to participate in DSS by
+ * providing operators to serialize abstract states into messages that can be transmitted between
+ * workers, and to deserialize received messages back into abstract states to start a new analysis
+ * with this information as initial state(s).
+ */
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
   record StateAndPrecision(AbstractState state, Precision precision) {}

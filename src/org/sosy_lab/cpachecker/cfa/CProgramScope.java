@@ -86,7 +86,8 @@ public class CProgramScope implements Scope {
   public static final String ARTIFICIAL_RETVAL_NAME = "__artificial_result__";
 
   private static Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
-    return CFAUtils.leavingEdges(pNode)
+    return pNode
+        .getLeavingEdges()
         .transformAndConcat(
             pEdge -> {
               if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
@@ -620,7 +621,7 @@ public class CProgramScope implements Scope {
       Collection<CFANode> pNodes) {
     FluentIterable<CAstNode> varUses =
         FluentIterable.from(pNodes)
-            .transformAndConcat(CFAUtils::leavingEdges)
+            .transformAndConcat(CFANode::getLeavingEdges)
             .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
             .filter(CAstNode.class)
             .filter(

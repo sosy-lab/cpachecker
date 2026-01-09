@@ -65,6 +65,7 @@ class LlvmTypeConverter {
 
   @Nullable CType getCType(
       final TypeRef pLlvmType, final boolean isUnsigned, final boolean isConst) {
+    final boolean isAtomic = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
     return switch (typeKind) {
@@ -90,7 +91,7 @@ class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
         yield new CArrayType(
-            CTypeQualifiers.create(isConst, isVolatile),
+            CTypeQualifiers.create(isAtomic, isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             arrayLength);
       }
@@ -99,7 +100,7 @@ class LlvmTypeConverter {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
         yield new CPointerType(
-            CTypeQualifiers.create(isConst, isVolatile),
+            CTypeQualifiers.create(isAtomic, isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst));
       }
       case Vector -> {
@@ -110,7 +111,7 @@ class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
         yield new CArrayType(
-            CTypeQualifiers.create(isConst, isVolatile),
+            CTypeQualifiers.create(isAtomic, isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             vectorLength);
       }
@@ -122,6 +123,7 @@ class LlvmTypeConverter {
   }
 
   private CType createStructType(final TypeRef pStructType, boolean isConst) {
+    final boolean isAtomic = false;
     final boolean isVolatile = false;
 
     if (pStructType.isOpaqueStruct()) {
@@ -142,7 +144,7 @@ class LlvmTypeConverter {
 
     CCompositeType cStructType =
         new CCompositeType(
-            CTypeQualifiers.create(isConst, isVolatile),
+            CTypeQualifiers.create(isAtomic, isConst, isVolatile),
             ComplexTypeKind.STRUCT,
             structName,
             origName);

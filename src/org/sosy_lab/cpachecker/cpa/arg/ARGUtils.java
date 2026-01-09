@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -527,7 +526,7 @@ public class ARGUtils {
           checkArgument(
               !Iterables.any(
                   locs,
-                  loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))),
+                  loc -> !loc.getLeavingEdges().allMatch(Predicates.instanceOf(AssumeEdge.class))),
               "ARG branches where there is no AssumeEdge!");
 
           for (ARGState currentChild : childrenInArg) {
@@ -1088,7 +1087,7 @@ public class ARGUtils {
         handleUseFirstNode(sb, curNode, false);
       }
 
-      for (CFAEdge edge : leavingEdges(curNode)) {
+      for (CFAEdge edge : curNode.getLeavingEdges()) {
         CFANode edgeSuccessor = edge.getSuccessor();
 
         // skip function calls

@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -128,7 +129,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   private MemoryRegionManager regionMgr;
 
   public CToFormulaConverterWithPointerAliasing(
-      final FormulaEncodingWithPointerAliasingOptions pOptions,
+      final CFormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView formulaManagerView,
       final MachineModel pMachineModel,
       final Optional<VariableClassification> pVariableClassification,
@@ -250,12 +251,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public BooleanFormula makeSsaUpdateTerm(
       final String symbolName,
-      final CType symbolType,
+      final Type pSymbolType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
+    CType symbolType = (CType) pSymbolType;
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if (!options.useMemoryRegions()) {
@@ -278,7 +280,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int pOldIndex,
       final int pNewIndex) {
 
-    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(pReturnType);
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromType(pReturnType);
     final ArrayFormula<?, ?> newArray =
         afmgr.makeArray(pFunctionName, pNewIndex, voidPointerFormulaType, returnFormulaType);
     final ArrayFormula<?, ?> oldArray =
@@ -294,7 +296,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSet pts)
       throws InterruptedException {
 
-    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromType(returnType);
 
     if (options.useQuantifiersOnArrays()) {
       Formula counter =
@@ -327,7 +329,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a given variable has an SSA index or not.
    */
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
     return ssa.getIndex(name) > 0;
   }
 
@@ -366,8 +368,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       CType type, final Formula address, final SSAMapBuilder ssa, final MemoryRegion region) {
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
-    final int index = getIndex(ufName, type, ssa);
-    final FormulaType<?> returnType = getFormulaTypeFromCType(type);
+    final int index = getExistingOrNewIndex(ufName, type, ssa);
+    final FormulaType<?> returnType = getFormulaTypeFromType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
@@ -532,7 +534,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
         constraints.addConstraint(
-            fmgr.makeEqual(
+            fmgr.assignment(
                 makeSafeDereference(baseType, address, ssa, newRegion),
                 makeVariable(baseName, baseType, ssa)));
       }
@@ -1257,7 +1259,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   @SuppressWarnings("hiding") // same instance with narrower type
-  final FormulaEncodingWithPointerAliasingOptions options;
+  final CFormulaEncodingWithPointerAliasingOptions options;
 
   private final Optional<VariableClassification> variableClassification;
 
@@ -1342,7 +1344,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final Formula address;
 
     if (forcePointerDereference) {
-      address = fmgr.makeVariable(getFormulaTypeFromCType(CTypeUtils.getBaseType(pType)), pVarName);
+      address = fmgr.makeVariable(getFormulaTypeFromType(CTypeUtils.getBaseType(pType)), pVarName);
 
     } else if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
@@ -1356,7 +1358,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkIsSimplified(pType);
     final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
     final String ufName = regionMgr.getPointerAccessName(region);
-    final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
+    final FormulaType<?> returnType = getFormulaTypeFromType(pType);
     return ptsMgr.makePointerDereference(ufName, returnType, address);
   }
 
@@ -1413,14 +1415,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+  public int getExistingOrNewIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
       // Types of pointer-target variables in SSAMap need special treatment
       // (signed and unsigned types need to be treated as equal).
       // SSAMap requires canonical types, which will add a signed modifier, but that is irrelevant.
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
     }
-    return super.getIndex(pName, pType, pSsa);
+    return super.getExistingOrNewIndex(pName, pType, pSsa);
   }
 
   /** {@inheritDoc} */

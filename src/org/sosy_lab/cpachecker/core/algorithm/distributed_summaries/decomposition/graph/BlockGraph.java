@@ -68,7 +68,7 @@ public class BlockGraph {
           CFAUtils.existsPath(
               blockNode.getInitialLocation(),
               blockNode.getFinalLocation(),
-              node -> CFAUtils.allLeavingEdges(node).toSet(),
+              node -> node.getAllLeavingEdges().toSet(),
               pShutdownNotifier),
           "pNodesInBlock (%s) "
               + "must list all nodes but misses either the root node (%s) "
@@ -100,7 +100,7 @@ public class BlockGraph {
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(curr)) {
+      for (CFAEdge leavingEdge : curr.getAllLeavingEdges()) {
         if (pEdgesInBlock.contains(leavingEdge)) {
           if (covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());

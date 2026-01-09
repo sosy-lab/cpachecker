@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAException> {
@@ -134,7 +133,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       // TODO Why filter for functionCallEdge?
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
-      for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
+      for (CFAEdge e : node.getLeavingEdges().filter(CFunctionCallEdge.class)) {
         for (Block block : Iterables.transform(stack, AnalysisLevel::block)) {
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;

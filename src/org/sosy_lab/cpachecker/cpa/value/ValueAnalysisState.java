@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -298,8 +299,8 @@ public final class ValueAnalysisState
    * This method returns the value for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public Value getValueFor(MemoryLocation memLoc) {
     return checkNotNull(getValueAndTypeFor(memLoc).getValue());
@@ -309,9 +310,9 @@ public final class ValueAnalysisState
    * This method returns the type for the given memory location.
    *
    * @param memLoc the memory location for which to get the type
+   * @return the type associated with the given memory location
    * @throws NullPointerException - if no type is present in this state for the given memory
    *     location
-   * @return the type associated with the given memory location
    */
   public @Nullable Type getTypeForMemoryLocation(MemoryLocation memLoc) {
     return getValueAndTypeFor(memLoc).getType();
@@ -321,8 +322,8 @@ public final class ValueAnalysisState
    * This method returns the value and type for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value and type associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public ValueAndType getValueAndTypeFor(MemoryLocation memLoc) {
     return checkNotNull(constantsMap.get(memLoc));
@@ -531,13 +532,13 @@ public final class ValueAnalysisState
       if (val == null) {
         return false;
       }
-      Long value = val.getValue().asLong(CNumericTypes.INT);
+      OptionalLong value = val.getValue().asLong(CNumericTypes.INT);
 
-      if (value == null) {
+      if (value.isEmpty()) {
         return false;
       } else {
         try {
-          return value == Long.parseLong(parts.get(1));
+          return value.orElseThrow() == Long.parseLong(parts.get(1));
         } catch (NumberFormatException e) {
           // The command might contains something like "main::p==cmd" where the user wants to
           // compare the variable p to the variable cmd (nearest in scope)

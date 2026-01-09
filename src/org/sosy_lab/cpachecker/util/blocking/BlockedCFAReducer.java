@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
 @Options(prefix = "blockreducer")
@@ -291,7 +290,7 @@ public class BlockedCFAReducer implements BlockComputer {
       ReducedNode uSn = openEndpoints.removeFirst();
 
       // Look at all leaving edges.
-      for (CFAEdge e : CFAUtils.leavingEdges(uSn.getWrapped())) {
+      for (CFAEdge e : uSn.getWrapped().getLeavingEdges()) {
         if (!traversed.add(e)) {
           continue;
         }

@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTPreprocessorMacroExpansion;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
@@ -87,6 +89,12 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = new HashSet<>();
+
+  // Here we keep track of all occurrences of _Atomic that we found but did not handle yet.
+  // The set is filled by this class and then passed to ASTConverter, which removes handled cases.
+  // The reason for this is that we want to detect cases like "int * _Atomic a;" where we do not see
+  // the _Atomic in the AST nodes when converting them.
+  private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
@@ -158,9 +166,19 @@ class CFABuilder extends ASTVisitor {
             parseContext,
             machine,
             staticVariablePrefix,
-            sideAssignmentStack);
+            sideAssignmentStack,
+            unhandledAtomicOccurrences);
     functionDeclarations.add(
         new FunctionsOfTranslationUnit(new ArrayList<>(), staticVariablePrefix, fileScope));
+
+    // Fill unhandledAtomicOccurrences. EclipseCdtWrapper makes sure that all "_Atomic" are replaced
+    // by "__attribute__((__CPAchecker_Atomic__))", via a macro. So we can find all places where
+    // this macro was applied.
+    for (IASTPreprocessorMacroExpansion exp : ast.getMacroExpansions()) {
+      if (exp.getMacroReference().toString().equals("_Atomic")) {
+        unhandledAtomicOccurrences.add(astCreator.getLocation(exp));
+      }
+    }
 
     ast.accept(this);
 
@@ -381,6 +399,13 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
+    if (!unhandledAtomicOccurrences.isEmpty()) {
+      FileLocation firstUnhandledAtomic = Collections.min(unhandledAtomicOccurrences);
+      throw new CParserException(
+          "Found %d cases of _Atomic in unsupported locations, first one is in %s."
+              .formatted(unhandledAtomicOccurrences.size(), firstUnhandledAtomic));
+    }
+
     ParseResult result;
 
     if (!acslCommentPositions.isEmpty()) {
@@ -426,7 +451,8 @@ class CFABuilder extends ASTVisitor {
             sideAssignmentStack,
             checkBinding,
             cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            cfaNodeToAstParametersInScope,
+            unhandledAtomicOccurrences);
 
     declaration.accept(functionBuilder);
 
