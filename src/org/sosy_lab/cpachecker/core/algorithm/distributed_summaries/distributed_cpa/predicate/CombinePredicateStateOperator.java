@@ -37,7 +37,9 @@ public class CombinePredicateStateOperator implements CombineOperator {
 
   /**
    * Combine multiple PredicateAbstractStates into one by taking the disjunction of their
-   * abstraction formulas.
+   * abstraction formulas. The resulting state is a non-abstraction state with a path formula where
+   * all SSA indices are set to 1 and the PointerTargetSet is merged accordingly (delegated to
+   * {@link PathFormulaManager#mergePts(PointerTargetSet, PointerTargetSet, SSAMapBuilder)})
    *
    * <p>This method assumes that all provided states are abstraction states.
    *
