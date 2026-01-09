@@ -1315,6 +1315,9 @@ public class ARGUtils {
         continue;
       }
       for (ARGState parent : last.getParents()) {
+        if (current.states().contains(parent)) {
+          throw new AssertionError("Recursive ARG paths are not supported");
+        }
         waitlist.add(current.copyWith(parent, parent.getEdgesToChild(last).reversed()));
       }
     }
