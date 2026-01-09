@@ -106,7 +106,7 @@ public class ARGUtils {
       ImmutableList.Builder<CFAEdge> path =
           ImmutableList.<CFAEdge>builder().addAll(edges).add(last);
       while (!last.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
-        Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
+        Collection<CFAEdge> successors = last.getPredecessor().getEnteringEdges().toList();
         last = Objects.requireNonNull(Iterables.getOnlyElement(successors));
         path.add(last);
       }
