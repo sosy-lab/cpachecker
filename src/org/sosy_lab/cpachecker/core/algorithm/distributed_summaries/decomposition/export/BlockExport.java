@@ -61,12 +61,16 @@ public class BlockExport {
         if (earliestFileLocation == null) {
           earliestFileLocation = leavingEdge.getFileLocation();
         } else {
-          if (leavingEdge.getFileLocation().getStartingLineInOrigin()
-                  < earliestFileLocation.getStartingLineInOrigin()
-              || (leavingEdge.getFileLocation().getStartingLineInOrigin()
-                      == earliestFileLocation.getStartingLineInOrigin()
-                  && leavingEdge.getFileLocation().getStartColumnInLine()
-                      < earliestFileLocation.getStartColumnInLine())) {
+          boolean isEarlier =
+              leavingEdge.getFileLocation().getStartingLineInOrigin()
+                  < earliestFileLocation.getStartingLineInOrigin();
+          boolean startsOnSameLine =
+              leavingEdge.getFileLocation().getStartingLineInOrigin()
+                  == earliestFileLocation.getStartingLineInOrigin();
+          boolean isEarlierOnLine =
+              leavingEdge.getFileLocation().getStartColumnInLine()
+                  < earliestFileLocation.getStartColumnInLine();
+          if (isEarlier || (startsOnSameLine && isEarlierOnLine)) {
             earliestFileLocation = leavingEdge.getFileLocation();
           }
         }

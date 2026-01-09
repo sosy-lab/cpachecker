@@ -40,8 +40,9 @@ public class DssPostConditionMessage extends DssMessage {
   }
 
   /**
-   * Indicates whether the post-condition represents an actual reachable state
-   * or if the block analysis of the predecessor was unable to reach its block end.
+   * Indicates whether the post-condition represents an actual reachable state or if the block
+   * analysis of the predecessor was unable to reach its block end.
+   *
    * @return true if the post-condition is reachable, false otherwise.
    */
   public boolean isReachable() {
