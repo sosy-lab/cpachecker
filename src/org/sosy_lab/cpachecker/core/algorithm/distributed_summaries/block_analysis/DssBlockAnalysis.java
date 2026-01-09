@@ -323,9 +323,9 @@ public class DssBlockAnalysis {
       preconditions.removeAll(pReceived.getSenderId());
       return DssMessageProcessing.stop();
     }
-    List<StateAndPrecision> deserializedStates = deserialize(pReceived);
+    List<StateAndPrecision> newlyReceivedStates = deserialize(pReceived);
     DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (StateAndPrecision stateAndPrecision : deserializedStates) {
+    for (StateAndPrecision stateAndPrecision : newlyReceivedStates) {
       processing =
           processing.merge(
               dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
@@ -338,7 +338,7 @@ public class DssBlockAnalysis {
       // if all new states are covered by previous ones, we found a fixpoint
       Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
       int covered = 0;
-      for (StateAndPrecision deserialized : deserializedStates) {
+      for (StateAndPrecision deserialized : newlyReceivedStates) {
         for (StateAndPrecision previous : previousStates) {
           if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
             // if we have top, we discard the previous state as
@@ -358,7 +358,7 @@ public class DssBlockAnalysis {
           }
         }
       }
-      if (covered == deserializedStates.size()) {
+      if (covered == newlyReceivedStates.size()) {
         // if every single new state is covered by a previous one,
         // we will not gain new information.
         return DssMessageProcessing.stop();
@@ -368,7 +368,7 @@ public class DssBlockAnalysis {
       discard.addAll(preconditions.get(pReceived.getSenderId()));
     }
     ImmutableSet<StateAndPrecision> discarded = discard.build();
-    preconditions.putAll(pReceived.getSenderId(), deserializedStates);
+    preconditions.putAll(pReceived.getSenderId(), newlyReceivedStates);
     discarded.forEach(sp -> preconditions.remove(pReceived.getSenderId(), sp));
     return processing;
   }
