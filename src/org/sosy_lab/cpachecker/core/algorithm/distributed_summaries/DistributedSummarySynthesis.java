@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
@@ -78,8 +78,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  * There are two execution strategies implemented in DSS:
  *
  * <ul>
- *   <li>{@link NaiveDssExecutor}: All workers are started simultaneously, and the algorithm runs
- *       until a final result is reached.
+ *   <li>{@link MultithreadingDssExecutor}: All workers are started simultaneously, and the
+ *       algorithm runs until a final result is reached.
  *   <li>{@link SingleWorkerDssExecutor}: Only one worker is active.
  * </ul>
  */
@@ -124,7 +124,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new NaiveDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification);
       case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
     };
   }

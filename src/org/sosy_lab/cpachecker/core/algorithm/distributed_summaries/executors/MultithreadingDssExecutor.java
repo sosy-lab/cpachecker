@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class NaiveDssExecutor implements DssExecutor {
+public class MultithreadingDssExecutor implements DssExecutor {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";
 
@@ -42,7 +42,7 @@ public class NaiveDssExecutor implements DssExecutor {
   private final Specification specification;
   private final List<Statistics> stats;
 
-  public NaiveDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public MultithreadingDssExecutor(Configuration pConfiguration, Specification pSpecification)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
