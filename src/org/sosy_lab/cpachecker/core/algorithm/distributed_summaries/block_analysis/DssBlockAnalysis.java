@@ -276,21 +276,26 @@ public class DssBlockAnalysis {
       for (StateAndPrecision deserialized : deserializedStates) {
         for (StateAndPrecision previous : previousStates) {
           if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+            // if we have top, we discard the previous state as
+            // we are guaranteed to have a more precise one
             discard.add(previous);
-            continue;
-          }
-          if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
+          } else if (dcpa.getCoverageOperator()
+              .isSubsumed(previous.state(), deserialized.state())) {
+            // if the new state covers the previous one, we keep the more precise one and
+            // claim that the new one is covered. This case is triggered if previous == new.
             covered++;
             discard.add(deserialized);
             break;
-          }
-          if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
+          } else if (dcpa.getCoverageOperator()
+              .isSubsumed(deserialized.state(), previous.state())) {
+            // we got a more precise state, discard the previous one
             discard.add(previous);
           }
         }
       }
       if (covered == deserializedStates.size()) {
-        // we already have a precondition implying the new one
+        // if every single new state is covered by a previous one,
+        // we will not gain new information.
         return DssMessageProcessing.stop();
       }
     }
