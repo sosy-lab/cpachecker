@@ -91,13 +91,15 @@ public abstract class DssMessage {
 
   /**
    * Get the number of contained states in this message, if any.
+   *
    * @return An OptionalInt containing the number of states, or empty if not present.
    */
   public final OptionalInt getNumberOfContainedStates() {
     if (content.containsKey(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)) {
-      return OptionalInt.of(Integer.parseInt(
-          Objects.requireNonNull(
-              content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY))));
+      return OptionalInt.of(
+          Integer.parseInt(
+              Objects.requireNonNull(
+                  content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY))));
     }
     return OptionalInt.empty();
   }
@@ -132,7 +134,7 @@ public abstract class DssMessage {
   public final AlgorithmStatus getAlgorithmStatus() {
     checkArgument(
         type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + "%s",
+        "Cannot get content for type: %s",
         type);
     ContentReader reader =
         ContentReader.read(content).pushLevel(DssMessageFactory.DSS_MESSAGE_STATUS_KEY);
@@ -164,6 +166,13 @@ public abstract class DssMessage {
     return exceptionMessage;
   }
 
+  /**
+   * Convert the message to a JSON representation with an identifier.
+   *
+   * @param pIdentifier Identifier to include in the header. Used to show only the most recent
+   *     messages in the visualizer.
+   * @return JSON representation of the message.
+   */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
       int pIdentifier) {
