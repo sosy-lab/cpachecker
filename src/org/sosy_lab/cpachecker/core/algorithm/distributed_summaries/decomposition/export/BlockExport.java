@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.time.Instant;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -46,10 +47,8 @@ public class BlockExport {
         transformedImmutableListCopy(pBlockGraph.getNodes(), this::export));
   }
 
-  public BlockMetadata export(BlockNode pNode) {
+  private BlockSegment createBlockSegmentFromInitialLocation(BlockNode pNode) {
     CFANode initialLocation = pNode.getInitialLocation();
-    ImmutableList.Builder<BlockSegment> segments =
-        ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
     FluentIterable<CFAEdge> leavingEdges = initialLocation.getAllLeavingEdges();
     int numLeavingEdges = leavingEdges.size();
     int containedLeavingEdges = 0;
@@ -84,31 +83,17 @@ public class BlockExport {
     if (containedLeavingEdges == numLeavingEdges) {
       follow = Optional.empty();
     }
-    segments.add(
-        new BlockSegment(
-            ImmutableList.of(
-                new BlockSummaryWaypoint(
-                    true,
-                    export(earliestFileLocation),
-                    follow.map(b -> Boolean.toString(b)),
-                    ImmutableList.sortedCopyOf(pNode.getPredecessorIds())))));
-    CFANode finalLocation = pNode.getFinalLocation();
-    for (CFAEdge edge : pNode.getEdges()) {
-      String type;
-      String action;
-      if (edge instanceof AssumeEdge) {
-        type = "branching";
-        action = "follow-true";
-      } else if (edge.getSuccessor().equals(finalLocation)) {
-        type = "target";
-        action = "follow";
-      } else {
-        type = "follow";
-        action = "follow";
-      }
-      segments.add(export(edge, type, action));
-    }
+    return new BlockSegment(
+        ImmutableList.of(
+            new BlockSummaryWaypoint(
+                true,
+                export(earliestFileLocation),
+                follow.map(b -> Boolean.toString(b)),
+                ImmutableList.sortedCopyOf(pNode.getPredecessorIds()))));
+  }
 
+  private BlockSegment createBlockSegmentFromFinalLocation(BlockNode pNode) {
+    CFANode finalLocation = pNode.getFinalLocation();
     FileLocation latestFileLocation = null;
     for (CFAEdge enteringEdge : finalLocation.getAllEnteringEdges()) {
       if (pNode.getEdges().contains(enteringEdge)) {
@@ -128,20 +113,48 @@ public class BlockExport {
     }
     Preconditions.checkNotNull(
         latestFileLocation, "No entering edges found for block node: %s", pNode);
+    return new BlockSegment(
+        ImmutableList.of(
+            new BlockSummaryWaypoint(
+                false,
+                export(latestFileLocation),
+                Optional.empty(),
+                ImmutableList.sortedCopyOf(pNode.getSuccessorIds()))));
+  }
 
-    segments.add(
-        new BlockSegment(
-            ImmutableList.of(
-                new BlockSummaryWaypoint(
-                    false,
-                    export(latestFileLocation),
-                    Optional.empty(),
-                    ImmutableList.sortedCopyOf(pNode.getSuccessorIds())))));
+  public BlockMetadata export(BlockNode pNode) {
+    ImmutableList.Builder<BlockSegment> segments =
+        ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
+
+    BlockSegment firstSegment = createBlockSegmentFromInitialLocation(pNode);
+    BlockLocation initialLocation =
+        Iterables.getOnlyElement(firstSegment.getWaypoints()).getLocation();
+    segments.add(firstSegment);
+
+    // export all segments for remaining edges
+    CFANode finalLocation = pNode.getFinalLocation();
+    for (CFAEdge edge : pNode.getEdges()) {
+      String type;
+      String action;
+      if (edge instanceof AssumeEdge) {
+        type = "branching";
+        action = "follow-true";
+      } else if (edge.getSuccessor().equals(finalLocation)) {
+        type = "target";
+        action = "follow";
+      } else {
+        type = "follow";
+        action = "follow";
+      }
+      segments.add(export(edge, type, action));
+    }
+
+    segments.add(createBlockSegmentFromFinalLocation(pNode));
     return new BlockMetadata(
         pNode.getId(),
         ImmutableList.sortedCopyOf(pNode.getPredecessorIds()),
         ImmutableList.sortedCopyOf(pNode.getSuccessorIds()),
-        new BlockDescription(export(earliestFileLocation), segments.build()));
+        new BlockDescription(initialLocation, segments.build()));
   }
 
   public BlockSegment export(CFAEdge pEdge, String pType, String pAction) {
