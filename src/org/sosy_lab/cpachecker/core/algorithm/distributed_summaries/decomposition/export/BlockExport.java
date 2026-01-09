@@ -30,24 +30,24 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockExport {
 
-  public static String writeBlockDefinition(BlockGraph blockGraph) throws JsonProcessingException {
+  public String writeBlockDefinition(BlockGraph blockGraph) throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     BlockDefinition def = export(blockGraph);
     return mapper.writeValueAsString(def);
   }
 
-  public static BlockDefinition export(BlockGraph pBlockGraph) {
+  public BlockDefinition export(BlockGraph pBlockGraph) {
     return new BlockDefinition(
         new DssMetadata(
             "1.0",
             Instant.now().toString(),
             new Producer("CPAchecker", "2.2", "DSS"),
             new Task(ImmutableList.of(), ImmutableMap.of(), "unreach", "C")),
-        transformedImmutableListCopy(pBlockGraph.getNodes(), BlockExport::export));
+        transformedImmutableListCopy(pBlockGraph.getNodes(), this::export));
   }
 
-  public static BlockMetadata export(BlockNode pNode) {
+  public BlockMetadata export(BlockNode pNode) {
     CFANode initialLocation = pNode.getInitialLocation();
     ImmutableList.Builder<BlockSegment> segments =
         ImmutableList.builderWithExpectedSize(pNode.getEdges().size() + 2);
@@ -141,12 +141,12 @@ public class BlockExport {
         new BlockDescription(export(earliestFileLocation), segments.build()));
   }
 
-  public static BlockSegment export(CFAEdge pEdge, String pType, String pAction) {
+  public BlockSegment export(CFAEdge pEdge, String pType, String pAction) {
     return new BlockSegment(
         ImmutableList.of(new BlockWaypoint(pType, pAction, export(pEdge.getFileLocation()))));
   }
 
-  public static BlockLocation export(FileLocation pFileLocation) {
+  public BlockLocation export(FileLocation pFileLocation) {
     return new BlockLocation(
         pFileLocation.getFileName().toString(),
         pFileLocation.getStartingLineInOrigin(),

@@ -39,6 +39,11 @@ public class DssPostConditionMessage extends DssMessage {
             || pContent.get(DSS_MESSAGE_REACHABLE_KEY).equalsIgnoreCase("false"));
   }
 
+  /**
+   * Indicates whether the post-condition represents an actual reachable state
+   * or if the block analysis of the predecessor was unable to reach its block end.
+   * @return true if the post-condition is reachable, false otherwise.
+   */
   public boolean isReachable() {
     return reachable;
   }
