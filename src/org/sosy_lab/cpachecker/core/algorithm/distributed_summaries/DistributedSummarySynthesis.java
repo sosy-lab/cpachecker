@@ -145,12 +145,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
     dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
     if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
-      for (BlockNode node : blockGraph.getRoots()) {
-        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-          throw new AssertionError(
-              "Direct successors of the root node are required to have an abstraction"
-                  + " location.");
-        }
+      if (blockGraph
+          .getRoot()
+          .getViolationConditionLocation()
+          .equals(blockGraph.getRoot().getFinalLocation())) {
+        throw new AssertionError(
+            "Direct successors of the root node are required to have an abstraction"
+                + " location.");
       }
     }
     if (!abstractionDeadEnds.isEmpty()) {

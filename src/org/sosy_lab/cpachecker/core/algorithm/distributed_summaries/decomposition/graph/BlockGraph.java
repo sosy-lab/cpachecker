@@ -43,19 +43,18 @@ public class BlockGraph {
 
   public static final String GHOST_EDGE_DESCRIPTION = "<<ghost-edge>>";
 
-  public static final String ROOT_ID = "root";
-  private final ImmutableSet<BlockNode> nodes;
-  private final ImmutableSet<BlockNode> roots;
+  private final ImmutableSet<@NonNull BlockNode> nodes;
+  private final BlockNode root;
 
-  public BlockGraph(ImmutableSet<BlockNode> pNodes) {
+  public BlockGraph(ImmutableSet<@NonNull BlockNode> pNodes) {
     nodes = pNodes;
-    roots = FluentIterable.from(pNodes).filter(n -> n.getPredecessorIds().isEmpty()).toSet();
-    Preconditions.checkState(
-        !roots.isEmpty(), "At least one root node is required in a block graph.");
+    root =
+        Iterables.getOnlyElement(
+            FluentIterable.from(pNodes).filter(n -> n.getPredecessorIds().isEmpty()));
   }
 
-  public Collection<BlockNode> getRoots() {
-    return roots;
+  public BlockNode getRoot() {
+    return root;
   }
 
   public ImmutableSet<@NonNull BlockNode> getNodes() {
@@ -117,9 +116,11 @@ public class BlockGraph {
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
-    Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
-    Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
+      Collection<? extends @NonNull BlockNodeWithoutGraphInformation> pNodes) {
+    Multimap<CFANode, @NonNull BlockNodeWithoutGraphInformation> startNodes =
+        ArrayListMultimap.create();
+    Multimap<CFANode, @NonNull BlockNodeWithoutGraphInformation> endNodes =
+        ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
       startNodes.put(blockNode.getInitialLocation(), blockNode);
       endNodes.put(blockNode.getFinalLocation(), blockNode);
@@ -128,8 +129,8 @@ public class BlockGraph {
         Iterables.getOnlyElement(
             FluentIterable.from(pNodes)
                 .filter(n -> endNodes.get(n.getInitialLocation()).isEmpty()));
-    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
-        findLoopPredecessors(root, pNodes);
+    Multimap<@NonNull BlockNodeWithoutGraphInformation, @NonNull BlockNodeWithoutGraphInformation>
+        loopPredecessors = findLoopPredecessors(root, pNodes);
 
     ImmutableSet<BlockNode> blockNodes =
         transformedImmutableSetCopy(
