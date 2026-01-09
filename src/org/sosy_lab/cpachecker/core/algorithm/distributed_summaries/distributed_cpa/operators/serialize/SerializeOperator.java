@@ -20,8 +20,8 @@ public interface SerializeOperator {
    *
    * @param pState this state will be serialized
    * @return The serialized state as map of strings. The deserialize operator must be able to
-   *    reconstruct the state from this map. It should only know about the keys defined in this
-   *    interface.
+   *     reconstruct the state from this map. It should only know about the keys defined in this
+   *     interface.
    */
   ImmutableMap<String, String> serialize(AbstractState pState);
 }
