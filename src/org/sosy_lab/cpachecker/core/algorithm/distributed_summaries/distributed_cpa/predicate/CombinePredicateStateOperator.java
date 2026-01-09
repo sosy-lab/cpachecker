@@ -35,6 +35,15 @@ public class CombinePredicateStateOperator implements CombineOperator {
     predicateCPA = pPredicateCPA;
   }
 
+  /**
+   * Combine multiple PredicateAbstractStates into one by taking the disjunction of their
+   * abstraction formulas.
+   *
+   * <p>This method assumes that all provided states are abstraction states.
+   *
+   * @param states the collection of states to combine
+   * @return the combined PredicateAbstractState
+   */
   @Override
   public AbstractState combine(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
@@ -50,6 +59,8 @@ public class CombinePredicateStateOperator implements CombineOperator {
         predicateAbstractStates
             .transform(s -> s.getAbstractionFormula().asInstantiatedFormula())
             .toSet();
+
+    // Merge SSAMaps
     SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
     for (PathFormula formula : predicateAbstractStates.transform(s -> s.getPathFormula())) {
       for (String variable : formula.getSsa().allVariables()) {
@@ -57,6 +68,7 @@ public class CombinePredicateStateOperator implements CombineOperator {
       }
     }
 
+    // Merge PointerTargetSets
     PathFormulaManager pathFormulaManager = predicateCPA.getPathFormulaManager();
     PointerTargetSet combined = null;
     for (PointerTargetSet pts :
