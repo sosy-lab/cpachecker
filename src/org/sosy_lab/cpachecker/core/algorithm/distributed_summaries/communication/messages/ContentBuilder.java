@@ -22,18 +22,13 @@ public class ContentBuilder {
 
   private final List<String> levels;
 
-  private ContentBuilder(int pExpectedSize) {
-    contentBuilder = ImmutableMap.builderWithExpectedSize(pExpectedSize);
+  private ContentBuilder() {
+    contentBuilder = ImmutableMap.builder();
     levels = new ArrayList<>();
   }
 
   public static ContentBuilder builder() {
-    // 4 is the default expected size (ImmutableCollection.Builder.DEFAULT_INITIAL_CAPACITY)
-    return new ContentBuilder(4);
-  }
-
-  public static ContentBuilder builderWithExpectedSize(int pExpectedSize) {
-    return new ContentBuilder(pExpectedSize);
+    return new ContentBuilder();
   }
 
   @CanIgnoreReturnValue
