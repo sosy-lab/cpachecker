@@ -270,7 +270,7 @@ public class DssBlockAnalysis {
     }
     ImmutableSet.Builder<StateAndPrecision> discard = ImmutableSet.builder();
     if (preconditions.containsKey(pReceived.getSenderId())) {
-      // whether a fixpoint was reached
+      // if all new states are covered by previous ones, we found a fixpoint
       Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
       int covered = 0;
       for (StateAndPrecision deserialized : deserializedStates) {
