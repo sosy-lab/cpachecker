@@ -175,9 +175,8 @@ public class DssBlockAnalysis {
 
   /**
    * Serialize a list of states and precisions into a map of strings. Every entry in the list will
-   * be serialized under its own key (prefixed by state#num. The {@link
-   * DistributedConfigurableProgramAnalysis#deserialize(DssMessage)} method restores the list of
-   * states and precisions.
+   * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
+   * method restores the list of states and precisions.
    *
    * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
    * @return Map of strings representing the serialized states and precisions. Every state will be
