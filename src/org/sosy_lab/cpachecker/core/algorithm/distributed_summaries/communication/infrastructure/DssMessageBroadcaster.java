@@ -40,10 +40,8 @@ public class DssMessageBroadcaster {
 
   private void broadcast(DssMessage message, DssCommunicationEntity entity) {
     Collection<BlockingQueue<DssMessage>> queues = connectionsByEntity.get(entity);
-    synchronized (connectionsByEntity) {
-      for (BlockingQueue<DssMessage> queue : queues) {
-        queue.add(message);
-      }
+    for (BlockingQueue<DssMessage> queue : queues) {
+      queue.add(message);
     }
   }
 
