@@ -91,7 +91,7 @@ public class DssBlockAnalysis {
 
   private AlgorithmStatus status;
 
-  private final boolean forcefullyCollectAllArgPaths;
+  private final boolean forcefullyCollectAllViolationConditions;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -131,7 +131,7 @@ public class DssBlockAnalysis {
 
     preconditions = ArrayListMultimap.create();
     violationConditions = new LinkedHashMap<>();
-    forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
+    forcefullyCollectAllViolationConditions = pOptions.forcefullyCollectAllViolationConditions();
   }
 
   private static AnalysisComponents createBlockAlgorithm(
@@ -274,7 +274,7 @@ public class DssBlockAnalysis {
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     Iterable<ARGPath> paths =
-        forcefullyCollectAllArgPaths
+        forcefullyCollectAllViolationConditions
             ? collectAllArgPaths(violations)
             : FluentIterable.from(violations)
                 .transformAndConcat(p -> ARGUtils.getAllPaths(reachedSet, p));
