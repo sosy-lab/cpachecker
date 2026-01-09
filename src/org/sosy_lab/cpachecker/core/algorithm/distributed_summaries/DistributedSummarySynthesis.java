@@ -33,7 +33,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,47 +65,20 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <p>DSS spawns multiple workers through {@link DssWorkerBuilder}:
  *
- * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
- * analysis worker} is created. An additional {@link DssWorkerBuilder#addRootWorker(BlockNode,
- * DssAnalysisOptions) root worker}) is responsible for messages reaching the program entry point.
- * If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)}
+ * is created. If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
  * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
  * used to provide a visualization of the message exchange between analysis workers.
  *
  * <p>DSS also manually creates the {@link DssObserverWorker}, which monitors message exchange and
  * detects when the DSS algorithm reaches a final verdict.
  *
- * <p>When {@link #spawnWorkerForId} is specified, only one worker is created (i.e., for the
- * specified block ID). This is useful for single-block analysis.
- *
- * <h2>3. Execution and Coordination</h2>
- *
- * <p>After worker creation, DistributedSummarySynthesis coordinates the analysis execution:
- *
+ * <h2>3. Execution</h2>
+ * There are two execution strategies implemented in DSS:
  * <ul>
- *   <li>Initializes the {@link DssFixpointNotifier} for termination detection
- *   <li>Starts each analysis worker: If {@link #knownConditions} and/or {@link #newConditions} is
- *       set, workers are started with these conditions as input. Otherwise, {@link
- *       DssAnalysisWorker#runInitialAnalysis()} is called on all workers.
- *   <li>Delegates message monitoring to the {@link DssObserverWorker}, which blocks until it can
- *       determine a final verification verdict (SAFE, UNSAFE, or timeout)
- *   <li>Processes the final result by updating the {@link ReachedSet}:
- *       <ul>
- *         <li>For UNSAFE results: Adds a {@link DummyTargetState} to indicate property violation
- *         <li>For SAFE results: Clears the reached set to indicate successful verification
- *       </ul>
- * </ul>
- *
- * <h2>Special Modes</h2>
- *
- * <p>DistributedSummarySynthesis supports several operational modes:
- *
- * <ul>
- *   <li><strong>Block Graph Export Only:</strong> When {@link #generateBlockGraphOnly} is enabled,
- *       the analysis stops after decomposition and exports the block graph to JSON format
- *   <li><strong>Incremental Analysis:</strong> You can provide {@link #knownConditions} and {@link
- *       #newConditions} for analyzing blocks with pre-existing postconditions and violation
- *       conditions
+ *   <li>{@link NaiveDssExecutor}: All workers are started simultaneously, and the algorithm runs
+ *       until a final result is reached.
+ *   <li>{@link SingleWorkerDssExecutor}: Only one worker is active.
  * </ul>
  */
 @Options(prefix = "distributedSummaries")

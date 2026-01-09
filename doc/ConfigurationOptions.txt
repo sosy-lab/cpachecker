@@ -2481,6 +2481,7 @@ cpa.pointerA.stop = "SEP"
 # Whether to give up immediately if a very large array is encountered
 # (heuristic, often we would just waste time otherwise)
 cpa.predicate.abortOnLargeArrays = true
+cpa.predicate.abortOnLargeArrays = no default value
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
@@ -2553,6 +2554,7 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
+cpa.predicate.addRangeConstraintsForNondet = no default value
 
 # deprecated name for cpa.predicate.invariants.addToPrecision
 cpa.predicate.addToPrecision = false
@@ -2564,6 +2566,7 @@ cpa.predicate.allowImpreciseCounterexamples = false
 # although the predicate analysis does not support their semantics and this
 # can produce wrong results.
 cpa.predicate.allowedUnsupportedFunctions = {}
+cpa.predicate.allowedUnsupportedFunctions = no default value
 
 # deprecated name for counterexample.export.alwaysUseImpreciseCounterexamples
 cpa.predicate.alwaysUseImpreciseCounterexamples = false
@@ -2657,13 +2660,16 @@ cpa.predicate.checkBlockFeasibility = false
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
+cpa.predicate.defaultAllocationSize = no default value
 
 # The length for arrays we assume for variably-sized arrays.
 cpa.predicate.defaultArrayLength = 20
+cpa.predicate.defaultArrayLength = no default value
 
 # Use deferred allocation heuristic that tracks void * variables until the
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
+cpa.predicate.deferUntypedAllocations = no default value
 
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
@@ -2689,6 +2695,7 @@ cpa.predicate.enableBlockreducer = false
 # Enable handling of functions memset, memcopy, memmove. If disabled, using
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
+cpa.predicate.enableMemoryAssignmentFunctions = no default value
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
@@ -2720,12 +2727,14 @@ cpa.predicate.encodeIntegerAs = INTEGER
 # Replace possible overflows with an ITE-structure, which returns either the
 # normal value or an UF representing the overflow.
 cpa.predicate.encodeOverflowsWithUFs = false
+cpa.predicate.encodeOverflowsWithUFs = no default value
 
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
+cpa.predicate.externModelFunctionName = no default value
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
@@ -2735,10 +2744,12 @@ cpa.predicate.generationStrategy = []
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
+cpa.predicate.handleFieldAccess = no default value
 
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
+cpa.predicate.handleImplicitInitialization = no default value
 
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
@@ -2748,6 +2759,7 @@ cpa.predicate.handlePointerAliasing = true
 # of the char array with the contents of the string literal instead of just
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
+cpa.predicate.handleStringLiteralInitializers = no default value
 
 # Ignore Extract and Extend operations instead of encoding them with a UF
 # when Bitvector theory is replaced with Integer or Rational. This is unsound
@@ -2759,9 +2771,11 @@ cpa.predicate.ignoreExtractExtend = true
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
 # field offsets. Only relvant if ignoreIrrelevantVariables is enabled.
 cpa.predicate.ignoreIrrelevantFields = true
+cpa.predicate.ignoreIrrelevantFields = no default value
 
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
+cpa.predicate.ignoreIrrelevantVariables = no default value
 
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
@@ -2770,6 +2784,7 @@ cpa.predicate.ignoreStateAssumptions = false
 # there is unrecognized code. Instead, they will just be skipped (unsound).
 # Only relevant if enableMemoryAssignmentFunctions is set to true.
 cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
+cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = no default value
 
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
@@ -2850,30 +2865,37 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # arrays will be handled. With option useArraysForHeap=false, elements beyond
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
+cpa.predicate.maxArrayLength = no default value
 
 # When builtin functions like memcmp/strlen/etc. are called, unroll them up
 # to this bound.If the passed arguments are longer, the return value will be
 # overapproximated.
 cpa.predicate.maxPreciseStrFunctionSize = 100
+cpa.predicate.maxPreciseStrFunctionSize = no default value
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"}
+cpa.predicate.memoryAllocationFunctions = no default value
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
 cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {"__kmalloc", "kmalloc", "kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = no default value
 
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctionsWithZeroing = {"kzalloc", "calloc"}
+cpa.predicate.memoryAllocationFunctionsWithZeroing = no default value
 
 # Setting this to true makes memoryAllocationFunctions always return a valid
 # pointer.
 cpa.predicate.memoryAllocationsAlwaysSucceed = false
+cpa.predicate.memoryAllocationsAlwaysSucceed = no default value
 
 # Function that is used to free allocated memory.
 cpa.predicate.memoryFreeFunctionName = "free"
+cpa.predicate.memoryFreeFunctionName = no default value
 
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
@@ -2890,14 +2912,17 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # an 'external function', i.e., no source is given in the code for this
 # function.
 cpa.predicate.nondetFunctions = {"sscanf", "rand", "random", "rand_r", "srand", "time"}
+cpa.predicate.nondetFunctions = no default value
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
+cpa.predicate.nondetFunctionsRegexp = no default value
 
 # Do not ignore variables that could lead to an overflow (only makes sense if
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
+cpa.predicate.overflowVariablesAreRelevant = no default value
 
 # Which path-formula builder to use.Depending on this setting additional
 # terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
@@ -3124,6 +3149,7 @@ cpa.predicate.refinement.verifyInterpolants = false
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
+cpa.predicate.revealAllocationTypeFromLhs = no default value
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
@@ -3196,10 +3222,12 @@ cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
+cpa.predicate.successfulAllocFunctionName = no default value
 
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
+cpa.predicate.successfulZallocFunctionName = no default value
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -3213,6 +3241,7 @@ cpa.predicate.timeForInvariantGeneration = 10s
 
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
+cpa.predicate.trackFunctionPointers = no default value
 
 # deprecated name for cpa.predicate.invariants.useAllStrategies
 cpa.predicate.useAllStrategies = false
@@ -3221,6 +3250,7 @@ cpa.predicate.useAllStrategies = false
 # (ignored if useByteArrayForHeap=true). This is more precise but may lead to
 # interpolation failures.
 cpa.predicate.useArraysForHeap = true
+cpa.predicate.useArraysForHeap = no default value
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
@@ -3231,9 +3261,11 @@ cpa.predicate.useBitwiseAxioms = false
 # function. This is more close to c heap implementation but may be to
 # expensive.
 cpa.predicate.useByteArrayForHeap = false
+cpa.predicate.useByteArrayForHeap = no default value
 
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
+cpa.predicate.useConstraintOptimization = no default value
 
 # deprecated name for cpa.predicate.invariants.useGlobalInvariants
 cpa.predicate.useGlobalInvariants = true
@@ -3241,6 +3273,7 @@ cpa.predicate.useGlobalInvariants = true
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
+cpa.predicate.useHavocAbstraction = no default value
 
 # deprecated name for cpa.predicate.invariants.appendToPathFormula
 cpa.predicate.useInvariantsForAbstraction = false
@@ -3250,6 +3283,7 @@ cpa.predicate.useInvariantsForAbstraction = false
 # on type, but also on structure field names. If the field is not accessed by
 # an address then it is placed into a separate region.
 cpa.predicate.useMemoryRegions = false
+cpa.predicate.useMemoryRegions = no default value
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
@@ -3263,14 +3297,17 @@ cpa.predicate.useNonlinearArithmeticForIntAsBv = false
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
 cpa.predicate.useParameterVariables = false
+cpa.predicate.useParameterVariables = no default value
 
 # Insert tmp-parameters for global variables at function-entries. The global
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
+cpa.predicate.useParameterVariablesForGlobals = no default value
 
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
+cpa.predicate.useQuantifiersOnArrays = no default value
 
 # deprecated name for cpa.predicate.invariants.useStrongInvariantsOnly
 cpa.predicate.useStrongInvariantsOnly = true

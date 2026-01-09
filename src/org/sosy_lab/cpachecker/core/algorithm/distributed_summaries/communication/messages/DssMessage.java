@@ -40,6 +40,29 @@ public abstract class DssMessage {
     STATISTIC
   }
 
+  private static class DssMessageProxy {
+    private final ImmutableMap<String, String> header;
+    private final ImmutableMap<String, String> content;
+
+    @JsonCreator
+    DssMessageProxy(
+        @JsonProperty(DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
+        @JsonProperty(DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
+      Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
+      Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
+      header = ImmutableMap.copyOf(pHeader);
+      content = ImmutableMap.copyOf(pContent);
+    }
+
+    private ImmutableMap<String, String> getHeader() {
+      return header;
+    }
+
+    private ImmutableMap<String, String> getContent() {
+      return content;
+    }
+  }
+
   public static final String DSS_MESSAGE_HEADER_ID = "header";
   public static final String DSS_MESSAGE_CONTENT_ID = "content";
 
@@ -127,7 +150,7 @@ public abstract class DssMessage {
   public final Result getResult() {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
     String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
-    Preconditions.checkNotNull(resultString, "Result content is missing in message: " + this);
+    Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
     return Result.valueOf(resultString);
   }
 
@@ -162,7 +185,7 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
     Preconditions.checkNotNull(
-        exceptionMessage, "Exception message is missing in message: " + this);
+        exceptionMessage, "Exception message is missing in message: %s", this);
     return exceptionMessage;
   }
 
@@ -204,29 +227,6 @@ public abstract class DssMessage {
       statsBuilder.put(key, entry.getValue());
     }
     return statsBuilder.buildOrThrow();
-  }
-
-  private static class DssMessageProxy {
-    private final ImmutableMap<String, String> header;
-    private final ImmutableMap<String, String> content;
-
-    @JsonCreator
-    DssMessageProxy(
-        @JsonProperty(DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
-        @JsonProperty(DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
-      Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
-      Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
-      header = ImmutableMap.copyOf(pHeader);
-      content = ImmutableMap.copyOf(pContent);
-    }
-
-    private ImmutableMap<String, String> getHeader() {
-      return header;
-    }
-
-    private ImmutableMap<String, String> getContent() {
-      return content;
-    }
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
